@@ -1,0 +1,626 @@
+
+/**
+ * Utility functions for time calculations and schedule handling
+ */
+
+interface EstadoLocal {
+  badge: string;
+  estaAbierto: boolean | null;
+  claseBg?: string;
+  overlayIcon?: string | null;
+  tiempoRestante?: string | null;
+  diaLogico?: string;
+}
+
+interface ProximaApertura {
+  dia: string;
+  hora: string;
+  minutosRestantes: number;
+}
+
+interface RangoHorario {
+  apertura: number;
+  cierre: number;
+}
+
+const diasSemana = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+
+/**
+ * Normalize schedule data to array format
+ */
+function normalizarFranjas(franjas: any): string[] {
+  if (!franjas) return [];
+  if (Array.isArray(franjas)) return franjas;
+  if (typeof franjas === 'string') return [franjas];
+  return [];
+}
+
+/**
+ * Parse a time range string and validate it
+ * Returns null if the format is invalid or corrupted
+ */
+export function parsearRangoHorario(rango: string): RangoHorario | null {
+  try {
+    // Handle different separators: "–" (en dash) or "-" (hyphen)
+    const [inicio, fin] = rango.split(/[–-]/);
+    
+    if (!inicio || !fin) {
+      console.error('Error parseando horario: formato inválido', rango);
+      return null;
+    }
+    
+    const [horaInicio, minInicio] = inicio.trim().split(':').map(Number);
+    const [horaFin, minFin] = fin.trim().split(':').map(Number);
+    
+    // Validar rangos
+    if (isNaN(horaInicio) || horaInicio < 0 || horaInicio > 23) {
+      console.error('Error parseando horario: hora inicio inválida', rango);
+      return null;
+    }
+    if (isNaN(minInicio) || minInicio < 0 || minInicio > 59) {
+      console.error('Error parseando horario: minutos inicio inválidos', rango);
+      return null;
+    }
+    if (isNaN(horaFin) || horaFin < 0 || horaFin > 24) {
+      console.error('Error parseando horario: hora fin inválida', rango);
+      return null;
+    }
+    if (isNaN(minFin) || minFin < 0 || minFin > 59) {
+      console.error('Error parseando horario: minutos fin inválidos', rango);
+      return null;
+    }
+    
+    return { 
+      apertura: horaInicio * 60 + minInicio, 
+      cierre: horaFin * 60 + minFin 
+    };
+  } catch (error) {
+    console.error('Error parseando horario:', rango, error);
+    return null;
+  }
+}
+
+/**
+ * Format time in minutes to HH:MM string
+ */
+export function formatearHora(minutos: number): string {
+  const horas = Math.floor(minutos / 60);
+  const mins = minutos % 60;
+  return `${horas.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+}
+
+/**
+ * Format time remaining in a human-readable way
+ * Now includes days when time is more than 24 hours
+ */
+export function formatearTiempo(minutos: number): string {
+  if (minutos < 60) {
+    return `${minutos} min`;
+  }
+  
+  const horas = Math.floor(minutos / 60);
+  const mins = minutos % 60;
+  
+  // If more than 24 hours, show days
+  if (horas >= 24) {
+    const dias = Math.floor(horas / 24);
+    const horasRestantes = horas % 24;
+    
+    if (horasRestantes === 0 && mins === 0) {
+      return `${dias} ${dias === 1 ? 'día' : 'días'}`;
+    } else if (horasRestantes === 0) {
+      return `${dias} ${dias === 1 ? 'día' : 'días'} ${mins} min`;
+    } else if (mins === 0) {
+      return `${dias} ${dias === 1 ? 'día' : 'días'} ${horasRestantes} h`;
+    } else {
+      return `${dias} ${dias === 1 ? 'día' : 'días'} ${horasRestantes} h ${mins} min`;
+    }
+  }
+  
+  // Less than 24 hours
+  if (mins === 0) {
+    return `${horas} h`;
+  }
+  return `${horas} h ${mins} min`;
+}
+
+/**
+ * Format day name in Spanish
+ */
+export function formatearDiaSemana(dia: string): string {
+  const dias: Record<string, string> = {
+    lunes: 'lunes',
+    martes: 'martes',
+    miercoles: 'miércoles',
+    jueves: 'jueves',
+    viernes: 'viernes',
+    sabado: 'sábado',
+    domingo: 'domingo',
+  };
+  return dias[dia] || dia;
+}
+
+/**
+ * Calculate minutes until a specific time on a specific day
+ */
+export function calcularMinutosHasta(ahora: Date, diaIndex: number, horaMinutos: number): number {
+  const diaActual = ahora.getDay();
+  const horaActual = ahora.getHours() * 60 + ahora.getMinutes();
+  
+  let diasHasta = diaIndex - diaActual;
+  if (diasHasta < 0) {
+    diasHasta += 7;
+  }
+  
+  const minutosHasta = (diasHasta * 24 * 60) + (horaMinutos - horaActual);
+  return minutosHasta;
+}
+
+/**
+ * Check if a local is open 24 hours
+ * A local is 24h ONLY if ALL 7 days have 24-hour schedules
+ */
+export function esLocal24Horas(horarios: Record<string, any>): boolean {
+  if (!horarios) return false;
+  
+  let diasCon24h = 0;
+  
+  for (const dia of diasSemana) {
+    const horarioDia = horarios[dia];
+    
+    // If no schedule for this day, it's not 24h
+    if (!horarioDia) {
+      return false;
+    }
+    
+    const franjas = normalizarFranjas(horarioDia);
+    
+    // If empty or closed, not 24h
+    if (franjas.length === 0 || franjas[0] === 'Cerrado') {
+      return false;
+    }
+    
+    // Check if this day has 24-hour schedule
+    const es24h = franjas.some(h => {
+      const horarioLower = h.toLowerCase().trim();
+      return (
+        horarioLower === '24 horas' || 
+        horarioLower === '24h' || 
+        horarioLower === 'abierto 24 horas' ||
+        horarioLower.includes('abierto 24')
+      );
+    });
+    
+    if (es24h) {
+      diasCon24h++;
+    }
+  }
+  
+  // A local is 24h ONLY if ALL 7 days have 24-hour schedules
+  return diasCon24h === 7;
+}
+
+/**
+ * Search for the next opening time in the next 7 days
+ */
+export function buscarProximaApertura(local: any, ahora: Date): ProximaApertura | null {
+  const diaActual = ahora.getDay();
+  const horaActual = ahora.getHours() * 60 + ahora.getMinutes();
+  
+  // First, check if it opens later TODAY
+  const diaNombreHoy = diasSemana[diaActual];
+  const horarioHoy = local.horarios_completos?.[diaNombreHoy];
+  
+  if (horarioHoy) {
+    const franjas = normalizarFranjas(horarioHoy);
+    
+    if (franjas.length > 0 && franjas[0] !== 'Cerrado') {
+      for (const rango of franjas) {
+        if (rango === 'Cerrado' || rango.toLowerCase().includes('24')) continue;
+        
+        const parsed = parsearRangoHorario(rango);
+        if (!parsed) continue;
+        
+        // If opening is later today
+        if (parsed.apertura > horaActual) {
+          return {
+            dia: diaNombreHoy,
+            hora: formatearHora(parsed.apertura),
+            minutosRestantes: parsed.apertura - horaActual
+          };
+        }
+      }
+    }
+  }
+  
+  // Search in the next 7 days
+  for (let i = 1; i <= 7; i++) {
+    const diaIndex = (ahora.getDay() + i) % 7;
+    const diaNombre = diasSemana[diaIndex];
+    const horarioDia = local.horarios_completos?.[diaNombre];
+    
+    if (horarioDia) {
+      const franjas = normalizarFranjas(horarioDia);
+      
+      if (franjas.length > 0 && franjas[0] !== 'Cerrado') {
+        // Get the first valid time range
+        for (const rango of franjas) {
+          if (rango === 'Cerrado' || rango.toLowerCase().includes('24')) continue;
+          
+          const parsed = parsearRangoHorario(rango);
+          if (!parsed) continue;
+          
+          return {
+            dia: diaNombre,
+            hora: formatearHora(parsed.apertura),
+            minutosRestantes: calcularMinutosHasta(ahora, diaIndex, parsed.apertura)
+          };
+        }
+      }
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Calculate the current status for a local with normal hours
+ * Handles multiple time ranges per day and midnight crossings
+ * 
+ * CRITICAL FIX: Properly handles overnight schedules
+ * Example: Monday 23:30-06:30 means:
+ * - Opens Monday at 23:30 PM
+ * - Closes Tuesday at 06:30 AM
+ * - At Monday 05:27 AM, the venue is CLOSED (hasn't opened yet)
+ */
+export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLocal {
+  const diaActualIndex = ahora.getDay();
+  const diaActual = diasSemana[diaActualIndex];
+  const horaActual = ahora.getHours() * 60 + ahora.getMinutes();
+  
+  console.log(`⏰ [TIME] Calculando estado para: ${local.nombre || 'Local sin nombre'}`);
+  console.log(`⏰ [TIME] Día del reloj: ${diaActual}, Hora actual: ${formatearHora(horaActual)} (${horaActual} minutos)`);
+  
+  // STEP 1: Determine the logical day
+  // If we're in early morning (00:00-06:30), we need to check if we're still in the previous day's night
+  let diaReferencia = diaActual;
+  let diaReferenciaIndex = diaActualIndex;
+  let estamosEnNochePreviaDelDiaAnterior = false;
+  
+  if (horaActual < 390) { // Before 6:30 AM (390 minutes)
+    const diaAnteriorIndex = (diaActualIndex - 1 + 7) % 7;
+    const diaAnterior = diasSemana[diaAnteriorIndex];
+    const horarioAnterior = local.horarios_completos?.[diaAnterior];
+    
+    console.log(`⏰ [TIME] Es madrugada (${formatearHora(horaActual)}), verificando horario del día anterior: ${diaAnterior}`);
+    
+    if (horarioAnterior) {
+      const franjasAnterior = normalizarFranjas(horarioAnterior);
+      
+      // Check if the previous day has an overnight schedule that extends to now
+      if (franjasAnterior.length > 0 && franjasAnterior[0] !== 'Cerrado') {
+        for (const rango of franjasAnterior) {
+          if (rango === 'Cerrado' || rango.toLowerCase().includes('24')) continue;
+          
+          const parsed = parsearRangoHorario(rango);
+          if (!parsed) continue;
+          
+          const { apertura, cierre } = parsed;
+          
+          // If closing < opening, it's an overnight schedule
+          if (cierre < apertura) {
+            console.log(`⏰ [TIME] Horario nocturno detectado del día anterior: ${formatearHora(apertura)}–${formatearHora(cierre)}`);
+            
+            // If current time is before the closing time, we're in the previous day's night
+            if (horaActual < cierre) {
+              console.log(`⏰ [TIME] ✅ Estamos en la noche del ${diaAnterior} (día lógico)`);
+              diaReferencia = diaAnterior;
+              diaReferenciaIndex = diaAnteriorIndex;
+              estamosEnNochePreviaDelDiaAnterior = true;
+              break;
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  console.log(`⏰ [TIME] Día lógico: ${diaReferencia}`);
+  
+  // STEP 2: Get the schedule for the logical day
+  let horarioReferencia = local.horarios_completos?.[diaReferencia];
+  
+  if (!horarioReferencia) {
+    horarioReferencia = [];
+  }
+  
+  const franjas = normalizarFranjas(horarioReferencia);
+  
+  // CASE A: Reference day is closed (no schedule)
+  if (franjas.length === 0 || franjas[0] === 'Cerrado') {
+    console.log(`⏰ [TIME] Local cerrado en día de referencia (${diaReferencia})`);
+    
+    // Search for next opening
+    const proximaApertura = buscarProximaApertura(local, ahora);
+    
+    if (proximaApertura && proximaApertura.minutosRestantes <= 30) {
+      console.log(`⏰ [TIME] Abre pronto en ${proximaApertura.minutosRestantes} minutos`);
+      return {
+        badge: 'Abre pronto',
+        estaAbierto: false,
+        claseBg: 'bg-yellow-500',
+        overlayIcon: null,
+        tiempoRestante: formatearTiempo(proximaApertura.minutosRestantes),
+        diaLogico: diaReferencia,
+      };
+    }
+    
+    console.log(`⏰ [TIME] Cerrado ahora, próxima apertura:`, proximaApertura);
+    return {
+      badge: proximaApertura 
+        ? `Abre a las ${proximaApertura.hora}`
+        : 'Cerrado ahora',
+      estaAbierto: false,
+      claseBg: 'bg-red-500',
+      overlayIcon: 'lock',
+      tiempoRestante: proximaApertura ? formatearTiempo(proximaApertura.minutosRestantes) : null,
+      diaLogico: diaReferencia,
+    };
+  }
+  
+  // CASE B: Reference day has schedules → check if it's open NOW
+  console.log(`⏰ [TIME] Verificando ${franjas.length} rangos horarios del día lógico ${diaReferencia}`);
+  
+  for (let i = 0; i < franjas.length; i++) {
+    const rango = franjas[i];
+    console.log(`⏰ [TIME] Verificando rango ${i + 1}: ${rango}`);
+    
+    if (rango === 'Cerrado' || rango.toLowerCase().includes('24')) continue;
+    
+    const parsed = parsearRangoHorario(rango);
+    if (!parsed) {
+      console.log(`⏰ [TIME] Error parseando rango: ${rango}`);
+      continue;
+    }
+    
+    const { apertura, cierre } = parsed;
+    console.log(`⏰ [TIME] Apertura: ${formatearHora(apertura)} (${apertura} min), Cierre: ${formatearHora(cierre)} (${cierre} min)`);
+    
+    // OVERNIGHT SCHEDULE: Closing after midnight (cierre < apertura)
+    if (cierre < apertura) {
+      console.log(`⏰ [TIME] Horario nocturno detectado (cruza medianoche)`);
+      
+      // If we're in the early morning and already determined we're in the previous day's night
+      if (estamosEnNochePreviaDelDiaAnterior) {
+        // We're in the overnight period (after midnight, before closing)
+        if (horaActual < cierre) {
+          console.log(`⏰ [TIME] ✅ ABIERTO (en la madrugada del horario nocturno del día anterior)`);
+          
+          const minutosHastaCierre = cierre - horaActual;
+          console.log(`⏰ [TIME] Minutos hasta cierre: ${minutosHastaCierre}`);
+          
+          if (minutosHastaCierre <= 60) {
+            return {
+              badge: 'Cierra pronto',
+              estaAbierto: true,
+              claseBg: 'bg-orange-500',
+              overlayIcon: null,
+              tiempoRestante: formatearTiempo(minutosHastaCierre),
+              diaLogico: diaReferencia,
+            };
+          }
+          
+          return {
+            badge: 'Abierto ahora',
+            estaAbierto: true,
+            claseBg: 'bg-green-500',
+            overlayIcon: null,
+            tiempoRestante: formatearTiempo(minutosHastaCierre),
+            diaLogico: diaReferencia,
+          };
+        }
+      } else {
+        // We're in the same day, check if we're after opening time
+        if (horaActual >= apertura) {
+          console.log(`⏰ [TIME] ✅ ABIERTO (después de la apertura del horario nocturno)`);
+          
+          // Calculate minutes until closing (tomorrow)
+          const minutosHastaCierre = (24 * 60 - horaActual) + cierre;
+          console.log(`⏰ [TIME] Minutos hasta cierre: ${minutosHastaCierre}`);
+          
+          if (minutosHastaCierre <= 60) {
+            return {
+              badge: 'Cierra pronto',
+              estaAbierto: true,
+              claseBg: 'bg-orange-500',
+              overlayIcon: null,
+              tiempoRestante: formatearTiempo(minutosHastaCierre),
+              diaLogico: diaReferencia,
+            };
+          }
+          
+          return {
+            badge: 'Abierto ahora',
+            estaAbierto: true,
+            claseBg: 'bg-green-500',
+            overlayIcon: null,
+            tiempoRestante: formatearTiempo(minutosHastaCierre),
+            diaLogico: diaReferencia,
+          };
+        } else {
+          console.log(`⏰ [TIME] ❌ CERRADO (antes de la apertura del horario nocturno)`);
+        }
+      }
+    } else {
+      // DAYTIME SCHEDULE: Closing before midnight
+      console.log(`⏰ [TIME] Horario diurno detectado`);
+      
+      if (horaActual >= apertura && horaActual < cierre) {
+        // ✅ OPEN (between opening and closing)
+        console.log(`⏰ [TIME] ✅ ABIERTO (horario diurno)`);
+        
+        const minutosHastaCierre = cierre - horaActual;
+        console.log(`⏰ [TIME] Minutos hasta cierre: ${minutosHastaCierre}`);
+        
+        if (minutosHastaCierre <= 60) {
+          return {
+            badge: 'Cierra pronto',
+            estaAbierto: true,
+            claseBg: 'bg-orange-500',
+            overlayIcon: null,
+            tiempoRestante: formatearTiempo(minutosHastaCierre),
+            diaLogico: diaReferencia,
+          };
+        }
+        
+        return {
+          badge: 'Abierto ahora',
+          estaAbierto: true,
+          claseBg: 'bg-green-500',
+          overlayIcon: null,
+          tiempoRestante: formatearTiempo(minutosHastaCierre),
+          diaLogico: diaReferencia,
+        };
+      } else {
+        console.log(`⏰ [TIME] ❌ CERRADO (fuera del rango ${apertura}-${cierre})`);
+      }
+    }
+  }
+  
+  // CASE C: Outside all time ranges → CLOSED
+  console.log(`⏰ [TIME] ❌ CERRADO (fuera de todos los rangos)`);
+  
+  const proximaApertura = buscarProximaApertura(local, ahora);
+  
+  if (proximaApertura && proximaApertura.minutosRestantes <= 30) {
+    console.log(`⏰ [TIME] Abre pronto en ${proximaApertura.minutosRestantes} minutos`);
+    return {
+      badge: 'Abre pronto',
+      estaAbierto: false,
+      claseBg: 'bg-yellow-500',
+      overlayIcon: null,
+      tiempoRestante: formatearTiempo(proximaApertura.minutosRestantes),
+      diaLogico: diaReferencia,
+    };
+  }
+  
+  console.log(`⏰ [TIME] Próxima apertura:`, proximaApertura);
+  return {
+    badge: proximaApertura 
+      ? `Abre a las ${proximaApertura.hora}`
+      : 'Cerrado ahora',
+    estaAbierto: false,
+    claseBg: 'bg-red-500',
+    overlayIcon: 'lock',
+    tiempoRestante: proximaApertura ? formatearTiempo(proximaApertura.minutosRestantes) : null,
+    diaLogico: diaReferencia,
+  };
+}
+
+/**
+ * Get the complete status of a local (main entry point)
+ */
+export function getEstadoLocal(local: any, ahora: Date = new Date()): EstadoLocal {
+  // CASE: Permanently closed
+  if (local.estado_negocio === 'CLOSED_PERMANENTLY') {
+    return { 
+      badge: 'Cerrado permanentemente', 
+      estaAbierto: false,
+      claseBg: 'bg-red-500',
+      overlayIcon: 'lock',
+      tiempoRestante: null,
+      diaLogico: diasSemana[ahora.getDay()],
+    };
+  }
+  
+  // CASE: Temporarily closed
+  if (local.estado_negocio === 'CLOSED_TEMPORARILY') {
+    return { 
+      badge: 'Cerrado temporalmente', 
+      estaAbierto: false,
+      claseBg: 'bg-orange-500',
+      overlayIcon: 'clock',
+      tiempoRestante: null,
+      diaLogico: diasSemana[ahora.getDay()],
+    };
+  }
+  
+  // CASE: No schedule information
+  if (!local.horarios_completos || Object.keys(local.horarios_completos).length === 0) {
+    return { 
+      badge: 'Sin información de horario', 
+      estaAbierto: null,
+      claseBg: 'bg-gray-400',
+      overlayIcon: 'questionmark',
+      tiempoRestante: null,
+      diaLogico: diasSemana[ahora.getDay()],
+    };
+  }
+  
+  // CASE: Open 24 hours
+  if (esLocal24Horas(local.horarios_completos)) {
+    console.log(`⏰ [TIME] ✅ Local abierto 24 horas detectado: ${local.nombre}`);
+    return { 
+      badge: 'Abierto 24h', 
+      estaAbierto: true,
+      claseBg: 'bg-green-500',
+      overlayIcon: null,
+      tiempoRestante: null,
+      diaLogico: diasSemana[ahora.getDay()],
+    };
+  }
+  
+  // CASE: Normal schedule (with all special cases)
+  return calcularEstadoHorarioNormal(local, ahora);
+}
+
+/**
+ * Calculate time until opening or closing (legacy function for compatibility)
+ */
+export function calcularTiempoHasta(horarios_completos: Record<string, string[]> | null, estado_actual: string | null): string {
+  if (!horarios_completos || Object.keys(horarios_completos).length === 0) {
+    return estado_actual === 'abierto_ahora' ? 'Abierto' : 'Cerrado';
+  }
+
+  const local = { horarios_completos };
+  const estado = getEstadoLocal(local);
+  
+  if (estado.tiempoRestante) {
+    return `${estado.badge} • ${estado.tiempoRestante}`;
+  }
+  
+  return estado.badge;
+}
+
+/**
+ * Format day name in Spanish (legacy function)
+ */
+export function formatDayName(day: string): string {
+  return formatearDiaSemana(day);
+}
+
+/**
+ * Get current opening status with time info (legacy function)
+ */
+export function getOpeningStatus(horarios_completos: Record<string, string[]> | null, estado_actual: string | null): {
+  isOpen: boolean;
+  text: string;
+  color: string;
+} {
+  const local = { horarios_completos };
+  const estado = getEstadoLocal(local);
+  
+  const colorMap: Record<string, string> = {
+    'bg-green-500': '#22C55E',
+    'bg-orange-500': '#F97316',
+    'bg-yellow-500': '#EAB308',
+    'bg-red-500': '#EF4444',
+    'bg-gray-400': '#9CA3AF',
+  };
+  
+  return {
+    isOpen: estado.estaAbierto === true,
+    text: estado.tiempoRestante ? `${estado.badge} • ${estado.tiempoRestante}` : estado.badge,
+    color: colorMap[estado.claseBg || 'bg-gray-400'] || '#9CA3AF',
+  };
+}

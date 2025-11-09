@@ -1,0 +1,208 @@
+
+import React, { useState, useRef } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Modal,
+  TouchableOpacity,
+  Image,
+  Dimensions,
+  ScrollView,
+  Platform,
+} from 'react-native';
+import { IconSymbol } from '@/components/IconSymbol';
+import { colors } from '@/styles/commonStyles';
+
+const { width, height } = Dimensions.get('window');
+
+interface ImageGalleryModalProps {
+  visible: boolean;
+  images: string[];
+  initialIndex?: number;
+  onClose: () => void;
+}
+
+export default function ImageGalleryModal({
+  visible,
+  images,
+  initialIndex = 0,
+  onClose,
+}: ImageGalleryModalProps) {
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  const handleScroll = (event: any) => {
+    const contentOffsetX = event.nativeEvent.contentOffset.x;
+    const index = Math.round(contentOffsetX / width);
+    setCurrentIndex(index);
+  };
+
+  const goToPrevious = () => {
+    if (currentIndex > 0) {
+      const newIndex = currentIndex - 1;
+      setCurrentIndex(newIndex);
+      scrollViewRef.current?.scrollTo({ x: newIndex * width, animated: true });
+    }
+  };
+
+  const goToNext = () => {
+    if (currentIndex < images.length - 1) {
+      const newIndex = currentIndex + 1;
+      setCurrentIndex(newIndex);
+      scrollViewRef.current?.scrollTo({ x: newIndex * width, animated: true });
+    }
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      transparent={false}
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+            <IconSymbol name="xmark" size={24} color={colors.headerText} />
+          </TouchableOpacity>
+          <Text style={styles.counter}>
+            {currentIndex + 1} / {images.length}
+          </Text>
+          <View style={styles.placeholder} />
+        </View>
+
+        {/* Image Carousel */}
+        <ScrollView
+          ref={scrollViewRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          contentOffset={{ x: initialIndex * width, y: 0 }}
+        >
+          {images.map((imageUrl, index) => (
+            <View key={index} style={styles.imageContainer}>
+              <Image
+                source={{ uri: imageUrl }}
+                style={styles.image}
+                resizeMode="contain"
+              />
+            </View>
+          ))}
+        </ScrollView>
+
+        {/* Navigation Arrows */}
+        {currentIndex > 0 && (
+          <TouchableOpacity style={styles.leftArrow} onPress={goToPrevious}>
+            <View style={styles.arrowBackground}>
+              <IconSymbol name="chevron.left" size={32} color={colors.headerText} />
+            </View>
+          </TouchableOpacity>
+        )}
+
+        {currentIndex < images.length - 1 && (
+          <TouchableOpacity style={styles.rightArrow} onPress={goToNext}>
+            <View style={styles.arrowBackground}>
+              <IconSymbol name="chevron.right" size={32} color={colors.headerText} />
+            </View>
+          </TouchableOpacity>
+        )}
+
+        {/* Dots Indicator */}
+        <View style={styles.dotsContainer}>
+          {images.map((_, index) => (
+            <View
+              key={index}
+              style={[
+                styles.dot,
+                index === currentIndex && styles.dotActive,
+              ]}
+            />
+          ))}
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: Platform.OS === 'ios' ? 50 : 40,
+    paddingHorizontal: 20,
+    paddingBottom: 15,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+  },
+  closeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  counter: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.headerText,
+  },
+  placeholder: {
+    width: 40,
+  },
+  imageContainer: {
+    width: width,
+    height: height - 150,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  image: {
+    width: width,
+    height: height - 150,
+  },
+  leftArrow: {
+    position: 'absolute',
+    left: 20,
+    top: '50%',
+    marginTop: -30,
+  },
+  rightArrow: {
+    position: 'absolute',
+    right: 20,
+    top: '50%',
+    marginTop: -30,
+  },
+  arrowBackground: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dotsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 20,
+    gap: 8,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+  },
+  dotActive: {
+    backgroundColor: colors.headerText,
+    width: 24,
+  },
+});
