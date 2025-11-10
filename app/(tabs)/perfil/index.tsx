@@ -1094,14 +1094,22 @@ export default function PerfilScreen() {
               <Text style={styles.statNumber}>{userStats.posts}</Text>
               <Text style={styles.statLabel}>Posts</Text>
             </View>
-            <View style={styles.statItem}>
+            <TouchableOpacity 
+              style={styles.statItem}
+              onPress={() => router.push(`/perfil/seguidores?userId=${user.id}`)}
+              activeOpacity={0.7}
+            >
               <Text style={styles.statNumber}>{userStats.seguidores}</Text>
               <Text style={styles.statLabel}>Seguidores</Text>
-            </View>
-            <View style={styles.statItem}>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.statItem}
+              onPress={() => router.push(`/perfil/seguidos?userId=${user.id}`)}
+              activeOpacity={0.7}
+            >
               <Text style={styles.statNumber}>{userStats.seguidos}</Text>
-              <Text style={styles.statLabel}>Seguidos</Text>
-            </View>
+              <Text style={styles.statLabel}>Siguiendo</Text>
+            </TouchableOpacity>
           </View>
         </View>
 

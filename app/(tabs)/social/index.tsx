@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -21,7 +21,7 @@ import {
 } from 'react-native';
 import { colors, commonStyles } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
@@ -512,7 +512,7 @@ export default function SocialScreen() {
   const [historias, setHistorias] = useState<HistoriaConAutor[]>([]);
   const [userStories, setUserStories] = useState<HistoriaConAutor[]>([]);
   const [posts, setPosts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // FIXED: Start with false to prevent loading screen
   const [refreshing, setRefreshing] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginMessage, setLoginMessage] = useState('');
@@ -533,21 +533,32 @@ export default function SocialScreen() {
   const scrollDirection = useRef<'up' | 'down'>('down');
   const headerTranslateY = useRef(new Animated.Value(0)).current;
 
-  const loadData = useCallback(async () => {
-    try {
-      setLoading(true);
+  // FIXED: Cache data to prevent double loading
+  const dataLoadedRef = useRef(false);
+  const isLoadingRef = useRef(false);
 
-      // Load user's own stories separately - FIXED: Order from oldest to newest
+  const loadData = useCallback(async () => {
+    // FIXED: Prevent double loading
+    if (isLoadingRef.current) {
+      console.log('[Social] Already loading, skipping...');
+      return;
+    }
+
+    isLoadingRef.current = true;
+
+    try {
+      console.log('[Social] ⚡ Loading data...');
+
+      // Load user's own stories separately
       if (user) {
         const { data: userStoryData, error: userStoryError } = await supabase
           .from('historias')
           .select('*')
           .eq('autor_id', user.id)
           .gte('expires_at', new Date().toISOString())
-          .order('created_at', { ascending: true }); // FIXED: Changed to ascending (oldest first)
+          .order('created_at', { ascending: true });
 
         if (!userStoryError && userStoryData) {
-          // INSTAGRAM-STYLE: Check if user has viewed their own stories
           const { data: viewedData } = await supabase
             .from('historia_views')
             .select('historia_id')
@@ -562,11 +573,10 @@ export default function SocialScreen() {
           }));
           
           setUserStories(storiesWithViewStatus);
-          console.log('[Social] User stories loaded:', storiesWithViewStatus.length, 'Viewed:', viewedStoryIds.size);
         }
       }
 
-      // Load stories from other users with viewed status - FIXED: Order from oldest to newest
+      // Load stories from other users with viewed status
       const { data: storyData, error: storyError } = await supabase
         .from('historias')
         .select(`
@@ -575,10 +585,9 @@ export default function SocialScreen() {
         `)
         .gte('expires_at', new Date().toISOString())
         .neq('autor_id', user?.id || '')
-        .order('created_at', { ascending: true }); // FIXED: Changed to ascending (oldest first)
+        .order('created_at', { ascending: true });
 
       if (!storyError && storyData) {
-        // INSTAGRAM-STYLE: Check if user has viewed each story - use batch query for better performance
         if (user) {
           const { data: viewedData } = await supabase
             .from('historia_views')
@@ -594,10 +603,8 @@ export default function SocialScreen() {
           }));
           
           setHistorias(storiesWithViewStatus);
-          console.log('[Social] Other users stories loaded with view status:', storiesWithViewStatus.length, 'Viewed:', viewedStoryIds.size);
         } else {
           setHistorias(storyData);
-          console.log('[Social] Other users stories loaded:', storyData.length);
         }
       }
 
@@ -612,7 +619,6 @@ export default function SocialScreen() {
         .limit(20);
 
       if (!postError && postData) {
-        // Check like and save status for each post if user is logged in
         if (user) {
           const postsWithStatus = await Promise.all(
             postData.map(async (post) => {
@@ -663,19 +669,28 @@ export default function SocialScreen() {
           setPosts(postsWithComments);
         }
       }
+
+      dataLoadedRef.current = true;
+      console.log('[Social] ⚡ Data loaded successfully');
     } catch (error) {
       console.error('[Social] Error loading data:', error);
     } finally {
+      isLoadingRef.current = false;
       setLoading(false);
     }
   }, [user]);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData, user]);
+  // FIXED: Use useFocusEffect to reload data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log('[Social] Screen focused, loading data...');
+      loadData();
+    }, [loadData])
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
+    dataLoadedRef.current = false; // Reset cache
     await loadData();
     setRefreshing(false);
   }, [loadData]);
@@ -745,7 +760,6 @@ export default function SocialScreen() {
     const currentStories = viewingOwnStories ? userStories : historias;
     const currentStory = currentStories[currentStoryIndex];
     
-    // INSTAGRAM-STYLE: Mark story as viewed when moving to next or closing
     if (currentStory && user && !viewingOwnStories) {
       try {
         const { data: existingView } = await supabase
@@ -760,14 +774,12 @@ export default function SocialScreen() {
             historia_id: currentStory.id,
             usuario_id: user.id,
           });
-          console.log('[Social] Story marked as viewed:', currentStory.id);
         }
       } catch (error) {
         console.error('[Social] Error marking story as viewed:', error);
       }
     }
     
-    // FIXED: Also mark own stories as viewed
     if (currentStory && user && viewingOwnStories) {
       try {
         const { data: existingView } = await supabase
@@ -782,7 +794,6 @@ export default function SocialScreen() {
             historia_id: currentStory.id,
             usuario_id: user.id,
           });
-          console.log('[Social] Own story marked as viewed:', currentStory.id);
         }
       } catch (error) {
         console.error('[Social] Error marking own story as viewed:', error);
@@ -793,7 +804,6 @@ export default function SocialScreen() {
       setCurrentStoryIndex(currentStoryIndex + 1);
       setCurrentStoryProgress(0);
     } else {
-      // INSTAGRAM-STYLE: When closing viewer, reload data to update avatar borders
       await loadData();
       setShowStoryViewer(false);
       stopStoryTimer();
@@ -824,22 +834,14 @@ export default function SocialScreen() {
     }, 5000);
   }, [handleNextStory]);
 
-  // FIXED: New function to find first unviewed story index
   const findFirstUnviewedStoryIndex = useCallback((stories: HistoriaConAutor[]): number => {
     const firstUnviewedIndex = stories.findIndex(story => !story.visto_por_usuario);
-    // If all stories are viewed, start from the beginning (0)
-    // If there are unviewed stories, start from the first unviewed one
     return firstUnviewedIndex === -1 ? 0 : firstUnviewedIndex;
   }, []);
 
   const handleStoryPress = useCallback((index: number, isOwnStory: boolean = false) => {
     const stories = isOwnStory ? userStories : historias;
-    
-    // FIXED: If clicking on a story, find the first unviewed story for that author
-    // This implements the Instagram behavior: jump to first unviewed story
     const firstUnviewedIndex = findFirstUnviewedStoryIndex(stories);
-    
-    console.log('[Social] Story pressed - Original index:', index, 'First unviewed:', firstUnviewedIndex, 'Is own story:', isOwnStory);
     
     setCurrentStoryIndex(firstUnviewedIndex);
     setViewingOwnStories(isOwnStory);
@@ -884,7 +886,6 @@ export default function SocialScreen() {
 
               if (error) throw error;
 
-              // Remove from local state
               if (viewingOwnStories) {
                 const newStories = userStories.filter((_, i) => i !== currentStoryIndex);
                 setUserStories(newStories);
@@ -893,7 +894,6 @@ export default function SocialScreen() {
                 setHistorias(newHistorias);
               }
 
-              // Close viewer immediately after deletion
               setShowStoryViewer(false);
               stopStoryTimer();
               setCurrentStoryIndex(0);
@@ -910,19 +910,17 @@ export default function SocialScreen() {
     );
   }, [historias, userStories, currentStoryIndex, user, viewingOwnStories, stopStoryTimer]);
 
-  // FIXED: Prevent double-clicking with a ref to track ongoing operations
   const likingPostsRef = useRef<Set<string>>(new Set());
 
-  const toggleLike = async (postId: string) => {
+  // FIXED: Optimized toggleLike with instant UI feedback
+  const toggleLike = useCallback(async (postId: string) => {
     if (!user) {
       setLoginMessage('Para dar me gusta necesitas registrarte en BarLive');
       setShowLoginModal(true);
       return;
     }
 
-    // FIXED: Prevent double-clicking
     if (likingPostsRef.current.has(postId)) {
-      console.log('[Social] Like operation already in progress for post:', postId);
       return;
     }
 
@@ -932,10 +930,9 @@ export default function SocialScreen() {
     const isLiked = post.liked;
     const currentLikes = post.likes || 0;
 
-    // Mark as in progress
     likingPostsRef.current.add(postId);
 
-    // Optimistic update
+    // INSTANT UI UPDATE
     setPosts(prevPosts => prevPosts.map(p => 
       p.id === postId 
         ? { ...p, liked: !isLiked, likes: isLiked ? currentLikes - 1 : currentLikes + 1 }
@@ -944,7 +941,6 @@ export default function SocialScreen() {
 
     try {
       if (isLiked) {
-        // FIXED: Delete like first, then update count
         const { error: deleteError } = await supabase
           .from('likes')
           .delete()
@@ -953,17 +949,11 @@ export default function SocialScreen() {
         
         if (deleteError) throw deleteError;
         
-        // Update post likes count
-        const { error: updateError } = await supabase
+        await supabase
           .from('posts')
           .update({ likes: Math.max(0, currentLikes - 1) })
           .eq('id', postId);
-        
-        if (updateError) {
-          console.error('[Social] Error updating post likes:', updateError);
-        }
       } else {
-        // FIXED: Check if like already exists before inserting
         const { data: existingLike } = await supabase
           .from('likes')
           .select('id')
@@ -972,8 +962,6 @@ export default function SocialScreen() {
           .single();
         
         if (existingLike) {
-          console.log('[Social] Like already exists, skipping insert');
-          // Revert optimistic update
           setPosts(prevPosts => prevPosts.map(p => 
             p.id === postId 
               ? { ...p, liked: true, likes: currentLikes }
@@ -990,33 +978,24 @@ export default function SocialScreen() {
         
         if (insertError) throw insertError;
         
-        // Update post likes count
-        const { error: updateError } = await supabase
+        await supabase
           .from('posts')
           .update({ likes: currentLikes + 1 })
           .eq('id', postId);
-        
-        if (updateError) {
-          console.error('[Social] Error updating post likes:', updateError);
-        }
       }
-      
-      console.log('[Social] Like toggled successfully for post:', postId);
     } catch (error) {
       console.error('[Social] Error toggling like:', error);
-      // Revert on error
       setPosts(prevPosts => prevPosts.map(p => 
         p.id === postId 
           ? { ...p, liked: isLiked, likes: currentLikes }
           : p
       ));
     } finally {
-      // Remove from in-progress set
       likingPostsRef.current.delete(postId);
     }
-  };
+  }, [user, posts]);
 
-  const toggleSave = async (postId: string) => {
+  const toggleSave = useCallback(async (postId: string) => {
     if (!user) {
       setLoginMessage('Para guardar publicaciones necesitas registrarte en BarLive');
       setShowLoginModal(true);
@@ -1028,8 +1007,8 @@ export default function SocialScreen() {
 
     const isSaved = post.saved;
 
-    // Optimistic update
-    setPosts(posts.map(p => 
+    // INSTANT UI UPDATE
+    setPosts(prevPosts => prevPosts.map(p => 
       p.id === postId 
         ? { ...p, saved: !isSaved }
         : p
@@ -1050,16 +1029,15 @@ export default function SocialScreen() {
       }
     } catch (error) {
       console.error('[Social] Error toggling save:', error);
-      // Revert on error
-      setPosts(posts.map(p => 
+      setPosts(prevPosts => prevPosts.map(p => 
         p.id === postId 
           ? { ...p, saved: isSaved }
           : p
       ));
     }
-  };
+  }, [user, posts]);
 
-  const handleDeletePost = async (postId: string) => {
+  const handleDeletePost = useCallback(async (postId: string) => {
     const post = posts.find(p => p.id === postId);
     if (!post || !user || post.autor_id !== user.id) {
       return;
@@ -1092,16 +1070,16 @@ export default function SocialScreen() {
         },
       ]
     );
-  };
+  }, [posts, user]);
 
-  const handleCreatePress = () => {
+  const handleCreatePress = useCallback(() => {
     if (!user) {
       setLoginMessage('Para crear contenido necesitas registrarte en BarLive');
       setShowLoginModal(true);
     } else {
       setShowCreateOptions(true);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     if (showStoryViewer && !isPaused) {
@@ -1112,33 +1090,36 @@ export default function SocialScreen() {
     };
   }, [showStoryViewer, currentStoryIndex, isPaused, startStoryTimer, stopStoryTimer]);
 
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <LinearGradient
-          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-          style={styles.header}
-        >
-          <Text style={styles.headerTitle}>Social</Text>
-          <View style={styles.headerButtons}>
-            <TouchableOpacity style={styles.headerButton}>
-              <IconSymbol name="plus" size={24} color={colors.headerText} />
-            </TouchableOpacity>
-          </View>
-        </LinearGradient>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      </View>
-    );
-  }
+  // FIXED: Memoize grouped stories to prevent recalculation
+  const groupedStories = useMemo(() => {
+    const storyGroups = historias.reduce((acc, historia) => {
+      const authorId = historia.autor_id;
+      if (!acc[authorId]) {
+        acc[authorId] = [];
+      }
+      acc[authorId].push(historia);
+      return acc;
+    }, {} as Record<string, typeof historias>);
+
+    return Object.values(storyGroups).map((authorStories) => {
+      const firstStory = authorStories[0];
+      const allViewed = authorStories.every(s => s.visto_por_usuario);
+      const firstStoryIndex = historias.findIndex(h => h.id === firstStory.id);
+
+      return {
+        firstStory,
+        allViewed,
+        firstStoryIndex,
+      };
+    });
+  }, [historias]);
 
   const currentStories = viewingOwnStories ? userStories : historias;
   const currentStory = currentStories[currentStoryIndex];
   const hasUserStories = userStories.length > 0;
-  // INSTAGRAM-STYLE: Only show gradient border if there are unviewed stories
   const hasUnviewedUserStories = userStories.some(s => !s.visto_por_usuario);
 
+  // FIXED: Show content immediately without loading screen
   return (
     <View style={styles.container}>
       <Animated.View
@@ -1157,28 +1138,31 @@ export default function SocialScreen() {
         >
           <Text style={styles.headerTitle}>Social</Text>
           <View style={styles.headerButtons}>
-            {/* FIXED: Added message and notification icons */}
             <TouchableOpacity
               style={styles.headerButton}
               onPress={() => router.push('/(tabs)/perfil/chats')}
+              activeOpacity={0.7}
             >
               <IconSymbol name="message" size={24} color={colors.headerText} />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.headerButton}
               onPress={() => router.push('/(tabs)/perfil/notificaciones')}
+              activeOpacity={0.7}
             >
               <IconSymbol name="bell" size={24} color={colors.headerText} />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.headerButton}
               onPress={() => setShowSearchModal(true)}
+              activeOpacity={0.7}
             >
               <IconSymbol name="magnifyingglass" size={24} color={colors.headerText} />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.headerButton}
               onPress={handleCreatePress}
+              activeOpacity={0.7}
             >
               <IconSymbol name="plus" size={24} color={colors.headerText} />
             </TouchableOpacity>
@@ -1195,7 +1179,7 @@ export default function SocialScreen() {
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-        {/* Stories - INSTAGRAM-STYLE: Show user's own story on main avatar with gradient border only if unviewed */}
+        {/* Stories */}
         <View style={styles.historiasContainer}>
           <ScrollView
             horizontal
@@ -1212,6 +1196,7 @@ export default function SocialScreen() {
                     router.push('/crear/historia');
                   }
                 }}
+                activeOpacity={0.7}
               >
                 <View style={styles.historiaAddButton}>
                   {hasUserStories ? (
@@ -1266,76 +1251,56 @@ export default function SocialScreen() {
               </TouchableOpacity>
             )}
 
-            {/* INSTAGRAM-STYLE: Group stories by author and check if ALL stories from that author are viewed */}
-            {(() => {
-              // Group stories by author
-              const storyGroups = historias.reduce((acc, historia) => {
-                const authorId = historia.autor_id;
-                if (!acc[authorId]) {
-                  acc[authorId] = [];
-                }
-                acc[authorId].push(historia);
-                return acc;
-              }, {} as Record<string, typeof historias>);
-
-              // Get first story from each author
-              return Object.values(storyGroups).map((authorStories, groupIndex) => {
-                const firstStory = authorStories[0];
-                // INSTAGRAM-STYLE: Check if ALL stories from this author have been viewed
-                const allViewed = authorStories.every(s => s.visto_por_usuario);
-                const firstStoryIndex = historias.findIndex(h => h.id === firstStory.id);
-
-                return (
-                  <TouchableOpacity
-                    key={firstStory.id}
-                    style={styles.historiaItem}
-                    onPress={() => handleStoryPress(firstStoryIndex, false)}
-                  >
-                    <View style={styles.historiaAvatarContainer}>
-                      {!allViewed ? (
-                        <LinearGradient
-                          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 0 }}
-                          style={styles.historiaGradientBorder}
-                        >
-                          {firstStory.autor?.avatar ? (
-                            <Image
-                              source={{ uri: firstStory.autor.avatar }}
-                              style={styles.historiaAvatar}
-                            />
-                          ) : (
-                            <View style={[styles.historiaAvatar, styles.avatarPlaceholder]}>
-                              <Text style={styles.avatarText}>
-                                {firstStory.autor?.nombre?.charAt(0).toUpperCase() || 'U'}
-                              </Text>
-                            </View>
-                          )}
-                        </LinearGradient>
+            {groupedStories.map(({ firstStory, allViewed, firstStoryIndex }, groupIndex) => (
+              <TouchableOpacity
+                key={firstStory.id}
+                style={styles.historiaItem}
+                onPress={() => handleStoryPress(firstStoryIndex, false)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.historiaAvatarContainer}>
+                  {!allViewed ? (
+                    <LinearGradient
+                      colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.historiaGradientBorder}
+                    >
+                      {firstStory.autor?.avatar ? (
+                        <Image
+                          source={{ uri: firstStory.autor.avatar }}
+                          style={styles.historiaAvatar}
+                        />
                       ) : (
-                        <>
-                          {firstStory.autor?.avatar ? (
-                            <Image
-                              source={{ uri: firstStory.autor.avatar }}
-                              style={[styles.historiaAvatar, { borderWidth: 2, borderColor: colors.cardBorder }]}
-                            />
-                          ) : (
-                            <View style={[styles.historiaAvatar, styles.avatarPlaceholder, { borderWidth: 2, borderColor: colors.cardBorder }]}>
-                              <Text style={styles.avatarText}>
-                                {firstStory.autor?.nombre?.charAt(0).toUpperCase() || 'U'}
-                              </Text>
-                            </View>
-                          )}
-                        </>
+                        <View style={[styles.historiaAvatar, styles.avatarPlaceholder]}>
+                          <Text style={styles.avatarText}>
+                            {firstStory.autor?.nombre?.charAt(0).toUpperCase() || 'U'}
+                          </Text>
+                        </View>
                       )}
-                    </View>
-                    <Text style={styles.historiaNombre} numberOfLines={1}>
-                      {firstStory.autor?.nombre || 'Usuario'}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              });
-            })()}
+                    </LinearGradient>
+                  ) : (
+                    <>
+                      {firstStory.autor?.avatar ? (
+                        <Image
+                          source={{ uri: firstStory.autor.avatar }}
+                          style={[styles.historiaAvatar, { borderWidth: 2, borderColor: colors.cardBorder }]}
+                        />
+                      ) : (
+                        <View style={[styles.historiaAvatar, styles.avatarPlaceholder, { borderWidth: 2, borderColor: colors.cardBorder }]}>
+                          <Text style={styles.avatarText}>
+                            {firstStory.autor?.nombre?.charAt(0).toUpperCase() || 'U'}
+                          </Text>
+                        </View>
+                      )}
+                    </>
+                  )}
+                </View>
+                <Text style={styles.historiaNombre} numberOfLines={1}>
+                  {firstStory.autor?.nombre || 'Usuario'}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </ScrollView>
         </View>
 
@@ -1348,13 +1313,13 @@ export default function SocialScreen() {
                   <TouchableOpacity
                     style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
                     onPress={() => {
-                      // FIXED: Navigate to user profile
                       if (user && post.autor_id === user.id) {
                         router.push('/(tabs)/perfil');
                       } else {
                         router.push(`/perfil/usuario?userId=${post.autor_id}`);
                       }
                     }}
+                    activeOpacity={0.7}
                   >
                     {post.autor?.avatar ? (
                       <Image source={{ uri: post.autor.avatar }} style={styles.postAvatar} />
@@ -1374,6 +1339,7 @@ export default function SocialScreen() {
                     <TouchableOpacity 
                       style={styles.postOptionsButton}
                       onPress={() => handleDeletePost(post.id)}
+                      activeOpacity={0.7}
                     >
                       <IconSymbol name="trash" size={22} color="#000000" />
                     </TouchableOpacity>
@@ -1381,7 +1347,10 @@ export default function SocialScreen() {
                 </View>
 
                 {post.imagen && (
-                  <TouchableOpacity onPress={() => router.push(`/social/post?id=${post.id}`)}>
+                  <TouchableOpacity 
+                    onPress={() => router.push(`/social/post?id=${post.id}`)}
+                    activeOpacity={0.9}
+                  >
                     <Image source={{ uri: post.imagen }} style={styles.postImagen} />
                   </TouchableOpacity>
                 )}
@@ -1390,6 +1359,7 @@ export default function SocialScreen() {
                   <TouchableOpacity 
                     style={styles.postActionButton}
                     onPress={() => toggleLike(post.id)}
+                    activeOpacity={0.7}
                   >
                     <IconSymbol 
                       name={post.liked ? 'heart.fill' : 'heart'} 
@@ -1400,18 +1370,21 @@ export default function SocialScreen() {
                   <TouchableOpacity
                     style={styles.postActionButton}
                     onPress={() => router.push(`/social/post?id=${post.id}`)}
+                    activeOpacity={0.7}
                   >
                     <IconSymbol name="message" size={26} color={colors.text} />
                   </TouchableOpacity>
                   <TouchableOpacity 
                     style={styles.postActionButton}
                     onPress={() => router.push(`/social/post?id=${post.id}&share=true`)}
+                    activeOpacity={0.7}
                   >
                     <IconSymbol name="paperplane" size={26} color={colors.text} />
                   </TouchableOpacity>
                   <TouchableOpacity 
                     style={styles.postActionButtonRight}
                     onPress={() => toggleSave(post.id)}
+                    activeOpacity={0.7}
                   >
                     <IconSymbol 
                       name={post.saved ? 'bookmark.fill' : 'bookmark'} 
@@ -1438,6 +1411,7 @@ export default function SocialScreen() {
                   <TouchableOpacity
                     style={styles.postComentarios}
                     onPress={() => router.push(`/social/post?id=${post.id}`)}
+                    activeOpacity={0.7}
                   >
                     <Text style={styles.postComentariosText}>
                       Ver {post.comentarios === 1 ? 'el comentario' : `los ${post.comentarios} comentarios`}
@@ -1466,7 +1440,7 @@ export default function SocialScreen() {
             colors={[colors.headerGradientStart, colors.headerGradientEnd]}
             style={styles.searchModalHeader}
           >
-            <TouchableOpacity onPress={() => setShowSearchModal(false)}>
+            <TouchableOpacity onPress={() => setShowSearchModal(false)} activeOpacity={0.7}>
               <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
             </TouchableOpacity>
             <View style={styles.searchInputContainer}>
@@ -1491,13 +1465,13 @@ export default function SocialScreen() {
                   setSearchQuery('');
                   setSearchResults([]);
                   setShowSearchModal(false);
-                  // FIXED: Navigate to user profile
                   if (user && result.id === user.id) {
                     router.push('/(tabs)/perfil');
                   } else {
                     router.push(`/perfil/usuario?userId=${result.id}`);
                   }
                 }}
+                activeOpacity={0.7}
               >
                 {result.avatar ? (
                   <Image source={{ uri: result.avatar }} style={styles.searchResultAvatar} />
@@ -1534,7 +1508,7 @@ export default function SocialScreen() {
           <Pressable style={styles.createOptionsContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.createOptionsHeader}>
               <Text style={styles.createOptionsTitle}>Crear</Text>
-              <TouchableOpacity onPress={() => setShowCreateOptions(false)}>
+              <TouchableOpacity onPress={() => setShowCreateOptions(false)} activeOpacity={0.7}>
                 <IconSymbol name="xmark" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
@@ -1545,6 +1519,7 @@ export default function SocialScreen() {
                   setShowCreateOptions(false);
                   router.push('/crear/historia');
                 }}
+                activeOpacity={0.7}
               >
                 <View style={styles.createOptionIcon}>
                   <IconSymbol name="camera.fill" size={24} color={colors.headerText} />
@@ -1562,6 +1537,7 @@ export default function SocialScreen() {
                   setShowCreateOptions(false);
                   router.push('/crear/publicacion');
                 }}
+                activeOpacity={0.7}
               >
                 <View style={styles.createOptionIcon}>
                   <IconSymbol name="photo.fill" size={24} color={colors.headerText} />
@@ -1583,7 +1559,6 @@ export default function SocialScreen() {
         visible={showStoryViewer}
         animationType="fade"
         onRequestClose={async () => {
-          // INSTAGRAM-STYLE: Mark current story as viewed when closing via back button
           const currentStories = viewingOwnStories ? userStories : historias;
           const currentStory = currentStories[currentStoryIndex];
           
@@ -1601,14 +1576,12 @@ export default function SocialScreen() {
                   historia_id: currentStory.id,
                   usuario_id: user.id,
                 });
-                console.log('[Social] Story marked as viewed on modal close:', currentStory.id);
               }
             } catch (error) {
               console.error('[Social] Error marking story as viewed on modal close:', error);
             }
           }
           
-          // Reload to update UI
           await loadData();
           setShowStoryViewer(false);
           stopStoryTimer();
@@ -1670,6 +1643,7 @@ export default function SocialScreen() {
                     <TouchableOpacity
                       style={styles.storyDeleteButton}
                       onPress={handleDeleteStory}
+                      activeOpacity={0.7}
                     >
                       <IconSymbol name="trash" size={20} color="#fff" />
                     </TouchableOpacity>
@@ -1677,7 +1651,6 @@ export default function SocialScreen() {
                   <TouchableOpacity
                     style={styles.storyCloseButton}
                     onPress={async () => {
-                      // INSTAGRAM-STYLE: Mark current story as viewed when closing manually
                       const currentStories = viewingOwnStories ? userStories : historias;
                       const currentStory = currentStories[currentStoryIndex];
                       
@@ -1695,18 +1668,17 @@ export default function SocialScreen() {
                               historia_id: currentStory.id,
                               usuario_id: user.id,
                             });
-                            console.log('[Social] Story marked as viewed on close:', currentStory.id);
                           }
                         } catch (error) {
                           console.error('[Social] Error marking story as viewed on close:', error);
                         }
                       }
                       
-                      // Reload to update UI
                       await loadData();
                       setShowStoryViewer(false);
                       stopStoryTimer();
                     }}
+                    activeOpacity={0.7}
                   >
                     <IconSymbol name="xmark" size={20} color="#fff" />
                   </TouchableOpacity>
@@ -1721,7 +1693,6 @@ export default function SocialScreen() {
                 />
               </View>
 
-              {/* Touch zones: Left = previous, Center = pause/resume, Right = next */}
               <View style={styles.storyTouchZones}>
                 <Pressable
                   style={styles.storyTouchZone}

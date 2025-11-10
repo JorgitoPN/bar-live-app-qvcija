@@ -6,10 +6,9 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  TextInput,
   Image,
-  Platform,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -18,184 +17,12 @@ import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
-const USERS_PER_PAGE = 30;
-
-interface Usuario {
+interface Seguido {
   id: string;
   nombre: string;
   username?: string;
   avatar?: string;
-}
-
-export default function SeguidosScreen() {
-  const router = useRouter();
-  const params = useLocalSearchParams();
-  const { user: currentUser } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [seguidos, setSeguidos] = useState<Usuario[]>([]);
-  const [filteredSeguidos, setFilteredSeguidos] = useState<Usuario[]>([]);
-  const [page, setPage] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
-
-  const userId = params.userId as string || currentUser?.id;
-
-  const loadSeguidos = useCallback(async (pageNum: number = 0, search: string = '') => {
-    if (!userId) return;
-
-    try {
-      if (pageNum === 0) {
-        setLoading(true);
-      } else {
-        setLoadingMore(true);
-      }
-
-      let query = supabase
-        .from('seguidores')
-        .select(`
-          seguido_id,
-          usuarios!seguidores_seguido_id_fkey(id, nombre, username, avatar)
-        `)
-        .eq('seguidor_id', userId)
-        .range(pageNum * USERS_PER_PAGE, (pageNum + 1) * USERS_PER_PAGE - 1);
-
-      if (search) {
-        query = query.or(`usuarios.nombre.ilike.%${search}%,usuarios.username.ilike.%${search}%`);
-      }
-
-      const { data, error } = await query;
-
-      if (error) {
-        console.error('[Seguidos] Error loading:', error);
-        return;
-      }
-
-      const users = data?.map((item: any) => item.usuarios).filter(Boolean) || [];
-
-      if (pageNum === 0) {
-        setSeguidos(users);
-        setFilteredSeguidos(users);
-      } else {
-        setSeguidos(prev => [...prev, ...users]);
-        setFilteredSeguidos(prev => [...prev, ...users]);
-      }
-
-      setHasMore(users.length === USERS_PER_PAGE);
-      setPage(pageNum);
-    } catch (error) {
-      console.error('[Seguidos] Error:', error);
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  }, [userId]);
-
-  useEffect(() => {
-    loadSeguidos(0, searchQuery);
-  }, [loadSeguidos, searchQuery]);
-
-  const handleSearch = (text: string) => {
-    setSearchQuery(text);
-    setPage(0);
-    setHasMore(true);
-  };
-
-  const handleLoadMore = () => {
-    if (!loadingMore && hasMore) {
-      loadSeguidos(page + 1, searchQuery);
-    }
-  };
-
-  const handleUserPress = (userId: string) => {
-    if (userId === currentUser?.id) {
-      router.push('/(tabs)/perfil');
-    } else {
-      router.push(`/perfil/usuario?userId=${userId}`);
-    }
-  };
-
-  const renderUser = ({ item }: { item: Usuario }) => (
-    <TouchableOpacity
-      style={styles.userCard}
-      onPress={() => handleUserPress(item.id)}
-    >
-      {item.avatar ? (
-        <Image source={{ uri: item.avatar }} style={styles.avatar} />
-      ) : (
-        <View style={[styles.avatar, styles.avatarPlaceholder]}>
-          <Text style={styles.avatarText}>{item.nombre.charAt(0).toUpperCase()}</Text>
-        </View>
-      )}
-      <View style={styles.userInfo}>
-        <Text style={styles.userName}>{item.nombre}</Text>
-        {item.username && (
-          <Text style={styles.userUsername}>@{item.username}</Text>
-        )}
-      </View>
-      <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
-    </TouchableOpacity>
-  );
-
-  const renderFooter = () => {
-    if (!loadingMore) return null;
-    return (
-      <View style={styles.footer}>
-        <ActivityIndicator size="small" color={colors.primary} />
-      </View>
-    );
-  };
-
-  const renderEmpty = () => {
-    if (loading) return null;
-    return (
-      <View style={styles.emptyState}>
-        <IconSymbol name="person.2" size={64} color={colors.textSecondary} />
-        <Text style={styles.emptyText}>
-          {searchQuery ? 'No se encontraron usuarios' : 'No sigue a nadie'}
-        </Text>
-      </View>
-    );
-  };
-
-  return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-        style={styles.header}
-      >
-        <View style={styles.headerTop}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Seguidos</Text>
-          <View style={{ width: 40 }} />
-        </View>
-
-        <View style={styles.searchContainer}>
-          <IconSymbol name="magnifyingglass" size={18} color={colors.textSecondary} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Buscar usuarios..."
-            placeholderTextColor={colors.textSecondary}
-            value={searchQuery}
-            onChangeText={handleSearch}
-          />
-        </View>
-      </LinearGradient>
-
-      <FlatList
-        data={filteredSeguidos}
-        renderItem={renderUser}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.5}
-        ListFooterComponent={renderFooter}
-        ListEmptyComponent={renderEmpty}
-      />
-    </View>
-  );
+  bio?: string;
 }
 
 const styles = StyleSheet.create({
@@ -204,61 +31,34 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 50,
-    paddingBottom: 20,
+    paddingTop: 50,
+    paddingBottom: 12,
     paddingHorizontal: 16,
-  },
-  headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: colors.headerText,
-    flex: 1,
-    textAlign: 'center',
   },
-  searchContainer: {
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  userItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: colors.text,
-  },
-  listContent: {
     padding: 16,
-    paddingBottom: 100,
-  },
-  userCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    padding: 12,
-    marginBottom: 12,
+    borderBottomWidth: 0.5,
+    borderBottomColor: colors.cardBorder,
   },
   avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     marginRight: 12,
   },
   avatarPlaceholder: {
@@ -267,7 +67,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatarText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: colors.headerText,
   },
@@ -278,23 +78,180 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: colors.text,
+    marginBottom: 2,
   },
   userUsername: {
     fontSize: 14,
     color: colors.textSecondary,
+    marginBottom: 4,
   },
-  footer: {
-    paddingVertical: 20,
-    alignItems: 'center',
+  userBio: {
+    fontSize: 13,
+    color: colors.text,
+    lineHeight: 18,
   },
-  emptyState: {
-    alignItems: 'center',
+  emptyContainer: {
+    flex: 1,
     justifyContent: 'center',
-    paddingVertical: 80,
+    alignItems: 'center',
+    paddingVertical: 60,
   },
   emptyText: {
     fontSize: 16,
     color: colors.textSecondary,
+    textAlign: 'center',
     marginTop: 16,
   },
 });
+
+export default function SeguidosScreen() {
+  const router = useRouter();
+  const params = useLocalSearchParams();
+  const { user } = useAuth();
+  const [seguidos, setSeguidos] = useState<Seguido[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const userId = params.userId as string || user?.id;
+
+  const loadSeguidos = useCallback(async () => {
+    if (!userId) return;
+
+    try {
+      console.log('[Seguidos] Loading following for user:', userId);
+
+      const { data, error } = await supabase
+        .from('seguidores')
+        .select(`
+          seguido_id,
+          usuarios!seguidores_seguido_id_fkey(
+            id,
+            nombre,
+            username,
+            avatar,
+            bio
+          )
+        `)
+        .eq('seguidor_id', userId);
+
+      if (error) {
+        console.error('[Seguidos] Error loading following:', error);
+        return;
+      }
+
+      if (data) {
+        const formattedSeguidos = data
+          .filter(s => s.usuarios)
+          .map((s: any) => ({
+            id: s.usuarios.id,
+            nombre: s.usuarios.nombre,
+            username: s.usuarios.username,
+            avatar: s.usuarios.avatar,
+            bio: s.usuarios.bio,
+          }));
+
+        setSeguidos(formattedSeguidos);
+        console.log('[Seguidos] Loaded following:', formattedSeguidos.length);
+      }
+    } catch (error) {
+      console.error('[Seguidos] Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    loadSeguidos();
+  }, [loadSeguidos]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadSeguidos();
+    setRefreshing(false);
+  };
+
+  const handleUserPress = (userId: string) => {
+    if (user && userId === user.id) {
+      router.push('/(tabs)/perfil');
+    } else {
+      router.push(`/perfil/usuario?userId=${userId}`);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          style={styles.header}
+        >
+          <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
+            <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Siguiendo</Text>
+          <View style={{ width: 24 }} />
+        </LinearGradient>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <LinearGradient
+        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+        style={styles.header}
+      >
+        <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
+          <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Siguiendo</Text>
+        <View style={{ width: 24 }} />
+      </LinearGradient>
+
+      <FlatList
+        data={seguidos}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={styles.userItem}
+            onPress={() => handleUserPress(item.id)}
+            activeOpacity={0.7}
+          >
+            {item.avatar ? (
+              <Image source={{ uri: item.avatar }} style={styles.avatar} />
+            ) : (
+              <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                <Text style={styles.avatarText}>
+                  {item.nombre.charAt(0).toUpperCase()}
+                </Text>
+              </View>
+            )}
+            <View style={styles.userInfo}>
+              <Text style={styles.userName}>{item.nombre}</Text>
+              {item.username && (
+                <Text style={styles.userUsername}>@{item.username}</Text>
+              )}
+              {item.bio && (
+                <Text style={styles.userBio} numberOfLines={2}>
+                  {item.bio}
+                </Text>
+              )}
+            </View>
+          </TouchableOpacity>
+        )}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <IconSymbol name="person.2" size={64} color={colors.textSecondary} />
+            <Text style={styles.emptyText}>No sigues a nadie aún</Text>
+          </View>
+        }
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      />
+    </View>
+  );
+}
