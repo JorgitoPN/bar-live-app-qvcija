@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,10 @@ import {
   Modal,
   Animated,
   Dimensions,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  FlatList,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -50,6 +54,20 @@ interface InteractionMessage {
   };
 }
 
+interface ChatMessage {
+  id: string;
+  usuario_id: string;
+  local_id: string;
+  mensaje: string;
+  created_at: string;
+  usuario: {
+    id: string;
+    nombre: string;
+    username?: string;
+    avatar?: string;
+  };
+}
+
 // Predefined messages for quick interactions
 const MENSAJES_RAPIDOS = [
   { id: '1', texto: '¿Me invitas a una copa? 🍹', emoji: '🍹' },
@@ -80,6 +98,7 @@ export default function SalaVirtualScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { user } = useAuth();
+  const flatListRef = useRef<FlatList>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [local, setLocal] = useState<any>(null);
@@ -90,6 +109,12 @@ export default function SalaVirtualScreen() {
   const [showEmoticons, setShowEmoticons] = useState(false);
   const [interactions, setInteractions] = useState<InteractionMessage[]>([]);
   const [floatingEmojis, setFloatingEmojis] = useState<Array<{ id: string; emoji: string; x: number; y: Animated.Value }>>([]);
+  
+  // Public chat state
+  const [showPublicChat, setShowPublicChat] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [sendingMessage, setSendingMessage] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -161,6 +186,29 @@ export default function SalaVirtualScreen() {
 
       if (!interactionsError) {
         setInteractions(interactionsData || []);
+      }
+
+      // Load public chat messages (last 2 hours)
+      const twoHoursAgo = new Date();
+      twoHoursAgo.setHours(twoHoursAgo.getHours() - 2);
+
+      const { data: chatData, error: chatError } = await supabase
+        .from('sala_virtual_chat')
+        .select(`
+          id,
+          usuario_id,
+          local_id,
+          mensaje,
+          created_at,
+          usuario:usuarios(id, nombre, username, avatar)
+        `)
+        .eq('local_id', params.id)
+        .gte('created_at', twoHoursAgo.toISOString())
+        .order('created_at', { ascending: true })
+        .limit(100);
+
+      if (!chatError) {
+        setChatMessages(chatData || []);
       }
     } catch (error) {
       console.error('[SalaVirtual] Error:', error);
@@ -236,6 +284,39 @@ export default function SalaVirtualScreen() {
               ...payload.new,
               usuario: userData,
             } as CheckIn, ...prev]);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'sala_virtual_chat',
+          filter: `local_id=eq.${params.id}`,
+        },
+        async (payload) => {
+          console.log('[SalaVirtual] New chat message:', payload);
+          
+          // Get user info
+          const { data: userData } = await supabase
+            .from('usuarios')
+            .select('id, nombre, username, avatar')
+            .eq('id', payload.new.usuario_id)
+            .single();
+
+          if (userData) {
+            const newMsg = {
+              ...payload.new,
+              usuario: userData,
+            } as ChatMessage;
+            
+            setChatMessages((prev) => [...prev, newMsg]);
+            
+            // Auto-scroll to bottom
+            setTimeout(() => {
+              flatListRef.current?.scrollToEnd({ animated: true });
+            }, 100);
           }
         }
       )
@@ -394,6 +475,45 @@ export default function SalaVirtualScreen() {
     }
   };
 
+  const handleSendChatMessage = async () => {
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+
+    if (!userHasCheckedIn) {
+      Alert.alert('Haz check-in primero', 'Debes hacer check-in para chatear en la sala virtual');
+      return;
+    }
+
+    if (!newMessage.trim()) return;
+
+    try {
+      setSendingMessage(true);
+
+      const { error } = await supabase
+        .from('sala_virtual_chat')
+        .insert({
+          usuario_id: user.id,
+          local_id: params.id,
+          mensaje: newMessage.trim(),
+        });
+
+      if (error) {
+        console.error('[SalaVirtual] Error sending chat message:', error);
+        Alert.alert('Error', 'No se pudo enviar el mensaje');
+        return;
+      }
+
+      setNewMessage('');
+    } catch (error) {
+      console.error('[SalaVirtual] Error:', error);
+      Alert.alert('Error', 'Ocurrió un error al enviar el mensaje');
+    } finally {
+      setSendingMessage(false);
+    }
+  };
+
   const formatCheckInTime = (created_at: string): string => {
     const now = new Date();
     const checkInTime = new Date(created_at);
@@ -405,6 +525,11 @@ export default function SalaVirtualScreen() {
     if (diffMins < 60) return `Hace ${diffMins} min`;
     if (diffHours < 6) return `Hace ${diffHours} h`;
     return checkInTime.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const formatChatTime = (created_at: string): string => {
+    const messageTime = new Date(created_at);
+    return messageTime.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
   };
 
   if (loading) {
@@ -438,7 +563,17 @@ export default function SalaVirtualScreen() {
           <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Sala Virtual</Text>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity 
+          style={styles.chatButton} 
+          onPress={() => setShowPublicChat(true)}
+        >
+          <IconSymbol name="bubble.left.and.bubble.right.fill" size={24} color={colors.headerText} />
+          {chatMessages.length > 0 && (
+            <View style={styles.chatBadge}>
+              <Text style={styles.chatBadgeText}>{chatMessages.length}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
       </LinearGradient>
 
       {/* Floating emojis animation */}
@@ -630,6 +765,114 @@ export default function SalaVirtualScreen() {
         </View>
       )}
 
+      {/* Public Chat Modal */}
+      <Modal
+        visible={showPublicChat}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setShowPublicChat(false)}
+      >
+        <View style={styles.chatContainer}>
+          <LinearGradient
+            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+            style={styles.chatHeader}
+          >
+            <TouchableOpacity onPress={() => setShowPublicChat(false)} style={styles.backButton}>
+              <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+            </TouchableOpacity>
+            <View style={styles.chatHeaderInfo}>
+              <Text style={styles.chatHeaderTitle}>Chat Público</Text>
+              <Text style={styles.chatHeaderSubtitle}>{local?.nombre}</Text>
+            </View>
+            <View style={{ width: 40 }} />
+          </LinearGradient>
+
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+          >
+            <FlatList
+              ref={flatListRef}
+              data={chatMessages}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.chatMessagesList}
+              renderItem={({ item }) => {
+                const isOwnMessage = user && item.usuario_id === user.id;
+                return (
+                  <View style={[styles.chatMessageContainer, isOwnMessage && styles.chatMessageContainerOwn]}>
+                    {!isOwnMessage && (
+                      <TouchableOpacity
+                        onPress={() => {
+                          setShowPublicChat(false);
+                          router.push(`/perfil/usuario?userId=${item.usuario_id}`);
+                        }}
+                      >
+                        {item.usuario.avatar ? (
+                          <Image source={{ uri: item.usuario.avatar }} style={styles.chatAvatar} />
+                        ) : (
+                          <View style={[styles.chatAvatar, styles.avatarPlaceholder]}>
+                            <Text style={styles.avatarText}>
+                              {item.usuario.nombre.charAt(0).toUpperCase()}
+                            </Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    )}
+                    <View style={[styles.chatBubble, isOwnMessage && styles.chatBubbleOwn]}>
+                      {!isOwnMessage && (
+                        <Text style={styles.chatSenderName}>{item.usuario.nombre}</Text>
+                      )}
+                      <Text style={[styles.chatMessageText, isOwnMessage && styles.chatMessageTextOwn]}>
+                        {item.mensaje}
+                      </Text>
+                      <Text style={[styles.chatMessageTime, isOwnMessage && styles.chatMessageTimeOwn]}>
+                        {formatChatTime(item.created_at)}
+                      </Text>
+                    </View>
+                    {isOwnMessage && <View style={{ width: 40 }} />}
+                  </View>
+                );
+              }}
+              ListEmptyComponent={
+                <View style={styles.chatEmptyState}>
+                  <IconSymbol name="bubble.left.and.bubble.right" size={64} color={colors.textSecondary} />
+                  <Text style={styles.chatEmptyText}>No hay mensajes aún</Text>
+                  <Text style={styles.chatEmptySubtext}>
+                    Sé el primero en enviar un mensaje al chat público
+                  </Text>
+                </View>
+              }
+              onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+            />
+
+            <View style={styles.chatInputContainer}>
+              <TextInput
+                style={styles.chatInput}
+                placeholder={userHasCheckedIn ? "Escribe un mensaje..." : "Haz check-in para chatear..."}
+                placeholderTextColor={colors.textSecondary}
+                value={newMessage}
+                onChangeText={setNewMessage}
+                multiline
+                maxLength={500}
+                editable={userHasCheckedIn && !sendingMessage}
+              />
+              <TouchableOpacity
+                style={[styles.chatSendButton, (!newMessage.trim() || !userHasCheckedIn || sendingMessage) && styles.chatSendButtonDisabled]}
+                onPress={handleSendChatMessage}
+                disabled={!newMessage.trim() || !userHasCheckedIn || sendingMessage}
+              >
+                {sendingMessage ? (
+                  <ActivityIndicator size="small" color={colors.headerText} />
+                ) : (
+                  <IconSymbol name="paperplane.fill" size={20} color={colors.headerText} />
+                )}
+              </TouchableOpacity>
+            </View>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
+
       {/* Quick messages modal */}
       <Modal
         visible={showQuickMessages}
@@ -721,6 +964,29 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: colors.headerText,
+    flex: 1,
+    textAlign: 'center',
+  },
+  chatButton: {
+    padding: 8,
+    position: 'relative',
+  },
+  chatBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: colors.badgeNuevo,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  chatBadgeText: {
+    color: colors.badgeNuevoText,
+    fontSize: 11,
+    fontWeight: 'bold',
   },
   loadingContainer: {
     flex: 1,
@@ -1021,5 +1287,130 @@ const styles = StyleSheet.create({
     fontSize: 48,
     zIndex: 1000,
     bottom: 100,
+  },
+  chatContainer: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  chatHeader: {
+    paddingTop: 50,
+    paddingBottom: 12,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  chatHeaderInfo: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  chatHeaderTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.headerText,
+  },
+  chatHeaderSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginTop: 2,
+  },
+  chatMessagesList: {
+    padding: 16,
+    paddingBottom: 8,
+  },
+  chatMessageContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    marginBottom: 16,
+    gap: 8,
+  },
+  chatMessageContainerOwn: {
+    flexDirection: 'row-reverse',
+  },
+  chatAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
+  chatBubble: {
+    maxWidth: '70%',
+    backgroundColor: colors.cardBackground,
+    padding: 12,
+    borderRadius: 16,
+    borderBottomLeftRadius: 4,
+  },
+  chatBubbleOwn: {
+    backgroundColor: colors.primary,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 4,
+  },
+  chatSenderName: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.primary,
+    marginBottom: 4,
+  },
+  chatMessageText: {
+    fontSize: 15,
+    color: colors.text,
+    lineHeight: 20,
+  },
+  chatMessageTextOwn: {
+    color: colors.headerText,
+  },
+  chatMessageTime: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    marginTop: 4,
+  },
+  chatMessageTimeOwn: {
+    color: 'rgba(255, 255, 255, 0.7)',
+  },
+  chatEmptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 80,
+    gap: 12,
+  },
+  chatEmptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  chatEmptySubtext: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    paddingHorizontal: 40,
+  },
+  chatInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    padding: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+    backgroundColor: colors.cardBackground,
+    gap: 12,
+  },
+  chatInput: {
+    flex: 1,
+    backgroundColor: colors.background,
+    borderRadius: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    fontSize: 16,
+    color: colors.text,
+    maxHeight: 100,
+  },
+  chatSendButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  chatSendButtonDisabled: {
+    opacity: 0.5,
   },
 });

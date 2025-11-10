@@ -198,35 +198,8 @@ export default function UsuarioPerfilScreen() {
       return;
     }
 
-    try {
-      // Check if chat already exists
-      const { data: existingChat } = await supabase
-        .from('chats')
-        .select('id')
-        .or(`and(usuario1_id.eq.${currentUser.id},usuario2_id.eq.${userId}),and(usuario1_id.eq.${userId},usuario2_id.eq.${currentUser.id})`)
-        .single();
-
-      if (existingChat) {
-        router.push(`/detalle/sala-virtual?id=${existingChat.id}`);
-      } else {
-        // Create new chat
-        const { data: newChat, error } = await supabase
-          .from('chats')
-          .insert({
-            usuario1_id: currentUser.id,
-            usuario2_id: userId,
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        router.push(`/detalle/sala-virtual?id=${newChat.id}`);
-      }
-    } catch (error) {
-      console.error('[UsuarioPerfil] Error creating chat:', error);
-      Alert.alert('Error', 'No se pudo abrir el chat');
-    }
+    // Navigate directly to conversation with this user (DIRECT MESSAGE)
+    router.push(`/chat/conversacion?userId=${userId}`);
   };
 
   const handleBlock = async () => {
