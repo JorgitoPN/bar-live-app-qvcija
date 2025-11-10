@@ -44,7 +44,8 @@ const CATEGORIAS_LOCALES = [
 const CATEGORIAS_EXCLUIDAS = ['terrazas', 'rooftops', 'lounge'];
 const LOCALES_POR_PAGINA = 20;
 const HEADER_HEIGHT = Platform.OS === 'ios' ? 110 : 100;
-const CATEGORIAS_HEIGHT = 100;
+const CATEGORIAS_HEIGHT = 110;
+const SPACING_BETWEEN_SECTIONS = 16;
 
 export default function ExplorarScreen() {
   const router = useRouter();
@@ -227,7 +228,7 @@ export default function ExplorarScreen() {
           useNativeDriver: true,
         }),
         Animated.timing(categoriasTranslateY, {
-          toValue: -(HEADER_HEIGHT + CATEGORIAS_HEIGHT),
+          toValue: -(HEADER_HEIGHT + CATEGORIAS_HEIGHT + SPACING_BETWEEN_SECTIONS),
           duration: 250,
           useNativeDriver: true,
         }),
@@ -345,7 +346,7 @@ export default function ExplorarScreen() {
       <Animated.View
         style={{
           position: 'absolute',
-          top: HEADER_HEIGHT,
+          top: HEADER_HEIGHT + SPACING_BETWEEN_SECTIONS,
           left: 0,
           right: 0,
           zIndex: 99,
@@ -390,14 +391,17 @@ export default function ExplorarScreen() {
       <ScrollView
         ref={scrollViewRef}
         style={styles.scrollView}
-        contentContainerStyle={[styles.scrollContent, { paddingTop: HEADER_HEIGHT + CATEGORIAS_HEIGHT }]}
+        contentContainerStyle={[
+          styles.scrollContent, 
+          { paddingTop: HEADER_HEIGHT + CATEGORIAS_HEIGHT + (SPACING_BETWEEN_SECTIONS * 2) }
+        ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl 
             refreshing={refreshing || globalRefreshing} 
             onRefresh={onRefresh} 
             tintColor={colors.primary}
-            progressViewOffset={HEADER_HEIGHT + CATEGORIAS_HEIGHT}
+            progressViewOffset={HEADER_HEIGHT + CATEGORIAS_HEIGHT + (SPACING_BETWEEN_SECTIONS * 2)}
           />
         }
         onScroll={handleScroll}
@@ -568,7 +572,7 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   categoriasContainer: {
-    paddingVertical: 12,
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
   },
