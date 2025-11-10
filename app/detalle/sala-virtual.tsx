@@ -558,7 +558,7 @@ export default function SalaVirtualScreen() {
         .single();
 
       if (insertError) {
-        console.error('[SalaVirtual] Error sending chat message:', insertError);
+        console.error('[SalaVirtual] ❌ Error sending chat message:', insertError);
         
         // Remove optimistic message on error
         setChatMessages((prev) => prev.filter(m => m.id !== tempId));
@@ -577,7 +577,7 @@ export default function SalaVirtualScreen() {
 
       console.log('[SalaVirtual] ✅ Message sent successfully');
     } catch (error) {
-      console.error('[SalaVirtual] Error:', error);
+      console.error('[SalaVirtual] ❌ Error:', error);
       
       // Remove optimistic message on error
       setChatMessages((prev) => prev.filter(m => m.id !== tempId));

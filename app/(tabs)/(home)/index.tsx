@@ -554,21 +554,15 @@ export default function ExplorarScreen() {
         )}
       </ScrollView>
 
-      <Modal
+      <FiltrosAvanzadosSheet
         visible={showFiltros}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowFiltros(false)}
-      >
-        <FiltrosAvanzadosSheet
-          filtros={filtros}
-          onAplicar={(nuevosFiltros) => {
-            setFiltros(nuevosFiltros);
-            setShowFiltros(false);
-          }}
-          onCerrar={() => setShowFiltros(false)}
-        />
-      </Modal>
+        onClose={() => setShowFiltros(false)}
+        filtros={filtros}
+        onAplicarFiltros={(nuevosFiltros) => {
+          setFiltros(nuevosFiltros);
+          setShowFiltros(false);
+        }}
+      />
     </View>
   );
 }

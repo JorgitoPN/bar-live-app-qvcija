@@ -231,7 +231,7 @@ export default function ExplorarScreen() {
           useNativeDriver: true,
         }),
         Animated.timing(categoriasTranslateY, {
-          toValue: -CATEGORIAS_HEIGHT,
+          toValue: -(HEADER_HEIGHT + CATEGORIAS_HEIGHT),
           duration: 250,
           useNativeDriver: true,
         }),
@@ -350,14 +350,15 @@ export default function ExplorarScreen() {
         </LinearGradient>
       </Animated.View>
 
-      {/* Animated Categories - FIXED: Now animates independently from header */}
+      {/* Animated Categories - FIXED: Now positioned at top and animates with header */}
       <Animated.View
         style={{
           position: 'absolute',
-          top: HEADER_HEIGHT,
+          top: 0,
           left: 0,
           right: 0,
           zIndex: 99,
+          paddingTop: HEADER_HEIGHT,
           backgroundColor: colors.background,
           transform: [{ translateY: categoriasTranslateY }],
         }}
