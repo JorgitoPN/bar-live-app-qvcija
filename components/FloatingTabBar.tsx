@@ -65,10 +65,15 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
           const active = isActive(tab.route);
 
           const onPress = () => {
-            console.log('Tab pressed:', tab.name, tab.route);
+            console.log('⚡ Tab pressed:', tab.name, tab.route);
+            
+            // INSTANT NAVIGATION - Use replace for immediate transition
             try {
-              // Use the route directly without (tabs) prefix
-              router.push(tab.route as any);
+              // Check if already on this route to avoid unnecessary navigation
+              if (!active) {
+                // Use replace for instant navigation without animation
+                router.replace(tab.route as any);
+              }
             } catch (error) {
               console.error('Error navigating to:', tab.route, error);
             }
@@ -80,7 +85,7 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                 key={tab.name}
                 onPress={onPress}
                 style={styles.centerButton}
-                activeOpacity={0.8}
+                activeOpacity={0.7}
               >
                 <LinearGradient
                   colors={[colors.headerGradientStart, colors.headerGradientEnd]}
@@ -99,7 +104,7 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
               key={tab.name}
               onPress={onPress}
               style={styles.tab}
-              activeOpacity={0.7}
+              activeOpacity={0.6}
             >
               <View style={[styles.tabContent, active && styles.tabContentActive]}>
                 <IconSymbol
@@ -170,7 +175,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   tabContentActive: {
-    // FIXED: Removed white background to highlight only the icon
+    // No background to keep it clean
   },
   tabLabel: {
     fontSize: 11,

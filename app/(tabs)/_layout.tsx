@@ -228,48 +228,57 @@ export default function TabLayout() {
         screenOptions={{
           headerShown: false,
           tabBarStyle: { display: 'none' },
+          animation: 'none',
+          animationDuration: 0,
         }}
       >
         <Tabs.Screen 
           name="explorar" 
           options={{ 
             href: '/explorar',
+            animation: 'none',
           }} 
         />
         <Tabs.Screen 
           name="eventos" 
           options={{ 
             href: '/eventos',
+            animation: 'none',
           }} 
         />
         <Tabs.Screen 
           name="empleo" 
           options={{ 
             href: '/empleo',
+            animation: 'none',
           }} 
         />
         <Tabs.Screen 
           name="social" 
           options={{ 
             href: '/social',
+            animation: 'none',
           }} 
         />
         <Tabs.Screen 
           name="perfil" 
           options={{ 
             href: '/perfil',
+            animation: 'none',
           }} 
         />
         <Tabs.Screen 
           name="gestion" 
           options={{ 
             href: userRole === 'propietario' || userRole === 'admin' ? '/gestion' : null,
+            animation: 'none',
           }} 
         />
         <Tabs.Screen 
           name="admin" 
           options={{ 
             href: userRole === 'admin' ? '/admin' : null,
+            animation: 'none',
           }} 
         />
         <Tabs.Screen 

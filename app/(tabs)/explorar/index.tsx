@@ -44,7 +44,7 @@ const CATEGORIAS_LOCALES = [
 const CATEGORIAS_EXCLUIDAS = ['terrazas', 'rooftops', 'lounge'];
 const LOCALES_POR_PAGINA = 20;
 const HEADER_HEIGHT = Platform.OS === 'ios' ? 110 : 100;
-const CATEGORIAS_HEIGHT = 120;
+const CATEGORIAS_HEIGHT = 100;
 
 export default function ExplorarScreen() {
   const router = useRouter();
@@ -219,7 +219,7 @@ export default function ExplorarScreen() {
       scrollDirection.current = 'up';
     }
 
-    // FIXED: Hide when scrolling down more than 5px and past 50px from top
+    // Hide when scrolling down more than 5px and past 50px from top
     if (scrollDirection.current === 'down' && scrollDiff > 5 && currentScrollY > 50 && isHeaderVisible.current) {
       console.log('[ExplorarScreen] ⬇️ Hiding header and categories');
       isHeaderVisible.current = false;
@@ -350,7 +350,7 @@ export default function ExplorarScreen() {
         </LinearGradient>
       </Animated.View>
 
-      {/* Animated Categories */}
+      {/* Animated Categories - FIXED: Now visible below header */}
       <Animated.View
         style={{
           position: 'absolute',
@@ -358,6 +358,7 @@ export default function ExplorarScreen() {
           left: 0,
           right: 0,
           zIndex: 99,
+          backgroundColor: colors.background,
           transform: [{ translateY: categoriasTranslateY }],
         }}
       >
@@ -578,7 +579,6 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   categoriasContainer: {
-    backgroundColor: colors.background,
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
