@@ -44,7 +44,7 @@ const CATEGORIAS_LOCALES = [
 const CATEGORIAS_EXCLUIDAS = ['terrazas', 'rooftops', 'lounge'];
 const LOCALES_POR_PAGINA = 20;
 const HEADER_HEIGHT = Platform.OS === 'ios' ? 110 : 100;
-const CATEGORIAS_HEIGHT = 150; // Increased to ensure full visibility of category icons
+const CATEGORIAS_HEIGHT = 170; // Increased from 150 to 170 to ensure full visibility
 
 export default function ExplorarScreen() {
   const router = useRouter();
@@ -569,7 +569,7 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   categoriasContainer: {
-    paddingVertical: 28,
+    paddingVertical: 32,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
   },
