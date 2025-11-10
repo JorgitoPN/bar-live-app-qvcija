@@ -2,17 +2,21 @@
 import { GooglePlaceDetails } from '@/types';
 import { getGooglePlacePhotoUrl, getGoogleStreetViewUrl, checkStreetViewAvailability } from './googlePlacesApi';
 import { incrementarContadorAPI } from './apiCostControl';
+import { supabase } from './supabase';
 
 /**
- * 📸 DESCARGAR FOTOS DE UN LOCAL
- * Descarga y almacena las fotos de Google Places
+ * 📸 DESCARGAR Y SUBIR FOTOS DE UN LOCAL A SUPABASE
+ * Descarga fotos de Google Places y las sube a Supabase Storage
  * Si no hay fotos disponibles, usa Google Street View como fallback
+ * 
+ * IMPORTANTE: Las fotos se almacenan en Supabase para evitar llamadas continuas a la API de Google
  */
-export async function descargarFotosLocal(
+export async function descargarYSubirFotosLocal(
+  localId: string,
   placeDetails: GooglePlaceDetails,
   maxFotos: number = 4
 ): Promise<string[]> {
-  console.log('[Photos] Starting photo download...');
+  console.log('[Photos] Starting photo download and upload to Supabase...');
   
   const fotosSubidas: string[] = [];
   
@@ -28,24 +32,48 @@ export async function descargarFotosLocal(
       try {
         console.log(`[Photos] Downloading photo ${i + 1}/${fotosADescargar.length}...`);
         
-        // Obtener URL de la foto
+        // Obtener URL de la foto de Google
         const photoUrl = getGooglePlacePhotoUrl(photo.photo_reference, 800);
         
         // ✅ INCREMENTAR CONTADOR (cada foto cuenta como 1 llamada)
         await incrementarContadorAPI(1);
         
-        // En producción: descargar y subir a storage
-        // const blob = await fetch(photoUrl).then(r => r.blob());
-        // const file = new File([blob], `${placeDetails.place_id}_${i}.jpg`);
-        // const uploaded = await base44.integrations.Core.UploadFile({ file });
-        // fotosSubidas.push(uploaded.file_url);
+        // Descargar la foto
+        const response = await fetch(photoUrl);
+        if (!response.ok) {
+          console.error(`[Photos] Failed to download photo ${i + 1}: ${response.status}`);
+          continue;
+        }
         
-        // Por ahora, usar URL directa de Google (mock)
-        fotosSubidas.push(photoUrl);
+        const blob = await response.blob();
+        const arrayBuffer = await blob.arrayBuffer();
+        const buffer = new Uint8Array(arrayBuffer);
         
-        console.log(`[Photos] ✅ Photo ${i + 1} downloaded`);
+        // Subir a Supabase Storage
+        const fileName = `${localId}_${i}_${Date.now()}.jpg`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('locales')
+          .upload(`fotos/${fileName}`, buffer, {
+            contentType: 'image/jpeg',
+            upsert: false,
+          });
+        
+        if (uploadError) {
+          console.error(`[Photos] Error uploading photo ${i + 1} to Supabase:`, uploadError);
+          continue;
+        }
+        
+        // Obtener URL pública de Supabase
+        const { data: publicUrlData } = supabase.storage
+          .from('locales')
+          .getPublicUrl(`fotos/${fileName}`);
+        
+        if (publicUrlData?.publicUrl) {
+          fotosSubidas.push(publicUrlData.publicUrl);
+          console.log(`[Photos] ✅ Photo ${i + 1} uploaded to Supabase`);
+        }
       } catch (error) {
-        console.error(`[Photos] Error downloading photo ${i + 1}:`, error);
+        console.error(`[Photos] Error processing photo ${i + 1}:`, error);
       }
     }
   }
@@ -62,29 +90,64 @@ export async function descargarFotosLocal(
       const streetViewAvailable = await checkStreetViewAvailability(lat, lng);
       
       if (streetViewAvailable) {
-        console.log('[Photos] Street View available, generating URL...');
+        console.log('[Photos] Street View available, downloading and uploading...');
         
-        // Generar URL de Street View
         // Tomamos 4 vistas diferentes (norte, este, sur, oeste)
         const headings = [0, 90, 180, 270];
         const numViews = Math.min(maxFotos, headings.length);
         
         for (let i = 0; i < numViews; i++) {
-          const streetViewUrl = getGoogleStreetViewUrl(
-            lat,
-            lng,
-            800,
-            600,
-            headings[i], // Dirección de la cámara
-            0, // Pitch (horizontal)
-            90 // Campo de visión
-          );
-          
-          fotosSubidas.push(streetViewUrl);
-          console.log(`[Photos] ✅ Street View photo ${i + 1} generated (heading: ${headings[i]}°)`);
+          try {
+            const streetViewUrl = getGoogleStreetViewUrl(
+              lat,
+              lng,
+              800,
+              600,
+              headings[i],
+              0,
+              90
+            );
+            
+            // Descargar Street View
+            const response = await fetch(streetViewUrl);
+            if (!response.ok) {
+              console.error(`[Photos] Failed to download Street View ${i + 1}: ${response.status}`);
+              continue;
+            }
+            
+            const blob = await response.blob();
+            const arrayBuffer = await blob.arrayBuffer();
+            const buffer = new Uint8Array(arrayBuffer);
+            
+            // Subir a Supabase Storage
+            const fileName = `${localId}_streetview_${i}_${Date.now()}.jpg`;
+            const { data: uploadData, error: uploadError } = await supabase.storage
+              .from('locales')
+              .upload(`fotos/${fileName}`, buffer, {
+                contentType: 'image/jpeg',
+                upsert: false,
+              });
+            
+            if (uploadError) {
+              console.error(`[Photos] Error uploading Street View ${i + 1} to Supabase:`, uploadError);
+              continue;
+            }
+            
+            // Obtener URL pública de Supabase
+            const { data: publicUrlData } = supabase.storage
+              .from('locales')
+              .getPublicUrl(`fotos/${fileName}`);
+            
+            if (publicUrlData?.publicUrl) {
+              fotosSubidas.push(publicUrlData.publicUrl);
+              console.log(`[Photos] ✅ Street View photo ${i + 1} uploaded to Supabase (heading: ${headings[i]}°)`);
+            }
+          } catch (error) {
+            console.error(`[Photos] Error processing Street View ${i + 1}:`, error);
+          }
         }
         
-        console.log(`[Photos] ✅ Generated ${fotosSubidas.length} Street View photos`);
+        console.log(`[Photos] ✅ Generated and uploaded ${fotosSubidas.length} Street View photos`);
       } else {
         console.log('[Photos] ⚠️ Street View not available for this location');
       }
@@ -93,6 +156,38 @@ export async function descargarFotosLocal(
     }
   }
   
-  console.log(`[Photos] ✅ Total photos: ${fotosSubidas.length}`);
+  console.log(`[Photos] ✅ Total photos uploaded to Supabase: ${fotosSubidas.length}`);
   return fotosSubidas;
+}
+
+/**
+ * 📸 GENERAR METADATOS DE FOTOS (SIN DESCARGAR)
+ * Solo genera los metadatos de las fotos para almacenar referencias
+ * Las fotos NO se descargan, solo se guardan las referencias
+ */
+export function generarMetadatosFotos(
+  placeDetails: GooglePlaceDetails,
+  maxFotos: number = 4
+): Array<{
+  photo_reference: string;
+  width: number;
+  height: number;
+  attributions: string[];
+}> {
+  console.log('[Photos] Generating photo metadata...');
+  
+  if (!placeDetails.photos || placeDetails.photos.length === 0) {
+    console.log('[Photos] No photos available');
+    return [];
+  }
+  
+  const fotosMetadata = placeDetails.photos.slice(0, maxFotos).map((photo: any) => ({
+    photo_reference: photo.photo_reference,
+    width: photo.width,
+    height: photo.height,
+    attributions: photo.html_attributions || [],
+  }));
+  
+  console.log(`[Photos] ✅ Generated metadata for ${fotosMetadata.length} photos`);
+  return fotosMetadata;
 }

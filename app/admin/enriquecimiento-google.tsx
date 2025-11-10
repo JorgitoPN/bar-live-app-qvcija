@@ -17,12 +17,13 @@ import { colors, commonStyles } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { supabase } from '@/utils/supabase';
-import { googlePlacesTextSearch, googlePlacesDetails, getGooglePlacePhotoUrl } from '@/utils/googlePlacesApi';
+import { googlePlacesTextSearch, googlePlacesDetails } from '@/utils/googlePlacesApi';
 import { mapGoogleTypesToBarlive, categorizarPorHorarios, mapearNivelPrecio } from '@/utils/enrichmentMapping';
 import { validarLocalCompleto, estaEnEspana } from '@/utils/localTypesBackend';
 import * as Clipboard from 'expo-clipboard';
 import { dataCache } from '@/utils/dataCache';
 import { performanceMonitor } from '@/utils/performanceMonitor';
+import { descargarYSubirFotosLocal, generarMetadatosFotos } from '@/utils/enrichmentPhotos';
 
 // Tipos de categorías
 const CATEGORIAS = [
@@ -144,7 +145,7 @@ export default function EnriquecimientoGoogleScreen() {
       tipo,
       mensaje,
     };
-    setLogs(prev => [nuevoLog, ...prev].slice(0, MAX_LOGS)); // Limit logs to prevent memory issues
+    setLogs(prev => [nuevoLog, ...prev].slice(0, MAX_LOGS));
   }, []);
 
   const copiarLogs = async () => {
@@ -233,7 +234,7 @@ export default function EnriquecimientoGoogleScreen() {
       dataCache.set(cacheKey, {
         estadisticas: newEstadisticas,
         estadisticasCategorias: statsCategorias,
-      }, 2 * 60 * 1000); // Cache for 2 minutes
+      }, 2 * 60 * 1000);
       
       if (totalOSM === 0) {
         agregarLog('warning', `⚠️ No hay locales importados de OSM en ${provinciaSeleccionada}`);
@@ -305,7 +306,7 @@ export default function EnriquecimientoGoogleScreen() {
           .eq('provincia', provinciaSeleccionada)
           .eq('tipo', categoriaId)
           .eq('source_type', 'osm')
-          .limit(100); // Limit to prevent loading too much data
+          .limit(100);
         
         if (!reEnriquecer) {
           query.eq('enriquecido', false);
@@ -334,7 +335,8 @@ export default function EnriquecimientoGoogleScreen() {
 
   const calcularCosteEstimado = (numLocales: number): string => {
     // Cada enriquecimiento hace 2 llamadas: búsqueda + detalles
-    const coste = numLocales * 2 * 0.017; // $0.017 por llamada
+    // Más 4 llamadas por fotos (máximo)
+    const coste = numLocales * (2 + 4) * 0.017; // $0.017 por llamada
     return coste.toFixed(2);
   };
 
@@ -350,7 +352,7 @@ export default function EnriquecimientoGoogleScreen() {
     
     Alert.alert(
       'Confirmar Enriquecimiento',
-      `Se procesarán ${localesAProcesar} locales de la categoría "${categoriaSeleccionada}".\n\nCoste estimado: $${coste}\n\n¿Continuar?`,
+      `Se procesarán ${localesAProcesar} locales de la categoría "${categoriaSeleccionada}".\n\n📸 Las fotos se descargarán de Google Places y se subirán a Supabase Storage.\n\nCoste estimado: $${coste}\n\n¿Continuar?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -423,6 +425,7 @@ export default function EnriquecimientoGoogleScreen() {
     setProcesando(true);
     setProgreso({ actual: 0, total: numLocales });
     agregarLog('info', `🚀 Iniciando enriquecimiento de ${numLocales} locales...`);
+    agregarLog('info', '📸 Las fotos se descargarán y subirán a Supabase Storage');
 
     let exitosos = 0;
     let fallidos = 0;
@@ -558,28 +561,26 @@ export default function EnriquecimientoGoogleScreen() {
             language: review.language,
           })) || [];
 
-          // 📸 GENERAR URLs DE FOTOS Y METADATOS
-          const fotosGoogle = details.photos?.slice(0, 4).map((photo: any) => ({
-            photo_reference: photo.photo_reference,
-            width: photo.width,
-            height: photo.height,
-            attributions: photo.html_attributions || [],
-          })) || [];
-
-          // 🖼️ GENERAR URLs DE FOTOS PARA MOSTRAR EN LA UI
-          const galeriaUrls: string[] = [];
+          // 📸 PASO 6: DESCARGAR Y SUBIR FOTOS A SUPABASE
+          agregarLog('info', `📸 Descargando fotos de ${local.nombre}...`);
+          let galeriaUrls: string[] = [];
           let imagenUrl: string | null = null;
-
-          if (details.photos && details.photos.length > 0) {
-            // Primera foto como imagen principal
-            imagenUrl = getGooglePlacePhotoUrl(details.photos[0].photo_reference, 800);
-            
-            // Resto de fotos para la galería (hasta 4 fotos en total)
-            for (let j = 0; j < Math.min(details.photos.length, 4); j++) {
-              const photoUrl = getGooglePlacePhotoUrl(details.photos[j].photo_reference, 800);
-              galeriaUrls.push(photoUrl);
+          
+          try {
+            galeriaUrls = await descargarYSubirFotosLocal(local.id, details, 4);
+            if (galeriaUrls.length > 0) {
+              imagenUrl = galeriaUrls[0];
+              agregarLog('success', `📸 ${galeriaUrls.length} fotos subidas a Supabase`);
+            } else {
+              agregarLog('warning', `⚠️ No se pudieron descargar fotos para ${local.nombre}`);
             }
+          } catch (error) {
+            console.error('Error downloading photos:', error);
+            agregarLog('error', `❌ Error descargando fotos: ${error}`);
           }
+
+          // 📸 GENERAR METADATOS DE FOTOS (para referencia)
+          const fotosGoogle = generarMetadatosFotos(details, 4);
 
           // 🍴 Extraer tipos de cocina y música
           const tiposCocina: string[] = [];
@@ -715,7 +716,7 @@ export default function EnriquecimientoGoogleScreen() {
             deportes_tv: searchText.includes('tv') || searchText.includes('deportes'),
           };
 
-          // ✅ PASO 6: Actualizar local en Supabase con TODOS los datos
+          // ✅ PASO 7: Actualizar local en Supabase con TODOS los datos
           const { error: updateError } = await supabase
             .from('locales')
             .update({
@@ -755,10 +756,10 @@ export default function EnriquecimientoGoogleScreen() {
               // 🏢 Estado del negocio
               google_business_status: details.business_status,
               
-              // 📸 Fotos
-              fotos_google: fotosGoogle,
-              imagen_url: imagenUrl,
-              galeria_urls: galeriaUrls,
+              // 📸 Fotos - AHORA DESDE SUPABASE
+              fotos_google: fotosGoogle, // Metadatos de referencia
+              imagen_url: imagenUrl, // URL de Supabase
+              galeria_urls: galeriaUrls, // URLs de Supabase
               
               // 🍴 Cocina y música
               tipos_cocina: tiposCocina,
@@ -803,7 +804,8 @@ export default function EnriquecimientoGoogleScreen() {
             const status = estadoActual === 'abierto_ahora' ? '🟢 Abierto' : estadoActual === 'cerrado_ahora' ? '🔴 Cerrado' : '';
             const price = rangoPrecio ? `💰 ${rangoPrecio}` : '';
             const types = barliveTypes.slice(0, 2).join(', ');
-            agregarLog('success', `✅ ${local.nombre} ${rating} ${reviews} ${status} ${price} [${types}]`);
+            const photos = galeriaUrls.length > 0 ? `📸 ${galeriaUrls.length} fotos` : '';
+            agregarLog('success', `✅ ${local.nombre} ${rating} ${reviews} ${status} ${price} ${photos} [${types}]`);
             exitosos++;
           }
           
@@ -825,7 +827,7 @@ export default function EnriquecimientoGoogleScreen() {
       
       Alert.alert(
         'Enriquecimiento Completado',
-        `Se procesaron ${numLocales} locales.\n\n✅ Exitosos: ${exitosos}\n❌ Fallidos: ${fallidos}\n🚫 Rechazados: ${rechazados}`,
+        `Se procesaron ${numLocales} locales.\n\n✅ Exitosos: ${exitosos}\n❌ Fallidos: ${fallidos}\n🚫 Rechazados: ${rechazados}\n\n📸 Las fotos se han guardado en Supabase Storage`,
         [
           {
             text: 'Ver Estadísticas',
@@ -1041,7 +1043,8 @@ export default function EnriquecimientoGoogleScreen() {
             ❌ PASO 2: Rechazar tipos prohibidos (farmacia, gimnasio, tienda, etc.){'\n'}
             ✅ PASO 3: Validar estado del negocio (operativo){'\n'}
             ✅ PASO 4: Verificar ubicación (España){'\n'}
-            ✅ PASO 5: Validar datos mínimos (nombre, dirección, coordenadas){'\n\n'}
+            ✅ PASO 5: Validar datos mínimos (nombre, dirección, coordenadas){'\n'}
+            📸 PASO 6: Descargar fotos y subirlas a Supabase Storage{'\n\n'}
             Los locales rechazados se marcarán en la base de datos con el motivo del rechazo.
           </Text>
         </View>
@@ -1052,7 +1055,17 @@ export default function EnriquecimientoGoogleScreen() {
             ${calcularCosteEstimado(Math.min(localesPorLote, localesPendientes, localesAEnriquecer.length))} en Google Places API
           </Text>
           <Text style={[styles.infoBoxText, { color: '#92400E', fontSize: 11, marginTop: 3 }]}>
-            (2 llamadas por local: búsqueda + detalles)
+            (2 llamadas por local: búsqueda + detalles + hasta 4 fotos)
+          </Text>
+        </View>
+
+        <View style={[styles.infoBox, { marginTop: 10, backgroundColor: '#D1FAE5' }]}>
+          <Text style={[styles.infoBoxTitle, { color: '#065F46' }]}>📸 Almacenamiento de Fotos</Text>
+          <Text style={[styles.infoBoxText, { color: '#065F46' }]}>
+            Las fotos se descargarán de Google Places y se subirán a Supabase Storage.{'\n\n'}
+            ✅ Esto evita llamadas continuas a la API de Google{'\n'}
+            ✅ Las fotos se almacenan en tu propia base de datos{'\n'}
+            ✅ Mayor control y rendimiento
           </Text>
         </View>
 
@@ -1142,7 +1155,7 @@ export default function EnriquecimientoGoogleScreen() {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Enriquecimiento con Google Places</Text>
         <Text style={styles.headerSubtitle}>
-          Sistema de discriminación automática de locales
+          📸 Las fotos se guardan en Supabase Storage
         </Text>
       </LinearGradient>
 
