@@ -44,7 +44,7 @@ const CATEGORIAS_LOCALES = [
 const CATEGORIAS_EXCLUIDAS = ['terrazas', 'rooftops', 'lounge'];
 const LOCALES_POR_PAGINA = 20;
 const HEADER_HEIGHT = Platform.OS === 'ios' ? 110 : 100;
-const CATEGORIAS_HEIGHT = 120; // Reduced from 180
+const CATEGORIAS_HEIGHT = 100;
 
 export default function ExplorarScreen() {
   const router = useRouter();
@@ -345,12 +345,11 @@ export default function ExplorarScreen() {
       <Animated.View
         style={{
           position: 'absolute',
-          top: 0,
+          top: HEADER_HEIGHT,
           left: 0,
           right: 0,
           zIndex: 99,
           backgroundColor: colors.background,
-          paddingTop: HEADER_HEIGHT,
           transform: [{ translateY: categoriasTranslateY }],
         }}
       >
@@ -569,8 +568,7 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   categoriasContainer: {
-    paddingTop: 16,
-    paddingBottom: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
   },
