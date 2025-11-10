@@ -258,10 +258,10 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
           <Text style={styles.badgeEstadoSuperiorText}>{getBadgeText()}</Text>
         </View>
 
-        {/* Valoración - Esquina superior derecha - PROMINENTE */}
+        {/* Valoración - Esquina superior derecha - PROMINENTE Y MÁS GRANDE */}
         {local.rating > 0 && (
           <View style={styles.ratingBadge}>
-            <IconSymbol name="star.fill" size={14} color="#FACC15" />
+            <IconSymbol name="star.fill" size={16} color="#FACC15" />
             <Text style={styles.ratingBadgeText}>{local.rating.toFixed(1)}</Text>
           </View>
         )}
@@ -456,28 +456,29 @@ const styles = StyleSheet.create({
     right: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    gap: 6,
-    borderWidth: 2,
+    backgroundColor: 'rgba(0, 0, 0, 0.90)',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+    gap: 7,
+    borderWidth: 2.5,
     borderColor: '#FFFFFF',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 10,
-    zIndex: 10,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 12,
+    zIndex: 12,
   },
   ratingBadgeText: {
-    fontSize: 14,
-    fontWeight: '800',
+    fontSize: 16,
+    fontWeight: '900',
     color: colors.headerText,
+    letterSpacing: 0.5,
   },
   badgeNuevoContainer: {
     position: 'absolute',
-    top: 56,
+    top: 62,
     right: 12,
     zIndex: 9,
   },
