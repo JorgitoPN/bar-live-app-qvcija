@@ -195,8 +195,7 @@ export default function ExplorarScreen() {
   const { user } = useAuth();
   const { currentMode } = useMode();
   const scrollViewRef = useRef<ScrollView>(null);
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const lastScrollY = useRef(0);
+  const scrollY = useRef(0);
   const headerTranslateY = useRef(new Animated.Value(0)).current;
   const categoriasTranslateY = useRef(new Animated.Value(0)).current;
 
@@ -375,55 +374,39 @@ export default function ExplorarScreen() {
 
   const handleScroll = (event: any) => {
     const currentScrollY = event.nativeEvent.contentOffset.y;
-    const scrollDiff = currentScrollY - lastScrollY.current;
+    const scrollDiff = currentScrollY - scrollY.current;
 
-    // Scroll down - hide both header and categories
     if (scrollDiff > 5 && currentScrollY > 50) {
+      // Scrolling down - hide header and categories
       Animated.parallel([
         Animated.timing(headerTranslateY, {
           toValue: -HEADER_HEIGHT,
-          duration: 200,
+          duration: 250,
           useNativeDriver: true,
         }),
         Animated.timing(categoriasTranslateY, {
           toValue: -CATEGORIAS_HEIGHT,
-          duration: 200,
+          duration: 250,
           useNativeDriver: true,
         }),
       ]).start();
-    }
-    // Scroll up - show only header
-    else if (scrollDiff < -5) {
+    } else if (scrollDiff < -10) {
+      // Scrolling up - show header and categories
       Animated.parallel([
         Animated.timing(headerTranslateY, {
           toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(categoriasTranslateY, {
-          toValue: -CATEGORIAS_HEIGHT,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
-    // At top - show both
-    else if (currentScrollY < 10) {
-      Animated.parallel([
-        Animated.timing(headerTranslateY, {
-          toValue: 0,
-          duration: 200,
+          duration: 250,
           useNativeDriver: true,
         }),
         Animated.timing(categoriasTranslateY, {
           toValue: 0,
-          duration: 200,
+          duration: 250,
           useNativeDriver: true,
         }),
       ]).start();
     }
 
-    lastScrollY.current = currentScrollY;
+    scrollY.current = currentScrollY;
   };
 
   const getModoLabel = (modo: ModoUsuario): string => {

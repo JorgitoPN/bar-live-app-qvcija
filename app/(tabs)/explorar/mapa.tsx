@@ -60,7 +60,6 @@ export default function MapaScreen() {
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [todosLosLocales, setTodosLosLocales] = useState<Local[]>([]);
   const [localesFiltrados, setLocalesFiltrados] = useState<Local[]>([]);
-  const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
     (async () => {
@@ -81,7 +80,6 @@ export default function MapaScreen() {
 
   const cargarTodosLosLocalesEnriquecidos = useCallback(async () => {
     try {
-      setCargando(true);
       console.log('🔄 Cargando TODOS los locales enriquecidos desde Supabase...');
 
       const { data, error, count } = await supabase
@@ -156,8 +154,6 @@ export default function MapaScreen() {
       setTodosLosLocales(localesTransformados);
     } catch (error) {
       console.error('❌ Error en cargarTodosLosLocalesEnriquecidos:', error);
-    } finally {
-      setCargando(false);
     }
   }, []);
 
@@ -650,12 +646,7 @@ export default function MapaScreen() {
               Por favor, usa la aplicación móvil para ver el mapa.
             </Text>
           </View>
-        ) : cargando ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.loadingText}>Cargando todos los locales enriquecidos...</Text>
-          </View>
-        ) : localesFiltrados.length === 0 ? (
+        ) : localesFiltrados.length === 0 && todosLosLocales.length === 0 ? (
           <View style={styles.emptyContainer}>
             <IconSymbol name="mappin.slash" size={64} color={colors.textSecondary} />
             <Text style={styles.emptyText}>
@@ -833,18 +824,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     marginTop: 8,
-  },
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.background,
-    gap: 16,
-  },
-  loadingText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
   },
   emptyContainer: {
     flex: 1,
