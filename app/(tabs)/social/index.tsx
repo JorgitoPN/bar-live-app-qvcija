@@ -26,6 +26,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 import { supabase } from '@/utils/supabase';
+import { socialCache } from '@/utils/socialCache';
 
 const { width, height } = Dimensions.get('window');
 const HEADER_HEIGHT = 120;
@@ -512,7 +513,6 @@ export default function SocialScreen() {
   const [historias, setHistorias] = useState<HistoriaConAutor[]>([]);
   const [userStories, setUserStories] = useState<HistoriaConAutor[]>([]);
   const [posts, setPosts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false); // FIXED: Start with false to prevent loading screen
   const [refreshing, setRefreshing] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginMessage, setLoginMessage] = useState('');
@@ -533,164 +533,209 @@ export default function SocialScreen() {
   const scrollDirection = useRef<'up' | 'down'>('down');
   const headerTranslateY = useRef(new Animated.Value(0)).current;
 
-  // FIXED: Cache data to prevent double loading
-  const dataLoadedRef = useRef(false);
+  // OPTIMIZED: Prevent double loading
   const isLoadingRef = useRef(false);
+  const likingPostsRef = useRef<Set<string>>(new Set());
 
+  // OPTIMIZED: Load data with aggressive caching
   const loadData = useCallback(async () => {
-    // FIXED: Prevent double loading
     if (isLoadingRef.current) {
-      console.log('[Social] Already loading, skipping...');
+      console.log('[Social] ⚡ Already loading, skipping...');
       return;
     }
 
     isLoadingRef.current = true;
 
     try {
-      console.log('[Social] ⚡ Loading data...');
+      console.log('[Social] ⚡ Loading data with cache...');
 
-      // Load user's own stories separately
+      // INSTANT: Try to load from cache first
+      const cachedFeed = socialCache.getFeed();
+      const cachedStories = socialCache.getStories();
+      const cachedUserStories = user ? socialCache.getStories(user.id) : null;
+
+      if (cachedFeed) {
+        setPosts(cachedFeed);
+        console.log('[Social] ⚡ INSTANT feed from cache');
+      }
+
+      if (cachedStories) {
+        setHistorias(cachedStories);
+        console.log('[Social] ⚡ INSTANT stories from cache');
+      }
+
+      if (cachedUserStories) {
+        setUserStories(cachedUserStories);
+        console.log('[Social] ⚡ INSTANT user stories from cache');
+      }
+
+      // Load fresh data in background
+      const promises = [];
+
+      // Load user's own stories
       if (user) {
-        const { data: userStoryData, error: userStoryError } = await supabase
+        promises.push(
+          supabase
+            .from('historias')
+            .select('*')
+            .eq('autor_id', user.id)
+            .gte('expires_at', new Date().toISOString())
+            .order('created_at', { ascending: true })
+            .then(async ({ data, error }) => {
+              if (!error && data) {
+                const { data: viewedData } = await supabase
+                  .from('historia_views')
+                  .select('historia_id')
+                  .eq('usuario_id', user.id)
+                  .in('historia_id', data.map(s => s.id));
+                
+                const viewedStoryIds = new Set(viewedData?.map(v => v.historia_id) || []);
+                
+                const storiesWithViewStatus = data.map(story => ({
+                  ...story,
+                  visto_por_usuario: viewedStoryIds.has(story.id),
+                }));
+                
+                setUserStories(storiesWithViewStatus);
+                socialCache.setStories(storiesWithViewStatus, user.id);
+              }
+            })
+        );
+      }
+
+      // Load stories from other users
+      promises.push(
+        supabase
           .from('historias')
-          .select('*')
-          .eq('autor_id', user.id)
+          .select(`
+            *,
+            autor:usuarios!historias_autor_id_fkey(nombre, avatar, username)
+          `)
           .gte('expires_at', new Date().toISOString())
-          .order('created_at', { ascending: true });
-
-        if (!userStoryError && userStoryData) {
-          const { data: viewedData } = await supabase
-            .from('historia_views')
-            .select('historia_id')
-            .eq('usuario_id', user.id)
-            .in('historia_id', userStoryData.map(s => s.id));
-          
-          const viewedStoryIds = new Set(viewedData?.map(v => v.historia_id) || []);
-          
-          const storiesWithViewStatus = userStoryData.map(story => ({
-            ...story,
-            visto_por_usuario: viewedStoryIds.has(story.id),
-          }));
-          
-          setUserStories(storiesWithViewStatus);
-        }
-      }
-
-      // Load stories from other users with viewed status
-      const { data: storyData, error: storyError } = await supabase
-        .from('historias')
-        .select(`
-          *,
-          autor:usuarios!historias_autor_id_fkey(nombre, avatar, username)
-        `)
-        .gte('expires_at', new Date().toISOString())
-        .neq('autor_id', user?.id || '')
-        .order('created_at', { ascending: true });
-
-      if (!storyError && storyData) {
-        if (user) {
-          const { data: viewedData } = await supabase
-            .from('historia_views')
-            .select('historia_id')
-            .eq('usuario_id', user.id)
-            .in('historia_id', storyData.map(s => s.id));
-          
-          const viewedStoryIds = new Set(viewedData?.map(v => v.historia_id) || []);
-          
-          const storiesWithViewStatus = storyData.map(story => ({
-            ...story,
-            visto_por_usuario: viewedStoryIds.has(story.id),
-          }));
-          
-          setHistorias(storiesWithViewStatus);
-        } else {
-          setHistorias(storyData);
-        }
-      }
-
-      // Load posts with like and save status
-      const { data: postData, error: postError } = await supabase
-        .from('posts')
-        .select(`
-          *,
-          autor:usuarios!posts_autor_id_fkey(nombre, avatar, username)
-        `)
-        .order('created_at', { ascending: false})
-        .limit(20);
-
-      if (!postError && postData) {
-        if (user) {
-          const postsWithStatus = await Promise.all(
-            postData.map(async (post) => {
-              const [likeResult, saveResult, commentResult] = await Promise.all([
-                supabase
-                  .from('likes')
-                  .select('id')
-                  .eq('post_id', post.id)
+          .neq('autor_id', user?.id || '')
+          .order('created_at', { ascending: true })
+          .then(async ({ data, error }) => {
+            if (!error && data) {
+              if (user) {
+                const { data: viewedData } = await supabase
+                  .from('historia_views')
+                  .select('historia_id')
                   .eq('usuario_id', user.id)
-                  .single(),
-                supabase
-                  .from('posts_guardados')
-                  .select('id')
-                  .eq('post_id', post.id)
-                  .eq('usuario_id', user.id)
-                  .single(),
-                supabase
-                  .from('comentarios')
-                  .select('id', { count: 'exact', head: true })
-                  .eq('post_id', post.id),
-              ]);
+                  .in('historia_id', data.map(s => s.id));
+                
+                const viewedStoryIds = new Set(viewedData?.map(v => v.historia_id) || []);
+                
+                const storiesWithViewStatus = data.map(story => ({
+                  ...story,
+                  visto_por_usuario: viewedStoryIds.has(story.id),
+                }));
+                
+                setHistorias(storiesWithViewStatus);
+                socialCache.setStories(storiesWithViewStatus);
+              } else {
+                setHistorias(data);
+                socialCache.setStories(data);
+              }
+            }
+          })
+      );
 
-              return {
-                ...post,
-                liked: !!likeResult.data,
-                saved: !!saveResult.data,
-                comentarios: commentResult.count || 0,
-              };
-            })
-          );
-          setPosts(postsWithStatus);
-        } else {
-          const postsWithComments = await Promise.all(
-            postData.map(async (post) => {
-              const { count } = await supabase
-                .from('comentarios')
-                .select('id', { count: 'exact', head: true })
-                .eq('post_id', post.id);
-              
-              return {
-                ...post,
-                liked: false,
-                saved: false,
-                comentarios: count || 0,
-              };
-            })
-          );
-          setPosts(postsWithComments);
-        }
-      }
+      // Load posts with BATCH query for better performance
+      promises.push(
+        supabase
+          .from('posts')
+          .select(`
+            *,
+            autor:usuarios!posts_autor_id_fkey(nombre, avatar, username)
+          `)
+          .order('created_at', { ascending: false })
+          .limit(30)
+          .then(async ({ data, error }) => {
+            if (!error && data) {
+              if (user) {
+                // OPTIMIZED: Batch query for likes and saves
+                const postIds = data.map(p => p.id);
+                
+                const [likesResult, savesResult, commentsResult] = await Promise.all([
+                  supabase
+                    .from('likes')
+                    .select('post_id')
+                    .eq('usuario_id', user.id)
+                    .in('post_id', postIds),
+                  supabase
+                    .from('posts_guardados')
+                    .select('post_id')
+                    .eq('usuario_id', user.id)
+                    .in('post_id', postIds),
+                  supabase
+                    .from('comentarios')
+                    .select('post_id')
+                    .in('post_id', postIds),
+                ]);
 
-      dataLoadedRef.current = true;
-      console.log('[Social] ⚡ Data loaded successfully');
+                const likedPostIds = new Set(likesResult.data?.map(l => l.post_id) || []);
+                const savedPostIds = new Set(savesResult.data?.map(s => s.post_id) || []);
+                
+                // Count comments per post
+                const commentCounts = commentsResult.data?.reduce((acc, c) => {
+                  acc[c.post_id] = (acc[c.post_id] || 0) + 1;
+                  return acc;
+                }, {} as Record<string, number>) || {};
+
+                const postsWithStatus = data.map(post => ({
+                  ...post,
+                  liked: likedPostIds.has(post.id),
+                  saved: savedPostIds.has(post.id),
+                  comentarios: commentCounts[post.id] || 0,
+                }));
+                
+                setPosts(postsWithStatus);
+                socialCache.setFeed(postsWithStatus);
+              } else {
+                const postsWithComments = await Promise.all(
+                  data.map(async (post) => {
+                    const { count } = await supabase
+                      .from('comentarios')
+                      .select('id', { count: 'exact', head: true })
+                      .eq('post_id', post.id);
+                    
+                    return {
+                      ...post,
+                      liked: false,
+                      saved: false,
+                      comentarios: count || 0,
+                    };
+                  })
+                );
+                setPosts(postsWithComments);
+                socialCache.setFeed(postsWithComments);
+              }
+            }
+          })
+      );
+
+      // Wait for all promises
+      await Promise.all(promises);
+
+      console.log('[Social] ⚡ Data loaded and cached');
     } catch (error) {
       console.error('[Social] Error loading data:', error);
     } finally {
       isLoadingRef.current = false;
-      setLoading(false);
     }
   }, [user]);
 
-  // FIXED: Use useFocusEffect to reload data when screen comes into focus
+  // OPTIMIZED: Use useFocusEffect for instant reload
   useFocusEffect(
     useCallback(() => {
-      console.log('[Social] Screen focused, loading data...');
+      console.log('[Social] ⚡ Screen focused');
       loadData();
     }, [loadData])
   );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    dataLoadedRef.current = false; // Reset cache
+    socialCache.clearAll(); // Clear cache on manual refresh
     await loadData();
     setRefreshing(false);
   }, [loadData]);
@@ -804,6 +849,8 @@ export default function SocialScreen() {
       setCurrentStoryIndex(currentStoryIndex + 1);
       setCurrentStoryProgress(0);
     } else {
+      socialCache.clearStories();
+      socialCache.clearStories(user?.id);
       await loadData();
       setShowStoryViewer(false);
       stopStoryTimer();
@@ -889,9 +936,11 @@ export default function SocialScreen() {
               if (viewingOwnStories) {
                 const newStories = userStories.filter((_, i) => i !== currentStoryIndex);
                 setUserStories(newStories);
+                socialCache.setStories(newStories, user.id);
               } else {
                 const newHistorias = historias.filter((_, i) => i !== currentStoryIndex);
                 setHistorias(newHistorias);
+                socialCache.setStories(newHistorias);
               }
 
               setShowStoryViewer(false);
@@ -910,9 +959,7 @@ export default function SocialScreen() {
     );
   }, [historias, userStories, currentStoryIndex, user, viewingOwnStories, stopStoryTimer]);
 
-  const likingPostsRef = useRef<Set<string>>(new Set());
-
-  // FIXED: Optimized toggleLike with instant UI feedback
+  // OPTIMIZED: Instant like with optimistic update
   const toggleLike = useCallback(async (postId: string) => {
     if (!user) {
       setLoginMessage('Para dar me gusta necesitas registrarte en BarLive');
@@ -933,11 +980,21 @@ export default function SocialScreen() {
     likingPostsRef.current.add(postId);
 
     // INSTANT UI UPDATE
+    const updatedPost = {
+      ...post,
+      liked: !isLiked,
+      likes: isLiked ? currentLikes - 1 : currentLikes + 1,
+    };
+    
     setPosts(prevPosts => prevPosts.map(p => 
-      p.id === postId 
-        ? { ...p, liked: !isLiked, likes: isLiked ? currentLikes - 1 : currentLikes + 1 }
-        : p
+      p.id === postId ? updatedPost : p
     ));
+    
+    // Update cache
+    socialCache.updatePost(postId, {
+      liked: !isLiked,
+      likes: isLiked ? currentLikes - 1 : currentLikes + 1,
+    });
 
     try {
       if (isLiked) {
@@ -967,6 +1024,7 @@ export default function SocialScreen() {
               ? { ...p, liked: true, likes: currentLikes }
               : p
           ));
+          socialCache.updatePost(postId, { liked: true, likes: currentLikes });
           likingPostsRef.current.delete(postId);
           return;
         }
@@ -990,6 +1048,7 @@ export default function SocialScreen() {
           ? { ...p, liked: isLiked, likes: currentLikes }
           : p
       ));
+      socialCache.updatePost(postId, { liked: isLiked, likes: currentLikes });
     } finally {
       likingPostsRef.current.delete(postId);
     }
@@ -1013,6 +1072,8 @@ export default function SocialScreen() {
         ? { ...p, saved: !isSaved }
         : p
     ));
+    
+    socialCache.updatePost(postId, { saved: !isSaved });
 
     try {
       if (isSaved) {
@@ -1034,6 +1095,7 @@ export default function SocialScreen() {
           ? { ...p, saved: isSaved }
           : p
       ));
+      socialCache.updatePost(postId, { saved: isSaved });
     }
   }, [user, posts]);
 
@@ -1061,6 +1123,8 @@ export default function SocialScreen() {
               if (error) throw error;
 
               setPosts(posts.filter(p => p.id !== postId));
+              socialCache.clearPost(postId);
+              socialCache.clearFeed();
               Alert.alert('Éxito', 'Publicación eliminada correctamente');
             } catch (error) {
               console.error('[Social] Error deleting post:', error);
@@ -1090,7 +1154,7 @@ export default function SocialScreen() {
     };
   }, [showStoryViewer, currentStoryIndex, isPaused, startStoryTimer, stopStoryTimer]);
 
-  // FIXED: Memoize grouped stories to prevent recalculation
+  // OPTIMIZED: Memoize grouped stories
   const groupedStories = useMemo(() => {
     const storyGroups = historias.reduce((acc, historia) => {
       const authorId = historia.autor_id;
@@ -1119,7 +1183,7 @@ export default function SocialScreen() {
   const hasUserStories = userStories.length > 0;
   const hasUnviewedUserStories = userStories.some(s => !s.visto_por_usuario);
 
-  // FIXED: Show content immediately without loading screen
+  // OPTIMIZED: Show content immediately - NO LOADING SCREEN
   return (
     <View style={styles.container}>
       <Animated.View
@@ -1582,6 +1646,8 @@ export default function SocialScreen() {
             }
           }
           
+          socialCache.clearStories();
+          socialCache.clearStories(user?.id);
           await loadData();
           setShowStoryViewer(false);
           stopStoryTimer();
@@ -1674,6 +1740,8 @@ export default function SocialScreen() {
                         }
                       }
                       
+                      socialCache.clearStories();
+                      socialCache.clearStories(user?.id);
                       await loadData();
                       setShowStoryViewer(false);
                       stopStoryTimer();
