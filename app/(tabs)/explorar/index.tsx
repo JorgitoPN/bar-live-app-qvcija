@@ -45,7 +45,8 @@ const CATEGORIAS_EXCLUIDAS = ['terrazas', 'rooftops', 'lounge'];
 const LOCALES_POR_PAGINA = 20;
 const HEADER_HEIGHT = Platform.OS === 'ios' ? 110 : 100;
 const CATEGORIAS_HEIGHT = 110;
-const SPACING_BETWEEN_SECTIONS = 16;
+const CATEGORIAS_TOP_POSITION = 200;
+const SPACING_BETWEEN_FILTERS_AND_LIST = 24;
 
 export default function ExplorarScreen() {
   const router = useRouter();
@@ -228,7 +229,7 @@ export default function ExplorarScreen() {
           useNativeDriver: true,
         }),
         Animated.timing(categoriasTranslateY, {
-          toValue: -(HEADER_HEIGHT + CATEGORIAS_HEIGHT + SPACING_BETWEEN_SECTIONS),
+          toValue: -(CATEGORIAS_TOP_POSITION + CATEGORIAS_HEIGHT),
           duration: 250,
           useNativeDriver: true,
         }),
@@ -346,7 +347,7 @@ export default function ExplorarScreen() {
       <Animated.View
         style={{
           position: 'absolute',
-          top: HEADER_HEIGHT + SPACING_BETWEEN_SECTIONS,
+          top: CATEGORIAS_TOP_POSITION,
           left: 0,
           right: 0,
           zIndex: 99,
@@ -393,7 +394,7 @@ export default function ExplorarScreen() {
         style={styles.scrollView}
         contentContainerStyle={[
           styles.scrollContent, 
-          { paddingTop: HEADER_HEIGHT + CATEGORIAS_HEIGHT + (SPACING_BETWEEN_SECTIONS * 2) }
+          { paddingTop: CATEGORIAS_TOP_POSITION + CATEGORIAS_HEIGHT + SPACING_BETWEEN_FILTERS_AND_LIST }
         ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -401,7 +402,7 @@ export default function ExplorarScreen() {
             refreshing={refreshing || globalRefreshing} 
             onRefresh={onRefresh} 
             tintColor={colors.primary}
-            progressViewOffset={HEADER_HEIGHT + CATEGORIAS_HEIGHT + (SPACING_BETWEEN_SECTIONS * 2)}
+            progressViewOffset={CATEGORIAS_TOP_POSITION + CATEGORIAS_HEIGHT + SPACING_BETWEEN_FILTERS_AND_LIST}
           />
         }
         onScroll={handleScroll}
