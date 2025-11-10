@@ -351,18 +351,22 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
       const hasCache = await loadFromCache();
       
       if (hasCache) {
-        // Show cached data immediately
+        // Show cached data immediately - INSTANT APP START
         setIsInitialLoading(false);
         
-        // Load fresh data in background after 50ms delay
+        // Load fresh data in background after 100ms delay to not block navigation
         setTimeout(() => {
           console.log('[GlobalData] 🔄 Background refresh...');
           refreshData(true);
-        }, 50);
+        }, 100);
       } else {
-        // No cache, load from Supabase
-        await loadFromSupabase();
-        setIsInitialLoading(false);
+        // No cache, load from Supabase but don't block the app
+        setIsInitialLoading(false); // Allow app to start immediately
+        
+        // Load data in background
+        setTimeout(() => {
+          loadFromSupabase();
+        }, 50);
       }
     };
 

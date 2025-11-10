@@ -546,7 +546,7 @@ export default function SalaVirtualScreen() {
     try {
       setSendingMessage(true);
 
-      // FIXED: Insert without select, then fetch the message separately
+      // FIXED: Insert without joining usuarios table to avoid schema cache error
       const { data: insertResult, error: insertError } = await supabase
         .from('sala_virtual_chat')
         .insert({
