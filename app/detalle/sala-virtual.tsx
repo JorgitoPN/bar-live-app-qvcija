@@ -68,7 +68,6 @@ interface ChatMessage {
   };
 }
 
-// Predefined messages for quick interactions
 const MENSAJES_RAPIDOS = [
   { id: '1', texto: '¿Me invitas a una copa? 🍹', emoji: '🍹' },
   { id: '2', texto: 'Te invito a una copa 🥂', emoji: '🥂' },
@@ -78,7 +77,6 @@ const MENSAJES_RAPIDOS = [
   { id: '6', texto: '¡Qué ambiente! 🎉', emoji: '🎉' },
 ];
 
-// Emoticons for quick reactions
 const EMOTICONS = [
   { id: '1', emoji: '❤️', nombre: 'Corazón' },
   { id: '2', emoji: '🔥', nombre: 'Fuego' },
@@ -99,7 +97,7 @@ export default function SalaVirtualScreen() {
   const params = useLocalSearchParams();
   const { user } = useAuth();
   const flatListRef = useRef<FlatList>(null);
-  const [loading, setLoading] = useState(false); // Changed to false for instant loading
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [local, setLocal] = useState<any>(null);
   const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
@@ -110,20 +108,15 @@ export default function SalaVirtualScreen() {
   const [interactions, setInteractions] = useState<InteractionMessage[]>([]);
   const [floatingEmojis, setFloatingEmojis] = useState<Array<{ id: string; emoji: string; x: number; y: Animated.Value; opacity: Animated.Value }>>([]);
   
-  // Public chat state
   const [showPublicChat, setShowPublicChat] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
 
-  // Pulse animation for check-in button
   const pulseAnim = useRef(new Animated.Value(1)).current;
-
-  // Real-time subscription refs
   const channelRef = useRef<any>(null);
 
   useEffect(() => {
-    // Pulse animation for check-in button
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
@@ -144,7 +137,6 @@ export default function SalaVirtualScreen() {
     try {
       console.log('[SalaVirtual] ⚡ Loading data...');
 
-      // Load local info
       const { data: localData, error: localError } = await supabase
         .from('locales')
         .select('id, nombre, direccion, provincia, imagen_url')
@@ -159,7 +151,6 @@ export default function SalaVirtualScreen() {
 
       setLocal(localData);
 
-      // Load check-ins from the last 6 hours
       const sixHoursAgo = new Date();
       sixHoursAgo.setHours(sixHoursAgo.getHours() - 6);
 
@@ -181,14 +172,12 @@ export default function SalaVirtualScreen() {
       } else {
         setCheckIns(checkInsData || []);
         
-        // Check if current user has checked in
         if (user) {
           const hasCheckedIn = checkInsData?.some(ci => ci.usuario_id === user.id) || false;
           setUserHasCheckedIn(hasCheckedIn);
         }
       }
 
-      // Load recent interactions (last 30 minutes)
       const thirtyMinutesAgo = new Date();
       thirtyMinutesAgo.setMinutes(thirtyMinutesAgo.getMinutes() - 30);
 
@@ -212,7 +201,6 @@ export default function SalaVirtualScreen() {
         setInteractions(interactionsData || []);
       }
 
-      // Load public chat messages (last 2 hours)
       const twoHoursAgo = new Date();
       twoHoursAgo.setHours(twoHoursAgo.getHours() - 2);
 
@@ -250,13 +238,11 @@ export default function SalaVirtualScreen() {
     }
   }, [params.id, loadData]);
 
-  // Subscribe to real-time interactions with INSTANT updates
   useEffect(() => {
     if (!params.id) return;
 
     console.log('[SalaVirtual] ⚡ Setting up real-time subscriptions');
 
-    // Clean up previous subscription
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current);
     }
@@ -274,7 +260,6 @@ export default function SalaVirtualScreen() {
         async (payload) => {
           console.log('[SalaVirtual] ⚡ INSTANT new interaction:', payload.new);
           
-          // Get user info
           const { data: userData } = await supabase
             .from('usuarios')
             .select('nombre, avatar')
@@ -288,7 +273,6 @@ export default function SalaVirtualScreen() {
 
           setInteractions((prev) => [newInteraction, ...prev].slice(0, 50));
 
-          // Show floating emoji animation
           if (payload.new.tipo === 'emoticon') {
             showFloatingEmoji(payload.new.contenido);
           }
@@ -305,7 +289,6 @@ export default function SalaVirtualScreen() {
         async (payload) => {
           console.log('[SalaVirtual] ⚡ INSTANT new check-in:', payload.new);
           
-          // Get user info
           const { data: userData } = await supabase
             .from('usuarios')
             .select('id, nombre, username, avatar')
@@ -331,7 +314,6 @@ export default function SalaVirtualScreen() {
         async (payload) => {
           console.log('[SalaVirtual] ⚡ INSTANT new chat message:', payload.new);
           
-          // Get user info
           const { data: userData } = await supabase
             .from('usuarios')
             .select('id, nombre, username, avatar')
@@ -346,7 +328,6 @@ export default function SalaVirtualScreen() {
             
             setChatMessages((prev) => [...prev, newMsg]);
             
-            // Auto-scroll to bottom
             setTimeout(() => {
               flatListRef.current?.scrollToEnd({ animated: true });
             }, 50);
@@ -558,7 +539,6 @@ export default function SalaVirtualScreen() {
     setChatMessages((prev) => [...prev, optimisticMessage]);
     setNewMessage('');
 
-    // Auto-scroll to bottom immediately
     setTimeout(() => {
       flatListRef.current?.scrollToEnd({ animated: true });
     }, 50);
@@ -566,31 +546,34 @@ export default function SalaVirtualScreen() {
     try {
       setSendingMessage(true);
 
-      const { data: insertedMessage, error } = await supabase
+      // FIXED: Insert without select, then fetch the message separately
+      const { data: insertResult, error: insertError } = await supabase
         .from('sala_virtual_chat')
         .insert({
           usuario_id: user.id,
           local_id: params.id,
           mensaje: messageText,
         })
-        .select()
+        .select('id')
         .single();
 
-      if (error) {
-        console.error('[SalaVirtual] Error sending chat message:', error);
+      if (insertError) {
+        console.error('[SalaVirtual] Error sending chat message:', insertError);
         
         // Remove optimistic message on error
         setChatMessages((prev) => prev.filter(m => m.id !== tempId));
-        setNewMessage(messageText); // Restore message text
+        setNewMessage(messageText);
         
-        Alert.alert('Error', 'No se pudo enviar el mensaje');
+        Alert.alert('Error', 'No se pudo enviar el mensaje. Por favor, intenta de nuevo.');
         return;
       }
 
-      // Replace optimistic message with real one
-      setChatMessages((prev) => 
-        prev.map(m => m.id === tempId ? { ...insertedMessage, usuario: optimisticMessage.usuario } : m)
-      );
+      // Replace optimistic message with the one that has the real ID
+      if (insertResult) {
+        setChatMessages((prev) => 
+          prev.map(m => m.id === tempId ? { ...optimisticMessage, id: insertResult.id } : m)
+        );
+      }
 
       console.log('[SalaVirtual] ✅ Message sent successfully');
     } catch (error) {
@@ -625,7 +608,6 @@ export default function SalaVirtualScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              // Optimistic UI update
               setChatMessages((prev) => prev.filter(m => m.id !== messageId));
 
               const { error } = await supabase
@@ -708,7 +690,6 @@ export default function SalaVirtualScreen() {
         </TouchableOpacity>
       </LinearGradient>
 
-      {/* Floating emojis animation */}
       {floatingEmojis.map((item) => (
         <Animated.Text
           key={item.id}
@@ -729,7 +710,6 @@ export default function SalaVirtualScreen() {
         style={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {/* Local info card with gradient */}
         {local?.imagen_url && (
           <View style={styles.imageContainer}>
             <Image source={{ uri: local.imagen_url }} style={styles.localImage} />
@@ -761,7 +741,6 @@ export default function SalaVirtualScreen() {
           </LinearGradient>
         </View>
 
-        {/* Recent interactions feed with animations */}
         {interactions.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>🎉 Actividad Reciente</Text>
@@ -805,7 +784,6 @@ export default function SalaVirtualScreen() {
           </View>
         )}
 
-        {/* Users in the venue */}
         {checkIns.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>👥 Usuarios en el Local</Text>
@@ -867,7 +845,6 @@ export default function SalaVirtualScreen() {
         )}
       </ScrollView>
 
-      {/* Action buttons with animations */}
       {userHasCheckedIn ? (
         <View style={styles.footer}>
           <View style={styles.actionButtons}>
@@ -919,7 +896,6 @@ export default function SalaVirtualScreen() {
         </View>
       )}
 
-      {/* Public Chat Modal */}
       <Modal
         visible={showPublicChat}
         animationType="slide"
@@ -1031,7 +1007,6 @@ export default function SalaVirtualScreen() {
         </View>
       </Modal>
 
-      {/* Quick messages modal */}
       <Modal
         visible={showQuickMessages}
         animationType="slide"
@@ -1062,7 +1037,6 @@ export default function SalaVirtualScreen() {
         </View>
       </Modal>
 
-      {/* Emoticons modal */}
       <Modal
         visible={showEmoticons}
         animationType="slide"

@@ -26,6 +26,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { colors, commonStyles } from '@/styles/commonStyles';
 import * as Location from 'expo-location';
 import { filterAndSortLocals } from '@/utils/filterLocals';
+import { useGlobalData } from '@/contexts/GlobalDataContext';
+import InitialLoadingScreen from '@/components/common/InitialLoadingScreen';
 
 type ModoUsuario = 'cliente' | 'propietario' | 'admin';
 
@@ -39,9 +41,7 @@ const CATEGORIAS_LOCALES = [
   { id: 'discoteca', label: 'Discotecas', icon: 'music.note' },
 ];
 
-// Categories to exclude from display
 const CATEGORIAS_EXCLUIDAS = ['terrazas', 'rooftops', 'lounge'];
-
 const LOCALES_POR_PAGINA = 20;
 const HEADER_HEIGHT = Platform.OS === 'ios' ? 110 : 100;
 const CATEGORIAS_HEIGHT = 120;
@@ -52,14 +52,12 @@ export default function ExplorarScreen() {
   const { currentMode, setCurrentMode } = useMode();
   const scrollViewRef = useRef<ScrollView>(null);
   
-  // Estado para TODOS los locales de la base de datos
-  const [todosLosLocales, setTodosLosLocales] = useState<Local[]>([]);
+  // ⚡ USE GLOBAL DATA - NO FETCHING!
+  const { locales: todosLosLocales, isInitialLoading, isRefreshing: globalRefreshing, refreshData } = useGlobalData();
   
-  // Estado para locales visibles (paginados)
   const [localesVisibles, setLocalesVisibles] = useState<Local[]>([]);
   const [paginaActual, setPaginaActual] = useState(1);
   
-  const [cargando, setCargando] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [busqueda, setBusqueda] = useState('');
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('todos');
@@ -70,20 +68,22 @@ export default function ExplorarScreen() {
   const [activePromotions, setActivePromotions] = useState<Set<string>>(new Set());
   const [mostrarSelectorModo, setMostrarSelectorModo] = useState(false);
   
-  const scrollY = useRef(new Animated.Value(0)).current;
+  // Scroll animation refs
+  const lastScrollY = useRef(0);
+  const scrollDirection = useRef<'up' | 'down'>('down');
+  const headerTranslateY = useRef(new Animated.Value(0)).current;
+  const categoriasTranslateY = useRef(new Animated.Value(0)).current;
+  const isHeaderVisible = useRef(true);
 
-  // Determine available modes based on user role
   const userRole = user?.rol_app || 'cliente';
   const availableModes: ModoUsuario[] = 
     userRole === 'admin' ? ['cliente', 'propietario', 'admin'] :
     userRole === 'propietario' ? ['cliente', 'propietario'] :
     ['cliente'];
 
-  // Reset state when screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      console.log('[ExplorarScreen] Screen focused, resetting state');
-      // Reset any temporary state that might cause rendering issues
+      console.log('[ExplorarScreen] ⚡ Screen focused');
       setMostrarFiltros(false);
       setMostrarSelectorModo(false);
       
@@ -93,47 +93,15 @@ export default function ExplorarScreen() {
     }, [])
   );
 
-  const cargarTodosLosLocales = useCallback(async () => {
-    try {
-      setCargando(true);
-      console.log('🔄 Cargando locales de la base de datos...');
-
-      // Cargar locales activos
-      const { data, error, count } = await supabase
-        .from('locales')
-        .select('*', { count: 'exact' })
-        .eq('activo', true)
-        .order('destacado', { ascending: false })
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('❌ Error cargando locales:', error);
-        return;
-      }
-
-      console.log(`✅ Cargados ${data?.length || 0} locales desde Supabase`);
-
-      const localesTransformados: Local[] = (data || []).map(transformarLocal);
-      setTodosLosLocales(localesTransformados);
-    } catch (error) {
-      console.error('❌ Error en cargarTodosLosLocales:', error);
-    } finally {
-      setCargando(false);
-    }
-  }, []);
-
-  // Memoize filtered and sorted locals to avoid recalculating on every render
   const localesFiltradosCompletos = useMemo(() => {
-    console.log('🔄 Aplicando filtros y ordenamiento...');
+    console.log('[ExplorarScreen] ⚡ Applying filters...');
 
-    // Construir filtros combinados
     const filtrosCombinados: Filtros = {
       ...filtrosActivos,
       busqueda: busqueda || undefined,
       tipo: categoriaSeleccionada !== 'todos' ? [categoriaSeleccionada] : filtrosActivos.tipo,
     };
 
-    // Aplicar filtros y ordenamiento
     const localesOrdenados = filterAndSortLocals(
       todosLosLocales,
       filtrosCombinados,
@@ -141,32 +109,29 @@ export default function ExplorarScreen() {
       activePromotions
     );
 
-    console.log(`✅ Locales filtrados: ${localesOrdenados.length}`);
+    console.log(`[ExplorarScreen] ⚡ Filtered locals: ${localesOrdenados.length}`);
     return localesOrdenados;
   }, [todosLosLocales, busqueda, categoriaSeleccionada, filtrosActivos, userLocation, activePromotions]);
 
-  // Update visible locals when filtered list changes
   useEffect(() => {
     setPaginaActual(1);
     const newVisibleLocals = localesFiltradosCompletos.slice(0, LOCALES_POR_PAGINA);
     setLocalesVisibles(newVisibleLocals);
     
-    // Preload the first batch of locals
     const localIdsToPreload = newVisibleLocals.slice(0, 10).map(l => l.id);
     localPreloader.preloadMultiple(localIdsToPreload);
   }, [localesFiltradosCompletos]);
 
   useEffect(() => {
-    cargarTodosLosLocales();
     obtenerUbicacionUsuario();
     cargarPromocionesActivas();
-  }, [cargarTodosLosLocales]);
+  }, []);
 
   const obtenerUbicacionUsuario = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        console.log('Permission to access location was denied');
+        console.log('[ExplorarScreen] Location permission denied');
         return;
       }
 
@@ -175,15 +140,14 @@ export default function ExplorarScreen() {
         lat: location.coords.latitude,
         lng: location.coords.longitude,
       });
-      console.log('📍 Ubicación del usuario obtenida');
+      console.log('[ExplorarScreen] 📍 User location obtained');
     } catch (error) {
-      console.error('Error getting user location:', error);
+      console.error('[ExplorarScreen] Error getting location:', error);
     }
   };
 
   const cargarPromocionesActivas = async () => {
     try {
-      // Cargar suscripciones activas con promociones
       const { data, error } = await supabase
         .from('suscripciones_locales')
         .select('local_id, plan_id, planes_suscripcion(promos_destacadas)')
@@ -191,128 +155,52 @@ export default function ExplorarScreen() {
         .gt('planes_suscripcion.promos_destacadas', 0);
 
       if (error) {
-        console.error('Error cargando promociones activas:', error);
+        console.error('[ExplorarScreen] Error loading promotions:', error);
         return;
       }
 
       const promotedLocalIds = new Set(data?.map((s: any) => s.local_id) || []);
       setActivePromotions(promotedLocalIds);
-      console.log('💰 Promociones activas cargadas:', promotedLocalIds.size);
+      console.log('[ExplorarScreen] 💰 Active promotions loaded:', promotedLocalIds.size);
     } catch (error) {
-      console.error('Error en cargarPromocionesActivas:', error);
+      console.error('[ExplorarScreen] Error in cargarPromocionesActivas:', error);
     }
-  };
-
-  const transformarLocal = (local: any): Local => {
-    // Filter out excluded categories
-    let barliveTypes = local.barlive_types || [];
-    barliveTypes = barliveTypes.filter((cat: string) => 
-      !CATEGORIAS_EXCLUIDAS.includes(cat.toLowerCase())
-    );
-    
-    // Also check barlive_type
-    let barliveType = local.barlive_type;
-    if (barliveType && CATEGORIAS_EXCLUIDAS.includes(barliveType.toLowerCase())) {
-      barliveType = barliveTypes.length > 0 ? barliveTypes[0] : local.tipo;
-    }
-    
-    return {
-      id: local.id,
-      nombre: local.nombre,
-      tipo: local.tipo,
-      descripcion: local.descripcion || '',
-      direccion: local.direccion,
-      ciudad: local.ciudad || '',
-      provincia: local.provincia,
-      coordenadas: {
-        lat: parseFloat(local.latitud),
-        lng: parseFloat(local.longitud),
-      },
-      imagenes: local.galeria_urls || (local.imagen_url ? [local.imagen_url] : []),
-      rating: parseFloat(local.google_rating || local.rating || 0),
-      precioMedio: local.precio_medio || 0,
-      horarios: [],
-      ambiente: local.ambiente || [],
-      musica: local.musica || [],
-      servicios: local.servicios || [],
-      metodosPago: local.metodos_pago || [],
-      destacado: local.destacado || false,
-      nuevo: local.nuevo || false,
-      abierto: local.abierto || false,
-      popularidad: local.popularidad || 0,
-      checkIns: local.check_ins || 0,
-      seguidores: local.seguidores || 0,
-      telefono: local.telefono,
-      web: local.website,
-      google_place_id: local.google_place_id,
-      valoracion_google: parseFloat(local.google_rating || 0),
-      numero_reviews_google: local.google_user_ratings_total || 0,
-      website_url: local.website,
-      tipos_google: local.tipos_google || [],
-      nivel_precio_google: local.nivel_precio_google,
-      google_maps_url: local.google_maps_url,
-      descripcion_google: local.descripcion_google,
-      horarios_completos: local.horarios_completos,
-      estado_actual: local.estado_actual,
-      estado_negocio: local.estado_negocio,
-      servicios_disponibles: local.servicios_disponibles,
-      ambiente_google: local.ambiente_completo,
-      clientela: local.clientela,
-      imagen_url: local.imagen_url,
-      galeria_urls: local.galeria_urls || [],
-      reviews_google: local.reviews_google,
-      activo: local.activo,
-      source_type: local.source_type,
-      source_id: local.source_id,
-      comunidad: local.comunidad,
-      fecha_importacion_google: local.fecha_actualizacion,
-      enriquecido: local.enriquecido,
-      barlive_type: barliveType,
-      barlive_types: barliveTypes,
-    };
   };
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await cargarTodosLosLocales();
+    await refreshData(false);
     await cargarPromocionesActivas();
     setRefreshing(false);
-  }, [cargarTodosLosLocales]);
+  }, [refreshData]);
 
   const handleModoChange = (modo: ModoUsuario) => {
-    console.log('[ExplorarScreen] Cambio de modo:', modo);
+    console.log('[ExplorarScreen] Mode change:', modo);
     setCurrentMode(modo);
     setMostrarSelectorModo(false);
   };
 
-  /**
-   * Cargar más locales desde la lista filtrada completa
-   */
   const cargarMasLocales = useCallback(() => {
     if (cargandoMas) return;
 
     const totalFiltrados = localesFiltradosCompletos.length;
     const totalVisibles = localesVisibles.length;
 
-    // Si ya mostramos todos los locales filtrados, no hay más que cargar
     if (totalVisibles >= totalFiltrados) {
       return;
     }
 
     setCargandoMas(true);
 
-    // Calcular el siguiente lote
     const siguientePagina = paginaActual + 1;
     const inicio = 0;
     const fin = siguientePagina * LOCALES_POR_PAGINA;
 
-    // Obtener el siguiente lote de la lista filtrada completa
     const nuevosLocalesVisibles = localesFiltradosCompletos.slice(inicio, fin);
 
     setLocalesVisibles(nuevosLocalesVisibles);
     setPaginaActual(siguientePagina);
     
-    // Preload the newly visible locals
     const startPreloadIndex = Math.max(0, nuevosLocalesVisibles.length - 10);
     const localIdsToPreload = nuevosLocalesVisibles.slice(startPreloadIndex).map(l => l.id);
     localPreloader.preloadMultiple(localIdsToPreload);
@@ -321,6 +209,56 @@ export default function ExplorarScreen() {
   }, [cargandoMas, localesFiltradosCompletos, localesVisibles, paginaActual]);
 
   const handleScroll = (event: any) => {
+    const currentScrollY = event.nativeEvent.contentOffset.y;
+    const scrollDiff = currentScrollY - lastScrollY.current;
+
+    // Determine scroll direction
+    if (scrollDiff > 0) {
+      scrollDirection.current = 'down';
+    } else if (scrollDiff < 0) {
+      scrollDirection.current = 'up';
+    }
+
+    // FIXED: Hide when scrolling down more than 5px and past 50px from top
+    if (scrollDirection.current === 'down' && scrollDiff > 5 && currentScrollY > 50 && isHeaderVisible.current) {
+      console.log('[ExplorarScreen] ⬇️ Hiding header and categories');
+      isHeaderVisible.current = false;
+      
+      Animated.parallel([
+        Animated.timing(headerTranslateY, {
+          toValue: -HEADER_HEIGHT,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+        Animated.timing(categoriasTranslateY, {
+          toValue: -CATEGORIAS_HEIGHT,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } 
+    // Show when scrolling up more than 10px
+    else if (scrollDirection.current === 'up' && scrollDiff < -10 && !isHeaderVisible.current) {
+      console.log('[ExplorarScreen] ⬆️ Showing header and categories');
+      isHeaderVisible.current = true;
+      
+      Animated.parallel([
+        Animated.timing(headerTranslateY, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+        Animated.timing(categoriasTranslateY, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+
+    lastScrollY.current = currentScrollY;
+
+    // Load more when reaching bottom
     const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
     const paddingToBottom = 20;
     
@@ -349,105 +287,132 @@ export default function ExplorarScreen() {
 
   const hayMasLocalesParaMostrar = localesVisibles.length < localesFiltradosCompletos.length;
 
+  // ⚡ SHOW LOADING SCREEN ONLY ON INITIAL APP STARTUP
+  if (isInitialLoading) {
+    return <InitialLoadingScreen />;
+  }
+
   return (
     <View style={commonStyles.container}>
-      {/* Header con gradiente */}
-      <LinearGradient
-        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.header}
+      {/* Animated Header */}
+      <Animated.View
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 100,
+          transform: [{ translateY: headerTranslateY }],
+        }}
       >
-        <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Explorar</Text>
-          <View style={styles.headerActions}>
-            {/* Selector de modo de usuario - solo si tiene múltiples modos disponibles */}
-            {availableModes.length > 1 && (
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.header}
+        >
+          <View style={styles.headerContent}>
+            <Text style={styles.headerTitle}>Explorar</Text>
+            <View style={styles.headerActions}>
+              {availableModes.length > 1 && (
+                <TouchableOpacity
+                  style={styles.modoButton}
+                  onPress={() => setMostrarSelectorModo(true)}
+                >
+                  <IconSymbol name={getModoIcon(currentMode)} size={20} color={colors.headerText} />
+                  <Text style={styles.modoButtonText}>{getModoLabel(currentMode)}</Text>
+                  <IconSymbol name="chevron.down" size={16} color={colors.headerText} />
+                </TouchableOpacity>
+              )}
+              
               <TouchableOpacity
-                style={styles.modoButton}
-                onPress={() => setMostrarSelectorModo(true)}
+                style={styles.mapaButton}
+                onPress={() => router.push('/explorar/mapa')}
               >
-                <IconSymbol name={getModoIcon(currentMode)} size={20} color={colors.headerText} />
-                <Text style={styles.modoButtonText}>{getModoLabel(currentMode)}</Text>
-                <IconSymbol name="chevron.down" size={16} color={colors.headerText} />
+                <IconSymbol name="map.fill" size={24} color={colors.headerText} />
               </TouchableOpacity>
-            )}
-            
-            <TouchableOpacity
-              style={styles.mapaButton}
-              onPress={() => router.push('/explorar/mapa')}
-            >
-              <IconSymbol name="map.fill" size={24} color={colors.headerText} />
+            </View>
+          </View>
+
+          <View style={styles.searchContainer}>
+            <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Buscar locales..."
+              placeholderTextColor={colors.textSecondary}
+              value={busqueda}
+              onChangeText={setBusqueda}
+            />
+            <TouchableOpacity onPress={() => setMostrarFiltros(true)}>
+              <IconSymbol name="line.3.horizontal.decrease.circle.fill" size={24} color={colors.primary} />
             </TouchableOpacity>
           </View>
-        </View>
+        </LinearGradient>
+      </Animated.View>
 
-        {/* Barra de búsqueda */}
-        <View style={styles.searchContainer}>
-          <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Buscar locales..."
-            placeholderTextColor={colors.textSecondary}
-            value={busqueda}
-            onChangeText={setBusqueda}
-          />
-          <TouchableOpacity onPress={() => setMostrarFiltros(true)}>
-            <IconSymbol name="line.3.horizontal.decrease.circle.fill" size={24} color={colors.primary} />
-          </TouchableOpacity>
-        </View>
-      </LinearGradient>
-
-      {/* Categorías horizontales */}
-      <View style={styles.categoriasContainer}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoriasScroll}
-        >
-          {CATEGORIAS_LOCALES.map((categoria) => (
-            <TouchableOpacity
-              key={categoria.id}
-              style={styles.categoriaButton}
-              onPress={() => setCategoriaSeleccionada(categoria.id)}
-            >
-              <View
-                style={[
-                  styles.categoriaIconContainer,
-                  categoriaSeleccionada === categoria.id && styles.categoriaIconContainerActive,
-                ]}
+      {/* Animated Categories */}
+      <Animated.View
+        style={{
+          position: 'absolute',
+          top: HEADER_HEIGHT,
+          left: 0,
+          right: 0,
+          zIndex: 99,
+          transform: [{ translateY: categoriasTranslateY }],
+        }}
+      >
+        <View style={styles.categoriasContainer}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoriasScroll}
+          >
+            {CATEGORIAS_LOCALES.map((categoria) => (
+              <TouchableOpacity
+                key={categoria.id}
+                style={styles.categoriaButton}
+                onPress={() => setCategoriaSeleccionada(categoria.id)}
               >
-                <IconSymbol name={categoria.icon as any} size={28} color={colors.primary} />
-              </View>
-              <Text
-                style={[
-                  styles.categoriaLabel,
-                  categoriaSeleccionada === categoria.id && styles.categoriaLabelActive,
-                ]}
-              >
-                {categoria.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
+                <View
+                  style={[
+                    styles.categoriaIconContainer,
+                    categoriaSeleccionada === categoria.id && styles.categoriaIconContainerActive,
+                  ]}
+                >
+                  <IconSymbol name={categoria.icon as any} size={28} color={colors.primary} />
+                </View>
+                <Text
+                  style={[
+                    styles.categoriaLabel,
+                    categoriaSeleccionada === categoria.id && styles.categoriaLabelActive,
+                  ]}
+                >
+                  {categoria.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </Animated.View>
 
-      {/* Lista de locales */}
+      {/* Content with top padding */}
       <ScrollView
         ref={scrollViewRef}
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: HEADER_HEIGHT + CATEGORIAS_HEIGHT }]}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing || globalRefreshing} 
+            onRefresh={onRefresh} 
+            tintColor={colors.primary}
+            progressViewOffset={HEADER_HEIGHT + CATEGORIAS_HEIGHT}
+          />
+        }
         onScroll={handleScroll}
-        scrollEventThrottle={400}
+        scrollEventThrottle={16}
       >
-        {cargando ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.loadingText}>Cargando locales...</Text>
-          </View>
-        ) : localesVisibles.length === 0 ? (
+        {localesVisibles.length === 0 ? (
           <View style={styles.emptyContainer}>
             <IconSymbol name="mappin.slash" size={64} color={colors.textSecondary} />
             <Text style={styles.emptyText}>No se encontraron locales</Text>
@@ -658,18 +623,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
     paddingBottom: 100,
-  },
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-    gap: 16,
-  },
-  loadingText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
   },
   emptyContainer: {
     flex: 1,
