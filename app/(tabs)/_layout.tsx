@@ -1,6 +1,6 @@
 
 import React, { useEffect } from 'react';
-import { Dimensions, Alert } from 'react-native';
+import { Dimensions, Alert, InteractionManager } from 'react-native';
 import { Tabs, useRouter, usePathname } from 'expo-router';
 import FloatingTabBar, { TabBarItem } from '@/components/FloatingTabBar';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,7 +17,7 @@ export default function TabLayout() {
   // Determine user's actual role from database
   const userRole = user?.rol_app || 'cliente';
 
-  console.log('[TabLayout] User role:', userRole, 'Current mode:', currentMode, 'Pathname:', pathname);
+  console.log('[TabLayout] ⚡ User role:', userRole, 'Current mode:', currentMode, 'Pathname:', pathname);
 
   // Prevent access to admin pages for non-admin users
   useEffect(() => {
@@ -25,7 +25,7 @@ export default function TabLayout() {
       // Check if user is trying to access admin routes
       const currentPath = pathname || '';
       if (currentPath.includes('/admin')) {
-        console.log('[TabLayout] Non-admin user trying to access admin page, redirecting...');
+        console.log('[TabLayout] ⚠️ Non-admin user trying to access admin page, redirecting...');
         Alert.alert(
           'Acceso Denegado',
           'No tienes permisos para acceder a esta sección.',
@@ -40,7 +40,7 @@ export default function TabLayout() {
     if (user && userRole !== 'propietario' && userRole !== 'admin') {
       const currentPath = pathname || '';
       if (currentPath.includes('/gestion')) {
-        console.log('[TabLayout] Non-propietario user trying to access gestion page, redirecting...');
+        console.log('[TabLayout] ⚠️ Non-propietario user trying to access gestion page, redirecting...');
         Alert.alert(
           'Acceso Denegado',
           'No tienes permisos para acceder a esta sección.',
@@ -221,7 +221,7 @@ export default function TabLayout() {
   };
 
   const tabs = getTabsForRole();
-  console.log('[TabLayout] Rendering tabs:', tabs.map(t => t.name));
+  console.log('[TabLayout] ⚡ Rendering tabs:', tabs.map(t => t.name));
 
   return (
     <>
@@ -239,6 +239,7 @@ export default function TabLayout() {
           options={{ 
             href: '/(tabs)/explorar',
             animation: 'none',
+            animationDuration: 0,
             lazy: false,
           }} 
         />
@@ -247,6 +248,7 @@ export default function TabLayout() {
           options={{ 
             href: '/(tabs)/eventos',
             animation: 'none',
+            animationDuration: 0,
             lazy: false,
           }} 
         />
@@ -255,6 +257,7 @@ export default function TabLayout() {
           options={{ 
             href: '/(tabs)/empleo',
             animation: 'none',
+            animationDuration: 0,
             lazy: false,
           }} 
         />
@@ -263,6 +266,7 @@ export default function TabLayout() {
           options={{ 
             href: '/(tabs)/social',
             animation: 'none',
+            animationDuration: 0,
             lazy: false,
           }} 
         />
@@ -271,6 +275,7 @@ export default function TabLayout() {
           options={{ 
             href: '/(tabs)/perfil',
             animation: 'none',
+            animationDuration: 0,
             lazy: false,
           }} 
         />
@@ -279,6 +284,7 @@ export default function TabLayout() {
           options={{ 
             href: userRole === 'propietario' || userRole === 'admin' ? '/(tabs)/gestion' : null,
             animation: 'none',
+            animationDuration: 0,
             lazy: false,
           }} 
         />
@@ -287,6 +293,7 @@ export default function TabLayout() {
           options={{ 
             href: userRole === 'admin' ? '/(tabs)/admin' : null,
             animation: 'none',
+            animationDuration: 0,
             lazy: false,
           }} 
         />
@@ -304,7 +311,7 @@ export default function TabLayout() {
         />
       </Tabs>
       
-      {/* Floating Tab Bar - key ensures it re-renders when mode changes */}
+      {/* ⚡ Floating Tab Bar - Optimized for instant navigation */}
       <FloatingTabBar 
         tabs={tabs} 
         containerWidth={screenWidth} 

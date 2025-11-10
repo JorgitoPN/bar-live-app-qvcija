@@ -23,9 +23,10 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
   const router = useRouter();
   const pathname = usePathname();
   const navigationInProgress = useRef(false);
+  const lastNavigationTime = useRef(0);
 
   useEffect(() => {
-    console.log('FloatingTabBar mounted, pathname:', pathname);
+    console.log('⚡ FloatingTabBar mounted, pathname:', pathname);
   }, [pathname]);
 
   const isActive = (route: string) => {
@@ -66,34 +67,28 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
           const active = isActive(tab.route);
 
           const onPress = () => {
-            // Prevent multiple simultaneous navigations
-            if (navigationInProgress.current) {
-              console.log('⚠️ Navigation already in progress, ignoring tap');
-              return;
-            }
-
-            console.log('⚡ Tab pressed:', tab.name, tab.route);
+            const now = Date.now();
             
-            // Check if already on this route to avoid unnecessary navigation
-            if (active) {
-              console.log('✅ Already on this route, ignoring');
+            // ⚡ INSTANT NAVIGATION - Prevent rapid taps within 50ms
+            if (now - lastNavigationTime.current < 50) {
+              console.log('⚠️ Tap too fast, ignoring');
               return;
             }
 
-            // Set navigation flag
-            navigationInProgress.current = true;
+            // ⚡ Check if already on this route
+            if (active) {
+              console.log('✅ Already on route:', tab.name);
+              return;
+            }
+
+            console.log('⚡ INSTANT NAV to:', tab.name, tab.route);
+            lastNavigationTime.current = now;
 
             try {
-              // INSTANT NAVIGATION - Use replace for immediate transition
+              // ⚡ INSTANT NAVIGATION - Use replace with no animation
               router.replace(tab.route as any);
-              
-              // Reset flag after a short delay
-              setTimeout(() => {
-                navigationInProgress.current = false;
-              }, 100);
             } catch (error) {
-              console.error('Error navigating to:', tab.route, error);
-              navigationInProgress.current = false;
+              console.error('❌ Navigation error:', error);
             }
           };
 
@@ -103,8 +98,7 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                 key={tab.name}
                 onPress={onPress}
                 style={styles.centerButton}
-                activeOpacity={0.7}
-                disabled={navigationInProgress.current}
+                activeOpacity={0.6}
               >
                 <LinearGradient
                   colors={[colors.headerGradientStart, colors.headerGradientEnd]}
@@ -123,8 +117,7 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
               key={tab.name}
               onPress={onPress}
               style={styles.tab}
-              activeOpacity={0.6}
-              disabled={navigationInProgress.current}
+              activeOpacity={0.5}
             >
               <View style={[styles.tabContent, active && styles.tabContentActive]}>
                 <IconSymbol
