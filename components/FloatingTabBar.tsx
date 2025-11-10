@@ -123,7 +123,8 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                 <IconSymbol
                   name={tab.icon as any}
                   size={24}
-                  color={active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.6)'}
+                  color="#FFFFFF"
+                  style={{ opacity: active ? 1 : 0.6 }}
                 />
                 <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
                   {tab.label}
@@ -188,16 +189,17 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   tabContentActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   tabLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: '#FFFFFF',
     marginTop: 4,
+    opacity: 0.6,
   },
   tabLabelActive: {
-    color: '#FFFFFF',
+    opacity: 1,
     fontWeight: '700',
   },
   centerButton: {

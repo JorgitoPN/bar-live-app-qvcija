@@ -391,6 +391,38 @@ export default function SalaVirtualScreen() {
     }
 
     try {
+      // Check if user is already checked in to another local
+      const { data: existingCheckIns, error: checkError } = await supabase
+        .from('check_ins')
+        .select('id, local_id, locales(nombre)')
+        .eq('usuario_id', user.id);
+
+      if (checkError) {
+        console.error('[SalaVirtual] Error checking existing check-ins:', checkError);
+        Alert.alert('Error', 'No se pudo verificar tu estado de check-in');
+        return;
+      }
+
+      // If user is checked in elsewhere, auto check-out from previous local
+      if (existingCheckIns && existingCheckIns.length > 0) {
+        const previousLocal = existingCheckIns[0] as any;
+        console.log('[SalaVirtual] 🔄 User checked in elsewhere, auto check-out from:', previousLocal.locales?.nombre);
+
+        const { error: deleteError } = await supabase
+          .from('check_ins')
+          .delete()
+          .eq('usuario_id', user.id);
+
+        if (deleteError) {
+          console.error('[SalaVirtual] Error removing previous check-in:', deleteError);
+          Alert.alert('Error', 'No se pudo cerrar tu sesión anterior');
+          return;
+        }
+
+        console.log('[SalaVirtual] ✅ Previous check-in removed');
+      }
+
+      // Create new check-in
       const { error } = await supabase
         .from('check_ins')
         .insert({
@@ -521,6 +553,8 @@ export default function SalaVirtualScreen() {
     const messageText = newMessage.trim();
     const tempId = `temp-${Date.now()}`;
 
+    console.log('[SalaVirtual] 💬 Sending chat message:', messageText);
+
     // OPTIMISTIC UI UPDATE - Show message INSTANTLY
     const optimisticMessage: ChatMessage = {
       id: tempId,
@@ -546,14 +580,16 @@ export default function SalaVirtualScreen() {
     try {
       setSendingMessage(true);
 
-      // FIXED: Simple insert without select to avoid schema cache error
-      const { error: insertError } = await supabase
+      // Insert message into database
+      const { data, error: insertError } = await supabase
         .from('sala_virtual_chat')
         .insert({
           usuario_id: user.id,
           local_id: params.id,
           mensaje: messageText,
-        });
+        })
+        .select('id')
+        .single();
 
       if (insertError) {
         console.error('[SalaVirtual] ❌ Error sending chat message:', insertError);
@@ -566,11 +602,14 @@ export default function SalaVirtualScreen() {
         return;
       }
 
-      console.log('[SalaVirtual] ✅ Message sent successfully');
+      console.log('[SalaVirtual] ✅ Message sent successfully with ID:', data?.id);
       
-      // The real-time subscription will handle adding the message with the real ID
-      // So we remove the optimistic message and let the subscription add it
-      setChatMessages((prev) => prev.filter(m => m.id !== tempId));
+      // Replace optimistic message with real one
+      if (data?.id) {
+        setChatMessages((prev) => 
+          prev.map(m => m.id === tempId ? { ...m, id: data.id } : m)
+        );
+      }
       
     } catch (error) {
       console.error('[SalaVirtual] ❌ Error:', error);
