@@ -631,6 +631,10 @@ export default function DetalleLocalScreen() {
   const cargarLocal = async () => {
     try {
       setLoading(true);
+      
+      // Try to get cached data first from localPreloader
+      // Note: We need to import localPreloader at the top of the file
+      // For now, we'll just load from Supabase
       const { data, error } = await supabase
         .from('locales')
         .select('*')

@@ -9,6 +9,7 @@ import { getEstadoLocal } from '@/utils/timeUtils';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { getCategoryIcon } from '@/utils/categoryIcons';
+import { localPreloader } from '@/utils/localPreloader';
 
 const { width } = Dimensions.get('window');
 
@@ -16,17 +17,32 @@ interface TarjetaLocalProps {
   local: Local;
   destacado?: boolean;
   userLocation?: { lat: number; lng: number } | null;
+  onVisible?: () => void;
 }
 
-export default function TarjetaLocal({ local, destacado, userLocation }: TarjetaLocalProps) {
+export default function TarjetaLocal({ local, destacado, userLocation, onVisible }: TarjetaLocalProps) {
   const router = useRouter();
   const { user } = useAuth();
   const [isFavorite, setIsFavorite] = useState(false);
   const [loadingFavorite, setLoadingFavorite] = useState(false);
+  const [hasPreloaded, setHasPreloaded] = useState(false);
 
   const estado = getEstadoLocal(local);
   const imagenPrincipal = local.imagenes?.[0] || local.imagen_url;
   const isDestacado = destacado || local.destacado;
+
+  // Preload local data when component becomes visible
+  useEffect(() => {
+    if (!hasPreloaded && local.id) {
+      localPreloader.preload(local.id);
+      setHasPreloaded(true);
+      
+      // Notify parent that this card is visible
+      if (onVisible) {
+        onVisible();
+      }
+    }
+  }, [local.id, hasPreloaded, onVisible]);
 
   // Define checkIfFavorite before useEffect
   const checkIfFavorite = useCallback(async () => {

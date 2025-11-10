@@ -16,6 +16,7 @@ import {
 import { useRouter } from 'expo-router';
 import { supabase } from '@/utils/supabase';
 import FiltrosAvanzadosSheet from '@/components/home/FiltrosAvanzadosSheet';
+import { localPreloader } from '@/utils/localPreloader';
 import { Local, Filtros } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import TarjetaLocal from '@/components/home/TarjetaLocal';
@@ -133,7 +134,12 @@ export default function ExplorarScreen() {
   // Update visible locals when filtered list changes
   useEffect(() => {
     setPaginaActual(1);
-    setLocalesVisibles(localesFiltradosCompletos.slice(0, LOCALES_POR_PAGINA));
+    const newVisibleLocals = localesFiltradosCompletos.slice(0, LOCALES_POR_PAGINA);
+    setLocalesVisibles(newVisibleLocals);
+    
+    // Preload the first batch of locals
+    const localIdsToPreload = newVisibleLocals.slice(0, 10).map(l => l.id);
+    localPreloader.preloadMultiple(localIdsToPreload);
   }, [localesFiltradosCompletos]);
 
   useEffect(() => {
@@ -291,6 +297,12 @@ export default function ExplorarScreen() {
 
     setLocalesVisibles(nuevosLocalesVisibles);
     setPaginaActual(siguientePagina);
+    
+    // Preload the newly visible locals
+    const startPreloadIndex = Math.max(0, nuevosLocalesVisibles.length - 10);
+    const localIdsToPreload = nuevosLocalesVisibles.slice(startPreloadIndex).map(l => l.id);
+    localPreloader.preloadMultiple(localIdsToPreload);
+    
     setCargandoMas(false);
   }, [cargandoMas, localesFiltradosCompletos, localesVisibles, paginaActual]);
 
