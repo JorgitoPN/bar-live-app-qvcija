@@ -203,6 +203,23 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
   const categoriasAMostrar = formatCategories();
   const overlayIcon = getOverlayIcon();
 
+  // Calculate rating from multiple sources
+  const getRating = () => {
+    // Priority: rating > google_rating > valoracion_google
+    if (local.rating && local.rating > 0) {
+      return local.rating;
+    }
+    if (local.google_rating && local.google_rating > 0) {
+      return local.google_rating;
+    }
+    if (local.valoracion_google && local.valoracion_google > 0) {
+      return local.valoracion_google;
+    }
+    return 0;
+  };
+
+  const displayRating = getRating();
+
   return (
     <TouchableOpacity 
       style={[
@@ -259,10 +276,10 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
         </View>
 
         {/* Valoración - Esquina superior derecha - PROMINENTE Y MÁS GRANDE */}
-        {local.rating > 0 && (
+        {displayRating > 0 && (
           <View style={styles.ratingBadge}>
-            <IconSymbol name="star.fill" size={16} color="#FACC15" />
-            <Text style={styles.ratingBadgeText}>{local.rating.toFixed(1)}</Text>
+            <IconSymbol name="star.fill" size={18} color="#FACC15" />
+            <Text style={styles.ratingBadgeText}>{displayRating.toFixed(1)}</Text>
           </View>
         )}
 
@@ -457,28 +474,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.90)',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 14,
-    gap: 7,
-    borderWidth: 2.5,
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+    borderRadius: 16,
+    gap: 8,
+    borderWidth: 3,
     borderColor: '#FFFFFF',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
-    elevation: 12,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.6,
+    shadowRadius: 12,
+    elevation: 15,
     zIndex: 12,
   },
   ratingBadgeText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '900',
     color: colors.headerText,
     letterSpacing: 0.5,
   },
   badgeNuevoContainer: {
     position: 'absolute',
-    top: 62,
+    top: 68,
     right: 12,
     zIndex: 9,
   },
