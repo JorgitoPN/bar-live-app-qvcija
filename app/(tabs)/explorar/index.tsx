@@ -13,7 +13,7 @@ import {
   Animated,
   ActivityIndicator,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { supabase } from '@/utils/supabase';
 import FiltrosAvanzadosSheet from '@/components/home/FiltrosAvanzadosSheet';
 import { localPreloader } from '@/utils/localPreloader';
@@ -78,6 +78,20 @@ export default function ExplorarScreen() {
     userRole === 'admin' ? ['cliente', 'propietario', 'admin'] :
     userRole === 'propietario' ? ['cliente', 'propietario'] :
     ['cliente'];
+
+  // Reset state when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log('[ExplorarScreen] Screen focused, resetting state');
+      // Reset any temporary state that might cause rendering issues
+      setMostrarFiltros(false);
+      setMostrarSelectorModo(false);
+      
+      return () => {
+        console.log('[ExplorarScreen] Screen unfocused');
+      };
+    }, [])
+  );
 
   const cargarTodosLosLocales = useCallback(async () => {
     try {

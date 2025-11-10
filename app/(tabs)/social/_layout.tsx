@@ -1,7 +1,7 @@
 
 import { Stack } from 'expo-router';
 
-export default function HomeLayout() {
+export default function SocialLayout() {
   return (
     <Stack
       screenOptions={{
