@@ -44,7 +44,7 @@ const CATEGORIAS_LOCALES = [
 const CATEGORIAS_EXCLUIDAS = ['terrazas', 'rooftops', 'lounge'];
 const LOCALES_POR_PAGINA = 20;
 const HEADER_HEIGHT = Platform.OS === 'ios' ? 110 : 100;
-const CATEGORIAS_HEIGHT = 100;
+const CATEGORIAS_HEIGHT = 110;
 
 export default function ExplorarScreen() {
   const router = useRouter();
@@ -52,7 +52,6 @@ export default function ExplorarScreen() {
   const { currentMode, setCurrentMode } = useMode();
   const scrollViewRef = useRef<ScrollView>(null);
   
-  // ⚡ USE GLOBAL DATA - NO FETCHING!
   const { locales: todosLosLocales, isInitialLoading, isRefreshing: globalRefreshing, refreshData } = useGlobalData();
   
   const [localesVisibles, setLocalesVisibles] = useState<Local[]>([]);
@@ -68,7 +67,6 @@ export default function ExplorarScreen() {
   const [activePromotions, setActivePromotions] = useState<Set<string>>(new Set());
   const [mostrarSelectorModo, setMostrarSelectorModo] = useState(false);
   
-  // Scroll animation refs
   const lastScrollY = useRef(0);
   const scrollDirection = useRef<'up' | 'down'>('down');
   const headerTranslateY = useRef(new Animated.Value(0)).current;
@@ -212,14 +210,12 @@ export default function ExplorarScreen() {
     const currentScrollY = event.nativeEvent.contentOffset.y;
     const scrollDiff = currentScrollY - lastScrollY.current;
 
-    // Determine scroll direction
     if (scrollDiff > 0) {
       scrollDirection.current = 'down';
     } else if (scrollDiff < 0) {
       scrollDirection.current = 'up';
     }
 
-    // Hide header and categories when scrolling down more than 5px and past 50px from top
     if (scrollDirection.current === 'down' && scrollDiff > 5 && currentScrollY > 50 && isHeaderVisible.current) {
       console.log('[ExplorarScreen] ⬇️ Hiding header and categories');
       isHeaderVisible.current = false;
@@ -237,7 +233,6 @@ export default function ExplorarScreen() {
         }),
       ]).start();
     } 
-    // Show header and categories when scrolling up more than 10px
     else if (scrollDirection.current === 'up' && scrollDiff < -10 && !isHeaderVisible.current) {
       console.log('[ExplorarScreen] ⬆️ Showing header and categories');
       isHeaderVisible.current = true;
@@ -258,7 +253,6 @@ export default function ExplorarScreen() {
 
     lastScrollY.current = currentScrollY;
 
-    // Load more when reaching bottom
     const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
     const paddingToBottom = 20;
     
@@ -287,14 +281,12 @@ export default function ExplorarScreen() {
 
   const hayMasLocalesParaMostrar = localesVisibles.length < localesFiltradosCompletos.length;
 
-  // ⚡ SHOW LOADING SCREEN ONLY ON INITIAL APP STARTUP
   if (isInitialLoading) {
     return <InitialLoadingScreen />;
   }
 
   return (
     <View style={commonStyles.container}>
-      {/* Animated Header */}
       <Animated.View
         style={{
           position: 'absolute',
@@ -350,7 +342,6 @@ export default function ExplorarScreen() {
         </LinearGradient>
       </Animated.View>
 
-      {/* Animated Categories - FIXED: Now positioned at top and animates with header */}
       <Animated.View
         style={{
           position: 'absolute',
@@ -397,7 +388,6 @@ export default function ExplorarScreen() {
         </View>
       </Animated.View>
 
-      {/* Content with top padding */}
       <ScrollView
         ref={scrollViewRef}
         style={styles.scrollView}
@@ -449,7 +439,6 @@ export default function ExplorarScreen() {
         )}
       </ScrollView>
 
-      {/* Modal selector de modo */}
       <Modal
         visible={mostrarSelectorModo}
         transparent
@@ -580,23 +569,23 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   categoriasContainer: {
-    paddingVertical: 12,
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
   },
   categoriasScroll: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 16,
     paddingHorizontal: 20,
   },
   categoriaButton: {
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
     minWidth: 70,
   },
   categoriaIconContainer: {
-    width: 56,
-    height: 56,
+    width: 60,
+    height: 60,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.cardBackground,
@@ -609,7 +598,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary + '15',
   },
   categoriaLabel: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
     color: colors.text,
     textAlign: 'center',
