@@ -203,7 +203,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
   const categoriasAMostrar = formatCategories();
   const overlayIcon = getOverlayIcon();
 
-  // Calculate rating from multiple sources
+  // Calculate rating from multiple sources - SAME LOGIC AS DETAIL PAGE
   const getRating = () => {
     // Priority: rating > google_rating > valoracion_google
     if (local.rating && local.rating > 0) {
@@ -275,10 +275,10 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
           <Text style={styles.badgeEstadoSuperiorText}>{getBadgeText()}</Text>
         </View>
 
-        {/* Valoración - Esquina superior derecha - REDUCED TO HALF SIZE */}
+        {/* Valoración - Esquina superior derecha - SAME HEIGHT AS STATUS BADGE */}
         {displayRating > 0 && (
           <View style={styles.ratingBadge}>
-            <IconSymbol name="star.fill" size={10} color="#FACC15" />
+            <IconSymbol name="star.fill" size={12} color="#FACC15" />
             <Text style={styles.ratingBadgeText}>{displayRating.toFixed(1)}</Text>
           </View>
         )}
@@ -474,28 +474,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.75)',
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
     gap: 4,
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.8)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
     elevation: 8,
     zIndex: 12,
   },
   ratingBadgeText: {
-    fontSize: 11,
-    fontWeight: '800',
+    fontSize: 12,
+    fontWeight: '700',
     color: colors.headerText,
     letterSpacing: 0.3,
   },
   badgeNuevoContainer: {
     position: 'absolute',
-    top: 68,
+    top: 56,
     right: 12,
     zIndex: 9,
   },

@@ -992,10 +992,22 @@ export default function DetalleLocalScreen() {
 
   const reviewsAMostrar = mostrarTodasReviews ? todasLasReviews : todasLasReviews.slice(0, 2);
 
-  const totalRating = reviewsBarlive.reduce((sum, r) => sum + r.rating, 0) + 
-                      reviewsGoogle.reduce((sum: number, r: any) => sum + r.rating, 0);
-  const totalReviews = reviewsBarlive.length + reviewsGoogle.length;
-  const ratingCombinado = totalReviews > 0 ? (totalRating / totalReviews).toFixed(1) : local.google_rating;
+  // Calculate rating using the SAME LOGIC as TarjetaLocal
+  const getRating = () => {
+    // Priority: rating > google_rating > valoracion_google
+    if (local.rating && local.rating > 0) {
+      return local.rating;
+    }
+    if (local.google_rating && local.google_rating > 0) {
+      return local.google_rating;
+    }
+    if (local.valoracion_google && local.valoracion_google > 0) {
+      return local.valoracion_google;
+    }
+    return 0;
+  };
+
+  const ratingCombinado = getRating() > 0 ? getRating().toFixed(1) : null;
 
   const currentDay = getCurrentDayName();
   const overlayIcon = getOverlayIcon();

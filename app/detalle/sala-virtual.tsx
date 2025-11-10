@@ -45,20 +45,8 @@ interface InteractionMessage {
   id: string;
   usuario_id: string;
   local_id: string;
-  tipo: 'mensaje' | 'emoticon';
+  tipo: 'mensaje' | 'emoticon' | 'chat';
   contenido: string;
-  created_at: string;
-  usuario: {
-    nombre: string;
-    avatar?: string;
-  };
-}
-
-interface ChatMessage {
-  id: string;
-  usuario_id: string;
-  local_id: string;
-  mensaje: string;
   created_at: string;
   usuario: {
     id: string;
@@ -109,7 +97,7 @@ export default function SalaVirtualScreen() {
   const [floatingEmojis, setFloatingEmojis] = useState<Array<{ id: string; emoji: string; x: number; y: Animated.Value; opacity: Animated.Value }>>([]);
   
   const [showPublicChat, setShowPublicChat] = useState(false);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatMessages, setChatMessages] = useState<InteractionMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
 
@@ -190,37 +178,22 @@ export default function SalaVirtualScreen() {
           tipo,
           contenido,
           created_at,
-          usuario:usuarios(nombre, avatar)
+          usuario:usuarios(id, nombre, username, avatar)
         `)
         .eq('local_id', params.id)
         .gte('created_at', thirtyMinutesAgo.toISOString())
         .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (!interactionsError) {
-        setInteractions(interactionsData || []);
-      }
-
-      const twoHoursAgo = new Date();
-      twoHoursAgo.setHours(twoHoursAgo.getHours() - 2);
-
-      const { data: chatData, error: chatError } = await supabase
-        .from('sala_virtual_chat')
-        .select(`
-          id,
-          usuario_id,
-          local_id,
-          mensaje,
-          created_at,
-          usuario:usuarios(id, nombre, username, avatar)
-        `)
-        .eq('local_id', params.id)
-        .gte('created_at', twoHoursAgo.toISOString())
-        .order('created_at', { ascending: true })
         .limit(100);
 
-      if (!chatError) {
-        setChatMessages(chatData || []);
+      if (!interactionsError) {
+        const allInteractions = interactionsData || [];
+        
+        // Separate chat messages from other interactions
+        const chatMsgs = allInteractions.filter(i => i.tipo === 'chat');
+        const otherInteractions = allInteractions.filter(i => i.tipo !== 'chat');
+        
+        setInteractions(otherInteractions);
+        setChatMessages(chatMsgs.reverse()); // Reverse to show oldest first in chat
       }
 
       console.log('[SalaVirtual] ⚡ Data loaded');
@@ -262,19 +235,29 @@ export default function SalaVirtualScreen() {
           
           const { data: userData } = await supabase
             .from('usuarios')
-            .select('nombre, avatar')
+            .select('id, nombre, username, avatar')
             .eq('id', payload.new.usuario_id)
             .single();
 
           const newInteraction = {
             ...payload.new,
-            usuario: userData || { nombre: 'Usuario', avatar: '' },
+            usuario: userData || { id: payload.new.usuario_id, nombre: 'Usuario', username: '', avatar: '' },
           } as InteractionMessage;
 
-          setInteractions((prev) => [newInteraction, ...prev].slice(0, 50));
+          // If it's a chat message, add to chat
+          if (payload.new.tipo === 'chat') {
+            setChatMessages((prev) => [...prev, newInteraction]);
+            
+            setTimeout(() => {
+              flatListRef.current?.scrollToEnd({ animated: true });
+            }, 50);
+          } else {
+            // Otherwise add to interactions feed
+            setInteractions((prev) => [newInteraction, ...prev].slice(0, 50));
 
-          if (payload.new.tipo === 'emoticon') {
-            showFloatingEmoji(payload.new.contenido);
+            if (payload.new.tipo === 'emoticon') {
+              showFloatingEmoji(payload.new.contenido);
+            }
           }
         }
       )
@@ -306,32 +289,19 @@ export default function SalaVirtualScreen() {
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: 'DELETE',
           schema: 'public',
-          table: 'sala_virtual_chat',
+          table: 'sala_virtual_interacciones',
           filter: `local_id=eq.${params.id}`,
         },
-        async (payload) => {
-          console.log('[SalaVirtual] ⚡ INSTANT new chat message:', payload.new);
+        (payload) => {
+          console.log('[SalaVirtual] ⚡ Message deleted:', payload.old);
           
-          const { data: userData } = await supabase
-            .from('usuarios')
-            .select('id, nombre, username, avatar')
-            .eq('id', payload.new.usuario_id)
-            .single();
-
-          if (userData) {
-            const newMsg = {
-              ...payload.new,
-              usuario: userData,
-            } as ChatMessage;
-            
-            setChatMessages((prev) => [...prev, newMsg]);
-            
-            setTimeout(() => {
-              flatListRef.current?.scrollToEnd({ animated: true });
-            }, 50);
-          }
+          // Remove from chat messages
+          setChatMessages((prev) => prev.filter(m => m.id !== payload.old.id));
+          
+          // Remove from interactions
+          setInteractions((prev) => prev.filter(i => i.id !== payload.old.id));
         }
       )
       .subscribe((status) => {
@@ -556,11 +526,12 @@ export default function SalaVirtualScreen() {
     console.log('[SalaVirtual] 💬 Sending chat message:', messageText);
 
     // OPTIMISTIC UI UPDATE - Show message INSTANTLY
-    const optimisticMessage: ChatMessage = {
+    const optimisticMessage: InteractionMessage = {
       id: tempId,
       usuario_id: user.id,
       local_id: params.id as string,
-      mensaje: messageText,
+      tipo: 'chat',
+      contenido: messageText,
       created_at: new Date().toISOString(),
       usuario: {
         id: user.id,
@@ -580,13 +551,14 @@ export default function SalaVirtualScreen() {
     try {
       setSendingMessage(true);
 
-      // Insert message into database
+      // Insert message into database using sala_virtual_interacciones table
       const { data, error: insertError } = await supabase
-        .from('sala_virtual_chat')
+        .from('sala_virtual_interacciones')
         .insert({
           usuario_id: user.id,
           local_id: params.id,
-          mensaje: messageText,
+          tipo: 'chat',
+          contenido: messageText,
         })
         .select('id')
         .single();
@@ -643,19 +615,23 @@ export default function SalaVirtualScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
+              // Optimistically remove from UI
               setChatMessages((prev) => prev.filter(m => m.id !== messageId));
 
               const { error } = await supabase
-                .from('sala_virtual_chat')
+                .from('sala_virtual_interacciones')
                 .delete()
                 .eq('id', messageId);
 
               if (error) {
                 console.error('[SalaVirtual] Error deleting message:', error);
                 Alert.alert('Error', 'No se pudo eliminar el mensaje');
+                // Reload data to restore message
+                loadData();
               }
             } catch (error) {
               console.error('[SalaVirtual] Error:', error);
+              loadData();
             }
           },
         },
@@ -993,7 +969,7 @@ export default function SalaVirtualScreen() {
                         <Text style={styles.chatSenderName}>{item.usuario.nombre}</Text>
                       )}
                       <Text style={[styles.chatMessageText, isOwnMessage && styles.chatMessageTextOwn]}>
-                        {item.mensaje}
+                        {item.contenido}
                       </Text>
                       <Text style={[styles.chatMessageTime, isOwnMessage && styles.chatMessageTimeOwn]}>
                         {formatChatTime(item.created_at)}
