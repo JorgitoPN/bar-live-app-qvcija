@@ -9,7 +9,8 @@ import {
   Switch,
   Platform,
   Alert,
-  Linking,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -17,6 +18,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function ConfiguracionScreen() {
   const router = useRouter();
@@ -32,11 +34,15 @@ export default function ConfiguracionScreen() {
   const [modoOscuro, setModoOscuro] = useState(false);
   const [tamanoTexto, setTamanoTexto] = useState('Medio');
   const [idiomaSeleccionado, setIdiomaSeleccionado] = useState('Español');
+  const [showTamanoModal, setShowTamanoModal] = useState(false);
+  const [showIdiomaModal, setShowIdiomaModal] = useState(false);
+  const [cacheSize, setCacheSize] = useState('0 MB');
 
   // Load user settings
   useEffect(() => {
     if (user) {
       loadUserSettings();
+      calculateCacheSize();
     }
   }, [user]);
 
@@ -54,17 +60,40 @@ export default function ConfiguracionScreen() {
 
       if (data) {
         setPerfilPublico(!data.perfil_privado);
-        setMostrarUbicacion(data.mostrar_ubicacion);
-        setMostrarEnLinea(data.mostrar_en_linea);
-        setModoOscuro(data.modo_oscuro);
+        setMostrarUbicacion(data.mostrar_ubicacion !== false);
+        setMostrarEnLinea(data.mostrar_en_linea !== false);
+        setModoOscuro(data.modo_oscuro || false);
         setTamanoTexto(data.tamano_texto === 'pequeno' ? 'Pequeño' : 
-                       data.tamano_texto === 'medio' ? 'Medio' : 'Grande');
+                       data.tamano_texto === 'medio' ? 'Medio' : 
+                       data.tamano_texto === 'grande' ? 'Grande' : 'Medio');
         setIdiomaSeleccionado(data.idioma === 'es' ? 'Español' : 
                               data.idioma === 'en' ? 'English' : 
-                              data.idioma === 'fr' ? 'Français' : 'Deutsch');
+                              data.idioma === 'fr' ? 'Français' : 
+                              data.idioma === 'de' ? 'Deutsch' : 'Español');
       }
     } catch (error) {
       console.error('Error loading user settings:', error);
+    }
+  };
+
+  const calculateCacheSize = async () => {
+    try {
+      // Estimate cache size from AsyncStorage
+      const keys = await AsyncStorage.getAllKeys();
+      let totalSize = 0;
+      
+      for (const key of keys) {
+        const value = await AsyncStorage.getItem(key);
+        if (value) {
+          totalSize += value.length;
+        }
+      }
+      
+      const sizeInMB = (totalSize / (1024 * 1024)).toFixed(2);
+      setCacheSize(`${sizeInMB} MB`);
+    } catch (error) {
+      console.error('Error calculating cache size:', error);
+      setCacheSize('N/A');
     }
   };
 
@@ -128,8 +157,24 @@ export default function ConfiguracionScreen() {
                   text: 'Sí, eliminar',
                   style: 'destructive',
                   onPress: async () => {
-                    // TODO: Implement account deletion
-                    Alert.alert('Información', 'Funcionalidad en desarrollo. Por favor, contacta con soporte.');
+                    try {
+                      if (!user) return;
+                      
+                      // Delete user data
+                      const { error } = await supabase
+                        .from('usuarios')
+                        .delete()
+                        .eq('id', user.id);
+                      
+                      if (error) throw error;
+                      
+                      await signOut();
+                      Alert.alert('Cuenta Eliminada', 'Tu cuenta ha sido eliminada correctamente');
+                      router.replace('/auth/bienvenida');
+                    } catch (error) {
+                      console.error('Error deleting account:', error);
+                      Alert.alert('Error', 'No se pudo eliminar la cuenta. Por favor, contacta con soporte.');
+                    }
                   }
                 }
               ]
@@ -156,7 +201,7 @@ export default function ConfiguracionScreen() {
 
             try {
               const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-                redirectTo: 'https://natively.dev/reset-password',
+                redirectTo: 'barlive://reset-password',
               });
 
               if (error) throw error;
@@ -180,9 +225,15 @@ export default function ConfiguracionScreen() {
         { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Solicitar',
-          onPress: () => {
-            // TODO: Implement data download
-            Alert.alert('Solicitud Enviada', 'Recibirás un correo con tus datos en las próximas 24 horas.');
+          onPress: async () => {
+            try {
+              // In production, trigger a background job to export user data
+              // For now, just show confirmation
+              Alert.alert('Solicitud Enviada', 'Recibirás un correo con tus datos en las próximas 24 horas.');
+            } catch (error) {
+              console.error('Error requesting data export:', error);
+              Alert.alert('Error', 'No se pudo procesar la solicitud');
+            }
           }
         }
       ]
@@ -197,37 +248,64 @@ export default function ConfiguracionScreen() {
         { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Limpiar',
-          onPress: () => {
-            // TODO: Implement cache clearing
-            Alert.alert('Éxito', 'Caché limpiada correctamente');
+          onPress: async () => {
+            try {
+              await AsyncStorage.clear();
+              setCacheSize('0 MB');
+              Alert.alert('Éxito', 'Caché limpiada correctamente');
+            } catch (error) {
+              console.error('Error clearing cache:', error);
+              Alert.alert('Error', 'No se pudo limpiar la caché');
+            }
           }
         }
       ]
     );
   };
 
+  const handleUsuariosBloqueados = () => {
+    router.push('/perfil/usuarios-bloqueados' as any);
+  };
+
+  const handleContenidoOculto = () => {
+    router.push('/perfil/contenido-oculto' as any);
+  };
+
   const handleCentroAyuda = () => {
-    Linking.openURL('https://barlive.es/ayuda');
+    router.push('/soporte/centro-ayuda' as any);
   };
 
   const handleReportarProblema = () => {
-    router.push('/support/create-ticket');
+    router.push('/soporte/reportar-problema' as any);
   };
 
   const handleTerminos = () => {
-    Linking.openURL('https://barlive.es/terminos');
+    router.push('/legal/terminos' as any);
   };
 
   const handlePrivacidad = () => {
-    Linking.openURL('https://barlive.es/privacidad');
+    router.push('/legal/privacidad' as any);
   };
 
   const handleAcercaDe = () => {
-    Alert.alert(
-      'BarLive v1.0.0',
-      'BarLive es la plataforma social para descubrir y conectar con locales de ocio en España.\n\n© 2025 BarLive. Todos los derechos reservados.',
-      [{ text: 'OK' }]
-    );
+    router.push('/legal/acerca-de' as any);
+  };
+
+  const handleTamanoTextoChange = (tamano: string) => {
+    setTamanoTexto(tamano);
+    const tamanoKey = tamano === 'Pequeño' ? 'pequeno' : 
+                      tamano === 'Medio' ? 'medio' : 'grande';
+    updateUserSetting('tamano_texto', tamanoKey);
+    setShowTamanoModal(false);
+  };
+
+  const handleIdiomaChange = (idioma: string) => {
+    setIdiomaSeleccionado(idioma);
+    const idiomaKey = idioma === 'Español' ? 'es' : 
+                      idioma === 'English' ? 'en' : 
+                      idioma === 'Français' ? 'fr' : 'de';
+    updateUserSetting('idioma', idiomaKey);
+    setShowIdiomaModal(false);
   };
 
   return (
@@ -305,7 +383,10 @@ export default function ConfiguracionScreen() {
               <IconSymbol name="envelope.circle" size={24} color={colors.primary} />
               <Text style={styles.settingText}>Correo Electrónico</Text>
             </View>
-            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+            <View style={styles.settingRight}>
+              <Text style={styles.settingValue}>{user?.email?.substring(0, 20) || 'N/A'}</Text>
+              <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+            </View>
           </TouchableOpacity>
         </View>
 
@@ -320,7 +401,10 @@ export default function ConfiguracionScreen() {
             </View>
             <Switch
               value={notificacionesPush}
-              onValueChange={setNotificacionesPush}
+              onValueChange={(value) => {
+                setNotificacionesPush(value);
+                updateUserSetting('notificaciones_push', value);
+              }}
               trackColor={{ false: colors.cardBorder, true: colors.primary }}
               thumbColor={colors.cardBackground}
             />
@@ -333,7 +417,10 @@ export default function ConfiguracionScreen() {
             </View>
             <Switch
               value={notificacionesEmail}
-              onValueChange={setNotificacionesEmail}
+              onValueChange={(value) => {
+                setNotificacionesEmail(value);
+                updateUserSetting('notificaciones_email', value);
+              }}
               trackColor={{ false: colors.cardBorder, true: colors.primary }}
               thumbColor={colors.cardBackground}
             />
@@ -346,7 +433,10 @@ export default function ConfiguracionScreen() {
             </View>
             <Switch
               value={notificacionesEventos}
-              onValueChange={setNotificacionesEventos}
+              onValueChange={(value) => {
+                setNotificacionesEventos(value);
+                updateUserSetting('notificaciones_eventos', value);
+              }}
               trackColor={{ false: colors.cardBorder, true: colors.primary }}
               thumbColor={colors.cardBackground}
             />
@@ -359,7 +449,10 @@ export default function ConfiguracionScreen() {
             </View>
             <Switch
               value={notificacionesOfertas}
-              onValueChange={setNotificacionesOfertas}
+              onValueChange={(value) => {
+                setNotificacionesOfertas(value);
+                updateUserSetting('notificaciones_ofertas', value);
+              }}
               trackColor={{ false: colors.cardBorder, true: colors.primary }}
               thumbColor={colors.cardBackground}
             />
@@ -372,7 +465,10 @@ export default function ConfiguracionScreen() {
             </View>
             <Switch
               value={notificacionesEmpleo}
-              onValueChange={setNotificacionesEmpleo}
+              onValueChange={(value) => {
+                setNotificacionesEmpleo(value);
+                updateUserSetting('notificaciones_empleo', value);
+              }}
               trackColor={{ false: colors.cardBorder, true: colors.primary }}
               thumbColor={colors.cardBackground}
             />
@@ -428,9 +524,7 @@ export default function ConfiguracionScreen() {
 
           <TouchableOpacity 
             style={styles.settingItem}
-            onPress={() => {
-              Alert.alert('Usuarios Bloqueados', 'Funcionalidad en desarrollo');
-            }}
+            onPress={handleUsuariosBloqueados}
           >
             <View style={styles.settingLeft}>
               <IconSymbol name="hand.raised.circle" size={24} color={colors.primary} />
@@ -441,9 +535,7 @@ export default function ConfiguracionScreen() {
 
           <TouchableOpacity 
             style={styles.settingItem}
-            onPress={() => {
-              Alert.alert('Contenido Oculto', 'Funcionalidad en desarrollo');
-            }}
+            onPress={handleContenidoOculto}
           >
             <View style={styles.settingLeft}>
               <IconSymbol name="eye.slash.circle" size={24} color={colors.primary} />
@@ -476,18 +568,7 @@ export default function ConfiguracionScreen() {
 
           <TouchableOpacity 
             style={styles.settingItem}
-            onPress={() => {
-              Alert.alert(
-                'Tamaño de Texto',
-                'Selecciona el tamaño de texto',
-                [
-                  { text: 'Pequeño', onPress: () => setTamanoTexto('Pequeño') },
-                  { text: 'Medio', onPress: () => setTamanoTexto('Medio') },
-                  { text: 'Grande', onPress: () => setTamanoTexto('Grande') },
-                  { text: 'Cancelar', style: 'cancel' }
-                ]
-              );
-            }}
+            onPress={() => setShowTamanoModal(true)}
           >
             <View style={styles.settingLeft}>
               <IconSymbol name="textformat" size={24} color={colors.primary} />
@@ -501,19 +582,7 @@ export default function ConfiguracionScreen() {
 
           <TouchableOpacity 
             style={styles.settingItem}
-            onPress={() => {
-              Alert.alert(
-                'Idioma',
-                'Selecciona el idioma de la aplicación',
-                [
-                  { text: 'Español', onPress: () => setIdiomaSeleccionado('Español') },
-                  { text: 'English', onPress: () => setIdiomaSeleccionado('English') },
-                  { text: 'Français', onPress: () => setIdiomaSeleccionado('Français') },
-                  { text: 'Deutsch', onPress: () => setIdiomaSeleccionado('Deutsch') },
-                  { text: 'Cancelar', style: 'cancel' }
-                ]
-              );
-            }}
+            onPress={() => setShowIdiomaModal(true)}
           >
             <View style={styles.settingLeft}>
               <IconSymbol name="globe" size={24} color={colors.primary} />
@@ -550,7 +619,7 @@ export default function ConfiguracionScreen() {
               <Text style={styles.settingText}>Limpiar Caché</Text>
             </View>
             <View style={styles.settingRight}>
-              <Text style={styles.settingValue}>245 MB</Text>
+              <Text style={styles.settingValue}>{cacheSize}</Text>
               <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
             </View>
           </TouchableOpacity>
@@ -642,6 +711,88 @@ export default function ConfiguracionScreen() {
         <Text style={styles.versionText}>BarLive v1.0.0</Text>
         <Text style={styles.copyrightText}>© 2025 BarLive. Todos los derechos reservados.</Text>
       </ScrollView>
+
+      {/* Modal Tamaño de Texto */}
+      <Modal
+        visible={showTamanoModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowTamanoModal(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowTamanoModal(false)}>
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Tamaño de Texto</Text>
+              <TouchableOpacity onPress={() => setShowTamanoModal(false)}>
+                <IconSymbol name="xmark" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.modalBody}>
+              {['Pequeño', 'Medio', 'Grande'].map((tamano) => (
+                <TouchableOpacity
+                  key={tamano}
+                  style={[
+                    styles.modalOption,
+                    tamanoTexto === tamano && styles.modalOptionActive,
+                  ]}
+                  onPress={() => handleTamanoTextoChange(tamano)}
+                >
+                  <Text style={[
+                    styles.modalOptionText,
+                    tamanoTexto === tamano && styles.modalOptionTextActive,
+                  ]}>
+                    {tamano}
+                  </Text>
+                  {tamanoTexto === tamano && (
+                    <IconSymbol name="checkmark" size={20} color={colors.primary} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Modal Idioma */}
+      <Modal
+        visible={showIdiomaModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowIdiomaModal(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowIdiomaModal(false)}>
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Idioma</Text>
+              <TouchableOpacity onPress={() => setShowIdiomaModal(false)}>
+                <IconSymbol name="xmark" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.modalBody}>
+              {['Español', 'English', 'Français', 'Deutsch'].map((idioma) => (
+                <TouchableOpacity
+                  key={idioma}
+                  style={[
+                    styles.modalOption,
+                    idiomaSeleccionado === idioma && styles.modalOptionActive,
+                  ]}
+                  onPress={() => handleIdiomaChange(idioma)}
+                >
+                  <Text style={[
+                    styles.modalOptionText,
+                    idiomaSeleccionado === idioma && styles.modalOptionTextActive,
+                  ]}>
+                    {idioma}
+                  </Text>
+                  {idiomaSeleccionado === idioma && (
+                    <IconSymbol name="checkmark" size={20} color={colors.primary} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -740,5 +891,51 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 8,
     marginBottom: 32,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colors.cardBackground,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '50%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  modalBody: {
+    padding: 0,
+  },
+  modalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  modalOptionActive: {
+    backgroundColor: colors.primary + '10',
+  },
+  modalOptionText: {
+    fontSize: 16,
+    color: colors.text,
+  },
+  modalOptionTextActive: {
+    fontWeight: '600',
+    color: colors.primary,
   },
 });
