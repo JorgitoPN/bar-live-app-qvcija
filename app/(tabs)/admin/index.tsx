@@ -110,13 +110,6 @@ export default function AdminScreen() {
       route: '/admin/enriquecimiento-google',
       requiresSupabase: true,
     },
-    {
-      icon: 'photo.on.rectangle',
-      title: 'Verificar Fotos en Supabase',
-      description: 'Verificar y migrar fotos a Supabase Storage',
-      route: '/admin/verificar-fotos',
-      requiresSupabase: true,
-    },
   ];
 
   const gestionSection: MenuItem[] = [
