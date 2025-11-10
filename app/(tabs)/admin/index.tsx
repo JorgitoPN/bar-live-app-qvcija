@@ -110,6 +110,13 @@ export default function AdminScreen() {
       route: '/admin/enriquecimiento-google',
       requiresSupabase: true,
     },
+    {
+      icon: 'photo.on.rectangle.angled',
+      title: 'Migrar Fotos a Supabase',
+      description: 'Descargar fotos de Google y subirlas a Supabase',
+      route: '/admin/migrar-fotos-supabase',
+      requiresSupabase: true,
+    },
   ];
 
   const gestionSection: MenuItem[] = [
