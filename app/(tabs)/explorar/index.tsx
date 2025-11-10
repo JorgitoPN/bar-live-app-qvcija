@@ -44,7 +44,7 @@ const CATEGORIAS_LOCALES = [
 const CATEGORIAS_EXCLUIDAS = ['terrazas', 'rooftops', 'lounge'];
 const LOCALES_POR_PAGINA = 20;
 const HEADER_HEIGHT = Platform.OS === 'ios' ? 110 : 100;
-const CATEGORIAS_HEIGHT = 170; // Increased from 150 to 170 to ensure full visibility
+const CATEGORIAS_HEIGHT = 180; // Increased to accommodate larger padding
 
 export default function ExplorarScreen() {
   const router = useRouter();
@@ -391,7 +391,7 @@ export default function ExplorarScreen() {
       <ScrollView
         ref={scrollViewRef}
         style={styles.scrollView}
-        contentContainerStyle={[styles.scrollContent, { paddingTop: HEADER_HEIGHT + CATEGORIAS_HEIGHT + 20 }]}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: HEADER_HEIGHT + CATEGORIAS_HEIGHT }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl 
@@ -569,7 +569,7 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   categoriasContainer: {
-    paddingVertical: 32,
+    paddingVertical: 40,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
   },
