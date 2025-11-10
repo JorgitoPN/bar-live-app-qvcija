@@ -10,6 +10,9 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
+  Modal,
+  Animated,
+  Dimensions,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -17,6 +20,9 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import LoginRequiredModal from '@/components/common/LoginRequiredModal';
+
+const { width } = Dimensions.get('window');
 
 interface CheckIn {
   id: string;
@@ -31,6 +37,45 @@ interface CheckIn {
   };
 }
 
+interface InteractionMessage {
+  id: string;
+  usuario_id: string;
+  local_id: string;
+  tipo: 'mensaje' | 'emoticon';
+  contenido: string;
+  created_at: string;
+  usuario: {
+    nombre: string;
+    avatar?: string;
+  };
+}
+
+// Predefined messages for quick interactions
+const MENSAJES_RAPIDOS = [
+  { id: '1', texto: '¿Me invitas a una copa? 🍹', emoji: '🍹' },
+  { id: '2', texto: 'Te invito a una copa 🥂', emoji: '🥂' },
+  { id: '3', texto: '¡Qué buena música! 🎵', emoji: '🎵' },
+  { id: '4', texto: '¿Bailamos? 💃', emoji: '💃' },
+  { id: '5', texto: '¡Salud! 🍻', emoji: '🍻' },
+  { id: '6', texto: '¡Qué ambiente! 🎉', emoji: '🎉' },
+];
+
+// Emoticons for quick reactions
+const EMOTICONS = [
+  { id: '1', emoji: '❤️', nombre: 'Corazón' },
+  { id: '2', emoji: '🔥', nombre: 'Fuego' },
+  { id: '3', emoji: '😍', nombre: 'Enamorado' },
+  { id: '4', emoji: '🎉', nombre: 'Fiesta' },
+  { id: '5', emoji: '👋', nombre: 'Saludo' },
+  { id: '6', emoji: '😎', nombre: 'Cool' },
+  { id: '7', emoji: '🍻', nombre: 'Brindis' },
+  { id: '8', emoji: '💃', nombre: 'Baile' },
+  { id: '9', emoji: '🎵', nombre: 'Música' },
+  { id: '10', emoji: '⭐', nombre: 'Estrella' },
+  { id: '11', emoji: '💫', nombre: 'Brillante' },
+  { id: '12', emoji: '👍', nombre: 'Me gusta' },
+];
+
 export default function SalaVirtualScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -40,6 +85,11 @@ export default function SalaVirtualScreen() {
   const [local, setLocal] = useState<any>(null);
   const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
   const [userHasCheckedIn, setUserHasCheckedIn] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showQuickMessages, setShowQuickMessages] = useState(false);
+  const [showEmoticons, setShowEmoticons] = useState(false);
+  const [interactions, setInteractions] = useState<InteractionMessage[]>([]);
+  const [floatingEmojis, setFloatingEmojis] = useState<Array<{ id: string; emoji: string; x: number; y: Animated.Value }>>([]);
 
   const loadData = useCallback(async () => {
     try {
@@ -48,7 +98,7 @@ export default function SalaVirtualScreen() {
       // Load local info
       const { data: localData, error: localError } = await supabase
         .from('locales')
-        .select('id, nombre, direccion, provincia')
+        .select('id, nombre, direccion, provincia, imagen_url')
         .eq('id', params.id)
         .single();
 
@@ -88,6 +138,30 @@ export default function SalaVirtualScreen() {
           setUserHasCheckedIn(hasCheckedIn);
         }
       }
+
+      // Load recent interactions (last 30 minutes)
+      const thirtyMinutesAgo = new Date();
+      thirtyMinutesAgo.setMinutes(thirtyMinutesAgo.getMinutes() - 30);
+
+      const { data: interactionsData, error: interactionsError } = await supabase
+        .from('sala_virtual_interacciones')
+        .select(`
+          id,
+          usuario_id,
+          local_id,
+          tipo,
+          contenido,
+          created_at,
+          usuario:usuarios(nombre, avatar)
+        `)
+        .eq('local_id', params.id)
+        .gte('created_at', thirtyMinutesAgo.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (!interactionsError) {
+        setInteractions(interactionsData || []);
+      }
     } catch (error) {
       console.error('[SalaVirtual] Error:', error);
       Alert.alert('Error', 'Ocurrió un error al cargar los datos');
@@ -102,6 +176,92 @@ export default function SalaVirtualScreen() {
     }
   }, [params.id, loadData]);
 
+  // Subscribe to real-time interactions
+  useEffect(() => {
+    if (!params.id) return;
+
+    const channel = supabase
+      .channel(`sala_virtual:${params.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'sala_virtual_interacciones',
+          filter: `local_id=eq.${params.id}`,
+        },
+        async (payload) => {
+          console.log('[SalaVirtual] New interaction:', payload);
+          
+          // Get user info
+          const { data: userData } = await supabase
+            .from('usuarios')
+            .select('nombre, avatar')
+            .eq('id', payload.new.usuario_id)
+            .single();
+
+          const newInteraction = {
+            ...payload.new,
+            usuario: userData || { nombre: 'Usuario', avatar: '' },
+          } as InteractionMessage;
+
+          setInteractions((prev) => [newInteraction, ...prev].slice(0, 50));
+
+          // Show floating emoji animation
+          if (payload.new.tipo === 'emoticon') {
+            showFloatingEmoji(payload.new.contenido);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'check_ins',
+          filter: `local_id=eq.${params.id}`,
+        },
+        async (payload) => {
+          console.log('[SalaVirtual] New check-in:', payload);
+          
+          // Get user info
+          const { data: userData } = await supabase
+            .from('usuarios')
+            .select('id, nombre, username, avatar')
+            .eq('id', payload.new.usuario_id)
+            .single();
+
+          if (userData) {
+            setCheckIns((prev) => [{
+              ...payload.new,
+              usuario: userData,
+            } as CheckIn, ...prev]);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [params.id]);
+
+  const showFloatingEmoji = (emoji: string) => {
+    const id = Date.now().toString();
+    const x = Math.random() * (width - 60);
+    const y = new Animated.Value(0);
+
+    setFloatingEmojis((prev) => [...prev, { id, emoji, x, y }]);
+
+    Animated.timing(y, {
+      toValue: -300,
+      duration: 3000,
+      useNativeDriver: true,
+    }).start(() => {
+      setFloatingEmojis((prev) => prev.filter((item) => item.id !== id));
+    });
+  };
+
   const onRefresh = async () => {
     setRefreshing(true);
     await loadData();
@@ -110,7 +270,7 @@ export default function SalaVirtualScreen() {
 
   const handleCheckIn = async () => {
     if (!user) {
-      Alert.alert('Inicia sesión', 'Debes iniciar sesión para hacer check-in');
+      setShowLoginModal(true);
       return;
     }
 
@@ -134,7 +294,7 @@ export default function SalaVirtualScreen() {
       }
 
       Alert.alert('¡Check-in exitoso!', 'Ahora apareces en la sala virtual');
-      loadData();
+      setUserHasCheckedIn(true);
     } catch (error) {
       console.error('[SalaVirtual] Error:', error);
       Alert.alert('Error', 'Ocurrió un error al hacer check-in');
@@ -158,21 +318,80 @@ export default function SalaVirtualScreen() {
       }
 
       Alert.alert('Check-out exitoso', 'Ya no apareces en la sala virtual');
-      loadData();
+      setUserHasCheckedIn(false);
+      setCheckIns((prev) => prev.filter((ci) => ci.usuario_id !== user.id));
     } catch (error) {
       console.error('[SalaVirtual] Error:', error);
       Alert.alert('Error', 'Ocurrió un error al hacer check-out');
     }
   };
 
-  const handleSendMessage = (usuarioId: string) => {
+  const handleSendQuickMessage = async (mensaje: string) => {
     if (!user) {
-      Alert.alert('Inicia sesión', 'Debes iniciar sesión para enviar mensajes');
+      setShowLoginModal(true);
       return;
     }
 
-    // Navigate to chat with this user
-    router.push(`/(tabs)/perfil/chats?userId=${usuarioId}`);
+    if (!userHasCheckedIn) {
+      Alert.alert('Haz check-in primero', 'Debes hacer check-in para interactuar en la sala virtual');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('sala_virtual_interacciones')
+        .insert({
+          usuario_id: user.id,
+          local_id: params.id,
+          tipo: 'mensaje',
+          contenido: mensaje,
+        });
+
+      if (error) {
+        console.error('[SalaVirtual] Error sending message:', error);
+        Alert.alert('Error', 'No se pudo enviar el mensaje');
+        return;
+      }
+
+      setShowQuickMessages(false);
+    } catch (error) {
+      console.error('[SalaVirtual] Error:', error);
+      Alert.alert('Error', 'Ocurrió un error al enviar el mensaje');
+    }
+  };
+
+  const handleSendEmoticon = async (emoji: string) => {
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+
+    if (!userHasCheckedIn) {
+      Alert.alert('Haz check-in primero', 'Debes hacer check-in para interactuar en la sala virtual');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('sala_virtual_interacciones')
+        .insert({
+          usuario_id: user.id,
+          local_id: params.id,
+          tipo: 'emoticon',
+          contenido: emoji,
+        });
+
+      if (error) {
+        console.error('[SalaVirtual] Error sending emoticon:', error);
+        Alert.alert('Error', 'No se pudo enviar el emoticono');
+        return;
+      }
+
+      setShowEmoticons(false);
+    } catch (error) {
+      console.error('[SalaVirtual] Error:', error);
+      Alert.alert('Error', 'Ocurrió un error al enviar el emoticono');
+    }
   };
 
   const formatCheckInTime = (created_at: string): string => {
@@ -222,34 +441,98 @@ export default function SalaVirtualScreen() {
         <View style={{ width: 40 }} />
       </LinearGradient>
 
-      <View style={styles.infoCard}>
-        <View style={styles.infoHeader}>
-          <IconSymbol name="person.2.fill" size={32} color={colors.primary} />
-          <View style={styles.infoText}>
-            <Text style={styles.infoTitle}>
-              {checkIns.length} {checkIns.length === 1 ? 'persona' : 'personas'} aquí ahora
-            </Text>
-            <Text style={styles.infoSubtitle}>
-              {local?.nombre} - {local?.provincia}
-            </Text>
+      {/* Floating emojis animation */}
+      {floatingEmojis.map((item) => (
+        <Animated.Text
+          key={item.id}
+          style={[
+            styles.floatingEmoji,
+            {
+              left: item.x,
+              transform: [{ translateY: item.y }],
+            },
+          ]}
+        >
+          {item.emoji}
+        </Animated.Text>
+      ))}
+
+      <ScrollView
+        style={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
+        {/* Local info card */}
+        {local?.imagen_url && (
+          <Image source={{ uri: local.imagen_url }} style={styles.localImage} />
+        )}
+
+        <View style={styles.infoCard}>
+          <View style={styles.infoHeader}>
+            <IconSymbol name="person.2.fill" size={32} color={colors.primary} />
+            <View style={styles.infoText}>
+              <Text style={styles.infoTitle}>
+                {checkIns.length} {checkIns.length === 1 ? 'persona' : 'personas'} aquí ahora
+              </Text>
+              <Text style={styles.infoSubtitle}>
+                {local?.nombre} - {local?.provincia}
+              </Text>
+            </View>
           </View>
         </View>
-      </View>
 
-      <ScrollView 
-        style={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        {checkIns.length > 0 ? (
-          <>
-            <Text style={styles.sectionTitle}>Usuarios en el local</Text>
+        {/* Recent interactions feed */}
+        {interactions.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>🎉 Actividad Reciente</Text>
+            <View style={styles.interactionsFeed}>
+              {interactions.slice(0, 10).map((interaction) => (
+                <View key={interaction.id} style={styles.interactionItem}>
+                  {interaction.usuario.avatar ? (
+                    <Image
+                      source={{ uri: interaction.usuario.avatar }}
+                      style={styles.interactionAvatar}
+                    />
+                  ) : (
+                    <View style={[styles.interactionAvatar, styles.avatarPlaceholder]}>
+                      <Text style={styles.avatarText}>
+                        {interaction.usuario.nombre.charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
+                  )}
+                  <View style={styles.interactionContent}>
+                    <Text style={styles.interactionText}>
+                      <Text style={styles.interactionUser}>{interaction.usuario.nombre}</Text>
+                      {interaction.tipo === 'emoticon' ? (
+                        <Text> envió {interaction.contenido}</Text>
+                      ) : (
+                        <Text>: {interaction.contenido}</Text>
+                      )}
+                    </Text>
+                    <Text style={styles.interactionTime}>
+                      {formatCheckInTime(interaction.created_at)}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Users in the venue */}
+        {checkIns.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>👥 Usuarios en el Local</Text>
             {checkIns.map((checkIn) => (
               <View key={checkIn.id} style={styles.usuarioCard}>
                 <TouchableOpacity
                   style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
-                  onPress={() => router.push(`/(tabs)/perfil?userId=${checkIn.usuario_id}`)}
+                  onPress={() => {
+                    if (user && checkIn.usuario_id === user.id) {
+                      router.push('/(tabs)/perfil');
+                    } else {
+                      router.push(`/perfil/usuario?userId=${checkIn.usuario_id}`);
+                    }
+                  }}
                 >
                   {checkIn.usuario.avatar ? (
                     <Image source={{ uri: checkIn.usuario.avatar }} style={styles.avatar} />
@@ -274,17 +557,19 @@ export default function SalaVirtualScreen() {
                   </View>
                 </TouchableOpacity>
                 {user && checkIn.usuario_id !== user.id && (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.messageButton}
-                    onPress={() => handleSendMessage(checkIn.usuario_id)}
+                    onPress={() => router.push(`/chat/conversacion?userId=${checkIn.usuario_id}`)}
                   >
                     <IconSymbol name="message" size={20} color={colors.primary} />
                   </TouchableOpacity>
                 )}
               </View>
             ))}
-          </>
-        ) : (
+          </View>
+        )}
+
+        {checkIns.length === 0 && (
           <View style={styles.emptyState}>
             <IconSymbol name="person.2" size={64} color={colors.textSecondary} />
             <Text style={styles.emptyTitle}>No hay nadie aquí ahora</Text>
@@ -295,20 +580,45 @@ export default function SalaVirtualScreen() {
         )}
       </ScrollView>
 
-      <View style={styles.footer}>
-        {userHasCheckedIn ? (
-          <TouchableOpacity 
-            style={styles.checkOutButton}
-            onPress={handleCheckOut}
-          >
+      {/* Action buttons */}
+      {userHasCheckedIn ? (
+        <View style={styles.footer}>
+          <View style={styles.actionButtons}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => setShowQuickMessages(true)}
+            >
+              <LinearGradient
+                colors={['#FF6B6B', '#FF8E53']}
+                style={styles.actionButtonGradient}
+              >
+                <IconSymbol name="message.fill" size={24} color={colors.headerText} />
+                <Text style={styles.actionButtonText}>Mensaje</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => setShowEmoticons(true)}
+            >
+              <LinearGradient
+                colors={['#4ECDC4', '#44A08D']}
+                style={styles.actionButtonGradient}
+              >
+                <Text style={styles.actionButtonEmoji}>😊</Text>
+                <Text style={styles.actionButtonText}>Emoticono</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity style={styles.checkOutButton} onPress={handleCheckOut}>
             <IconSymbol name="location.slash.fill" size={24} color={colors.headerText} />
             <Text style={styles.checkOutText}>Hacer Check-out</Text>
           </TouchableOpacity>
-        ) : (
-          <TouchableOpacity 
-            style={styles.checkInButton}
-            onPress={handleCheckIn}
-          >
+        </View>
+      ) : (
+        <View style={styles.footer}>
+          <TouchableOpacity style={styles.checkInButton} onPress={handleCheckIn}>
             <LinearGradient
               colors={[colors.headerGradientStart, colors.headerGradientEnd]}
               style={styles.checkInGradient}
@@ -317,8 +627,76 @@ export default function SalaVirtualScreen() {
               <Text style={styles.checkInText}>Hacer Check-in</Text>
             </LinearGradient>
           </TouchableOpacity>
-        )}
-      </View>
+        </View>
+      )}
+
+      {/* Quick messages modal */}
+      <Modal
+        visible={showQuickMessages}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowQuickMessages(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Mensajes Rápidos</Text>
+              <TouchableOpacity onPress={() => setShowQuickMessages(false)}>
+                <IconSymbol name="xmark.circle.fill" size={28} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalScroll}>
+              {MENSAJES_RAPIDOS.map((mensaje) => (
+                <TouchableOpacity
+                  key={mensaje.id}
+                  style={styles.quickMessageButton}
+                  onPress={() => handleSendQuickMessage(mensaje.texto)}
+                >
+                  <Text style={styles.quickMessageEmoji}>{mensaje.emoji}</Text>
+                  <Text style={styles.quickMessageText}>{mensaje.texto}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Emoticons modal */}
+      <Modal
+        visible={showEmoticons}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowEmoticons(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Enviar Emoticono</Text>
+              <TouchableOpacity onPress={() => setShowEmoticons(false)}>
+                <IconSymbol name="xmark.circle.fill" size={28} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.emoticonsGrid}>
+              {EMOTICONS.map((emoticon) => (
+                <TouchableOpacity
+                  key={emoticon.id}
+                  style={styles.emoticonButton}
+                  onPress={() => handleSendEmoticon(emoticon.emoji)}
+                >
+                  <Text style={styles.emoticonEmoji}>{emoticon.emoji}</Text>
+                  <Text style={styles.emoticonName}>{emoticon.nombre}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <LoginRequiredModal
+        visible={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        message="Inicia sesión para interactuar en la sala virtual"
+      />
     </View>
   );
 }
@@ -354,6 +732,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.text,
   },
+  content: {
+    flex: 1,
+  },
+  localImage: {
+    width: '100%',
+    height: 200,
+    backgroundColor: colors.cardBorder,
+  },
   infoCard: {
     backgroundColor: colors.cardBackground,
     margin: 16,
@@ -383,15 +769,47 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
   },
-  content: {
-    flex: 1,
+  section: {
     paddingHorizontal: 16,
+    marginBottom: 24,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 16,
+  },
+  interactionsFeed: {
+    gap: 12,
+  },
+  interactionItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: colors.cardBackground,
+    padding: 12,
+    borderRadius: 12,
+    gap: 12,
+  },
+  interactionAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  interactionContent: {
+    flex: 1,
+  },
+  interactionText: {
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 20,
+  },
+  interactionUser: {
+    fontWeight: '600',
+  },
+  interactionTime: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 4,
   },
   usuarioCard: {
     flexDirection: 'row',
@@ -454,6 +872,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 60,
+    paddingHorizontal: 16,
   },
   emptyTitle: {
     fontSize: 18,
@@ -473,6 +892,31 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBackground,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
+    gap: 12,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  actionButton: {
+    flex: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  actionButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    gap: 8,
+  },
+  actionButtonText: {
+    color: colors.headerText,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  actionButtonEmoji: {
+    fontSize: 24,
   },
   checkInButton: {
     borderRadius: 12,
@@ -495,13 +939,87 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#EF4444',
-    paddingVertical: 16,
+    paddingVertical: 14,
     borderRadius: 12,
     gap: 8,
   },
   checkOutText: {
     color: colors.headerText,
-    fontSize: 18,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingBottom: 34,
+    maxHeight: '70%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  modalTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
+    color: colors.text,
+  },
+  modalScroll: {
+    padding: 16,
+  },
+  quickMessageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.cardBackground,
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    gap: 12,
+  },
+  quickMessageEmoji: {
+    fontSize: 28,
+  },
+  quickMessageText: {
+    flex: 1,
+    fontSize: 16,
+    color: colors.text,
+  },
+  emoticonsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    padding: 16,
+    gap: 12,
+  },
+  emoticonButton: {
+    width: (width - 64) / 4,
+    aspectRatio: 1,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  emoticonEmoji: {
+    fontSize: 32,
+  },
+  emoticonName: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  floatingEmoji: {
+    position: 'absolute',
+    fontSize: 48,
+    zIndex: 1000,
+    bottom: 100,
   },
 });

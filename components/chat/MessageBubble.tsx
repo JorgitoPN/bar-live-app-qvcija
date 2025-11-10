@@ -1,72 +1,74 @@
 
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
-import { IconSymbol } from '@/components/IconSymbol';
-import { Mensaje } from '@/types';
 import { colors } from '@/styles/commonStyles';
+import { useRouter } from 'expo-router';
 
-interface MessageBubbleProps {
-  mensaje: Mensaje;
-  esPropio: boolean;
-  mostrarAvatar?: boolean;
-  avatarUrl?: string;
+interface Message {
+  id: string;
+  chat_id: string;
+  remitente_id: string;
+  contenido: string;
+  tipo_mensaje: 'texto' | 'post_compartido' | 'imagen';
+  post_compartido_id?: string;
+  leido: boolean;
+  created_at: string;
 }
 
-export default function MessageBubble({
-  mensaje,
-  esPropio,
-  mostrarAvatar = true,
-  avatarUrl,
-}: MessageBubbleProps) {
-  const formatearHora = (fecha: string) => {
-    const date = new Date(fecha);
+interface MessageBubbleProps {
+  message: Message;
+  isOwn: boolean;
+  otroUsuario?: {
+    nombre: string;
+    avatar?: string;
+  };
+}
+
+export default function MessageBubble({ message, isOwn, otroUsuario }: MessageBubbleProps) {
+  const router = useRouter();
+
+  const formatTime = (dateString: string): string => {
+    const date = new Date(dateString);
     return date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
   };
 
-  return (
-    <View style={[styles.container, esPropio && styles.containerPropio]}>
-      {!esPropio && mostrarAvatar && (
-        <View style={styles.avatarContainer}>
-          {avatarUrl ? (
-            <Image source={{ uri: avatarUrl }} style={styles.avatar} />
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <IconSymbol name="person.fill" size={16} color={colors.textSecondary} />
-            </View>
-          )}
-        </View>
-      )}
+  const handlePostPress = () => {
+    if (message.post_compartido_id) {
+      router.push(`/social/post?id=${message.post_compartido_id}`);
+    }
+  };
 
-      <View style={[styles.bubble, esPropio ? styles.bubblePropio : styles.bubbleOtro]}>
-        {!esPropio && (
-          <Text style={styles.nombreAutor}>{mensaje.autorNombre}</Text>
+  return (
+    <View style={[styles.container, isOwn ? styles.ownContainer : styles.otherContainer]}>
+      {!isOwn && otroUsuario?.avatar && (
+        <Image source={{ uri: otroUsuario.avatar }} style={styles.avatar} />
+      )}
+      
+      <View style={[styles.bubble, isOwn ? styles.ownBubble : styles.otherBubble]}>
+        {message.tipo_mensaje === 'post_compartido' ? (
+          <TouchableOpacity onPress={handlePostPress}>
+            <View style={styles.sharedPost}>
+              <Text style={[styles.messageText, isOwn ? styles.ownText : styles.otherText]}>
+                {message.contenido}
+              </Text>
+              <Text style={styles.sharedPostLabel}>Ver publicación →</Text>
+            </View>
+          </TouchableOpacity>
+        ) : (
+          <Text style={[styles.messageText, isOwn ? styles.ownText : styles.otherText]}>
+            {message.contenido}
+          </Text>
         )}
         
-        {mensaje.tipo === 'texto' && (
-          <Text style={[styles.contenido, esPropio && styles.contenidoPropio]}>
-            {mensaje.contenido}
+        <View style={styles.timeContainer}>
+          <Text style={[styles.timeText, isOwn ? styles.ownTimeText : styles.otherTimeText]}>
+            {formatTime(message.created_at)}
           </Text>
-        )}
-
-        {mensaje.tipo === 'imagen' && (
-          <Image source={{ uri: mensaje.contenido }} style={styles.imagen} />
-        )}
-
-        <View style={styles.footer}>
-          <Text style={[styles.hora, esPropio && styles.horaPropio]}>
-            {formatearHora(mensaje.fecha)}
-          </Text>
-          {esPropio && (
-            <IconSymbol
-              name={mensaje.leido ? 'checkmark.circle.fill' : 'checkmark.circle'}
-              size={14}
-              color={mensaje.leido ? colors.primary : colors.textSecondary}
-            />
+          {isOwn && (
+            <Text style={styles.readStatus}>{message.leido ? '✓✓' : '✓'}</Text>
           )}
         </View>
       </View>
-
-      {esPropio && <View style={styles.spacer} />}
     </View>
   );
 }
@@ -75,78 +77,70 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     marginBottom: 12,
-    paddingHorizontal: 12,
     alignItems: 'flex-end',
   },
-  containerPropio: {
-    flexDirection: 'row-reverse',
+  ownContainer: {
+    justifyContent: 'flex-end',
   },
-  avatarContainer: {
-    marginRight: 8,
+  otherContainer: {
+    justifyContent: 'flex-start',
   },
   avatar: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: colors.cardBorder,
-  },
-  avatarPlaceholder: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
+    marginRight: 8,
   },
   bubble: {
-    maxWidth: '70%',
-    borderRadius: 16,
-    padding: 12,
+    maxWidth: '75%',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 18,
   },
-  bubblePropio: {
+  ownBubble: {
     backgroundColor: colors.primary,
     borderBottomRightRadius: 4,
   },
-  bubbleOtro: {
+  otherBubble: {
     backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
     borderBottomLeftRadius: 4,
   },
-  nombreAutor: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.primary,
-    marginBottom: 4,
+  messageText: {
+    fontSize: 16,
+    lineHeight: 22,
   },
-  contenido: {
-    fontSize: 15,
-    color: colors.text,
-    lineHeight: 20,
-  },
-  contenidoPropio: {
+  ownText: {
     color: colors.headerText,
   },
-  imagen: {
-    width: 200,
-    height: 200,
-    borderRadius: 8,
-    backgroundColor: colors.cardBorder,
+  otherText: {
+    color: colors.text,
   },
-  footer: {
+  timeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
     marginTop: 4,
+    gap: 4,
   },
-  hora: {
+  timeText: {
     fontSize: 11,
+  },
+  ownTimeText: {
+    color: 'rgba(255, 255, 255, 0.7)',
+  },
+  otherTimeText: {
     color: colors.textSecondary,
   },
-  horaPropio: {
-    color: 'rgba(255, 255, 255, 0.8)',
+  readStatus: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.7)',
   },
-  spacer: {
-    width: 40,
+  sharedPost: {
+    gap: 8,
+  },
+  sharedPostLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.9)',
+    textDecorationLine: 'underline',
   },
 });
