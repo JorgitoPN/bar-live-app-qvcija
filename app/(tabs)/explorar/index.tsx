@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -54,9 +54,6 @@ export default function ExplorarScreen() {
   // Estado para TODOS los locales de la base de datos
   const [todosLosLocales, setTodosLosLocales] = useState<Local[]>([]);
   
-  // Estado para locales filtrados y ordenados (lista completa)
-  const [localesFiltradosCompletos, setLocalesFiltradosCompletos] = useState<Local[]>([]);
-  
   // Estado para locales visibles (paginados)
   const [localesVisibles, setLocalesVisibles] = useState<Local[]>([]);
   const [paginaActual, setPaginaActual] = useState(1);
@@ -84,32 +81,24 @@ export default function ExplorarScreen() {
   const cargarTodosLosLocales = useCallback(async () => {
     try {
       setCargando(true);
-      console.log('🔄 Cargando TODOS los locales de la base de datos...');
+      console.log('🔄 Cargando locales de la base de datos...');
 
-      // Cargar TODOS los locales activos sin límite
+      // Cargar locales activos
       const { data, error, count } = await supabase
         .from('locales')
         .select('*', { count: 'exact' })
-        .eq('activo', true);
+        .eq('activo', true)
+        .order('destacado', { ascending: false })
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('❌ Error cargando locales:', error);
         return;
       }
 
-      console.log(`✅ Cargados ${data?.length || 0} locales desde Supabase (total: ${count})`);
+      console.log(`✅ Cargados ${data?.length || 0} locales desde Supabase`);
 
       const localesTransformados: Local[] = (data || []).map(transformarLocal);
-
-      // Log para debug: mostrar primeros 5 locales con su información de horarios
-      console.log('📊 Primeros 5 locales cargados:', localesTransformados.slice(0, 5).map(l => ({
-        nombre: l.nombre,
-        tiene_horarios: !!l.horarios_completos,
-        estado_negocio: l.estado_negocio,
-        destacado: l.destacado,
-        barlive_types: l.barlive_types,
-      })));
-
       setTodosLosLocales(localesTransformados);
     } catch (error) {
       console.error('❌ Error en cargarTodosLosLocales:', error);
@@ -118,16 +107,9 @@ export default function ExplorarScreen() {
     }
   }, []);
 
-  const aplicarFiltrosYOrdenamiento = useCallback(() => {
-    console.log('🔄 Aplicando filtros y ordenamiento a TODOS los locales...');
-    console.log('📊 Estado actual:', {
-      totalLocales: todosLosLocales.length,
-      busqueda,
-      categoriaSeleccionada,
-      filtrosActivos,
-      userLocation: userLocation ? 'Sí' : 'No',
-      activePromotions: activePromotions.size,
-    });
+  // Memoize filtered and sorted locals to avoid recalculating on every render
+  const localesFiltradosCompletos = useMemo(() => {
+    console.log('🔄 Aplicando filtros y ordenamiento...');
 
     // Construir filtros combinados
     const filtrosCombinados: Filtros = {
@@ -136,9 +118,7 @@ export default function ExplorarScreen() {
       tipo: categoriaSeleccionada !== 'todos' ? [categoriaSeleccionada] : filtrosActivos.tipo,
     };
 
-    console.log('🔍 Filtros combinados:', filtrosCombinados);
-
-    // Aplicar filtros y ordenamiento a TODOS los locales
+    // Aplicar filtros y ordenamiento
     const localesOrdenados = filterAndSortLocals(
       todosLosLocales,
       filtrosCombinados,
@@ -146,34 +126,21 @@ export default function ExplorarScreen() {
       activePromotions
     );
 
-    console.log(`✅ Locales filtrados y ordenados (COMPLETO): ${localesOrdenados.length}`);
-    console.log('📊 Primeros 10 locales ordenados:', localesOrdenados.slice(0, 10).map((l, i) => ({
-      posicion: i + 1,
-      nombre: l.nombre,
-      estadoBadge: (l as any).estadoBadge,
-      destacado: (l as any).esDestacado ? '⭐' : '⬜',
-      distancia: (l as any).distancia ? `${(l as any).distancia} km` : 'N/A',
-    })));
-
-    setLocalesFiltradosCompletos(localesOrdenados);
+    console.log(`✅ Locales filtrados: ${localesOrdenados.length}`);
+    return localesOrdenados;
   }, [todosLosLocales, busqueda, categoriaSeleccionada, filtrosActivos, userLocation, activePromotions]);
+
+  // Update visible locals when filtered list changes
+  useEffect(() => {
+    setPaginaActual(1);
+    setLocalesVisibles(localesFiltradosCompletos.slice(0, LOCALES_POR_PAGINA));
+  }, [localesFiltradosCompletos]);
 
   useEffect(() => {
     cargarTodosLosLocales();
     obtenerUbicacionUsuario();
     cargarPromocionesActivas();
   }, [cargarTodosLosLocales]);
-
-  // Cuando cambian los filtros o la ubicación, recalcular la lista filtrada y ordenada
-  useEffect(() => {
-    aplicarFiltrosYOrdenamiento();
-  }, [aplicarFiltrosYOrdenamiento]);
-
-  // Cuando cambia la lista filtrada completa, resetear la paginación
-  useEffect(() => {
-    setPaginaActual(1);
-    setLocalesVisibles(localesFiltradosCompletos.slice(0, LOCALES_POR_PAGINA));
-  }, [localesFiltradosCompletos]);
 
   const obtenerUbicacionUsuario = async () => {
     try {
@@ -188,10 +155,7 @@ export default function ExplorarScreen() {
         lat: location.coords.latitude,
         lng: location.coords.longitude,
       });
-      console.log('📍 Ubicación del usuario obtenida:', {
-        lat: location.coords.latitude,
-        lng: location.coords.longitude,
-      });
+      console.log('📍 Ubicación del usuario obtenida');
     } catch (error) {
       console.error('Error getting user location:', error);
     }
@@ -303,7 +267,6 @@ export default function ExplorarScreen() {
 
   /**
    * Cargar más locales desde la lista filtrada completa
-   * Ya no hace consultas a la base de datos, solo pagina la lista ordenada
    */
   const cargarMasLocales = useCallback(() => {
     if (cargandoMas) return;
@@ -313,12 +276,10 @@ export default function ExplorarScreen() {
 
     // Si ya mostramos todos los locales filtrados, no hay más que cargar
     if (totalVisibles >= totalFiltrados) {
-      console.log('✅ Ya se muestran todos los locales filtrados');
       return;
     }
 
     setCargandoMas(true);
-    console.log(`🔄 Cargando más locales... (${totalVisibles}/${totalFiltrados})`);
 
     // Calcular el siguiente lote
     const siguientePagina = paginaActual + 1;
@@ -327,8 +288,6 @@ export default function ExplorarScreen() {
 
     // Obtener el siguiente lote de la lista filtrada completa
     const nuevosLocalesVisibles = localesFiltradosCompletos.slice(inicio, fin);
-
-    console.log(`✅ Mostrando ${nuevosLocalesVisibles.length} locales de ${totalFiltrados} totales`);
 
     setLocalesVisibles(nuevosLocalesVisibles);
     setPaginaActual(siguientePagina);
