@@ -1,7 +1,7 @@
 
 import React, { useEffect } from 'react';
 import { Dimensions, Alert } from 'react-native';
-import { Tabs, useRouter } from 'expo-router';
+import { Tabs, useRouter, usePathname } from 'expo-router';
 import FloatingTabBar, { TabBarItem } from '@/components/FloatingTabBar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
@@ -12,17 +12,18 @@ export default function TabLayout() {
   const { user } = useAuth();
   const { currentMode } = useMode();
   const router = useRouter();
+  const pathname = usePathname();
 
   // Determine user's actual role from database
   const userRole = user?.rol_app || 'cliente';
 
-  console.log('[TabLayout] User role:', userRole, 'Current mode:', currentMode);
+  console.log('[TabLayout] User role:', userRole, 'Current mode:', currentMode, 'Pathname:', pathname);
 
   // Prevent access to admin pages for non-admin users
   useEffect(() => {
     if (user && userRole !== 'admin') {
       // Check if user is trying to access admin routes
-      const currentPath = router.pathname || '';
+      const currentPath = pathname || '';
       if (currentPath.includes('/admin')) {
         console.log('[TabLayout] Non-admin user trying to access admin page, redirecting...');
         Alert.alert(
@@ -32,12 +33,12 @@ export default function TabLayout() {
         );
       }
     }
-  }, [user, userRole, router]);
+  }, [user, userRole, pathname]);
 
   // Prevent access to gestion pages for non-propietario users
   useEffect(() => {
     if (user && userRole !== 'propietario' && userRole !== 'admin') {
-      const currentPath = router.pathname || '';
+      const currentPath = pathname || '';
       if (currentPath.includes('/gestion')) {
         console.log('[TabLayout] Non-propietario user trying to access gestion page, redirecting...');
         Alert.alert(
@@ -47,7 +48,7 @@ export default function TabLayout() {
         );
       }
     }
-  }, [user, userRole, router]);
+  }, [user, userRole, pathname]);
 
   // Define tabs based on user role and current mode
   const getTabsForRole = (): TabBarItem[] => {
@@ -56,19 +57,19 @@ export default function TabLayout() {
       return [
         {
           name: 'admin',
-          route: '/admin',
+          route: '/(tabs)/admin',
           icon: 'gear',
           label: 'Admin',
         },
         {
           name: 'explorar',
-          route: '/explorar',
+          route: '/(tabs)/explorar',
           icon: 'sparkles',
           label: 'Explorar',
         },
         {
           name: 'perfil',
-          route: '/perfil',
+          route: '/(tabs)/perfil',
           icon: 'person.fill',
           label: 'Perfil',
         },
@@ -80,31 +81,31 @@ export default function TabLayout() {
       return [
         {
           name: 'gestion',
-          route: '/gestion',
+          route: '/(tabs)/gestion',
           icon: 'briefcase.fill',
           label: 'Gestión',
         },
         {
           name: 'empleo',
-          route: '/empleo',
+          route: '/(tabs)/empleo',
           icon: 'person.badge.plus',
           label: 'Empleo',
         },
         {
           name: 'explorar',
-          route: '/explorar',
+          route: '/(tabs)/explorar',
           icon: 'sparkles',
           label: 'Explorar',
         },
         {
           name: 'eventos',
-          route: '/eventos',
+          route: '/(tabs)/eventos',
           icon: 'calendar',
           label: 'Eventos',
         },
         {
           name: 'perfil',
-          route: '/perfil',
+          route: '/(tabs)/perfil',
           icon: 'person.fill',
           label: 'Perfil',
         },
@@ -117,31 +118,31 @@ export default function TabLayout() {
         return [
           {
             name: 'gestion',
-            route: '/gestion',
+            route: '/(tabs)/gestion',
             icon: 'briefcase.fill',
             label: 'Gestión',
           },
           {
             name: 'empleo',
-            route: '/empleo',
+            route: '/(tabs)/empleo',
             icon: 'person.badge.plus',
             label: 'Empleo',
           },
           {
             name: 'explorar',
-            route: '/explorar',
+            route: '/(tabs)/explorar',
             icon: 'sparkles',
             label: 'Explorar',
           },
           {
             name: 'eventos',
-            route: '/eventos',
+            route: '/(tabs)/eventos',
             icon: 'calendar',
             label: 'Eventos',
           },
           {
             name: 'perfil',
-            route: '/perfil',
+            route: '/(tabs)/perfil',
             icon: 'person.fill',
             label: 'Perfil',
           },
@@ -151,31 +152,31 @@ export default function TabLayout() {
         return [
           {
             name: 'eventos',
-            route: '/eventos',
+            route: '/(tabs)/eventos',
             icon: 'calendar',
             label: 'Eventos',
           },
           {
             name: 'empleo',
-            route: '/empleo',
+            route: '/(tabs)/empleo',
             icon: 'person.badge.plus',
             label: 'Empleo',
           },
           {
             name: 'explorar',
-            route: '/explorar',
+            route: '/(tabs)/explorar',
             icon: 'sparkles',
             label: 'Explorar',
           },
           {
             name: 'social',
-            route: '/social',
+            route: '/(tabs)/social',
             icon: 'heart.fill',
             label: 'Social',
           },
           {
             name: 'perfil',
-            route: '/perfil',
+            route: '/(tabs)/perfil',
             icon: 'person.fill',
             label: 'Perfil',
           },
@@ -188,31 +189,31 @@ export default function TabLayout() {
     return [
       {
         name: 'eventos',
-        route: '/eventos',
+        route: '/(tabs)/eventos',
         icon: 'calendar',
         label: 'Eventos',
       },
       {
         name: 'empleo',
-        route: '/empleo',
+        route: '/(tabs)/empleo',
         icon: 'person.badge.plus',
         label: 'Empleo',
       },
       {
         name: 'explorar',
-        route: '/explorar',
+        route: '/(tabs)/explorar',
         icon: 'sparkles',
         label: 'Explorar',
       },
       {
         name: 'social',
-        route: '/social',
+        route: '/(tabs)/social',
         icon: 'heart.fill',
         label: 'Social',
       },
       {
         name: 'perfil',
-        route: '/perfil',
+        route: '/(tabs)/perfil',
         icon: 'person.fill',
         label: 'Perfil',
       },
@@ -230,55 +231,63 @@ export default function TabLayout() {
           tabBarStyle: { display: 'none' },
           animation: 'none',
           animationDuration: 0,
+          lazy: false,
         }}
       >
         <Tabs.Screen 
           name="explorar" 
           options={{ 
-            href: '/explorar',
+            href: '/(tabs)/explorar',
             animation: 'none',
+            lazy: false,
           }} 
         />
         <Tabs.Screen 
           name="eventos" 
           options={{ 
-            href: '/eventos',
+            href: '/(tabs)/eventos',
             animation: 'none',
+            lazy: false,
           }} 
         />
         <Tabs.Screen 
           name="empleo" 
           options={{ 
-            href: '/empleo',
+            href: '/(tabs)/empleo',
             animation: 'none',
+            lazy: false,
           }} 
         />
         <Tabs.Screen 
           name="social" 
           options={{ 
-            href: '/social',
+            href: '/(tabs)/social',
             animation: 'none',
+            lazy: false,
           }} 
         />
         <Tabs.Screen 
           name="perfil" 
           options={{ 
-            href: '/perfil',
+            href: '/(tabs)/perfil',
             animation: 'none',
+            lazy: false,
           }} 
         />
         <Tabs.Screen 
           name="gestion" 
           options={{ 
-            href: userRole === 'propietario' || userRole === 'admin' ? '/gestion' : null,
+            href: userRole === 'propietario' || userRole === 'admin' ? '/(tabs)/gestion' : null,
             animation: 'none',
+            lazy: false,
           }} 
         />
         <Tabs.Screen 
           name="admin" 
           options={{ 
-            href: userRole === 'admin' ? '/admin' : null,
+            href: userRole === 'admin' ? '/(tabs)/admin' : null,
             animation: 'none',
+            lazy: false,
           }} 
         />
         <Tabs.Screen 

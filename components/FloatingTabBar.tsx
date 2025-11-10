@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { IconSymbol } from './IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -22,6 +22,7 @@ interface FloatingTabBarProps {
 export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const navigationInProgress = useRef(false);
 
   useEffect(() => {
     console.log('FloatingTabBar mounted, pathname:', pathname);
@@ -65,17 +66,34 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
           const active = isActive(tab.route);
 
           const onPress = () => {
+            // Prevent multiple simultaneous navigations
+            if (navigationInProgress.current) {
+              console.log('⚠️ Navigation already in progress, ignoring tap');
+              return;
+            }
+
             console.log('⚡ Tab pressed:', tab.name, tab.route);
             
-            // INSTANT NAVIGATION - Use replace for immediate transition
+            // Check if already on this route to avoid unnecessary navigation
+            if (active) {
+              console.log('✅ Already on this route, ignoring');
+              return;
+            }
+
+            // Set navigation flag
+            navigationInProgress.current = true;
+
             try {
-              // Check if already on this route to avoid unnecessary navigation
-              if (!active) {
-                // Use replace for instant navigation without animation
-                router.replace(tab.route as any);
-              }
+              // INSTANT NAVIGATION - Use replace for immediate transition
+              router.replace(tab.route as any);
+              
+              // Reset flag after a short delay
+              setTimeout(() => {
+                navigationInProgress.current = false;
+              }, 100);
             } catch (error) {
               console.error('Error navigating to:', tab.route, error);
+              navigationInProgress.current = false;
             }
           };
 
@@ -86,6 +104,7 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                 onPress={onPress}
                 style={styles.centerButton}
                 activeOpacity={0.7}
+                disabled={navigationInProgress.current}
               >
                 <LinearGradient
                   colors={[colors.headerGradientStart, colors.headerGradientEnd]}
@@ -105,6 +124,7 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
               onPress={onPress}
               style={styles.tab}
               activeOpacity={0.6}
+              disabled={navigationInProgress.current}
             >
               <View style={[styles.tabContent, active && styles.tabContentActive]}>
                 <IconSymbol

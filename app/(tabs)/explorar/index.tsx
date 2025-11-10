@@ -72,7 +72,6 @@ export default function ExplorarScreen() {
   const lastScrollY = useRef(0);
   const scrollDirection = useRef<'up' | 'down'>('down');
   const headerTranslateY = useRef(new Animated.Value(0)).current;
-  const categoriasTranslateY = useRef(new Animated.Value(0)).current;
   const isHeaderVisible = useRef(true);
 
   const userRole = user?.rol_app || 'cliente';
@@ -219,41 +218,27 @@ export default function ExplorarScreen() {
       scrollDirection.current = 'up';
     }
 
-    // Hide when scrolling down more than 5px and past 50px from top
+    // Hide header when scrolling down more than 5px and past 50px from top
     if (scrollDirection.current === 'down' && scrollDiff > 5 && currentScrollY > 50 && isHeaderVisible.current) {
-      console.log('[ExplorarScreen] ⬇️ Hiding header and categories');
+      console.log('[ExplorarScreen] ⬇️ Hiding header');
       isHeaderVisible.current = false;
       
-      Animated.parallel([
-        Animated.timing(headerTranslateY, {
-          toValue: -HEADER_HEIGHT,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-        Animated.timing(categoriasTranslateY, {
-          toValue: -CATEGORIAS_HEIGHT,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      Animated.timing(headerTranslateY, {
+        toValue: -HEADER_HEIGHT,
+        duration: 250,
+        useNativeDriver: true,
+      }).start();
     } 
-    // Show when scrolling up more than 10px
+    // Show header when scrolling up more than 10px
     else if (scrollDirection.current === 'up' && scrollDiff < -10 && !isHeaderVisible.current) {
-      console.log('[ExplorarScreen] ⬆️ Showing header and categories');
+      console.log('[ExplorarScreen] ⬆️ Showing header');
       isHeaderVisible.current = true;
       
-      Animated.parallel([
-        Animated.timing(headerTranslateY, {
-          toValue: 0,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-        Animated.timing(categoriasTranslateY, {
-          toValue: 0,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      Animated.timing(headerTranslateY, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }).start();
     }
 
     lastScrollY.current = currentScrollY;
@@ -350,8 +335,8 @@ export default function ExplorarScreen() {
         </LinearGradient>
       </Animated.View>
 
-      {/* Animated Categories - FIXED: Now visible below header */}
-      <Animated.View
+      {/* FIXED: Categories now stay visible - removed animation */}
+      <View
         style={{
           position: 'absolute',
           top: HEADER_HEIGHT,
@@ -359,7 +344,6 @@ export default function ExplorarScreen() {
           right: 0,
           zIndex: 99,
           backgroundColor: colors.background,
-          transform: [{ translateY: categoriasTranslateY }],
         }}
       >
         <View style={styles.categoriasContainer}>
@@ -394,7 +378,7 @@ export default function ExplorarScreen() {
             ))}
           </ScrollView>
         </View>
-      </Animated.View>
+      </View>
 
       {/* Content with top padding */}
       <ScrollView
