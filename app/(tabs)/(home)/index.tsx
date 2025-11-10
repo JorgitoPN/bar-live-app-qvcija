@@ -25,6 +25,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
 import { colors, commonStyles } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
+import { performanceOptimizer } from '@/utils/performanceOptimizer';
 
 type ModoUsuario = 'todos' | 'cercanos' | 'destacados' | 'nuevos';
 
@@ -195,15 +196,16 @@ export default function ExplorarScreen() {
   const { user } = useAuth();
   const { currentMode } = useMode();
   const scrollViewRef = useRef<ScrollView>(null);
-  const scrollY = useRef(0);
+  const lastScrollY = useRef(0);
   const headerTranslateY = useRef(new Animated.Value(0)).current;
   const categoriasTranslateY = useRef(new Animated.Value(0)).current;
+  const isHeaderVisible = useRef(true);
 
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('todos');
   const [modoSeleccionado, setModoSeleccionado] = useState<ModoUsuario>('todos');
   const [busqueda, setBusqueda] = useState('');
   const [refreshing, setRefreshing] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [showFiltros, setShowFiltros] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [todosLosLocales, setTodosLosLocales] = useState<Local[]>([]);
@@ -222,8 +224,18 @@ export default function ExplorarScreen() {
 
   const cargarTodosLosLocales = useCallback(async () => {
     try {
-      console.log('[Explorar] Loading all locals...');
-      setLoading(true);
+      console.log('[Explorar] ⚡ Loading all locals with cache...');
+
+      // Try cache first for INSTANT loading
+      const cachedLocales = await performanceOptimizer.getCache<Local[]>('all_locales');
+      if (cachedLocales && cachedLocales.length > 0) {
+        console.log('[Explorar] ⚡ INSTANT load from cache:', cachedLocales.length);
+        setTodosLosLocales(cachedLocales);
+        setLoading(false);
+        // Continue loading in background to update cache
+      } else {
+        setLoading(true);
+      }
 
       const { data, error } = await supabase
         .from('locales')
@@ -237,10 +249,13 @@ export default function ExplorarScreen() {
         return;
       }
 
-      console.log('[Explorar] Loaded locals:', data?.length);
+      console.log('[Explorar] ⚡ Loaded locals from DB:', data?.length);
 
       const localesTransformados = (data || []).map(transformarLocal);
       setTodosLosLocales(localesTransformados);
+
+      // Cache for next time (5 minutes TTL)
+      await performanceOptimizer.setCache('all_locales', localesTransformados, 5 * 60 * 1000);
     } catch (error) {
       console.error('[Explorar] Error:', error);
     } finally {
@@ -312,7 +327,7 @@ export default function ExplorarScreen() {
   };
 
   const aplicarFiltrosYOrdenamiento = useCallback(() => {
-    console.log('[Explorar] Applying filters...');
+    console.log('[Explorar] ⚡ Applying filters...');
     
     let localesFiltrados = [...todosLosLocales];
 
@@ -354,7 +369,7 @@ export default function ExplorarScreen() {
         break;
     }
 
-    console.log('[Explorar] Filtered locals:', localesFiltrados.length);
+    console.log('[Explorar] ⚡ Filtered locals:', localesFiltrados.length);
     setLocalesFiltradosCompletos(localesFiltrados);
     setPaginaActual(1);
   }, [todosLosLocales, categoriaSeleccionada, busqueda, filtros, modoSeleccionado, userLocation]);
@@ -374,10 +389,14 @@ export default function ExplorarScreen() {
 
   const handleScroll = (event: any) => {
     const currentScrollY = event.nativeEvent.contentOffset.y;
-    const scrollDiff = currentScrollY - scrollY.current;
+    const scrollDiff = currentScrollY - lastScrollY.current;
 
-    if (scrollDiff > 5 && currentScrollY > 50) {
-      // Scrolling down - hide header and categories
+    // FIXED: Improved scroll detection logic
+    // Hide when scrolling down more than 5px and past 50px from top
+    if (scrollDiff > 5 && currentScrollY > 50 && isHeaderVisible.current) {
+      console.log('[Explorar] Hiding header and categories');
+      isHeaderVisible.current = false;
+      
       Animated.parallel([
         Animated.timing(headerTranslateY, {
           toValue: -HEADER_HEIGHT,
@@ -390,8 +409,12 @@ export default function ExplorarScreen() {
           useNativeDriver: true,
         }),
       ]).start();
-    } else if (scrollDiff < -10) {
-      // Scrolling up - show header and categories
+    } 
+    // Show when scrolling up more than 10px
+    else if (scrollDiff < -10 && !isHeaderVisible.current) {
+      console.log('[Explorar] Showing header and categories');
+      isHeaderVisible.current = true;
+      
       Animated.parallel([
         Animated.timing(headerTranslateY, {
           toValue: 0,
@@ -406,7 +429,7 @@ export default function ExplorarScreen() {
       ]).start();
     }
 
-    scrollY.current = currentScrollY;
+    lastScrollY.current = currentScrollY;
   };
 
   const getModoLabel = (modo: ModoUsuario): string => {
@@ -431,6 +454,8 @@ export default function ExplorarScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
+    // Clear cache to force fresh data
+    await performanceOptimizer.clearCache('all_locales');
     await cargarTodosLosLocales();
     await cargarPromocionesActivas();
     setRefreshing(false);

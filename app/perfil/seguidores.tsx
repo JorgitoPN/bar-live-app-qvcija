@@ -118,8 +118,9 @@ export default function SeguidoresScreen() {
     if (!userId) return;
 
     try {
-      console.log('[Seguidores] Loading followers for user:', userId);
+      console.log('[Seguidores] ⚡ Loading followers for user:', userId);
 
+      // FIXED: Use the same query pattern as profile page for consistency
       const { data, error } = await supabase
         .from('seguidores')
         .select(`
@@ -151,7 +152,7 @@ export default function SeguidoresScreen() {
           }));
 
         setSeguidores(formattedSeguidores);
-        console.log('[Seguidores] Loaded followers:', formattedSeguidores.length);
+        console.log('[Seguidores] ⚡ Loaded followers:', formattedSeguidores.length);
       }
     } catch (error) {
       console.error('[Seguidores] Error:', error);
@@ -162,7 +163,31 @@ export default function SeguidoresScreen() {
 
   useEffect(() => {
     loadSeguidores();
-  }, [loadSeguidores]);
+
+    // FIXED: Subscribe to real-time changes for INSTANT updates
+    if (userId) {
+      const channel = supabase
+        .channel(`seguidores-changes-${userId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'seguidores',
+            filter: `seguido_id=eq.${userId}`,
+          },
+          () => {
+            console.log('[Seguidores] ⚡ INSTANT update - followers changed');
+            loadSeguidores();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [loadSeguidores, userId]);
 
   const onRefresh = async () => {
     setRefreshing(true);
