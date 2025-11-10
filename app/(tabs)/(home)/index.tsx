@@ -2,7 +2,7 @@
 import TarjetaLocal from '@/components/home/TarjetaLocal';
 import { LinearGradient } from 'expo-linear-gradient';
 import { filterAndSortLocals } from '@/utils/filterLocals';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Local, Filtros } from '@/types';
 import { useMode } from '@/contexts/ModeContext';
@@ -24,8 +24,9 @@ import * as Location from 'expo-location';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
 import { colors, commonStyles } from '@/styles/commonStyles';
-import { supabase } from '@/utils/supabase';
-import { performanceOptimizer } from '@/utils/performanceOptimizer';
+import { useGlobalData } from '@/contexts/GlobalDataContext';
+import { useScrollPosition } from '@/hooks/useScrollPosition';
+import InitialLoadingScreen from '@/components/common/InitialLoadingScreen';
 
 type ModoUsuario = 'todos' | 'cercanos' | 'destacados' | 'nuevos';
 
@@ -195,7 +196,13 @@ export default function ExplorarScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { currentMode } = useMode();
-  const scrollViewRef = useRef<ScrollView>(null);
+  
+  // ⚡ USE GLOBAL DATA - NO FETCHING!
+  const { locales: todosLosLocales, isInitialLoading, isRefreshing: globalRefreshing, refreshData } = useGlobalData();
+  
+  // ⚡ PRESERVE SCROLL POSITION
+  const { scrollViewRef, saveScrollPosition, restoreScrollPosition } = useScrollPosition('home-explorar');
+  
   const lastScrollY = useRef(0);
   const scrollDirection = useRef<'up' | 'down'>('down');
   const headerTranslateY = useRef(new Animated.Value(0)).current;
@@ -206,10 +213,8 @@ export default function ExplorarScreen() {
   const [modoSeleccionado, setModoSeleccionado] = useState<ModoUsuario>('todos');
   const [busqueda, setBusqueda] = useState('');
   const [refreshing, setRefreshing] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [showFiltros, setShowFiltros] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [todosLosLocales, setTodosLosLocales] = useState<Local[]>([]);
   const [localesFiltradosCompletos, setLocalesFiltradosCompletos] = useState<Local[]>([]);
   const [localesMostrados, setLocalesMostrados] = useState<Local[]>([]);
   const [paginaActual, setPaginaActual] = useState(1);
@@ -223,74 +228,17 @@ export default function ExplorarScreen() {
     abierto: false,
   });
 
-  const cargarTodosLosLocales = useCallback(async () => {
-    try {
-      console.log('[Explorar] ⚡ Loading all locals with cache...');
-
-      // Try cache first for INSTANT loading
-      const cachedLocales = await performanceOptimizer.getCache<Local[]>('all_locales');
-      if (cachedLocales && cachedLocales.length > 0) {
-        console.log('[Explorar] ⚡ INSTANT load from cache:', cachedLocales.length);
-        setTodosLosLocales(cachedLocales);
-        setLoading(false);
-        // Continue loading in background to update cache
-      } else {
-        setLoading(true);
-      }
-
-      const { data, error } = await supabase
-        .from('locales')
-        .select('*')
-        .eq('activo', true)
-        .order('destacado', { ascending: false })
-        .order('rating', { ascending: false });
-
-      if (error) {
-        console.error('[Explorar] Error loading locals:', error);
-        return;
-      }
-
-      console.log('[Explorar] ⚡ Loaded locals from DB:', data?.length);
-
-      const localesTransformados = (data || []).map(transformarLocal);
-      setTodosLosLocales(localesTransformados);
-
-      // Cache for next time (5 minutes TTL)
-      await performanceOptimizer.setCache('all_locales', localesTransformados, 5 * 60 * 1000);
-    } catch (error) {
-      console.error('[Explorar] Error:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const cargarPromocionesActivas = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from('promociones')
-        .select('local_id')
-        .eq('activo', true)
-        .gte('fecha_fin', new Date().toISOString());
-
-      if (!error && data) {
-        const localesDestacados = data.map((p) => p.local_id);
-        setTodosLosLocales((prevLocales) =>
-          prevLocales.map((local) => ({
-            ...local,
-            destacado: localesDestacados.includes(local.id) || local.destacado,
-          }))
-        );
-      }
-    } catch (error) {
-      console.error('[Explorar] Error loading promotions:', error);
-    }
-  }, []);
+  // ⚡ RESTORE SCROLL POSITION when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log('[Explorar] ⚡ Screen focused - restoring scroll position');
+      restoreScrollPosition();
+    }, [restoreScrollPosition])
+  );
 
   useEffect(() => {
-    cargarTodosLosLocales();
-    cargarPromocionesActivas();
     obtenerUbicacionUsuario();
-  }, [cargarTodosLosLocales, cargarPromocionesActivas]);
+  }, []);
 
   const obtenerUbicacionUsuario = async () => {
     try {
@@ -307,25 +255,7 @@ export default function ExplorarScreen() {
     }
   };
 
-  const transformarLocal = (local: any): Local => {
-    let categoriasLocal = local.barlive_types || [];
-    if (categoriasLocal.length === 0 && local.barlive_type) {
-      categoriasLocal = [local.barlive_type];
-    }
-    categoriasLocal = categoriasLocal.filter(
-      (cat: string) => !CATEGORIAS_EXCLUIDAS.includes(cat.toLowerCase())
-    );
 
-    return {
-      ...local,
-      coordenadas: {
-        lat: parseFloat(local.latitud),
-        lng: parseFloat(local.longitud),
-      },
-      imagenes: local.galeria_urls || (local.imagen_url ? [local.imagen_url] : []),
-      barlive_types: categoriasLocal,
-    };
-  };
 
   const aplicarFiltrosYOrdenamiento = useCallback(() => {
     console.log('[Explorar] ⚡ Applying filters...');
@@ -462,12 +392,15 @@ export default function ExplorarScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    // Clear cache to force fresh data
-    await performanceOptimizer.clearCache('all_locales');
-    await cargarTodosLosLocales();
-    await cargarPromocionesActivas();
+    // ⚡ USE GLOBAL REFRESH - NO INDIVIDUAL FETCHING
+    await refreshData(false);
     setRefreshing(false);
   };
+
+  // ⚡ SHOW LOADING SCREEN ONLY ON INITIAL APP STARTUP
+  if (isInitialLoading) {
+    return <InitialLoadingScreen />;
+  }
 
   return (
     <View style={styles.container}>
@@ -561,8 +494,11 @@ export default function ExplorarScreen() {
       <ScrollView
         ref={scrollViewRef}
         contentContainerStyle={{ paddingTop: HEADER_HEIGHT + CATEGORIAS_HEIGHT }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        onScroll={handleScroll}
+        refreshControl={<RefreshControl refreshing={refreshing || globalRefreshing} onRefresh={onRefresh} />}
+        onScroll={(event) => {
+          handleScroll(event);
+          saveScrollPosition(event);
+        }}
         scrollEventThrottle={16}
       >
         <View style={styles.modoSelector}>
@@ -590,12 +526,7 @@ export default function ExplorarScreen() {
           ))}
         </View>
 
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.loadingText}>Cargando locales...</Text>
-          </View>
-        ) : localesMostrados.length > 0 ? (
+        {localesMostrados.length > 0 ? (
           <>
             <View style={styles.localesContainer}>
               {localesMostrados.map((local) => (

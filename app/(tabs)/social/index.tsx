@@ -27,6 +27,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 import { supabase } from '@/utils/supabase';
 import { socialCache } from '@/utils/socialCache';
+import { useGlobalData } from '@/contexts/GlobalDataContext';
+import InitialLoadingScreen from '@/components/common/InitialLoadingScreen';
 
 const { width, height } = Dimensions.get('window');
 const HEADER_HEIGHT = 120;
@@ -507,6 +509,10 @@ function formatearFecha(fecha: string): string {
 export default function SocialScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  
+  // ⚡ USE GLOBAL DATA - NO FETCHING!
+  const { posts: globalPosts, stories: globalStories, isInitialLoading, refreshData } = useGlobalData();
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [showSearchModal, setShowSearchModal] = useState(false);
@@ -537,7 +543,7 @@ export default function SocialScreen() {
   const isLoadingRef = useRef(false);
   const likingPostsRef = useRef<Set<string>>(new Set());
 
-  // OPTIMIZED: Load data with aggressive caching
+  // ⚡ USE GLOBAL DATA - Load user-specific data only
   const loadData = useCallback(async () => {
     if (isLoadingRef.current) {
       console.log('[Social] ⚡ Already loading, skipping...');
@@ -547,183 +553,97 @@ export default function SocialScreen() {
     isLoadingRef.current = true;
 
     try {
-      console.log('[Social] ⚡ Loading data with cache...');
+      console.log('[Social] ⚡ Loading user-specific data...');
 
-      // INSTANT: Try to load from cache first
-      const cachedFeed = socialCache.getFeed();
-      const cachedStories = socialCache.getStories();
-      const cachedUserStories = user ? socialCache.getStories(user.id) : null;
+      // ⚡ USE GLOBAL POSTS - INSTANT!
+      if (globalPosts.length > 0) {
+        console.log('[Social] ⚡ INSTANT posts from global data:', globalPosts.length);
+        
+        // Add user-specific data (likes, saves) if logged in
+        if (user) {
+          const postIds = globalPosts.map(p => p.id);
+          
+          const [likesResult, savesResult, commentsResult] = await Promise.all([
+            supabase
+              .from('likes')
+              .select('post_id')
+              .eq('usuario_id', user.id)
+              .in('post_id', postIds),
+            supabase
+              .from('posts_guardados')
+              .select('post_id')
+              .eq('usuario_id', user.id)
+              .in('post_id', postIds),
+            supabase
+              .from('comentarios')
+              .select('post_id')
+              .in('post_id', postIds),
+          ]);
 
-      if (cachedFeed) {
-        setPosts(cachedFeed);
-        console.log('[Social] ⚡ INSTANT feed from cache');
+          const likedPostIds = new Set(likesResult.data?.map(l => l.post_id) || []);
+          const savedPostIds = new Set(savesResult.data?.map(s => s.post_id) || []);
+          
+          const commentCounts = commentsResult.data?.reduce((acc, c) => {
+            acc[c.post_id] = (acc[c.post_id] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>) || {};
+
+          const postsWithStatus = globalPosts.map(post => ({
+            ...post,
+            liked: likedPostIds.has(post.id),
+            saved: savedPostIds.has(post.id),
+            comentarios: commentCounts[post.id] || 0,
+          }));
+          
+          setPosts(postsWithStatus);
+        } else {
+          setPosts(globalPosts);
+        }
       }
 
-      if (cachedStories) {
-        setHistorias(cachedStories);
-        console.log('[Social] ⚡ INSTANT stories from cache');
+      // ⚡ USE GLOBAL STORIES - INSTANT!
+      if (globalStories.length > 0) {
+        console.log('[Social] ⚡ INSTANT stories from global data:', globalStories.length);
+        
+        // Filter user's own stories and others
+        const userOwnStories = user ? globalStories.filter(s => s.autor_id === user.id) : [];
+        const otherStories = user ? globalStories.filter(s => s.autor_id !== user.id) : globalStories;
+        
+        // Add viewed status if logged in
+        if (user) {
+          const allStoryIds = globalStories.map(s => s.id);
+          const { data: viewedData } = await supabase
+            .from('historia_views')
+            .select('historia_id')
+            .eq('usuario_id', user.id)
+            .in('historia_id', allStoryIds);
+          
+          const viewedStoryIds = new Set(viewedData?.map(v => v.historia_id) || []);
+          
+          const userStoriesWithStatus = userOwnStories.map(story => ({
+            ...story,
+            visto_por_usuario: viewedStoryIds.has(story.id),
+          }));
+          
+          const otherStoriesWithStatus = otherStories.map(story => ({
+            ...story,
+            visto_por_usuario: viewedStoryIds.has(story.id),
+          }));
+          
+          setUserStories(userStoriesWithStatus);
+          setHistorias(otherStoriesWithStatus);
+        } else {
+          setHistorias(otherStories);
+        }
       }
 
-      if (cachedUserStories) {
-        setUserStories(cachedUserStories);
-        console.log('[Social] ⚡ INSTANT user stories from cache');
-      }
-
-      // Load fresh data in background
-      const promises = [];
-
-      // Load user's own stories
-      if (user) {
-        promises.push(
-          supabase
-            .from('historias')
-            .select('*')
-            .eq('autor_id', user.id)
-            .gte('expires_at', new Date().toISOString())
-            .order('created_at', { ascending: true })
-            .then(async ({ data, error }) => {
-              if (!error && data) {
-                const { data: viewedData } = await supabase
-                  .from('historia_views')
-                  .select('historia_id')
-                  .eq('usuario_id', user.id)
-                  .in('historia_id', data.map(s => s.id));
-                
-                const viewedStoryIds = new Set(viewedData?.map(v => v.historia_id) || []);
-                
-                const storiesWithViewStatus = data.map(story => ({
-                  ...story,
-                  visto_por_usuario: viewedStoryIds.has(story.id),
-                }));
-                
-                setUserStories(storiesWithViewStatus);
-                socialCache.setStories(storiesWithViewStatus, user.id);
-              }
-            })
-        );
-      }
-
-      // Load stories from other users
-      promises.push(
-        supabase
-          .from('historias')
-          .select(`
-            *,
-            autor:usuarios!historias_autor_id_fkey(nombre, avatar, username)
-          `)
-          .gte('expires_at', new Date().toISOString())
-          .neq('autor_id', user?.id || '')
-          .order('created_at', { ascending: true })
-          .then(async ({ data, error }) => {
-            if (!error && data) {
-              if (user) {
-                const { data: viewedData } = await supabase
-                  .from('historia_views')
-                  .select('historia_id')
-                  .eq('usuario_id', user.id)
-                  .in('historia_id', data.map(s => s.id));
-                
-                const viewedStoryIds = new Set(viewedData?.map(v => v.historia_id) || []);
-                
-                const storiesWithViewStatus = data.map(story => ({
-                  ...story,
-                  visto_por_usuario: viewedStoryIds.has(story.id),
-                }));
-                
-                setHistorias(storiesWithViewStatus);
-                socialCache.setStories(storiesWithViewStatus);
-              } else {
-                setHistorias(data);
-                socialCache.setStories(data);
-              }
-            }
-          })
-      );
-
-      // Load posts with BATCH query for better performance
-      promises.push(
-        supabase
-          .from('posts')
-          .select(`
-            *,
-            autor:usuarios!posts_autor_id_fkey(nombre, avatar, username)
-          `)
-          .order('created_at', { ascending: false })
-          .limit(30)
-          .then(async ({ data, error }) => {
-            if (!error && data) {
-              if (user) {
-                // OPTIMIZED: Batch query for likes and saves
-                const postIds = data.map(p => p.id);
-                
-                const [likesResult, savesResult, commentsResult] = await Promise.all([
-                  supabase
-                    .from('likes')
-                    .select('post_id')
-                    .eq('usuario_id', user.id)
-                    .in('post_id', postIds),
-                  supabase
-                    .from('posts_guardados')
-                    .select('post_id')
-                    .eq('usuario_id', user.id)
-                    .in('post_id', postIds),
-                  supabase
-                    .from('comentarios')
-                    .select('post_id')
-                    .in('post_id', postIds),
-                ]);
-
-                const likedPostIds = new Set(likesResult.data?.map(l => l.post_id) || []);
-                const savedPostIds = new Set(savesResult.data?.map(s => s.post_id) || []);
-                
-                // Count comments per post
-                const commentCounts = commentsResult.data?.reduce((acc, c) => {
-                  acc[c.post_id] = (acc[c.post_id] || 0) + 1;
-                  return acc;
-                }, {} as Record<string, number>) || {};
-
-                const postsWithStatus = data.map(post => ({
-                  ...post,
-                  liked: likedPostIds.has(post.id),
-                  saved: savedPostIds.has(post.id),
-                  comentarios: commentCounts[post.id] || 0,
-                }));
-                
-                setPosts(postsWithStatus);
-                socialCache.setFeed(postsWithStatus);
-              } else {
-                const postsWithComments = await Promise.all(
-                  data.map(async (post) => {
-                    const { count } = await supabase
-                      .from('comentarios')
-                      .select('id', { count: 'exact', head: true })
-                      .eq('post_id', post.id);
-                    
-                    return {
-                      ...post,
-                      liked: false,
-                      saved: false,
-                      comentarios: count || 0,
-                    };
-                  })
-                );
-                setPosts(postsWithComments);
-                socialCache.setFeed(postsWithComments);
-              }
-            }
-          })
-      );
-
-      // Wait for all promises
-      await Promise.all(promises);
-
-      console.log('[Social] ⚡ Data loaded and cached');
+      console.log('[Social] ⚡ User-specific data loaded');
     } catch (error) {
       console.error('[Social] Error loading data:', error);
     } finally {
       isLoadingRef.current = false;
     }
-  }, [user]);
+  }, [user, globalPosts, globalStories]);
 
   // OPTIMIZED: Use useFocusEffect for instant reload
   useFocusEffect(
@@ -735,10 +655,11 @@ export default function SocialScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    socialCache.clearAll(); // Clear cache on manual refresh
+    // ⚡ USE GLOBAL REFRESH
+    await refreshData(false);
     await loadData();
     setRefreshing(false);
-  }, [loadData]);
+  }, [loadData, refreshData]);
 
   const handleSearch = useCallback(async (query: string) => {
     setSearchQuery(query);
@@ -1183,7 +1104,11 @@ export default function SocialScreen() {
   const hasUserStories = userStories.length > 0;
   const hasUnviewedUserStories = userStories.some(s => !s.visto_por_usuario);
 
-  // OPTIMIZED: Show content immediately - NO LOADING SCREEN
+  // ⚡ SHOW LOADING SCREEN ONLY ON INITIAL APP STARTUP
+  if (isInitialLoading) {
+    return <InitialLoadingScreen />;
+  }
+
   return (
     <View style={styles.container}>
       <Animated.View
