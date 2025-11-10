@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -39,14 +39,7 @@ export default function ConfiguracionScreen() {
   const [cacheSize, setCacheSize] = useState('0 MB');
 
   // Load user settings
-  useEffect(() => {
-    if (user) {
-      loadUserSettings();
-      calculateCacheSize();
-    }
-  }, [user]);
-
-  const loadUserSettings = async () => {
+  const loadUserSettings = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -74,7 +67,14 @@ export default function ConfiguracionScreen() {
     } catch (error) {
       console.error('Error loading user settings:', error);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      loadUserSettings();
+      calculateCacheSize();
+    }
+  }, [user, loadUserSettings]);
 
   const calculateCacheSize = async () => {
     try {

@@ -121,20 +121,7 @@ export default function ChatsScreen() {
   }, [loadChats]);
 
   // Handle navigation from notification or other screens
-  useEffect(() => {
-    if (params.userId && user) {
-      // Navigate to chat with specific user
-      handleOpenChat(params.userId as string);
-    }
-  }, [params.userId, user]);
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadChats();
-    setRefreshing(false);
-  };
-
-  const handleOpenChat = async (otroUsuarioId: string) => {
+  const handleOpenChat = useCallback(async (otroUsuarioId: string) => {
     if (!user) {
       setShowLoginModal(true);
       return;
@@ -153,6 +140,19 @@ export default function ChatsScreen() {
       // Create new chat
       router.push(`/chat/conversacion?userId=${otroUsuarioId}`);
     }
+  }, [user, chats, router]);
+
+  useEffect(() => {
+    if (params.userId && user) {
+      // Navigate to chat with specific user
+      handleOpenChat(params.userId as string);
+    }
+  }, [params.userId, user, handleOpenChat]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadChats();
+    setRefreshing(false);
   };
 
   const handleNewChat = () => {

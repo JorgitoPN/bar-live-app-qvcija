@@ -33,7 +33,7 @@ export default function TabLayout() {
         );
       }
     }
-  }, [user, userRole, pathname]);
+  }, [user, userRole, pathname, router]);
 
   // Prevent access to gestion pages for non-propietario users
   useEffect(() => {
@@ -48,7 +48,7 @@ export default function TabLayout() {
         );
       }
     }
-  }, [user, userRole, pathname]);
+  }, [user, userRole, pathname, router]);
 
   // Define tabs based on user role and current mode
   const getTabsForRole = (): TabBarItem[] => {
