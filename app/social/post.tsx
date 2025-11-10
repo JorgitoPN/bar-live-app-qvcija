@@ -68,6 +68,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  backButton: {
+    padding: 8,
+  },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
@@ -1136,7 +1139,7 @@ export default function PostDetailScreen() {
                 }}
                 activeOpacity={0.7}
               >
-                <IconSymbol name="trash" size={18} color="#000000" />
+                <IconSymbol name="trash" size={18} color={colors.textSecondary} />
               </TouchableOpacity>
             )}
           </View>
@@ -1191,7 +1194,8 @@ export default function PostDetailScreen() {
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
           style={styles.header}
         >
-          <TouchableOpacity onPress={() => router.back()}>
+          {/* FIXED: Use router.back() instead of hardcoded navigation */}
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Publicación</Text>
@@ -1211,7 +1215,8 @@ export default function PostDetailScreen() {
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
           style={styles.header}
         >
-          <TouchableOpacity onPress={() => router.back()}>
+          {/* FIXED: Use router.back() instead of hardcoded navigation */}
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Publicación</Text>
@@ -1232,7 +1237,8 @@ export default function PostDetailScreen() {
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         style={styles.header}
       >
-        <TouchableOpacity onPress={() => router.back()}>
+        {/* FIXED: Use router.back() instead of hardcoded navigation */}
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Publicación</Text>
@@ -1249,7 +1255,13 @@ export default function PostDetailScreen() {
             <View style={styles.postHeader}>
               <TouchableOpacity
                 style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
-                onPress={() => router.push(`/(tabs)/perfil?userId=${post.autor_id}`)}
+                onPress={() => {
+                  if (user && post.autor_id === user.id) {
+                    router.push('/(tabs)/perfil');
+                  } else {
+                    router.push(`/perfil/usuario?userId=${post.autor_id}`);
+                  }
+                }}
                 activeOpacity={0.7}
               >
                 {post.autorAvatar ? (
@@ -1285,7 +1297,7 @@ export default function PostDetailScreen() {
                   }}
                   activeOpacity={0.7}
                 >
-                  <IconSymbol name="trash" size={22} color="#000000" />
+                  <IconSymbol name="trash" size={22} color={colors.textSecondary} />
                 </TouchableOpacity>
               )}
             </View>
@@ -1419,7 +1431,7 @@ export default function PostDetailScreen() {
               setShowUserList(false);
               setSearchQuery('');
               setSearchResults([]);
-            }}>
+            }} style={styles.backButton}>
               <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Enviar a...</Text>
