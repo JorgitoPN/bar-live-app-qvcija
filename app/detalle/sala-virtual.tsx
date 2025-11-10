@@ -123,7 +123,7 @@ export default function SalaVirtualScreen() {
 
   const loadData = useCallback(async () => {
     try {
-      console.log('[SalaVirtual] ⚡ Loading data...');
+      console.log('[SalaVirtual] ⚡ Loading data for local:', params.id);
 
       const { data: localData, error: localError } = await supabase
         .from('locales')
@@ -169,6 +169,8 @@ export default function SalaVirtualScreen() {
       const thirtyMinutesAgo = new Date();
       thirtyMinutesAgo.setMinutes(thirtyMinutesAgo.getMinutes() - 30);
 
+      console.log('[SalaVirtual] 📥 Loading interactions from sala_virtual_interacciones...');
+
       const { data: interactionsData, error: interactionsError } = await supabase
         .from('sala_virtual_interacciones')
         .select(`
@@ -185,7 +187,16 @@ export default function SalaVirtualScreen() {
         .order('created_at', { ascending: false })
         .limit(100);
 
-      if (!interactionsError) {
+      if (interactionsError) {
+        console.error('[SalaVirtual] ⚠️ Error loading interactions:', interactionsError);
+        console.error('[SalaVirtual] ⚠️ This error means the table sala_virtual_interacciones does not exist in your Supabase database.');
+        console.error('[SalaVirtual] ⚠️ Please create the table using the SQL provided in the implementation plan.');
+        
+        // Set empty arrays to prevent crashes
+        setInteractions([]);
+        setChatMessages([]);
+      } else {
+        console.log('[SalaVirtual] ✅ Loaded', interactionsData?.length || 0, 'interactions');
         const allInteractions = interactionsData || [];
         
         // Separate chat messages from other interactions
@@ -196,7 +207,7 @@ export default function SalaVirtualScreen() {
         setChatMessages(chatMsgs.reverse()); // Reverse to show oldest first in chat
       }
 
-      console.log('[SalaVirtual] ⚡ Data loaded');
+      console.log('[SalaVirtual] ⚡ Data loaded successfully');
     } catch (error) {
       console.error('[SalaVirtual] Error:', error);
       Alert.alert('Error', 'Ocurrió un error al cargar los datos');
@@ -551,6 +562,8 @@ export default function SalaVirtualScreen() {
     try {
       setSendingMessage(true);
 
+      console.log('[SalaVirtual] 📤 Inserting into sala_virtual_interacciones table...');
+
       // Insert message into database using sala_virtual_interacciones table
       const { data, error: insertError } = await supabase
         .from('sala_virtual_interacciones')
@@ -565,12 +578,21 @@ export default function SalaVirtualScreen() {
 
       if (insertError) {
         console.error('[SalaVirtual] ❌ Error sending chat message:', insertError);
+        console.error('[SalaVirtual] ❌ Error details:', JSON.stringify(insertError, null, 2));
         
         // Remove optimistic message on error
         setChatMessages((prev) => prev.filter(m => m.id !== tempId));
         setNewMessage(messageText);
         
-        Alert.alert('Error', 'No se pudo enviar el mensaje. Por favor, intenta de nuevo.');
+        // Show detailed error to user
+        if (insertError.code === 'PGRST205') {
+          Alert.alert(
+            'Error de Base de Datos',
+            'La tabla sala_virtual_interacciones no existe en la base de datos. Por favor, contacta al administrador para crear la tabla necesaria.'
+          );
+        } else {
+          Alert.alert('Error', 'No se pudo enviar el mensaje. Por favor, intenta de nuevo.');
+        }
         return;
       }
 
