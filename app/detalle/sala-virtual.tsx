@@ -546,16 +546,14 @@ export default function SalaVirtualScreen() {
     try {
       setSendingMessage(true);
 
-      // FIXED: Insert without joining usuarios table to avoid schema cache error
-      const { data: insertResult, error: insertError } = await supabase
+      // FIXED: Simple insert without select to avoid schema cache error
+      const { error: insertError } = await supabase
         .from('sala_virtual_chat')
         .insert({
           usuario_id: user.id,
           local_id: params.id,
           mensaje: messageText,
-        })
-        .select('id')
-        .single();
+        });
 
       if (insertError) {
         console.error('[SalaVirtual] ❌ Error sending chat message:', insertError);
@@ -568,14 +566,12 @@ export default function SalaVirtualScreen() {
         return;
       }
 
-      // Replace optimistic message with the one that has the real ID
-      if (insertResult) {
-        setChatMessages((prev) => 
-          prev.map(m => m.id === tempId ? { ...optimisticMessage, id: insertResult.id } : m)
-        );
-      }
-
       console.log('[SalaVirtual] ✅ Message sent successfully');
+      
+      // The real-time subscription will handle adding the message with the real ID
+      // So we remove the optimistic message and let the subscription add it
+      setChatMessages((prev) => prev.filter(m => m.id !== tempId));
+      
     } catch (error) {
       console.error('[SalaVirtual] ❌ Error:', error);
       
