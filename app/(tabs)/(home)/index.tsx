@@ -197,6 +197,7 @@ export default function ExplorarScreen() {
   const { currentMode } = useMode();
   const scrollViewRef = useRef<ScrollView>(null);
   const lastScrollY = useRef(0);
+  const scrollDirection = useRef<'up' | 'down'>('down');
   const headerTranslateY = useRef(new Animated.Value(0)).current;
   const categoriasTranslateY = useRef(new Animated.Value(0)).current;
   const isHeaderVisible = useRef(true);
@@ -391,10 +392,17 @@ export default function ExplorarScreen() {
     const currentScrollY = event.nativeEvent.contentOffset.y;
     const scrollDiff = currentScrollY - lastScrollY.current;
 
+    // Determine scroll direction
+    if (scrollDiff > 0) {
+      scrollDirection.current = 'down';
+    } else if (scrollDiff < 0) {
+      scrollDirection.current = 'up';
+    }
+
     // FIXED: Improved scroll detection logic
     // Hide when scrolling down more than 5px and past 50px from top
-    if (scrollDiff > 5 && currentScrollY > 50 && isHeaderVisible.current) {
-      console.log('[Explorar] Hiding header and categories');
+    if (scrollDirection.current === 'down' && scrollDiff > 5 && currentScrollY > 50 && isHeaderVisible.current) {
+      console.log('[Explorar] ⬇️ Hiding header and categories');
       isHeaderVisible.current = false;
       
       Animated.parallel([
@@ -411,8 +419,8 @@ export default function ExplorarScreen() {
       ]).start();
     } 
     // Show when scrolling up more than 10px
-    else if (scrollDiff < -10 && !isHeaderVisible.current) {
-      console.log('[Explorar] Showing header and categories');
+    else if (scrollDirection.current === 'up' && scrollDiff < -10 && !isHeaderVisible.current) {
+      console.log('[Explorar] ⬆️ Showing header and categories');
       isHeaderVisible.current = true;
       
       Animated.parallel([

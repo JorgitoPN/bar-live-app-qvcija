@@ -22,6 +22,7 @@ import * as Location from 'expo-location';
 import FiltrosAvanzadosSheet from '@/components/home/FiltrosAvanzadosSheet';
 import { supabase } from '@/utils/supabase';
 import { getEstadoLocal } from '@/utils/timeUtils';
+import { performanceOptimizer } from '@/utils/performanceOptimizer';
 
 const { width, height } = Dimensions.get('window');
 
@@ -60,6 +61,7 @@ export default function MapaScreen() {
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [todosLosLocales, setTodosLosLocales] = useState<Local[]>([]);
   const [localesFiltrados, setLocalesFiltrados] = useState<Local[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -80,7 +82,18 @@ export default function MapaScreen() {
 
   const cargarTodosLosLocalesEnriquecidos = useCallback(async () => {
     try {
-      console.log('🔄 Cargando TODOS los locales enriquecidos desde Supabase...');
+      console.log('🔄 [MAP] Loading enriched locals with cache...');
+
+      // Try cache first for INSTANT loading
+      const cachedLocales = await performanceOptimizer.getCache<Local[]>('map_enriched_locales');
+      if (cachedLocales && cachedLocales.length > 0) {
+        console.log('⚡ [MAP] INSTANT load from cache:', cachedLocales.length);
+        setTodosLosLocales(cachedLocales);
+        setIsLoading(false);
+        // Continue loading in background to update cache
+      } else {
+        setIsLoading(true);
+      }
 
       const { data, error, count } = await supabase
         .from('locales')
@@ -91,11 +104,12 @@ export default function MapaScreen() {
         .not('longitud', 'is', null);
 
       if (error) {
-        console.error('❌ Error cargando locales:', error);
+        console.error('❌ [MAP] Error loading locals:', error);
+        setIsLoading(false);
         return;
       }
 
-      console.log(`✅ Cargados ${data?.length || 0} locales enriquecidos desde Supabase (total: ${count})`);
+      console.log(`✅ [MAP] Loaded ${data?.length || 0} enriched locals from DB (total: ${count})`);
 
       const localesTransformados: Local[] = (data || []).map((local) => ({
         id: local.id,
@@ -152,8 +166,14 @@ export default function MapaScreen() {
       }));
 
       setTodosLosLocales(localesTransformados);
+      
+      // Cache for next time (10 minutes TTL)
+      await performanceOptimizer.setCache('map_enriched_locales', localesTransformados, 10 * 60 * 1000);
+      
+      setIsLoading(false);
     } catch (error) {
-      console.error('❌ Error en cargarTodosLosLocalesEnriquecidos:', error);
+      console.error('❌ [MAP] Error in cargarTodosLosLocalesEnriquecidos:', error);
+      setIsLoading(false);
     }
   }, []);
 
@@ -184,7 +204,7 @@ export default function MapaScreen() {
       return matchCategoria && matchEstado;
     });
     
-    console.log(`Locales filtrados en mapa: ${filtrados.length} de ${todosLosLocales.length}`);
+    console.log(`[MAP] Filtered locals: ${filtrados.length} of ${todosLosLocales.length}`);
     setLocalesFiltrados(filtrados);
   }, [todosLosLocales, categoriaSeleccionada, filtroEstado]);
 
@@ -223,7 +243,7 @@ export default function MapaScreen() {
   };
 
   const handleVerDetalles = (localId: string) => {
-    console.log('Navegando a detalles del local:', localId);
+    console.log('[MAP] Navigating to local details:', localId);
     router.push(`/detalle/local?id=${localId}`);
   };
 
@@ -646,16 +666,6 @@ export default function MapaScreen() {
               Por favor, usa la aplicación móvil para ver el mapa.
             </Text>
           </View>
-        ) : localesFiltrados.length === 0 && todosLosLocales.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <IconSymbol name="mappin.slash" size={64} color={colors.textSecondary} />
-            <Text style={styles.emptyText}>
-              No hay locales enriquecidos disponibles
-            </Text>
-            <Text style={styles.emptySubtext}>
-              Los locales aparecerán aquí después de ser enriquecidos con datos de Google Places
-            </Text>
-          </View>
         ) : (
           <WebView
             ref={webViewRef}
@@ -820,26 +830,6 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   webNotSupportedSubtext: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: 8,
-  },
-  emptyContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 32,
-    backgroundColor: colors.background,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
-    textAlign: 'center',
-    marginTop: 16,
-  },
-  emptySubtext: {
     fontSize: 14,
     color: colors.textSecondary,
     textAlign: 'center',
