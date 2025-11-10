@@ -45,6 +45,9 @@ export default function ConversacionScreen() {
   const [mensaje, setMensaje] = useState('');
   const [enviando, setEnviando] = useState(false);
 
+  // Real-time subscription ref
+  const channelRef = useRef<any>(null);
+
   const loadOrCreateChat = useCallback(async () => {
     if (!user) return;
 
@@ -173,9 +176,16 @@ export default function ConversacionScreen() {
     loadOrCreateChat();
   }, [loadOrCreateChat]);
 
-  // Subscribe to new messages
+  // Subscribe to new messages with INSTANT updates
   useEffect(() => {
-    if (!chatId) return;
+    if (!chatId || !user) return;
+
+    console.log('[Conversacion] ⚡ Setting up real-time subscription for chat:', chatId);
+
+    // Clean up previous subscription
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+    }
 
     const channel = supabase
       .channel(`chat:${chatId}`)
@@ -188,54 +198,109 @@ export default function ConversacionScreen() {
           filter: `chat_id=eq.${chatId}`,
         },
         (payload) => {
-          console.log('[Conversacion] New message:', payload);
-          setMensajes((prev) => [...prev, payload.new as Message]);
+          console.log('[Conversacion] ⚡ INSTANT new message received:', payload.new);
+          
+          const newMessage = payload.new as Message;
+          
+          // Add message INSTANTLY to UI
+          setMensajes((prev) => {
+            // Prevent duplicates
+            if (prev.some(m => m.id === newMessage.id)) {
+              return prev;
+            }
+            return [...prev, newMessage];
+          });
           
           // Mark as read if not from current user
-          if (user && payload.new.remitente_id !== user.id) {
+          if (newMessage.remitente_id !== user.id) {
             supabase
               .from('mensajes')
               .update({ leido: true })
-              .eq('id', payload.new.id);
+              .eq('id', newMessage.id)
+              .then(() => console.log('[Conversacion] Message marked as read'));
           }
 
+          // Auto-scroll to bottom
           setTimeout(() => {
             flatListRef.current?.scrollToEnd({ animated: true });
-          }, 100);
+          }, 50);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[Conversacion] Subscription status:', status);
+      });
+
+    channelRef.current = channel;
 
     return () => {
-      supabase.removeChannel(channel);
+      console.log('[Conversacion] Cleaning up subscription');
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
   }, [chatId, user]);
 
   const enviarMensaje = async () => {
     if (!user || !chatId || !mensaje.trim() || enviando) return;
 
+    const mensajeTexto = mensaje.trim();
+    const tempId = `temp-${Date.now()}`;
+    
+    // OPTIMISTIC UI UPDATE - Show message INSTANTLY
+    const optimisticMessage: Message = {
+      id: tempId,
+      chat_id: chatId,
+      remitente_id: user.id,
+      contenido: mensajeTexto,
+      tipo_mensaje: 'texto',
+      leido: false,
+      created_at: new Date().toISOString(),
+    };
+
+    setMensajes((prev) => [...prev, optimisticMessage]);
+    setMensaje('');
     setEnviando(true);
 
+    // Scroll to bottom immediately
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 50);
+
     try {
-      const { error } = await supabase.from('mensajes').insert({
-        chat_id: chatId,
-        remitente_id: user.id,
-        contenido: mensaje.trim(),
-        tipo_mensaje: 'texto',
-        leido: false,
-      });
+      const { data: insertedMessage, error } = await supabase
+        .from('mensajes')
+        .insert({
+          chat_id: chatId,
+          remitente_id: user.id,
+          contenido: mensajeTexto,
+          tipo_mensaje: 'texto',
+          leido: false,
+        })
+        .select()
+        .single();
 
       if (error) {
         console.error('[Conversacion] Error sending message:', error);
+        
+        // Remove optimistic message on error
+        setMensajes((prev) => prev.filter(m => m.id !== tempId));
+        setMensaje(mensajeTexto); // Restore message text
+        
         Alert.alert('Error', 'No se pudo enviar el mensaje');
         return;
       }
+
+      // Replace optimistic message with real one
+      setMensajes((prev) => 
+        prev.map(m => m.id === tempId ? insertedMessage : m)
+      );
 
       // Update chat
       await supabase
         .from('chats')
         .update({
-          ultimo_mensaje: mensaje.trim(),
+          ultimo_mensaje: mensajeTexto,
           ultimo_mensaje_fecha: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
@@ -252,13 +317,99 @@ export default function ConversacionScreen() {
         });
       }
 
-      setMensaje('');
+      console.log('[Conversacion] ✅ Message sent successfully');
     } catch (error) {
       console.error('[Conversacion] Error:', error);
+      
+      // Remove optimistic message on error
+      setMensajes((prev) => prev.filter(m => m.id !== tempId));
+      setMensaje(mensajeTexto);
+      
       Alert.alert('Error', 'Ocurrió un error al enviar el mensaje');
     } finally {
       setEnviando(false);
     }
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!user) return;
+
+    const message = mensajes.find(m => m.id === messageId);
+    if (!message || message.remitente_id !== user.id) {
+      Alert.alert('Error', 'Solo puedes eliminar tus propios mensajes');
+      return;
+    }
+
+    Alert.alert(
+      'Eliminar mensaje',
+      '¿Estás seguro de que quieres eliminar este mensaje?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Optimistic UI update
+              setMensajes((prev) => prev.filter(m => m.id !== messageId));
+
+              const { error } = await supabase
+                .from('mensajes')
+                .delete()
+                .eq('id', messageId);
+
+              if (error) {
+                console.error('[Conversacion] Error deleting message:', error);
+                // Reload messages on error
+                if (chatId) loadMessages(chatId);
+                Alert.alert('Error', 'No se pudo eliminar el mensaje');
+              }
+            } catch (error) {
+              console.error('[Conversacion] Error:', error);
+              if (chatId) loadMessages(chatId);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDeleteConversation = async () => {
+    if (!user || !chatId) return;
+
+    Alert.alert(
+      'Eliminar conversación',
+      '¿Estás seguro de que quieres eliminar toda esta conversación? Esta acción no se puede deshacer.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Delete all messages first
+              await supabase
+                .from('mensajes')
+                .delete()
+                .eq('chat_id', chatId);
+
+              // Delete chat
+              await supabase
+                .from('chats')
+                .delete()
+                .eq('id', chatId);
+
+              Alert.alert('Éxito', 'Conversación eliminada', [
+                { text: 'OK', onPress: () => router.back() }
+              ]);
+            } catch (error) {
+              console.error('[Conversacion] Error deleting conversation:', error);
+              Alert.alert('Error', 'No se pudo eliminar la conversación');
+            }
+          },
+        },
+      ]
+    );
   };
 
   if (loading) {
@@ -312,7 +463,9 @@ export default function ConversacionScreen() {
             {otroUsuario?.activo && <Text style={styles.headerStatus}>Activo ahora</Text>}
           </View>
         </TouchableOpacity>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteConversation}>
+          <IconSymbol name="trash" size={22} color={colors.headerText} />
+        </TouchableOpacity>
       </LinearGradient>
 
       <KeyboardAvoidingView
@@ -330,6 +483,7 @@ export default function ConversacionScreen() {
               message={item}
               isOwn={item.remitente_id === user?.id}
               otroUsuario={otroUsuario}
+              onLongPress={() => handleDeleteMessage(item.id)}
             />
           )}
           ListEmptyComponent={
@@ -417,6 +571,9 @@ const styles = StyleSheet.create({
   headerStatus: {
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.8)',
+  },
+  deleteButton: {
+    padding: 8,
   },
   loadingContainer: {
     flex: 1,

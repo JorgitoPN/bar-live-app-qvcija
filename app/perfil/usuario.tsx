@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -37,6 +37,9 @@ export default function UsuarioPerfilScreen() {
     seguidores: 0,
     seguidos: 0,
   });
+
+  // Prevent multiple simultaneous follow/unfollow actions
+  const isTogglingFollow = useRef(false);
 
   const userId = params.userId as string;
 
@@ -130,47 +133,88 @@ export default function UsuarioPerfilScreen() {
       return;
     }
 
+    // Prevent multiple simultaneous actions
+    if (isTogglingFollow.current) {
+      console.log('[UsuarioPerfil] Already toggling follow, skipping...');
+      return;
+    }
+
+    isTogglingFollow.current = true;
+
+    const wasFollowing = isFollowing;
+    const previousSeguidores = stats.seguidores;
+
     try {
-      if (isFollowing) {
+      // OPTIMISTIC UI UPDATE - Update immediately
+      setIsFollowing(!wasFollowing);
+      setStats(prev => ({
+        ...prev,
+        seguidores: wasFollowing ? Math.max(0, prev.seguidores - 1) : prev.seguidores + 1,
+      }));
+
+      if (wasFollowing) {
         // Unfollow
-        await supabase
+        console.log('[UsuarioPerfil] Unfollowing user...');
+        
+        const { error: deleteError } = await supabase
           .from('seguidores')
           .delete()
           .eq('seguidor_id', currentUser.id)
           .eq('seguido_id', userId);
 
-        // Update counters
-        await supabase
-          .from('usuarios')
-          .update({ seguidores: Math.max(0, stats.seguidores - 1) })
-          .eq('id', userId);
+        if (deleteError) throw deleteError;
 
-        await supabase
-          .from('usuarios')
-          .update({ seguidos: Math.max(0, (currentUser as any).seguidos - 1) })
-          .eq('id', currentUser.id);
+        // Update counters in database
+        await Promise.all([
+          supabase
+            .from('usuarios')
+            .update({ seguidores: Math.max(0, previousSeguidores - 1) })
+            .eq('id', userId),
+          supabase
+            .from('usuarios')
+            .update({ seguidos: Math.max(0, ((currentUser as any).seguidos || 0) - 1) })
+            .eq('id', currentUser.id),
+        ]);
 
-        setIsFollowing(false);
-        setStats(prev => ({ ...prev, seguidores: Math.max(0, prev.seguidores - 1) }));
+        console.log('[UsuarioPerfil] ✅ Unfollow successful');
       } else {
         // Follow
-        await supabase
+        console.log('[UsuarioPerfil] Following user...');
+
+        // Check if already following (prevent duplicates)
+        const { data: existingFollow } = await supabase
+          .from('seguidores')
+          .select('id')
+          .eq('seguidor_id', currentUser.id)
+          .eq('seguido_id', userId)
+          .single();
+
+        if (existingFollow) {
+          console.log('[UsuarioPerfil] Already following, skipping insert');
+          isTogglingFollow.current = false;
+          return;
+        }
+
+        const { error: insertError } = await supabase
           .from('seguidores')
           .insert({
             seguidor_id: currentUser.id,
             seguido_id: userId,
           });
 
-        // Update counters
-        await supabase
-          .from('usuarios')
-          .update({ seguidores: stats.seguidores + 1 })
-          .eq('id', userId);
+        if (insertError) throw insertError;
 
-        await supabase
-          .from('usuarios')
-          .update({ seguidos: ((currentUser as any).seguidos || 0) + 1 })
-          .eq('id', currentUser.id);
+        // Update counters in database
+        await Promise.all([
+          supabase
+            .from('usuarios')
+            .update({ seguidores: previousSeguidores + 1 })
+            .eq('id', userId),
+          supabase
+            .from('usuarios')
+            .update({ seguidos: ((currentUser as any).seguidos || 0) + 1 })
+            .eq('id', currentUser.id),
+        ]);
 
         // Create notification
         await supabase
@@ -183,12 +227,21 @@ export default function UsuarioPerfilScreen() {
             usuario_origen_id: currentUser.id,
           });
 
-        setIsFollowing(true);
-        setStats(prev => ({ ...prev, seguidores: prev.seguidores + 1 }));
+        console.log('[UsuarioPerfil] ✅ Follow successful');
       }
     } catch (error) {
       console.error('[UsuarioPerfil] Error toggling follow:', error);
-      Alert.alert('Error', 'No se pudo completar la acción');
+      
+      // ROLLBACK UI on error
+      setIsFollowing(wasFollowing);
+      setStats(prev => ({
+        ...prev,
+        seguidores: previousSeguidores,
+      }));
+      
+      Alert.alert('Error', 'No se pudo completar la acción. Por favor, intenta de nuevo.');
+    } finally {
+      isTogglingFollow.current = false;
     }
   };
 
@@ -352,6 +405,7 @@ export default function UsuarioPerfilScreen() {
           <TouchableOpacity
             style={[styles.actionButton, isFollowing && styles.actionButtonFollowing]}
             onPress={handleFollow}
+            disabled={isTogglingFollow.current}
           >
             <Text style={[styles.actionButtonText, isFollowing && styles.actionButtonTextFollowing]}>
               {isFollowing ? 'Siguiendo' : 'Seguir'}

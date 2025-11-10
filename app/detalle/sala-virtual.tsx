@@ -26,7 +26,7 @@ import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 interface CheckIn {
   id: string;
@@ -99,7 +99,7 @@ export default function SalaVirtualScreen() {
   const params = useLocalSearchParams();
   const { user } = useAuth();
   const flatListRef = useRef<FlatList>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Changed to false for instant loading
   const [refreshing, setRefreshing] = useState(false);
   const [local, setLocal] = useState<any>(null);
   const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
@@ -108,7 +108,7 @@ export default function SalaVirtualScreen() {
   const [showQuickMessages, setShowQuickMessages] = useState(false);
   const [showEmoticons, setShowEmoticons] = useState(false);
   const [interactions, setInteractions] = useState<InteractionMessage[]>([]);
-  const [floatingEmojis, setFloatingEmojis] = useState<Array<{ id: string; emoji: string; x: number; y: Animated.Value }>>([]);
+  const [floatingEmojis, setFloatingEmojis] = useState<Array<{ id: string; emoji: string; x: number; y: Animated.Value; opacity: Animated.Value }>>([]);
   
   // Public chat state
   const [showPublicChat, setShowPublicChat] = useState(false);
@@ -116,9 +116,33 @@ export default function SalaVirtualScreen() {
   const [newMessage, setNewMessage] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
 
+  // Pulse animation for check-in button
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  // Real-time subscription refs
+  const channelRef = useRef<any>(null);
+
+  useEffect(() => {
+    // Pulse animation for check-in button
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.05,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
+
   const loadData = useCallback(async () => {
     try {
-      setLoading(true);
+      console.log('[SalaVirtual] ⚡ Loading data...');
 
       // Load local info
       const { data: localData, error: localError } = await supabase
@@ -210,6 +234,8 @@ export default function SalaVirtualScreen() {
       if (!chatError) {
         setChatMessages(chatData || []);
       }
+
+      console.log('[SalaVirtual] ⚡ Data loaded');
     } catch (error) {
       console.error('[SalaVirtual] Error:', error);
       Alert.alert('Error', 'Ocurrió un error al cargar los datos');
@@ -224,9 +250,16 @@ export default function SalaVirtualScreen() {
     }
   }, [params.id, loadData]);
 
-  // Subscribe to real-time interactions
+  // Subscribe to real-time interactions with INSTANT updates
   useEffect(() => {
     if (!params.id) return;
+
+    console.log('[SalaVirtual] ⚡ Setting up real-time subscriptions');
+
+    // Clean up previous subscription
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+    }
 
     const channel = supabase
       .channel(`sala_virtual:${params.id}`)
@@ -239,7 +272,7 @@ export default function SalaVirtualScreen() {
           filter: `local_id=eq.${params.id}`,
         },
         async (payload) => {
-          console.log('[SalaVirtual] New interaction:', payload);
+          console.log('[SalaVirtual] ⚡ INSTANT new interaction:', payload.new);
           
           // Get user info
           const { data: userData } = await supabase
@@ -270,7 +303,7 @@ export default function SalaVirtualScreen() {
           filter: `local_id=eq.${params.id}`,
         },
         async (payload) => {
-          console.log('[SalaVirtual] New check-in:', payload);
+          console.log('[SalaVirtual] ⚡ INSTANT new check-in:', payload.new);
           
           // Get user info
           const { data: userData } = await supabase
@@ -296,7 +329,7 @@ export default function SalaVirtualScreen() {
           filter: `local_id=eq.${params.id}`,
         },
         async (payload) => {
-          console.log('[SalaVirtual] New chat message:', payload);
+          console.log('[SalaVirtual] ⚡ INSTANT new chat message:', payload.new);
           
           // Get user info
           const { data: userData } = await supabase
@@ -316,29 +349,45 @@ export default function SalaVirtualScreen() {
             // Auto-scroll to bottom
             setTimeout(() => {
               flatListRef.current?.scrollToEnd({ animated: true });
-            }, 100);
+            }, 50);
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[SalaVirtual] Subscription status:', status);
+      });
+
+    channelRef.current = channel;
 
     return () => {
-      supabase.removeChannel(channel);
+      console.log('[SalaVirtual] Cleaning up subscriptions');
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
   }, [params.id]);
 
   const showFloatingEmoji = (emoji: string) => {
     const id = Date.now().toString();
     const x = Math.random() * (width - 60);
-    const y = new Animated.Value(0);
+    const y = new Animated.Value(height - 200);
+    const opacity = new Animated.Value(1);
 
-    setFloatingEmojis((prev) => [...prev, { id, emoji, x, y }]);
+    setFloatingEmojis((prev) => [...prev, { id, emoji, x, y, opacity }]);
 
-    Animated.timing(y, {
-      toValue: -300,
-      duration: 3000,
-      useNativeDriver: true,
-    }).start(() => {
+    Animated.parallel([
+      Animated.timing(y, {
+        toValue: -100,
+        duration: 3000,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacity, {
+        toValue: 0,
+        duration: 3000,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
       setFloatingEmojis((prev) => prev.filter((item) => item.id !== id));
     });
   };
@@ -488,30 +537,113 @@ export default function SalaVirtualScreen() {
 
     if (!newMessage.trim()) return;
 
+    const messageText = newMessage.trim();
+    const tempId = `temp-${Date.now()}`;
+
+    // OPTIMISTIC UI UPDATE - Show message INSTANTLY
+    const optimisticMessage: ChatMessage = {
+      id: tempId,
+      usuario_id: user.id,
+      local_id: params.id as string,
+      mensaje: messageText,
+      created_at: new Date().toISOString(),
+      usuario: {
+        id: user.id,
+        nombre: user.nombre,
+        username: user.username,
+        avatar: user.avatar,
+      },
+    };
+
+    setChatMessages((prev) => [...prev, optimisticMessage]);
+    setNewMessage('');
+
+    // Auto-scroll to bottom immediately
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 50);
+
     try {
       setSendingMessage(true);
 
-      const { error } = await supabase
+      const { data: insertedMessage, error } = await supabase
         .from('sala_virtual_chat')
         .insert({
           usuario_id: user.id,
           local_id: params.id,
-          mensaje: newMessage.trim(),
-        });
+          mensaje: messageText,
+        })
+        .select()
+        .single();
 
       if (error) {
         console.error('[SalaVirtual] Error sending chat message:', error);
+        
+        // Remove optimistic message on error
+        setChatMessages((prev) => prev.filter(m => m.id !== tempId));
+        setNewMessage(messageText); // Restore message text
+        
         Alert.alert('Error', 'No se pudo enviar el mensaje');
         return;
       }
 
-      setNewMessage('');
+      // Replace optimistic message with real one
+      setChatMessages((prev) => 
+        prev.map(m => m.id === tempId ? { ...insertedMessage, usuario: optimisticMessage.usuario } : m)
+      );
+
+      console.log('[SalaVirtual] ✅ Message sent successfully');
     } catch (error) {
       console.error('[SalaVirtual] Error:', error);
+      
+      // Remove optimistic message on error
+      setChatMessages((prev) => prev.filter(m => m.id !== tempId));
+      setNewMessage(messageText);
+      
       Alert.alert('Error', 'Ocurrió un error al enviar el mensaje');
     } finally {
       setSendingMessage(false);
     }
+  };
+
+  const handleDeleteChatMessage = async (messageId: string) => {
+    if (!user) return;
+
+    const message = chatMessages.find(m => m.id === messageId);
+    if (!message || message.usuario_id !== user.id) {
+      Alert.alert('Error', 'Solo puedes eliminar tus propios mensajes');
+      return;
+    }
+
+    Alert.alert(
+      'Eliminar mensaje',
+      '¿Estás seguro de que quieres eliminar este mensaje?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Optimistic UI update
+              setChatMessages((prev) => prev.filter(m => m.id !== messageId));
+
+              const { error } = await supabase
+                .from('sala_virtual_chat')
+                .delete()
+                .eq('id', messageId);
+
+              if (error) {
+                console.error('[SalaVirtual] Error deleting message:', error);
+                Alert.alert('Error', 'No se pudo eliminar el mensaje');
+              }
+            } catch (error) {
+              console.error('[SalaVirtual] Error:', error);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const formatCheckInTime = (created_at: string): string => {
@@ -585,6 +717,7 @@ export default function SalaVirtualScreen() {
             {
               left: item.x,
               transform: [{ translateY: item.y }],
+              opacity: item.opacity,
             },
           ]}
         >
@@ -596,32 +729,51 @@ export default function SalaVirtualScreen() {
         style={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {/* Local info card */}
+        {/* Local info card with gradient */}
         {local?.imagen_url && (
-          <Image source={{ uri: local.imagen_url }} style={styles.localImage} />
+          <View style={styles.imageContainer}>
+            <Image source={{ uri: local.imagen_url }} style={styles.localImage} />
+            <LinearGradient
+              colors={['transparent', 'rgba(0,0,0,0.7)']}
+              style={styles.imageGradient}
+            />
+          </View>
         )}
 
         <View style={styles.infoCard}>
-          <View style={styles.infoHeader}>
-            <IconSymbol name="person.2.fill" size={32} color={colors.primary} />
-            <View style={styles.infoText}>
-              <Text style={styles.infoTitle}>
-                {checkIns.length} {checkIns.length === 1 ? 'persona' : 'personas'} aquí ahora
-              </Text>
-              <Text style={styles.infoSubtitle}>
-                {local?.nombre} - {local?.provincia}
-              </Text>
+          <LinearGradient
+            colors={['#667eea', '#764ba2']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.infoGradient}
+          >
+            <View style={styles.infoHeader}>
+              <IconSymbol name="person.2.fill" size={32} color={colors.headerText} />
+              <View style={styles.infoText}>
+                <Text style={styles.infoTitle}>
+                  {checkIns.length} {checkIns.length === 1 ? 'persona' : 'personas'} aquí ahora
+                </Text>
+                <Text style={styles.infoSubtitle}>
+                  {local?.nombre} - {local?.provincia}
+                </Text>
+              </View>
             </View>
-          </View>
+          </LinearGradient>
         </View>
 
-        {/* Recent interactions feed */}
+        {/* Recent interactions feed with animations */}
         {interactions.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>🎉 Actividad Reciente</Text>
             <View style={styles.interactionsFeed}>
-              {interactions.slice(0, 10).map((interaction) => (
-                <View key={interaction.id} style={styles.interactionItem}>
+              {interactions.slice(0, 10).map((interaction, index) => (
+                <Animated.View 
+                  key={interaction.id} 
+                  style={[
+                    styles.interactionItem,
+                    { opacity: 1 - (index * 0.05) }
+                  ]}
+                >
                   {interaction.usuario.avatar ? (
                     <Image
                       source={{ uri: interaction.usuario.avatar }}
@@ -647,7 +799,7 @@ export default function SalaVirtualScreen() {
                       {formatCheckInTime(interaction.created_at)}
                     </Text>
                   </View>
-                </View>
+                </Animated.View>
               ))}
             </View>
           </View>
@@ -715,7 +867,7 @@ export default function SalaVirtualScreen() {
         )}
       </ScrollView>
 
-      {/* Action buttons */}
+      {/* Action buttons with animations */}
       {userHasCheckedIn ? (
         <View style={styles.footer}>
           <View style={styles.actionButtons}>
@@ -753,15 +905,17 @@ export default function SalaVirtualScreen() {
         </View>
       ) : (
         <View style={styles.footer}>
-          <TouchableOpacity style={styles.checkInButton} onPress={handleCheckIn}>
-            <LinearGradient
-              colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-              style={styles.checkInGradient}
-            >
-              <IconSymbol name="location.fill" size={24} color={colors.headerText} />
-              <Text style={styles.checkInText}>Hacer Check-in</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+          <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+            <TouchableOpacity style={styles.checkInButton} onPress={handleCheckIn}>
+              <LinearGradient
+                colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+                style={styles.checkInGradient}
+              >
+                <IconSymbol name="location.fill" size={24} color={colors.headerText} />
+                <Text style={styles.checkInText}>Hacer Check-in</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
         </View>
       )}
 
@@ -800,7 +954,11 @@ export default function SalaVirtualScreen() {
               renderItem={({ item }) => {
                 const isOwnMessage = user && item.usuario_id === user.id;
                 return (
-                  <View style={[styles.chatMessageContainer, isOwnMessage && styles.chatMessageContainerOwn]}>
+                  <TouchableOpacity
+                    style={[styles.chatMessageContainer, isOwnMessage && styles.chatMessageContainerOwn]}
+                    onLongPress={() => handleDeleteChatMessage(item.id)}
+                    activeOpacity={0.7}
+                  >
                     {!isOwnMessage && (
                       <TouchableOpacity
                         onPress={() => {
@@ -831,7 +989,7 @@ export default function SalaVirtualScreen() {
                       </Text>
                     </View>
                     {isOwnMessage && <View style={{ width: 40 }} />}
-                  </View>
+                  </TouchableOpacity>
                 );
               }}
               ListEmptyComponent={
@@ -1001,21 +1159,33 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
+  imageContainer: {
+    position: 'relative',
+  },
   localImage: {
     width: '100%',
     height: 200,
     backgroundColor: colors.cardBorder,
   },
+  imageGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 100,
+  },
   infoCard: {
-    backgroundColor: colors.cardBackground,
     margin: 16,
-    padding: 20,
-    borderRadius: 12,
+    borderRadius: 16,
+    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  infoGradient: {
+    padding: 20,
   },
   infoHeader: {
     flexDirection: 'row',
@@ -1028,12 +1198,12 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: colors.text,
+    color: colors.headerText,
     marginBottom: 4,
   },
   infoSubtitle: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   section: {
     paddingHorizontal: 16,
@@ -1055,6 +1225,11 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 12,
     gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   interactionAvatar: {
     width: 40,
@@ -1085,10 +1260,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
   },
   avatar: {
     width: 50,
@@ -1168,6 +1343,11 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 12,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   actionButtonGradient: {
     flexDirection: 'row',
@@ -1187,6 +1367,11 @@ const styles = StyleSheet.create({
   checkInButton: {
     borderRadius: 12,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
   },
   checkInGradient: {
     flexDirection: 'row',
@@ -1208,6 +1393,11 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 12,
     gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   checkOutText: {
     color: colors.headerText,
@@ -1250,6 +1440,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 12,
     gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   quickMessageEmoji: {
     fontSize: 28,
@@ -1273,6 +1468,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   emoticonEmoji: {
     fontSize: 32,
@@ -1286,7 +1486,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     fontSize: 48,
     zIndex: 1000,
-    bottom: 100,
   },
   chatContainer: {
     flex: 1,
@@ -1338,6 +1537,11 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 16,
     borderBottomLeftRadius: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
   chatBubbleOwn: {
     backgroundColor: colors.primary,
@@ -1409,6 +1613,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   chatSendButtonDisabled: {
     opacity: 0.5,

@@ -22,9 +22,10 @@ interface MessageBubbleProps {
     nombre: string;
     avatar?: string;
   };
+  onLongPress?: () => void;
 }
 
-export default function MessageBubble({ message, isOwn, otroUsuario }: MessageBubbleProps) {
+export default function MessageBubble({ message, isOwn, otroUsuario, onLongPress }: MessageBubbleProps) {
   const router = useRouter();
 
   const formatTime = (dateString: string): string => {
@@ -39,7 +40,11 @@ export default function MessageBubble({ message, isOwn, otroUsuario }: MessageBu
   };
 
   return (
-    <View style={[styles.container, isOwn ? styles.ownContainer : styles.otherContainer]}>
+    <TouchableOpacity
+      style={[styles.container, isOwn ? styles.ownContainer : styles.otherContainer]}
+      onLongPress={onLongPress}
+      activeOpacity={0.7}
+    >
       {!isOwn && otroUsuario?.avatar && (
         <Image source={{ uri: otroUsuario.avatar }} style={styles.avatar} />
       )}
@@ -69,7 +74,7 @@ export default function MessageBubble({ message, isOwn, otroUsuario }: MessageBu
           )}
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
