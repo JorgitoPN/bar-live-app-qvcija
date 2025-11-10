@@ -44,7 +44,7 @@ const CATEGORIAS_LOCALES = [
 const CATEGORIAS_EXCLUIDAS = ['terrazas', 'rooftops', 'lounge'];
 const LOCALES_POR_PAGINA = 20;
 const HEADER_HEIGHT = Platform.OS === 'ios' ? 110 : 100;
-const CATEGORIAS_HEIGHT = 110;
+const CATEGORIAS_HEIGHT = 100;
 
 export default function ExplorarScreen() {
   const router = useRouter();
@@ -390,7 +390,7 @@ export default function ExplorarScreen() {
       <ScrollView
         ref={scrollViewRef}
         style={styles.scrollView}
-        contentContainerStyle={[styles.scrollContent, { paddingTop: HEADER_HEIGHT + CATEGORIAS_HEIGHT + 10 }]}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: HEADER_HEIGHT + CATEGORIAS_HEIGHT }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl 
@@ -568,7 +568,7 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   categoriasContainer: {
-    paddingVertical: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
   },
@@ -580,12 +580,12 @@ const styles = StyleSheet.create({
   },
   categoriaButton: {
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
     minWidth: 70,
   },
   categoriaIconContainer: {
-    width: 60,
-    height: 60,
+    width: 56,
+    height: 56,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.cardBackground,
@@ -598,7 +598,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary + '15',
   },
   categoriaLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: colors.text,
     textAlign: 'center',
