@@ -45,7 +45,7 @@ const CATEGORIAS_EXCLUIDAS = ['terrazas', 'rooftops', 'lounge'];
 const LOCALES_POR_PAGINA = 20;
 const HEADER_HEIGHT = Platform.OS === 'ios' ? 110 : 100;
 const CATEGORIAS_HEIGHT = 110;
-const CATEGORIAS_TOP_POSITION = 200;
+const CATEGORIAS_TOP_POSITION = 100;
 const SPACING_BETWEEN_FILTERS_AND_LIST = 24;
 
 export default function ExplorarScreen() {
