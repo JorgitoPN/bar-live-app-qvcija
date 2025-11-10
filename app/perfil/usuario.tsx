@@ -38,10 +38,61 @@ export default function UsuarioPerfilScreen() {
     seguidos: 0,
   });
 
-  // Prevent multiple simultaneous follow/unfollow actions
   const isTogglingFollow = useRef(false);
 
   const userId = params.userId as string;
+
+  // FIXED: Function to count followers and following from seguidores table
+  const loadFollowerCounts = useCallback(async (targetUserId: string) => {
+    try {
+      console.log('[UsuarioPerfil] 🔄 Loading follower counts from seguidores table...');
+
+      // Count followers (people following this user)
+      const { count: seguidoresCount, error: seguidoresError } = await supabase
+        .from('seguidores')
+        .select('*', { count: 'exact', head: true })
+        .eq('seguido_id', targetUserId);
+
+      if (seguidoresError) {
+        console.error('[UsuarioPerfil] Error counting followers:', seguidoresError);
+      }
+
+      // Count following (people this user follows)
+      const { count: seguidosCount, error: seguidosError } = await supabase
+        .from('seguidores')
+        .select('*', { count: 'exact', head: true })
+        .eq('seguidor_id', targetUserId);
+
+      if (seguidosError) {
+        console.error('[UsuarioPerfil] Error counting following:', seguidosError);
+      }
+
+      const actualSeguidores = seguidoresCount || 0;
+      const actualSeguidos = seguidosCount || 0;
+
+      console.log('[UsuarioPerfil] ✅ Actual counts - Seguidores:', actualSeguidores, 'Seguidos:', actualSeguidos);
+
+      // FIXED: Update usuarios table with actual counts to keep them in sync
+      const { error: updateError } = await supabase
+        .from('usuarios')
+        .update({
+          seguidores: actualSeguidores,
+          seguidos: actualSeguidos,
+        })
+        .eq('id', targetUserId);
+
+      if (updateError) {
+        console.error('[UsuarioPerfil] Error updating user counters:', updateError);
+      } else {
+        console.log('[UsuarioPerfil] ✅ User counters synchronized in database');
+      }
+
+      return { seguidores: actualSeguidores, seguidos: actualSeguidos };
+    } catch (error) {
+      console.error('[UsuarioPerfil] Error loading follower counts:', error);
+      return { seguidores: 0, seguidos: 0 };
+    }
+  }, []);
 
   const loadUserData = useCallback(async () => {
     if (!userId) {
@@ -50,7 +101,6 @@ export default function UsuarioPerfilScreen() {
     }
 
     try {
-      // Load user profile
       const { data: userData, error: userError } = await supabase
         .from('usuarios')
         .select('*')
@@ -66,7 +116,6 @@ export default function UsuarioPerfilScreen() {
 
       setUsuario(userData);
 
-      // Load user posts
       const { data: postsData, error: postsError } = await supabase
         .from('posts')
         .select('*')
@@ -77,7 +126,9 @@ export default function UsuarioPerfilScreen() {
         setPosts(postsData || []);
       }
 
-      // Load stats
+      // FIXED: Load actual follower/following counts from seguidores table
+      const followerCounts = await loadFollowerCounts(userId);
+
       const { count: postsCount } = await supabase
         .from('posts')
         .select('*', { count: 'exact', head: true })
@@ -85,11 +136,12 @@ export default function UsuarioPerfilScreen() {
 
       setStats({
         posts: postsCount || 0,
-        seguidores: userData.seguidores || 0,
-        seguidos: userData.seguidos || 0,
+        seguidores: followerCounts.seguidores,
+        seguidos: followerCounts.seguidos,
       });
 
-      // Check if current user is following this user
+      console.log('[UsuarioPerfil] ✅ User stats loaded - Posts:', postsCount, 'Seguidores:', followerCounts.seguidores, 'Seguidos:', followerCounts.seguidos);
+
       if (currentUser) {
         const { data: followData } = await supabase
           .from('seguidores')
@@ -100,7 +152,6 @@ export default function UsuarioPerfilScreen() {
 
         setIsFollowing(!!followData);
 
-        // Check if user is blocked
         const { data: blockData } = await supabase
           .from('usuarios_bloqueados')
           .select('id')
@@ -115,11 +166,56 @@ export default function UsuarioPerfilScreen() {
     } finally {
       setLoading(false);
     }
-  }, [userId, currentUser, router]);
+  }, [userId, currentUser, router, loadFollowerCounts]);
 
   useEffect(() => {
     loadUserData();
-  }, [loadUserData]);
+
+    // FIXED: Subscribe to seguidores table changes for INSTANT follower/following count updates
+    if (userId) {
+      const seguidoresChannel = supabase
+        .channel(`user-seguidores-changes-${userId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'seguidores',
+            filter: `seguido_id=eq.${userId}`,
+          },
+          async () => {
+            console.log('[UsuarioPerfil] ⚡ INSTANT update - Followers changed');
+            const followerCounts = await loadFollowerCounts(userId);
+            setStats(prev => ({
+              ...prev,
+              seguidores: followerCounts.seguidores,
+            }));
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'seguidores',
+            filter: `seguidor_id=eq.${userId}`,
+          },
+          async () => {
+            console.log('[UsuarioPerfil] ⚡ INSTANT update - Following changed');
+            const followerCounts = await loadFollowerCounts(userId);
+            setStats(prev => ({
+              ...prev,
+              seguidos: followerCounts.seguidos,
+            }));
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(seguidoresChannel);
+      };
+    }
+  }, [loadUserData, userId, loadFollowerCounts]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -133,7 +229,6 @@ export default function UsuarioPerfilScreen() {
       return;
     }
 
-    // Prevent multiple simultaneous actions
     if (isTogglingFollow.current) {
       console.log('[UsuarioPerfil] Already toggling follow, skipping...');
       return;
@@ -145,7 +240,7 @@ export default function UsuarioPerfilScreen() {
     const previousSeguidores = stats.seguidores;
 
     try {
-      // OPTIMISTIC UI UPDATE - Update immediately
+      // OPTIMISTIC UI UPDATE
       setIsFollowing(!wasFollowing);
       setStats(prev => ({
         ...prev,
@@ -153,7 +248,6 @@ export default function UsuarioPerfilScreen() {
       }));
 
       if (wasFollowing) {
-        // Unfollow
         console.log('[UsuarioPerfil] Unfollowing user...');
         
         const { error: deleteError } = await supabase
@@ -164,24 +258,16 @@ export default function UsuarioPerfilScreen() {
 
         if (deleteError) throw deleteError;
 
-        // Update counters in database
-        await Promise.all([
-          supabase
-            .from('usuarios')
-            .update({ seguidores: Math.max(0, previousSeguidores - 1) })
-            .eq('id', userId),
-          supabase
-            .from('usuarios')
-            .update({ seguidos: Math.max(0, ((currentUser as any).seguidos || 0) - 1) })
-            .eq('id', currentUser.id),
-        ]);
+        // FIXED: Recalculate and update counters after unfollow
+        await loadFollowerCounts(userId);
+        if (currentUser) {
+          await loadFollowerCounts(currentUser.id);
+        }
 
         console.log('[UsuarioPerfil] ✅ Unfollow successful');
       } else {
-        // Follow
         console.log('[UsuarioPerfil] Following user...');
 
-        // Check if already following (prevent duplicates)
         const { data: existingFollow } = await supabase
           .from('seguidores')
           .select('id')
@@ -204,19 +290,12 @@ export default function UsuarioPerfilScreen() {
 
         if (insertError) throw insertError;
 
-        // Update counters in database
-        await Promise.all([
-          supabase
-            .from('usuarios')
-            .update({ seguidores: previousSeguidores + 1 })
-            .eq('id', userId),
-          supabase
-            .from('usuarios')
-            .update({ seguidos: ((currentUser as any).seguidos || 0) + 1 })
-            .eq('id', currentUser.id),
-        ]);
+        // FIXED: Recalculate and update counters after follow
+        await loadFollowerCounts(userId);
+        if (currentUser) {
+          await loadFollowerCounts(currentUser.id);
+        }
 
-        // Create notification
         await supabase
           .from('notificaciones')
           .insert({
@@ -229,6 +308,13 @@ export default function UsuarioPerfilScreen() {
 
         console.log('[UsuarioPerfil] ✅ Follow successful');
       }
+
+      // FIXED: Reload stats to ensure they're in sync
+      const updatedCounts = await loadFollowerCounts(userId);
+      setStats(prev => ({
+        ...prev,
+        seguidores: updatedCounts.seguidores,
+      }));
     } catch (error) {
       console.error('[UsuarioPerfil] Error toggling follow:', error);
       
@@ -251,7 +337,6 @@ export default function UsuarioPerfilScreen() {
       return;
     }
 
-    // Navigate directly to conversation with this user (DIRECT MESSAGE)
     router.push(`/chat/conversacion?userId=${userId}`);
   };
 
@@ -274,7 +359,6 @@ export default function UsuarioPerfilScreen() {
           onPress: async () => {
             try {
               if (isBlocked) {
-                // Unblock
                 await supabase
                   .from('usuarios_bloqueados')
                   .delete()
@@ -284,7 +368,6 @@ export default function UsuarioPerfilScreen() {
                 setIsBlocked(false);
                 Alert.alert('Éxito', 'Usuario desbloqueado');
               } else {
-                // Block
                 await supabase
                   .from('usuarios_bloqueados')
                   .insert({
@@ -292,7 +375,6 @@ export default function UsuarioPerfilScreen() {
                     bloqueado_id: userId,
                   });
 
-                // Unfollow if following
                 if (isFollowing) {
                   await supabase
                     .from('seguidores')
@@ -301,6 +383,9 @@ export default function UsuarioPerfilScreen() {
                     .eq('seguido_id', userId);
 
                   setIsFollowing(false);
+                  
+                  // FIXED: Recalculate counters after unfollow due to block
+                  await loadFollowerCounts(userId);
                 }
 
                 setIsBlocked(true);

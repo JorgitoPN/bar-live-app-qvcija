@@ -488,6 +488,58 @@ export default function PerfilScreen() {
 
   console.log('[Perfil] User role:', userRole, 'Current mode:', currentMode);
 
+  // FIXED: Function to count followers and following from seguidores table
+  const loadFollowerCounts = useCallback(async (userId: string) => {
+    try {
+      console.log('[Perfil] 🔄 Loading follower counts from seguidores table...');
+
+      // Count followers (people following this user)
+      const { count: seguidoresCount, error: seguidoresError } = await supabase
+        .from('seguidores')
+        .select('*', { count: 'exact', head: true })
+        .eq('seguido_id', userId);
+
+      if (seguidoresError) {
+        console.error('[Perfil] Error counting followers:', seguidoresError);
+      }
+
+      // Count following (people this user follows)
+      const { count: seguidosCount, error: seguidosError } = await supabase
+        .from('seguidores')
+        .select('*', { count: 'exact', head: true })
+        .eq('seguidor_id', userId);
+
+      if (seguidosError) {
+        console.error('[Perfil] Error counting following:', seguidosError);
+      }
+
+      const actualSeguidores = seguidoresCount || 0;
+      const actualSeguidos = seguidosCount || 0;
+
+      console.log('[Perfil] ✅ Actual counts - Seguidores:', actualSeguidores, 'Seguidos:', actualSeguidos);
+
+      // FIXED: Update usuarios table with actual counts to keep them in sync
+      const { error: updateError } = await supabase
+        .from('usuarios')
+        .update({
+          seguidores: actualSeguidores,
+          seguidos: actualSeguidos,
+        })
+        .eq('id', userId);
+
+      if (updateError) {
+        console.error('[Perfil] Error updating user counters:', updateError);
+      } else {
+        console.log('[Perfil] ✅ User counters synchronized in database');
+      }
+
+      return { seguidores: actualSeguidores, seguidos: actualSeguidos };
+    } catch (error) {
+      console.error('[Perfil] Error loading follower counts:', error);
+      return { seguidores: 0, seguidos: 0 };
+    }
+  }, []);
+
   const loadUserData = useCallback(async () => {
     if (!user) return;
 
@@ -506,26 +558,30 @@ export default function PerfilScreen() {
 
       console.log('[Perfil] Posts count from database:', postsCount);
 
-      // FIXED: Query only existing columns (bio, sitio_web, seguidores, seguidos)
+      // FIXED: Load actual follower/following counts from seguidores table
+      const followerCounts = await loadFollowerCounts(user.id);
+
+      // Load user bio and website
       const { data: userData, error: userError } = await supabase
         .from('usuarios')
-        .select('seguidores, seguidos, bio, sitio_web')
+        .select('bio, sitio_web')
         .eq('id', user.id)
         .single();
 
       if (!userError && userData) {
-        // Use the actual count from posts table, not from usuarios table
-        setUserStats({
-          posts: postsCount || 0,
-          seguidores: userData.seguidores || 0,
-          seguidos: userData.seguidos || 0,
-        });
         setUserBio(userData.bio || null);
         setUserWebsite(userData.sitio_web || null);
-        
-        console.log('[Perfil] User stats loaded - Posts:', postsCount, 'Seguidores:', userData.seguidores, 'Seguidos:', userData.seguidos);
         console.log('[Perfil] Bio:', userData.bio, 'Website:', userData.sitio_web);
       }
+
+      // FIXED: Set stats with actual counts from seguidores table
+      setUserStats({
+        posts: postsCount || 0,
+        seguidores: followerCounts.seguidores,
+        seguidos: followerCounts.seguidos,
+      });
+
+      console.log('[Perfil] ✅ User stats loaded - Posts:', postsCount, 'Seguidores:', followerCounts.seguidores, 'Seguidos:', followerCounts.seguidos);
 
       const { data: postsData, error: postsError } = await supabase
         .from('posts')
@@ -627,16 +683,15 @@ export default function PerfilScreen() {
         setTaggedPosts(formattedTaggedPosts);
       }
 
-      // FIXED: Load user's own stories to show on avatar with viewed status - Order from oldest to newest
+      // Load user's own stories to show on avatar with viewed status
       const { data: storiesData, error: storiesError } = await supabase
         .from('historias')
         .select('*')
         .eq('autor_id', user.id)
         .gt('expires_at', new Date().toISOString())
-        .order('created_at', { ascending: true }); // FIXED: Changed to ascending (oldest first)
+        .order('created_at', { ascending: true });
 
       if (!storiesError && storiesData) {
-        // Check if user has viewed their own stories - use batch query for better performance
         const { data: viewedData } = await supabase
           .from('historia_views')
           .select('historia_id')
@@ -650,7 +705,6 @@ export default function PerfilScreen() {
           visto_por_usuario: viewedStoryIds.has(story.id),
         }));
         
-        // FIXED: Only show gradient border if there are unviewed stories
         const hasUnviewedStories = storiesWithViewStatus.some(s => !s.visto_por_usuario);
         setUserStories(storiesWithViewStatus);
         console.log('[Perfil] User stories loaded:', storiesWithViewStatus.length, 'Viewed:', viewedStoryIds.size, 'Unviewed:', hasUnviewedStories);
@@ -658,7 +712,7 @@ export default function PerfilScreen() {
     } catch (error) {
       console.error('[Perfil] Error loading user data:', error);
     }
-  }, [user]);
+  }, [user, loadFollowerCounts]);
 
   useEffect(() => {
     if (user) {
@@ -732,14 +786,54 @@ export default function PerfilScreen() {
         )
         .subscribe();
 
+      // FIXED: Subscribe to seguidores table changes for INSTANT follower/following count updates
+      const seguidoresChannel = supabase
+        .channel('user-seguidores-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'seguidores',
+            filter: `seguido_id=eq.${user.id}`,
+          },
+          async () => {
+            console.log('[Perfil] ⚡ INSTANT update - Followers changed');
+            const followerCounts = await loadFollowerCounts(user.id);
+            setUserStats(prev => ({
+              ...prev,
+              seguidores: followerCounts.seguidores,
+            }));
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'seguidores',
+            filter: `seguidor_id=eq.${user.id}`,
+          },
+          async () => {
+            console.log('[Perfil] ⚡ INSTANT update - Following changed');
+            const followerCounts = await loadFollowerCounts(user.id);
+            setUserStats(prev => ({
+              ...prev,
+              seguidos: followerCounts.seguidos,
+            }));
+          }
+        )
+        .subscribe();
+
       return () => {
         supabase.removeChannel(postsChannel);
         supabase.removeChannel(historiasChannel);
         supabase.removeChannel(savedPostsChannel);
         supabase.removeChannel(savedLocalesChannel);
+        supabase.removeChannel(seguidoresChannel);
       };
     }
-  }, [user, loadUserData]);
+  }, [user, loadUserData, loadFollowerCounts]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -792,10 +886,8 @@ export default function PerfilScreen() {
   const handleNextStory = async () => {
     const currentStory = userStories[currentStoryIndex];
     
-    // FIXED: Mark story as viewed when moving to next or closing (for own stories viewed by self)
     if (currentStory && user) {
       try {
-        // Check if already viewed
         const { data: existingView } = await supabase
           .from('historia_views')
           .select('id')
@@ -819,7 +911,6 @@ export default function PerfilScreen() {
       progressRef.setValue(0);
       setCurrentStoryIndex(currentStoryIndex + 1);
     } else {
-      // FIXED: When closing viewer, mark current story as viewed first
       if (currentStory && user) {
         try {
           const { data: existingView } = await supabase
@@ -841,7 +932,6 @@ export default function PerfilScreen() {
         }
       }
       
-      // FIXED: Reload user data to update viewed status
       await loadUserData();
       setShowStoryViewer(false);
       setCurrentStoryIndex(0);
@@ -877,7 +967,6 @@ export default function PerfilScreen() {
               const updatedStories = userStories.filter(s => s.id !== currentStory.id);
               setUserStories(updatedStories);
 
-              // FIXED: Close viewer immediately after deletion
               setShowStoryViewer(false);
               setCurrentStoryIndex(0);
               progressRef.setValue(0);
@@ -925,17 +1014,13 @@ export default function PerfilScreen() {
     router.push(`/social/post?id=${postId}`);
   };
 
-  // FIXED: New function to find first unviewed story index
   const findFirstUnviewedStoryIndex = useCallback((): number => {
     const firstUnviewedIndex = userStories.findIndex(story => !story.visto_por_usuario);
-    // If all stories are viewed, start from the beginning (0)
-    // If there are unviewed stories, start from the first unviewed one
     return firstUnviewedIndex === -1 ? 0 : firstUnviewedIndex;
   }, [userStories]);
 
   const handleAvatarPress = () => {
     if (userStories.length > 0) {
-      // FIXED: Jump to first unviewed story
       const firstUnviewedIndex = findFirstUnviewedStoryIndex();
       console.log('[Perfil] Avatar pressed - First unviewed story index:', firstUnviewedIndex);
       
@@ -1006,7 +1091,6 @@ export default function PerfilScreen() {
 
   const currentStory = userStories[currentStoryIndex];
   const hasNewStories = userStories.length > 0;
-  // FIXED: Only show gradient border if there are unviewed stories
   const hasUnviewedStories = userStories.some(s => !s.visto_por_usuario);
 
   const getCurrentPosts = () => {
@@ -1120,7 +1204,6 @@ export default function PerfilScreen() {
           )}
         </View>
 
-        {/* FIXED: Display bio and website if they exist */}
         {(userBio || userWebsite) && (
           <View style={styles.bioSection}>
             {userBio && <Text style={styles.bioText}>{userBio}</Text>}
@@ -1285,13 +1368,11 @@ export default function PerfilScreen() {
         </ScrollView>
       </View>
 
-      {/* Story Viewer Modal - UPDATED: Tap center to pause/resume with onPressIn/onPressOut */}
       <Modal
         visible={showStoryViewer}
         animationType="slide"
         presentationStyle="fullScreen"
         onRequestClose={async () => {
-          // FIXED: Mark current story as viewed when closing via back button
           const currentStory = userStories[currentStoryIndex];
           
           if (currentStory && user) {
@@ -1314,7 +1395,6 @@ export default function PerfilScreen() {
               console.error('[Perfil] Error marking story as viewed on modal close:', error);
             }
             
-            // Reload to update UI
             await loadUserData();
           }
           
@@ -1375,7 +1455,6 @@ export default function PerfilScreen() {
                 <TouchableOpacity
                   style={styles.storyCloseButton}
                   onPress={async () => {
-                    // FIXED: Mark current story as viewed when closing manually
                     const currentStory = userStories[currentStoryIndex];
                     
                     if (currentStory && user) {
@@ -1398,7 +1477,6 @@ export default function PerfilScreen() {
                         console.error('[Perfil] Error marking story as viewed on close:', error);
                       }
                       
-                      // Reload to update UI
                       await loadUserData();
                     }
                     
@@ -1420,7 +1498,6 @@ export default function PerfilScreen() {
             )}
           </View>
 
-          {/* Navigation zones: Left 1/3 = previous, Center 1/3 = pause/resume (onPressIn/onPressOut), Right 1/3 = next */}
           <View style={styles.storyNavigation}>
             <Pressable
               style={styles.storyNavLeft}
