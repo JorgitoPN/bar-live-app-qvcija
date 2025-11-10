@@ -14,7 +14,8 @@ import { colors, commonStyles } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { supabase } from '@/utils/supabase';
-import { descargarYSubirFotosLocal } from '@/utils/enrichmentPhotos';
+import { descargarYSubirFotosLocal, descargarYSubirFotosDesdeUrls } from '@/utils/enrichmentPhotos';
+import { googlePlacesDetails } from '@/utils/googlePlacesApi';
 import * as Clipboard from 'expo-clipboard';
 
 interface LogEntry {
@@ -195,27 +196,68 @@ export default function MigrarFotosSupabaseScreen() {
         agregarLog('info', `[${i + 1}/${localesConFotosGoogle.length}] Migrando: ${local.nombre}...`);
         
         try {
-          // Verificar si tiene fotos_google (metadatos)
-          if (!local.fotos_google || local.fotos_google.length === 0) {
-            agregarLog('warning', `⚠️ ${local.nombre} no tiene metadatos de fotos`);
+          let galeriaUrls: string[] = [];
+
+          // ESTRATEGIA 1: Si tiene fotos_google (metadatos), usarlos
+          if (local.fotos_google && local.fotos_google.length > 0) {
+            agregarLog('info', `   📸 Usando metadatos de fotos (${local.fotos_google.length} fotos)`);
             
-            // Si no tiene metadatos pero tiene google_place_id, podríamos intentar obtener los detalles de nuevo
-            // Por ahora, lo marcamos como fallido
-            fallidos++;
-            continue;
+            const placeDetails = {
+              photos: local.fotos_google,
+              geometry: null,
+            };
+
+            galeriaUrls = await descargarYSubirFotosLocal(local.id, placeDetails as any, 4);
+          }
+          // ESTRATEGIA 2: Si tiene google_place_id, obtener detalles de nuevo
+          else if (local.google_place_id) {
+            agregarLog('info', `   🔍 Obteniendo detalles de Google Places...`);
+            
+            try {
+              const placeDetails = await googlePlacesDetails(local.google_place_id, ['photos', 'geometry']);
+              
+              if (placeDetails && placeDetails.photos && placeDetails.photos.length > 0) {
+                agregarLog('info', `   📸 Descargando ${placeDetails.photos.length} fotos de Google...`);
+                galeriaUrls = await descargarYSubirFotosLocal(local.id, placeDetails, 4);
+              } else {
+                agregarLog('warning', `   ⚠️ No se encontraron fotos en Google Places`);
+              }
+            } catch (apiError) {
+              console.error('Error fetching Google Place details:', apiError);
+              agregarLog('error', `   ❌ Error al obtener detalles de Google: ${apiError}`);
+            }
+          }
+          // ESTRATEGIA 3: Si tiene URLs de Google, intentar descargarlas directamente
+          else if (local.imagen_url || (local.galeria_urls && local.galeria_urls.length > 0)) {
+            agregarLog('info', `   🔗 Descargando fotos desde URLs de Google...`);
+            
+            const urlsGoogle: string[] = [];
+            if (local.imagen_url && (
+              local.imagen_url.includes('googleapis.com') || 
+              local.imagen_url.includes('googleusercontent.com') ||
+              local.imagen_url.includes('maps.gstatic.com')
+            )) {
+              urlsGoogle.push(local.imagen_url);
+            }
+            
+            if (local.galeria_urls) {
+              local.galeria_urls.forEach((url: string) => {
+                if (url.includes('googleapis.com') || 
+                    url.includes('googleusercontent.com') ||
+                    url.includes('maps.gstatic.com')) {
+                  urlsGoogle.push(url);
+                }
+              });
+            }
+            
+            if (urlsGoogle.length > 0) {
+              agregarLog('info', `   📥 Descargando ${urlsGoogle.length} fotos...`);
+              galeriaUrls = await descargarYSubirFotosDesdeUrls(local.id, urlsGoogle);
+            }
           }
 
-          // Crear un objeto simulado de GooglePlaceDetails con los metadatos
-          const placeDetails = {
-            photos: local.fotos_google,
-            geometry: null, // No necesitamos coordenadas para descargar fotos
-          };
-
-          // Descargar y subir fotos a Supabase
-          const galeriaUrls = await descargarYSubirFotosLocal(local.id, placeDetails as any, 4);
-
+          // Si se descargaron fotos, actualizar el local
           if (galeriaUrls.length > 0) {
-            // Actualizar local con las nuevas URLs de Supabase
             const { error: updateError } = await supabase
               .from('locales')
               .update({
@@ -227,24 +269,24 @@ export default function MigrarFotosSupabaseScreen() {
 
             if (updateError) {
               console.error('Error updating local:', updateError);
-              agregarLog('error', `❌ Error al actualizar ${local.nombre}`);
+              agregarLog('error', `   ❌ Error al actualizar ${local.nombre}`);
               fallidos++;
             } else {
-              agregarLog('success', `✅ ${local.nombre} - ${galeriaUrls.length} fotos migradas`);
+              agregarLog('success', `   ✅ ${local.nombre} - ${galeriaUrls.length} fotos migradas`);
               exitosos++;
             }
           } else {
-            agregarLog('warning', `⚠️ ${local.nombre} - No se pudieron descargar fotos`);
+            agregarLog('warning', `   ⚠️ ${local.nombre} - No se pudieron descargar fotos`);
             fallidos++;
           }
         } catch (error) {
           console.error('Error migrando local:', error);
-          agregarLog('error', `❌ Error: ${local.nombre} - ${error}`);
+          agregarLog('error', `   ❌ Error: ${local.nombre} - ${error}`);
           fallidos++;
         }
         
         // Pequeña pausa para no saturar
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
       agregarLog('success', `🎉 Migración completada: ${exitosos} exitosos, ${fallidos} fallidos`);

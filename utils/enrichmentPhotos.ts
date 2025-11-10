@@ -161,6 +161,70 @@ export async function descargarYSubirFotosLocal(
 }
 
 /**
+ * 📸 DESCARGAR Y SUBIR FOTOS DESDE URLs DE GOOGLE
+ * Descarga fotos directamente desde URLs de Google y las sube a Supabase Storage
+ * Útil para migrar fotos existentes que ya tienen URLs de Google
+ */
+export async function descargarYSubirFotosDesdeUrls(
+  localId: string,
+  urls: string[],
+  maxFotos: number = 4
+): Promise<string[]> {
+  console.log(`[Photos] Starting photo download from ${urls.length} URLs...`);
+  
+  const fotosSubidas: string[] = [];
+  const urlsADescargar = urls.slice(0, maxFotos);
+  
+  for (let i = 0; i < urlsADescargar.length; i++) {
+    const url = urlsADescargar[i];
+    
+    try {
+      console.log(`[Photos] Downloading photo ${i + 1}/${urlsADescargar.length} from URL...`);
+      
+      // Descargar la foto
+      const response = await fetch(url);
+      if (!response.ok) {
+        console.error(`[Photos] Failed to download photo ${i + 1}: ${response.status}`);
+        continue;
+      }
+      
+      const blob = await response.blob();
+      const arrayBuffer = await blob.arrayBuffer();
+      const buffer = new Uint8Array(arrayBuffer);
+      
+      // Subir a Supabase Storage
+      const fileName = `${localId}_migrated_${i}_${Date.now()}.jpg`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('locales')
+        .upload(`fotos/${fileName}`, buffer, {
+          contentType: 'image/jpeg',
+          upsert: false,
+        });
+      
+      if (uploadError) {
+        console.error(`[Photos] Error uploading photo ${i + 1} to Supabase:`, uploadError);
+        continue;
+      }
+      
+      // Obtener URL pública de Supabase
+      const { data: publicUrlData } = supabase.storage
+        .from('locales')
+        .getPublicUrl(`fotos/${fileName}`);
+      
+      if (publicUrlData?.publicUrl) {
+        fotosSubidas.push(publicUrlData.publicUrl);
+        console.log(`[Photos] ✅ Photo ${i + 1} uploaded to Supabase`);
+      }
+    } catch (error) {
+      console.error(`[Photos] Error processing photo ${i + 1}:`, error);
+    }
+  }
+  
+  console.log(`[Photos] ✅ Total photos uploaded to Supabase: ${fotosSubidas.length}`);
+  return fotosSubidas;
+}
+
+/**
  * 📸 GENERAR METADATOS DE FOTOS (SIN DESCARGAR)
  * Solo genera los metadatos de las fotos para almacenar referencias
  * Las fotos NO se descargan, solo se guardan las referencias
