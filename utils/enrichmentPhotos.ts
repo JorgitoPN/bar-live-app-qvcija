@@ -3,6 +3,7 @@ import { GooglePlaceDetails } from '@/types';
 import { getGooglePlacePhotoUrl, getGoogleStreetViewUrl, checkStreetViewAvailability } from './googlePlacesApi';
 import { incrementarContadorAPI } from './apiCostControl';
 import { supabase } from './supabase';
+import { decode } from 'base64-arraybuffer';
 
 /**
  * 📸 DESCARGAR Y SUBIR FOTOS DE UN LOCAL A SUPABASE
@@ -38,22 +39,25 @@ export async function descargarYSubirFotosLocal(
         // ✅ INCREMENTAR CONTADOR (cada foto cuenta como 1 llamada)
         await incrementarContadorAPI(1);
         
-        // Descargar la foto
+        // Descargar la foto como base64 (compatible con React Native)
         const response = await fetch(photoUrl);
         if (!response.ok) {
           console.error(`[Photos] Failed to download photo ${i + 1}: ${response.status}`);
           continue;
         }
         
+        // Convertir a base64
         const blob = await response.blob();
-        const arrayBuffer = await blob.arrayBuffer();
-        const buffer = new Uint8Array(arrayBuffer);
+        const base64Data = await blobToBase64(blob);
+        
+        // Decodificar base64 a ArrayBuffer
+        const arrayBuffer = decode(base64Data);
         
         // Subir a Supabase Storage
         const fileName = `${localId}_${i}_${Date.now()}.jpg`;
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('locales')
-          .upload(`fotos/${fileName}`, buffer, {
+          .upload(`fotos/${fileName}`, arrayBuffer, {
             contentType: 'image/jpeg',
             upsert: false,
           });
@@ -115,15 +119,18 @@ export async function descargarYSubirFotosLocal(
               continue;
             }
             
+            // Convertir a base64
             const blob = await response.blob();
-            const arrayBuffer = await blob.arrayBuffer();
-            const buffer = new Uint8Array(arrayBuffer);
+            const base64Data = await blobToBase64(blob);
+            
+            // Decodificar base64 a ArrayBuffer
+            const arrayBuffer = decode(base64Data);
             
             // Subir a Supabase Storage
             const fileName = `${localId}_streetview_${i}_${Date.now()}.jpg`;
             const { data: uploadData, error: uploadError } = await supabase.storage
               .from('locales')
-              .upload(`fotos/${fileName}`, buffer, {
+              .upload(`fotos/${fileName}`, arrayBuffer, {
                 contentType: 'image/jpeg',
                 upsert: false,
               });
@@ -188,15 +195,18 @@ export async function descargarYSubirFotosDesdeUrls(
         continue;
       }
       
+      // Convertir a base64
       const blob = await response.blob();
-      const arrayBuffer = await blob.arrayBuffer();
-      const buffer = new Uint8Array(arrayBuffer);
+      const base64Data = await blobToBase64(blob);
+      
+      // Decodificar base64 a ArrayBuffer
+      const arrayBuffer = decode(base64Data);
       
       // Subir a Supabase Storage
       const fileName = `${localId}_migrated_${i}_${Date.now()}.jpg`;
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('locales')
-        .upload(`fotos/${fileName}`, buffer, {
+        .upload(`fotos/${fileName}`, arrayBuffer, {
           contentType: 'image/jpeg',
           upsert: false,
         });
@@ -254,4 +264,25 @@ export function generarMetadatosFotos(
   
   console.log(`[Photos] ✅ Generated metadata for ${fotosMetadata.length} photos`);
   return fotosMetadata;
+}
+
+/**
+ * 🔧 HELPER: Convertir Blob a Base64 (compatible con React Native)
+ * React Native no soporta blob.arrayBuffer(), así que usamos FileReader
+ */
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (typeof reader.result === 'string') {
+        // Remover el prefijo "data:image/jpeg;base64," si existe
+        const base64 = reader.result.split(',')[1] || reader.result;
+        resolve(base64);
+      } else {
+        reject(new Error('Failed to convert blob to base64'));
+      }
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
 }
