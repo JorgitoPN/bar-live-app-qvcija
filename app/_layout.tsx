@@ -36,8 +36,8 @@ export default function RootLayout() {
           <Stack
             screenOptions={{
               headerShown: false,
-              animation: 'fade',
-              animationDuration: 150,
+              animation: 'none', // Instant navigation - no animations
+              animationDuration: 0,
             }}
           >
             <Stack.Screen name="index" options={{ headerShown: false }} />

@@ -19,74 +19,65 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Changed to false - don't block app startup
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
     console.log('[AuthContext] Inicializando...');
     
-    // Get initial session with timeout
+    // Get initial session - NON-BLOCKING
     const initializeAuth = async () => {
       try {
         if (!isSupabaseConfigured()) {
           console.log('[AuthContext] Supabase no configurado - continuando sin autenticación');
-          setLoading(false);
           return;
         }
 
-        // Add timeout to prevent hanging
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Auth initialization timeout')), 5000);
-        });
+        // No timeout - let it complete in background
+        // Get current session
+        const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('[AuthContext] Error obteniendo sesión:', sessionError);
+          return;
+        }
 
-        const authPromise = (async () => {
-          // Get current session
-          const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+        console.log('[AuthContext] Sesión actual:', currentSession ? 'Existe' : 'No existe');
+        
+        if (currentSession) {
+          setSession(currentSession);
           
-          if (sessionError) {
-            console.error('[AuthContext] Error obteniendo sesión:', sessionError);
-            return;
-          }
-
-          console.log('[AuthContext] Sesión actual:', currentSession ? 'Existe' : 'No existe');
+          // Get user profile
+          const { user: userData, error: userError } = await getCurrentUser();
           
-          if (currentSession) {
-            setSession(currentSession);
+          if (userError) {
+            console.error('[AuthContext] Error obteniendo usuario:', userError);
+          } else if (userData) {
+            console.log('[AuthContext] Usuario cargado:', userData.email, 'Rol:', userData.rol_app);
+            setUser(userData);
             
-            // Get user profile
-            const { user: userData, error: userError } = await getCurrentUser();
-            
-            if (userError) {
-              console.error('[AuthContext] Error obteniendo usuario:', userError);
-            } else if (userData) {
-              console.log('[AuthContext] Usuario cargado:', userData.email, 'Rol:', userData.rol_app);
-              setUser(userData);
-              
-              // Register for push notifications (non-blocking)
-              registerForPushNotifications()
-                .then(pushToken => {
-                  if (pushToken) {
-                    savePushToken(userData.id, pushToken)
-                      .then(() => console.log('[AuthContext] Push token registrado'))
-                      .catch(err => console.log('[AuthContext] Error guardando push token:', err));
-                  }
-                })
-                .catch(err => console.log('[AuthContext] Error registrando notificaciones:', err));
-            }
+            // Register for push notifications (non-blocking)
+            registerForPushNotifications()
+              .then(pushToken => {
+                if (pushToken) {
+                  savePushToken(userData.id, pushToken)
+                    .then(() => console.log('[AuthContext] Push token registrado'))
+                    .catch(err => console.log('[AuthContext] Error guardando push token:', err));
+                }
+              })
+              .catch(err => console.log('[AuthContext] Error registrando notificaciones:', err));
           }
-        })();
-
-        await Promise.race([authPromise, timeoutPromise]);
+        }
       } catch (error) {
         console.error('[AuthContext] Error inicializando auth:', error);
         // Continue anyway - app should work without auth
       } finally {
-        setLoading(false);
         console.log('[AuthContext] Inicialización completada');
       }
     };
 
+    // Run in background - don't block
     initializeAuth();
 
     // Listen for auth changes
@@ -114,7 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               
               // Only redirect if NOT on callback page (callback handles its own redirect)
               if (!pathname?.includes('/auth/callback')) {
-                // FIXED: Check if user is new (no username or nombre) or existing
+                // Check if user is new (no username or nombre) or existing
                 const isNewUser = !userData.username || !userData.nombre;
                 
                 if (isNewUser) {
@@ -144,7 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(null);
             setSession(null);
             
-            // FIXED: Redirect to explorar (locales list) after logout
+            // Redirect to explorar (locales list) after logout
             router.replace('/(tabs)/explorar');
           } else if (event === 'TOKEN_REFRESHED') {
             console.log('[AuthContext] Token refrescado');

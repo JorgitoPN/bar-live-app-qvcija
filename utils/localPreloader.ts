@@ -2,6 +2,7 @@
 /**
  * Local Preloader Utility
  * Preloads local details data for instant navigation
+ * OPTIMIZED FOR MAXIMUM SPEED
  */
 
 import { supabase } from './supabase';
@@ -16,8 +17,8 @@ class LocalPreloader {
   private cache: Map<string, LocalData> = new Map();
   private preloadQueue: Set<string> = new Set();
   private isPreloading: boolean = false;
-  private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-  private readonly MAX_CACHE_SIZE = 50;
+  private readonly CACHE_DURATION = 10 * 60 * 1000; // 10 minutes - longer cache
+  private readonly MAX_CACHE_SIZE = 100; // More cache
 
   /**
    * Get cached local data
@@ -36,7 +37,7 @@ class LocalPreloader {
       return null;
     }
 
-    console.log(`[LocalPreloader] Cache hit for local: ${localId}`);
+    console.log(`[LocalPreloader] ⚡ INSTANT CACHE HIT for local: ${localId}`);
     return cached.data;
   }
 
@@ -58,7 +59,7 @@ class LocalPreloader {
   }
 
   /**
-   * Preload multiple locals
+   * Preload multiple locals - AGGRESSIVE BATCHING
    */
   async preloadMultiple(localIds: string[]): Promise<void> {
     for (const localId of localIds) {
@@ -73,7 +74,7 @@ class LocalPreloader {
   }
 
   /**
-   * Process preload queue
+   * Process preload queue - OPTIMIZED FOR SPEED
    */
   private async processQueue(): Promise<void> {
     if (this.isPreloading || this.preloadQueue.size === 0) {
@@ -82,10 +83,11 @@ class LocalPreloader {
 
     this.isPreloading = true;
 
-    // Process up to 3 locals at a time
-    const batch = Array.from(this.preloadQueue).slice(0, 3);
+    // Process up to 5 locals at a time - MORE AGGRESSIVE
+    const batch = Array.from(this.preloadQueue).slice(0, 5);
     
-    for (const localId of batch) {
+    // Parallel loading for maximum speed
+    const promises = batch.map(async (localId) => {
       this.preloadQueue.delete(localId);
       
       try {
@@ -108,18 +110,21 @@ class LocalPreloader {
             timestamp: Date.now(),
           });
 
-          console.log(`[LocalPreloader] Preloaded local: ${localId}`);
+          console.log(`[LocalPreloader] ⚡ Preloaded local: ${localId}`);
         }
       } catch (error) {
         console.error(`[LocalPreloader] Error preloading local ${localId}:`, error);
       }
-    }
+    });
+
+    // Wait for all parallel loads
+    await Promise.all(promises);
 
     this.isPreloading = false;
 
-    // Continue processing if there are more items in queue
+    // Continue processing if there are more items in queue - NO DELAY
     if (this.preloadQueue.size > 0) {
-      setTimeout(() => this.processQueue(), 100);
+      this.processQueue();
     }
   }
 
@@ -140,6 +145,14 @@ class LocalPreloader {
       cacheSize: this.cache.size,
       queueSize: this.preloadQueue.size,
     };
+  }
+
+  /**
+   * Warm up cache with all visible locals
+   */
+  async warmUpCache(localIds: string[]): Promise<void> {
+    console.log(`[LocalPreloader] 🔥 Warming up cache with ${localIds.length} locals`);
+    await this.preloadMultiple(localIds);
   }
 }
 

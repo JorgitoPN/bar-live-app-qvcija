@@ -24,6 +24,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { calcularTiempoHasta, formatDayName, getEstadoLocal } from '@/utils/timeUtils';
 import ImageGalleryModal from '@/components/detalle/ImageGalleryModal';
 import { getCategoryIcon } from '@/utils/categoryIcons';
+import { localPreloader } from '@/utils/localPreloader';
 
 const { width } = Dimensions.get('window');
 
@@ -615,7 +616,7 @@ export default function DetalleLocalScreen() {
   const params = useLocalSearchParams();
   const { user } = useAuth();
   const [local, setLocal] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Changed to false - show cached data immediately
   const [mostrarTodasReviews, setMostrarTodasReviews] = useState(false);
   const [mostrarModalReview, setMostrarModalReview] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
@@ -630,11 +631,18 @@ export default function DetalleLocalScreen() {
   // Define functions BEFORE useEffect
   const cargarLocal = async () => {
     try {
+      // Try to get cached data first - INSTANT LOAD
+      const cachedData = localPreloader.getCached(params.id as string);
+      if (cachedData) {
+        console.log('[DetalleLocal] Using cached data - INSTANT LOAD');
+        setLocal(cachedData);
+        // Load reviews in background
+        cargarReviewsBarlive();
+        return;
+      }
+
+      // If no cache, load from Supabase
       setLoading(true);
-      
-      // Try to get cached data first from localPreloader
-      // Note: We need to import localPreloader at the top of the file
-      // For now, we'll just load from Supabase
       const { data, error } = await supabase
         .from('locales')
         .select('*')
@@ -646,11 +654,11 @@ export default function DetalleLocalScreen() {
         return;
       }
 
-      console.log('[DetalleLocal] Loaded local:', data);
+      console.log('[DetalleLocal] Loaded local from Supabase:', data);
       setLocal(data);
+      setLoading(false);
     } catch (error) {
       console.error('[DetalleLocal] Error:', error);
-    } finally {
       setLoading(false);
     }
   };
@@ -681,7 +689,6 @@ export default function DetalleLocalScreen() {
   useEffect(() => {
     if (params.id) {
       cargarLocal();
-      cargarReviewsBarlive();
     }
   }, [params.id]);
 
@@ -910,7 +917,8 @@ export default function DetalleLocalScreen() {
     return estado.badge;
   };
 
-  if (loading) {
+  // Show loading only if no data at all
+  if (loading && !local) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
