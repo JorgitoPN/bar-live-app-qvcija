@@ -258,10 +258,10 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
           <Text style={styles.badgeEstadoSuperiorText}>{getBadgeText()}</Text>
         </View>
 
-        {/* Valoración - Esquina superior derecha */}
+        {/* Valoración - Esquina superior derecha - PROMINENTE */}
         {local.rating > 0 && (
           <View style={styles.ratingBadge}>
-            <IconSymbol name="star.fill" size={12} color="#FACC15" />
+            <IconSymbol name="star.fill" size={14} color="#FACC15" />
             <Text style={styles.ratingBadgeText}>{local.rating.toFixed(1)}</Text>
           </View>
         )}
@@ -456,21 +456,28 @@ const styles = StyleSheet.create({
     right: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    gap: 4,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    gap: 6,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 10,
     zIndex: 10,
   },
   ratingBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '800',
     color: colors.headerText,
   },
   badgeNuevoContainer: {
     position: 'absolute',
-    top: 50,
+    top: 56,
     right: 12,
     zIndex: 9,
   },

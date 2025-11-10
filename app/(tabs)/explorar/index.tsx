@@ -44,7 +44,7 @@ const CATEGORIAS_LOCALES = [
 const CATEGORIAS_EXCLUIDAS = ['terrazas', 'rooftops', 'lounge'];
 const LOCALES_POR_PAGINA = 20;
 const HEADER_HEIGHT = Platform.OS === 'ios' ? 110 : 100;
-const CATEGORIAS_HEIGHT = 120; // Increased from 110 to 120 to give more space
+const CATEGORIAS_HEIGHT = 130; // Increased to ensure full visibility of category icons
 
 export default function ExplorarScreen() {
   const router = useRouter();
@@ -227,7 +227,7 @@ export default function ExplorarScreen() {
           useNativeDriver: true,
         }),
         Animated.timing(categoriasTranslateY, {
-          toValue: -(HEADER_HEIGHT + CATEGORIAS_HEIGHT),
+          toValue: -CATEGORIAS_HEIGHT,
           duration: 250,
           useNativeDriver: true,
         }),
@@ -345,11 +345,10 @@ export default function ExplorarScreen() {
       <Animated.View
         style={{
           position: 'absolute',
-          top: 0,
+          top: HEADER_HEIGHT,
           left: 0,
           right: 0,
           zIndex: 99,
-          paddingTop: HEADER_HEIGHT,
           backgroundColor: colors.background,
           transform: [{ translateY: categoriasTranslateY }],
         }}
