@@ -11,10 +11,13 @@ const GOOGLE_TO_BARLIVE_TYPES: Record<string, string[]> = {
   'pub': ['pub', 'bar'],
   'tavern': ['bar'],
   'tapas_bar': ['bar', 'tapas'],
+  'sports_bar': ['bar'],
   
   // Discotecas y clubs nocturnos
   'night_club': ['discoteca'],
   'dance_club': ['discoteca'],
+  'disco': ['discoteca'],
+  'nightclub': ['discoteca'],
   
   // Cafeterías
   'cafe': ['cafe'],
@@ -25,11 +28,14 @@ const GOOGLE_TO_BARLIVE_TYPES: Record<string, string[]> = {
   'tapas_restaurant': ['restaurante', 'tapas'],
   'meal_takeaway': ['restaurante'],
   'meal_delivery': ['restaurante'],
+  'fast_food_restaurant': ['restaurante'],
+  'food': ['restaurante'],
   
   // Coctelerías
   'cocktail_bar': ['cocteleria', 'bar'],
   'wine_bar': ['cocteleria', 'bar'],
   'lounge': ['lounge'],
+  'cocktail_lounge': ['lounge', 'cocteleria'],
   
   // Cervecerías
   'brewery': ['pub', 'cerveceria'],
@@ -64,16 +70,25 @@ export function mapGoogleTypesToBarlive(googleTypes: string[]): string[] {
   if (barliveTypes.size === 0) {
     console.log('[Mapping] No direct mapping found, using fallback...');
     
-    if (googleTypes.includes('restaurant')) {
+    // Buscar palabras clave en los tipos
+    const tiposStr = googleTypes.join(' ').toLowerCase();
+    
+    if (tiposStr.includes('night') || tiposStr.includes('club') || tiposStr.includes('disco')) {
+      barliveTypes.add('discoteca');
+      console.log('[Mapping] Fallback: detected nightclub/disco');
+    } else if (tiposStr.includes('restaurant') || tiposStr.includes('food')) {
       barliveTypes.add('restaurante');
-    } else if (googleTypes.includes('cafe')) {
+      console.log('[Mapping] Fallback: detected restaurant');
+    } else if (tiposStr.includes('cafe') || tiposStr.includes('coffee')) {
       barliveTypes.add('cafe');
-    } else if (googleTypes.includes('bar')) {
+      console.log('[Mapping] Fallback: detected cafe');
+    } else if (tiposStr.includes('bar') || tiposStr.includes('pub')) {
       barliveTypes.add('bar');
-    } else if (googleTypes.includes('food')) {
-      barliveTypes.add('restaurante');
+      console.log('[Mapping] Fallback: detected bar');
     } else {
-      barliveTypes.add('bar'); // Tipo por defecto
+      // Tipo por defecto si no se puede determinar
+      barliveTypes.add('bar');
+      console.log('[Mapping] Fallback: using default type "bar"');
     }
   }
   
