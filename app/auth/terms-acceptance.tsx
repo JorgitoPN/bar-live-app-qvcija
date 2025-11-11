@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  Linking,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -32,7 +31,7 @@ export default function TermsAcceptanceScreen() {
     if (!acceptedTerms || !acceptedPrivacy || !acceptedCookies) {
       Alert.alert(
         'Aceptación requerida',
-        'Debes aceptar todos los términos para continuar usando BarLive'
+        'Debes aceptar todos los términos para continuar'
       );
       return;
     }
@@ -40,33 +39,21 @@ export default function TermsAcceptanceScreen() {
     setLoading(true);
     try {
       // Record terms acceptance
-      const { error: termsError } = await supabase
-        .from('terms_acceptance')
-        .insert({
-          usuario_id: userId,
-          terms_version: '1.0',
-          privacy_version: '1.0',
-          cookies_consent: true,
-        });
-
-      if (termsError) {
-        console.error('Error recording terms acceptance:', termsError);
-        throw termsError;
-      }
+      await supabase.from('terms_acceptance').insert({
+        usuario_id: userId,
+        terms_version: '1.0',
+        privacy_version: '1.0',
+        cookies_consent: true,
+      });
 
       // Update user profile
-      const { error: updateError } = await supabase
+      await supabase
         .from('usuarios')
         .update({
           ha_aceptado_terminos: true,
           fecha_aceptacion_terminos: new Date().toISOString(),
         })
         .eq('id', userId);
-
-      if (updateError) {
-        console.error('Error updating user:', updateError);
-        throw updateError;
-      }
 
       // Refresh user data
       await refreshUser();
@@ -79,18 +66,13 @@ export default function TermsAcceptanceScreen() {
         .single();
 
       if (!userData?.perfil_completado || !userData?.nombre || !userData?.username) {
-        // New user - go to complete profile
-        router.replace({
-          pathname: '/auth/completar-perfil',
-          params: { userId }
-        });
+        router.replace(`/auth/completar-perfil?userId=${userId}`);
       } else {
-        // Existing user - go to main app
         router.replace('/(tabs)/explorar');
       }
     } catch (error: any) {
-      console.error('Error accepting terms:', error);
-      Alert.alert('Error', 'No se pudo registrar la aceptación. Por favor, intenta de nuevo.');
+      console.error('[TermsAcceptance] ❌ Error:', error);
+      Alert.alert('Error', 'No se pudo registrar la aceptación. Intenta de nuevo.');
     } finally {
       setLoading(false);
     }
@@ -113,7 +95,7 @@ export default function TermsAcceptanceScreen() {
         <IconSymbol name="doc.text.fill" size={64} color="#FFFFFF" />
         <Text style={styles.headerTitle}>Términos y Condiciones</Text>
         <Text style={styles.headerSubtitle}>
-          Por favor, revisa y acepta nuestros términos para continuar
+          Revisa y acepta nuestros términos para continuar
         </Text>
       </LinearGradient>
 
@@ -186,7 +168,6 @@ export default function TermsAcceptanceScreen() {
           <IconSymbol name="info.circle.fill" size={24} color={colors.primary} />
           <Text style={styles.infoText}>
             Tus datos están protegidos y solo se usarán según nuestra política de privacidad.
-            Puedes revocar tu consentimiento en cualquier momento desde la configuración.
           </Text>
         </View>
 

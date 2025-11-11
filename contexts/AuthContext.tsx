@@ -4,7 +4,6 @@ import { supabase, isSupabaseConfigured } from '@/utils/supabase';
 import { AuthUser, getCurrentUser } from '@/utils/auth';
 import { registerForPushNotifications, savePushToken } from '@/utils/notifications';
 import { Session } from '@supabase/supabase-js';
-import { useRouter, usePathname } from 'expo-router';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -20,230 +19,135 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
-  const pathname = usePathname();
 
   useEffect(() => {
-    console.log('[AuthContext] Inicializando...');
+    console.log('[AuthContext] 🚀 Inicializando contexto de autenticación');
     
-    // Get initial session - NON-BLOCKING
+    // Initialize auth state - NON-BLOCKING
     const initializeAuth = async () => {
       try {
         if (!isSupabaseConfigured()) {
-          console.log('[AuthContext] Supabase no configurado - continuando sin autenticación');
+          console.log('[AuthContext] ⚠️ Supabase no configurado - modo sin autenticación');
           return;
         }
 
-        // Get current session
-        const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error('[AuthContext] Error obteniendo sesión:', sessionError);
-          return;
-        }
-
-        console.log('[AuthContext] Sesión actual:', currentSession ? 'Existe' : 'No existe');
+        // Get current session silently
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
         
         if (currentSession) {
+          console.log('[AuthContext] ✅ Sesión existente encontrada');
           setSession(currentSession);
           
-          // Get user profile
-          const { user: userData, error: userError } = await getCurrentUser();
-          
-          if (userError) {
-            console.error('[AuthContext] Error obteniendo usuario:', userError);
-          } else if (userData) {
-            console.log('[AuthContext] Usuario cargado:', userData.email, 'Rol:', userData.rol_app);
+          // Load user profile in background
+          const { user: userData } = await getCurrentUser();
+          if (userData) {
+            console.log('[AuthContext] ✅ Usuario cargado:', userData.email);
             setUser(userData);
             
-            // Register for push notifications (non-blocking)
+            // Register push notifications (non-blocking)
             registerForPushNotifications()
               .then(pushToken => {
                 if (pushToken) {
-                  savePushToken(userData.id, pushToken)
-                    .then(() => console.log('[AuthContext] Push token registrado'))
-                    .catch(err => console.log('[AuthContext] Error guardando push token:', err));
+                  savePushToken(userData.id, pushToken).catch(() => {});
                 }
               })
-              .catch(err => console.log('[AuthContext] Error registrando notificaciones:', err));
+              .catch(() => {});
           }
+        } else {
+          console.log('[AuthContext] ℹ️ No hay sesión activa');
         }
       } catch (error) {
-        console.error('[AuthContext] Error inicializando auth:', error);
-      } finally {
-        console.log('[AuthContext] Inicialización completada');
+        console.error('[AuthContext] ❌ Error inicializando:', error);
       }
     };
 
-    // Run in background - don't block
     initializeAuth();
 
-    // Listen for auth changes
+    // Listen for auth state changes
     let subscription: { unsubscribe: () => void } | null = null;
     
-    try {
-      if (isSupabaseConfigured()) {
-        const { data } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
-          console.log('[AuthContext] Auth state cambió:', event);
-          console.log('[AuthContext] Current pathname:', pathname);
+    if (isSupabaseConfigured()) {
+      const { data } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+        console.log('[AuthContext] 🔄 Auth state cambió:', event);
+        
+        setSession(currentSession);
+        
+        if (event === 'SIGNED_IN' && currentSession) {
+          console.log('[AuthContext] ✅ Usuario inició sesión');
           
-          setSession(currentSession);
-          
-          if (event === 'SIGNED_IN' && currentSession) {
-            console.log('[AuthContext] Usuario inició sesión');
+          // Load user profile
+          const { user: userData } = await getCurrentUser();
+          if (userData) {
+            console.log('[AuthContext] ✅ Perfil cargado:', userData.email);
+            setUser(userData);
             
-            // Get user profile with retry logic
-            let userData: AuthUser | null = null;
-            let retries = 3;
-            
-            while (retries > 0 && !userData) {
-              const { user: fetchedUser, error: userError } = await getCurrentUser();
-              
-              if (userError) {
-                console.error('[AuthContext] Error obteniendo usuario:', userError);
-                retries--;
-                if (retries > 0) {
-                  await new Promise(resolve => setTimeout(resolve, 500));
-                }
-              } else if (fetchedUser) {
-                userData = fetchedUser;
-                break;
-              }
-            }
-            
-            if (userData) {
-              console.log('[AuthContext] Usuario actualizado:', userData.email, 'Rol:', userData.rol_app);
-              setUser(userData);
-              
-              // FIXED: Only redirect if NOT on callback page or auth pages
-              const isOnAuthPage = pathname?.includes('/auth/');
-              
-              if (!isOnAuthPage) {
-                // Check if user has accepted terms
-                if (!userData.ha_aceptado_terminos) {
-                  console.log('[AuthContext] Usuario no ha aceptado términos, redirigiendo...');
-                  router.replace({
-                    pathname: '/auth/terms-acceptance',
-                    params: { userId: userData.id }
-                  });
-                }
-                // Check if user needs to complete profile
-                else if (!userData.perfil_completado || !userData.username || !userData.nombre) {
-                  console.log('[AuthContext] Usuario nuevo, redirigiendo a completar perfil...');
-                  router.replace({
-                    pathname: '/auth/completar-perfil',
-                    params: { userId: userData.id }
-                  });
-                } else {
-                  console.log('[AuthContext] Usuario existente, redirigiendo a explorar...');
-                  router.replace('/(tabs)/explorar');
-                }
-              } else {
-                console.log('[AuthContext] En página de auth, no redirigiendo desde AuthContext');
-              }
-              
-              // Register for push notifications (non-blocking)
-              registerForPushNotifications()
-                .then(pushToken => {
-                  if (pushToken) {
-                    savePushToken(userData.id, pushToken)
-                      .then(() => console.log('[AuthContext] Push token registrado'))
-                      .catch(err => console.log('[AuthContext] Error guardando push token:', err));
-                  }
-                })
-                .catch(err => console.log('[AuthContext] Error registrando notificaciones:', err));
-            } else {
-              console.error('[AuthContext] No se pudo obtener el perfil del usuario');
-              // Still redirect to explorar - user can try again
-              router.replace('/(tabs)/explorar');
-            }
-          } else if (event === 'SIGNED_OUT') {
-            console.log('[AuthContext] Usuario cerró sesión - limpiando estado y redirigiendo a explorar');
-            setUser(null);
-            setSession(null);
-            
-            console.log('[AuthContext] 🚀 Redirigiendo a explorar después de cerrar sesión');
-            router.replace('/(tabs)/explorar');
-          } else if (event === 'TOKEN_REFRESHED') {
-            console.log('[AuthContext] Token refrescado');
-          } else if (event === 'USER_UPDATED') {
-            console.log('[AuthContext] Usuario actualizado');
-            
-            // Refresh user data
-            getCurrentUser()
-              .then(({ user: userData }) => {
-                if (userData) {
-                  setUser(userData);
+            // Register push notifications (non-blocking)
+            registerForPushNotifications()
+              .then(pushToken => {
+                if (pushToken) {
+                  savePushToken(userData.id, pushToken).catch(() => {});
                 }
               })
-              .catch(err => console.error('[AuthContext] Error refrescando usuario:', err));
+              .catch(() => {});
           }
-        });
-        
-        subscription = data.subscription;
-      }
-    } catch (error) {
-      console.error('[AuthContext] Error configurando listener de auth:', error);
+        } else if (event === 'SIGNED_OUT') {
+          console.log('[AuthContext] 🚪 Usuario cerró sesión');
+          setUser(null);
+          setSession(null);
+        } else if (event === 'TOKEN_REFRESHED') {
+          console.log('[AuthContext] 🔄 Token refrescado');
+        } else if (event === 'USER_UPDATED') {
+          console.log('[AuthContext] 🔄 Usuario actualizado');
+          const { user: userData } = await getCurrentUser();
+          if (userData) {
+            setUser(userData);
+          }
+        }
+      });
+      
+      subscription = data.subscription;
     }
 
     return () => {
       if (subscription) {
-        console.log('[AuthContext] Limpiando suscripción');
+        console.log('[AuthContext] 🧹 Limpiando suscripción');
         subscription.unsubscribe();
       }
     };
-  }, [router, pathname]);
+  }, []);
 
   const handleSignOut = async () => {
     try {
-      console.log('[AuthContext] Iniciando cierre de sesión...');
+      console.log('[AuthContext] 🚪 Iniciando cierre de sesión...');
       
-      // Clear local state first
+      // Clear local state immediately
       setUser(null);
       setSession(null);
       
-      if (!isSupabaseConfigured()) {
-        console.log('[AuthContext] Supabase no configurado, sesión local limpiada');
-        console.log('[AuthContext] 🚀 Redirigiendo a explorar después de cerrar sesión');
-        router.replace('/(tabs)/explorar');
-        return;
+      if (isSupabaseConfigured()) {
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+          console.error('[AuthContext] ❌ Error cerrando sesión:', error);
+        } else {
+          console.log('[AuthContext] ✅ Sesión cerrada exitosamente');
+        }
       }
-
-      // Sign out from Supabase
-      const { error } = await supabase.auth.signOut();
-      
-      if (error) {
-        console.error('[AuthContext] Error cerrando sesión en Supabase:', error);
-        throw error;
-      }
-      
-      console.log('[AuthContext] Sesión cerrada exitosamente en Supabase');
-      console.log('[AuthContext] 🚀 Redirigiendo a explorar después de cerrar sesión');
-      router.replace('/(tabs)/explorar');
     } catch (error) {
-      console.error('[AuthContext] Error en signOut:', error);
-      console.log('[AuthContext] 🚀 Redirigiendo a explorar después de error en cerrar sesión');
-      router.replace('/(tabs)/explorar');
-      throw error;
+      console.error('[AuthContext] ❌ Error en signOut:', error);
     }
   };
 
   const refreshUser = async () => {
     try {
-      console.log('[AuthContext] Refrescando usuario...');
-      const { user: userData, error } = await getCurrentUser();
-      
-      if (error) {
-        console.error('[AuthContext] Error refrescando usuario:', error);
-        return;
-      }
+      console.log('[AuthContext] 🔄 Refrescando usuario...');
+      const { user: userData } = await getCurrentUser();
       
       if (userData) {
-        console.log('[AuthContext] Usuario refrescado:', userData.email, 'Rol:', userData.rol_app);
+        console.log('[AuthContext] ✅ Usuario refrescado:', userData.email);
         setUser(userData);
       }
     } catch (error) {
-      console.error('[AuthContext] Error en refreshUser:', error);
+      console.error('[AuthContext] ❌ Error refrescando usuario:', error);
     }
   };
 

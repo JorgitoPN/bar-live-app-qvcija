@@ -1,5 +1,11 @@
 
+import { colors, commonStyles } from '@/styles/commonStyles';
+import { useRouter } from 'expo-router';
 import React, { useState, useEffect, useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '@/utils/supabase';
+import { LinearGradient } from 'expo-linear-gradient';
+import { IconSymbol } from '@/components/IconSymbol';
 import {
   View,
   Text,
@@ -12,104 +18,84 @@ import {
   Modal,
   Pressable,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import { IconSymbol } from '@/components/IconSymbol';
-import { colors, commonStyles } from '@/styles/commonStyles';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/utils/supabase';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function ConfiguracionScreen() {
   const router = useRouter();
-  const { signOut, user } = useAuth();
+  const { user, signOut } = useAuth();
+  
   const [notificacionesPush, setNotificacionesPush] = useState(true);
   const [notificacionesEmail, setNotificacionesEmail] = useState(true);
-  const [notificacionesEventos, setNotificacionesEventos] = useState(true);
-  const [notificacionesOfertas, setNotificacionesOfertas] = useState(false);
-  const [notificacionesEmpleo, setNotificacionesEmpleo] = useState(true);
-  const [perfilPublico, setPerfilPublico] = useState(true);
-  const [mostrarUbicacion, setMostrarUbicacion] = useState(true);
-  const [mostrarEnLinea, setMostrarEnLinea] = useState(true);
   const [modoOscuro, setModoOscuro] = useState(false);
-  const [tamanoTexto, setTamanoTexto] = useState('Medio');
-  const [idiomaSeleccionado, setIdiomaSeleccionado] = useState('Español');
+  const [tamanoTexto, setTamanoTexto] = useState('medio');
+  const [idioma, setIdioma] = useState('es');
+  const [cacheSizeMB, setCacheSizeMB] = useState(0);
   const [showTamanoModal, setShowTamanoModal] = useState(false);
   const [showIdiomaModal, setShowIdiomaModal] = useState(false);
-  const [cacheSize, setCacheSize] = useState('0 MB');
-
-  // Load user settings
-  const loadUserSettings = useCallback(async () => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('usuarios')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (error) throw error;
-
-      if (data) {
-        setPerfilPublico(!data.perfil_privado);
-        setMostrarUbicacion(data.mostrar_ubicacion !== false);
-        setMostrarEnLinea(data.mostrar_en_linea !== false);
-        setModoOscuro(data.modo_oscuro || false);
-        setTamanoTexto(data.tamano_texto === 'pequeno' ? 'Pequeño' : 
-                       data.tamano_texto === 'medio' ? 'Medio' : 
-                       data.tamano_texto === 'grande' ? 'Grande' : 'Medio');
-        setIdiomaSeleccionado(data.idioma === 'es' ? 'Español' : 
-                              data.idioma === 'en' ? 'English' : 
-                              data.idioma === 'fr' ? 'Français' : 
-                              data.idioma === 'de' ? 'Deutsch' : 'Español');
-      }
-    } catch (error) {
-      console.error('Error loading user settings:', error);
-    }
-  }, [user]);
 
   useEffect(() => {
     if (user) {
       loadUserSettings();
-      calculateCacheSize();
     }
-  }, [user, loadUserSettings]);
+  }, [user]);
+
+  const loadUserSettings = useCallback(async () => {
+    try {
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('usuarios')
+        .select('notificaciones_push, notificaciones_email, modo_oscuro, tamano_texto, idioma')
+        .eq('id', user.id)
+        .single();
+
+      if (data && !error) {
+        setNotificacionesPush(data.notificaciones_push ?? true);
+        setNotificacionesEmail(data.notificaciones_email ?? true);
+        setModoOscuro(data.modo_oscuro ?? false);
+        setTamanoTexto(data.tamano_texto ?? 'medio');
+        setIdioma(data.idioma ?? 'es');
+      }
+
+      await calculateCacheSize();
+    } catch (error) {
+      console.error('[Configuracion] Error cargando configuración:', error);
+    }
+  }, [user]);
 
   const calculateCacheSize = async () => {
     try {
-      // Estimate cache size from AsyncStorage
       const keys = await AsyncStorage.getAllKeys();
       let totalSize = 0;
       
       for (const key of keys) {
         const value = await AsyncStorage.getItem(key);
         if (value) {
-          totalSize += value.length;
+          totalSize += new Blob([value]).size;
         }
       }
       
-      const sizeInMB = (totalSize / (1024 * 1024)).toFixed(2);
-      setCacheSize(`${sizeInMB} MB`);
+      setCacheSizeMB(Math.round(totalSize / (1024 * 1024) * 100) / 100);
     } catch (error) {
-      console.error('Error calculating cache size:', error);
-      setCacheSize('N/A');
+      console.error('[Configuracion] Error calculando caché:', error);
     }
   };
 
   const updateUserSetting = async (field: string, value: any) => {
-    if (!user) return;
-
     try {
+      if (!user) return;
+
       const { error } = await supabase
         .from('usuarios')
         .update({ [field]: value })
         .eq('id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('[Configuracion] Error actualizando configuración:', error);
+        Alert.alert('Error', 'No se pudo actualizar la configuración');
+      }
     } catch (error) {
-      console.error(`Error updating ${field}:`, error);
-      Alert.alert('Error', 'No se pudo actualizar la configuración');
+      console.error('[Configuracion] Error:', error);
     }
   };
 
@@ -119,20 +105,20 @@ export default function ConfiguracionScreen() {
       '¿Estás seguro de que quieres cerrar sesión?',
       [
         { text: 'Cancelar', style: 'cancel' },
-        { 
-          text: 'Cerrar Sesión', 
+        {
+          text: 'Cerrar Sesión',
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log('[Configuracion] Cerrando sesión...');
+              console.log('[Configuracion] 🚪 Cerrando sesión...');
               await signOut();
-              console.log('[Configuracion] Sesión cerrada, redirigiendo...');
-              router.replace('/auth/bienvenida');
+              console.log('[Configuracion] ✅ Sesión cerrada, redirigiendo...');
+              router.replace('/(tabs)/explorar');
             } catch (error) {
-              console.error('[Configuracion] Error cerrando sesión:', error);
-              Alert.alert('Error', 'No se pudo cerrar la sesión. Por favor, intenta de nuevo.');
+              console.error('[Configuracion] ❌ Error cerrando sesión:', error);
+              Alert.alert('Error', 'No se pudo cerrar la sesión');
             }
-          }
+          },
         },
       ]
     );
@@ -141,45 +127,32 @@ export default function ConfiguracionScreen() {
   const handleEliminarCuenta = () => {
     Alert.alert(
       'Eliminar Cuenta',
-      'Esta acción es permanente y no se puede deshacer. Se eliminarán todos tus datos, publicaciones y conexiones. ¿Estás seguro?',
+      '¿Estás seguro? Esta acción no se puede deshacer. Se eliminarán todos tus datos permanentemente.',
       [
         { text: 'Cancelar', style: 'cancel' },
-        { 
-          text: 'Eliminar', 
+        {
+          text: 'Eliminar',
           style: 'destructive',
-          onPress: () => {
-            Alert.alert(
-              'Confirmación Final',
-              'Esta es tu última oportunidad. ¿Realmente deseas eliminar tu cuenta de forma permanente?',
-              [
-                { text: 'Cancelar', style: 'cancel' },
-                {
-                  text: 'Sí, eliminar',
-                  style: 'destructive',
-                  onPress: async () => {
-                    try {
-                      if (!user) return;
-                      
-                      // Delete user data
-                      const { error } = await supabase
-                        .from('usuarios')
-                        .delete()
-                        .eq('id', user.id);
-                      
-                      if (error) throw error;
-                      
-                      await signOut();
-                      Alert.alert('Cuenta Eliminada', 'Tu cuenta ha sido eliminada correctamente');
-                      router.replace('/auth/bienvenida');
-                    } catch (error) {
-                      console.error('Error deleting account:', error);
-                      Alert.alert('Error', 'No se pudo eliminar la cuenta. Por favor, contacta con soporte.');
-                    }
-                  }
-                }
-              ]
-            );
-          }
+          onPress: async () => {
+            try {
+              if (!user) return;
+
+              const { error } = await supabase
+                .from('usuarios')
+                .update({ activo: false, fecha_eliminacion: new Date().toISOString() })
+                .eq('id', user.id);
+
+              if (error) throw error;
+
+              await signOut();
+              router.replace('/(tabs)/explorar');
+              
+              Alert.alert('Cuenta eliminada', 'Tu cuenta ha sido eliminada exitosamente');
+            } catch (error) {
+              console.error('[Configuracion] Error eliminando cuenta:', error);
+              Alert.alert('Error', 'No se pudo eliminar la cuenta');
+            }
+          },
         },
       ]
     );
@@ -188,62 +161,50 @@ export default function ConfiguracionScreen() {
   const handleCambiarContrasena = () => {
     Alert.alert(
       'Cambiar Contraseña',
-      'Se enviará un enlace de restablecimiento a tu correo electrónico',
+      'Se enviará un correo electrónico con instrucciones para cambiar tu contraseña',
       [
         { text: 'Cancelar', style: 'cancel' },
-        { 
-          text: 'Enviar', 
+        {
+          text: 'Enviar',
           onPress: async () => {
-            if (!user?.email) {
-              Alert.alert('Error', 'No se encontró tu correo electrónico');
-              return;
-            }
-
             try {
-              const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-                redirectTo: 'barlive://reset-password',
-              });
+              if (!user?.email) return;
+
+              const { error } = await supabase.auth.resetPasswordForEmail(user.email);
 
               if (error) throw error;
 
-              Alert.alert('Éxito', 'Se ha enviado un enlace de restablecimiento a tu correo');
+              Alert.alert('Correo enviado', 'Revisa tu correo para cambiar tu contraseña');
             } catch (error) {
-              console.error('Error sending reset email:', error);
-              Alert.alert('Error', 'No se pudo enviar el correo de restablecimiento');
+              console.error('[Configuracion] Error:', error);
+              Alert.alert('Error', 'No se pudo enviar el correo');
             }
-          }
+          },
         },
       ]
     );
   };
 
-  const handleDescargarDatos = () => {
+  const handleDescargarDatos = async () => {
     Alert.alert(
-      'Descargar Mis Datos',
-      'Recibirás un correo con todos tus datos en formato JSON en las próximas 24 horas.',
+      'Descargar Datos',
+      'Se enviará un correo con todos tus datos en formato JSON',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
-          text: 'Solicitar',
-          onPress: async () => {
-            try {
-              // In production, trigger a background job to export user data
-              // For now, just show confirmation
-              Alert.alert('Solicitud Enviada', 'Recibirás un correo con tus datos en las próximas 24 horas.');
-            } catch (error) {
-              console.error('Error requesting data export:', error);
-              Alert.alert('Error', 'No se pudo procesar la solicitud');
-            }
-          }
-        }
+          text: 'Descargar',
+          onPress: () => {
+            Alert.alert('Solicitud enviada', 'Recibirás un correo con tus datos en 24-48 horas');
+          },
+        },
       ]
     );
   };
 
-  const handleLimpiarCache = () => {
+  const handleLimpiarCache = async () => {
     Alert.alert(
       'Limpiar Caché',
-      '¿Deseas eliminar todos los datos temporales de la aplicación? Esto puede mejorar el rendimiento.',
+      '¿Quieres eliminar todos los datos temporales? Esto puede mejorar el rendimiento.',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -251,153 +212,81 @@ export default function ConfiguracionScreen() {
           onPress: async () => {
             try {
               await AsyncStorage.clear();
-              setCacheSize('0 MB');
-              Alert.alert('Éxito', 'Caché limpiada correctamente');
+              await calculateCacheSize();
+              Alert.alert('Caché limpiada', 'Los datos temporales han sido eliminados');
             } catch (error) {
-              console.error('Error clearing cache:', error);
+              console.error('[Configuracion] Error limpiando caché:', error);
               Alert.alert('Error', 'No se pudo limpiar la caché');
             }
-          }
-        }
+          },
+        },
       ]
     );
   };
 
   const handleUsuariosBloqueados = () => {
-    router.push('/perfil/usuarios-bloqueados' as any);
+    router.push('/perfil/usuarios-bloqueados');
   };
 
   const handleContenidoOculto = () => {
-    router.push('/perfil/contenido-oculto' as any);
+    router.push('/perfil/contenido-oculto');
   };
 
   const handleCentroAyuda = () => {
-    router.push('/soporte/centro-ayuda' as any);
+    router.push('/soporte/centro-ayuda');
   };
 
   const handleReportarProblema = () => {
-    router.push('/soporte/reportar-problema' as any);
+    router.push('/soporte/reportar-problema');
   };
 
   const handleTerminos = () => {
-    router.push('/legal/terminos' as any);
+    router.push('/legal/terminos');
   };
 
   const handlePrivacidad = () => {
-    router.push('/legal/privacidad' as any);
+    router.push('/legal/privacidad');
   };
 
   const handleAcercaDe = () => {
-    router.push('/legal/acerca-de' as any);
+    router.push('/legal/acerca-de');
   };
 
   const handleTamanoTextoChange = (tamano: string) => {
     setTamanoTexto(tamano);
-    const tamanoKey = tamano === 'Pequeño' ? 'pequeno' : 
-                      tamano === 'Medio' ? 'medio' : 'grande';
-    updateUserSetting('tamano_texto', tamanoKey);
+    updateUserSetting('tamano_texto', tamano);
     setShowTamanoModal(false);
   };
 
   const handleIdiomaChange = (idioma: string) => {
-    setIdiomaSeleccionado(idioma);
-    const idiomaKey = idioma === 'Español' ? 'es' : 
-                      idioma === 'English' ? 'en' : 
-                      idioma === 'Français' ? 'fr' : 'de';
-    updateUserSetting('idioma', idiomaKey);
+    setIdioma(idioma);
+    updateUserSetting('idioma', idioma);
     setShowIdiomaModal(false);
   };
 
   return (
-    <View style={commonStyles.container}>
-      {/* Header con gradiente */}
+    <View style={styles.container}>
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
         style={styles.header}
       >
-        <View style={styles.headerTop}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Configuración</Text>
-          <View style={styles.placeholder} />
-        </View>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Configuración</Text>
+        <View style={{ width: 40 }} />
       </LinearGradient>
 
-      <ScrollView 
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Sección: Cuenta */}
+      <ScrollView style={styles.content}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>CUENTA</Text>
+          <Text style={styles.sectionTitle}>Notificaciones</Text>
           
-          <TouchableOpacity 
-            style={styles.settingItem}
-            onPress={() => router.push('/editar/perfil')}
-          >
-            <View style={styles.settingLeft}>
-              <IconSymbol name="person.circle" size={24} color={colors.primary} />
-              <Text style={styles.settingText}>Editar Perfil</Text>
-            </View>
-            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.settingItem}
-            onPress={handleCambiarContrasena}
-          >
-            <View style={styles.settingLeft}>
-              <IconSymbol name="lock.circle" size={24} color={colors.primary} />
-              <Text style={styles.settingText}>Cambiar Contraseña</Text>
-            </View>
-            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
-          </TouchableOpacity>
-
-          <View style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <IconSymbol name="eye.circle" size={24} color={colors.primary} />
-              <Text style={styles.settingText}>Perfil Público</Text>
-            </View>
-            <Switch
-              value={perfilPublico}
-              onValueChange={(value) => {
-                setPerfilPublico(value);
-                updateUserSetting('perfil_privado', !value);
-              }}
-              trackColor={{ false: colors.cardBorder, true: colors.primary }}
-              thumbColor={colors.cardBackground}
-            />
-          </View>
-
-          <TouchableOpacity 
-            style={styles.settingItem}
-            onPress={() => {
-              Alert.alert('Correo Electrónico', user?.email || 'No disponible');
-            }}
-          >
-            <View style={styles.settingLeft}>
-              <IconSymbol name="envelope.circle" size={24} color={colors.primary} />
-              <Text style={styles.settingText}>Correo Electrónico</Text>
-            </View>
-            <View style={styles.settingRight}>
-              <Text style={styles.settingValue}>{user?.email?.substring(0, 20) || 'N/A'}</Text>
-              <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        {/* Sección: Notificaciones */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>NOTIFICACIONES</Text>
-          
-          <View style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <IconSymbol name="bell.circle" size={24} color={colors.primary} />
-              <Text style={styles.settingText}>Notificaciones Push</Text>
+          <View style={styles.settingRow}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>Notificaciones Push</Text>
+              <Text style={styles.settingDescription}>
+                Recibe notificaciones en tu dispositivo
+              </Text>
             </View>
             <Switch
               value={notificacionesPush}
@@ -405,15 +294,17 @@ export default function ConfiguracionScreen() {
                 setNotificacionesPush(value);
                 updateUserSetting('notificaciones_push', value);
               }}
-              trackColor={{ false: colors.cardBorder, true: colors.primary }}
-              thumbColor={colors.cardBackground}
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor="#FFFFFF"
             />
           </View>
 
-          <View style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <IconSymbol name="envelope.circle" size={24} color={colors.primary} />
-              <Text style={styles.settingText}>Notificaciones por Email</Text>
+          <View style={styles.settingRow}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>Notificaciones por Email</Text>
+              <Text style={styles.settingDescription}>
+                Recibe actualizaciones por correo
+              </Text>
             </View>
             <Switch
               value={notificacionesEmail}
@@ -421,376 +312,195 @@ export default function ConfiguracionScreen() {
                 setNotificacionesEmail(value);
                 updateUserSetting('notificaciones_email', value);
               }}
-              trackColor={{ false: colors.cardBorder, true: colors.primary }}
-              thumbColor={colors.cardBackground}
-            />
-          </View>
-
-          <View style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <IconSymbol name="calendar.circle" size={24} color={colors.primary} />
-              <Text style={styles.settingText}>Eventos y Promociones</Text>
-            </View>
-            <Switch
-              value={notificacionesEventos}
-              onValueChange={(value) => {
-                setNotificacionesEventos(value);
-                updateUserSetting('notificaciones_eventos', value);
-              }}
-              trackColor={{ false: colors.cardBorder, true: colors.primary }}
-              thumbColor={colors.cardBackground}
-            />
-          </View>
-
-          <View style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <IconSymbol name="briefcase.circle" size={24} color={colors.primary} />
-              <Text style={styles.settingText}>Ofertas de Empleo</Text>
-            </View>
-            <Switch
-              value={notificacionesOfertas}
-              onValueChange={(value) => {
-                setNotificacionesOfertas(value);
-                updateUserSetting('notificaciones_ofertas', value);
-              }}
-              trackColor={{ false: colors.cardBorder, true: colors.primary }}
-              thumbColor={colors.cardBackground}
-            />
-          </View>
-
-          <View style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <IconSymbol name="person.badge.plus" size={24} color={colors.primary} />
-              <Text style={styles.settingText}>Interés en mi Perfil Profesional</Text>
-            </View>
-            <Switch
-              value={notificacionesEmpleo}
-              onValueChange={(value) => {
-                setNotificacionesEmpleo(value);
-                updateUserSetting('notificaciones_empleo', value);
-              }}
-              trackColor={{ false: colors.cardBorder, true: colors.primary }}
-              thumbColor={colors.cardBackground}
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor="#FFFFFF"
             />
           </View>
         </View>
 
-        {/* Sección: Privacidad */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>PRIVACIDAD Y SEGURIDAD</Text>
+          <Text style={styles.sectionTitle}>Apariencia</Text>
           
-          <View style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <IconSymbol name="location.circle" size={24} color={colors.primary} />
-              <Text style={styles.settingText}>Mostrar Ubicación</Text>
-            </View>
-            <Switch
-              value={mostrarUbicacion}
-              onValueChange={(value) => {
-                setMostrarUbicacion(value);
-                updateUserSetting('mostrar_ubicacion', value);
-              }}
-              trackColor={{ false: colors.cardBorder, true: colors.primary }}
-              thumbColor={colors.cardBackground}
-            />
-          </View>
-
-          <View style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <IconSymbol name="circle.fill" size={24} color={colors.primary} />
-              <Text style={styles.settingText}>Mostrar Estado En Línea</Text>
-            </View>
-            <Switch
-              value={mostrarEnLinea}
-              onValueChange={(value) => {
-                setMostrarEnLinea(value);
-                updateUserSetting('mostrar_en_linea', value);
-              }}
-              trackColor={{ false: colors.cardBorder, true: colors.primary }}
-              thumbColor={colors.cardBackground}
-            />
-          </View>
-
-          <TouchableOpacity 
-            style={styles.settingItem}
-            onPress={() => router.push('/(tabs)/perfil/preferencias-anuncios')}
-          >
-            <View style={styles.settingLeft}>
-              <IconSymbol name="megaphone.circle" size={24} color={colors.primary} />
-              <Text style={styles.settingText}>Preferencias de Anuncios</Text>
+          <TouchableOpacity style={styles.settingRow} onPress={() => setShowTamanoModal(true)}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>Tamaño de texto</Text>
+              <Text style={styles.settingDescription}>
+                {tamanoTexto === 'pequeno' ? 'Pequeño' : tamanoTexto === 'medio' ? 'Medio' : 'Grande'}
+              </Text>
             </View>
             <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.settingItem}
-            onPress={handleUsuariosBloqueados}
-          >
-            <View style={styles.settingLeft}>
-              <IconSymbol name="hand.raised.circle" size={24} color={colors.primary} />
-              <Text style={styles.settingText}>Usuarios Bloqueados</Text>
-            </View>
-            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.settingItem}
-            onPress={handleContenidoOculto}
-          >
-            <View style={styles.settingLeft}>
-              <IconSymbol name="eye.slash.circle" size={24} color={colors.primary} />
-              <Text style={styles.settingText}>Contenido Oculto</Text>
+          <TouchableOpacity style={styles.settingRow} onPress={() => setShowIdiomaModal(true)}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>Idioma</Text>
+              <Text style={styles.settingDescription}>
+                {idioma === 'es' ? 'Español' : idioma === 'en' ? 'English' : 'Català'}
+              </Text>
             </View>
             <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
-        {/* Sección: Apariencia */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>APARIENCIA</Text>
+          <Text style={styles.sectionTitle}>Privacidad y Seguridad</Text>
           
-          <View style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <IconSymbol name="moon.circle" size={24} color={colors.primary} />
-              <Text style={styles.settingText}>Modo Oscuro</Text>
+          <TouchableOpacity style={styles.settingRow} onPress={handleUsuariosBloqueados}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>Usuarios bloqueados</Text>
             </View>
-            <Switch
-              value={modoOscuro}
-              onValueChange={(value) => {
-                setModoOscuro(value);
-                updateUserSetting('modo_oscuro', value);
-                Alert.alert('Información', 'El modo oscuro se aplicará en una futura actualización');
-              }}
-              trackColor={{ false: colors.cardBorder, true: colors.primary }}
-              thumbColor={colors.cardBackground}
-            />
-          </View>
-
-          <TouchableOpacity 
-            style={styles.settingItem}
-            onPress={() => setShowTamanoModal(true)}
-          >
-            <View style={styles.settingLeft}>
-              <IconSymbol name="textformat" size={24} color={colors.primary} />
-              <Text style={styles.settingText}>Tamaño de Texto</Text>
-            </View>
-            <View style={styles.settingRight}>
-              <Text style={styles.settingValue}>{tamanoTexto}</Text>
-              <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
-            </View>
+            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.settingItem}
-            onPress={() => setShowIdiomaModal(true)}
-          >
-            <View style={styles.settingLeft}>
-              <IconSymbol name="globe" size={24} color={colors.primary} />
-              <Text style={styles.settingText}>Idioma</Text>
+          <TouchableOpacity style={styles.settingRow} onPress={handleContenidoOculto}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>Contenido oculto</Text>
             </View>
-            <View style={styles.settingRight}>
-              <Text style={styles.settingValue}>{idiomaSeleccionado}</Text>
-              <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.settingRow} onPress={handleCambiarContrasena}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>Cambiar contraseña</Text>
             </View>
+            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
-        {/* Sección: Datos y Almacenamiento */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>DATOS Y ALMACENAMIENTO</Text>
+          <Text style={styles.sectionTitle}>Datos</Text>
           
-          <TouchableOpacity 
-            style={styles.settingItem}
-            onPress={handleDescargarDatos}
-          >
-            <View style={styles.settingLeft}>
-              <IconSymbol name="arrow.down.circle" size={24} color={colors.primary} />
-              <Text style={styles.settingText}>Descargar Mis Datos</Text>
+          <TouchableOpacity style={styles.settingRow} onPress={handleDescargarDatos}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>Descargar mis datos</Text>
+              <Text style={styles.settingDescription}>
+                Solicita una copia de tu información
+              </Text>
             </View>
             <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.settingItem}
-            onPress={handleLimpiarCache}
-          >
-            <View style={styles.settingLeft}>
-              <IconSymbol name="trash.circle" size={24} color={colors.primary} />
-              <Text style={styles.settingText}>Limpiar Caché</Text>
+          <TouchableOpacity style={styles.settingRow} onPress={handleLimpiarCache}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>Limpiar caché</Text>
+              <Text style={styles.settingDescription}>
+                {cacheSizeMB} MB de datos temporales
+              </Text>
             </View>
-            <View style={styles.settingRight}>
-              <Text style={styles.settingValue}>{cacheSize}</Text>
-              <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
-            </View>
+            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
-        {/* Sección: Soporte */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>SOPORTE Y LEGAL</Text>
+          <Text style={styles.sectionTitle}>Soporte</Text>
           
-          <TouchableOpacity 
-            style={styles.settingItem}
-            onPress={handleCentroAyuda}
-          >
-            <View style={styles.settingLeft}>
-              <IconSymbol name="questionmark.circle" size={24} color={colors.primary} />
-              <Text style={styles.settingText}>Centro de Ayuda</Text>
+          <TouchableOpacity style={styles.settingRow} onPress={handleCentroAyuda}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>Centro de ayuda</Text>
             </View>
             <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.settingItem}
-            onPress={handleReportarProblema}
-          >
-            <View style={styles.settingLeft}>
-              <IconSymbol name="exclamationmark.bubble" size={24} color={colors.primary} />
-              <Text style={styles.settingText}>Reportar un Problema</Text>
-            </View>
-            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.settingItem}
-            onPress={handleTerminos}
-          >
-            <View style={styles.settingLeft}>
-              <IconSymbol name="doc.text.circle" size={24} color={colors.primary} />
-              <Text style={styles.settingText}>Términos y Condiciones</Text>
-            </View>
-            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.settingItem}
-            onPress={handlePrivacidad}
-          >
-            <View style={styles.settingLeft}>
-              <IconSymbol name="shield.circle" size={24} color={colors.primary} />
-              <Text style={styles.settingText}>Política de Privacidad</Text>
-            </View>
-            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.settingItem}
-            onPress={handleAcercaDe}
-          >
-            <View style={styles.settingLeft}>
-              <IconSymbol name="info.circle" size={24} color={colors.primary} />
-              <Text style={styles.settingText}>Acerca de BarLive</Text>
+          <TouchableOpacity style={styles.settingRow} onPress={handleReportarProblema}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>Reportar un problema</Text>
             </View>
             <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
-        {/* Sección: Sesión */}
         <View style={styles.section}>
-          <TouchableOpacity 
-            style={[styles.settingItem, styles.dangerItem]}
-            onPress={handleCerrarSesion}
-          >
-            <View style={styles.settingLeft}>
-              <IconSymbol name="arrow.right.square" size={24} color={colors.badgeNuevo} />
-              <Text style={[styles.settingText, styles.dangerText]}>Cerrar Sesión</Text>
+          <Text style={styles.sectionTitle}>Legal</Text>
+          
+          <TouchableOpacity style={styles.settingRow} onPress={handleTerminos}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>Términos y condiciones</Text>
             </View>
+            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={[styles.settingItem, styles.dangerItem]}
-            onPress={handleEliminarCuenta}
-          >
-            <View style={styles.settingLeft}>
-              <IconSymbol name="trash.circle" size={24} color={colors.badgeNuevo} />
-              <Text style={[styles.settingText, styles.dangerText]}>Eliminar Cuenta</Text>
+          <TouchableOpacity style={styles.settingRow} onPress={handlePrivacidad}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>Política de privacidad</Text>
             </View>
+            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.settingRow} onPress={handleAcercaDe}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>Acerca de BarLive</Text>
+              <Text style={styles.settingDescription}>Versión 1.0.0</Text>
+            </View>
+            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.versionText}>BarLive v1.0.0</Text>
-        <Text style={styles.copyrightText}>© 2025 BarLive. Todos los derechos reservados.</Text>
+        <View style={styles.section}>
+          <TouchableOpacity style={styles.dangerButton} onPress={handleCerrarSesion}>
+            <Text style={styles.dangerButtonText}>Cerrar Sesión</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.dangerButton} onPress={handleEliminarCuenta}>
+            <Text style={styles.dangerButtonText}>Eliminar Cuenta</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
 
-      {/* Modal Tamaño de Texto */}
       <Modal
         visible={showTamanoModal}
         transparent
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setShowTamanoModal(false)}
       >
         <Pressable style={styles.modalOverlay} onPress={() => setShowTamanoModal(false)}>
-          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Tamaño de Texto</Text>
-              <TouchableOpacity onPress={() => setShowTamanoModal(false)}>
-                <IconSymbol name="xmark" size={24} color={colors.text} />
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Tamaño de texto</Text>
+            
+            {['pequeno', 'medio', 'grande'].map((size) => (
+              <TouchableOpacity
+                key={size}
+                style={styles.modalOption}
+                onPress={() => handleTamanoTextoChange(size)}
+              >
+                <Text style={styles.modalOptionText}>
+                  {size === 'pequeno' ? 'Pequeño' : size === 'medio' ? 'Medio' : 'Grande'}
+                </Text>
+                {tamanoTexto === size && (
+                  <IconSymbol name="checkmark" size={20} color={colors.primary} />
+                )}
               </TouchableOpacity>
-            </View>
-            <View style={styles.modalBody}>
-              {['Pequeño', 'Medio', 'Grande'].map((tamano) => (
-                <TouchableOpacity
-                  key={tamano}
-                  style={[
-                    styles.modalOption,
-                    tamanoTexto === tamano && styles.modalOptionActive,
-                  ]}
-                  onPress={() => handleTamanoTextoChange(tamano)}
-                >
-                  <Text style={[
-                    styles.modalOptionText,
-                    tamanoTexto === tamano && styles.modalOptionTextActive,
-                  ]}>
-                    {tamano}
-                  </Text>
-                  {tamanoTexto === tamano && (
-                    <IconSymbol name="checkmark" size={20} color={colors.primary} />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
-          </Pressable>
+            ))}
+          </View>
         </Pressable>
       </Modal>
 
-      {/* Modal Idioma */}
       <Modal
         visible={showIdiomaModal}
         transparent
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setShowIdiomaModal(false)}
       >
         <Pressable style={styles.modalOverlay} onPress={() => setShowIdiomaModal(false)}>
-          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Idioma</Text>
-              <TouchableOpacity onPress={() => setShowIdiomaModal(false)}>
-                <IconSymbol name="xmark" size={24} color={colors.text} />
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Idioma</Text>
+            
+            {[
+              { code: 'es', name: 'Español' },
+              { code: 'en', name: 'English' },
+              { code: 'ca', name: 'Català' },
+            ].map((lang) => (
+              <TouchableOpacity
+                key={lang.code}
+                style={styles.modalOption}
+                onPress={() => handleIdiomaChange(lang.code)}
+              >
+                <Text style={styles.modalOptionText}>{lang.name}</Text>
+                {idioma === lang.code && (
+                  <IconSymbol name="checkmark" size={20} color={colors.primary} />
+                )}
               </TouchableOpacity>
-            </View>
-            <View style={styles.modalBody}>
-              {['Español', 'English', 'Français', 'Deutsch'].map((idioma) => (
-                <TouchableOpacity
-                  key={idioma}
-                  style={[
-                    styles.modalOption,
-                    idiomaSeleccionado === idioma && styles.modalOptionActive,
-                  ]}
-                  onPress={() => handleIdiomaChange(idioma)}
-                >
-                  <Text style={[
-                    styles.modalOptionText,
-                    idiomaSeleccionado === idioma && styles.modalOptionTextActive,
-                  ]}>
-                    {idioma}
-                  </Text>
-                  {idiomaSeleccionado === idioma && (
-                    <IconSymbol name="checkmark" size={20} color={colors.primary} />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
-          </Pressable>
+            ))}
+          </View>
         </Pressable>
       </Modal>
     </View>
@@ -798,144 +508,111 @@ export default function ConfiguracionScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 50,
-    paddingBottom: 20,
-    paddingHorizontal: 16,
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
   },
-  headerTop: {
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
   },
   backButton: {
     width: 40,
     height: 40,
-    alignItems: 'center',
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: colors.headerText,
+  },
+  content: {
     flex: 1,
-    textAlign: 'center',
-  },
-  placeholder: {
-    width: 40,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 100,
   },
   section: {
-    marginBottom: 24,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   sectionTitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     color: colors.textSecondary,
-    marginBottom: 12,
-    marginLeft: 4,
+    textTransform: 'uppercase',
+    paddingHorizontal: 16,
+    marginBottom: 8,
   },
-  settingItem: {
+  settingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    padding: 16,
-    marginBottom: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: colors.background,
   },
-  settingLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+  settingInfo: {
     flex: 1,
+    marginRight: 16,
   },
-  settingRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  settingText: {
+  settingLabel: {
     fontSize: 16,
-    color: colors.text,
     fontWeight: '500',
+    color: colors.text,
+    marginBottom: 2,
   },
-  settingValue: {
+  settingDescription: {
     fontSize: 14,
     color: colors.textSecondary,
   },
-  dangerItem: {
-    borderColor: colors.badgeNuevo + '30',
+  dangerButton: {
+    marginHorizontal: 16,
+    marginVertical: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
   },
-  dangerText: {
-    color: colors.badgeNuevo,
-  },
-  versionText: {
-    textAlign: 'center',
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginTop: 16,
+  dangerButtonText: {
+    fontSize: 16,
     fontWeight: '600',
-  },
-  copyrightText: {
-    textAlign: 'center',
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 8,
-    marginBottom: 32,
+    color: '#DC2626',
   },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: colors.cardBackground,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '50%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
+    backgroundColor: colors.background,
+    borderRadius: 16,
+    padding: 24,
+    width: '80%',
+    maxWidth: 400,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
-  },
-  modalBody: {
-    padding: 0,
+    marginBottom: 16,
   },
   modalOption: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  modalOptionActive: {
-    backgroundColor: colors.primary + '10',
+    borderBottomColor: colors.border,
   },
   modalOptionText: {
     fontSize: 16,
     color: colors.text,
-  },
-  modalOptionTextActive: {
-    fontWeight: '600',
-    color: colors.primary,
   },
 });
