@@ -15,6 +15,8 @@ import {
   Alert,
   Animated,
   Pressable,
+  FlatList,
+  Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -26,6 +28,23 @@ import { supabase } from '@/utils/supabase';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 
 const { width } = Dimensions.get('window');
+
+interface Post {
+  id: string;
+  autor_id: string;
+  contenido: string;
+  imagen?: string;
+  likes: number;
+  created_at: string;
+  autor?: {
+    nombre: string;
+    avatar?: string;
+    username?: string;
+  };
+  liked?: boolean;
+  saved?: boolean;
+  comentarios?: number;
+}
 
 interface OfertaTrabajo {
   id: string;
@@ -61,6 +80,21 @@ interface PerfilProfesional {
   };
 }
 
+function formatearFecha(fecha: string): string {
+  const ahora = new Date();
+  const fechaPost = new Date(fecha);
+  const diffMs = ahora.getTime() - fechaPost.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHoras = Math.floor(diffMs / 3600000);
+  const diffDias = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'Ahora';
+  if (diffMins < 60) return `${diffMins}m`;
+  if (diffHoras < 24) return `${diffHoras}h`;
+  if (diffDias < 7) return `${diffDias}d`;
+  return fechaPost.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+}
+
 export default function PerfilScreen() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
@@ -68,11 +102,19 @@ export default function PerfilScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showCreateOptions, setShowCreateOptions] = useState(false);
   
   // Profile data
   const [seguidores, setSeguidores] = useState(0);
   const [seguidos, setSeguidos] = useState(0);
   const [publicaciones, setPublicaciones] = useState(0);
+  
+  // Content tabs
+  const [activeTab, setActiveTab] = useState<'posts' | 'favoritos' | 'etiquetados' | 'empleo'>('posts');
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [savedPosts, setSavedPosts] = useState<Post[]>([]);
+  const [taggedPosts, setTaggedPosts] = useState<Post[]>([]);
+  const [loadingPosts, setLoadingPosts] = useState(false);
   
   // Employment tab
   const [empleoTab, setEmpleoTab] = useState<'ofertas' | 'perfiles'>('ofertas');
@@ -113,7 +155,7 @@ export default function PerfilScreen() {
 
       // Load posts count
       const { count: publicacionesCount } = await supabase
-        .from('publicaciones')
+        .from('posts')
         .select('*', { count: 'exact', head: true })
         .eq('autor_id', user.id);
 
@@ -121,13 +163,223 @@ export default function PerfilScreen() {
       setSeguidos(seguidosCount || 0);
       setPublicaciones(publicacionesCount || 0);
 
-      // Load employment data
-      await cargarDatosEmpleo();
+      // Load initial content based on active tab
+      await cargarContenido();
     } catch (error) {
       console.error('[Perfil] Error cargando datos:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+
+  const cargarContenido = async () => {
+    if (!user) return;
+
+    setLoadingPosts(true);
+    try {
+      if (activeTab === 'posts') {
+        await cargarPosts();
+      } else if (activeTab === 'favoritos') {
+        await cargarFavoritos();
+      } else if (activeTab === 'etiquetados') {
+        await cargarEtiquetados();
+      } else if (activeTab === 'empleo') {
+        await cargarDatosEmpleo();
+      }
+    } catch (error) {
+      console.error('[Perfil] Error cargando contenido:', error);
+    } finally {
+      setLoadingPosts(false);
+    }
+  };
+
+  const cargarPosts = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('posts')
+        .select(`
+          *,
+          autor:usuarios!posts_autor_id_fkey (
+            id,
+            nombre,
+            avatar,
+            username
+          )
+        `)
+        .eq('autor_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+
+      // Get likes and comments count
+      const postIds = data?.map(p => p.id) || [];
+      if (postIds.length > 0) {
+        const [likesResult, commentsResult] = await Promise.all([
+          supabase
+            .from('likes')
+            .select('post_id')
+            .eq('usuario_id', user.id)
+            .in('post_id', postIds),
+          supabase
+            .from('comentarios')
+            .select('post_id')
+            .in('post_id', postIds),
+        ]);
+
+        const likedPostIds = new Set(likesResult.data?.map(l => l.post_id) || []);
+        const commentCounts = commentsResult.data?.reduce((acc, c) => {
+          acc[c.post_id] = (acc[c.post_id] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>) || {};
+
+        const postsWithStatus = (data || []).map(post => ({
+          ...post,
+          liked: likedPostIds.has(post.id),
+          comentarios: commentCounts[post.id] || 0,
+        }));
+
+        setPosts(postsWithStatus);
+      } else {
+        setPosts([]);
+      }
+    } catch (error) {
+      console.error('[Perfil] Error cargando posts:', error);
+    }
+  };
+
+  const cargarFavoritos = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('posts_guardados')
+        .select(`
+          post_id,
+          posts (
+            *,
+            autor:usuarios!posts_autor_id_fkey (
+              id,
+              nombre,
+              avatar,
+              username
+            )
+          )
+        `)
+        .eq('usuario_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+
+      const savedPostsData = data?.map(item => item.posts).filter(Boolean) || [];
+      
+      // Get likes and comments count
+      const postIds = savedPostsData.map(p => p.id);
+      if (postIds.length > 0) {
+        const [likesResult, commentsResult] = await Promise.all([
+          supabase
+            .from('likes')
+            .select('post_id')
+            .eq('usuario_id', user.id)
+            .in('post_id', postIds),
+          supabase
+            .from('comentarios')
+            .select('post_id')
+            .in('post_id', postIds),
+        ]);
+
+        const likedPostIds = new Set(likesResult.data?.map(l => l.post_id) || []);
+        const commentCounts = commentsResult.data?.reduce((acc, c) => {
+          acc[c.post_id] = (acc[c.post_id] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>) || {};
+
+        const postsWithStatus = savedPostsData.map(post => ({
+          ...post,
+          liked: likedPostIds.has(post.id),
+          saved: true,
+          comentarios: commentCounts[post.id] || 0,
+        }));
+
+        setSavedPosts(postsWithStatus);
+      } else {
+        setSavedPosts([]);
+      }
+    } catch (error) {
+      console.error('[Perfil] Error cargando favoritos:', error);
+    }
+  };
+
+  const cargarEtiquetados = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('post_tags')
+        .select(`
+          post_id,
+          posts (
+            *,
+            autor:usuarios!posts_autor_id_fkey (
+              id,
+              nombre,
+              avatar,
+              username
+            )
+          )
+        `)
+        .eq('usuario_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+
+      const taggedPostsData = data?.map(item => item.posts).filter(Boolean) || [];
+      
+      // Get likes and comments count
+      const postIds = taggedPostsData.map(p => p.id);
+      if (postIds.length > 0) {
+        const [likesResult, savesResult, commentsResult] = await Promise.all([
+          supabase
+            .from('likes')
+            .select('post_id')
+            .eq('usuario_id', user.id)
+            .in('post_id', postIds),
+          supabase
+            .from('posts_guardados')
+            .select('post_id')
+            .eq('usuario_id', user.id)
+            .in('post_id', postIds),
+          supabase
+            .from('comentarios')
+            .select('post_id')
+            .in('post_id', postIds),
+        ]);
+
+        const likedPostIds = new Set(likesResult.data?.map(l => l.post_id) || []);
+        const savedPostIds = new Set(savesResult.data?.map(s => s.post_id) || []);
+        const commentCounts = commentsResult.data?.reduce((acc, c) => {
+          acc[c.post_id] = (acc[c.post_id] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>) || {};
+
+        const postsWithStatus = taggedPostsData.map(post => ({
+          ...post,
+          liked: likedPostIds.has(post.id),
+          saved: savedPostIds.has(post.id),
+          comentarios: commentCounts[post.id] || 0,
+        }));
+
+        setTaggedPosts(postsWithStatus);
+      } else {
+        setTaggedPosts([]);
+      }
+    } catch (error) {
+      console.error('[Perfil] Error cargando etiquetados:', error);
     }
   };
 
@@ -175,6 +427,12 @@ export default function PerfilScreen() {
       setLoadingEmpleo(false);
     }
   };
+
+  useEffect(() => {
+    if (user) {
+      cargarContenido();
+    }
+  }, [activeTab, user]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -245,6 +503,116 @@ export default function PerfilScreen() {
     router.push('/crear/perfil-profesional');
   };
 
+  const handleWebsite = () => {
+    if (user?.website) {
+      Linking.openURL(user.website);
+    }
+  };
+
+  const toggleLike = async (postId: string) => {
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+
+    const updatePostInList = (postsList: Post[], postId: string, updates: Partial<Post>) => {
+      return postsList.map(p => p.id === postId ? { ...p, ...updates } : p);
+    };
+
+    const post = [...posts, ...savedPosts, ...taggedPosts].find(p => p.id === postId);
+    if (!post) return;
+
+    const isLiked = post.liked;
+    const currentLikes = post.likes || 0;
+
+    // Optimistic update
+    const updatedPost = {
+      liked: !isLiked,
+      likes: isLiked ? currentLikes - 1 : currentLikes + 1,
+    };
+
+    setPosts(prev => updatePostInList(prev, postId, updatedPost));
+    setSavedPosts(prev => updatePostInList(prev, postId, updatedPost));
+    setTaggedPosts(prev => updatePostInList(prev, postId, updatedPost));
+
+    try {
+      if (isLiked) {
+        await supabase
+          .from('likes')
+          .delete()
+          .eq('post_id', postId)
+          .eq('usuario_id', user.id);
+        
+        await supabase
+          .from('posts')
+          .update({ likes: Math.max(0, currentLikes - 1) })
+          .eq('id', postId);
+      } else {
+        await supabase.from('likes').insert({
+          post_id: postId,
+          usuario_id: user.id,
+        });
+        
+        await supabase
+          .from('posts')
+          .update({ likes: currentLikes + 1 })
+          .eq('id', postId);
+      }
+    } catch (error) {
+      console.error('[Perfil] Error toggling like:', error);
+      // Revert on error
+      const revertedPost = {
+        liked: isLiked,
+        likes: currentLikes,
+      };
+      setPosts(prev => updatePostInList(prev, postId, revertedPost));
+      setSavedPosts(prev => updatePostInList(prev, postId, revertedPost));
+      setTaggedPosts(prev => updatePostInList(prev, postId, revertedPost));
+    }
+  };
+
+  const toggleSave = async (postId: string) => {
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+
+    const updatePostInList = (postsList: Post[], postId: string, updates: Partial<Post>) => {
+      return postsList.map(p => p.id === postId ? { ...p, ...updates } : p);
+    };
+
+    const post = [...posts, ...savedPosts, ...taggedPosts].find(p => p.id === postId);
+    if (!post) return;
+
+    const isSaved = post.saved;
+
+    // Optimistic update
+    setPosts(prev => updatePostInList(prev, postId, { saved: !isSaved }));
+    setSavedPosts(prev => updatePostInList(prev, postId, { saved: !isSaved }));
+    setTaggedPosts(prev => updatePostInList(prev, postId, { saved: !isSaved }));
+
+    try {
+      if (isSaved) {
+        await supabase
+          .from('posts_guardados')
+          .delete()
+          .eq('post_id', postId)
+          .eq('usuario_id', user.id);
+      } else {
+        await supabase.from('posts_guardados').insert({
+          post_id: postId,
+          usuario_id: user.id,
+        });
+      }
+    } catch (error) {
+      console.error('[Perfil] Error toggling save:', error);
+      // Revert on error
+      setPosts(prev => updatePostInList(prev, postId, { saved: isSaved }));
+      setSavedPosts(prev => updatePostInList(prev, postId, { saved: isSaved }));
+      setTaggedPosts(prev => updatePostInList(prev, postId, { saved: isSaved }));
+    }
+  };
+
   const calcularDiasPublicado = (fecha: string): string => {
     const ahora = new Date();
     const fechaPublicacion = new Date(fecha);
@@ -257,6 +625,68 @@ export default function PerfilScreen() {
     if (diffDias < 30) return `Hace ${Math.floor(diffDias / 7)} semanas`;
     return `Hace ${Math.floor(diffDias / 30)} meses`;
   };
+
+  const renderPost = (post: Post) => (
+    <View key={post.id} style={styles.postCard}>
+      <TouchableOpacity
+        onPress={() => router.push(`/social/post?id=${post.id}`)}
+        activeOpacity={0.9}
+      >
+        {post.imagen && (
+          <Image source={{ uri: post.imagen }} style={styles.postImage} />
+        )}
+      </TouchableOpacity>
+
+      <View style={styles.postActions}>
+        <TouchableOpacity 
+          style={styles.postActionButton}
+          onPress={() => toggleLike(post.id)}
+          activeOpacity={0.7}
+        >
+          <IconSymbol 
+            name={post.liked ? 'heart.fill' : 'heart'} 
+            size={24} 
+            color={post.liked ? '#EF4444' : colors.text} 
+          />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.postActionButton}
+          onPress={() => router.push(`/social/post?id=${post.id}`)}
+          activeOpacity={0.7}
+        >
+          <IconSymbol name="message" size={24} color={colors.text} />
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.postActionButtonRight}
+          onPress={() => toggleSave(post.id)}
+          activeOpacity={0.7}
+        >
+          <IconSymbol 
+            name={post.saved ? 'bookmark.fill' : 'bookmark'} 
+            size={24} 
+            color={post.saved ? colors.primary : colors.text} 
+          />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.postInfo}>
+        <Text style={styles.postLikes}>{post.likes || 0} me gusta</Text>
+        {post.contenido && (
+          <Text style={styles.postContent} numberOfLines={2}>
+            {post.contenido}
+          </Text>
+        )}
+        {post.comentarios > 0 && (
+          <TouchableOpacity onPress={() => router.push(`/social/post?id=${post.id}`)}>
+            <Text style={styles.postComments}>
+              Ver {post.comentarios === 1 ? 'el comentario' : `los ${post.comentarios} comentarios`}
+            </Text>
+          </TouchableOpacity>
+        )}
+        <Text style={styles.postDate}>{formatearFecha(post.created_at)}</Text>
+      </View>
+    </View>
+  );
 
   const renderOferta = (oferta: OfertaTrabajo) => (
     <TouchableOpacity
@@ -407,6 +837,8 @@ export default function PerfilScreen() {
     );
   }
 
+  const currentPosts = activeTab === 'posts' ? posts : activeTab === 'favoritos' ? savedPosts : taggedPosts;
+
   return (
     <View style={commonStyles.container}>
       {/* Header */}
@@ -419,6 +851,9 @@ export default function PerfilScreen() {
         <View style={styles.headerContent}>
           <Text style={[commonStyles.headerTitle, { color: colors.white }]}>Mi Perfil</Text>
           <View style={styles.headerActions}>
+            <TouchableOpacity style={styles.headerButton} onPress={handleChats}>
+              <IconSymbol name="message.fill" size={24} color={colors.white} />
+            </TouchableOpacity>
             <TouchableOpacity style={styles.headerButton} onPress={handleNotifications}>
               <IconSymbol name="bell.fill" size={24} color={colors.white} />
             </TouchableOpacity>
@@ -452,14 +887,29 @@ export default function PerfilScreen() {
               {user.username && (
                 <Text style={styles.profileUsername}>@{user.username}</Text>
               )}
-              {user.bio && (
-                <Text style={styles.profileBio}>{user.bio}</Text>
-              )}
             </View>
           </View>
 
+          {/* Bio */}
+          {user.bio && (
+            <Text style={styles.profileBio}>{user.bio}</Text>
+          )}
+
+          {/* Website */}
+          {user.website && (
+            <TouchableOpacity style={styles.websiteContainer} onPress={handleWebsite} activeOpacity={0.7}>
+              <IconSymbol name="link" size={16} color={colors.primary} />
+              <Text style={styles.websiteText}>{user.website}</Text>
+            </TouchableOpacity>
+          )}
+
           {/* Stats */}
           <View style={styles.statsContainer}>
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{publicaciones}</Text>
+              <Text style={styles.statLabel}>Publicaciones</Text>
+            </View>
+            <View style={styles.statDivider} />
             <TouchableOpacity style={styles.statItem} onPress={handleSeguidores}>
               <Text style={styles.statNumber}>{seguidores}</Text>
               <Text style={styles.statLabel}>Seguidores</Text>
@@ -469,11 +919,6 @@ export default function PerfilScreen() {
               <Text style={styles.statNumber}>{seguidos}</Text>
               <Text style={styles.statLabel}>Seguidos</Text>
             </TouchableOpacity>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{publicaciones}</Text>
-              <Text style={styles.statLabel}>Publicaciones</Text>
-            </View>
           </View>
 
           {/* Action Buttons */}
@@ -482,89 +927,225 @@ export default function PerfilScreen() {
               <IconSymbol name="pencil" size={18} color={colors.text} />
               <Text style={styles.actionButtonText}>Editar Perfil</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton} onPress={handleChats}>
-              <IconSymbol name="message.fill" size={18} color={colors.text} />
-              <Text style={styles.actionButtonText}>Mensajes</Text>
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.createButton]} 
+              onPress={() => setShowCreateOptions(true)}
+            >
+              <IconSymbol name="plus.circle.fill" size={18} color={colors.white} />
+              <Text style={[styles.actionButtonText, { color: colors.white }]}>Crear</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Employment Section */}
-        <View style={styles.empleoSection}>
-          <View style={styles.empleoHeader}>
-            <Text style={styles.sectionTitle}>Empleo</Text>
-            {isPropietario && (
-              <TouchableOpacity onPress={handleCrearOferta}>
-                <IconSymbol name="plus.circle.fill" size={24} color={colors.primary} />
-              </TouchableOpacity>
-            )}
-            {!isPropietario && (
-              <TouchableOpacity onPress={handleCrearPerfil}>
-                <IconSymbol name="plus.circle.fill" size={24} color={colors.primary} />
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {/* Employment Tabs */}
-          <View style={styles.empleoTabs}>
-            <TouchableOpacity
-              style={[styles.empleoTab, empleoTab === 'ofertas' && styles.empleoTabActive]}
-              onPress={() => setEmpleoTab('ofertas')}
-            >
-              <Text
-                style={[
-                  styles.empleoTabText,
-                  empleoTab === 'ofertas' && styles.empleoTabTextActive,
-                ]}
-              >
-                Ofertas
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.empleoTab, empleoTab === 'perfiles' && styles.empleoTabActive]}
-              onPress={() => setEmpleoTab('perfiles')}
-            >
-              <Text
-                style={[
-                  styles.empleoTabText,
-                  empleoTab === 'perfiles' && styles.empleoTabTextActive,
-                ]}
-              >
-                Perfiles
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Employment Content */}
-          {loadingEmpleo ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color={colors.primary} />
-            </View>
-          ) : (
-            <View style={styles.empleoContent}>
-              {empleoTab === 'ofertas' ? (
-                ofertas.length > 0 ? (
-                  ofertas.map(renderOferta)
-                ) : (
-                  <View style={styles.emptyState}>
-                    <IconSymbol name="briefcase" size={48} color={colors.textSecondary} />
-                    <Text style={styles.emptyStateText}>No hay ofertas disponibles</Text>
-                  </View>
-                )
-              ) : (
-                perfiles.length > 0 ? (
-                  perfiles.map(renderPerfil)
-                ) : (
-                  <View style={styles.emptyState}>
-                    <IconSymbol name="person.2" size={48} color={colors.textSecondary} />
-                    <Text style={styles.emptyStateText}>No hay perfiles disponibles</Text>
-                  </View>
-                )
-              )}
-            </View>
-          )}
+        {/* Content Tabs */}
+        <View style={styles.tabsContainer}>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'posts' && styles.tabActive]}
+            onPress={() => setActiveTab('posts')}
+          >
+            <IconSymbol 
+              name="square.grid.3x3" 
+              size={24} 
+              color={activeTab === 'posts' ? colors.primary : colors.textSecondary} 
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'favoritos' && styles.tabActive]}
+            onPress={() => setActiveTab('favoritos')}
+          >
+            <IconSymbol 
+              name="bookmark" 
+              size={24} 
+              color={activeTab === 'favoritos' ? colors.primary : colors.textSecondary} 
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'etiquetados' && styles.tabActive]}
+            onPress={() => setActiveTab('etiquetados')}
+          >
+            <IconSymbol 
+              name="person.crop.square" 
+              size={24} 
+              color={activeTab === 'etiquetados' ? colors.primary : colors.textSecondary} 
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'empleo' && styles.tabActive]}
+            onPress={() => setActiveTab('empleo')}
+          >
+            <IconSymbol 
+              name="briefcase" 
+              size={24} 
+              color={activeTab === 'empleo' ? colors.primary : colors.textSecondary} 
+            />
+          </TouchableOpacity>
         </View>
+
+        {/* Content */}
+        {loadingPosts ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        ) : (
+          <>
+            {activeTab === 'empleo' ? (
+              <View style={styles.empleoSection}>
+                {/* Employment Tabs */}
+                <View style={styles.empleoTabs}>
+                  <TouchableOpacity
+                    style={[styles.empleoTab, empleoTab === 'ofertas' && styles.empleoTabActive]}
+                    onPress={() => setEmpleoTab('ofertas')}
+                  >
+                    <Text
+                      style={[
+                        styles.empleoTabText,
+                        empleoTab === 'ofertas' && styles.empleoTabTextActive,
+                      ]}
+                    >
+                      Ofertas
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.empleoTab, empleoTab === 'perfiles' && styles.empleoTabActive]}
+                    onPress={() => setEmpleoTab('perfiles')}
+                  >
+                    <Text
+                      style={[
+                        styles.empleoTabText,
+                        empleoTab === 'perfiles' && styles.empleoTabTextActive,
+                      ]}
+                    >
+                      Perfiles
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Employment Content */}
+                {loadingEmpleo ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  </View>
+                ) : (
+                  <View style={styles.empleoContent}>
+                    {empleoTab === 'ofertas' ? (
+                      ofertas.length > 0 ? (
+                        ofertas.map(renderOferta)
+                      ) : (
+                        <View style={styles.emptyState}>
+                          <IconSymbol name="briefcase" size={48} color={colors.textSecondary} />
+                          <Text style={styles.emptyStateText}>No hay ofertas disponibles</Text>
+                          {isPropietario && (
+                            <TouchableOpacity style={styles.emptyStateButton} onPress={handleCrearOferta}>
+                              <Text style={styles.emptyStateButtonText}>Crear Oferta</Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      )
+                    ) : (
+                      perfiles.length > 0 ? (
+                        perfiles.map(renderPerfil)
+                      ) : (
+                        <View style={styles.emptyState}>
+                          <IconSymbol name="person.2" size={48} color={colors.textSecondary} />
+                          <Text style={styles.emptyStateText}>No hay perfiles disponibles</Text>
+                          {!isPropietario && (
+                            <TouchableOpacity style={styles.emptyStateButton} onPress={handleCrearPerfil}>
+                              <Text style={styles.emptyStateButtonText}>Crear Perfil</Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      )
+                    )}
+                  </View>
+                )}
+              </View>
+            ) : (
+              <View style={styles.postsGrid}>
+                {currentPosts.length > 0 ? (
+                  currentPosts.map(renderPost)
+                ) : (
+                  <View style={styles.emptyState}>
+                    <IconSymbol 
+                      name={
+                        activeTab === 'posts' ? 'photo.on.rectangle' : 
+                        activeTab === 'favoritos' ? 'bookmark' : 
+                        'person.crop.square'
+                      } 
+                      size={48} 
+                      color={colors.textSecondary} 
+                    />
+                    <Text style={styles.emptyStateText}>
+                      {activeTab === 'posts' ? 'No hay publicaciones aún' :
+                       activeTab === 'favoritos' ? 'No hay publicaciones guardadas' :
+                       'No hay publicaciones etiquetadas'}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
+          </>
+        )}
       </ScrollView>
+
+      {/* Create Options Modal */}
+      <Modal
+        visible={showCreateOptions}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowCreateOptions(false)}
+      >
+        <Pressable 
+          style={styles.createOptionsModal}
+          onPress={() => setShowCreateOptions(false)}
+        >
+          <Pressable style={styles.createOptionsContent} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.createOptionsHeader}>
+              <Text style={styles.createOptionsTitle}>Crear</Text>
+              <TouchableOpacity onPress={() => setShowCreateOptions(false)} activeOpacity={0.7}>
+                <IconSymbol name="xmark" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.createOptionsButtons}>
+              <TouchableOpacity
+                style={styles.createOptionButton}
+                onPress={() => {
+                  setShowCreateOptions(false);
+                  router.push('/crear/historia');
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={styles.createOptionIcon}>
+                  <IconSymbol name="camera.fill" size={24} color={colors.headerText} />
+                </View>
+                <View style={styles.createOptionInfo}>
+                  <Text style={styles.createOptionTitle}>Historia</Text>
+                  <Text style={styles.createOptionDescription}>
+                    Comparte un momento que desaparece en 24 horas
+                  </Text>
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.createOptionButton}
+                onPress={() => {
+                  setShowCreateOptions(false);
+                  router.push('/crear/publicacion');
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={styles.createOptionIcon}>
+                  <IconSymbol name="photo.fill" size={24} color={colors.headerText} />
+                </View>
+                <View style={styles.createOptionInfo}>
+                  <Text style={styles.createOptionTitle}>Publicación</Text>
+                  <Text style={styles.createOptionDescription}>
+                    Comparte una foto o video en tu perfil
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       <LoginRequiredModal
         visible={showLoginModal}
@@ -633,8 +1214,8 @@ const styles = StyleSheet.create({
   },
   profileHeader: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 20,
+    alignItems: 'center',
+    marginBottom: 12,
   },
   avatar: {
     width: 80,
@@ -661,12 +1242,23 @@ const styles = StyleSheet.create({
   profileUsername: {
     fontSize: 14,
     color: colors.textSecondary,
-    marginBottom: 8,
   },
   profileBio: {
     fontSize: 14,
     color: colors.text,
     lineHeight: 20,
+    marginBottom: 12,
+  },
+  websiteContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 16,
+  },
+  websiteText: {
+    fontSize: 14,
+    color: colors.primary,
+    fontWeight: '500',
   },
   statsContainer: {
     flexDirection: 'row',
@@ -709,24 +1301,109 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 8,
   },
+  createButton: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
   actionButtonText: {
     fontSize: 14,
     fontWeight: '600',
     color: colors.text,
   },
-  empleoSection: {
-    padding: 20,
-  },
-  empleoHeader: {
+  tabsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+    backgroundColor: colors.cardBackground,
+  },
+  tab: {
+    flex: 1,
     alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  tabActive: {
+    borderBottomColor: colors.primary,
+  },
+  postsGrid: {
+    padding: 1,
+  },
+  postCard: {
+    backgroundColor: colors.cardBackground,
+    marginBottom: 1,
+  },
+  postImage: {
+    width: width,
+    height: width,
+    backgroundColor: colors.cardBorder,
+  },
+  postActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  postActionButton: {
+    marginRight: 18,
+    padding: 4,
+  },
+  postActionButtonRight: {
+    marginLeft: 'auto',
+    padding: 4,
+  },
+  postInfo: {
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+  },
+  postLikes: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  postContent: {
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 20,
+    marginBottom: 4,
+  },
+  postComments: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: 4,
+  },
+  postDate: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  loadingContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
+  },
+  emptyState: {
+    paddingVertical: 60,
+    alignItems: 'center',
+  },
+  emptyStateText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 12,
     marginBottom: 16,
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.text,
+  emptyStateButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  emptyStateButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.white,
+  },
+  empleoSection: {
+    padding: 20,
   },
   empleoTabs: {
     flexDirection: 'row',
@@ -754,19 +1431,6 @@ const styles = StyleSheet.create({
   },
   empleoContent: {
     gap: 12,
-  },
-  loadingContainer: {
-    paddingVertical: 40,
-    alignItems: 'center',
-  },
-  emptyState: {
-    paddingVertical: 40,
-    alignItems: 'center',
-  },
-  emptyStateText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginTop: 12,
   },
   empleoCard: {
     backgroundColor: colors.cardBackground,
@@ -902,6 +1566,67 @@ const styles = StyleSheet.create({
   },
   perfilTagText: {
     fontSize: 12,
+    color: colors.textSecondary,
+  },
+  createOptionsModal: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  createOptionsContent: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingBottom: 34,
+  },
+  createOptionsHeader: {
+    paddingTop: 20,
+    paddingBottom: 12,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  createOptionsTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  createOptionsButtons: {
+    padding: 16,
+    gap: 12,
+  },
+  createOptionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  createOptionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  createOptionInfo: {
+    flex: 1,
+  },
+  createOptionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  createOptionDescription: {
+    fontSize: 14,
     color: colors.textSecondary,
   },
 });
