@@ -103,10 +103,10 @@ export default function TabLayout() {
           label: 'Gestión',
         },
         {
-          name: 'empleo',
-          route: '/(tabs)/empleo',
-          icon: 'person.badge.plus',
-          label: 'Empleo',
+          name: 'favoritos',
+          route: '/(tabs)/favoritos',
+          icon: 'heart.fill',
+          label: 'Favoritos',
         },
         {
           name: 'explorar',
@@ -140,10 +140,10 @@ export default function TabLayout() {
             label: 'Gestión',
           },
           {
-            name: 'empleo',
-            route: '/(tabs)/empleo',
-            icon: 'person.badge.plus',
-            label: 'Empleo',
+            name: 'favoritos',
+            route: '/(tabs)/favoritos',
+            icon: 'heart.fill',
+            label: 'Favoritos',
           },
           {
             name: 'explorar',
@@ -174,10 +174,10 @@ export default function TabLayout() {
             label: 'Eventos',
           },
           {
-            name: 'empleo',
-            route: '/(tabs)/empleo',
-            icon: 'person.badge.plus',
-            label: 'Empleo',
+            name: 'favoritos',
+            route: '/(tabs)/favoritos',
+            icon: 'heart.fill',
+            label: 'Favoritos',
           },
           {
             name: 'explorar',
@@ -211,10 +211,10 @@ export default function TabLayout() {
         label: 'Eventos',
       },
       {
-        name: 'empleo',
-        route: '/(tabs)/empleo',
-        icon: 'person.badge.plus',
-        label: 'Empleo',
+        name: 'favoritos',
+        route: '/(tabs)/favoritos',
+        icon: 'heart.fill',
+        label: 'Favoritos',
       },
       {
         name: 'explorar',
@@ -270,9 +270,9 @@ export default function TabLayout() {
           }} 
         />
         <Tabs.Screen 
-          name="empleo" 
+          name="favoritos" 
           options={{ 
-            href: '/(tabs)/empleo',
+            href: '/(tabs)/favoritos',
             animation: 'none',
             animationDuration: 0,
             lazy: false,
@@ -322,6 +322,12 @@ export default function TabLayout() {
         />
         <Tabs.Screen 
           name="profile" 
+          options={{ 
+            href: null,
+          }} 
+        />
+        <Tabs.Screen 
+          name="empleo" 
           options={{ 
             href: null,
           }} 

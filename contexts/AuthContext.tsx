@@ -140,11 +140,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 .catch(err => console.log('[AuthContext] Error registrando notificaciones:', err));
             }
           } else if (event === 'SIGNED_OUT') {
-            console.log('[AuthContext] Usuario cerró sesión - limpiando estado');
+            console.log('[AuthContext] Usuario cerró sesión - limpiando estado y redirigiendo a explorar');
             setUser(null);
             setSession(null);
             
-            // Redirect to explorar (locales list) after logout
+            // FIXED: Redirect to explorar (locales list) after logout - NO ONBOARDING
             router.replace('/(tabs)/explorar');
           } else if (event === 'TOKEN_REFRESHED') {
             console.log('[AuthContext] Token refrescado');
@@ -186,7 +186,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (!isSupabaseConfigured()) {
         console.log('[AuthContext] Supabase no configurado, sesión local limpiada');
-        // Redirect to explorar (locales list)
+        // FIXED: Redirect to explorar (locales list) - NO ONBOARDING
         router.replace('/(tabs)/explorar');
         return;
       }
@@ -201,12 +201,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       console.log('[AuthContext] Sesión cerrada exitosamente en Supabase');
       
-      // Redirect to explorar (locales list)
+      // FIXED: Redirect to explorar (locales list) - NO ONBOARDING
       router.replace('/(tabs)/explorar');
     } catch (error) {
       console.error('[AuthContext] Error en signOut:', error);
       // Even if there's an error, we've already cleared local state
       // This ensures the user is logged out locally
+      // FIXED: Redirect to explorar (locales list) - NO ONBOARDING
       router.replace('/(tabs)/explorar');
       throw error;
     }
