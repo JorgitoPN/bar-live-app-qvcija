@@ -94,13 +94,8 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
             lastNavigationTime.current = now;
 
             try {
-              // ⚡ INSTANT NAVIGATION - Use replace with no animation
-              // FIXED: For perfil tab, explicitly navigate to index
-              if (tab.name === 'perfil') {
-                router.replace('/(tabs)/perfil/index' as any);
-              } else {
-                router.replace(tab.route as any);
-              }
+              // ⚡ INSTANT NAVIGATION - Use push instead of replace to ensure proper navigation
+              router.push(tab.route as any);
             } catch (error) {
               console.error('❌ Navigation error:', error);
             }
