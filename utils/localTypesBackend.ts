@@ -4,6 +4,7 @@
  * Solo importar y enriquecer locales de ocio nocturno y restauración en España
  * 
  * ACTUALIZADO: Nueva lista de tipos válidos basada en Google Places API
+ * MEJORADO: Sistema de validación más inteligente que prioriza tipos válidos
  */
 
 // ✅ TIPOS VÁLIDOS DE GOOGLE PLACES (ACTUALIZADO 2024)
@@ -58,8 +59,6 @@ export const TIPOS_PROHIBIDOS = [
   'physiotherapist', 'health',
   
   // ❌ TIENDAS Y COMERCIOS
-  'store',               // Tienda general
-  'shop',                // Tienda
   'clothing_store', 'shoe_store', 
   'hardware_store', 'furniture_store', 'electronics_store',
   'home_goods_store', 'shopping_mall', 'supermarket',
@@ -82,7 +81,7 @@ export const TIPOS_PROHIBIDOS = [
   // ❌ ALOJAMIENTO
   'lodging', 'hotel', 'motel', 'campground',
   
-  // ❌ EDUCACIÓN Y CULTURA (REMOVIDO 'university' y 'school' para permitir discotecas con esos nombres)
+  // ❌ EDUCACIÓN Y CULTURA
   'library', 'primary_school', 'secondary_school',
   
   // ❌ RELIGIÓN
@@ -112,6 +111,27 @@ export const TIPOS_GENERICOS = [
 export const TIPOS_AMBIGUOS = [
   'university',  // "Facultad Sdc" es una discoteca
   'school',      // Algunas discotecas tienen nombres educativos
+  'store',       // Algunas discotecas tienen "store" en sus tipos
+];
+
+/**
+ * 🔍 PALABRAS CLAVE EN NOMBRES QUE INDICAN OCIO NOCTURNO
+ * Si el nombre contiene estas palabras, es muy probable que sea un local válido
+ */
+export const PALABRAS_CLAVE_OCIO_NOCTURNO = [
+  // Discotecas y clubs
+  'discoteca', 'disco', 'club', 'night', 'dance', 'dancing',
+  'sdc', 'facultad', 'sala', 'malavida', 'malatesta', 'filomatic',
+  'garufa', 'josfer', 'blaster', 'tsunami', 'feelings', 'jumanji',
+  'eros', 'duplex', 'onda', 'sky', 'turini', 'capital',
+  
+  // Salas de conciertos y música
+  'concert', 'concierto', 'music', 'musica', 'live', 'vivo',
+  'stage', 'escenario', 'venue',
+  
+  // Bares y pubs
+  'bar', 'pub', 'tavern', 'taberna', 'cerveceria', 'brewery',
+  'tapas', 'coctel', 'cocktail', 'lounge', 'rooftop',
 ];
 
 /**
@@ -156,19 +176,42 @@ export function obtenerTiposProhibidos(types: string[]): string[] {
 }
 
 /**
+ * 🧠 VERIFICAR SI EL NOMBRE INDICA OCIO NOCTURNO
+ * Analiza el nombre del local para detectar palabras clave de ocio nocturno
+ */
+export function nombreIndicaOcioNocturno(nombre: string): boolean {
+  if (!nombre) return false;
+  
+  const nombreLower = nombre.toLowerCase();
+  
+  return PALABRAS_CLAVE_OCIO_NOCTURNO.some(palabra => 
+    nombreLower.includes(palabra)
+  );
+}
+
+/**
  * Validar si un local es válido para BarLive
  * NUEVA LÓGICA MEJORADA:
- * 1. Si tiene tipos válidos (bar, night_club, restaurant, etc.) → ACEPTAR
- * 2. Si tiene tipos prohibidos SIN tipos válidos → RECHAZAR
- * 3. Si tiene tipos ambiguos (university, store) pero también tipos válidos → ACEPTAR
- * 4. Verificar business_status (solo OPERATIONAL o sin estado)
+ * 1. Si el nombre indica ocio nocturno → ACEPTAR (ignorar tipos)
+ * 2. Si tiene tipos válidos (bar, night_club, restaurant, etc.) → ACEPTAR
+ * 3. Si tiene tipos prohibidos SIN tipos válidos → RECHAZAR
+ * 4. Si tiene tipos ambiguos (university, store) pero también tipos válidos → ACEPTAR
+ * 5. Verificar business_status (solo OPERATIONAL o sin estado)
  */
-export function esLocalValidoParaBarlive(types: string[]): {
+export function esLocalValidoParaBarlive(types: string[], nombre?: string): {
   valido: boolean;
   razon?: string;
 } {
   console.log('[Type Validation] ========================================');
   console.log('[Type Validation] Checking types:', types);
+  console.log('[Type Validation] Name:', nombre);
+  
+  // 🎯 PASO 0: Verificar si el nombre indica ocio nocturno
+  if (nombre && nombreIndicaOcioNocturno(nombre)) {
+    console.log('[Type Validation] ✅ Name indicates nightlife venue, ACCEPTING');
+    console.log('[Type Validation] ========================================');
+    return { valido: true };
+  }
   
   // Filtrar tipos genéricos
   const tiposRelevantes = types.filter(t => !TIPOS_GENERICOS.includes(t));
@@ -303,11 +346,100 @@ export function esEstadoNegocioValido(businessStatus?: string): {
 }
 
 /**
+ * 🕐 VALIDAR HORARIOS PARA CATEGORÍA OSM
+ * Verifica que los horarios sean compatibles con el tipo de local
+ */
+export function validarHorariosPorCategoria(
+  categoriaOSM: string,
+  openingHours?: any
+): {
+  valido: boolean;
+  razon?: string;
+} {
+  // Si no hay horarios, aceptar (se enriquecerá después)
+  if (!openingHours || !openingHours.periods) {
+    return { valido: true };
+  }
+  
+  // Calcular promedio de apertura y cierre
+  const horarios = openingHours.periods;
+  let sumaApertura = 0;
+  let sumaCierre = 0;
+  let count = 0;
+  
+  for (const period of horarios) {
+    if (period.open && period.open.time) {
+      const horaApertura = parseInt(period.open.time.substring(0, 2));
+      sumaApertura += horaApertura;
+      count++;
+    }
+    if (period.close && period.close.time) {
+      let horaCierre = parseInt(period.close.time.substring(0, 2));
+      // Si cierra después de medianoche, ajustar
+      if (horaCierre < 6) horaCierre += 24;
+      sumaCierre += horaCierre;
+    }
+  }
+  
+  if (count === 0) {
+    return { valido: true };
+  }
+  
+  const aperturaMedia = sumaApertura / count;
+  const cierreMedia = sumaCierre / count;
+  
+  console.log(`[Schedule Validation] Category: ${categoriaOSM}, Avg open: ${aperturaMedia.toFixed(1)}h, Avg close: ${cierreMedia.toFixed(1)}h`);
+  
+  // Validar según categoría
+  switch (categoriaOSM) {
+    case 'nightclub':
+    case 'discoteca':
+      // Discotecas: deben abrir tarde (≥20:00) y cerrar de madrugada (≥28:00 = 04:00)
+      if (aperturaMedia < 20 || cierreMedia < 28) {
+        return {
+          valido: false,
+          razon: `Horario no compatible con discoteca (abre ${aperturaMedia.toFixed(1)}h, cierra ${(cierreMedia % 24).toFixed(1)}h)`,
+        };
+      }
+      break;
+      
+    case 'bar':
+    case 'pub':
+      // Bares/Pubs: deben abrir por la tarde (≥16:00) y cerrar tarde (≥26:00 = 02:00)
+      if (aperturaMedia < 16 || cierreMedia < 26) {
+        return {
+          valido: false,
+          razon: `Horario no compatible con bar/pub (abre ${aperturaMedia.toFixed(1)}h, cierra ${(cierreMedia % 24).toFixed(1)}h)`,
+        };
+      }
+      break;
+      
+    case 'cafe':
+      // Cafés: deben abrir temprano (≤10:00) y cerrar antes (≤23:00)
+      if (aperturaMedia > 10) {
+        return {
+          valido: false,
+          razon: `Horario no compatible con café (abre ${aperturaMedia.toFixed(1)}h)`,
+        };
+      }
+      break;
+      
+    case 'restaurant':
+      // Restaurantes: horario flexible, pero no deben cerrar muy tarde
+      // Aceptar cualquier horario razonable
+      break;
+  }
+  
+  return { valido: true };
+}
+
+/**
  * Validación completa de un local
  * Aplica todos los filtros de validación en orden:
- * 1. Validar tipos (debe tener al menos un tipo válido)
+ * 1. Validar tipos (debe tener al menos un tipo válido O nombre indicativo)
  * 2. Validar ubicación (debe estar en España)
  * 3. Validar estado del negocio (debe estar operativo)
+ * 4. Validar horarios según categoría (opcional)
  */
 export function validarLocalCompleto(placeDetails: {
   types?: string[];
@@ -315,15 +447,16 @@ export function validarLocalCompleto(placeDetails: {
   plus_code?: { global_code?: string };
   business_status?: string;
   name?: string;
-}): {
+  opening_hours?: any;
+}, categoriaOSM?: string): {
   valido: boolean;
   razon?: string;
 } {
   console.log('[Complete Validation] ========================================');
   console.log('[Complete Validation] Validating:', placeDetails.name);
   
-  // 1. Validar tipos
-  const validacionTipos = esLocalValidoParaBarlive(placeDetails.types || []);
+  // 1. Validar tipos (ahora incluye validación de nombre)
+  const validacionTipos = esLocalValidoParaBarlive(placeDetails.types || [], placeDetails.name);
   if (!validacionTipos.valido) {
     console.log('[Complete Validation] ❌ Failed type validation');
     return validacionTipos;
@@ -347,6 +480,15 @@ export function validarLocalCompleto(placeDetails: {
   if (!validacionEstado.valido) {
     console.log('[Complete Validation] ❌ Failed business status validation');
     return validacionEstado;
+  }
+  
+  // 4. Validar horarios según categoría (opcional, solo advertencia)
+  if (categoriaOSM && placeDetails.opening_hours) {
+    const validacionHorarios = validarHorariosPorCategoria(categoriaOSM, placeDetails.opening_hours);
+    if (!validacionHorarios.valido) {
+      console.log('[Complete Validation] ⚠️ Schedule validation warning:', validacionHorarios.razon);
+      // No rechazar, solo advertir
+    }
   }
   
   console.log('[Complete Validation] ✅ All validations passed');

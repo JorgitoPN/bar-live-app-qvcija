@@ -53,6 +53,7 @@ export async function googlePlacesNearby(params: {
   location: string;
   radius: number;
   keyword: string;
+  type?: string;
 }): Promise<any | null> {
   try {
     // 🔒 VERIFICAR DISPONIBILIDAD API
@@ -64,7 +65,12 @@ export async function googlePlacesNearby(params: {
     
     console.log(`[Google Places] Nearby search: ${params.keyword} at ${params.location}`);
     
-    const url = `${NEARBY_SEARCH_URL}?location=${params.location}&radius=${params.radius}&keyword=${encodeURIComponent(params.keyword)}&key=${GOOGLE_PLACES_API_KEY}&language=es`;
+    let url = `${NEARBY_SEARCH_URL}?location=${params.location}&radius=${params.radius}&keyword=${encodeURIComponent(params.keyword)}&key=${GOOGLE_PLACES_API_KEY}&language=es`;
+    
+    // Añadir tipo si se especifica
+    if (params.type) {
+      url += `&type=${params.type}`;
+    }
     
     const response = await fetch(url);
     const data = await response.json();
@@ -83,6 +89,122 @@ export async function googlePlacesNearby(params: {
     console.error('[Google Places] Nearby search error:', error);
     throw error;
   }
+}
+
+/**
+ * 🔍 BÚSQUEDA MEJORADA CON MÚLTIPLES ESTRATEGIAS
+ * Implementa 5 estrategias de búsqueda para maximizar la tasa de éxito
+ */
+export async function buscarLocalConEstrategias(params: {
+  nombre: string;
+  direccion: string;
+  provincia: string;
+  tipo: string;
+  latitud?: number;
+  longitud?: number;
+}): Promise<any | null> {
+  console.log('[Multi-Strategy Search] ========================================');
+  console.log('[Multi-Strategy Search] Searching for:', params.nombre);
+  
+  // ESTRATEGIA 1: Búsqueda por texto con nombre + ciudad + provincia
+  const ciudad = params.direccion.split(',')[0].trim();
+  const query1 = `${params.nombre} ${ciudad} ${params.provincia}`;
+  console.log('[Multi-Strategy Search] Strategy 1: Text search with full address');
+  console.log(`[Multi-Strategy Search] Query: "${query1}"`);
+  
+  let result = await googlePlacesTextSearch(query1);
+  if (result && result.place_id) {
+    console.log('[Multi-Strategy Search] ✅ Found with Strategy 1');
+    console.log('[Multi-Strategy Search] ========================================');
+    return result;
+  }
+  
+  // ESTRATEGIA 2: Búsqueda por proximidad (nearby search) con tipo específico
+  if (params.latitud && params.longitud) {
+    console.log('[Multi-Strategy Search] Strategy 2: Nearby search with type');
+    
+    // Mapear tipo OSM a tipo Google
+    const tipoGoogle = mapearTipoOSMaGoogle(params.tipo);
+    console.log(`[Multi-Strategy Search] Type: ${tipoGoogle}`);
+    
+    result = await googlePlacesNearby({
+      location: `${params.latitud},${params.longitud}`,
+      radius: 100, // 100 metros
+      keyword: params.nombre,
+      type: tipoGoogle,
+    });
+    
+    if (result && result.place_id) {
+      console.log('[Multi-Strategy Search] ✅ Found with Strategy 2');
+      console.log('[Multi-Strategy Search] ========================================');
+      return result;
+    }
+  }
+  
+  // ESTRATEGIA 3: Búsqueda solo con nombre + provincia
+  const query3 = `${params.nombre} ${params.provincia}`;
+  console.log('[Multi-Strategy Search] Strategy 3: Text search with name + province');
+  console.log(`[Multi-Strategy Search] Query: "${query3}"`);
+  
+  result = await googlePlacesTextSearch(query3);
+  if (result && result.place_id) {
+    console.log('[Multi-Strategy Search] ✅ Found with Strategy 3');
+    console.log('[Multi-Strategy Search] ========================================');
+    return result;
+  }
+  
+  // ESTRATEGIA 4: Búsqueda con tipo de local + nombre + provincia
+  const tipoLocal = params.tipo === 'discoteca' ? 'nightclub' : params.tipo;
+  const query4 = `${tipoLocal} ${params.nombre} ${params.provincia}`;
+  console.log('[Multi-Strategy Search] Strategy 4: Text search with type + name');
+  console.log(`[Multi-Strategy Search] Query: "${query4}"`);
+  
+  result = await googlePlacesTextSearch(query4);
+  if (result && result.place_id) {
+    console.log('[Multi-Strategy Search] ✅ Found with Strategy 4');
+    console.log('[Multi-Strategy Search] ========================================');
+    return result;
+  }
+  
+  // ESTRATEGIA 5: Búsqueda por proximidad sin tipo específico (más amplia)
+  if (params.latitud && params.longitud) {
+    console.log('[Multi-Strategy Search] Strategy 5: Nearby search without type');
+    
+    result = await googlePlacesNearby({
+      location: `${params.latitud},${params.longitud}`,
+      radius: 150, // Radio más amplio: 150 metros
+      keyword: params.nombre,
+    });
+    
+    if (result && result.place_id) {
+      console.log('[Multi-Strategy Search] ✅ Found with Strategy 5');
+      console.log('[Multi-Strategy Search] ========================================');
+      return result;
+    }
+  }
+  
+  console.log('[Multi-Strategy Search] ❌ Not found with any strategy');
+  console.log('[Multi-Strategy Search] ========================================');
+  return null;
+}
+
+/**
+ * Mapear tipo OSM a tipo Google Places
+ */
+function mapearTipoOSMaGoogle(tipoOSM: string): string {
+  const mapping: Record<string, string> = {
+    'bar': 'bar',
+    'pub': 'bar',
+    'discoteca': 'night_club',
+    'cafe': 'cafe',
+    'restaurante': 'restaurant',
+    'cocteleria': 'bar',
+    'terraza': 'bar',
+    'lounge': 'bar',
+    'rooftop': 'bar',
+  };
+  
+  return mapping[tipoOSM] || 'bar';
 }
 
 /**
@@ -110,6 +232,7 @@ export async function googlePlacesDetails(
       'user_ratings_total',
       'website',
       'formatted_phone_number',
+      'international_phone_number',
       'opening_hours',
       'photos',
       'types',
@@ -118,6 +241,7 @@ export async function googlePlacesDetails(
       'reviews',
       'editorial_summary',
       'business_status',
+      'plus_code',
     ];
     
     const fieldsToUse = fields || defaultFields;

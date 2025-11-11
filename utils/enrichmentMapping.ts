@@ -5,6 +5,7 @@ import { GooglePlaceDetails } from '@/types';
  * 🧠 MAPEO INTELIGENTE DE TIPOS
  * Google Types → BarLive Types
  * ACTUALIZADO: Incluye nuevos tipos de Google Places API
+ * MEJORADO: Análisis de nombre para detectar discotecas y salas
  */
 const GOOGLE_TO_BARLIVE_TYPES: Record<string, string[]> = {
   // Bares
@@ -59,19 +60,31 @@ const GOOGLE_TO_BARLIVE_TYPES: Record<string, string[]> = {
 };
 
 /**
- * Palabras clave en nombres que indican tipo de local
+ * 🎯 PALABRAS CLAVE EN NOMBRES QUE INDICAN TIPO DE LOCAL
+ * MEJORADO: Lista ampliada con nombres reales de discotecas gallegas
  */
 const NOMBRE_KEYWORDS: Record<string, string[]> = {
-  'discoteca': ['disco', 'discoteca', 'club', 'night', 'dance', 'sdc', 'facultad'],
-  'bar': ['bar', 'pub', 'tavern', 'cerveceria', 'brewery'],
-  'cocteleria': ['cocktail', 'coctel', 'lounge', 'mixology'],
-  'cafe': ['cafe', 'coffee', 'cafeteria'],
-  'restaurante': ['restaurant', 'restaurante', 'bistro', 'grill'],
+  'discoteca': [
+    // Palabras genéricas
+    'disco', 'discoteca', 'club', 'night', 'dance', 'dancing',
+    // Nombres específicos de discotecas gallegas y españolas
+    'sdc', 'facultad', 'sala', 'malavida', 'malatesta', 'filomatic',
+    'garufa', 'josfer', 'blaster', 'tsunami', 'feelings', 'jumanji',
+    'eros', 'duplex', 'onda', 'sky', 'turini', 'capital', 'mardi gras',
+    'lolita', 'lowe', 'ruido', 'concha', 'khatarsis', 'tonos',
+    // Palabras relacionadas
+    'nightclub', 'nightlife', 'nocturno', 'nocturna',
+  ],
+  'bar': ['bar', 'pub', 'tavern', 'cerveceria', 'brewery', 'taberna'],
+  'cocteleria': ['cocktail', 'coctel', 'lounge', 'mixology', 'cocteles'],
+  'cafe': ['cafe', 'coffee', 'cafeteria', 'cafetería'],
+  'restaurante': ['restaurant', 'restaurante', 'bistro', 'grill', 'gastro'],
+  'sala_conciertos': ['sala', 'concert', 'concierto', 'music', 'musica', 'live', 'vivo'],
 };
 
 /**
  * Mapear tipos de Google Places a tipos de BarLive
- * MEJORADO: Analiza también el nombre del local para detectar discotecas
+ * MEJORADO: Analiza también el nombre del local para detectar discotecas y salas
  */
 export function mapGoogleTypesToBarlive(googleTypes: string[], nombreLocal?: string): string[] {
   console.log('[Mapping] ========================================');

@@ -17,7 +17,7 @@ import { colors, commonStyles } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { supabase } from '@/utils/supabase';
-import { googlePlacesTextSearch, googlePlacesDetails, googlePlacesNearby } from '@/utils/googlePlacesApi';
+import { googlePlacesDetails, buscarLocalConEstrategias } from '@/utils/googlePlacesApi';
 import { mapGoogleTypesToBarlive, categorizarPorHorarios, mapearNivelPrecio } from '@/utils/enrichmentMapping';
 import { validarLocalCompleto, estaEnEspana } from '@/utils/localTypesBackend';
 import * as Clipboard from 'expo-clipboard';
@@ -393,7 +393,7 @@ export default function EnriquecimientoGoogleScreen() {
     
     Alert.alert(
       'Confirmar Enriquecimiento',
-      `Se procesarán ${localesAProcesar} locales de la categoría "${categoriaSeleccionada}".\n\n📸 Las fotos se descargarán de Google Places y se subirán a Supabase Storage.\n\nCoste estimado: $${coste}\n\n¿Continuar?`,
+      `Se procesarán ${localesAProcesar} locales de la categoría "${categoriaSeleccionada}".\n\n📸 Las fotos se descargarán de Google Places y se subirán a Supabase Storage.\n\n🔍 Se usarán 5 estrategias de búsqueda para maximizar resultados.\n\nCoste estimado: $${coste}\n\n¿Continuar?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -461,75 +461,13 @@ export default function EnriquecimientoGoogleScreen() {
     return 'desconocido';
   };
 
-  // Función mejorada para buscar en Google Places con múltiples estrategias
-  const buscarEnGooglePlaces = async (local: LocalPendiente) => {
-    agregarLog('info', `🔍 Buscando "${local.nombre}" en Google Places...`);
-    
-    // ESTRATEGIA 1: Búsqueda por texto con nombre + ciudad
-    const ciudad = local.direccion.split(',')[0].trim();
-    const query1 = `${local.nombre} ${ciudad} ${local.provincia}`;
-    agregarLog('info', `   Estrategia 1: "${query1}"`);
-    
-    let placeResult = await googlePlacesTextSearch(query1);
-    
-    if (placeResult && placeResult.place_id) {
-      agregarLog('success', `   ✅ Encontrado con estrategia 1`);
-      return placeResult;
-    }
-    
-    // ESTRATEGIA 2: Búsqueda por proximidad (nearby search)
-    if (local.latitud && local.longitud) {
-      agregarLog('info', `   Estrategia 2: Búsqueda por proximidad`);
-      
-      try {
-        placeResult = await googlePlacesNearby({
-          location: `${local.latitud},${local.longitud}`,
-          radius: 100, // 100 metros de radio
-          keyword: local.nombre,
-        });
-        
-        if (placeResult && placeResult.place_id) {
-          agregarLog('success', `   ✅ Encontrado con estrategia 2 (proximidad)`);
-          return placeResult;
-        }
-      } catch (error) {
-        console.error('Error in nearby search:', error);
-      }
-    }
-    
-    // ESTRATEGIA 3: Búsqueda solo con nombre + provincia
-    const query3 = `${local.nombre} ${local.provincia}`;
-    agregarLog('info', `   Estrategia 3: "${query3}"`);
-    
-    placeResult = await googlePlacesTextSearch(query3);
-    
-    if (placeResult && placeResult.place_id) {
-      agregarLog('success', `   ✅ Encontrado con estrategia 3`);
-      return placeResult;
-    }
-    
-    // ESTRATEGIA 4: Búsqueda con tipo de local
-    const tipoLocal = local.tipo === 'discoteca' ? 'nightclub' : local.tipo;
-    const query4 = `${tipoLocal} ${local.nombre} ${local.provincia}`;
-    agregarLog('info', `   Estrategia 4: "${query4}"`);
-    
-    placeResult = await googlePlacesTextSearch(query4);
-    
-    if (placeResult && placeResult.place_id) {
-      agregarLog('success', `   ✅ Encontrado con estrategia 4`);
-      return placeResult;
-    }
-    
-    agregarLog('warning', `   ❌ No encontrado con ninguna estrategia`);
-    return null;
-  };
-
   const procesarEnriquecimiento = async (numLocales: number) => {
     performanceMonitor.start('procesarEnriquecimiento');
     setProcesando(true);
     setProgreso({ actual: 0, total: numLocales });
     agregarLog('info', `🚀 Iniciando enriquecimiento de ${numLocales} locales...`);
     agregarLog('info', '📸 Las fotos se descargarán y subirán a Supabase Storage');
+    agregarLog('info', '🔍 Usando búsqueda multi-estrategia (5 estrategias)');
 
     let exitosos = 0;
     let fallidos = 0;
@@ -548,7 +486,14 @@ export default function EnriquecimientoGoogleScreen() {
           performanceMonitor.start(`enrich_${local.id}`);
           
           // 🔍 PASO 1: Buscar en Google Places con múltiples estrategias
-          const placeResult = await buscarEnGooglePlaces(local);
+          const placeResult = await buscarLocalConEstrategias({
+            nombre: local.nombre,
+            direccion: local.direccion,
+            provincia: local.provincia,
+            tipo: local.tipo,
+            latitud: local.latitud,
+            longitud: local.longitud,
+          });
           
           if (!placeResult || !placeResult.place_id) {
             agregarLog('warning', `⚠️ No encontrado en Google: ${local.nombre}`);
@@ -587,7 +532,7 @@ export default function EnriquecimientoGoogleScreen() {
           
           // ✅ PASO 3: VALIDAR LOCAL CON SISTEMA DE DISCRIMINACIÓN
           agregarLog('info', `🔍 Validando: ${local.nombre}...`);
-          const validacionCompleta = validarLocalCompleto(details);
+          const validacionCompleta = validarLocalCompleto(details, local.tipo);
           
           if (!validacionCompleta.valido) {
             agregarLog('error', `❌ RECHAZADO: ${local.nombre} - ${validacionCompleta.razon}`);
@@ -615,7 +560,7 @@ export default function EnriquecimientoGoogleScreen() {
           );
           
           if (!enEspana) {
-            agregarLog('error', `❌ RECHAZADO: ${local.nombre} - Fuera de España`);
+            agregarLog('error', `❌ RECHAZADO: ${local.nombre} - Local fuera de España`);
             rechazados++;
             
             await supabase
@@ -623,7 +568,7 @@ export default function EnriquecimientoGoogleScreen() {
               .update({
                 enriquecido: false,
                 activo: false,
-                notas_rechazo: 'Fuera de España',
+                notas_rechazo: 'Local fuera de España',
                 fecha_actualizacion: new Date().toISOString(),
               })
               .eq('id', local.id);
@@ -942,7 +887,7 @@ export default function EnriquecimientoGoogleScreen() {
       
       Alert.alert(
         'Enriquecimiento Completado',
-        `Se procesaron ${numLocales} locales.\n\n✅ Exitosos: ${exitosos}\n❌ Fallidos: ${fallidos}\n🚫 Rechazados: ${rechazados}\n\n📸 Las fotos se han guardado en Supabase Storage`,
+        `Se procesaron ${numLocales} locales.\n\n✅ Exitosos: ${exitosos}\n❌ Fallidos: ${fallidos}\n🚫 Rechazados: ${rechazados}\n\n📸 Las fotos se han guardado en Supabase Storage\n🔍 Búsqueda multi-estrategia activada`,
         [
           {
             text: 'Ver Estadísticas',
@@ -1161,25 +1106,27 @@ export default function EnriquecimientoGoogleScreen() {
         />
 
         <View style={[styles.infoBox, { marginTop: 15, backgroundColor: '#DBEAFE' }]}>
-          <Text style={[styles.infoBoxTitle, { color: '#1E40AF' }]}>🔍 Búsqueda Mejorada en Google Places</Text>
+          <Text style={[styles.infoBoxTitle, { color: '#1E40AF' }]}>🔍 Búsqueda Mejorada Multi-Estrategia</Text>
           <Text style={[styles.infoBoxText, { color: '#1E40AF', marginTop: 5 }]}>
-            Ahora se utilizan 4 estrategias de búsqueda:{'\n\n'}
+            Se utilizan 5 estrategias de búsqueda:{'\n\n'}
             1️⃣ Nombre + Ciudad + Provincia{'\n'}
-            2️⃣ Búsqueda por proximidad (100m){'\n'}
+            2️⃣ Búsqueda por proximidad con tipo (100m){'\n'}
             3️⃣ Nombre + Provincia{'\n'}
-            4️⃣ Tipo + Nombre + Provincia{'\n\n'}
-            Esto mejora significativamente la tasa de éxito para encontrar locales como "Blaster" en Santiago de Compostela.
+            4️⃣ Tipo + Nombre + Provincia{'\n'}
+            5️⃣ Búsqueda por proximidad amplia (150m){'\n\n'}
+            Esto maximiza la tasa de éxito para encontrar locales como &quot;Blaster&quot;, &quot;Filomatic&quot;, &quot;Sala Malatesta&quot;, etc.
           </Text>
         </View>
 
         <View style={[styles.infoBox, { marginTop: 10, backgroundColor: '#D1FAE5' }]}>
-          <Text style={[styles.infoBoxTitle, { color: '#065F46' }]}>✅ Sistema de Validación</Text>
+          <Text style={[styles.infoBoxTitle, { color: '#065F46' }]}>✅ Sistema de Validación Inteligente</Text>
           <Text style={[styles.infoBoxText, { color: '#065F46', marginTop: 5 }]}>
-            Cada local será validado:{'\n\n'}
-            ✅ Tipos válidos (bar, night_club, restaurant, etc.){'\n'}
+            Validación mejorada:{'\n\n'}
+            ✅ Análisis de nombre (detecta discotecas por nombre){'\n'}
+            ✅ Tipos válidos priorizados sobre prohibidos{'\n'}
             ✅ Business status (solo OPERATIONAL){'\n'}
             ✅ Ubicación en España{'\n'}
-            ❌ Rechazar tipos prohibidos (store, pharmacy, etc.){'\n\n'}
+            ✅ Validación de horarios por categoría{'\n\n'}
             Los locales rechazados se marcarán con el motivo.
           </Text>
         </View>
@@ -1290,7 +1237,7 @@ export default function EnriquecimientoGoogleScreen() {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Enriquecimiento con Google Places</Text>
         <Text style={styles.headerSubtitle}>
-          🔍 Búsqueda mejorada con 4 estrategias
+          🔍 Búsqueda multi-estrategia + Validación inteligente
         </Text>
       </LinearGradient>
 
