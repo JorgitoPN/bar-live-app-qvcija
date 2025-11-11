@@ -13,6 +13,7 @@ import {
   Modal,
   Pressable,
   Linking,
+  Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -23,7 +24,7 @@ import { useMode } from '@/contexts/ModeContext';
 import { supabase } from '@/utils/supabase';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 3) / 3;
 
 interface Post {
@@ -77,6 +78,22 @@ interface PerfilProfesional {
   };
 }
 
+interface HistoriaConAutor {
+  id: string;
+  autor_id: string;
+  tipo: string;
+  imagen: string;
+  created_at: string;
+  expires_at: string;
+  visto: boolean;
+  autor?: {
+    nombre: string;
+    avatar?: string;
+    username?: string;
+  };
+  visto_por_usuario?: boolean;
+}
+
 function formatearFecha(fecha: string): string {
   const ahora = new Date();
   const fechaPost = new Date(fecha);
@@ -120,6 +137,15 @@ export default function PerfilScreen() {
   const [perfiles, setPerfiles] = useState<PerfilProfesional[]>([]);
   const [loadingEmpleo, setLoadingEmpleo] = useState(false);
 
+  // FIXED: Story viewer states
+  const [showStoryViewer, setShowStoryViewer] = useState(false);
+  const [userStories, setUserStories] = useState<HistoriaConAutor[]>([]);
+  const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
+  const [currentStoryProgress, setCurrentStoryProgress] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const storyTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const storyProgressRef = useRef<NodeJS.Timeout | null>(null);
+
   const userRole = user?.rol_app || 'cliente';
   const isPropietario = userRole === 'propietario' || (userRole === 'admin' && currentMode === 'propietario');
 
@@ -161,7 +187,7 @@ export default function PerfilScreen() {
       setSeguidos(seguidosCount || 0);
       setPublicaciones(publicacionesCount || 0);
 
-      // FIXED: Check if user has active stories (same logic as locales list)
+      // FIXED: Check if user has active stories
       const { data: storiesData } = await supabase
         .from('historias')
         .select('id')
@@ -170,6 +196,46 @@ export default function PerfilScreen() {
         .limit(1);
 
       setHasActiveStory((storiesData?.length || 0) > 0);
+
+      // FIXED: Load user's stories for viewer
+      const { data: userStoriesData } = await supabase
+        .from('historias')
+        .select(`
+          id,
+          autor_id,
+          tipo,
+          imagen,
+          created_at,
+          expires_at,
+          visto
+        `)
+        .eq('autor_id', user.id)
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: true });
+
+      if (userStoriesData) {
+        // Check which stories have been viewed by the user
+        const storyIds = userStoriesData.map(s => s.id);
+        const { data: viewedData } = await supabase
+          .from('historia_views')
+          .select('historia_id')
+          .eq('usuario_id', user.id)
+          .in('historia_id', storyIds);
+
+        const viewedStoryIds = new Set(viewedData?.map(v => v.historia_id) || []);
+
+        const storiesWithStatus = userStoriesData.map(story => ({
+          ...story,
+          visto_por_usuario: viewedStoryIds.has(story.id),
+          autor: {
+            nombre: user.nombre,
+            avatar: user.avatar,
+            username: user.username,
+          },
+        }));
+
+        setUserStories(storiesWithStatus);
+      }
 
       // Load initial content based on active tab
       await cargarContenido();
@@ -527,6 +593,115 @@ export default function PerfilScreen() {
     return `Hace ${Math.floor(diffDias / 30)} meses`;
   };
 
+  // FIXED: Story viewer functions
+  const stopStoryTimer = useCallback(() => {
+    if (storyTimerRef.current) {
+      clearTimeout(storyTimerRef.current);
+      storyTimerRef.current = null;
+    }
+    if (storyProgressRef.current) {
+      clearInterval(storyProgressRef.current);
+      storyProgressRef.current = null;
+    }
+  }, []);
+
+  const handleNextStory = useCallback(async () => {
+    const currentStory = userStories[currentStoryIndex];
+    
+    // Mark story as viewed
+    if (currentStory && user) {
+      try {
+        const { data: existingView } = await supabase
+          .from('historia_views')
+          .select('id')
+          .eq('historia_id', currentStory.id)
+          .eq('usuario_id', user.id)
+          .single();
+
+        if (!existingView) {
+          await supabase.from('historia_views').insert({
+            historia_id: currentStory.id,
+            usuario_id: user.id,
+          });
+        }
+      } catch (error) {
+        console.error('[Perfil] Error marking story as viewed:', error);
+      }
+    }
+    
+    if (currentStoryIndex < userStories.length - 1) {
+      setCurrentStoryIndex(currentStoryIndex + 1);
+      setCurrentStoryProgress(0);
+    } else {
+      // Reload profile data to update story status
+      await cargarDatosPerfil();
+      setShowStoryViewer(false);
+      stopStoryTimer();
+    }
+  }, [currentStoryIndex, userStories, stopStoryTimer, user, cargarDatosPerfil]);
+
+  const startStoryTimer = useCallback(() => {
+    if (storyTimerRef.current) {
+      clearTimeout(storyTimerRef.current);
+    }
+    if (storyProgressRef.current) {
+      clearInterval(storyProgressRef.current);
+    }
+
+    setCurrentStoryProgress(0);
+
+    storyProgressRef.current = setInterval(() => {
+      setCurrentStoryProgress(prev => {
+        if (prev >= 100) {
+          return 100;
+        }
+        return prev + 1;
+      });
+    }, 50);
+
+    storyTimerRef.current = setTimeout(() => {
+      handleNextStory();
+    }, 5000);
+  }, [handleNextStory]);
+
+  const handlePreviousStory = useCallback(() => {
+    if (currentStoryIndex > 0) {
+      setCurrentStoryIndex(currentStoryIndex - 1);
+      setCurrentStoryProgress(0);
+      startStoryTimer();
+    } else {
+      setShowStoryViewer(false);
+      stopStoryTimer();
+    }
+  }, [currentStoryIndex, startStoryTimer, stopStoryTimer]);
+
+  const handleAvatarPress = useCallback(() => {
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+
+    if (userStories.length > 0) {
+      // Open story viewer
+      setCurrentStoryIndex(0);
+      setShowStoryViewer(true);
+      setIsPaused(false);
+      startStoryTimer();
+    } else {
+      // Create new story
+      router.push('/crear/historia');
+    }
+  }, [user, userStories, startStoryTimer, router]);
+
+  useEffect(() => {
+    if (showStoryViewer && !isPaused) {
+      startStoryTimer();
+    }
+    return () => {
+      stopStoryTimer();
+    };
+  }, [showStoryViewer, currentStoryIndex, isPaused, startStoryTimer, stopStoryTimer]);
+
   const renderGridPost = (post: Post) => (
     <TouchableOpacity
       key={post.id}
@@ -694,6 +869,8 @@ export default function PerfilScreen() {
   }
 
   const currentPosts = activeTab === 'posts' ? posts : activeTab === 'favoritos' ? savedPosts : taggedPosts;
+  const currentStory = userStories[currentStoryIndex];
+  const hasUnviewedUserStories = userStories.some(s => !s.visto_por_usuario);
 
   return (
     <View style={commonStyles.container}>
@@ -731,9 +908,13 @@ export default function PerfilScreen() {
         {/* Profile Info */}
         <View style={styles.profileSection}>
           <View style={styles.profileHeader}>
-            {/* FIXED: Avatar with story ring (same as locales list) */}
-            <View style={styles.avatarContainer}>
-              {hasActiveStory && (
+            {/* FIXED: Avatar with story ring - clickable to open story viewer */}
+            <TouchableOpacity 
+              style={styles.avatarContainer}
+              onPress={handleAvatarPress}
+              activeOpacity={0.7}
+            >
+              {hasActiveStory && hasUnviewedUserStories && (
                 <LinearGradient
                   colors={[colors.primary, colors.secondary]}
                   start={{ x: 0, y: 0 }}
@@ -748,7 +929,7 @@ export default function PerfilScreen() {
                   <IconSymbol name="person.fill" size={40} color={colors.textSecondary} />
                 </View>
               )}
-            </View>
+            </TouchableOpacity>
             <View style={styles.profileInfo}>
               <Text style={styles.profileName}>{user.nombre || 'Usuario'}</Text>
               {user.username && (
@@ -1014,6 +1195,138 @@ export default function PerfilScreen() {
         </Pressable>
       </Modal>
 
+      {/* FIXED: Story Viewer Modal */}
+      <Modal
+        visible={showStoryViewer}
+        animationType="fade"
+        onRequestClose={async () => {
+          const currentStory = userStories[currentStoryIndex];
+          
+          if (currentStory && user) {
+            try {
+              const { data: existingView } = await supabase
+                .from('historia_views')
+                .select('id')
+                .eq('historia_id', currentStory.id)
+                .eq('usuario_id', user.id)
+                .single();
+
+              if (!existingView) {
+                await supabase.from('historia_views').insert({
+                  historia_id: currentStory.id,
+                  usuario_id: user.id,
+                });
+              }
+            } catch (error) {
+              console.error('[Perfil] Error marking story as viewed on modal close:', error);
+            }
+          }
+          
+          await cargarDatosPerfil();
+          setShowStoryViewer(false);
+          stopStoryTimer();
+        }}
+      >
+        <View style={styles.storyViewerModal}>
+          {currentStory && (
+            <>
+              <View style={styles.storyViewerHeader}>
+                <View style={styles.storyProgressContainer}>
+                  {userStories.map((_, index) => (
+                    <View key={index} style={styles.storyProgressBar}>
+                      {index < currentStoryIndex && (
+                        <View style={[styles.storyProgressFill, { width: '100%' }]} />
+                      )}
+                      {index === currentStoryIndex && (
+                        <View
+                          style={[styles.storyProgressFill, { width: `${currentStoryProgress}%` }]}
+                        />
+                      )}
+                    </View>
+                  ))}
+                </View>
+
+                <View style={styles.storyAutorInfo}>
+                  {user.avatar ? (
+                    <Image source={{ uri: user.avatar }} style={styles.storyAutorAvatar} />
+                  ) : (
+                    <View style={[styles.storyAutorAvatar, styles.avatarPlaceholder]}>
+                      <Text style={styles.avatarText}>
+                        {user.nombre?.charAt(0).toUpperCase() || 'U'}
+                      </Text>
+                    </View>
+                  )}
+                  <Text style={styles.storyAutorNombre}>{user.nombre}</Text>
+                  <TouchableOpacity
+                    style={styles.storyCloseButton}
+                    onPress={async () => {
+                      const currentStory = userStories[currentStoryIndex];
+                      
+                      if (currentStory && user) {
+                        try {
+                          const { data: existingView } = await supabase
+                            .from('historia_views')
+                            .select('id')
+                            .eq('historia_id', currentStory.id)
+                            .eq('usuario_id', user.id)
+                            .single();
+
+                          if (!existingView) {
+                            await supabase.from('historia_views').insert({
+                              historia_id: currentStory.id,
+                              usuario_id: user.id,
+                            });
+                          }
+                        } catch (error) {
+                          console.error('[Perfil] Error marking story as viewed on close:', error);
+                        }
+                      }
+                      
+                      await cargarDatosPerfil();
+                      setShowStoryViewer(false);
+                      stopStoryTimer();
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <IconSymbol name="xmark" size={20} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={styles.storyContent}>
+                <Image
+                  source={{ uri: currentStory.imagen }}
+                  style={styles.storyImage}
+                  resizeMode="contain"
+                />
+              </View>
+
+              <View style={styles.storyTouchZones}>
+                <Pressable
+                  style={styles.storyTouchZone}
+                  onPress={handlePreviousStory}
+                />
+                <Pressable
+                  style={styles.storyTouchZone}
+                  onPressIn={() => {
+                    setIsPaused(true);
+                    stopStoryTimer();
+                  }}
+                  onPressOut={() => {
+                    setIsPaused(false);
+                    startStoryTimer();
+                  }}
+                />
+                <Pressable
+                  style={styles.storyTouchZone}
+                  onPress={handleNextStory}
+                />
+              </View>
+            </>
+          )}
+        </View>
+      </Modal>
+
       <LoginRequiredModal
         visible={showLoginModal}
         onClose={() => setShowLoginModal(false)}
@@ -1111,6 +1424,11 @@ const styles = StyleSheet.create({
     borderColor: colors.cardBorder,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  avatarText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.headerText,
   },
   profileInfo: {
     flex: 1,
@@ -1479,5 +1797,79 @@ const styles = StyleSheet.create({
   createOptionDescription: {
     fontSize: 14,
     color: colors.textSecondary,
+  },
+  storyViewerModal: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  storyViewerHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    paddingTop: 50,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  storyProgressContainer: {
+    flexDirection: 'row',
+    gap: 4,
+    marginBottom: 12,
+  },
+  storyProgressBar: {
+    flex: 1,
+    height: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 1.5,
+    overflow: 'hidden',
+  },
+  storyProgressFill: {
+    height: '100%',
+    backgroundColor: '#fff',
+  },
+  storyAutorInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  storyAutorAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginRight: 12,
+  },
+  storyAutorNombre: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+    flex: 1,
+  },
+  storyCloseButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  storyContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  storyImage: {
+    width: width,
+    height: height,
+  },
+  storyTouchZones: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    flexDirection: 'row',
+  },
+  storyTouchZone: {
+    flex: 1,
   },
 });

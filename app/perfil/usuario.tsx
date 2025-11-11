@@ -12,6 +12,9 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
+  Modal,
+  Pressable,
+  Animated,
 } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,7 +23,23 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
+
+interface HistoriaConAutor {
+  id: string;
+  autor_id: string;
+  tipo: string;
+  imagen: string;
+  created_at: string;
+  expires_at: string;
+  visto: boolean;
+  autor?: {
+    nombre: string;
+    avatar?: string;
+    username?: string;
+  };
+  visto_por_usuario?: boolean;
+}
 
 export default function UsuarioPerfilScreen() {
   const router = useRouter();
@@ -38,16 +57,23 @@ export default function UsuarioPerfilScreen() {
     seguidos: 0,
   });
 
+  // FIXED: Story viewer states
+  const [showStoryViewer, setShowStoryViewer] = useState(false);
+  const [userStories, setUserStories] = useState<HistoriaConAutor[]>([]);
+  const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
+  const [currentStoryProgress, setCurrentStoryProgress] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const storyTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const storyProgressRef = useRef<NodeJS.Timeout | null>(null);
+
   const isTogglingFollow = useRef(false);
 
   const userId = params.userId as string;
 
-  // FIXED: Function to count followers and following from seguidores table
   const loadFollowerCounts = useCallback(async (targetUserId: string) => {
     try {
       console.log('[UsuarioPerfil] 🔄 Loading follower counts from seguidores table...');
 
-      // Count followers (people following this user)
       const { count: seguidoresCount, error: seguidoresError } = await supabase
         .from('seguidores')
         .select('*', { count: 'exact', head: true })
@@ -57,7 +83,6 @@ export default function UsuarioPerfilScreen() {
         console.error('[UsuarioPerfil] Error counting followers:', seguidoresError);
       }
 
-      // Count following (people this user follows)
       const { count: seguidosCount, error: seguidosError } = await supabase
         .from('seguidores')
         .select('*', { count: 'exact', head: true })
@@ -72,7 +97,6 @@ export default function UsuarioPerfilScreen() {
 
       console.log('[UsuarioPerfil] ✅ Actual counts - Seguidores:', actualSeguidores, 'Seguidos:', actualSeguidos);
 
-      // FIXED: Update usuarios table with actual counts to keep them in sync
       const { error: updateError } = await supabase
         .from('usuarios')
         .update({
@@ -126,7 +150,6 @@ export default function UsuarioPerfilScreen() {
         setPosts(postsData || []);
       }
 
-      // FIXED: Load actual follower/following counts from seguidores table
       const followerCounts = await loadFollowerCounts(userId);
 
       const { count: postsCount } = await supabase
@@ -141,6 +164,45 @@ export default function UsuarioPerfilScreen() {
       });
 
       console.log('[UsuarioPerfil] ✅ User stats loaded - Posts:', postsCount, 'Seguidores:', followerCounts.seguidores, 'Seguidos:', followerCounts.seguidos);
+
+      // FIXED: Load user's stories for viewer
+      const { data: userStoriesData } = await supabase
+        .from('historias')
+        .select(`
+          id,
+          autor_id,
+          tipo,
+          imagen,
+          created_at,
+          expires_at,
+          visto
+        `)
+        .eq('autor_id', userId)
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: true });
+
+      if (userStoriesData && currentUser) {
+        const storyIds = userStoriesData.map(s => s.id);
+        const { data: viewedData } = await supabase
+          .from('historia_views')
+          .select('historia_id')
+          .eq('usuario_id', currentUser.id)
+          .in('historia_id', storyIds);
+
+        const viewedStoryIds = new Set(viewedData?.map(v => v.historia_id) || []);
+
+        const storiesWithStatus = userStoriesData.map(story => ({
+          ...story,
+          visto_por_usuario: viewedStoryIds.has(story.id),
+          autor: {
+            nombre: userData.nombre,
+            avatar: userData.avatar,
+            username: userData.username,
+          },
+        }));
+
+        setUserStories(storiesWithStatus);
+      }
 
       if (currentUser) {
         const { data: followData } = await supabase
@@ -171,7 +233,6 @@ export default function UsuarioPerfilScreen() {
   useEffect(() => {
     loadUserData();
 
-    // FIXED: Subscribe to seguidores table changes for INSTANT follower/following count updates
     if (userId) {
       const seguidoresChannel = supabase
         .channel(`user-seguidores-changes-${userId}`)
@@ -240,7 +301,6 @@ export default function UsuarioPerfilScreen() {
     const previousSeguidores = stats.seguidores;
 
     try {
-      // OPTIMISTIC UI UPDATE
       setIsFollowing(!wasFollowing);
       setStats(prev => ({
         ...prev,
@@ -258,7 +318,6 @@ export default function UsuarioPerfilScreen() {
 
         if (deleteError) throw deleteError;
 
-        // FIXED: Recalculate and update counters after unfollow
         await loadFollowerCounts(userId);
         if (currentUser) {
           await loadFollowerCounts(currentUser.id);
@@ -290,7 +349,6 @@ export default function UsuarioPerfilScreen() {
 
         if (insertError) throw insertError;
 
-        // FIXED: Recalculate and update counters after follow
         await loadFollowerCounts(userId);
         if (currentUser) {
           await loadFollowerCounts(currentUser.id);
@@ -309,7 +367,6 @@ export default function UsuarioPerfilScreen() {
         console.log('[UsuarioPerfil] ✅ Follow successful');
       }
 
-      // FIXED: Reload stats to ensure they're in sync
       const updatedCounts = await loadFollowerCounts(userId);
       setStats(prev => ({
         ...prev,
@@ -318,7 +375,6 @@ export default function UsuarioPerfilScreen() {
     } catch (error) {
       console.error('[UsuarioPerfil] Error toggling follow:', error);
       
-      // ROLLBACK UI on error
       setIsFollowing(wasFollowing);
       setStats(prev => ({
         ...prev,
@@ -384,7 +440,6 @@ export default function UsuarioPerfilScreen() {
 
                   setIsFollowing(false);
                   
-                  // FIXED: Recalculate counters after unfollow due to block
                   await loadFollowerCounts(userId);
                 }
 
@@ -405,6 +460,109 @@ export default function UsuarioPerfilScreen() {
     router.push(`/social/post?id=${postId}`);
   };
 
+  // FIXED: Story viewer functions
+  const stopStoryTimer = useCallback(() => {
+    if (storyTimerRef.current) {
+      clearTimeout(storyTimerRef.current);
+      storyTimerRef.current = null;
+    }
+    if (storyProgressRef.current) {
+      clearInterval(storyProgressRef.current);
+      storyProgressRef.current = null;
+    }
+  }, []);
+
+  const handleNextStory = useCallback(async () => {
+    const currentStory = userStories[currentStoryIndex];
+    
+    if (currentStory && currentUser) {
+      try {
+        const { data: existingView } = await supabase
+          .from('historia_views')
+          .select('id')
+          .eq('historia_id', currentStory.id)
+          .eq('usuario_id', currentUser.id)
+          .single();
+
+        if (!existingView) {
+          await supabase.from('historia_views').insert({
+            historia_id: currentStory.id,
+            usuario_id: currentUser.id,
+          });
+        }
+      } catch (error) {
+        console.error('[UsuarioPerfil] Error marking story as viewed:', error);
+      }
+    }
+    
+    if (currentStoryIndex < userStories.length - 1) {
+      setCurrentStoryIndex(currentStoryIndex + 1);
+      setCurrentStoryProgress(0);
+    } else {
+      await loadUserData();
+      setShowStoryViewer(false);
+      stopStoryTimer();
+    }
+  }, [currentStoryIndex, userStories, stopStoryTimer, currentUser, loadUserData]);
+
+  const startStoryTimer = useCallback(() => {
+    if (storyTimerRef.current) {
+      clearTimeout(storyTimerRef.current);
+    }
+    if (storyProgressRef.current) {
+      clearInterval(storyProgressRef.current);
+    }
+
+    setCurrentStoryProgress(0);
+
+    storyProgressRef.current = setInterval(() => {
+      setCurrentStoryProgress(prev => {
+        if (prev >= 100) {
+          return 100;
+        }
+        return prev + 1;
+      });
+    }, 50);
+
+    storyTimerRef.current = setTimeout(() => {
+      handleNextStory();
+    }, 5000);
+  }, [handleNextStory]);
+
+  const handlePreviousStory = useCallback(() => {
+    if (currentStoryIndex > 0) {
+      setCurrentStoryIndex(currentStoryIndex - 1);
+      setCurrentStoryProgress(0);
+      startStoryTimer();
+    } else {
+      setShowStoryViewer(false);
+      stopStoryTimer();
+    }
+  }, [currentStoryIndex, startStoryTimer, stopStoryTimer]);
+
+  const handleAvatarPress = useCallback(() => {
+    if (!currentUser) {
+      Alert.alert('Error', 'Debes iniciar sesión para ver historias');
+      return;
+    }
+
+    if (userStories.length > 0) {
+      setCurrentStoryIndex(0);
+      setShowStoryViewer(true);
+      setIsPaused(false);
+      startStoryTimer();
+    }
+  }, [currentUser, userStories, startStoryTimer]);
+
+  useEffect(() => {
+    if (showStoryViewer && !isPaused) {
+      startStoryTimer();
+    }
+    return () => {
+      stopStoryTimer();
+    };
+  }, [showStoryViewer, currentStoryIndex, isPaused, startStoryTimer, stopStoryTimer]);
+
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -421,6 +579,10 @@ export default function UsuarioPerfilScreen() {
       </View>
     );
   }
+
+  const currentStory = userStories[currentStoryIndex];
+  const hasActiveStory = userStories.length > 0;
+  const hasUnviewedStories = userStories.some(s => !s.visto_por_usuario);
 
   return (
     <View style={styles.container}>
@@ -443,13 +605,29 @@ export default function UsuarioPerfilScreen() {
         </View>
 
         <View style={styles.profileSection}>
-          {usuario.avatar ? (
-            <Image source={{ uri: usuario.avatar }} style={styles.avatar} />
-          ) : (
-            <View style={[styles.avatar, styles.avatarPlaceholder]}>
-              <Text style={styles.avatarText}>{usuario.nombre.charAt(0).toUpperCase()}</Text>
-            </View>
-          )}
+          {/* FIXED: Avatar with story ring - clickable to open story viewer */}
+          <TouchableOpacity 
+            style={styles.avatarContainer}
+            onPress={handleAvatarPress}
+            activeOpacity={0.7}
+            disabled={!hasActiveStory}
+          >
+            {hasActiveStory && hasUnviewedStories && (
+              <LinearGradient
+                colors={[colors.primary, colors.secondary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.storyRing}
+              />
+            )}
+            {usuario.avatar ? (
+              <Image source={{ uri: usuario.avatar }} style={styles.avatar} />
+            ) : (
+              <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                <Text style={styles.avatarText}>{usuario.nombre.charAt(0).toUpperCase()}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
 
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
@@ -527,6 +705,138 @@ export default function UsuarioPerfilScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* FIXED: Story Viewer Modal */}
+      <Modal
+        visible={showStoryViewer}
+        animationType="fade"
+        onRequestClose={async () => {
+          const currentStory = userStories[currentStoryIndex];
+          
+          if (currentStory && currentUser) {
+            try {
+              const { data: existingView } = await supabase
+                .from('historia_views')
+                .select('id')
+                .eq('historia_id', currentStory.id)
+                .eq('usuario_id', currentUser.id)
+                .single();
+
+              if (!existingView) {
+                await supabase.from('historia_views').insert({
+                  historia_id: currentStory.id,
+                  usuario_id: currentUser.id,
+                });
+              }
+            } catch (error) {
+              console.error('[UsuarioPerfil] Error marking story as viewed on modal close:', error);
+            }
+          }
+          
+          await loadUserData();
+          setShowStoryViewer(false);
+          stopStoryTimer();
+        }}
+      >
+        <View style={styles.storyViewerModal}>
+          {currentStory && (
+            <>
+              <View style={styles.storyViewerHeader}>
+                <View style={styles.storyProgressContainer}>
+                  {userStories.map((_, index) => (
+                    <View key={index} style={styles.storyProgressBar}>
+                      {index < currentStoryIndex && (
+                        <View style={[styles.storyProgressFill, { width: '100%' }]} />
+                      )}
+                      {index === currentStoryIndex && (
+                        <View
+                          style={[styles.storyProgressFill, { width: `${currentStoryProgress}%` }]}
+                        />
+                      )}
+                    </View>
+                  ))}
+                </View>
+
+                <View style={styles.storyAutorInfo}>
+                  {usuario.avatar ? (
+                    <Image source={{ uri: usuario.avatar }} style={styles.storyAutorAvatar} />
+                  ) : (
+                    <View style={[styles.storyAutorAvatar, styles.avatarPlaceholder]}>
+                      <Text style={styles.avatarText}>
+                        {usuario.nombre?.charAt(0).toUpperCase() || 'U'}
+                      </Text>
+                    </View>
+                  )}
+                  <Text style={styles.storyAutorNombre}>{usuario.nombre}</Text>
+                  <TouchableOpacity
+                    style={styles.storyCloseButton}
+                    onPress={async () => {
+                      const currentStory = userStories[currentStoryIndex];
+                      
+                      if (currentStory && currentUser) {
+                        try {
+                          const { data: existingView } = await supabase
+                            .from('historia_views')
+                            .select('id')
+                            .eq('historia_id', currentStory.id)
+                            .eq('usuario_id', currentUser.id)
+                            .single();
+
+                          if (!existingView) {
+                            await supabase.from('historia_views').insert({
+                              historia_id: currentStory.id,
+                              usuario_id: currentUser.id,
+                            });
+                          }
+                        } catch (error) {
+                          console.error('[UsuarioPerfil] Error marking story as viewed on close:', error);
+                        }
+                      }
+                      
+                      await loadUserData();
+                      setShowStoryViewer(false);
+                      stopStoryTimer();
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <IconSymbol name="xmark" size={20} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={styles.storyContent}>
+                <Image
+                  source={{ uri: currentStory.imagen }}
+                  style={styles.storyImage}
+                  resizeMode="contain"
+                />
+              </View>
+
+              <View style={styles.storyTouchZones}>
+                <Pressable
+                  style={styles.storyTouchZone}
+                  onPress={handlePreviousStory}
+                />
+                <Pressable
+                  style={styles.storyTouchZone}
+                  onPressIn={() => {
+                    setIsPaused(true);
+                    stopStoryTimer();
+                  }}
+                  onPressOut={() => {
+                    setIsPaused(false);
+                    startStoryTimer();
+                  }}
+                />
+                <Pressable
+                  style={styles.storyTouchZone}
+                  onPress={handleNextStory}
+                />
+              </View>
+            </>
+          )}
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -565,11 +875,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
+  avatarContainer: {
+    position: 'relative',
+    marginRight: 20,
+  },
+  storyRing: {
+    position: 'absolute',
+    top: -4,
+    left: -4,
+    right: -4,
+    bottom: -4,
+    borderRadius: 48,
+    zIndex: 0,
+  },
   avatar: {
     width: 86,
     height: 86,
     borderRadius: 43,
-    marginRight: 20,
+    borderWidth: 3,
+    borderColor: colors.headerText,
+    zIndex: 1,
   },
   avatarPlaceholder: {
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
@@ -670,5 +995,79 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.textSecondary,
     marginTop: 16,
+  },
+  storyViewerModal: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  storyViewerHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    paddingTop: 50,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  storyProgressContainer: {
+    flexDirection: 'row',
+    gap: 4,
+    marginBottom: 12,
+  },
+  storyProgressBar: {
+    flex: 1,
+    height: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 1.5,
+    overflow: 'hidden',
+  },
+  storyProgressFill: {
+    height: '100%',
+    backgroundColor: '#fff',
+  },
+  storyAutorInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  storyAutorAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginRight: 12,
+  },
+  storyAutorNombre: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+    flex: 1,
+  },
+  storyCloseButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  storyContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  storyImage: {
+    width: width,
+    height: height,
+  },
+  storyTouchZones: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    flexDirection: 'row',
+  },
+  storyTouchZone: {
+    flex: 1,
   },
 });
