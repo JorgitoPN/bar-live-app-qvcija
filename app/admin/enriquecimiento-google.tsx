@@ -17,7 +17,7 @@ import { colors, commonStyles } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { supabase } from '@/utils/supabase';
-import { googlePlacesTextSearch, googlePlacesDetails } from '@/utils/googlePlacesApi';
+import { googlePlacesTextSearch, googlePlacesDetails, googlePlacesNearby } from '@/utils/googlePlacesApi';
 import { mapGoogleTypesToBarlive, categorizarPorHorarios, mapearNivelPrecio } from '@/utils/enrichmentMapping';
 import { validarLocalCompleto, estaEnEspana } from '@/utils/localTypesBackend';
 import * as Clipboard from 'expo-clipboard';
@@ -461,6 +461,69 @@ export default function EnriquecimientoGoogleScreen() {
     return 'desconocido';
   };
 
+  // Función mejorada para buscar en Google Places con múltiples estrategias
+  const buscarEnGooglePlaces = async (local: LocalPendiente) => {
+    agregarLog('info', `🔍 Buscando "${local.nombre}" en Google Places...`);
+    
+    // ESTRATEGIA 1: Búsqueda por texto con nombre + ciudad
+    const ciudad = local.direccion.split(',')[0].trim();
+    const query1 = `${local.nombre} ${ciudad} ${local.provincia}`;
+    agregarLog('info', `   Estrategia 1: "${query1}"`);
+    
+    let placeResult = await googlePlacesTextSearch(query1);
+    
+    if (placeResult && placeResult.place_id) {
+      agregarLog('success', `   ✅ Encontrado con estrategia 1`);
+      return placeResult;
+    }
+    
+    // ESTRATEGIA 2: Búsqueda por proximidad (nearby search)
+    if (local.latitud && local.longitud) {
+      agregarLog('info', `   Estrategia 2: Búsqueda por proximidad`);
+      
+      try {
+        placeResult = await googlePlacesNearby({
+          location: `${local.latitud},${local.longitud}`,
+          radius: 100, // 100 metros de radio
+          keyword: local.nombre,
+        });
+        
+        if (placeResult && placeResult.place_id) {
+          agregarLog('success', `   ✅ Encontrado con estrategia 2 (proximidad)`);
+          return placeResult;
+        }
+      } catch (error) {
+        console.error('Error in nearby search:', error);
+      }
+    }
+    
+    // ESTRATEGIA 3: Búsqueda solo con nombre + provincia
+    const query3 = `${local.nombre} ${local.provincia}`;
+    agregarLog('info', `   Estrategia 3: "${query3}"`);
+    
+    placeResult = await googlePlacesTextSearch(query3);
+    
+    if (placeResult && placeResult.place_id) {
+      agregarLog('success', `   ✅ Encontrado con estrategia 3`);
+      return placeResult;
+    }
+    
+    // ESTRATEGIA 4: Búsqueda con tipo de local
+    const tipoLocal = local.tipo === 'discoteca' ? 'nightclub' : local.tipo;
+    const query4 = `${tipoLocal} ${local.nombre} ${local.provincia}`;
+    agregarLog('info', `   Estrategia 4: "${query4}"`);
+    
+    placeResult = await googlePlacesTextSearch(query4);
+    
+    if (placeResult && placeResult.place_id) {
+      agregarLog('success', `   ✅ Encontrado con estrategia 4`);
+      return placeResult;
+    }
+    
+    agregarLog('warning', `   ❌ No encontrado con ninguna estrategia`);
+    return null;
+  };
+
   const procesarEnriquecimiento = async (numLocales: number) => {
     performanceMonitor.start('procesarEnriquecimiento');
     setProcesando(true);
@@ -484,9 +547,8 @@ export default function EnriquecimientoGoogleScreen() {
         try {
           performanceMonitor.start(`enrich_${local.id}`);
           
-          // 🔍 PASO 1: Buscar en Google Places
-          const query = `${local.nombre} ${local.direccion}`;
-          const placeResult = await googlePlacesTextSearch(query);
+          // 🔍 PASO 1: Buscar en Google Places con múltiples estrategias
+          const placeResult = await buscarEnGooglePlaces(local);
           
           if (!placeResult || !placeResult.place_id) {
             agregarLog('warning', `⚠️ No encontrado en Google: ${local.nombre}`);
@@ -1099,24 +1161,26 @@ export default function EnriquecimientoGoogleScreen() {
         />
 
         <View style={[styles.infoBox, { marginTop: 15, backgroundColor: '#DBEAFE' }]}>
-          <Text style={[styles.infoBoxTitle, { color: '#1E40AF' }]}>🔍 Sistema de Validación Actualizado</Text>
+          <Text style={[styles.infoBoxTitle, { color: '#1E40AF' }]}>🔍 Búsqueda Mejorada en Google Places</Text>
           <Text style={[styles.infoBoxText, { color: '#1E40AF', marginTop: 5 }]}>
-            Cada local será validado con el sistema de discriminación:{'\n\n'}
-            ✅ PASO 1: Verificar tipos válidos{'\n'}
-            • Restauración: restaurant, cafe, bakery, fast_food, etc.{'\n'}
-            • Bares: bar, pub, cocktail_bar, wine_bar, etc.{'\n'}
-            • Ocio nocturno: night_club, disco, dance_hall{'\n'}
-            • Entretenimiento: concert_hall, music_venue{'\n\n'}
-            ✅ PASO 2: Validar business_status{'\n'}
-            • Solo OPERATIONAL u OPEN{'\n'}
-            • Rechazar CLOSED_PERMANENTLY{'\n\n'}
-            ✅ PASO 3: Verificar ubicación (España){'\n\n'}
-            ❌ PASO 4: Rechazar tipos prohibidos{'\n'}
-            • Tiendas: store, shop, supermarket{'\n'}
-            • Salud: pharmacy, hospital, gym{'\n'}
-            • Otros: bank, hotel, gas_station{'\n\n'}
-            📸 PASO 5: Descargar fotos y subirlas a Supabase Storage{'\n\n'}
-            Los locales rechazados se marcarán con el motivo del rechazo.
+            Ahora se utilizan 4 estrategias de búsqueda:{'\n\n'}
+            1️⃣ Nombre + Ciudad + Provincia{'\n'}
+            2️⃣ Búsqueda por proximidad (100m){'\n'}
+            3️⃣ Nombre + Provincia{'\n'}
+            4️⃣ Tipo + Nombre + Provincia{'\n\n'}
+            Esto mejora significativamente la tasa de éxito para encontrar locales como "Blaster" en Santiago de Compostela.
+          </Text>
+        </View>
+
+        <View style={[styles.infoBox, { marginTop: 10, backgroundColor: '#D1FAE5' }]}>
+          <Text style={[styles.infoBoxTitle, { color: '#065F46' }]}>✅ Sistema de Validación</Text>
+          <Text style={[styles.infoBoxText, { color: '#065F46', marginTop: 5 }]}>
+            Cada local será validado:{'\n\n'}
+            ✅ Tipos válidos (bar, night_club, restaurant, etc.){'\n'}
+            ✅ Business status (solo OPERATIONAL){'\n'}
+            ✅ Ubicación en España{'\n'}
+            ❌ Rechazar tipos prohibidos (store, pharmacy, etc.){'\n\n'}
+            Los locales rechazados se marcarán con el motivo.
           </Text>
         </View>
 
@@ -1130,11 +1194,11 @@ export default function EnriquecimientoGoogleScreen() {
           </Text>
         </View>
 
-        <View style={[styles.infoBox, { marginTop: 10, backgroundColor: '#D1FAE5' }]}>
-          <Text style={[styles.infoBoxTitle, { color: '#065F46' }]}>📸 Almacenamiento de Fotos</Text>
-          <Text style={[styles.infoBoxText, { color: '#065F46' }]}>
+        <View style={[styles.infoBox, { marginTop: 10, backgroundColor: '#E0E7FF' }]}>
+          <Text style={[styles.infoBoxTitle, { color: '#3730A3' }]}>📸 Almacenamiento de Fotos</Text>
+          <Text style={[styles.infoBoxText, { color: '#3730A3' }]}>
             Las fotos se descargarán de Google Places y se subirán a Supabase Storage.{'\n\n'}
-            ✅ Esto evita llamadas continuas a la API de Google{'\n'}
+            ✅ Evita llamadas continuas a la API de Google{'\n'}
             ✅ Las fotos se almacenan en tu propia base de datos{'\n'}
             ✅ Mayor control y rendimiento
           </Text>
@@ -1226,7 +1290,7 @@ export default function EnriquecimientoGoogleScreen() {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Enriquecimiento con Google Places</Text>
         <Text style={styles.headerSubtitle}>
-          📸 Las fotos se guardan en Supabase Storage
+          🔍 Búsqueda mejorada con 4 estrategias
         </Text>
       </LinearGradient>
 
