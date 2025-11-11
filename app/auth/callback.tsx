@@ -21,6 +21,7 @@ export default function AuthCallbackScreen() {
         console.log('[Callback] Platform:', Platform.OS);
         console.log('[Callback] Params:', params);
         
+        // For web, check URL hash for tokens
         if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location.hash) {
           console.log('[Callback] Procesando callback web con hash');
           const hashParams = new URLSearchParams(window.location.hash.substring(1));
@@ -82,11 +83,13 @@ export default function AuthCallbackScreen() {
           }
         }
         
+        // For native or if no hash params, check for existing session
         console.log('[Callback] Verificando sesión existente...');
         if (isMounted) {
           setMensaje('Verificando sesión...');
         }
         
+        // Wait a bit for the session to be established
         await new Promise(resolve => setTimeout(resolve, 1000));
         
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -141,8 +144,10 @@ export default function AuthCallbackScreen() {
           setMensaje('Configurando perfil...');
         }
         
+        // Wait for the trigger to create the profile (give it a moment)
         await new Promise(resolve => setTimeout(resolve, 1500));
         
+        // Check if user profile exists (should be created by trigger)
         let retries = 3;
         let profileData = null;
         
@@ -186,6 +191,7 @@ export default function AuthCallbackScreen() {
           return;
         }
 
+        // Register for push notifications (non-blocking)
         try {
           if (isMounted) {
             setMensaje('Configurando notificaciones...');
@@ -197,8 +203,11 @@ export default function AuthCallbackScreen() {
           }
         } catch (notifError) {
           console.log('[Callback] Error registrando notificaciones:', notifError);
+          // Continue anyway, notifications are not critical
         }
 
+        // FIXED: Determine where to redirect based on profile completeness
+        // Check if user has username and nombre (required fields)
         const isNewUser = !profileData.username || !profileData.nombre;
         
         if (isNewUser) {

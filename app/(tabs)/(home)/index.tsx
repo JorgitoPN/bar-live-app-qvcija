@@ -19,7 +19,6 @@ import {
   Modal,
   Animated,
   ActivityIndicator,
-  Pressable,
 } from 'react-native';
 import * as Location from 'expo-location';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -157,54 +156,6 @@ const styles = StyleSheet.create({
   modoButtonTextActivo: {
     color: colors.headerText,
   },
-  claimLocalBanner: {
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 8,
-    borderRadius: 16,
-    overflow: 'hidden',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-  },
-  claimLocalGradient: {
-    padding: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  claimLocalIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  claimLocalContent: {
-    flex: 1,
-  },
-  claimLocalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  claimLocalSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.9)',
-    lineHeight: 20,
-  },
-  claimLocalArrow: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   localesContainer: {
     padding: 16,
   },
@@ -239,92 +190,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.headerText,
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '70%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: colors.text,
-  },
-  modalBody: {
-    padding: 20,
-  },
-  modalOption: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  modalOptionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 12,
-  },
-  modalOptionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.primary + '20',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalOptionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text,
-    flex: 1,
-  },
-  modalOptionDescription: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    lineHeight: 20,
-    marginBottom: 12,
-  },
-  modalOptionButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  modalOptionButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  modalInfoBox: {
-    backgroundColor: colors.primary + '10',
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
-  },
-  modalInfoText: {
-    flex: 1,
-    fontSize: 13,
-    color: colors.text,
-    lineHeight: 18,
-  },
 });
 
 export default function ExplorarScreen() {
@@ -349,7 +214,6 @@ export default function ExplorarScreen() {
   const [busqueda, setBusqueda] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [showFiltros, setShowFiltros] = useState(false);
-  const [showClaimModal, setShowClaimModal] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [localesFiltradosCompletos, setLocalesFiltradosCompletos] = useState<Local[]>([]);
   const [localesMostrados, setLocalesMostrados] = useState<Local[]>([]);
@@ -390,6 +254,8 @@ export default function ExplorarScreen() {
       console.error('[Explorar] Error getting location:', error);
     }
   };
+
+
 
   const aplicarFiltrosYOrdenamiento = useCallback(() => {
     console.log('[Explorar] ⚡ Applying filters...');
@@ -531,31 +397,6 @@ export default function ExplorarScreen() {
     setRefreshing(false);
   };
 
-  const handleClaimLocal = () => {
-    if (!user) {
-      // Show login modal if not logged in
-      router.push('/auth/login-popup');
-      return;
-    }
-    setShowClaimModal(true);
-  };
-
-  const handleClaimExisting = () => {
-    setShowClaimModal(false);
-    router.push({
-      pathname: '/solicitudes/solicitar-rol-propietario',
-      params: { tipo: 'reclamar' }
-    });
-  };
-
-  const handleRegisterNew = () => {
-    setShowClaimModal(false);
-    router.push({
-      pathname: '/solicitudes/solicitar-rol-propietario',
-      params: { tipo: 'registrar' }
-    });
-  };
-
   // ⚡ SHOW LOADING SCREEN ONLY ON INITIAL APP STARTUP
   if (isInitialLoading) {
     return <InitialLoadingScreen />;
@@ -685,35 +526,6 @@ export default function ExplorarScreen() {
           ))}
         </View>
 
-        {/* Claim Local Banner - Only show for Cliente mode */}
-        {currentMode === 'cliente' && (
-          <TouchableOpacity
-            style={styles.claimLocalBanner}
-            onPress={handleClaimLocal}
-            activeOpacity={0.9}
-          >
-            <LinearGradient
-              colors={['#8B5CF6', '#6366F1']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.claimLocalGradient}
-            >
-              <View style={styles.claimLocalIcon}>
-                <IconSymbol name="building.2.fill" size={28} color="#FFFFFF" />
-              </View>
-              <View style={styles.claimLocalContent}>
-                <Text style={styles.claimLocalTitle}>💡 ¿Tienes un local?</Text>
-                <Text style={styles.claimLocalSubtitle}>
-                  Reclama tu local en BarLive y obtén modo Propietario
-                </Text>
-              </View>
-              <View style={styles.claimLocalArrow}>
-                <IconSymbol name="chevron.right" size={20} color="#FFFFFF" />
-              </View>
-            </LinearGradient>
-          </TouchableOpacity>
-        )}
-
         {localesMostrados.length > 0 ? (
           <>
             <View style={styles.localesContainer}>
@@ -751,76 +563,6 @@ export default function ExplorarScreen() {
           setShowFiltros(false);
         }}
       />
-
-      {/* Claim Local Modal */}
-      <Modal
-        visible={showClaimModal}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setShowClaimModal(false)}
-      >
-        <Pressable style={styles.modalOverlay} onPress={() => setShowClaimModal(false)}>
-          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Reclama tu Local</Text>
-              <TouchableOpacity onPress={() => setShowClaimModal(false)}>
-                <IconSymbol name="xmark" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.modalBody}>
-              {/* Option 1: Claim Existing */}
-              <View style={styles.modalOption}>
-                <View style={styles.modalOptionHeader}>
-                  <View style={styles.modalOptionIcon}>
-                    <IconSymbol name="magnifyingglass" size={24} color={colors.primary} />
-                  </View>
-                  <Text style={styles.modalOptionTitle}>Reclamar Local Existente</Text>
-                </View>
-                <Text style={styles.modalOptionDescription}>
-                  Busca tu local por nombre o dirección y envía una solicitud de verificación. 
-                  Verificaremos que eres el propietario antes de aprobar tu solicitud.
-                </Text>
-                <TouchableOpacity
-                  style={styles.modalOptionButton}
-                  onPress={handleClaimExisting}
-                >
-                  <Text style={styles.modalOptionButtonText}>Buscar mi Local</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Option 2: Register New */}
-              <View style={styles.modalOption}>
-                <View style={styles.modalOptionHeader}>
-                  <View style={styles.modalOptionIcon}>
-                    <IconSymbol name="plus.circle.fill" size={24} color={colors.primary} />
-                  </View>
-                  <Text style={styles.modalOptionTitle}>Registrar Nuevo Local</Text>
-                </View>
-                <Text style={styles.modalOptionDescription}>
-                  Crea un nuevo local en BarLive con datos básicos: nombre, dirección, tipo, 
-                  horario, etc. Tu solicitud será revisada por nuestro equipo.
-                </Text>
-                <TouchableOpacity
-                  style={styles.modalOptionButton}
-                  onPress={handleRegisterNew}
-                >
-                  <Text style={styles.modalOptionButtonText}>Crear Nuevo Local</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Info Box */}
-              <View style={styles.modalInfoBox}>
-                <IconSymbol name="info.circle.fill" size={20} color={colors.primary} />
-                <Text style={styles.modalInfoText}>
-                  Al enviar tu solicitud, se generará automáticamente una solicitud de modo Propietario. 
-                  Podrás ver el progreso de verificación en tu perfil en tiempo real.
-                </Text>
-              </View>
-            </ScrollView>
-          </Pressable>
-        </Pressable>
-      </Modal>
     </View>
   );
 }

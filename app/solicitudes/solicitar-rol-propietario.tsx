@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -9,29 +9,14 @@ import {
   TextInput,
   Platform,
   Alert,
-  ActivityIndicator,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
-import { supabase } from '@/utils/supabase';
-import { useAuth } from '@/contexts/AuthContext';
-import { sendEmail } from '@/utils/email';
-
-const PROVINCIAS = [
-  'Álava', 'Albacete', 'Alicante', 'Almería', 'Asturias', 'Ávila', 'Badajoz', 'Barcelona',
-  'Burgos', 'Cáceres', 'Cádiz', 'Cantabria', 'Castellón', 'Ciudad Real', 'Córdoba', 'Cuenca',
-  'Gerona', 'Granada', 'Guadalajara', 'Guipúzcoa', 'Huelva', 'Huesca', 'Islas Baleares',
-  'Jaén', 'La Coruña', 'La Rioja', 'Las Palmas', 'León', 'Lérida', 'Lugo', 'Madrid', 'Málaga',
-  'Murcia', 'Navarra', 'Orense', 'Palencia', 'Pontevedra', 'Salamanca', 'Santa Cruz de Tenerife',
-  'Segovia', 'Sevilla', 'Soria', 'Tarragona', 'Teruel', 'Toledo', 'Valencia', 'Valladolid',
-  'Vizcaya', 'Zamora', 'Zaragoza'
-];
 
 export default function SolicitarRolPropietarioScreen() {
   const router = useRouter();
-  const { user } = useAuth();
   const { tipo } = useLocalSearchParams<{ tipo?: string }>();
   const [nombreLocal, setNombreLocal] = useState('');
   const [direccion, setDireccion] = useState('');
@@ -40,17 +25,8 @@ export default function SolicitarRolPropietarioScreen() {
   const [telefono, setTelefono] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showProvinciasPicker, setShowProvinciasPicker] = useState(false);
-
-  const isClaimMode = tipo === 'reclamar';
 
   const handleSubmit = async () => {
-    if (!user) {
-      Alert.alert('Error', 'Debes iniciar sesión para enviar una solicitud');
-      router.push('/auth/login-popup');
-      return;
-    }
-
     if (!nombreLocal || !direccion || !ciudad || !provincia) {
       Alert.alert('Error', 'Por favor completa todos los campos obligatorios');
       return;
@@ -58,66 +34,33 @@ export default function SolicitarRolPropietarioScreen() {
 
     setLoading(true);
     try {
-      console.log('[SolicitarPropietario] Enviando solicitud...', {
+      // TODO: Implement actual API call to submit owner request
+      console.log('Solicitud de propietario:', {
         tipo,
         nombreLocal,
-        usuario_id: user.id,
+        direccion,
+        ciudad,
+        provincia,
+        telefono,
+        descripcion,
       });
 
-      // Create propietario request
-      const { data: requestData, error: requestError } = await supabase
-        .from('propietario_requests')
-        .insert({
-          usuario_id: user.id,
-          tipo_solicitud: isClaimMode ? 'reclamar' : 'registrar',
-          nombre_local: nombreLocal,
-          direccion: direccion,
-          ciudad: ciudad,
-          provincia: provincia,
-          telefono: telefono || null,
-          descripcion: descripcion || null,
-          estado: 'pendiente',
-          estado_detalle: 'Solicitud recibida. En espera de revisión por el equipo de BarLive.',
-        })
-        .select()
-        .single();
-
-      if (requestError) {
-        console.error('[SolicitarPropietario] Error creating request:', requestError);
-        throw requestError;
-      }
-
-      console.log('[SolicitarPropietario] Request created:', requestData.id);
-
-      // Send confirmation email to user
-      try {
-        await sendEmail(
-          user.email || '',
-          'Solicitud de Modo Propietario Recibida',
-          `Hola ${user.nombre || 'Usuario'},\n\nHemos recibido tu solicitud para convertirte en propietario en BarLive.\n\nLocal: ${nombreLocal}\nDirección: ${direccion}, ${ciudad}, ${provincia}\n\nNuestro equipo revisará tu solicitud y te contactará pronto. Puedes ver el estado de tu solicitud en tu perfil.\n\nSaludos,\nEl equipo de BarLive`
-        );
-      } catch (emailError) {
-        console.error('[SolicitarPropietario] Error sending email:', emailError);
-        // Don't fail the whole operation if email fails
-      }
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       Alert.alert(
-        '¡Solicitud Enviada!',
-        'Tu solicitud ha sido enviada correctamente. El equipo de BarLive la revisará y te contactará pronto. Puedes ver el estado de tu solicitud en tu perfil.',
+        'Solicitud enviada',
+        'Tu solicitud ha sido enviada correctamente. El equipo de BarLive la revisará y te contactará pronto.',
         [
           {
-            text: 'Ver Estado',
-            onPress: () => router.replace('/auth/propietario-request-status'),
-          },
-          {
-            text: 'Ir a Inicio',
+            text: 'OK',
             onPress: () => router.replace('/(tabs)/explorar'),
           },
         ]
       );
-    } catch (error: any) {
-      console.error('[SolicitarPropietario] Error al enviar solicitud:', error);
-      Alert.alert('Error', error.message || 'No se pudo enviar la solicitud. Inténtalo de nuevo.');
+    } catch (error) {
+      console.error('Error al enviar solicitud:', error);
+      Alert.alert('Error', 'No se pudo enviar la solicitud. Inténtalo de nuevo.');
     } finally {
       setLoading(false);
     }
@@ -136,7 +79,7 @@ export default function SolicitarRolPropietarioScreen() {
             <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>
-            {isClaimMode ? 'Reclamar Local' : 'Registrar Nuevo Local'}
+            {tipo === 'reclamar' ? 'Reclamar Local' : 'Crear Nuevo Local'}
           </Text>
           <View style={{ width: 40 }} />
         </View>
@@ -146,7 +89,7 @@ export default function SolicitarRolPropietarioScreen() {
         <View style={styles.infoCard}>
           <IconSymbol name="info.circle.fill" size={24} color={colors.primary} />
           <Text style={styles.infoText}>
-            {isClaimMode
+            {tipo === 'reclamar'
               ? 'Reclama tu local existente en BarLive. Verificaremos que eres el propietario antes de aprobar tu solicitud.'
               : 'Crea un nuevo local en BarLive. Tu solicitud será revisada por nuestro equipo antes de ser aprobada.'}
           </Text>
@@ -191,36 +134,14 @@ export default function SolicitarRolPropietarioScreen() {
 
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Provincia *</Text>
-            <TouchableOpacity
-              style={styles.pickerButton}
-              onPress={() => setShowProvinciasPicker(!showProvinciasPicker)}
-              disabled={loading}
-            >
-              <Text style={[styles.pickerButtonText, !provincia && styles.pickerPlaceholder]}>
-                {provincia || 'Selecciona una provincia'}
-              </Text>
-              <IconSymbol
-                name={showProvinciasPicker ? 'chevron.up' : 'chevron.down'}
-                size={20}
-                color={colors.textSecondary}
-              />
-            </TouchableOpacity>
-            {showProvinciasPicker && (
-              <ScrollView style={styles.pickerList} nestedScrollEnabled>
-                {PROVINCIAS.map((prov) => (
-                  <TouchableOpacity
-                    key={prov}
-                    style={styles.pickerItem}
-                    onPress={() => {
-                      setProvincia(prov);
-                      setShowProvinciasPicker(false);
-                    }}
-                  >
-                    <Text style={styles.pickerItemText}>{prov}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            )}
+            <TextInput
+              style={styles.input}
+              placeholder="Ej: Madrid"
+              placeholderTextColor={colors.textSecondary}
+              value={provincia}
+              onChangeText={setProvincia}
+              editable={!loading}
+            />
           </View>
 
           <View style={styles.inputContainer}>
@@ -251,16 +172,8 @@ export default function SolicitarRolPropietarioScreen() {
             />
           </View>
 
-          <View style={styles.infoCard}>
-            <IconSymbol name="checkmark.seal.fill" size={20} color={colors.primary} />
-            <Text style={styles.infoTextSmall}>
-              Al enviar esta solicitud, se generará automáticamente una solicitud de modo Propietario. 
-              Podrás ver el progreso de verificación en tu perfil.
-            </Text>
-          </View>
-
           <TouchableOpacity
-            style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+            style={styles.submitButton}
             onPress={handleSubmit}
             disabled={loading}
           >
@@ -270,11 +183,9 @@ export default function SolicitarRolPropietarioScreen() {
               end={{ x: 1, y: 0 }}
               style={styles.submitGradient}
             >
-              {loading ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text style={styles.submitText}>Enviar Solicitud</Text>
-              )}
+              <Text style={styles.submitText}>
+                {loading ? 'Enviando...' : 'Enviar Solicitud'}
+              </Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -312,7 +223,6 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: 16,
-    paddingBottom: 100,
   },
   infoCard: {
     flexDirection: 'row',
@@ -327,12 +237,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.text,
     lineHeight: 20,
-  },
-  infoTextSmall: {
-    flex: 1,
-    fontSize: 13,
-    color: colors.text,
-    lineHeight: 18,
   },
   form: {
     gap: 16,
@@ -360,49 +264,10 @@ const styles = StyleSheet.create({
     minHeight: 100,
     paddingTop: 14,
   },
-  pickerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  pickerButtonText: {
-    fontSize: 16,
-    color: colors.text,
-  },
-  pickerPlaceholder: {
-    color: colors.textSecondary,
-  },
-  pickerList: {
-    maxHeight: 200,
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 12,
-    marginTop: 8,
-  },
-  pickerItem: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  pickerItemText: {
-    fontSize: 16,
-    color: colors.text,
-  },
   submitButton: {
     marginTop: 24,
     borderRadius: 12,
     overflow: 'hidden',
-  },
-  submitButtonDisabled: {
-    opacity: 0.5,
   },
   submitGradient: {
     paddingVertical: 16,
