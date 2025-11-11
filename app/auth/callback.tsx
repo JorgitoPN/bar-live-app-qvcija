@@ -32,14 +32,14 @@ export default function AuthCallbackScreen() {
         console.log('[Callback] Platform:', Platform.OS);
         console.log('[Callback] Params:', params);
         
-        // FIXED: Reduced timeout to 5 seconds for faster redirect
+        // FIXED: Reduced timeout to 3 seconds for faster redirect
         redirectTimeout = setTimeout(() => {
           if (isMounted && !hasRedirected) {
             console.log('[Callback] ⚠️ Timeout alcanzado, redirigiendo a explorar...');
             setMensaje('Redirigiendo...');
             safeRedirect('/(tabs)/explorar');
           }
-        }, 5000); // 5 seconds max
+        }, 3000); // 3 seconds max
         
         // For web, check URL hash for tokens
         if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location.hash) {
@@ -66,7 +66,7 @@ export default function AuthCallbackScreen() {
             clearTimeout(redirectTimeout);
             setTimeout(() => {
               safeRedirect('/(tabs)/explorar');
-            }, 2000);
+            }, 1500);
             return;
           }
 
@@ -90,13 +90,27 @@ export default function AuthCallbackScreen() {
               clearTimeout(redirectTimeout);
               setTimeout(() => {
                 safeRedirect('/(tabs)/explorar');
-              }, 2000);
+              }, 1500);
               return;
             }
 
             if (data.user) {
               clearTimeout(redirectTimeout);
-              await processUserAfterAuth(data.user);
+              
+              // Register for push notifications (non-blocking)
+              try {
+                const pushToken = await registerForPushNotifications();
+                if (pushToken) {
+                  await savePushToken(data.user.id, pushToken);
+                  console.log('[Callback] Push token registrado');
+                }
+              } catch (notifError) {
+                console.log('[Callback] Error registrando notificaciones:', notifError);
+              }
+              
+              // FIXED: Immediate redirect - let AuthContext handle profile completion check
+              console.log('[Callback] ✅ Sesión establecida, redirigiendo inmediatamente');
+              safeRedirect('/(tabs)/explorar');
               return;
             }
           }
@@ -108,8 +122,8 @@ export default function AuthCallbackScreen() {
           setMensaje('Verificando sesión...');
         }
         
-        // FIXED: Reduced wait time to 1 second
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // FIXED: Reduced wait time to 500ms
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
@@ -122,14 +136,28 @@ export default function AuthCallbackScreen() {
           clearTimeout(redirectTimeout);
           setTimeout(() => {
             safeRedirect('/(tabs)/explorar');
-          }, 1500);
+          }, 1000);
           return;
         }
 
         if (session?.user) {
-          console.log('[Callback] Sesión encontrada para usuario:', session.user.id);
+          console.log('[Callback] ✅ Sesión encontrada para usuario:', session.user.id);
           clearTimeout(redirectTimeout);
-          await processUserAfterAuth(session.user);
+          
+          // Register for push notifications (non-blocking)
+          try {
+            const pushToken = await registerForPushNotifications();
+            if (pushToken) {
+              await savePushToken(session.user.id, pushToken);
+              console.log('[Callback] Push token registrado');
+            }
+          } catch (notifError) {
+            console.log('[Callback] Error registrando notificaciones:', notifError);
+          }
+          
+          // FIXED: Immediate redirect - let AuthContext handle profile completion check
+          console.log('[Callback] ✅ Redirigiendo inmediatamente a explorar');
+          safeRedirect('/(tabs)/explorar');
         } else {
           console.log('[Callback] No hay sesión activa, redirigiendo a explorar...');
           if (isMounted) {
@@ -139,7 +167,7 @@ export default function AuthCallbackScreen() {
           clearTimeout(redirectTimeout);
           setTimeout(() => {
             safeRedirect('/(tabs)/explorar');
-          }, 500);
+          }, 300);
         }
       } catch (error: any) {
         console.error('[Callback] Error en callback:', error);
@@ -150,93 +178,7 @@ export default function AuthCallbackScreen() {
         clearTimeout(redirectTimeout);
         setTimeout(() => {
           safeRedirect('/(tabs)/explorar');
-        }, 1500);
-      }
-    };
-
-    const processUserAfterAuth = async (user: any) => {
-      try {
-        console.log('[Callback] Procesando usuario después de autenticación:', user.id);
-        if (isMounted) {
-          setMensaje('Configurando perfil...');
-        }
-        
-        // FIXED: Reduced wait time to 800ms
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
-        // Check if user profile exists (should be created by trigger)
-        let retries = 2; // Reduced from 3 to 2
-        let profileData = null;
-        
-        while (retries > 0 && !profileData) {
-          console.log(`[Callback] Intentando obtener perfil (intento ${3 - retries}/2)...`);
-          
-          const { data, error: profileError } = await supabase
-            .from('usuarios')
-            .select('*')
-            .eq('id', user.id)
-            .maybeSingle();
-
-          if (data) {
-            profileData = data;
-            console.log('[Callback] Perfil encontrado:', profileData.email);
-            break;
-          }
-          
-          if (profileError) {
-            console.error('[Callback] Error obteniendo perfil:', profileError);
-          }
-          
-          retries--;
-          if (retries > 0) {
-            console.log('[Callback] Perfil no encontrado, esperando 600ms antes de reintentar...');
-            await new Promise(resolve => setTimeout(resolve, 600));
-          }
-        }
-
-        if (!profileData) {
-          console.error('[Callback] No se pudo obtener el perfil después de varios intentos');
-          // FIXED: Don't show error, just redirect - AuthContext will handle it
-          console.log('[Callback] Redirigiendo a explorar - AuthContext manejará el estado');
-          safeRedirect('/(tabs)/explorar');
-          return;
-        }
-
-        // Register for push notifications (non-blocking)
-        try {
-          if (isMounted) {
-            setMensaje('Configurando notificaciones...');
-          }
-          const pushToken = await registerForPushNotifications();
-          if (pushToken) {
-            await savePushToken(user.id, pushToken);
-            console.log('[Callback] Push token registrado');
-          }
-        } catch (notifError) {
-          console.log('[Callback] Error registrando notificaciones:', notifError);
-          // Continue anyway, notifications are not critical
-        }
-
-        // FIXED: Let AuthContext handle the redirect logic
-        // Just redirect to explorar and let AuthContext determine if profile needs completion
-        if (isMounted) {
-          setMensaje('¡Autenticación exitosa! Redirigiendo...');
-        }
-        
-        // FIXED: Shorter delay before redirect
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        console.log('[Callback] Redirigiendo a explorar - AuthContext manejará el flujo');
-        safeRedirect('/(tabs)/explorar');
-      } catch (error: any) {
-        console.error('[Callback] Error procesando usuario:', error);
-        if (isMounted) {
-          setError(`Error al procesar usuario: ${error.message || 'Error desconocido'}`);
-        }
-        
-        setTimeout(() => {
-          safeRedirect('/(tabs)/explorar');
-        }, 1500);
+        }, 1000);
       }
     };
 
@@ -290,7 +232,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 16,
-    color: colors.error || '#EF4444',
+    color: '#EF4444',
     textAlign: 'center',
     marginBottom: 8,
     fontWeight: '600',

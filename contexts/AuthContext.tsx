@@ -19,7 +19,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(false); // Changed to false - don't block app startup
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -34,7 +34,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        // No timeout - let it complete in background
         // Get current session
         const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
         
@@ -71,7 +70,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch (error) {
         console.error('[AuthContext] Error inicializando auth:', error);
-        // Continue anyway - app should work without auth
       } finally {
         console.log('[AuthContext] Inicialización completada');
       }
@@ -94,17 +92,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (event === 'SIGNED_IN' && currentSession) {
             console.log('[AuthContext] Usuario inició sesión');
             
-            // Get user profile
-            const { user: userData, error: userError } = await getCurrentUser();
+            // Get user profile with retry logic
+            let userData: AuthUser | null = null;
+            let retries = 3;
             
-            if (userError) {
-              console.error('[AuthContext] Error obteniendo usuario:', userError);
-            } else if (userData) {
+            while (retries > 0 && !userData) {
+              const { user: fetchedUser, error: userError } = await getCurrentUser();
+              
+              if (userError) {
+                console.error('[AuthContext] Error obteniendo usuario:', userError);
+                retries--;
+                if (retries > 0) {
+                  await new Promise(resolve => setTimeout(resolve, 500));
+                }
+              } else if (fetchedUser) {
+                userData = fetchedUser;
+                break;
+              }
+            }
+            
+            if (userData) {
               console.log('[AuthContext] Usuario actualizado:', userData.email, 'Rol:', userData.rol_app);
               setUser(userData);
               
               // FIXED: Only redirect if NOT on callback page or auth pages
-              // Let the callback page handle its own redirect logic
               const isOnAuthPage = pathname?.includes('/auth/');
               
               if (!isOnAuthPage) {
@@ -141,13 +152,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   }
                 })
                 .catch(err => console.log('[AuthContext] Error registrando notificaciones:', err));
+            } else {
+              console.error('[AuthContext] No se pudo obtener el perfil del usuario');
+              // Still redirect to explorar - user can try again
+              router.replace('/(tabs)/explorar');
             }
           } else if (event === 'SIGNED_OUT') {
             console.log('[AuthContext] Usuario cerró sesión - limpiando estado y redirigiendo a explorar');
             setUser(null);
             setSession(null);
             
-            // FIXED: ALWAYS redirect to explorar (locales list) after logout - NEVER show onboarding
             console.log('[AuthContext] 🚀 Redirigiendo a explorar después de cerrar sesión');
             router.replace('/(tabs)/explorar');
           } else if (event === 'TOKEN_REFRESHED') {
@@ -190,7 +204,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (!isSupabaseConfigured()) {
         console.log('[AuthContext] Supabase no configurado, sesión local limpiada');
-        // FIXED: ALWAYS redirect to explorar (locales list) - NEVER show onboarding
         console.log('[AuthContext] 🚀 Redirigiendo a explorar después de cerrar sesión');
         router.replace('/(tabs)/explorar');
         return;
@@ -205,15 +218,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       console.log('[AuthContext] Sesión cerrada exitosamente en Supabase');
-      
-      // FIXED: ALWAYS redirect to explorar (locales list) - NEVER show onboarding
       console.log('[AuthContext] 🚀 Redirigiendo a explorar después de cerrar sesión');
       router.replace('/(tabs)/explorar');
     } catch (error) {
       console.error('[AuthContext] Error en signOut:', error);
-      // Even if there's an error, we've already cleared local state
-      // This ensures the user is logged out locally
-      // FIXED: ALWAYS redirect to explorar (locales list) - NEVER show onboarding
       console.log('[AuthContext] 🚀 Redirigiendo a explorar después de error en cerrar sesión');
       router.replace('/(tabs)/explorar');
       throw error;
