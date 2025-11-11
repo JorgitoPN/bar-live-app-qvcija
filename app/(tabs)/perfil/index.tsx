@@ -28,6 +28,7 @@ import { supabase } from '@/utils/supabase';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 
 const { width } = Dimensions.get('window');
+const GRID_ITEM_SIZE = (width - 3) / 3; // 3 columns with 1px gaps
 
 interface Post {
   id: string;
@@ -387,25 +388,27 @@ export default function PerfilScreen() {
     try {
       setLoadingEmpleo(true);
 
-      // Load job offers
-      const { data: ofertasData, error: ofertasError } = await supabase
-        .from('ofertas_trabajo')
-        .select(`
-          *,
-          locales:local_id (nombre),
-          usuarios:propietario_id (nombre)
-        `)
-        .eq('activo', true)
-        .order('created_at', { ascending: false })
-        .limit(10);
+      // Load job offers - only show if propietario mode
+      if (isPropietario) {
+        const { data: ofertasData, error: ofertasError } = await supabase
+          .from('ofertas_trabajo')
+          .select(`
+            *,
+            locales:local_id (nombre),
+            usuarios:propietario_id (nombre)
+          `)
+          .eq('activo', true)
+          .order('created_at', { ascending: false })
+          .limit(10);
 
-      if (ofertasError) {
-        console.error('[Perfil] Error cargando ofertas:', ofertasError);
-      } else {
-        setOfertas(ofertasData || []);
+        if (ofertasError) {
+          console.error('[Perfil] Error cargando ofertas:', ofertasError);
+        } else {
+          setOfertas(ofertasData || []);
+        }
       }
 
-      // Load professional profiles
+      // Load professional profiles - always show
       const { data: perfilesData, error: perfilesError } = await supabase
         .from('perfiles_profesionales')
         .select(`
@@ -509,110 +512,6 @@ export default function PerfilScreen() {
     }
   };
 
-  const toggleLike = async (postId: string) => {
-    if (!user) {
-      setShowLoginModal(true);
-      return;
-    }
-
-    const updatePostInList = (postsList: Post[], postId: string, updates: Partial<Post>) => {
-      return postsList.map(p => p.id === postId ? { ...p, ...updates } : p);
-    };
-
-    const post = [...posts, ...savedPosts, ...taggedPosts].find(p => p.id === postId);
-    if (!post) return;
-
-    const isLiked = post.liked;
-    const currentLikes = post.likes || 0;
-
-    // Optimistic update
-    const updatedPost = {
-      liked: !isLiked,
-      likes: isLiked ? currentLikes - 1 : currentLikes + 1,
-    };
-
-    setPosts(prev => updatePostInList(prev, postId, updatedPost));
-    setSavedPosts(prev => updatePostInList(prev, postId, updatedPost));
-    setTaggedPosts(prev => updatePostInList(prev, postId, updatedPost));
-
-    try {
-      if (isLiked) {
-        await supabase
-          .from('likes')
-          .delete()
-          .eq('post_id', postId)
-          .eq('usuario_id', user.id);
-        
-        await supabase
-          .from('posts')
-          .update({ likes: Math.max(0, currentLikes - 1) })
-          .eq('id', postId);
-      } else {
-        await supabase.from('likes').insert({
-          post_id: postId,
-          usuario_id: user.id,
-        });
-        
-        await supabase
-          .from('posts')
-          .update({ likes: currentLikes + 1 })
-          .eq('id', postId);
-      }
-    } catch (error) {
-      console.error('[Perfil] Error toggling like:', error);
-      // Revert on error
-      const revertedPost = {
-        liked: isLiked,
-        likes: currentLikes,
-      };
-      setPosts(prev => updatePostInList(prev, postId, revertedPost));
-      setSavedPosts(prev => updatePostInList(prev, postId, revertedPost));
-      setTaggedPosts(prev => updatePostInList(prev, postId, revertedPost));
-    }
-  };
-
-  const toggleSave = async (postId: string) => {
-    if (!user) {
-      setShowLoginModal(true);
-      return;
-    }
-
-    const updatePostInList = (postsList: Post[], postId: string, updates: Partial<Post>) => {
-      return postsList.map(p => p.id === postId ? { ...p, ...updates } : p);
-    };
-
-    const post = [...posts, ...savedPosts, ...taggedPosts].find(p => p.id === postId);
-    if (!post) return;
-
-    const isSaved = post.saved;
-
-    // Optimistic update
-    setPosts(prev => updatePostInList(prev, postId, { saved: !isSaved }));
-    setSavedPosts(prev => updatePostInList(prev, postId, { saved: !isSaved }));
-    setTaggedPosts(prev => updatePostInList(prev, postId, { saved: !isSaved }));
-
-    try {
-      if (isSaved) {
-        await supabase
-          .from('posts_guardados')
-          .delete()
-          .eq('post_id', postId)
-          .eq('usuario_id', user.id);
-      } else {
-        await supabase.from('posts_guardados').insert({
-          post_id: postId,
-          usuario_id: user.id,
-        });
-      }
-    } catch (error) {
-      console.error('[Perfil] Error toggling save:', error);
-      // Revert on error
-      setPosts(prev => updatePostInList(prev, postId, { saved: isSaved }));
-      setSavedPosts(prev => updatePostInList(prev, postId, { saved: isSaved }));
-      setTaggedPosts(prev => updatePostInList(prev, postId, { saved: isSaved }));
-    }
-  };
-
   const calcularDiasPublicado = (fecha: string): string => {
     const ahora = new Date();
     const fechaPublicacion = new Date(fecha);
@@ -626,66 +525,21 @@ export default function PerfilScreen() {
     return `Hace ${Math.floor(diffDias / 30)} meses`;
   };
 
-  const renderPost = (post: Post) => (
-    <View key={post.id} style={styles.postCard}>
-      <TouchableOpacity
-        onPress={() => router.push(`/social/post?id=${post.id}`)}
-        activeOpacity={0.9}
-      >
-        {post.imagen && (
-          <Image source={{ uri: post.imagen }} style={styles.postImage} />
-        )}
-      </TouchableOpacity>
-
-      <View style={styles.postActions}>
-        <TouchableOpacity 
-          style={styles.postActionButton}
-          onPress={() => toggleLike(post.id)}
-          activeOpacity={0.7}
-        >
-          <IconSymbol 
-            name={post.liked ? 'heart.fill' : 'heart'} 
-            size={24} 
-            color={post.liked ? '#EF4444' : colors.text} 
-          />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.postActionButton}
-          onPress={() => router.push(`/social/post?id=${post.id}`)}
-          activeOpacity={0.7}
-        >
-          <IconSymbol name="message" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.postActionButtonRight}
-          onPress={() => toggleSave(post.id)}
-          activeOpacity={0.7}
-        >
-          <IconSymbol 
-            name={post.saved ? 'bookmark.fill' : 'bookmark'} 
-            size={24} 
-            color={post.saved ? colors.primary : colors.text} 
-          />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.postInfo}>
-        <Text style={styles.postLikes}>{post.likes || 0} me gusta</Text>
-        {post.contenido && (
-          <Text style={styles.postContent} numberOfLines={2}>
-            {post.contenido}
-          </Text>
-        )}
-        {post.comentarios > 0 && (
-          <TouchableOpacity onPress={() => router.push(`/social/post?id=${post.id}`)}>
-            <Text style={styles.postComments}>
-              Ver {post.comentarios === 1 ? 'el comentario' : `los ${post.comentarios} comentarios`}
-            </Text>
-          </TouchableOpacity>
-        )}
-        <Text style={styles.postDate}>{formatearFecha(post.created_at)}</Text>
-      </View>
-    </View>
+  const renderGridPost = (post: Post) => (
+    <TouchableOpacity
+      key={post.id}
+      style={styles.gridItem}
+      onPress={() => router.push(`/social/post?id=${post.id}`)}
+      activeOpacity={0.9}
+    >
+      {post.imagen ? (
+        <Image source={{ uri: post.imagen }} style={styles.gridImage} />
+      ) : (
+        <View style={[styles.gridImage, styles.gridImagePlaceholder]}>
+          <IconSymbol name="photo" size={32} color={colors.textSecondary} />
+        </View>
+      )}
+    </TouchableOpacity>
   );
 
   const renderOferta = (oferta: OfertaTrabajo) => (
@@ -992,19 +846,21 @@ export default function PerfilScreen() {
               <View style={styles.empleoSection}>
                 {/* Employment Tabs */}
                 <View style={styles.empleoTabs}>
-                  <TouchableOpacity
-                    style={[styles.empleoTab, empleoTab === 'ofertas' && styles.empleoTabActive]}
-                    onPress={() => setEmpleoTab('ofertas')}
-                  >
-                    <Text
-                      style={[
-                        styles.empleoTabText,
-                        empleoTab === 'ofertas' && styles.empleoTabTextActive,
-                      ]}
+                  {isPropietario && (
+                    <TouchableOpacity
+                      style={[styles.empleoTab, empleoTab === 'ofertas' && styles.empleoTabActive]}
+                      onPress={() => setEmpleoTab('ofertas')}
                     >
-                      Ofertas
-                    </Text>
-                  </TouchableOpacity>
+                      <Text
+                        style={[
+                          styles.empleoTabText,
+                          empleoTab === 'ofertas' && styles.empleoTabTextActive,
+                        ]}
+                      >
+                        Ofertas
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                   <TouchableOpacity
                     style={[styles.empleoTab, empleoTab === 'perfiles' && styles.empleoTabActive]}
                     onPress={() => setEmpleoTab('perfiles')}
@@ -1027,18 +883,16 @@ export default function PerfilScreen() {
                   </View>
                 ) : (
                   <View style={styles.empleoContent}>
-                    {empleoTab === 'ofertas' ? (
+                    {empleoTab === 'ofertas' && isPropietario ? (
                       ofertas.length > 0 ? (
                         ofertas.map(renderOferta)
                       ) : (
                         <View style={styles.emptyState}>
                           <IconSymbol name="briefcase" size={48} color={colors.textSecondary} />
                           <Text style={styles.emptyStateText}>No hay ofertas disponibles</Text>
-                          {isPropietario && (
-                            <TouchableOpacity style={styles.emptyStateButton} onPress={handleCrearOferta}>
-                              <Text style={styles.emptyStateButtonText}>Crear Oferta</Text>
-                            </TouchableOpacity>
-                          )}
+                          <TouchableOpacity style={styles.emptyStateButton} onPress={handleCrearOferta}>
+                            <Text style={styles.emptyStateButtonText}>Crear Oferta</Text>
+                          </TouchableOpacity>
                         </View>
                       )
                     ) : (
@@ -1062,7 +916,7 @@ export default function PerfilScreen() {
             ) : (
               <View style={styles.postsGrid}>
                 {currentPosts.length > 0 ? (
-                  currentPosts.map(renderPost)
+                  currentPosts.map(renderGridPost)
                 ) : (
                   <View style={styles.emptyState}>
                     <IconSymbol 
@@ -1327,55 +1181,23 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.primary,
   },
   postsGrid: {
-    padding: 1,
-  },
-  postCard: {
-    backgroundColor: colors.cardBackground,
-    marginBottom: 1,
-  },
-  postImage: {
-    width: width,
-    height: width,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 1,
     backgroundColor: colors.cardBorder,
   },
-  postActions: {
-    flexDirection: 'row',
+  gridItem: {
+    width: GRID_ITEM_SIZE,
+    height: GRID_ITEM_SIZE,
+  },
+  gridImage: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: colors.background,
+  },
+  gridImagePlaceholder: {
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  postActionButton: {
-    marginRight: 18,
-    padding: 4,
-  },
-  postActionButtonRight: {
-    marginLeft: 'auto',
-    padding: 4,
-  },
-  postInfo: {
-    paddingHorizontal: 12,
-    paddingBottom: 12,
-  },
-  postLikes: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  postContent: {
-    fontSize: 14,
-    color: colors.text,
-    lineHeight: 20,
-    marginBottom: 4,
-  },
-  postComments: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginBottom: 4,
-  },
-  postDate: {
-    fontSize: 12,
-    color: colors.textSecondary,
   },
   loadingContainer: {
     paddingVertical: 40,
@@ -1384,6 +1206,7 @@ const styles = StyleSheet.create({
   emptyState: {
     paddingVertical: 60,
     alignItems: 'center',
+    width: '100%',
   },
   emptyStateText: {
     fontSize: 14,

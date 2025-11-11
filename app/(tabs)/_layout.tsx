@@ -188,7 +188,7 @@ export default function TabLayout() {
           {
             name: 'social',
             route: '/(tabs)/social',
-            icon: 'heart.fill',
+            icon: 'person.2.fill',
             label: 'Social',
           },
           {
@@ -225,7 +225,7 @@ export default function TabLayout() {
       {
         name: 'social',
         route: '/(tabs)/social',
-        icon: 'heart.fill',
+        icon: 'person.2.fill',
         label: 'Social',
       },
       {

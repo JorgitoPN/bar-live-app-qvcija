@@ -132,7 +132,7 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                 <IconSymbol
                   name={tab.icon as any}
                   size={24}
-                  color={active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.6)'}
+                  color={active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.5)'}
                 />
                 <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
                   {tab.label}
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   tabLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: 'rgba(255, 255, 255, 0.5)',
     marginTop: 4,
   },
   tabLabelActive: {
