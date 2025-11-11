@@ -45,7 +45,7 @@ const CATEGORIAS_EXCLUIDAS = ['terrazas', 'rooftops', 'lounge'];
 const LOCALES_POR_PAGINA = 20;
 const HEADER_HEIGHT = Platform.OS === 'ios' ? 110 : 100;
 const CATEGORIAS_HEIGHT = 110;
-const CATEGORIAS_TOP_POSITION = 170; // Changed from 150 to 170 (added 20px)
+const CATEGORIAS_TOP_POSITION = 170;
 const SPACING_BETWEEN_FILTERS_AND_LIST = 24;
 
 export default function ExplorarScreen() {
@@ -93,23 +93,58 @@ export default function ExplorarScreen() {
     }, [])
   );
 
+  // FIXED: Implement the same category filtering logic as the map page
   const localesFiltradosCompletos = useMemo(() => {
     console.log('[ExplorarScreen] ⚡ Applying filters...');
 
+    let localesFiltrados = [...todosLosLocales];
+
+    // FIXED: Apply category filter using the same logic as mapa.tsx
+    if (categoriaSeleccionada !== 'todos') {
+      console.log('[ExplorarScreen] 🔍 Filtering by category:', categoriaSeleccionada);
+      
+      localesFiltrados = localesFiltrados.filter(local => {
+        // Get barlive_types array
+        const barliveTypes = local.barlive_types || [];
+        
+        // FIXED: For "discoteca" category, only show locales with "discoteca" or "sala_conciertos"
+        if (categoriaSeleccionada === 'discoteca') {
+          const hasDiscoteca = barliveTypes.includes('discoteca') || barliveTypes.includes('sala_conciertos');
+          console.log(`[ExplorarScreen] Local "${local.nombre}" - barlive_types:`, barliveTypes, '- hasDiscoteca:', hasDiscoteca);
+          return hasDiscoteca;
+        }
+        
+        // For other categories, check if the category is in barlive_types
+        const hasCategory = barliveTypes.includes(categoriaSeleccionada);
+        return hasCategory;
+      });
+
+      console.log(`[ExplorarScreen] ✅ After category filter: ${localesFiltrados.length} locales`);
+    }
+
+    // Apply search filter
+    if (busqueda) {
+      const searchLower = busqueda.toLowerCase();
+      localesFiltrados = localesFiltrados.filter(local =>
+        local.nombre.toLowerCase().includes(searchLower) ||
+        local.direccion?.toLowerCase().includes(searchLower) ||
+        local.provincia?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Apply advanced filters
     const filtrosCombinados: Filtros = {
       ...filtrosActivos,
-      busqueda: busqueda || undefined,
-      tipo: categoriaSeleccionada !== 'todos' ? [categoriaSeleccionada] : filtrosActivos.tipo,
     };
 
     const localesOrdenados = filterAndSortLocals(
-      todosLosLocales,
+      localesFiltrados,
       filtrosCombinados,
       userLocation,
       activePromotions
     );
 
-    console.log(`[ExplorarScreen] ⚡ Filtered locals: ${localesOrdenados.length}`);
+    console.log(`[ExplorarScreen] ⚡ Final filtered locals: ${localesOrdenados.length}`);
     return localesOrdenados;
   }, [todosLosLocales, busqueda, categoriaSeleccionada, filtrosActivos, userLocation, activePromotions]);
 

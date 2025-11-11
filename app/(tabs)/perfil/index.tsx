@@ -11,11 +11,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   Modal,
-  TextInput,
-  Alert,
-  Animated,
   Pressable,
-  FlatList,
   Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -28,7 +24,7 @@ import { supabase } from '@/utils/supabase';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 
 const { width } = Dimensions.get('window');
-const GRID_ITEM_SIZE = (width - 3) / 3; // 3 columns with 1px gaps
+const GRID_ITEM_SIZE = (width - 3) / 3;
 
 interface Post {
   id: string;
@@ -109,6 +105,7 @@ export default function PerfilScreen() {
   const [seguidores, setSeguidores] = useState(0);
   const [seguidos, setSeguidos] = useState(0);
   const [publicaciones, setPublicaciones] = useState(0);
+  const [hasActiveStory, setHasActiveStory] = useState(false);
   
   // Content tabs
   const [activeTab, setActiveTab] = useState<'posts' | 'favoritos' | 'etiquetados' | 'empleo'>('posts');
@@ -164,6 +161,16 @@ export default function PerfilScreen() {
       setSeguidos(seguidosCount || 0);
       setPublicaciones(publicacionesCount || 0);
 
+      // FIXED: Check if user has active stories (same logic as locales list)
+      const { data: storiesData } = await supabase
+        .from('historias')
+        .select('id')
+        .eq('autor_id', user.id)
+        .gt('expires_at', new Date().toISOString())
+        .limit(1);
+
+      setHasActiveStory((storiesData?.length || 0) > 0);
+
       // Load initial content based on active tab
       await cargarContenido();
     } catch (error) {
@@ -216,7 +223,6 @@ export default function PerfilScreen() {
 
       if (error) throw error;
 
-      // Get likes and comments count
       const postIds = data?.map(p => p.id) || [];
       if (postIds.length > 0) {
         const [likesResult, commentsResult] = await Promise.all([
@@ -278,7 +284,6 @@ export default function PerfilScreen() {
 
       const savedPostsData = data?.map(item => item.posts).filter(Boolean) || [];
       
-      // Get likes and comments count
       const postIds = savedPostsData.map(p => p.id);
       if (postIds.length > 0) {
         const [likesResult, commentsResult] = await Promise.all([
@@ -341,7 +346,6 @@ export default function PerfilScreen() {
 
       const taggedPostsData = data?.map(item => item.posts).filter(Boolean) || [];
       
-      // Get likes and comments count
       const postIds = taggedPostsData.map(p => p.id);
       if (postIds.length > 0) {
         const [likesResult, savesResult, commentsResult] = await Promise.all([
@@ -388,7 +392,6 @@ export default function PerfilScreen() {
     try {
       setLoadingEmpleo(true);
 
-      // Load job offers - only show if propietario mode
       if (isPropietario) {
         const { data: ofertasData, error: ofertasError } = await supabase
           .from('ofertas_trabajo')
@@ -408,7 +411,6 @@ export default function PerfilScreen() {
         }
       }
 
-      // Load professional profiles - always show
       const { data: perfilesData, error: perfilesError } = await supabase
         .from('perfiles_profesionales')
         .select(`
@@ -729,13 +731,24 @@ export default function PerfilScreen() {
         {/* Profile Info */}
         <View style={styles.profileSection}>
           <View style={styles.profileHeader}>
-            {user.avatar ? (
-              <Image source={{ uri: user.avatar }} style={styles.avatar} />
-            ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <IconSymbol name="person.fill" size={40} color={colors.textSecondary} />
-              </View>
-            )}
+            {/* FIXED: Avatar with story ring (same as locales list) */}
+            <View style={styles.avatarContainer}>
+              {hasActiveStory && (
+                <LinearGradient
+                  colors={[colors.primary, colors.secondary]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.storyRing}
+                />
+              )}
+              {user.avatar ? (
+                <Image source={{ uri: user.avatar }} style={styles.avatar} />
+              ) : (
+                <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                  <IconSymbol name="person.fill" size={40} color={colors.textSecondary} />
+                </View>
+              )}
+            </View>
             <View style={styles.profileInfo}>
               <Text style={styles.profileName}>{user.nombre || 'Usuario'}</Text>
               {user.username && (
@@ -1071,11 +1084,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
+  avatarContainer: {
+    position: 'relative',
+    marginRight: 16,
+  },
+  storyRing: {
+    position: 'absolute',
+    top: -4,
+    left: -4,
+    right: -4,
+    bottom: -4,
+    borderRadius: 44,
+    zIndex: 0,
+  },
   avatar: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    marginRight: 16,
+    borderWidth: 3,
+    borderColor: colors.cardBackground,
+    zIndex: 1,
   },
   avatarPlaceholder: {
     backgroundColor: colors.background,

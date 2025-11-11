@@ -115,18 +115,25 @@ export default function AuthCallbackScreen() {
                 }
                 
                 // FIXED: Check if user needs to complete profile (username and name are mandatory)
-                if (!userData.perfil_completado || !userData.username || !userData.nombre) {
-                  console.log('[Callback] 📝 Usuario debe completar perfil - redirigiendo a completar-perfil');
+                // New users (without username or nombre) should go to /editar/perfil
+                if (!userData.username || !userData.nombre) {
+                  console.log('[Callback] 📝 Usuario nuevo - redirigiendo a editar perfil');
                   if (isMounted) setStatus('success');
-                  safeRedirect(`/auth/completar-perfil?userId=${userData.id}`, 300);
+                  safeRedirect('/editar/perfil', 300);
                   return;
                 }
+                
+                // FIXED: Existing users (with username and nombre) go to explorar
+                console.log('[Callback] ✅ Usuario existente - redirigiendo a explorar');
+                if (isMounted) setStatus('success');
+                safeRedirect('/(tabs)/explorar', 300);
+                return;
               }
               
-              // FIXED: After login, redirect to edit profile page instead of explorar
-              console.log('[Callback] ✅ Todo listo, redirigiendo a editar perfil');
+              // If no user data, redirect to explorar
+              console.log('[Callback] ⚠️ No se pudo obtener datos del usuario, redirigiendo a explorar');
               if (isMounted) setStatus('success');
-              safeRedirect('/editar/perfil', 300);
+              safeRedirect('/(tabs)/explorar', 300);
               return;
             }
           }
@@ -184,18 +191,25 @@ export default function AuthCallbackScreen() {
             }
             
             // FIXED: Check if user needs to complete profile (username and name are mandatory)
-            if (!userData.perfil_completado || !userData.username || !userData.nombre) {
-              console.log('[Callback] 📝 Usuario debe completar perfil - redirigiendo a completar-perfil');
+            // New users (without username or nombre) should go to /editar/perfil
+            if (!userData.username || !userData.nombre) {
+              console.log('[Callback] 📝 Usuario nuevo - redirigiendo a editar perfil');
               if (isMounted) setStatus('success');
-              safeRedirect(`/auth/completar-perfil?userId=${userData.id}`, 300);
+              safeRedirect('/editar/perfil', 300);
               return;
             }
+            
+            // FIXED: Existing users (with username and nombre) go to explorar
+            console.log('[Callback] ✅ Usuario existente - redirigiendo a explorar');
+            if (isMounted) setStatus('success');
+            safeRedirect('/(tabs)/explorar', 300);
+            return;
           }
           
-          // FIXED: After login, redirect to edit profile page instead of explorar
-          console.log('[Callback] ✅ Todo listo, redirigiendo a editar perfil');
+          // If no user data, redirect to explorar
+          console.log('[Callback] ⚠️ No se pudo obtener datos del usuario, redirigiendo a explorar');
           if (isMounted) setStatus('success');
-          safeRedirect('/editar/perfil', 300);
+          safeRedirect('/(tabs)/explorar', 300);
         } else {
           console.log('[Callback] ℹ️ No hay sesión activa, redirigiendo a explorar');
           safeRedirect('/(tabs)/explorar', 500);
