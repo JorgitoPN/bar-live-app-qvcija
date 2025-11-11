@@ -14,6 +14,7 @@ import {
   Pressable,
   Linking,
   Animated,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -118,33 +119,29 @@ export default function PerfilScreen() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showCreateOptions, setShowCreateOptions] = useState(false);
   
-  // Profile data
   const [seguidores, setSeguidores] = useState(0);
   const [seguidos, setSeguidos] = useState(0);
   const [publicaciones, setPublicaciones] = useState(0);
   const [hasActiveStory, setHasActiveStory] = useState(false);
   
-  // Content tabs
   const [activeTab, setActiveTab] = useState<'posts' | 'favoritos' | 'etiquetados' | 'empleo'>('posts');
   const [posts, setPosts] = useState<Post[]>([]);
   const [savedPosts, setSavedPosts] = useState<Post[]>([]);
   const [taggedPosts, setTaggedPosts] = useState<Post[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
   
-  // Employment tab
   const [empleoTab, setEmpleoTab] = useState<'ofertas' | 'perfiles'>('ofertas');
   const [ofertas, setOfertas] = useState<OfertaTrabajo[]>([]);
   const [perfiles, setPerfiles] = useState<PerfilProfesional[]>([]);
   const [loadingEmpleo, setLoadingEmpleo] = useState(false);
 
-  // FIXED: Story viewer states
+  // FIXED: Story viewer states with smooth animation
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [userStories, setUserStories] = useState<HistoriaConAutor[]>([]);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
-  const [currentStoryProgress, setCurrentStoryProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const storyTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const storyProgressRef = useRef<NodeJS.Timeout | null>(null);
+  const progressAnim = useRef(new Animated.Value(0)).current;
 
   const userRole = user?.rol_app || 'cliente';
   const isPropietario = userRole === 'propietario' || (userRole === 'admin' && currentMode === 'propietario');
@@ -165,19 +162,16 @@ export default function PerfilScreen() {
     try {
       setLoading(true);
 
-      // Load followers count
       const { count: seguidoresCount } = await supabase
         .from('seguidores')
         .select('*', { count: 'exact', head: true })
         .eq('seguido_id', user.id);
 
-      // Load following count
       const { count: seguidosCount } = await supabase
         .from('seguidores')
         .select('*', { count: 'exact', head: true })
         .eq('seguidor_id', user.id);
 
-      // Load posts count
       const { count: publicacionesCount } = await supabase
         .from('posts')
         .select('*', { count: 'exact', head: true })
@@ -187,7 +181,6 @@ export default function PerfilScreen() {
       setSeguidos(seguidosCount || 0);
       setPublicaciones(publicacionesCount || 0);
 
-      // FIXED: Check if user has active stories
       const { data: storiesData } = await supabase
         .from('historias')
         .select('id')
@@ -197,7 +190,6 @@ export default function PerfilScreen() {
 
       setHasActiveStory((storiesData?.length || 0) > 0);
 
-      // FIXED: Load user's stories for viewer
       const { data: userStoriesData } = await supabase
         .from('historias')
         .select(`
@@ -214,7 +206,6 @@ export default function PerfilScreen() {
         .order('created_at', { ascending: true });
 
       if (userStoriesData) {
-        // Check which stories have been viewed by the user
         const storyIds = userStoriesData.map(s => s.id);
         const { data: viewedData } = await supabase
           .from('historia_views')
@@ -237,7 +228,6 @@ export default function PerfilScreen() {
         setUserStories(storiesWithStatus);
       }
 
-      // Load initial content based on active tab
       await cargarContenido();
     } catch (error) {
       console.error('[Perfil] Error cargando datos:', error);
@@ -593,22 +583,18 @@ export default function PerfilScreen() {
     return `Hace ${Math.floor(diffDias / 30)} meses`;
   };
 
-  // FIXED: Story viewer functions
+  // FIXED: Story viewer functions with smooth animation
   const stopStoryTimer = useCallback(() => {
     if (storyTimerRef.current) {
       clearTimeout(storyTimerRef.current);
       storyTimerRef.current = null;
     }
-    if (storyProgressRef.current) {
-      clearInterval(storyProgressRef.current);
-      storyProgressRef.current = null;
-    }
-  }, []);
+    progressAnim.stopAnimation();
+  }, [progressAnim]);
 
   const handleNextStory = useCallback(async () => {
     const currentStory = userStories[currentStoryIndex];
     
-    // Mark story as viewed
     if (currentStory && user) {
       try {
         const { data: existingView } = await supabase
@@ -631,49 +617,42 @@ export default function PerfilScreen() {
     
     if (currentStoryIndex < userStories.length - 1) {
       setCurrentStoryIndex(currentStoryIndex + 1);
-      setCurrentStoryProgress(0);
+      progressAnim.setValue(0);
     } else {
-      // Reload profile data to update story status
       await cargarDatosPerfil();
       setShowStoryViewer(false);
       stopStoryTimer();
     }
-  }, [currentStoryIndex, userStories, stopStoryTimer, user, cargarDatosPerfil]);
+  }, [currentStoryIndex, userStories, stopStoryTimer, user, cargarDatosPerfil, progressAnim]);
 
   const startStoryTimer = useCallback(() => {
     if (storyTimerRef.current) {
       clearTimeout(storyTimerRef.current);
     }
-    if (storyProgressRef.current) {
-      clearInterval(storyProgressRef.current);
-    }
 
-    setCurrentStoryProgress(0);
+    progressAnim.setValue(0);
 
-    storyProgressRef.current = setInterval(() => {
-      setCurrentStoryProgress(prev => {
-        if (prev >= 100) {
-          return 100;
-        }
-        return prev + 1;
-      });
-    }, 50);
+    Animated.timing(progressAnim, {
+      toValue: 1,
+      duration: 5000,
+      useNativeDriver: false,
+    }).start();
 
     storyTimerRef.current = setTimeout(() => {
       handleNextStory();
     }, 5000);
-  }, [handleNextStory]);
+  }, [handleNextStory, progressAnim]);
 
   const handlePreviousStory = useCallback(() => {
     if (currentStoryIndex > 0) {
       setCurrentStoryIndex(currentStoryIndex - 1);
-      setCurrentStoryProgress(0);
+      progressAnim.setValue(0);
       startStoryTimer();
     } else {
       setShowStoryViewer(false);
       stopStoryTimer();
     }
-  }, [currentStoryIndex, startStoryTimer, stopStoryTimer]);
+  }, [currentStoryIndex, startStoryTimer, stopStoryTimer, progressAnim]);
 
   const handleAvatarPress = useCallback(() => {
     if (!user) {
@@ -682,13 +661,11 @@ export default function PerfilScreen() {
     }
 
     if (userStories.length > 0) {
-      // Open story viewer
       setCurrentStoryIndex(0);
       setShowStoryViewer(true);
       setIsPaused(false);
       startStoryTimer();
     } else {
-      // Create new story
       router.push('/crear/historia');
     }
   }, [user, userStories, startStoryTimer, router]);
@@ -918,9 +895,14 @@ export default function PerfilScreen() {
   const currentStory = userStories[currentStoryIndex];
   const hasUnviewedUserStories = userStories.some(s => !s.visto_por_usuario);
 
+  const progressWidth = progressAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0%', '100%'],
+  });
+
   return (
     <View style={commonStyles.container}>
-      {/* FIXED: Header with unified icon style */}
+      {/* FIXED: Header with unified filled icon style */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         start={{ x: 0, y: 0 }}
@@ -937,7 +919,7 @@ export default function PerfilScreen() {
               <IconSymbol name="bell.fill" size={24} color={colors.white} />
             </TouchableOpacity>
             <TouchableOpacity style={styles.headerButton} onPress={handleSettings}>
-              <IconSymbol name="gear" size={24} color={colors.white} />
+              <IconSymbol name="gearshape.fill" size={24} color={colors.white} />
             </TouchableOpacity>
           </View>
         </View>
@@ -951,10 +933,8 @@ export default function PerfilScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Profile Info */}
         <View style={styles.profileSection}>
           <View style={styles.profileHeader}>
-            {/* FIXED: Avatar with story ring OR "+" icon - clickable to open story viewer or create story */}
             <TouchableOpacity 
               style={styles.avatarContainer}
               onPress={handleAvatarPress}
@@ -975,7 +955,6 @@ export default function PerfilScreen() {
                   <IconSymbol name="person.fill" size={40} color={colors.textSecondary} />
                 </View>
               )}
-              {/* FIXED: Show "+" icon when no active story */}
               {!hasActiveStory && (
                 <View style={styles.addStoryIcon}>
                   <IconSymbol name="plus" size={18} color={colors.white} />
@@ -990,12 +969,10 @@ export default function PerfilScreen() {
             </View>
           </View>
 
-          {/* Bio */}
           {user.bio && (
             <Text style={styles.profileBio}>{user.bio}</Text>
           )}
 
-          {/* Website */}
           {user.website && (
             <TouchableOpacity style={styles.websiteContainer} onPress={handleWebsite} activeOpacity={0.7}>
               <IconSymbol name="link" size={16} color={colors.primary} />
@@ -1003,7 +980,6 @@ export default function PerfilScreen() {
             </TouchableOpacity>
           )}
 
-          {/* Stats */}
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
               <Text style={styles.statNumber}>{publicaciones}</Text>
@@ -1021,7 +997,6 @@ export default function PerfilScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Action Buttons */}
           <View style={styles.actionButtons}>
             <TouchableOpacity style={styles.actionButton} onPress={handleEditProfile}>
               <IconSymbol name="pencil" size={18} color={colors.text} />
@@ -1037,7 +1012,6 @@ export default function PerfilScreen() {
           </View>
         </View>
 
-        {/* Content Tabs */}
         <View style={styles.tabsContainer}>
           <TouchableOpacity
             style={[styles.tab, activeTab === 'posts' && styles.tabActive]}
@@ -1081,7 +1055,6 @@ export default function PerfilScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Content */}
         {loadingPosts ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
@@ -1090,7 +1063,6 @@ export default function PerfilScreen() {
           <>
             {activeTab === 'empleo' ? (
               <View style={styles.empleoSection}>
-                {/* Employment Tabs */}
                 <View style={styles.empleoTabs}>
                   {isPropietario && (
                     <TouchableOpacity
@@ -1122,7 +1094,6 @@ export default function PerfilScreen() {
                   </TouchableOpacity>
                 </View>
 
-                {/* Employment Content */}
                 {loadingEmpleo ? (
                   <View style={styles.loadingContainer}>
                     <ActivityIndicator size="small" color={colors.primary} />
@@ -1187,7 +1158,6 @@ export default function PerfilScreen() {
         )}
       </ScrollView>
 
-      {/* Create Options Modal */}
       <Modal
         visible={showCreateOptions}
         animationType="slide"
@@ -1247,7 +1217,7 @@ export default function PerfilScreen() {
         </Pressable>
       </Modal>
 
-      {/* FIXED: Story Viewer Modal with delete button */}
+      {/* FIXED: Story Viewer Modal with smooth progress bar and delete button */}
       <Modal
         visible={showStoryViewer}
         animationType="fade"
@@ -1290,8 +1260,8 @@ export default function PerfilScreen() {
                         <View style={[styles.storyProgressFill, { width: '100%' }]} />
                       )}
                       {index === currentStoryIndex && (
-                        <View
-                          style={[styles.storyProgressFill, { width: `${currentStoryProgress}%` }]}
+                        <Animated.View
+                          style={[styles.storyProgressFill, { width: progressWidth }]}
                         />
                       )}
                     </View>
@@ -1309,7 +1279,6 @@ export default function PerfilScreen() {
                     </View>
                   )}
                   <Text style={styles.storyAutorNombre}>{user.nombre}</Text>
-                  {/* FIXED: Delete button for own stories */}
                   <TouchableOpacity
                     style={styles.storyDeleteButton}
                     onPress={handleDeleteStory}
@@ -1490,7 +1459,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.headerText,
   },
-  // FIXED: Add story icon when no active story
   addStoryIcon: {
     position: 'absolute',
     bottom: 0,
@@ -1919,7 +1887,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     flex: 1,
   },
-  // FIXED: Delete button for stories
   storyDeleteButton: {
     width: 36,
     height: 36,

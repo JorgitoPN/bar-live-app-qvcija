@@ -31,20 +31,15 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
 
   const isActive = (route: string) => {
     try {
-      // Remove leading slash for comparison
       const cleanRoute = route.startsWith('/') ? route.substring(1) : route;
       const cleanPathname = pathname.startsWith('/') ? pathname.substring(1) : pathname;
       
-      // FIXED: More precise matching to avoid false positives
-      // For perfil tab, only match if it's exactly the perfil index, not chats/notificaciones/etc
       if (cleanRoute === '(tabs)/perfil') {
-        // Match only if pathname is exactly /(tabs)/perfil or /(tabs)/perfil/index
         return cleanPathname === '(tabs)/perfil' || 
                cleanPathname === '(tabs)/perfil/' || 
                cleanPathname === '(tabs)/perfil/index';
       }
       
-      // For other tabs, check if pathname starts with the route
       return cleanPathname.startsWith(cleanRoute);
     } catch (error) {
       console.error('Error checking active route:', error);
@@ -54,7 +49,6 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
 
   return (
     <View style={styles.container} pointerEvents="box-none">
-      {/* SVG Background - flat without notch */}
       <View style={styles.svgContainer} pointerEvents="none">
         <Svg
           width="100%"
@@ -78,13 +72,11 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
           const onPress = () => {
             const now = Date.now();
             
-            // ⚡ INSTANT NAVIGATION - Prevent rapid taps within 50ms
             if (now - lastNavigationTime.current < 50) {
               console.log('⚠️ Tap too fast, ignoring');
               return;
             }
 
-            // ⚡ Check if already on this route
             if (active) {
               console.log('✅ Already on route:', tab.name);
               return;
@@ -94,7 +86,6 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
             lastNavigationTime.current = now;
 
             try {
-              // ⚡ INSTANT NAVIGATION - Use push instead of replace to ensure proper navigation
               router.push(tab.route as any);
             } catch (error) {
               console.error('❌ Navigation error:', error);
@@ -129,12 +120,12 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
               activeOpacity={0.5}
             >
               <View style={[styles.tabContent, active && styles.tabContentActive]}>
-                {/* FIXED: Active icons are now BRIGHT WHITE (#FFFFFF) with maximum contrast */}
-                {/* Inactive icons are significantly dimmed (opacity 0.25) for better distinction */}
+                {/* FIXED: Maximum contrast - Active icons are BRIGHT WHITE (#FFFFFF) */}
+                {/* Inactive icons are much more visible (opacity 0.6) */}
                 <IconSymbol
                   name={tab.icon as any}
                   size={26}
-                  color={active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.25)'}
+                  color={active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.6)'}
                   weight={active ? 'fill' : 'regular'}
                 />
                 <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
@@ -200,14 +191,14 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   tabContentActive: {
-    // FIXED: More prominent background for active tab with higher opacity
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    // FIXED: More prominent background for active tab
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
   },
   tabLabel: {
     fontSize: 11,
     fontWeight: '600',
-    // FIXED: Inactive labels are significantly dimmed (opacity 0.25) for better contrast
-    color: 'rgba(255, 255, 255, 0.25)',
+    // FIXED: Inactive labels are much more visible (opacity 0.6)
+    color: 'rgba(255, 255, 255, 0.6)',
     marginTop: 4,
   },
   tabLabelActive: {
