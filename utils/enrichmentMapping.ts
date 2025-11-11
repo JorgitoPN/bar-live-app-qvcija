@@ -49,15 +49,43 @@ const GOOGLE_TO_BARLIVE_TYPES: Record<string, string[]> = {
 };
 
 /**
- * Mapear tipos de Google Places a tipos de BarLive
+ * Palabras clave en nombres que indican tipo de local
  */
-export function mapGoogleTypesToBarlive(googleTypes: string[]): string[] {
+const NOMBRE_KEYWORDS: Record<string, string[]> = {
+  'discoteca': ['disco', 'discoteca', 'club', 'night', 'dance', 'sdc', 'facultad'],
+  'bar': ['bar', 'pub', 'tavern', 'cerveceria', 'brewery'],
+  'cocteleria': ['cocktail', 'coctel', 'lounge', 'mixology'],
+  'cafe': ['cafe', 'coffee', 'cafeteria'],
+  'restaurante': ['restaurant', 'restaurante', 'bistro', 'grill'],
+};
+
+/**
+ * Mapear tipos de Google Places a tipos de BarLive
+ * MEJORADO: Analiza también el nombre del local para detectar discotecas
+ */
+export function mapGoogleTypesToBarlive(googleTypes: string[], nombreLocal?: string): string[] {
   console.log('[Mapping] ========================================');
   console.log('[Mapping] Google types:', googleTypes);
+  console.log('[Mapping] Local name:', nombreLocal);
   
   const barliveTypes = new Set<string>();
   
-  // Mapear cada tipo de Google
+  // 1️⃣ PASO 1: Analizar el nombre del local para detectar palabras clave
+  if (nombreLocal) {
+    const nombreLower = nombreLocal.toLowerCase();
+    
+    for (const [tipo, keywords] of Object.entries(NOMBRE_KEYWORDS)) {
+      for (const keyword of keywords) {
+        if (nombreLower.includes(keyword)) {
+          barliveTypes.add(tipo);
+          console.log(`[Mapping] Name keyword detected: "${keyword}" → ${tipo}`);
+          break;
+        }
+      }
+    }
+  }
+  
+  // 2️⃣ PASO 2: Mapear cada tipo de Google
   for (const googleType of googleTypes) {
     const mapped = GOOGLE_TO_BARLIVE_TYPES[googleType];
     if (mapped) {
@@ -66,7 +94,7 @@ export function mapGoogleTypesToBarlive(googleTypes: string[]): string[] {
     }
   }
   
-  // Si no se mapeó nada, usar tipo genérico basado en los tipos de Google
+  // 3️⃣ PASO 3: Si no se mapeó nada, usar tipo genérico basado en los tipos de Google
   if (barliveTypes.size === 0) {
     console.log('[Mapping] No direct mapping found, using fallback...');
     

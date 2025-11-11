@@ -529,8 +529,8 @@ export default function EnriquecimientoGoogleScreen() {
             continue;
           }
           
-          // 🎯 PASO 5: CATEGORIZACIÓN MEJORADA
-          let barliveTypes = mapGoogleTypesToBarlive(details.types || []);
+          // 🎯 PASO 5: CATEGORIZACIÓN MEJORADA (con análisis de nombre)
+          let barliveTypes = mapGoogleTypesToBarlive(details.types || [], details.name || local.nombre);
           if (details.opening_hours) {
             barliveTypes = categorizarPorHorarios(details.opening_hours, barliveTypes);
           }

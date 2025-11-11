@@ -70,9 +70,8 @@ export const TIPOS_PROHIBIDOS = [
   // ❌ ALOJAMIENTO
   'lodging', 'hotel', 'motel', 'campground',
   
-  // ❌ EDUCACIÓN Y CULTURA
-  'school', 'university', 'library', 'primary_school',
-  'secondary_school',
+  // ❌ EDUCACIÓN Y CULTURA (REMOVIDO 'university' y 'school' para permitir discotecas con esos nombres)
+  'library', 'primary_school', 'secondary_school',
   
   // ❌ RELIGIÓN
   'church', 'mosque', 'synagogue', 'place_of_worship',
@@ -96,6 +95,14 @@ export const TIPOS_GENERICOS = [
   'tourist_attraction',
 ];
 
+// 🎓 TIPOS AMBIGUOS (Pueden ser discotecas con nombres engañosos)
+// Estos tipos NO deben rechazar automáticamente si hay tipos válidos presentes
+export const TIPOS_AMBIGUOS = [
+  'university',  // "Facultad Sdc" es una discoteca
+  'school',      // Algunas discotecas tienen nombres educativos
+  'store',       // "The Capital Latin Bar" puede tener este tipo por error
+];
+
 /**
  * Verificar si un local tiene tipos válidos
  */
@@ -108,34 +115,41 @@ export function tieneAlgunTipoValido(types: string[]): boolean {
 }
 
 /**
- * Verificar si un local tiene tipos prohibidos
+ * Verificar si un local tiene tipos prohibidos (excluyendo ambiguos)
  */
 export function tieneAlgunTipoProhibido(types: string[]): boolean {
   if (!types || types.length === 0) {
     return false;
   }
   
-  // Filtrar tipos genéricos antes de verificar prohibidos
-  const tiposRelevantes = types.filter(t => !TIPOS_GENERICOS.includes(t));
+  // Filtrar tipos genéricos y ambiguos antes de verificar prohibidos
+  const tiposRelevantes = types.filter(t => 
+    !TIPOS_GENERICOS.includes(t) && !TIPOS_AMBIGUOS.includes(t)
+  );
   
   return tiposRelevantes.some(type => TIPOS_PROHIBIDOS.includes(type));
 }
 
 /**
- * Obtener tipos prohibidos encontrados
+ * Obtener tipos prohibidos encontrados (excluyendo ambiguos)
  */
 export function obtenerTiposProhibidos(types: string[]): string[] {
   if (!types || types.length === 0) {
     return [];
   }
   
-  const tiposRelevantes = types.filter(t => !TIPOS_GENERICOS.includes(t));
+  const tiposRelevantes = types.filter(t => 
+    !TIPOS_GENERICOS.includes(t) && !TIPOS_AMBIGUOS.includes(t)
+  );
   return tiposRelevantes.filter(t => TIPOS_PROHIBIDOS.includes(t));
 }
 
 /**
  * Validar si un local es válido para BarLive
- * NUEVA LÓGICA: Priorizar tipos válidos sobre prohibidos
+ * NUEVA LÓGICA MEJORADA:
+ * 1. Si tiene tipos válidos (bar, night_club, etc.) → ACEPTAR
+ * 2. Si tiene tipos prohibidos SIN tipos válidos → RECHAZAR
+ * 3. Si tiene tipos ambiguos (university, store) pero también tipos válidos → ACEPTAR
  */
 export function esLocalValidoParaBarlive(types: string[]): {
   valido: boolean;
@@ -152,44 +166,47 @@ export function esLocalValidoParaBarlive(types: string[]): {
   const tiposValidosEncontrados = tiposRelevantes.filter(t => TIPOS_VALIDOS.includes(t));
   const tieneTipoValido = tiposValidosEncontrados.length > 0;
   
-  if (!tieneTipoValido) {
-    console.log('[Type Validation] ❌ No valid types found');
+  console.log('[Type Validation] Valid types found:', tiposValidosEncontrados);
+  
+  // 2️⃣ PASO 2: Si tiene tipos válidos, ACEPTAR (ignorar tipos ambiguos)
+  if (tieneTipoValido) {
+    console.log('[Type Validation] ✅ Has valid types, ACCEPTING');
+    console.log('[Type Validation] ========================================');
+    return { valido: true };
+  }
+  
+  // 3️⃣ PASO 3: Si NO tiene tipos válidos, verificar si tiene tipos prohibidos
+  const tiposProhibidosEncontrados = obtenerTiposProhibidos(types);
+  
+  if (tiposProhibidosEncontrados.length > 0) {
+    console.log('[Type Validation] ❌ No valid types and has prohibited types:', tiposProhibidosEncontrados);
+    console.log('[Type Validation] ========================================');
+    return {
+      valido: false,
+      razon: `Tipo prohibido: ${tiposProhibidosEncontrados.join(', ')}`,
+    };
+  }
+  
+  // 4️⃣ PASO 4: Si NO tiene tipos válidos NI prohibidos, verificar tipos ambiguos
+  const tiposAmbiguosEncontrados = tiposRelevantes.filter(t => TIPOS_AMBIGUOS.includes(t));
+  
+  if (tiposAmbiguosEncontrados.length > 0) {
+    console.log('[Type Validation] ⚠️ Only ambiguous types found:', tiposAmbiguosEncontrados);
+    console.log('[Type Validation] ❌ Rejecting because no valid types present');
+    console.log('[Type Validation] ========================================');
     return {
       valido: false,
       razon: 'No tiene tipos válidos para BarLive',
     };
   }
   
-  console.log('[Type Validation] ✅ Valid types found:', tiposValidosEncontrados);
-  
-  // 2️⃣ PASO 2: Verificar si tiene tipos prohibidos
-  const tiposProhibidosEncontrados = obtenerTiposProhibidos(types);
-  
-  if (tiposProhibidosEncontrados.length > 0) {
-    console.log('[Type Validation] ⚠️ Prohibited types found:', tiposProhibidosEncontrados);
-    
-    // Si tiene AMBOS tipos válidos Y prohibidos, rechazar solo si los prohibidos son mayoría
-    const ratioValidos = tiposValidosEncontrados.length / tiposRelevantes.length;
-    
-    if (ratioValidos >= 0.5) {
-      // Si al menos el 50% de los tipos son válidos, aceptar
-      console.log('[Type Validation] ✅ Valid types are majority, accepting despite prohibited types');
-      console.log('[Type Validation] Valid ratio:', ratioValidos);
-      return { valido: true };
-    } else {
-      // Si los tipos prohibidos son mayoría, rechazar
-      console.log('[Type Validation] ❌ Prohibited types are majority, rejecting');
-      return {
-        valido: false,
-        razon: `Tipo prohibido: ${tiposProhibidosEncontrados.join(', ')}`,
-      };
-    }
-  }
-  
-  console.log('[Type Validation] ✅ Valid for BarLive');
+  // 5️⃣ PASO 5: Si no tiene ningún tipo relevante, rechazar
+  console.log('[Type Validation] ❌ No valid types found');
   console.log('[Type Validation] ========================================');
-  
-  return { valido: true };
+  return {
+    valido: false,
+    razon: 'No tiene tipos válidos para BarLive',
+  };
 }
 
 /**
@@ -225,6 +242,7 @@ export function estaEnEspana(direccion: string, plusCode?: string): boolean {
     'lleida', 'girona', 'tarragona', 'castellón', 'ávila',
     'segovia', 'soria', 'palencia', 'zamora', 'álava',
     'guipúzcoa', 'vizcaya', 'la rioja', 'navarra', 'ceuta', 'melilla',
+    'santiago de compostela', 'santiago', 'compostela',
   ];
   
   return provinciasEspanolas.some(provincia => direccionLower.includes(provincia));
