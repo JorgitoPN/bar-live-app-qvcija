@@ -15,27 +15,26 @@ export default function AuthCallbackScreen() {
 
   useEffect(() => {
     let isMounted = true;
-    let hasRedirected = false;
+    let redirectTimeout: NodeJS.Timeout;
 
-    const redirect = (path: string, delay: number = 0) => {
-      if (!hasRedirected && isMounted) {
-        hasRedirected = true;
-        console.log('[Callback] 🚀 Redirigiendo a:', path);
-        
-        if (delay > 0) {
-          setTimeout(() => {
-            router.replace(path as any);
-          }, delay);
-        } else {
+    const safeRedirect = (path: string, delay: number = 0) => {
+      if (!isMounted) return;
+      
+      console.log('[Callback] 🚀 Programando redirección a:', path, 'en', delay, 'ms');
+      
+      redirectTimeout = setTimeout(() => {
+        if (isMounted) {
+          console.log('[Callback] ✅ Ejecutando redirección a:', path);
           router.replace(path as any);
         }
-      }
+      }, delay);
     };
 
     const handleCallback = async () => {
       try {
         console.log('[Callback] 🔄 Procesando callback de autenticación...');
         console.log('[Callback] Platform:', Platform.OS);
+        console.log('[Callback] Params:', params);
         
         // For web, check URL hash for tokens
         if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location.hash) {
@@ -45,13 +44,19 @@ export default function AuthCallbackScreen() {
           const errorParam = hashParams.get('error');
           const errorDescription = hashParams.get('error_description');
 
+          console.log('[Callback] Hash params:', {
+            hasAccessToken: !!accessToken,
+            hasRefreshToken: !!refreshToken,
+            error: errorParam,
+          });
+
           if (errorParam) {
             console.error('[Callback] ❌ Error en OAuth:', errorParam);
             if (isMounted) {
               setStatus('error');
               setErrorMessage(errorDescription || errorParam);
             }
-            redirect('/(tabs)/explorar', 2000);
+            safeRedirect('/(tabs)/explorar', 2000);
             return;
           }
 
@@ -69,12 +74,15 @@ export default function AuthCallbackScreen() {
                 setStatus('error');
                 setErrorMessage('Error al establecer la sesión');
               }
-              redirect('/(tabs)/explorar', 2000);
+              safeRedirect('/(tabs)/explorar', 2000);
               return;
             }
 
             if (data.user) {
-              console.log('[Callback] ✅ Sesión establecida');
+              console.log('[Callback] ✅ Sesión establecida para usuario:', data.user.email);
+              
+              // Wait a bit for session to propagate
+              await new Promise(resolve => setTimeout(resolve, 500));
               
               // Register push notifications (non-blocking)
               registerForPushNotifications()
@@ -86,29 +94,39 @@ export default function AuthCallbackScreen() {
                 .catch(() => {});
               
               // Get user profile to check if needs profile completion
+              console.log('[Callback] 🔍 Obteniendo perfil de usuario...');
               const { user: userData } = await getCurrentUser();
               
               if (userData) {
+                console.log('[Callback] ✅ Perfil obtenido:', {
+                  email: userData.email,
+                  hasAcceptedTerms: userData.ha_aceptado_terminos,
+                  profileCompleted: userData.perfil_completado,
+                  hasUsername: !!userData.username,
+                  hasName: !!userData.nombre,
+                });
+                
                 // Check if user needs to accept terms
                 if (!userData.ha_aceptado_terminos) {
                   console.log('[Callback] 📋 Usuario debe aceptar términos');
-                  redirect(`/auth/terms-acceptance?userId=${userData.id}`, 100);
+                  if (isMounted) setStatus('success');
+                  safeRedirect(`/auth/terms-acceptance?userId=${userData.id}`, 300);
                   return;
                 }
                 
                 // Check if user needs to complete profile
                 if (!userData.perfil_completado || !userData.username || !userData.nombre) {
                   console.log('[Callback] 📝 Usuario debe completar perfil');
-                  redirect(`/auth/completar-perfil?userId=${userData.id}`, 100);
+                  if (isMounted) setStatus('success');
+                  safeRedirect(`/auth/completar-perfil?userId=${userData.id}`, 300);
                   return;
                 }
               }
               
               // All good, go to main app
-              if (isMounted) {
-                setStatus('success');
-              }
-              redirect('/(tabs)/explorar', 500);
+              console.log('[Callback] ✅ Todo listo, redirigiendo a explorar');
+              if (isMounted) setStatus('success');
+              safeRedirect('/(tabs)/explorar', 300);
               return;
             }
           }
@@ -125,12 +143,15 @@ export default function AuthCallbackScreen() {
             setStatus('error');
             setErrorMessage('Error al verificar la sesión');
           }
-          redirect('/(tabs)/explorar', 2000);
+          safeRedirect('/(tabs)/explorar', 2000);
           return;
         }
 
         if (session?.user) {
-          console.log('[Callback] ✅ Sesión encontrada');
+          console.log('[Callback] ✅ Sesión encontrada para:', session.user.email);
+          
+          // Wait a bit for session to propagate
+          await new Promise(resolve => setTimeout(resolve, 500));
           
           // Register push notifications (non-blocking)
           registerForPushNotifications()
@@ -142,32 +163,42 @@ export default function AuthCallbackScreen() {
             .catch(() => {});
           
           // Get user profile to check if needs profile completion
+          console.log('[Callback] 🔍 Obteniendo perfil de usuario...');
           const { user: userData } = await getCurrentUser();
           
           if (userData) {
+            console.log('[Callback] ✅ Perfil obtenido:', {
+              email: userData.email,
+              hasAcceptedTerms: userData.ha_aceptado_terminos,
+              profileCompleted: userData.perfil_completado,
+              hasUsername: !!userData.username,
+              hasName: !!userData.nombre,
+            });
+            
             // Check if user needs to accept terms
             if (!userData.ha_aceptado_terminos) {
               console.log('[Callback] 📋 Usuario debe aceptar términos');
-              redirect(`/auth/terms-acceptance?userId=${userData.id}`, 100);
+              if (isMounted) setStatus('success');
+              safeRedirect(`/auth/terms-acceptance?userId=${userData.id}`, 300);
               return;
             }
             
             // Check if user needs to complete profile
             if (!userData.perfil_completado || !userData.username || !userData.nombre) {
               console.log('[Callback] 📝 Usuario debe completar perfil');
-              redirect(`/auth/completar-perfil?userId=${userData.id}`, 100);
+              if (isMounted) setStatus('success');
+              safeRedirect(`/auth/completar-perfil?userId=${userData.id}`, 300);
               return;
             }
           }
           
           // All good, go to main app
-          if (isMounted) {
-            setStatus('success');
-          }
-          redirect('/(tabs)/explorar', 500);
+          console.log('[Callback] ✅ Todo listo, redirigiendo a explorar');
+          if (isMounted) setStatus('success');
+          safeRedirect('/(tabs)/explorar', 300);
         } else {
-          console.log('[Callback] ℹ️ No hay sesión activa');
-          redirect('/(tabs)/explorar', 500);
+          console.log('[Callback] ℹ️ No hay sesión activa, redirigiendo a explorar');
+          safeRedirect('/(tabs)/explorar', 500);
         }
       } catch (error: any) {
         console.error('[Callback] ❌ Error en callback:', error);
@@ -175,16 +206,20 @@ export default function AuthCallbackScreen() {
           setStatus('error');
           setErrorMessage(error.message || 'Error inesperado');
         }
-        redirect('/(tabs)/explorar', 2000);
+        safeRedirect('/(tabs)/explorar', 2000);
       }
     };
 
     handleCallback();
 
     return () => {
+      console.log('[Callback] 🧹 Limpiando componente');
       isMounted = false;
+      if (redirectTimeout) {
+        clearTimeout(redirectTimeout);
+      }
     };
-  }, [router, params]);
+  }, [router]);
 
   return (
     <View style={styles.container}>
@@ -192,6 +227,7 @@ export default function AuthCallbackScreen() {
         <>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.text}>Completando autenticación...</Text>
+          <Text style={styles.subText}>Por favor espera un momento</Text>
         </>
       )}
       

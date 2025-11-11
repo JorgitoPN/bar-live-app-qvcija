@@ -16,8 +16,19 @@ export default function Index() {
     });
   }, [user, loading]);
 
-  // Always redirect to explorar immediately
-  // This is the main landing page of the app
+  // Show loading while auth is initializing
+  if (loading) {
+    console.log('[Index] ⏳ Cargando autenticación...');
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={{ marginTop: 16, color: colors.text }}>Cargando...</Text>
+      </View>
+    );
+  }
+
+  // Always redirect to explorar
+  // The app will handle authentication state internally
   console.log('[Index] 🚀 Redirigiendo a explorar');
   return <Redirect href="/(tabs)/explorar" />;
 }

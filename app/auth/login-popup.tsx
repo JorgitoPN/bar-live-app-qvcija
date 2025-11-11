@@ -37,6 +37,7 @@ export default function LoginPopupScreen() {
   const [password, setPassword] = useState('');
   const [nombre, setNombre] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   useEffect(() => {
     // If user is already logged in, redirect
@@ -73,6 +74,9 @@ export default function LoginPopupScreen() {
 
         if (userData) {
           console.log('[LoginPopup] ✅ Login exitoso');
+          
+          // Wait for auth context to update
+          await new Promise(resolve => setTimeout(resolve, 500));
           await refreshUser();
           
           // Close modal and let AuthContext handle navigation
@@ -119,13 +123,14 @@ export default function LoginPopupScreen() {
   };
 
   const handleGoogleSignIn = async () => {
-    setLoading(true);
+    setGoogleLoading(true);
 
     try {
       console.log('[LoginPopup] 🔐 Iniciando Google Sign-In...');
       const result = await signInWithGoogle();
 
-      // On web, signInWithGoogle will redirect, so we won't reach this code
+      // On web, signInWithGoogle will redirect to callback page
+      // On native, we handle the result here
       if (Platform.OS !== 'web') {
         const { user: userData, error } = result;
 
@@ -138,22 +143,28 @@ export default function LoginPopupScreen() {
           } else {
             Alert.alert('Error', error);
           }
+          setGoogleLoading(false);
           return;
         }
 
         if (userData) {
           console.log('[LoginPopup] ✅ Google Sign-In exitoso');
+          
+          // Wait for auth context to update
+          await new Promise(resolve => setTimeout(resolve, 500));
           await refreshUser();
           
           // Close modal and let AuthContext handle navigation
           router.back();
         }
+        
+        setGoogleLoading(false);
       }
+      // On web, the page will redirect, so we keep the loading state
     } catch (error: any) {
       console.error('[LoginPopup] ❌ Error:', error);
       Alert.alert('Error', error.message || 'Error al iniciar sesión con Google');
-    } finally {
-      setLoading(false);
+      setGoogleLoading(false);
     }
   };
 
@@ -187,7 +198,9 @@ export default function LoginPopupScreen() {
   };
 
   const handleClose = () => {
-    router.back();
+    if (!loading && !googleLoading) {
+      router.back();
+    }
   };
 
   return (
@@ -195,7 +208,11 @@ export default function LoginPopupScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
+      <TouchableOpacity 
+        style={styles.closeButton} 
+        onPress={handleClose}
+        disabled={loading || googleLoading}
+      >
         <IconSymbol name="xmark" size={20} color={colors.text} />
       </TouchableOpacity>
 
@@ -216,12 +233,15 @@ export default function LoginPopupScreen() {
 
         <View style={styles.socialButtons}>
           <TouchableOpacity
-            style={styles.socialButton}
+            style={[styles.socialButton, googleLoading && styles.socialButtonLoading]}
             onPress={handleGoogleSignIn}
-            disabled={loading}
+            disabled={loading || googleLoading}
           >
-            {loading ? (
-              <ActivityIndicator size="small" color={colors.text} />
+            {googleLoading ? (
+              <>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text style={styles.socialButtonText}>Conectando con Google...</Text>
+              </>
             ) : (
               <>
                 <IconSymbol name="globe" size={24} color={colors.text} />
@@ -248,7 +268,7 @@ export default function LoginPopupScreen() {
                 value={nombre}
                 onChangeText={setNombre}
                 autoCapitalize="words"
-                editable={!loading}
+                editable={!loading && !googleLoading}
               />
             </View>
           )}
@@ -264,7 +284,7 @@ export default function LoginPopupScreen() {
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
-              editable={!loading}
+              editable={!loading && !googleLoading}
             />
           </View>
 
@@ -278,12 +298,15 @@ export default function LoginPopupScreen() {
               onChangeText={setPassword}
               secureTextEntry
               autoCapitalize="none"
-              editable={!loading}
+              editable={!loading && !googleLoading}
             />
           </View>
 
           {isLogin && (
-            <TouchableOpacity onPress={handleForgotPassword} disabled={loading}>
+            <TouchableOpacity 
+              onPress={handleForgotPassword} 
+              disabled={loading || googleLoading}
+            >
               <Text style={[styles.link, { textAlign: 'right', marginTop: -8 }]}>
                 ¿Olvidaste tu contraseña?
               </Text>
@@ -294,7 +317,7 @@ export default function LoginPopupScreen() {
         <TouchableOpacity
           style={[styles.button, styles.buttonPrimary]}
           onPress={handleBarLiveAuth}
-          disabled={loading}
+          disabled={loading || googleLoading}
         >
           {loading ? (
             <ActivityIndicator color="#FFFFFF" />
@@ -309,7 +332,10 @@ export default function LoginPopupScreen() {
           <Text style={styles.footerText}>
             {isLogin ? '¿No tienes cuenta?' : '¿Ya tienes cuenta?'}
           </Text>
-          <TouchableOpacity onPress={() => setIsLogin(!isLogin)} disabled={loading}>
+          <TouchableOpacity 
+            onPress={() => setIsLogin(!isLogin)} 
+            disabled={loading || googleLoading}
+          >
             <Text style={styles.link}>
               {isLogin ? 'Crear cuenta' : 'Iniciar sesión'}
             </Text>
@@ -411,6 +437,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     marginBottom: 12,
+  },
+  socialButtonLoading: {
+    backgroundColor: colors.primary + '10',
   },
   socialButtonText: {
     fontSize: 16,
