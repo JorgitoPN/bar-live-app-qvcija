@@ -693,6 +693,52 @@ export default function PerfilScreen() {
     }
   }, [user, userStories, startStoryTimer, router]);
 
+  const handleDeleteStory = useCallback(async () => {
+    const currentStory = userStories[currentStoryIndex];
+    
+    if (!currentStory || !user || currentStory.autor_id !== user.id) {
+      return;
+    }
+
+    Alert.alert(
+      'Eliminar historia',
+      '¿Estás seguro de que quieres eliminar esta historia?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('historias')
+                .delete()
+                .eq('id', currentStory.id);
+
+              if (error) throw error;
+
+              const newStories = userStories.filter((_, i) => i !== currentStoryIndex);
+              setUserStories(newStories);
+
+              if (newStories.length === 0) {
+                setShowStoryViewer(false);
+                stopStoryTimer();
+                setHasActiveStory(false);
+              } else if (currentStoryIndex >= newStories.length) {
+                setCurrentStoryIndex(newStories.length - 1);
+              }
+
+              Alert.alert('Éxito', 'Historia eliminada correctamente');
+            } catch (error) {
+              console.error('[Perfil] Error deleting story:', error);
+              Alert.alert('Error', 'No se pudo eliminar la historia');
+            }
+          },
+        },
+      ]
+    );
+  }, [userStories, currentStoryIndex, user, stopStoryTimer]);
+
   useEffect(() => {
     if (showStoryViewer && !isPaused) {
       startStoryTimer();
@@ -874,7 +920,7 @@ export default function PerfilScreen() {
 
   return (
     <View style={commonStyles.container}>
-      {/* Header */}
+      {/* FIXED: Header with unified icon style */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         start={{ x: 0, y: 0 }}
@@ -908,7 +954,7 @@ export default function PerfilScreen() {
         {/* Profile Info */}
         <View style={styles.profileSection}>
           <View style={styles.profileHeader}>
-            {/* FIXED: Avatar with story ring - clickable to open story viewer */}
+            {/* FIXED: Avatar with story ring OR "+" icon - clickable to open story viewer or create story */}
             <TouchableOpacity 
               style={styles.avatarContainer}
               onPress={handleAvatarPress}
@@ -927,6 +973,12 @@ export default function PerfilScreen() {
               ) : (
                 <View style={[styles.avatar, styles.avatarPlaceholder]}>
                   <IconSymbol name="person.fill" size={40} color={colors.textSecondary} />
+                </View>
+              )}
+              {/* FIXED: Show "+" icon when no active story */}
+              {!hasActiveStory && (
+                <View style={styles.addStoryIcon}>
+                  <IconSymbol name="plus" size={18} color={colors.white} />
                 </View>
               )}
             </TouchableOpacity>
@@ -1195,7 +1247,7 @@ export default function PerfilScreen() {
         </Pressable>
       </Modal>
 
-      {/* FIXED: Story Viewer Modal */}
+      {/* FIXED: Story Viewer Modal with delete button */}
       <Modal
         visible={showStoryViewer}
         animationType="fade"
@@ -1257,6 +1309,14 @@ export default function PerfilScreen() {
                     </View>
                   )}
                   <Text style={styles.storyAutorNombre}>{user.nombre}</Text>
+                  {/* FIXED: Delete button for own stories */}
+                  <TouchableOpacity
+                    style={styles.storyDeleteButton}
+                    onPress={handleDeleteStory}
+                    activeOpacity={0.7}
+                  >
+                    <IconSymbol name="trash" size={20} color="#fff" />
+                  </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.storyCloseButton}
                     onPress={async () => {
@@ -1429,6 +1489,21 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: colors.headerText,
+  },
+  // FIXED: Add story icon when no active story
+  addStoryIcon: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: colors.cardBackground,
+    zIndex: 2,
   },
   profileInfo: {
     flex: 1,
@@ -1843,6 +1918,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#fff',
     flex: 1,
+  },
+  // FIXED: Delete button for stories
+  storyDeleteButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(239, 68, 68, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
   },
   storyCloseButton: {
     width: 36,
