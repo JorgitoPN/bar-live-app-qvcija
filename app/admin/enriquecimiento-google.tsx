@@ -23,7 +23,7 @@ import { validarLocalCompleto, estaEnEspana } from '@/utils/localTypesBackend';
 import * as Clipboard from 'expo-clipboard';
 import { dataCache } from '@/utils/dataCache';
 import { performanceMonitor } from '@/utils/performanceMonitor';
-import { descargarYSubirFotosLocal, generarMetadatosFotos } from '@/utils/enrichmentPhotos';
+import { descargarYSubirFotosLocal, generarMetadatosFotos, verificarBucketSupabase } from '@/utils/enrichmentPhotos';
 
 // Tipos de categorías
 const CATEGORIAS = [
@@ -348,6 +348,47 @@ export default function EnriquecimientoGoogleScreen() {
       return;
     }
 
+    // VERIFICAR QUE EL BUCKET DE SUPABASE EXISTE ANTES DE EMPEZAR
+    agregarLog('info', '🔍 Verificando bucket de Supabase Storage...');
+    const bucketCheck = await verificarBucketSupabase();
+    
+    if (!bucketCheck.exists) {
+      agregarLog('error', '❌ Bucket "locales" no encontrado en Supabase Storage');
+      
+      Alert.alert(
+        '🗄️ Bucket de Supabase no encontrado',
+        'El bucket "locales" no existe en Supabase Storage.\n\n' +
+        'Para poder subir fotos, necesitas crear este bucket primero:\n\n' +
+        '1. Ve a tu Dashboard de Supabase\n' +
+        '2. Haz clic en "Storage" en el menú lateral\n' +
+        '3. Crea un nuevo bucket llamado "locales"\n' +
+        '4. Márcalo como público\n' +
+        '5. Configura las políticas de acceso\n\n' +
+        'Consulta la guía completa en:\ndocs/SUPABASE_STORAGE_SETUP.md',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Ver Guía',
+            onPress: () => {
+              Alert.alert(
+                'Guía de Configuración',
+                'Pasos para crear el bucket:\n\n' +
+                '1. Dashboard de Supabase → Storage\n' +
+                '2. Click en "New bucket"\n' +
+                '3. Nombre: "locales"\n' +
+                '4. Público: SÍ ✅\n' +
+                '5. Crear políticas de acceso\n\n' +
+                'Consulta docs/SUPABASE_STORAGE_SETUP.md para más detalles.'
+              );
+            },
+          },
+        ]
+      );
+      return;
+    }
+    
+    agregarLog('success', '✅ Bucket de Supabase verificado correctamente');
+
     const coste = calcularCosteEstimado(localesAProcesar);
     
     Alert.alert(
@@ -577,6 +618,12 @@ export default function EnriquecimientoGoogleScreen() {
           } catch (error) {
             console.error('Error downloading photos:', error);
             agregarLog('error', `❌ Error descargando fotos: ${error}`);
+            
+            // Si es un error de bucket, detener el proceso completo
+            if (error instanceof Error && error.message.includes('Bucket')) {
+              agregarLog('error', '❌ Deteniendo enriquecimiento por error de bucket');
+              throw error;
+            }
           }
 
           // 📸 GENERAR METADATOS DE FOTOS (para referencia)
@@ -814,6 +861,12 @@ export default function EnriquecimientoGoogleScreen() {
           console.error('Error enriching local:', error);
           agregarLog('error', `❌ Error: ${local.nombre} - ${error}`);
           fallidos++;
+          
+          // Si es un error de bucket, detener el proceso completo
+          if (error instanceof Error && error.message.includes('Bucket')) {
+            agregarLog('error', '❌ Deteniendo enriquecimiento por error de bucket');
+            break;
+          }
         }
         
         // Pequeña pausa para no saturar la API
@@ -841,7 +894,17 @@ export default function EnriquecimientoGoogleScreen() {
     } catch (error) {
       console.error('Error en enriquecimiento:', error);
       agregarLog('error', 'Error durante el enriquecimiento');
-      Alert.alert('Error', 'Ocurrió un error durante el enriquecimiento');
+      
+      if (error instanceof Error && error.message.includes('Bucket')) {
+        Alert.alert(
+          'Error de Configuración',
+          'El bucket "locales" no existe en Supabase Storage.\n\n' +
+          'Por favor, crea el bucket siguiendo la guía en:\ndocs/SUPABASE_STORAGE_SETUP.md',
+          [{ text: 'OK' }]
+        );
+      } else {
+        Alert.alert('Error', 'Ocurrió un error durante el enriquecimiento');
+      }
     } finally {
       setProcesando(false);
       performanceMonitor.end('procesarEnriquecimiento');

@@ -6,6 +6,48 @@ import { supabase } from './supabase';
 import { decode } from 'base64-arraybuffer';
 
 /**
+ * 🔍 VERIFICAR SI EL BUCKET DE SUPABASE EXISTE
+ * Verifica que el bucket 'locales' esté creado y configurado
+ */
+export async function verificarBucketSupabase(): Promise<{ exists: boolean; error?: string }> {
+  try {
+    console.log('[Storage] Checking if Supabase bucket exists...');
+    
+    // Intentar listar archivos del bucket (esto fallará si no existe)
+    const { data, error } = await supabase.storage
+      .from('locales')
+      .list('fotos', {
+        limit: 1,
+      });
+    
+    if (error) {
+      if (error.message.includes('Bucket not found')) {
+        console.error('[Storage] ❌ Bucket "locales" not found');
+        return {
+          exists: false,
+          error: 'El bucket "locales" no existe en Supabase Storage. Por favor, créalo siguiendo la guía en docs/SUPABASE_STORAGE_SETUP.md'
+        };
+      }
+      
+      console.error('[Storage] Error checking bucket:', error);
+      return {
+        exists: false,
+        error: `Error al verificar el bucket: ${error.message}`
+      };
+    }
+    
+    console.log('[Storage] ✅ Bucket "locales" exists and is accessible');
+    return { exists: true };
+  } catch (error) {
+    console.error('[Storage] Unexpected error checking bucket:', error);
+    return {
+      exists: false,
+      error: `Error inesperado: ${error}`
+    };
+  }
+}
+
+/**
  * 📸 DESCARGAR Y SUBIR FOTOS DE UN LOCAL A SUPABASE
  * Descarga fotos de Google Places y las sube a Supabase Storage
  * Si no hay fotos disponibles, usa Google Street View como fallback
@@ -18,6 +60,13 @@ export async function descargarYSubirFotosLocal(
   maxFotos: number = 4
 ): Promise<string[]> {
   console.log('[Photos] Starting photo download and upload to Supabase...');
+  
+  // VERIFICAR QUE EL BUCKET EXISTE ANTES DE INTENTAR SUBIR
+  const bucketCheck = await verificarBucketSupabase();
+  if (!bucketCheck.exists) {
+    console.error('[Photos] ❌ Cannot upload photos:', bucketCheck.error);
+    throw new Error(bucketCheck.error || 'Bucket not found');
+  }
   
   const fotosSubidas: string[] = [];
   
@@ -64,6 +113,13 @@ export async function descargarYSubirFotosLocal(
         
         if (uploadError) {
           console.error(`[Photos] Error uploading photo ${i + 1} to Supabase:`, uploadError);
+          
+          // Proporcionar mensaje más claro si es un error de bucket
+          if (uploadError.message.includes('Bucket not found')) {
+            console.error('[Photos] ❌ El bucket "locales" no existe. Crea el bucket en Supabase Dashboard.');
+            throw new Error('Bucket "locales" no encontrado. Por favor, créalo en Supabase Storage.');
+          }
+          
           continue;
         }
         
@@ -78,6 +134,11 @@ export async function descargarYSubirFotosLocal(
         }
       } catch (error) {
         console.error(`[Photos] Error processing photo ${i + 1}:`, error);
+        
+        // Si es un error de bucket, propagar el error para detener el proceso
+        if (error instanceof Error && error.message.includes('Bucket')) {
+          throw error;
+        }
       }
     }
   }
@@ -137,6 +198,13 @@ export async function descargarYSubirFotosLocal(
             
             if (uploadError) {
               console.error(`[Photos] Error uploading Street View ${i + 1} to Supabase:`, uploadError);
+              
+              // Proporcionar mensaje más claro si es un error de bucket
+              if (uploadError.message.includes('Bucket not found')) {
+                console.error('[Photos] ❌ El bucket "locales" no existe. Crea el bucket en Supabase Dashboard.');
+                throw new Error('Bucket "locales" no encontrado. Por favor, créalo en Supabase Storage.');
+              }
+              
               continue;
             }
             
@@ -151,6 +219,11 @@ export async function descargarYSubirFotosLocal(
             }
           } catch (error) {
             console.error(`[Photos] Error processing Street View ${i + 1}:`, error);
+            
+            // Si es un error de bucket, propagar el error para detener el proceso
+            if (error instanceof Error && error.message.includes('Bucket')) {
+              throw error;
+            }
           }
         }
         
@@ -160,6 +233,11 @@ export async function descargarYSubirFotosLocal(
       }
     } catch (error) {
       console.error('[Photos] Error generating Street View photos:', error);
+      
+      // Si es un error de bucket, propagar el error
+      if (error instanceof Error && error.message.includes('Bucket')) {
+        throw error;
+      }
     }
   }
   
@@ -178,6 +256,13 @@ export async function descargarYSubirFotosDesdeUrls(
   maxFotos: number = 4
 ): Promise<string[]> {
   console.log(`[Photos] Starting photo download from ${urls.length} URLs...`);
+  
+  // VERIFICAR QUE EL BUCKET EXISTE ANTES DE INTENTAR SUBIR
+  const bucketCheck = await verificarBucketSupabase();
+  if (!bucketCheck.exists) {
+    console.error('[Photos] ❌ Cannot upload photos:', bucketCheck.error);
+    throw new Error(bucketCheck.error || 'Bucket not found');
+  }
   
   const fotosSubidas: string[] = [];
   const urlsADescargar = urls.slice(0, maxFotos);
@@ -213,6 +298,13 @@ export async function descargarYSubirFotosDesdeUrls(
       
       if (uploadError) {
         console.error(`[Photos] Error uploading photo ${i + 1} to Supabase:`, uploadError);
+        
+        // Proporcionar mensaje más claro si es un error de bucket
+        if (uploadError.message.includes('Bucket not found')) {
+          console.error('[Photos] ❌ El bucket "locales" no existe. Crea el bucket en Supabase Dashboard.');
+          throw new Error('Bucket "locales" no encontrado. Por favor, créalo en Supabase Storage.');
+        }
+        
         continue;
       }
       
@@ -227,6 +319,11 @@ export async function descargarYSubirFotosDesdeUrls(
       }
     } catch (error) {
       console.error(`[Photos] Error processing photo ${i + 1}:`, error);
+      
+      // Si es un error de bucket, propagar el error para detener el proceso
+      if (error instanceof Error && error.message.includes('Bucket')) {
+        throw error;
+      }
     }
   }
   
