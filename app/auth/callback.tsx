@@ -17,11 +17,18 @@ export default function AuthCallbackScreen() {
     let isMounted = true;
     let hasRedirected = false;
 
-    const redirect = (path: string) => {
+    const redirect = (path: string, delay: number = 0) => {
       if (!hasRedirected && isMounted) {
         hasRedirected = true;
-        console.log('[Callback] 🚀 Redirigiendo inmediatamente a:', path);
-        router.replace(path as any);
+        console.log('[Callback] 🚀 Redirigiendo a:', path);
+        
+        if (delay > 0) {
+          setTimeout(() => {
+            router.replace(path as any);
+          }, delay);
+        } else {
+          router.replace(path as any);
+        }
       }
     };
 
@@ -44,7 +51,7 @@ export default function AuthCallbackScreen() {
               setStatus('error');
               setErrorMessage(errorDescription || errorParam);
             }
-            setTimeout(() => redirect('/(tabs)/explorar'), 1500);
+            redirect('/(tabs)/explorar', 2000);
             return;
           }
 
@@ -62,12 +69,12 @@ export default function AuthCallbackScreen() {
                 setStatus('error');
                 setErrorMessage('Error al establecer la sesión');
               }
-              setTimeout(() => redirect('/(tabs)/explorar'), 1500);
+              redirect('/(tabs)/explorar', 2000);
               return;
             }
 
             if (data.user) {
-              console.log('[Callback] ✅ Sesión establecida exitosamente');
+              console.log('[Callback] ✅ Sesión establecida');
               
               // Register push notifications (non-blocking)
               registerForPushNotifications()
@@ -85,23 +92,23 @@ export default function AuthCallbackScreen() {
                 // Check if user needs to accept terms
                 if (!userData.ha_aceptado_terminos) {
                   console.log('[Callback] 📋 Usuario debe aceptar términos');
-                  redirect(`/auth/terms-acceptance?userId=${userData.id}`);
+                  redirect(`/auth/terms-acceptance?userId=${userData.id}`, 100);
                   return;
                 }
                 
                 // Check if user needs to complete profile
                 if (!userData.perfil_completado || !userData.username || !userData.nombre) {
                   console.log('[Callback] 📝 Usuario debe completar perfil');
-                  redirect(`/auth/completar-perfil?userId=${userData.id}`);
+                  redirect(`/auth/completar-perfil?userId=${userData.id}`, 100);
                   return;
                 }
               }
               
-              // All good, go to main app IMMEDIATELY
+              // All good, go to main app
               if (isMounted) {
                 setStatus('success');
               }
-              redirect('/(tabs)/explorar');
+              redirect('/(tabs)/explorar', 500);
               return;
             }
           }
@@ -118,7 +125,7 @@ export default function AuthCallbackScreen() {
             setStatus('error');
             setErrorMessage('Error al verificar la sesión');
           }
-          setTimeout(() => redirect('/(tabs)/explorar'), 1500);
+          redirect('/(tabs)/explorar', 2000);
           return;
         }
 
@@ -141,26 +148,26 @@ export default function AuthCallbackScreen() {
             // Check if user needs to accept terms
             if (!userData.ha_aceptado_terminos) {
               console.log('[Callback] 📋 Usuario debe aceptar términos');
-              redirect(`/auth/terms-acceptance?userId=${userData.id}`);
+              redirect(`/auth/terms-acceptance?userId=${userData.id}`, 100);
               return;
             }
             
             // Check if user needs to complete profile
             if (!userData.perfil_completado || !userData.username || !userData.nombre) {
               console.log('[Callback] 📝 Usuario debe completar perfil');
-              redirect(`/auth/completar-perfil?userId=${userData.id}`);
+              redirect(`/auth/completar-perfil?userId=${userData.id}`, 100);
               return;
             }
           }
           
-          // All good, go to main app IMMEDIATELY
+          // All good, go to main app
           if (isMounted) {
             setStatus('success');
           }
-          redirect('/(tabs)/explorar');
+          redirect('/(tabs)/explorar', 500);
         } else {
           console.log('[Callback] ℹ️ No hay sesión activa');
-          redirect('/(tabs)/explorar');
+          redirect('/(tabs)/explorar', 500);
         }
       } catch (error: any) {
         console.error('[Callback] ❌ Error en callback:', error);
@@ -168,7 +175,7 @@ export default function AuthCallbackScreen() {
           setStatus('error');
           setErrorMessage(error.message || 'Error inesperado');
         }
-        setTimeout(() => redirect('/(tabs)/explorar'), 1500);
+        redirect('/(tabs)/explorar', 2000);
       }
     };
 
@@ -194,6 +201,7 @@ export default function AuthCallbackScreen() {
             <Text style={styles.successIconText}>✓</Text>
           </View>
           <Text style={styles.text}>¡Autenticación exitosa!</Text>
+          <Text style={styles.subText}>Redirigiendo...</Text>
         </>
       )}
       

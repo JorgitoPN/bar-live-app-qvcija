@@ -186,34 +186,15 @@ export default function MapaScreen() {
     
     const filtrados = todosLosLocales.filter(local => {
       const localCategories = local.barlive_types || (local.barlive_type ? [local.barlive_type] : []);
-      
-      // Excluir categorías no deseadas
       const hasExcludedCategory = localCategories.some((cat: string) => 
         CATEGORIAS_EXCLUIDAS.includes(cat.toLowerCase())
       );
       if (hasExcludedCategory) return false;
       
-      // Filtro de categoría
-      let matchCategoria = false;
-      if (categoriaSeleccionada === 'todos') {
-        matchCategoria = true;
-      } else {
-        // FIXED: Check if the selected category is the ONLY category or one of the exact categories
-        // This prevents showing "Restaurante + Bar" when filtering by "Discoteca"
-        if (categoriaSeleccionada === 'discoteca') {
-          // For discoteca, be very strict - must have discoteca as one of the types
-          matchCategoria = localCategories.some((cat: string) => 
-            cat.toLowerCase() === 'discoteca' || cat.toLowerCase() === 'sala_conciertos'
-          );
-        } else {
-          // For other categories, check if it's in the array
-          matchCategoria = localCategories.some((cat: string) => 
-            cat.toLowerCase() === categoriaSeleccionada.toLowerCase()
-          );
-        }
-      }
+      const matchCategoria = categoriaSeleccionada === 'todos' || 
+        local.barlive_type === categoriaSeleccionada ||
+        (local.barlive_types && local.barlive_types.includes(categoriaSeleccionada));
       
-      // Filtro de estado
       let matchEstado = true;
       if (filtroEstado === 'abiertos') {
         const estado = getEstadoLocal(local);
@@ -223,17 +204,7 @@ export default function MapaScreen() {
       return matchCategoria && matchEstado;
     });
     
-    console.log(`[MAP] Filtered locals for category "${categoriaSeleccionada}": ${filtrados.length} of ${todosLosLocales.length}`);
-    
-    // Log some examples for debugging
-    if (categoriaSeleccionada === 'discoteca' && filtrados.length > 0) {
-      console.log('[MAP] Sample discoteca locals:', filtrados.slice(0, 3).map(l => ({
-        nombre: l.nombre,
-        barlive_types: l.barlive_types,
-        barlive_type: l.barlive_type
-      })));
-    }
-    
+    console.log(`[MAP] Filtered locals: ${filtrados.length} of ${todosLosLocales.length}`);
     setLocalesFiltrados(filtrados);
   }, [todosLosLocales, categoriaSeleccionada, filtroEstado]);
 

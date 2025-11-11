@@ -109,7 +109,6 @@ export default function PerfilScreen() {
   const [seguidores, setSeguidores] = useState(0);
   const [seguidos, setSeguidos] = useState(0);
   const [publicaciones, setPublicaciones] = useState(0);
-  const [tieneHistoria, setTieneHistoria] = useState(false);
   
   // Content tabs
   const [activeTab, setActiveTab] = useState<'posts' | 'favoritos' | 'etiquetados' | 'empleo'>('posts');
@@ -161,18 +160,9 @@ export default function PerfilScreen() {
         .select('*', { count: 'exact', head: true })
         .eq('autor_id', user.id);
 
-      // Check if user has active stories
-      const { data: historias } = await supabase
-        .from('historias')
-        .select('id')
-        .eq('autor_id', user.id)
-        .gt('expires_at', new Date().toISOString())
-        .limit(1);
-
       setSeguidores(seguidoresCount || 0);
       setSeguidos(seguidosCount || 0);
       setPublicaciones(publicacionesCount || 0);
-      setTieneHistoria((historias?.length || 0) > 0);
 
       // Load initial content based on active tab
       await cargarContenido();
@@ -739,36 +729,13 @@ export default function PerfilScreen() {
         {/* Profile Info */}
         <View style={styles.profileSection}>
           <View style={styles.profileHeader}>
-            <TouchableOpacity onPress={() => router.push('/crear/historia')} activeOpacity={0.8}>
-              {tieneHistoria ? (
-                <LinearGradient
-                  colors={[colors.primary, colors.secondary]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.avatarGradient}
-                >
-                  <View style={styles.avatarInner}>
-                    {user.avatar ? (
-                      <Image source={{ uri: user.avatar }} style={styles.avatar} />
-                    ) : (
-                      <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                        <IconSymbol name="person.fill" size={40} color={colors.textSecondary} />
-                      </View>
-                    )}
-                  </View>
-                </LinearGradient>
-              ) : (
-                <>
-                  {user.avatar ? (
-                    <Image source={{ uri: user.avatar }} style={styles.avatar} />
-                  ) : (
-                    <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                      <IconSymbol name="person.fill" size={40} color={colors.textSecondary} />
-                    </View>
-                  )}
-                </>
-              )}
-            </TouchableOpacity>
+            {user.avatar ? (
+              <Image source={{ uri: user.avatar }} style={styles.avatar} />
+            ) : (
+              <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                <IconSymbol name="person.fill" size={40} color={colors.textSecondary} />
+              </View>
+            )}
             <View style={styles.profileInfo}>
               <Text style={styles.profileName}>{user.nombre || 'Usuario'}</Text>
               {user.username && (
@@ -1103,22 +1070,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
-  },
-  avatarGradient: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-    padding: 3,
-    marginRight: 16,
-  },
-  avatarInner: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 39,
-    overflow: 'hidden',
-    backgroundColor: colors.cardBackground,
-    borderWidth: 3,
-    borderColor: colors.cardBackground,
   },
   avatar: {
     width: 80,
