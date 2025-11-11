@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useRouter } from 'expo-router';
 import {
   View,
   Text,
@@ -17,18 +17,16 @@ import {
   Linking,
   Pressable,
 } from 'react-native';
-import { colors, commonStyles } from '@/styles/commonStyles';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import { IconSymbol } from '@/components/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
-import { useMode } from '@/contexts/ModeContext';
-import TarjetaLocal from '@/components/home/TarjetaLocal';
 import { supabase } from '@/utils/supabase';
+import TarjetaLocal from '@/components/home/TarjetaLocal';
+import { useMode } from '@/contexts/ModeContext';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { IconSymbol } from '@/components/IconSymbol';
+import { LinearGradient } from 'expo-linear-gradient';
+import { colors, commonStyles } from '@/styles/commonStyles';
 
-const { width, height } = Dimensions.get('window');
-
-type UserMode = 'cliente' | 'propietario' | 'admin';
+type UserMode = 'cliente' | 'propietario';
 
 const styles = StyleSheet.create({
   container: {
@@ -41,19 +39,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.background,
   },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: colors.text,
+  },
   header: {
     paddingTop: 50,
     paddingBottom: 20,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
   },
   headerTop: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    justifyContent: 'space-between',
+    marginBottom: 20,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
     color: colors.headerText,
   },
@@ -62,150 +65,191 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   headerButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   profileSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    gap: 16,
   },
   avatarContainer: {
     position: 'relative',
-    marginRight: 20,
-  },
-  avatarGradientBorder: {
-    padding: 3,
-    borderRadius: 48,
   },
   avatar: {
-    width: 86,
-    height: 86,
-    borderRadius: 43,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     borderWidth: 3,
-    borderColor: colors.headerText,
-  },
-  avatarPlaceholder: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: colors.headerText,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   addStoryButton: {
     position: 'absolute',
     bottom: 0,
     right: 0,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: colors.primary,
-    justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 3,
-    borderColor: colors.headerText,
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.headerGradientEnd,
   },
-  statsContainer: {
+  profileInfo: {
     flex: 1,
+  },
+  profileName: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: colors.headerText,
+    marginBottom: 4,
+  },
+  profileUsername: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginBottom: 8,
+  },
+  profileStats: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    gap: 20,
   },
   statItem: {
     alignItems: 'center',
   },
-  statNumber: {
+  statValue: {
     fontSize: 18,
     fontWeight: 'bold',
     color: colors.headerText,
   },
   statLabel: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: 'rgba(255, 255, 255, 0.8)',
     marginTop: 2,
   },
-  userInfo: {
-    paddingHorizontal: 16,
+  content: {
+    flex: 1,
+  },
+  verificationBanner: {
+    marginHorizontal: 16,
+    marginTop: 16,
     marginBottom: 8,
+    borderRadius: 16,
+    overflow: 'hidden',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
-  userName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.headerText,
-    marginBottom: 4,
-  },
-  userUsername: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.85)',
-    marginBottom: 4,
-  },
-  bioSection: {
-    paddingHorizontal: 16,
-    marginBottom: 16,
-  },
-  bioText: {
-    fontSize: 14,
-    color: colors.headerText,
-    lineHeight: 20,
-    marginBottom: 8,
-  },
-  websiteLink: {
+  verificationGradient: {
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
+    gap: 12,
   },
-  websiteText: {
-    fontSize: 14,
-    color: colors.headerText,
-    textDecorationLine: 'underline',
-    fontWeight: '600',
-    marginLeft: 6,
+  verificationIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  actionsContainer: {
+  verificationContent: {
+    flex: 1,
+  },
+  verificationTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  verificationSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.9)',
+    lineHeight: 18,
+  },
+  verificationArrow: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionButtons: {
     flexDirection: 'row',
     paddingHorizontal: 16,
+    paddingVertical: 16,
     gap: 12,
   },
   actionButton: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    paddingVertical: 8,
-    borderRadius: 8,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    paddingVertical: 12,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  actionButtonPrimary: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   actionButtonText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
-    color: colors.headerText,
+    color: colors.text,
   },
-  content: {
-    flex: 1,
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+  actionButtonTextPrimary: {
+    color: '#FFFFFF',
+  },
+  bioSection: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  bioText: {
+    fontSize: 15,
+    color: colors.text,
+    lineHeight: 22,
+    marginBottom: 12,
+  },
+  websiteLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  websiteText: {
+    fontSize: 14,
+    color: colors.primary,
+    fontWeight: '500',
   },
   tabsContainer: {
     flexDirection: 'row',
-    borderBottomWidth: 0.5,
+    borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
+    backgroundColor: colors.background,
   },
   tab: {
     flex: 1,
-    paddingVertical: 14,
+    paddingVertical: 16,
     alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
   },
   tabActive: {
-    borderBottomWidth: 1,
     borderBottomColor: colors.primary,
   },
   tabText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     color: colors.textSecondary,
   },
@@ -215,74 +259,30 @@ const styles = StyleSheet.create({
   postsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    padding: 1,
   },
   postItem: {
-    width: (width - 3) / 3,
-    height: (width - 3) / 3,
-    padding: 0.5,
+    width: (Dimensions.get('window').width - 2) / 3,
+    height: (Dimensions.get('window').width - 2) / 3,
+    padding: 1,
   },
   postImage: {
     width: '100%',
     height: '100%',
+    backgroundColor: colors.cardBackground,
+  },
+  emptyState: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 16,
   },
   localesContainer: {
     padding: 16,
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-  },
-  emptyIcon: {
-    marginBottom: 16,
-  },
-  emptyText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    paddingHorizontal: 40,
-  },
-  loginRequiredContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 40,
-  },
-  loginRequiredIcon: {
-    marginBottom: 24,
-  },
-  loginRequiredTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  loginRequiredText: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: 32,
-    lineHeight: 24,
-  },
-  loginButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 32,
-    paddingVertical: 16,
-    borderRadius: 12,
-    minWidth: 200,
-    alignItems: 'center',
-  },
-  loginButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
   },
   storyViewerOverlay: {
     flex: 1,
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    paddingTop: Platform.OS === 'ios' ? 50 : 20,
+    paddingTop: 50,
     paddingHorizontal: 16,
     paddingBottom: 16,
     zIndex: 10,
@@ -305,14 +305,14 @@ const styles = StyleSheet.create({
   },
   storyProgressBar: {
     flex: 1,
-    height: 2,
+    height: 3,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 1,
+    borderRadius: 1.5,
     overflow: 'hidden',
   },
   storyProgressFill: {
     height: '100%',
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
   },
   storyUserInfo: {
     flexDirection: 'row',
@@ -322,43 +322,31 @@ const styles = StyleSheet.create({
   storyUserLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
-  },
-  storyAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    marginRight: 12,
-  },
-  storyUserName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#fff',
-    marginRight: 8,
-  },
-  storyTime: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  storyHeaderButtons: {
-    flexDirection: 'row',
     gap: 12,
   },
-  storyCloseButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
+  storyUserAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
-  storyDeleteButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(239, 68, 68, 0.8)',
-    justifyContent: 'center',
+  storyUserName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  storyUserTime: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  storyCloseButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   storyContent: {
     flex: 1,
@@ -368,7 +356,6 @@ const styles = StyleSheet.create({
   storyImage: {
     width: '100%',
     height: '100%',
-    resizeMode: 'contain',
   },
   storyNavigation: {
     position: 'absolute',
@@ -378,493 +365,178 @@ const styles = StyleSheet.create({
     right: 0,
     flexDirection: 'row',
   },
-  storyNavLeft: {
-    width: width * 0.33,
-  },
-  storyNavCenter: {
+  storyNavButton: {
     flex: 1,
   },
-  storyNavRight: {
-    width: width * 0.33,
-  },
-  bottomSheetOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  bottomSheet: {
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
-    maxHeight: '80%',
-  },
-  bottomSheetHandle: {
-    width: 40,
-    height: 4,
-    backgroundColor: colors.cardBorder,
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginTop: 12,
-    marginBottom: 8,
-  },
-  bottomSheetHeader: {
-    paddingTop: 12,
-    paddingBottom: 12,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomWidth: 0.5,
-    borderBottomColor: colors.cardBorder,
-  },
-  bottomSheetTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  bottomSheetContent: {
+  storyActions: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     padding: 16,
+    paddingBottom: 40,
+    flexDirection: 'row',
+    gap: 12,
   },
-  bottomSheetOption: {
+  storyDeleteButton: {
+    backgroundColor: 'rgba(239, 68, 68, 0.9)',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    marginBottom: 8,
-    backgroundColor: colors.cardBackground,
+    gap: 8,
   },
-  bottomSheetOptionText: {
-    fontSize: 15,
-    color: colors.text,
-    marginLeft: 16,
-  },
-  bottomSheetOptionDanger: {
-    color: '#EF4444',
+  storyDeleteButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
 
 function formatearFecha(fecha: string): string {
-  const ahora = new Date();
-  const fechaPost = new Date(fecha);
-  const diffMs = ahora.getTime() - fechaPost.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHoras = Math.floor(diffMs / 3600000);
-  const diffDias = Math.floor(diffMs / 86400000);
+  const date = new Date(fecha);
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const seconds = Math.floor(diff / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
 
-  if (diffMins < 1) return 'Ahora';
-  if (diffMins < 60) return `${diffMins}m`;
-  if (diffHoras < 24) return `${diffHoras}h`;
-  if (diffDias < 7) return `${diffDias}d`;
-  return fechaPost.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+  if (days > 0) return `hace ${days}d`;
+  if (hours > 0) return `hace ${hours}h`;
+  if (minutes > 0) return `hace ${minutes}m`;
+  return 'ahora';
 }
 
 export default function PerfilScreen() {
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
   const { currentMode } = useMode();
-  const [tabActiva, setTabActiva] = useState<'posts' | 'guardados' | 'locales' | 'etiquetados'>('posts');
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState<'posts' | 'locales'>('posts');
+  const [posts, setPosts] = useState<any[]>([]);
+  const [locales, setLocales] = useState<any[]>([]);
+  const [seguidores, setSeguidores] = useState(0);
+  const [seguidos, setSeguidos] = useState(0);
+  const [historias, setHistorias] = useState<any[]>([]);
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
-  const [refreshing, setRefreshing] = useState(false);
-  const [userPosts, setUserPosts] = useState<any[]>([]);
-  const [savedPosts, setSavedPosts] = useState<any[]>([]);
-  const [savedLocales, setSavedLocales] = useState<any[]>([]);
-  const [taggedPosts, setTaggedPosts] = useState<any[]>([]);
-  const [userStories, setUserStories] = useState<any[]>([]);
-  const [userStats, setUserStats] = useState({
-    posts: 0,
-    seguidores: 0,
-    seguidos: 0,
-  });
   const [isPaused, setIsPaused] = useState(false);
-  const [userBio, setUserBio] = useState<string | null>(null);
-  const [userWebsite, setUserWebsite] = useState<string | null>(null);
-  const storyTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const progressRef = useRef(new Animated.Value(0)).current;
-
-  const userRole = user?.rol_app || 'cliente';
-
-  console.log('[Perfil] User role:', userRole, 'Current mode:', currentMode);
-
-  // FIXED: Function to count followers and following from seguidores table
-  const loadFollowerCounts = useCallback(async (userId: string) => {
-    try {
-      console.log('[Perfil] 🔄 Loading follower counts from seguidores table...');
-
-      // Count followers (people following this user)
-      const { count: seguidoresCount, error: seguidoresError } = await supabase
-        .from('seguidores')
-        .select('*', { count: 'exact', head: true })
-        .eq('seguido_id', userId);
-
-      if (seguidoresError) {
-        console.error('[Perfil] Error counting followers:', seguidoresError);
-      }
-
-      // Count following (people this user follows)
-      const { count: seguidosCount, error: seguidosError } = await supabase
-        .from('seguidores')
-        .select('*', { count: 'exact', head: true })
-        .eq('seguidor_id', userId);
-
-      if (seguidosError) {
-        console.error('[Perfil] Error counting following:', seguidosError);
-      }
-
-      const actualSeguidores = seguidoresCount || 0;
-      const actualSeguidos = seguidosCount || 0;
-
-      console.log('[Perfil] ✅ Actual counts - Seguidores:', actualSeguidores, 'Seguidos:', actualSeguidos);
-
-      // FIXED: Update usuarios table with actual counts to keep them in sync
-      const { error: updateError } = await supabase
-        .from('usuarios')
-        .update({
-          seguidores: actualSeguidores,
-          seguidos: actualSeguidos,
-        })
-        .eq('id', userId);
-
-      if (updateError) {
-        console.error('[Perfil] Error updating user counters:', updateError);
-      } else {
-        console.log('[Perfil] ✅ User counters synchronized in database');
-      }
-
-      return { seguidores: actualSeguidores, seguidos: actualSeguidos };
-    } catch (error) {
-      console.error('[Perfil] Error loading follower counts:', error);
-      return { seguidores: 0, seguidos: 0 };
-    }
-  }, []);
+  const storyProgress = useRef(new Animated.Value(0)).current;
+  const storyTimer = useRef<NodeJS.Timeout | null>(null);
+  const [verificationStatus, setVerificationStatus] = useState<any>(null);
 
   const loadUserData = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     try {
-      console.log('[Perfil] Loading user data...');
-      
-      // FIXED: Count posts directly from posts table for accurate count
-      const { count: postsCount, error: postsCountError } = await supabase
-        .from('posts')
-        .select('*', { count: 'exact', head: true })
-        .eq('autor_id', user.id);
-
-      if (postsCountError) {
-        console.error('[Perfil] Error counting posts:', postsCountError);
-      }
-
-      console.log('[Perfil] Posts count from database:', postsCount);
-
-      // FIXED: Load actual follower/following counts from seguidores table
-      const followerCounts = await loadFollowerCounts(user.id);
-
-      // Load user bio and website
-      const { data: userData, error: userError } = await supabase
-        .from('usuarios')
-        .select('bio, sitio_web')
-        .eq('id', user.id)
-        .single();
-
-      if (!userError && userData) {
-        setUserBio(userData.bio || null);
-        setUserWebsite(userData.sitio_web || null);
-        console.log('[Perfil] Bio:', userData.bio, 'Website:', userData.sitio_web);
-      }
-
-      // FIXED: Set stats with actual counts from seguidores table
-      setUserStats({
-        posts: postsCount || 0,
-        seguidores: followerCounts.seguidores,
-        seguidos: followerCounts.seguidos,
-      });
-
-      console.log('[Perfil] ✅ User stats loaded - Posts:', postsCount, 'Seguidores:', followerCounts.seguidores, 'Seguidos:', followerCounts.seguidos);
-
-      const { data: postsData, error: postsError } = await supabase
-        .from('posts')
+      // Load posts
+      const { data: postsData } = await supabase
+        .from('publicaciones')
         .select('*')
         .eq('autor_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (!postsError) {
-        setUserPosts(postsData || []);
-        console.log('[Perfil] User posts loaded:', postsData?.length || 0);
+      setPosts(postsData || []);
+
+      // Load locales if propietario
+      if (currentMode === 'propietario') {
+        const { data: localesData } = await supabase
+          .from('locales')
+          .select('*')
+          .eq('propietario_id', user.id)
+          .order('created_at', { ascending: false });
+
+        setLocales(localesData || []);
       }
 
-      const { data: savedPostsData, error: savedError } = await supabase
-        .from('posts_guardados')
-        .select(`
-          post_id,
-          posts (
-            *,
-            autor:usuarios!posts_autor_id_fkey(nombre, avatar, username)
-          )
-        `)
-        .eq('usuario_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (!savedError && savedPostsData) {
-        const formattedSavedPosts = savedPostsData
-          .filter(sp => sp.posts)
-          .map((sp: any) => ({
-            ...sp.posts,
-            autorNombre: sp.posts.autor?.nombre || 'Usuario',
-            autorAvatar: sp.posts.autor?.avatar || '',
-          }));
-        setSavedPosts(formattedSavedPosts);
-      }
-
-      const { data: savedLocalesData, error: localesError } = await supabase
-        .from('locales_guardados')
-        .select(`
-          local_id,
-          locales (
-            id,
-            nombre,
-            direccion,
-            provincia,
-            latitud,
-            longitud,
-            imagen_url,
-            galeria_urls,
-            rating,
-            tipo,
-            barlive_type,
-            barlive_types,
-            horarios_completos,
-            estado_actual,
-            destacado,
-            nuevo
-          )
-        `)
-        .eq('usuario_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (!localesError && savedLocalesData) {
-        const formattedLocales = savedLocalesData
-          .filter(sl => sl.locales)
-          .map((sl: any) => {
-            const local = sl.locales;
-            return {
-              ...local,
-              coordenadas: {
-                lat: parseFloat(local.latitud),
-                lng: parseFloat(local.longitud),
-              },
-              imagenes: local.galeria_urls || (local.imagen_url ? [local.imagen_url] : []),
-            };
-          });
-        setSavedLocales(formattedLocales);
-      }
-
-      const { data: taggedPostsData, error: taggedError } = await supabase
-        .from('post_tags')
-        .select(`
-          post_id,
-          posts (
-            *,
-            autor:usuarios!posts_autor_id_fkey(nombre, avatar, username)
-          )
-        `)
-        .eq('usuario_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (!taggedError && taggedPostsData) {
-        const formattedTaggedPosts = taggedPostsData
-          .filter(tp => tp.posts)
-          .map((tp: any) => ({
-            ...tp.posts,
-            autorNombre: tp.posts.autor?.nombre || 'Usuario',
-            autorAvatar: tp.posts.autor?.avatar || '',
-          }));
-        setTaggedPosts(formattedTaggedPosts);
-      }
-
-      // Load user's own stories to show on avatar with viewed status
-      const { data: storiesData, error: storiesError } = await supabase
+      // Load historias
+      const { data: historiasData } = await supabase
         .from('historias')
         .select('*')
         .eq('autor_id', user.id)
         .gt('expires_at', new Date().toISOString())
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false });
 
-      if (!storiesError && storiesData) {
-        const { data: viewedData } = await supabase
-          .from('historia_views')
-          .select('historia_id')
-          .eq('usuario_id', user.id)
-          .in('historia_id', storiesData.map(s => s.id));
-        
-        const viewedStoryIds = new Set(viewedData?.map(v => v.historia_id) || []);
-        
-        const storiesWithViewStatus = storiesData.map(story => ({
-          ...story,
-          visto_por_usuario: viewedStoryIds.has(story.id),
-        }));
-        
-        const hasUnviewedStories = storiesWithViewStatus.some(s => !s.visto_por_usuario);
-        setUserStories(storiesWithViewStatus);
-        console.log('[Perfil] User stories loaded:', storiesWithViewStatus.length, 'Viewed:', viewedStoryIds.size, 'Unviewed:', hasUnviewedStories);
+      setHistorias(historiasData || []);
+
+      // Load verification status
+      const { data: statusData } = await supabase
+        .rpc('get_user_verification_status', { user_id: user.id });
+
+      if (statusData && statusData.length > 0 && statusData[0].has_request) {
+        setVerificationStatus(statusData[0]);
       }
     } catch (error) {
-      console.error('[Perfil] Error loading user data:', error);
+      console.error('[Perfil] Error loading data:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-  }, [user, loadFollowerCounts]);
+  }, [user, currentMode]);
+
+  const loadFollowerCounts = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      const { count: seguidoresCount } = await supabase
+        .from('seguidores')
+        .select('*', { count: 'exact', head: true })
+        .eq('seguido_id', user.id);
+
+      const { count: seguidosCount } = await supabase
+        .from('seguidores')
+        .select('*', { count: 'exact', head: true })
+        .eq('seguidor_id', user.id);
+
+      setSeguidores(seguidoresCount || 0);
+      setSeguidos(seguidosCount || 0);
+    } catch (error) {
+      console.error('[Perfil] Error loading follower counts:', error);
+    }
+  }, [user]);
 
   useEffect(() => {
-    if (user) {
-      loadUserData();
+    loadUserData();
+    loadFollowerCounts();
+  }, [loadUserData, loadFollowerCounts]);
 
-      const postsChannel = supabase
-        .channel('user-posts-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'posts',
-            filter: `autor_id=eq.${user.id}`,
-          },
-          () => {
-            console.log('[Perfil] User posts changed, reloading...');
-            loadUserData();
-          }
-        )
-        .subscribe();
-
-      const historiasChannel = supabase
-        .channel('user-historias-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'historias',
-            filter: `autor_id=eq.${user.id}`,
-          },
-          () => {
-            console.log('[Perfil] User stories changed, reloading...');
-            loadUserData();
-          }
-        )
-        .subscribe();
-
-      const savedPostsChannel = supabase
-        .channel('user-saved-posts-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'posts_guardados',
-            filter: `usuario_id=eq.${user.id}`,
-          },
-          () => {
-            console.log('[Perfil] Saved posts changed, reloading...');
-            loadUserData();
-          }
-        )
-        .subscribe();
-
-      const savedLocalesChannel = supabase
-        .channel('user-saved-locales-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'locales_guardados',
-            filter: `usuario_id=eq.${user.id}`,
-          },
-          () => {
-            console.log('[Perfil] Saved locales changed, reloading...');
-            loadUserData();
-          }
-        )
-        .subscribe();
-
-      // FIXED: Subscribe to seguidores table changes for INSTANT follower/following count updates
-      const seguidoresChannel = supabase
-        .channel('user-seguidores-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'seguidores',
-            filter: `seguido_id=eq.${user.id}`,
-          },
-          async () => {
-            console.log('[Perfil] ⚡ INSTANT update - Followers changed');
-            const followerCounts = await loadFollowerCounts(user.id);
-            setUserStats(prev => ({
-              ...prev,
-              seguidores: followerCounts.seguidores,
-            }));
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'seguidores',
-            filter: `seguidor_id=eq.${user.id}`,
-          },
-          async () => {
-            console.log('[Perfil] ⚡ INSTANT update - Following changed');
-            const followerCounts = await loadFollowerCounts(user.id);
-            setUserStats(prev => ({
-              ...prev,
-              seguidos: followerCounts.seguidos,
-            }));
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(postsChannel);
-        supabase.removeChannel(historiasChannel);
-        supabase.removeChannel(savedPostsChannel);
-        supabase.removeChannel(savedLocalesChannel);
-        supabase.removeChannel(seguidoresChannel);
-      };
-    }
-  }, [user, loadUserData, loadFollowerCounts]);
-
-  const onRefresh = async () => {
+  const onRefresh = () => {
     setRefreshing(true);
-    await loadUserData();
-    setRefreshing(false);
+    loadUserData();
+    loadFollowerCounts();
   };
 
   const startStoryTimer = useCallback(() => {
-    if (isPaused) return;
+    if (storyTimer.current) {
+      clearInterval(storyTimer.current);
+    }
 
-    Animated.timing(progressRef, {
+    storyProgress.setValue(0);
+
+    Animated.timing(storyProgress, {
       toValue: 1,
       duration: 5000,
       useNativeDriver: false,
     }).start(({ finished }) => {
       if (finished && !isPaused) {
-        if (currentStoryIndex < userStories.length - 1) {
-          setCurrentStoryIndex(currentStoryIndex + 1);
-          progressRef.setValue(0);
-        } else {
-          setShowStoryViewer(false);
-          setCurrentStoryIndex(0);
-          progressRef.setValue(0);
-        }
+        handleNextStory();
       }
     });
-  }, [currentStoryIndex, userStories.length, isPaused, progressRef]);
+  }, [isPaused, storyProgress]);
 
   const stopStoryTimer = useCallback(() => {
-    progressRef.stopAnimation();
-  }, [progressRef]);
+    if (storyTimer.current) {
+      clearInterval(storyTimer.current);
+      storyTimer.current = null;
+    }
+    storyProgress.stopAnimation();
+  }, [storyProgress]);
 
   useEffect(() => {
     if (showStoryViewer && !isPaused) {
@@ -878,64 +550,17 @@ export default function PerfilScreen() {
 
   const handlePreviousStory = () => {
     if (currentStoryIndex > 0) {
-      progressRef.setValue(0);
       setCurrentStoryIndex(currentStoryIndex - 1);
+    } else {
+      setShowStoryViewer(false);
     }
   };
 
-  const handleNextStory = async () => {
-    const currentStory = userStories[currentStoryIndex];
-    
-    if (currentStory && user) {
-      try {
-        const { data: existingView } = await supabase
-          .from('historia_views')
-          .select('id')
-          .eq('historia_id', currentStory.id)
-          .eq('usuario_id', user.id)
-          .single();
-
-        if (!existingView) {
-          await supabase.from('historia_views').insert({
-            historia_id: currentStory.id,
-            usuario_id: user.id,
-          });
-          console.log('[Perfil] Story marked as viewed:', currentStory.id);
-        }
-      } catch (error) {
-        console.error('[Perfil] Error marking story as viewed:', error);
-      }
-    }
-    
-    if (currentStoryIndex < userStories.length - 1) {
-      progressRef.setValue(0);
+  const handleNextStory = () => {
+    if (currentStoryIndex < historias.length - 1) {
       setCurrentStoryIndex(currentStoryIndex + 1);
     } else {
-      if (currentStory && user) {
-        try {
-          const { data: existingView } = await supabase
-            .from('historia_views')
-            .select('id')
-            .eq('historia_id', currentStory.id)
-            .eq('usuario_id', user.id)
-            .single();
-
-          if (!existingView) {
-            await supabase.from('historia_views').insert({
-              historia_id: currentStory.id,
-              usuario_id: user.id,
-            });
-            console.log('[Perfil] Last story marked as viewed:', currentStory.id);
-          }
-        } catch (error) {
-          console.error('[Perfil] Error marking last story as viewed:', error);
-        }
-      }
-      
-      await loadUserData();
       setShowStoryViewer(false);
-      setCurrentStoryIndex(0);
-      progressRef.setValue(0);
     }
   };
 
@@ -944,11 +569,11 @@ export default function PerfilScreen() {
   };
 
   const handleDeleteStory = async () => {
-    const currentStory = userStories[currentStoryIndex];
-    if (!currentStory || !user) return;
+    const historia = historias[currentStoryIndex];
+    if (!historia) return;
 
     Alert.alert(
-      'Eliminar historia',
+      'Eliminar Historia',
       '¿Estás seguro de que quieres eliminar esta historia?',
       [
         { text: 'Cancelar', style: 'cancel' },
@@ -960,18 +585,20 @@ export default function PerfilScreen() {
               const { error } = await supabase
                 .from('historias')
                 .delete()
-                .eq('id', currentStory.id);
+                .eq('id', historia.id);
 
               if (error) throw error;
 
-              const updatedStories = userStories.filter(s => s.id !== currentStory.id);
-              setUserStories(updatedStories);
+              const newHistorias = historias.filter((h) => h.id !== historia.id);
+              setHistorias(newHistorias);
 
-              setShowStoryViewer(false);
-              setCurrentStoryIndex(0);
-              progressRef.setValue(0);
+              if (newHistorias.length === 0) {
+                setShowStoryViewer(false);
+              } else if (currentStoryIndex >= newHistorias.length) {
+                setCurrentStoryIndex(newHistorias.length - 1);
+              }
 
-              Alert.alert('Éxito', 'Historia eliminada correctamente');
+              Alert.alert('Éxito', 'Historia eliminada');
             } catch (error) {
               console.error('[Perfil] Error deleting story:', error);
               Alert.alert('Error', 'No se pudo eliminar la historia');
@@ -987,58 +614,72 @@ export default function PerfilScreen() {
   };
 
   const handleCreatePress = () => {
-    if (!user) return;
-    
-    Alert.alert(
-      'Crear',
-      'Elige qué quieres crear',
-      [
-        {
-          text: 'Nueva Publicación',
-          onPress: () => router.push('/crear/publicacion'),
-        },
-        {
-          text: 'Nueva Historia',
-          onPress: () => router.push('/crear/historia'),
-        },
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-        },
-      ]
-    );
+    if (activeTab === 'posts') {
+      router.push('/crear/publicacion');
+    } else {
+      router.push('/crear/local');
+    }
   };
 
   const handleVerPost = (postId: string) => {
-    console.log('[Perfil] Opening post detail:', postId);
-    router.push(`/social/post?id=${postId}`);
+    router.push({
+      pathname: '/social/post',
+      params: { id: postId },
+    });
   };
 
-  const findFirstUnviewedStoryIndex = useCallback((): number => {
-    const firstUnviewedIndex = userStories.findIndex(story => !story.visto_por_usuario);
-    return firstUnviewedIndex === -1 ? 0 : firstUnviewedIndex;
-  }, [userStories]);
-
   const handleAvatarPress = () => {
-    if (userStories.length > 0) {
-      const firstUnviewedIndex = findFirstUnviewedStoryIndex();
-      console.log('[Perfil] Avatar pressed - First unviewed story index:', firstUnviewedIndex);
-      
+    if (historias.length > 0) {
+      setCurrentStoryIndex(0);
       setShowStoryViewer(true);
-      setCurrentStoryIndex(firstUnviewedIndex);
-      progressRef.setValue(0);
-    } else {
-      handleCrearHistoria();
     }
   };
 
   const handleWebsitePress = () => {
-    if (userWebsite) {
-      let url = userWebsite;
-      if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        url = 'https://' + url;
-      }
-      Linking.openURL(url);
+    if (user?.sitio_web) {
+      Linking.openURL(user.sitio_web);
+    }
+  };
+
+  const getCurrentPosts = () => {
+    return activeTab === 'posts' ? posts : [];
+  };
+
+  const getVerificationStatusColor = (estado: string) => {
+    switch (estado) {
+      case 'pendiente':
+        return ['#F59E0B', '#F97316'];
+      case 'en_revision':
+        return ['#3B82F6', '#2563EB'];
+      case 'documentacion_solicitada':
+        return ['#8B5CF6', '#7C3AED'];
+      case 'documentacion_recibida':
+        return ['#10B981', '#059669'];
+      case 'aprobada':
+        return ['#10B981', '#059669'];
+      case 'rechazada':
+        return ['#EF4444', '#DC2626'];
+      default:
+        return [colors.primary, colors.primary];
+    }
+  };
+
+  const getVerificationStatusLabel = (estado: string) => {
+    switch (estado) {
+      case 'pendiente':
+        return 'Solicitud Recibida';
+      case 'en_revision':
+        return 'En Revisión';
+      case 'documentacion_solicitada':
+        return 'Documentación Solicitada';
+      case 'documentacion_recibida':
+        return 'Documentación Recibida';
+      case 'aprobada':
+        return 'Aprobada';
+      case 'rechazada':
+        return 'Rechazada';
+      default:
+        return estado;
     }
   };
 
@@ -1046,69 +687,25 @@ export default function PerfilScreen() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={{ color: colors.text, marginTop: 16 }}>Cargando perfil...</Text>
+        <Text style={styles.loadingText}>Cargando perfil...</Text>
       </View>
     );
   }
 
   if (!user) {
     return (
-      <View style={styles.container}>
-        <LinearGradient
-          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-          style={styles.header}
+      <View style={styles.loadingContainer}>
+        <IconSymbol name="person.circle" size={64} color={colors.textSecondary} />
+        <Text style={styles.loadingText}>Inicia sesión para ver tu perfil</Text>
+        <TouchableOpacity
+          style={{ marginTop: 20, backgroundColor: colors.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 }}
+          onPress={() => router.push('/auth/login-popup')}
         >
-          <View style={styles.headerTop}>
-            <Text style={styles.headerTitle}>Perfil</Text>
-          </View>
-        </LinearGradient>
-
-        <View style={styles.loginRequiredContainer}>
-          <IconSymbol 
-            name="person.circle" 
-            size={80} 
-            color={colors.primary} 
-            style={styles.loginRequiredIcon}
-          />
-          <Text style={styles.loginRequiredTitle}>
-            Inicia sesión para ver tu perfil
-          </Text>
-          <Text style={styles.loginRequiredText}>
-            Regístrate o inicia sesión en BarLive para acceder a tu perfil, 
-            guardar tus locales favoritos y conectar con la comunidad.
-          </Text>
-          <TouchableOpacity 
-            style={styles.loginButton}
-            onPress={() => router.push('/auth/login-popup')}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
-          </TouchableOpacity>
-        </View>
+          <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '600' }}>Iniciar Sesión</Text>
+        </TouchableOpacity>
       </View>
     );
   }
-
-  const currentStory = userStories[currentStoryIndex];
-  const hasNewStories = userStories.length > 0;
-  const hasUnviewedStories = userStories.some(s => !s.visto_por_usuario);
-
-  const getCurrentPosts = () => {
-    switch (tabActiva) {
-      case 'posts':
-        return userPosts;
-      case 'guardados':
-        return savedPosts;
-      case 'locales':
-        return [];
-      case 'etiquetados':
-        return taggedPosts;
-      default:
-        return [];
-    }
-  };
-
-  const currentPosts = getCurrentPosts();
 
   return (
     <View style={styles.container}>
@@ -1117,306 +714,208 @@ export default function PerfilScreen() {
         style={styles.header}
       >
         <View style={styles.headerTop}>
-          <Text style={styles.headerTitle}>{user.username || user.nombre}</Text>
+          <Text style={styles.headerTitle}>Perfil</Text>
           <View style={styles.headerButtons}>
-            <TouchableOpacity 
-              style={styles.headerButton} 
+            <TouchableOpacity
+              style={styles.headerButton}
               onPress={handleCreatePress}
-              activeOpacity={0.7}
             >
               <IconSymbol name="plus" size={24} color={colors.headerText} />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.headerButton}
               onPress={() => router.push('/(tabs)/perfil/configuracion')}
-              activeOpacity={0.7}
             >
-              <IconSymbol name="line.3.horizontal" size={24} color={colors.headerText} />
+              <IconSymbol name="gearshape.fill" size={24} color={colors.headerText} />
             </TouchableOpacity>
           </View>
         </View>
 
         <View style={styles.profileSection}>
-          <TouchableOpacity 
-            style={styles.avatarContainer} 
-            onPress={handleAvatarPress}
-            activeOpacity={0.7}
-          >
-            {hasUnviewedStories ? (
-              <LinearGradient
-                colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-                style={styles.avatarGradientBorder}
-              >
-                {user.avatar ? (
-                  <Image source={{ uri: user.avatar }} style={styles.avatar} />
-                ) : (
-                  <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                    <Text style={styles.avatarText}>{user.nombre.charAt(0).toUpperCase()}</Text>
-                  </View>
-                )}
-              </LinearGradient>
-            ) : user.avatar ? (
-              <Image source={{ uri: user.avatar }} style={styles.avatar} />
-            ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <Text style={styles.avatarText}>{user.nombre.charAt(0).toUpperCase()}</Text>
-              </View>
-            )}
-            {!hasNewStories && (
-              <TouchableOpacity 
-                style={styles.addStoryButton} 
-                onPress={handleCrearHistoria}
-                activeOpacity={0.7}
-              >
-                <IconSymbol name="plus" size={12} color={colors.headerText} />
+          <TouchableOpacity style={styles.avatarContainer} onPress={handleAvatarPress}>
+            <Image
+              source={{
+                uri: user.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200',
+              }}
+              style={styles.avatar}
+            />
+            {historias.length === 0 && (
+              <TouchableOpacity style={styles.addStoryButton} onPress={handleCrearHistoria}>
+                <IconSymbol name="plus" size={16} color="#FFFFFF" />
               </TouchableOpacity>
             )}
           </TouchableOpacity>
 
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{userStats.posts}</Text>
-              <Text style={styles.statLabel}>Posts</Text>
+          <View style={styles.profileInfo}>
+            <Text style={styles.profileName}>{user.nombre || 'Usuario'}</Text>
+            <Text style={styles.profileUsername}>@{user.username || 'username'}</Text>
+            <View style={styles.profileStats}>
+              <TouchableOpacity
+                style={styles.statItem}
+                onPress={() => router.push('/perfil/seguidores')}
+              >
+                <Text style={styles.statValue}>{seguidores}</Text>
+                <Text style={styles.statLabel}>Seguidores</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.statItem}
+                onPress={() => router.push('/perfil/seguidos')}
+              >
+                <Text style={styles.statValue}>{seguidos}</Text>
+                <Text style={styles.statLabel}>Seguidos</Text>
+              </TouchableOpacity>
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>{posts.length}</Text>
+                <Text style={styles.statLabel}>Posts</Text>
+              </View>
             </View>
-            <TouchableOpacity 
-              style={styles.statItem}
-              onPress={() => router.push(`/perfil/seguidores?userId=${user.id}`)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.statNumber}>{userStats.seguidores}</Text>
-              <Text style={styles.statLabel}>Seguidores</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.statItem}
-              onPress={() => router.push(`/perfil/seguidos?userId=${user.id}`)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.statNumber}>{userStats.seguidos}</Text>
-              <Text style={styles.statLabel}>Siguiendo</Text>
-            </TouchableOpacity>
           </View>
         </View>
+      </LinearGradient>
 
-        <View style={styles.userInfo}>
-          <Text style={styles.userName}>{user.nombre}</Text>
-          {user.username && (
-            <Text style={styles.userUsername}>@{user.username}</Text>
-          )}
+      <ScrollView
+        style={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
+        {/* Verification Status Banner */}
+        {verificationStatus && verificationStatus.estado !== 'aprobada' && (
+          <TouchableOpacity
+            style={styles.verificationBanner}
+            onPress={() => router.push('/auth/propietario-request-status')}
+            activeOpacity={0.9}
+          >
+            <LinearGradient
+              colors={getVerificationStatusColor(verificationStatus.estado)}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.verificationGradient}
+            >
+              <View style={styles.verificationIcon}>
+                <IconSymbol name="clock.fill" size={24} color="#FFFFFF" />
+              </View>
+              <View style={styles.verificationContent}>
+                <Text style={styles.verificationTitle}>
+                  {getVerificationStatusLabel(verificationStatus.estado)}
+                </Text>
+                <Text style={styles.verificationSubtitle}>
+                  {verificationStatus.estado_detalle || 'Toca para ver más detalles'}
+                </Text>
+              </View>
+              <View style={styles.verificationArrow}>
+                <IconSymbol name="chevron.right" size={20} color="#FFFFFF" />
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+
+        <View style={styles.actionButtons}>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.actionButtonPrimary]}
+            onPress={() => router.push('/editar/perfil')}
+          >
+            <IconSymbol name="pencil" size={18} color="#FFFFFF" />
+            <Text style={[styles.actionButtonText, styles.actionButtonTextPrimary]}>
+              Editar Perfil
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => router.push('/social/favoritos')}
+          >
+            <IconSymbol name="heart" size={18} color={colors.text} />
+            <Text style={styles.actionButtonText}>Favoritos</Text>
+          </TouchableOpacity>
         </View>
 
-        {(userBio || userWebsite) && (
+        {user.bio && (
           <View style={styles.bioSection}>
-            {userBio && <Text style={styles.bioText}>{userBio}</Text>}
-            {userWebsite && (
-              <TouchableOpacity 
-                style={styles.websiteLink}
-                onPress={handleWebsitePress} 
-                activeOpacity={0.7}
-              >
-                <IconSymbol name="link" size={16} color={colors.headerText} />
-                <Text style={styles.websiteText}>{userWebsite}</Text>
+            <Text style={styles.bioText}>{user.bio}</Text>
+            {user.sitio_web && (
+              <TouchableOpacity style={styles.websiteLink} onPress={handleWebsitePress}>
+                <IconSymbol name="link" size={16} color={colors.primary} />
+                <Text style={styles.websiteText}>{user.sitio_web}</Text>
               </TouchableOpacity>
             )}
           </View>
         )}
 
-        <View style={styles.actionsContainer}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => router.push('/editar/perfil')}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.actionButtonText}>Editar Perfil</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.actionButton} 
-            onPress={() => router.push('/(tabs)/perfil/chats')}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.actionButtonText}>Mensajes</Text>
-          </TouchableOpacity>
-        </View>
-      </LinearGradient>
-
-      <View style={styles.content}>
         <View style={styles.tabsContainer}>
           <TouchableOpacity
-            style={[styles.tab, tabActiva === 'posts' && styles.tabActive]}
-            onPress={() => setTabActiva('posts')}
-            activeOpacity={0.7}
+            style={[styles.tab, activeTab === 'posts' && styles.tabActive]}
+            onPress={() => setActiveTab('posts')}
           >
-            <IconSymbol
-              name="square.grid.3x3"
-              size={24}
-              color={tabActiva === 'posts' ? colors.primary : colors.textSecondary}
-            />
+            <Text style={[styles.tabText, activeTab === 'posts' && styles.tabTextActive]}>
+              Publicaciones
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, tabActiva === 'guardados' && styles.tabActive]}
-            onPress={() => setTabActiva('guardados')}
-            activeOpacity={0.7}
-          >
-            <IconSymbol
-              name="bookmark"
-              size={24}
-              color={tabActiva === 'guardados' ? colors.primary : colors.textSecondary}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, tabActiva === 'locales' && styles.tabActive]}
-            onPress={() => setTabActiva('locales')}
-            activeOpacity={0.7}
-          >
-            <IconSymbol
-              name="heart"
-              size={24}
-              color={tabActiva === 'locales' ? colors.primary : colors.textSecondary}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, tabActiva === 'etiquetados' && styles.tabActive]}
-            onPress={() => setTabActiva('etiquetados')}
-            activeOpacity={0.7}
-          >
-            <IconSymbol
-              name="at"
-              size={24}
-              color={tabActiva === 'etiquetados' ? colors.primary : colors.textSecondary}
-            />
-          </TouchableOpacity>
+          {currentMode === 'propietario' && (
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'locales' && styles.tabActive]}
+              onPress={() => setActiveTab('locales')}
+            >
+              <Text style={[styles.tabText, activeTab === 'locales' && styles.tabTextActive]}>
+                Mis Locales
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
-        <ScrollView
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        >
-          {tabActiva === 'locales' ? (
-            <>
-              {savedLocales.length > 0 ? (
-                <View style={styles.localesContainer}>
-                  {savedLocales.map((local) => (
-                    <TarjetaLocal
-                      key={local.id}
-                      local={local}
-                      userLocation={null}
-                    />
-                  ))}
-                </View>
-              ) : (
-                <View style={styles.emptyState}>
-                  <IconSymbol
-                    name="heart"
-                    size={48}
-                    color={colors.textSecondary}
-                    style={styles.emptyIcon}
-                  />
-                  <Text style={styles.emptyText}>No hay locales favoritos</Text>
-                  <Text style={styles.emptySubtext}>
-                    Guarda tus locales favoritos para verlos aquí
-                  </Text>
-                </View>
-              )}
-            </>
+        {activeTab === 'posts' ? (
+          posts.length > 0 ? (
+            <View style={styles.postsGrid}>
+              {posts.map((post) => (
+                <TouchableOpacity
+                  key={post.id}
+                  style={styles.postItem}
+                  onPress={() => handleVerPost(post.id)}
+                >
+                  <Image source={{ uri: post.imagen }} style={styles.postImage} />
+                </TouchableOpacity>
+              ))}
+            </View>
           ) : (
-            <>
-              {currentPosts.length > 0 ? (
-                <View style={styles.postsGrid}>
-                  {currentPosts.map((post) => (
-                    <TouchableOpacity
-                      key={post.id}
-                      style={styles.postItem}
-                      onPress={() => handleVerPost(post.id)}
-                      activeOpacity={0.7}
-                    >
-                      {post.imagen && (
-                        <Image source={{ uri: post.imagen }} style={styles.postImage} resizeMode="cover" />
-                      )}
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              ) : (
-                <View style={styles.emptyState}>
-                  <IconSymbol
-                    name={
-                      tabActiva === 'posts'
-                        ? 'photo.on.rectangle'
-                        : tabActiva === 'guardados'
-                        ? 'bookmark'
-                        : 'at'
-                    }
-                    size={48}
-                    color={colors.textSecondary}
-                    style={styles.emptyIcon}
-                  />
-                  <Text style={styles.emptyText}>
-                    {tabActiva === 'posts'
-                      ? 'No hay publicaciones'
-                      : tabActiva === 'guardados'
-                      ? 'No hay guardados'
-                      : 'No hay publicaciones etiquetadas'}
-                  </Text>
-                  <Text style={styles.emptySubtext}>
-                    {tabActiva === 'posts'
-                      ? 'Comparte tu primera publicación para que aparezca aquí'
-                      : tabActiva === 'guardados'
-                      ? 'Guarda publicaciones para verlas más tarde'
-                      : 'Las publicaciones donde te etiqueten aparecerán aquí'}
-                  </Text>
-                </View>
-              )}
-            </>
-          )}
-        </ScrollView>
-      </View>
+            <View style={styles.emptyState}>
+              <IconSymbol name="photo.on.rectangle" size={64} color={colors.textSecondary} />
+              <Text style={styles.emptyStateText}>
+                Aún no has publicado nada.{'\n'}¡Comparte tu primera publicación!
+              </Text>
+            </View>
+          )
+        ) : (
+          locales.length > 0 ? (
+            <View style={styles.localesContainer}>
+              {locales.map((local) => (
+                <TarjetaLocal key={local.id} local={local} userLocation={null} />
+              ))}
+            </View>
+          ) : (
+            <View style={styles.emptyState}>
+              <IconSymbol name="building.2" size={64} color={colors.textSecondary} />
+              <Text style={styles.emptyStateText}>
+                No tienes locales registrados.{'\n'}¡Crea tu primer local!
+              </Text>
+            </View>
+          )
+        )}
+      </ScrollView>
 
+      {/* Story Viewer Modal */}
       <Modal
         visible={showStoryViewer}
-        animationType="slide"
-        presentationStyle="fullScreen"
-        onRequestClose={async () => {
-          const currentStory = userStories[currentStoryIndex];
-          
-          if (currentStory && user) {
-            try {
-              const { data: existingView } = await supabase
-                .from('historia_views')
-                .select('id')
-                .eq('historia_id', currentStory.id)
-                .eq('usuario_id', user.id)
-                .single();
-
-              if (!existingView) {
-                await supabase.from('historia_views').insert({
-                  historia_id: currentStory.id,
-                  usuario_id: user.id,
-                });
-                console.log('[Perfil] Story marked as viewed on modal close:', currentStory.id);
-              }
-            } catch (error) {
-              console.error('[Perfil] Error marking story as viewed on modal close:', error);
-            }
-            
-            await loadUserData();
-          }
-          
-          setShowStoryViewer(false);
-          progressRef.setValue(0);
-          setIsPaused(false);
-        }}
+        animationType="fade"
+        onRequestClose={() => setShowStoryViewer(false)}
       >
         <View style={styles.storyViewerOverlay}>
           <View style={styles.storyViewerHeader}>
             <View style={styles.storyProgressContainer}>
-              {userStories.map((_, index) => (
+              {historias.map((_, index) => (
                 <View key={index} style={styles.storyProgressBar}>
-                  {index < currentStoryIndex && (
-                    <View style={[styles.storyProgressFill, { width: '100%' }]} />
-                  )}
                   {index === currentStoryIndex && (
                     <Animated.View
                       style={[
                         styles.storyProgressFill,
                         {
-                          width: progressRef.interpolate({
+                          width: storyProgress.interpolate({
                             inputRange: [0, 1],
                             outputRange: ['0%', '100%'],
                           }),
@@ -1424,94 +923,58 @@ export default function PerfilScreen() {
                       ]}
                     />
                   )}
+                  {index < currentStoryIndex && (
+                    <View style={[styles.storyProgressFill, { width: '100%' }]} />
+                  )}
                 </View>
               ))}
             </View>
 
             <View style={styles.storyUserInfo}>
               <View style={styles.storyUserLeft}>
-                {user.avatar ? (
-                  <Image source={{ uri: user.avatar }} style={styles.storyAvatar} />
-                ) : (
-                  <View style={[styles.storyAvatar, { backgroundColor: colors.primary }]}>
-                    <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>
-                      {user.nombre.charAt(0).toUpperCase()}
-                    </Text>
-                  </View>
-                )}
-                <Text style={styles.storyUserName}>{user.nombre}</Text>
-                <Text style={styles.storyTime}>
-                  {currentStory && formatearFecha(currentStory.created_at)}
-                </Text>
-              </View>
-              <View style={styles.storyHeaderButtons}>
-                <TouchableOpacity
-                  style={styles.storyDeleteButton}
-                  onPress={handleDeleteStory}
-                  activeOpacity={0.7}
-                >
-                  <IconSymbol name="trash.fill" size={18} color="#fff" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.storyCloseButton}
-                  onPress={async () => {
-                    const currentStory = userStories[currentStoryIndex];
-                    
-                    if (currentStory && user) {
-                      try {
-                        const { data: existingView } = await supabase
-                          .from('historia_views')
-                          .select('id')
-                          .eq('historia_id', currentStory.id)
-                          .eq('usuario_id', user.id)
-                          .single();
-
-                        if (!existingView) {
-                          await supabase.from('historia_views').insert({
-                            historia_id: currentStory.id,
-                            usuario_id: user.id,
-                          });
-                          console.log('[Perfil] Story marked as viewed on close:', currentStory.id);
-                        }
-                      } catch (error) {
-                        console.error('[Perfil] Error marking story as viewed on close:', error);
-                      }
-                      
-                      await loadUserData();
-                    }
-                    
-                    setShowStoryViewer(false);
-                    progressRef.setValue(0);
-                    setIsPaused(false);
+                <Image
+                  source={{
+                    uri: user.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200',
                   }}
-                  activeOpacity={0.7}
-                >
-                  <IconSymbol name="xmark" size={20} color="#fff" />
-                </TouchableOpacity>
+                  style={styles.storyUserAvatar}
+                />
+                <View>
+                  <Text style={styles.storyUserName}>{user.nombre}</Text>
+                  <Text style={styles.storyUserTime}>
+                    {historias[currentStoryIndex] &&
+                      formatearFecha(historias[currentStoryIndex].created_at)}
+                  </Text>
+                </View>
               </View>
+              <TouchableOpacity
+                style={styles.storyCloseButton}
+                onPress={() => setShowStoryViewer(false)}
+              >
+                <IconSymbol name="xmark" size={20} color="#FFFFFF" />
+              </TouchableOpacity>
             </View>
           </View>
 
-          <View style={styles.storyContent}>
-            {currentStory && currentStory.imagen && (
-              <Image source={{ uri: currentStory.imagen }} style={styles.storyImage} />
+          <Pressable style={styles.storyContent} onPress={togglePauseStory}>
+            {historias[currentStoryIndex] && (
+              <Image
+                source={{ uri: historias[currentStoryIndex].imagen }}
+                style={styles.storyImage}
+                resizeMode="contain"
+              />
             )}
-          </View>
+          </Pressable>
 
           <View style={styles.storyNavigation}>
-            <Pressable
-              style={styles.storyNavLeft}
-              onPress={handlePreviousStory}
-            />
-            <Pressable
-              style={styles.storyNavCenter}
-              onPressIn={() => setIsPaused(true)}
-              onPressOut={() => setIsPaused(false)}
-            />
-            <Pressable
-              style={styles.storyNavRight}
-              onPress={handleNextStory}
-            />
+            <TouchableOpacity style={styles.storyNavButton} onPress={handlePreviousStory} />
+            <TouchableOpacity style={styles.storyNavButton} onPress={handleNextStory} />
+          </View>
+
+          <View style={styles.storyActions}>
+            <TouchableOpacity style={styles.storyDeleteButton} onPress={handleDeleteStory}>
+              <IconSymbol name="trash" size={20} color="#FFFFFF" />
+              <Text style={styles.storyDeleteButtonText}>Eliminar</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
