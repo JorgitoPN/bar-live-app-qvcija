@@ -4,6 +4,7 @@ import { GooglePlaceDetails } from '@/types';
 /**
  * 🧠 MAPEO INTELIGENTE DE TIPOS
  * Google Types → BarLive Types
+ * ACTUALIZADO: Incluye nuevos tipos de Google Places API
  */
 const GOOGLE_TO_BARLIVE_TYPES: Record<string, string[]> = {
   // Bares
@@ -18,18 +19,22 @@ const GOOGLE_TO_BARLIVE_TYPES: Record<string, string[]> = {
   'dance_club': ['discoteca'],
   'disco': ['discoteca'],
   'nightclub': ['discoteca'],
+  'dance_hall': ['discoteca'],
   
   // Cafeterías
   'cafe': ['cafe'],
   'coffee_shop': ['cafe'],
+  'bakery': ['cafe'],
   
   // Restaurantes
   'restaurant': ['restaurante'],
   'tapas_restaurant': ['restaurante', 'tapas'],
   'meal_takeaway': ['restaurante'],
   'meal_delivery': ['restaurante'],
-  'fast_food_restaurant': ['restaurante'],
+  'fast_food': ['restaurante'],
   'food': ['restaurante'],
+  'pizza_restaurant': ['restaurante'],
+  'hamburger_restaurant': ['restaurante'],
   
   // Coctelerías
   'cocktail_bar': ['cocteleria', 'bar'],
@@ -46,6 +51,11 @@ const GOOGLE_TO_BARLIVE_TYPES: Record<string, string[]> = {
   
   // Terrazas y rooftops
   'rooftop_bar': ['rooftop', 'bar'],
+  
+  // Entretenimiento
+  'concert_hall': ['discoteca', 'sala_conciertos'],
+  'music_venue': ['discoteca', 'sala_conciertos'],
+  'amphitheatre': ['sala_conciertos'],
 };
 
 /**

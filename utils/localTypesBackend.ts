@@ -2,43 +2,52 @@
 /**
  * 🎯 SISTEMA DE DISCRIMINACIÓN PARA IMPORTAR LOCALES
  * Solo importar y enriquecer locales de ocio nocturno y restauración en España
+ * 
+ * ACTUALIZADO: Nueva lista de tipos válidos basada en Google Places API
  */
 
-// ✅ TIPOS VÁLIDOS DE GOOGLE PLACES (AMPLIADO)
+// ✅ TIPOS VÁLIDOS DE GOOGLE PLACES (ACTUALIZADO 2024)
+// Basado en la lista oficial de tipos de Google Places
 export const TIPOS_VALIDOS = [
+  // ✅ RESTAURACIÓN Y COMIDA
+  'restaurant',           // Restaurante general
+  'cafe',                // Cafetería
+  'coffee_shop',         // Tienda de café
+  'bakery',              // Panadería
+  'meal_takeaway',       // Comida para llevar
+  'meal_delivery',       // Entrega de comida
+  'food',                // Comida general
+  'fast_food',           // Comida rápida
+  'pizza_restaurant',    // Pizzería
+  'hamburger_restaurant', // Hamburguesería
+  'tapas_restaurant',    // Restaurante de tapas
+  
   // ✅ BARES Y COPAS
-  'bar',
-  'cocktail_bar',
-  'wine_bar',
-  'sports_bar',
-  'pub',
-  'tavern',
-  'tapas_bar',
-  'beer_garden',
-  'brewery',
-  'winery',
+  'bar',                 // Bar general
+  'pub',                 // Pub/Taberna
+  'cocktail_bar',        // Bar de cócteles
+  'wine_bar',            // Bar de vinos
+  'sports_bar',          // Bar deportivo
+  'tapas_bar',           // Bar de tapas
+  'beer_garden',         // Cervecería al aire libre
+  'brewery',             // Cervecería
+  'winery',              // Bodega
+  'tavern',              // Taberna
   
-  // ✅ RESTAURACIÓN
-  'restaurant',
-  'cafe',
-  'coffee_shop',
-  'bakery',
-  'meal_takeaway',
-  'meal_delivery',
-  'fast_food_restaurant',
-  'food',
-  'tapas_restaurant',
-  
-  // ✅ OCIO NOCTURNO
-  'night_club',
-  'dance_club',
-  'disco',
-  'nightclub',
+  // ✅ OCIO NOCTURNO Y ENTRETENIMIENTO
+  'night_club',          // Discoteca/Club nocturno
+  'dance_club',          // Club de baile
+  'disco',               // Discoteca
+  'nightclub',           // Club nocturno
+  'concert_hall',        // Sala de conciertos
+  'music_venue',         // Lugar de música
+  'amphitheatre',        // Anfiteatro
+  'dance_hall',          // Sala de baile
   
   // ✅ LOUNGES Y COCTELERÍAS
-  'lounge',
-  'cocktail_lounge',
-  'rooftop_bar',
+  'lounge',              // Lounge
+  'cocktail_lounge',     // Lounge de cócteles
+  'rooftop_bar',         // Bar en azotea
 ];
 
 // ❌ TIPOS PROHIBIDOS (ALTA PRIORIDAD - RECHAZAR SIEMPRE)
@@ -48,7 +57,9 @@ export const TIPOS_PROHIBIDOS = [
   'nail_salon', 'massage', 'tattoo_shop', 'barber_shop',
   'physiotherapist', 'health',
   
-  // ❌ TIENDAS
+  // ❌ TIENDAS Y COMERCIOS
+  'store',               // Tienda general
+  'shop',                // Tienda
   'clothing_store', 'shoe_store', 
   'hardware_store', 'furniture_store', 'electronics_store',
   'home_goods_store', 'shopping_mall', 'supermarket',
@@ -62,10 +73,11 @@ export const TIPOS_PROHIBIDOS = [
   // ❌ SALUD
   'pharmacy', 'hospital', 'doctor', 'dentist', 
   'veterinary_care', 'medical_lab', 'dental_clinic',
+  'clinic',
   
   // ❌ AUTOMOCIÓN
   'car_repair', 'gas_station', 'car_wash', 'car_dealer',
-  'car_rental',
+  'car_rental', 'fuel',
   
   // ❌ ALOJAMIENTO
   'lodging', 'hotel', 'motel', 'campground',
@@ -78,9 +90,9 @@ export const TIPOS_PROHIBIDOS = [
   
   // ❌ ADMINISTRACIÓN
   'police', 'fire_station', 'city_hall', 'courthouse',
-  'embassy', 'local_government_office',
+  'embassy', 'local_government_office', 'post_office',
   
-  // ❌ OTROS
+  // ❌ OTROS SERVICIOS
   'parking', 'laundry', 'travel_agency', 'lawyer',
   'locksmith', 'plumber', 'electrician', 'painter',
   'roofing_contractor', 'moving_company',
@@ -100,7 +112,6 @@ export const TIPOS_GENERICOS = [
 export const TIPOS_AMBIGUOS = [
   'university',  // "Facultad Sdc" es una discoteca
   'school',      // Algunas discotecas tienen nombres educativos
-  'store',       // "The Capital Latin Bar" puede tener este tipo por error
 ];
 
 /**
@@ -147,9 +158,10 @@ export function obtenerTiposProhibidos(types: string[]): string[] {
 /**
  * Validar si un local es válido para BarLive
  * NUEVA LÓGICA MEJORADA:
- * 1. Si tiene tipos válidos (bar, night_club, etc.) → ACEPTAR
+ * 1. Si tiene tipos válidos (bar, night_club, restaurant, etc.) → ACEPTAR
  * 2. Si tiene tipos prohibidos SIN tipos válidos → RECHAZAR
  * 3. Si tiene tipos ambiguos (university, store) pero también tipos válidos → ACEPTAR
+ * 4. Verificar business_status (solo OPERATIONAL o sin estado)
  */
 export function esLocalValidoParaBarlive(types: string[]): {
   valido: boolean;
@@ -250,12 +262,20 @@ export function estaEnEspana(direccion: string, plusCode?: string): boolean {
 
 /**
  * Validar estado del negocio
+ * Solo acepta locales OPERATIONAL o sin estado definido
+ * Rechaza CLOSED_PERMANENTLY y CLOSED_TEMPORARILY
  */
 export function esEstadoNegocioValido(businessStatus?: string): {
   valido: boolean;
   razon?: string;
 } {
   if (!businessStatus) {
+    // Si no hay estado, asumimos que está operativo
+    return { valido: true };
+  }
+  
+  // Solo aceptar locales operativos o abiertos
+  if (businessStatus === 'OPERATIONAL' || businessStatus === 'OPEN') {
     return { valido: true };
   }
   
@@ -267,12 +287,27 @@ export function esEstadoNegocioValido(businessStatus?: string): {
     };
   }
   
-  // Aceptar locales operativos y cerrados temporalmente
-  return { valido: true };
+  // Rechazar locales cerrados temporalmente (pueden estar en renovación, etc.)
+  if (businessStatus === 'CLOSED_TEMPORARILY') {
+    return {
+      valido: false,
+      razon: 'Local cerrado temporalmente',
+    };
+  }
+  
+  // Cualquier otro estado desconocido, rechazar por precaución
+  return {
+    valido: false,
+    razon: `Estado de negocio desconocido: ${businessStatus}`,
+  };
 }
 
 /**
  * Validación completa de un local
+ * Aplica todos los filtros de validación en orden:
+ * 1. Validar tipos (debe tener al menos un tipo válido)
+ * 2. Validar ubicación (debe estar en España)
+ * 3. Validar estado del negocio (debe estar operativo)
  */
 export function validarLocalCompleto(placeDetails: {
   types?: string[];

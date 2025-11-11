@@ -1099,16 +1099,24 @@ export default function EnriquecimientoGoogleScreen() {
         />
 
         <View style={[styles.infoBox, { marginTop: 15, backgroundColor: '#DBEAFE' }]}>
-          <Text style={[styles.infoBoxTitle, { color: '#1E40AF' }]}>🔍 Sistema de Validación</Text>
+          <Text style={[styles.infoBoxTitle, { color: '#1E40AF' }]}>🔍 Sistema de Validación Actualizado</Text>
           <Text style={[styles.infoBoxText, { color: '#1E40AF', marginTop: 5 }]}>
             Cada local será validado con el sistema de discriminación:{'\n\n'}
-            ✅ PASO 1: Verificar tipos válidos (bar, restaurante, café, etc.){'\n'}
-            ❌ PASO 2: Rechazar tipos prohibidos (farmacia, gimnasio, tienda, etc.){'\n'}
-            ✅ PASO 3: Validar estado del negocio (operativo){'\n'}
-            ✅ PASO 4: Verificar ubicación (España){'\n'}
-            ✅ PASO 5: Validar datos mínimos (nombre, dirección, coordenadas){'\n'}
-            📸 PASO 6: Descargar fotos y subirlas a Supabase Storage{'\n\n'}
-            Los locales rechazados se marcarán en la base de datos con el motivo del rechazo.
+            ✅ PASO 1: Verificar tipos válidos{'\n'}
+            • Restauración: restaurant, cafe, bakery, fast_food, etc.{'\n'}
+            • Bares: bar, pub, cocktail_bar, wine_bar, etc.{'\n'}
+            • Ocio nocturno: night_club, disco, dance_hall{'\n'}
+            • Entretenimiento: concert_hall, music_venue{'\n\n'}
+            ✅ PASO 2: Validar business_status{'\n'}
+            • Solo OPERATIONAL u OPEN{'\n'}
+            • Rechazar CLOSED_PERMANENTLY{'\n\n'}
+            ✅ PASO 3: Verificar ubicación (España){'\n\n'}
+            ❌ PASO 4: Rechazar tipos prohibidos{'\n'}
+            • Tiendas: store, shop, supermarket{'\n'}
+            • Salud: pharmacy, hospital, gym{'\n'}
+            • Otros: bank, hotel, gas_station{'\n\n'}
+            📸 PASO 5: Descargar fotos y subirlas a Supabase Storage{'\n\n'}
+            Los locales rechazados se marcarán con el motivo del rechazo.
           </Text>
         </View>
 
