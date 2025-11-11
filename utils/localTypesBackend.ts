@@ -1,10 +1,11 @@
 
 /**
- * 🎯 SISTEMA DE DISCRIMINACIÓN PARA IMPORTAR LOCALES
+ * 🎯 SISTEMA DE DISCRIMINACIÓN PARA IMPORTAR LOCALES - ACTUALIZADO BARLIVE
  * Solo importar y enriquecer locales de ocio nocturno y restauración en España
  * 
  * ACTUALIZADO: Nueva lista de tipos válidos basada en Google Places API
  * MEJORADO: Sistema de validación más inteligente que prioriza tipos válidos
+ * IMPLEMENTADO: Sistema de 4 estrategias de búsqueda + validación completa
  */
 
 // ✅ TIPOS VÁLIDOS DE GOOGLE PLACES (ACTUALIZADO 2024)
@@ -95,6 +96,10 @@ export const TIPOS_PROHIBIDOS = [
   'parking', 'laundry', 'travel_agency', 'lawyer',
   'locksmith', 'plumber', 'electrician', 'painter',
   'roofing_contractor', 'moving_company',
+  
+  // ❌ MUSEOS Y CULTURA (no son hostelería)
+  'museum', 'art_gallery', 'aquarium', 'zoo',
+  'amusement_park', 'movie_theater',
 ];
 
 // 🔍 TIPOS GENÉRICOS (IGNORAR EN VALIDACIÓN)
@@ -104,14 +109,6 @@ export const TIPOS_GENERICOS = [
   'point_of_interest',
   'premise',
   'tourist_attraction',
-];
-
-// 🎓 TIPOS AMBIGUOS (Pueden ser discotecas con nombres engañosos)
-// Estos tipos NO deben rechazar automáticamente si hay tipos válidos presentes
-export const TIPOS_AMBIGUOS = [
-  'university',  // "Facultad Sdc" es una discoteca
-  'school',      // Algunas discotecas tienen nombres educativos
-  'store',       // Algunas discotecas tienen "store" en sus tipos
 ];
 
 /**
@@ -124,6 +121,7 @@ export const PALABRAS_CLAVE_OCIO_NOCTURNO = [
   'sdc', 'facultad', 'sala', 'malavida', 'malatesta', 'filomatic',
   'garufa', 'josfer', 'blaster', 'tsunami', 'feelings', 'jumanji',
   'eros', 'duplex', 'onda', 'sky', 'turini', 'capital',
+  'mardi gras', 'lolita', 'lowe', 'ruido', 'concha',
   
   // Salas de conciertos y música
   'concert', 'concierto', 'music', 'musica', 'live', 'vivo',
@@ -132,6 +130,15 @@ export const PALABRAS_CLAVE_OCIO_NOCTURNO = [
   // Bares y pubs
   'bar', 'pub', 'tavern', 'taberna', 'cerveceria', 'brewery',
   'tapas', 'coctel', 'cocktail', 'lounge', 'rooftop',
+];
+
+/**
+ * ❌ PALABRAS PROHIBIDAS EN NOMBRES (solo rechazar si NO es hostelería)
+ * Si el nombre contiene estas palabras Y NO tiene tipos válidos, rechazar
+ */
+export const PALABRAS_PROHIBIDAS_NOMBRE = [
+  'fotograf', 'photo', 'gym', 'hotel', 'museo', 'museum',
+  'hospital', 'clinica', 'farmacia', 'pharmacy',
 ];
 
 /**
@@ -146,32 +153,28 @@ export function tieneAlgunTipoValido(types: string[]): boolean {
 }
 
 /**
- * Verificar si un local tiene tipos prohibidos (excluyendo ambiguos)
+ * Verificar si un local tiene tipos prohibidos (excluyendo genéricos)
  */
 export function tieneAlgunTipoProhibido(types: string[]): boolean {
   if (!types || types.length === 0) {
     return false;
   }
   
-  // Filtrar tipos genéricos y ambiguos antes de verificar prohibidos
-  const tiposRelevantes = types.filter(t => 
-    !TIPOS_GENERICOS.includes(t) && !TIPOS_AMBIGUOS.includes(t)
-  );
+  // Filtrar tipos genéricos antes de verificar prohibidos
+  const tiposRelevantes = types.filter(t => !TIPOS_GENERICOS.includes(t));
   
   return tiposRelevantes.some(type => TIPOS_PROHIBIDOS.includes(type));
 }
 
 /**
- * Obtener tipos prohibidos encontrados (excluyendo ambiguos)
+ * Obtener tipos prohibidos encontrados (excluyendo genéricos)
  */
 export function obtenerTiposProhibidos(types: string[]): string[] {
   if (!types || types.length === 0) {
     return [];
   }
   
-  const tiposRelevantes = types.filter(t => 
-    !TIPOS_GENERICOS.includes(t) && !TIPOS_AMBIGUOS.includes(t)
-  );
+  const tiposRelevantes = types.filter(t => !TIPOS_GENERICOS.includes(t));
   return tiposRelevantes.filter(t => TIPOS_PROHIBIDOS.includes(t));
 }
 
@@ -190,15 +193,29 @@ export function nombreIndicaOcioNocturno(nombre: string): boolean {
 }
 
 /**
- * Validar si un local es válido para BarLive
- * NUEVA LÓGICA MEJORADA:
- * 1. Si el nombre indica ocio nocturno → ACEPTAR (ignorar tipos)
- * 2. Si tiene tipos válidos (bar, night_club, restaurant, etc.) → ACEPTAR
- * 3. Si tiene tipos prohibidos SIN tipos válidos → RECHAZAR
- * 4. Si tiene tipos ambiguos (university, store) pero también tipos válidos → ACEPTAR
- * 5. Verificar business_status (solo OPERATIONAL o sin estado)
+ * 🧠 VERIFICAR SI EL NOMBRE TIENE PALABRAS PROHIBIDAS
+ * Solo rechazar si NO tiene tipos válidos de hostelería
  */
-export function esLocalValidoParaBarlive(types: string[], nombre?: string): {
+export function nombreTienePalabrasProhibidas(nombre: string): boolean {
+  if (!nombre) return false;
+  
+  const nombreLower = nombre.toLowerCase();
+  
+  return PALABRAS_PROHIBIDAS_NOMBRE.some(palabra => 
+    nombreLower.includes(palabra)
+  );
+}
+
+/**
+ * ✅ VALIDACIÓN DE TIPOS GOOGLE (SISTEMA BARLIVE)
+ * NUEVA LÓGICA MEJORADA:
+ * 1. Ignorar tipos genéricos (establishment, point_of_interest)
+ * 2. Si tiene tipos válidos (bar, night_club, restaurant) → ACEPTAR
+ * 3. Si tiene tipos prohibidos SIN tipos válidos → RECHAZAR
+ * 4. Si el nombre indica ocio nocturno → ACEPTAR (ignorar tipos)
+ * 5. Si no hay tipos relevantes → RECHAZAR
+ */
+export function validarTiposGoogle(types: string[], nombre?: string): {
   valido: boolean;
   razon?: string;
 } {
@@ -223,7 +240,7 @@ export function esLocalValidoParaBarlive(types: string[], nombre?: string): {
   
   console.log('[Type Validation] Valid types found:', tiposValidosEncontrados);
   
-  // 2️⃣ PASO 2: Si tiene tipos válidos, ACEPTAR (ignorar tipos ambiguos)
+  // 2️⃣ PASO 2: Si tiene tipos válidos, ACEPTAR
   if (tieneTipoValido) {
     console.log('[Type Validation] ✅ Has valid types, ACCEPTING');
     console.log('[Type Validation] ========================================');
@@ -242,20 +259,7 @@ export function esLocalValidoParaBarlive(types: string[], nombre?: string): {
     };
   }
   
-  // 4️⃣ PASO 4: Si NO tiene tipos válidos NI prohibidos, verificar tipos ambiguos
-  const tiposAmbiguosEncontrados = tiposRelevantes.filter(t => TIPOS_AMBIGUOS.includes(t));
-  
-  if (tiposAmbiguosEncontrados.length > 0) {
-    console.log('[Type Validation] ⚠️ Only ambiguous types found:', tiposAmbiguosEncontrados);
-    console.log('[Type Validation] ❌ Rejecting because no valid types present');
-    console.log('[Type Validation] ========================================');
-    return {
-      valido: false,
-      razon: 'No tiene tipos válidos para BarLive',
-    };
-  }
-  
-  // 5️⃣ PASO 5: Si no tiene ningún tipo relevante, rechazar
+  // 4️⃣ PASO 4: Si no tiene tipos válidos NI prohibidos, rechazar
   console.log('[Type Validation] ❌ No valid types found');
   console.log('[Type Validation] ========================================');
   return {
@@ -304,9 +308,24 @@ export function estaEnEspana(direccion: string, plusCode?: string): boolean {
 }
 
 /**
+ * ✅ VALIDAR PROVINCIA CORRECTA
+ * Verifica que el local esté en la provincia esperada
+ */
+export function estaEnProvinciaCorrecta(direccion: string, provinciaEsperada: string): boolean {
+  if (!direccion || !provinciaEsperada) {
+    return true; // Si no hay provincia esperada, aceptar
+  }
+  
+  const direccionLower = direccion.toLowerCase();
+  const provinciaLower = provinciaEsperada.toLowerCase();
+  
+  return direccionLower.includes(provinciaLower);
+}
+
+/**
  * Validar estado del negocio
  * Solo acepta locales OPERATIONAL o sin estado definido
- * Rechaza CLOSED_PERMANENTLY y CLOSED_TEMPORARILY
+ * Rechaza CLOSED_PERMANENTLY
  */
 export function esEstadoNegocioValido(businessStatus?: string): {
   valido: boolean;
@@ -330,12 +349,10 @@ export function esEstadoNegocioValido(businessStatus?: string): {
     };
   }
   
-  // Rechazar locales cerrados temporalmente (pueden estar en renovación, etc.)
+  // PERMITIR locales cerrados temporalmente (pueden estar en renovación)
   if (businessStatus === 'CLOSED_TEMPORARILY') {
-    return {
-      valido: false,
-      razon: 'Local cerrado temporalmente',
-    };
+    console.log('[Validation] ⚠️ Local cerrado temporalmente, pero ACEPTANDO');
+    return { valido: true }; // CAMBIO: Ahora aceptamos temporalmente cerrados
   }
   
   // Cualquier otro estado desconocido, rechazar por precaución
@@ -346,100 +363,13 @@ export function esEstadoNegocioValido(businessStatus?: string): {
 }
 
 /**
- * 🕐 VALIDAR HORARIOS PARA CATEGORÍA OSM
- * Verifica que los horarios sean compatibles con el tipo de local
- */
-export function validarHorariosPorCategoria(
-  categoriaOSM: string,
-  openingHours?: any
-): {
-  valido: boolean;
-  razon?: string;
-} {
-  // Si no hay horarios, aceptar (se enriquecerá después)
-  if (!openingHours || !openingHours.periods) {
-    return { valido: true };
-  }
-  
-  // Calcular promedio de apertura y cierre
-  const horarios = openingHours.periods;
-  let sumaApertura = 0;
-  let sumaCierre = 0;
-  let count = 0;
-  
-  for (const period of horarios) {
-    if (period.open && period.open.time) {
-      const horaApertura = parseInt(period.open.time.substring(0, 2));
-      sumaApertura += horaApertura;
-      count++;
-    }
-    if (period.close && period.close.time) {
-      let horaCierre = parseInt(period.close.time.substring(0, 2));
-      // Si cierra después de medianoche, ajustar
-      if (horaCierre < 6) horaCierre += 24;
-      sumaCierre += horaCierre;
-    }
-  }
-  
-  if (count === 0) {
-    return { valido: true };
-  }
-  
-  const aperturaMedia = sumaApertura / count;
-  const cierreMedia = sumaCierre / count;
-  
-  console.log(`[Schedule Validation] Category: ${categoriaOSM}, Avg open: ${aperturaMedia.toFixed(1)}h, Avg close: ${cierreMedia.toFixed(1)}h`);
-  
-  // Validar según categoría
-  switch (categoriaOSM) {
-    case 'nightclub':
-    case 'discoteca':
-      // Discotecas: deben abrir tarde (≥20:00) y cerrar de madrugada (≥28:00 = 04:00)
-      if (aperturaMedia < 20 || cierreMedia < 28) {
-        return {
-          valido: false,
-          razon: `Horario no compatible con discoteca (abre ${aperturaMedia.toFixed(1)}h, cierra ${(cierreMedia % 24).toFixed(1)}h)`,
-        };
-      }
-      break;
-      
-    case 'bar':
-    case 'pub':
-      // Bares/Pubs: deben abrir por la tarde (≥16:00) y cerrar tarde (≥26:00 = 02:00)
-      if (aperturaMedia < 16 || cierreMedia < 26) {
-        return {
-          valido: false,
-          razon: `Horario no compatible con bar/pub (abre ${aperturaMedia.toFixed(1)}h, cierra ${(cierreMedia % 24).toFixed(1)}h)`,
-        };
-      }
-      break;
-      
-    case 'cafe':
-      // Cafés: deben abrir temprano (≤10:00) y cerrar antes (≤23:00)
-      if (aperturaMedia > 10) {
-        return {
-          valido: false,
-          razon: `Horario no compatible con café (abre ${aperturaMedia.toFixed(1)}h)`,
-        };
-      }
-      break;
-      
-    case 'restaurant':
-      // Restaurantes: horario flexible, pero no deben cerrar muy tarde
-      // Aceptar cualquier horario razonable
-      break;
-  }
-  
-  return { valido: true };
-}
-
-/**
- * Validación completa de un local
+ * ✅ VALIDACIÓN COMPLETA DE LOCAL (SISTEMA BARLIVE)
  * Aplica todos los filtros de validación en orden:
  * 1. Validar tipos (debe tener al menos un tipo válido O nombre indicativo)
  * 2. Validar ubicación (debe estar en España)
- * 3. Validar estado del negocio (debe estar operativo)
- * 4. Validar horarios según categoría (opcional)
+ * 3. Validar provincia (debe estar en la provincia correcta)
+ * 4. Validar estado del negocio (debe estar operativo o temporalmente cerrado)
+ * 5. Validar nombre (palabras prohibidas solo si NO es hostelería)
  */
 export function validarLocalCompleto(placeDetails: {
   types?: string[];
@@ -448,7 +378,7 @@ export function validarLocalCompleto(placeDetails: {
   business_status?: string;
   name?: string;
   opening_hours?: any;
-}, categoriaOSM?: string): {
+}, provinciaEsperada?: string): {
   valido: boolean;
   razon?: string;
 } {
@@ -456,7 +386,7 @@ export function validarLocalCompleto(placeDetails: {
   console.log('[Complete Validation] Validating:', placeDetails.name);
   
   // 1. Validar tipos (ahora incluye validación de nombre)
-  const validacionTipos = esLocalValidoParaBarlive(placeDetails.types || [], placeDetails.name);
+  const validacionTipos = validarTiposGoogle(placeDetails.types || [], placeDetails.name);
   if (!validacionTipos.valido) {
     console.log('[Complete Validation] ❌ Failed type validation');
     return validacionTipos;
@@ -475,19 +405,36 @@ export function validarLocalCompleto(placeDetails: {
     };
   }
   
-  // 3. Validar estado del negocio
+  // 3. Validar provincia correcta (si se especifica)
+  if (provinciaEsperada) {
+    const enProvinciaCorrecta = estaEnProvinciaCorrecta(
+      placeDetails.formatted_address || '',
+      provinciaEsperada
+    );
+    if (!enProvinciaCorrecta) {
+      console.log('[Complete Validation] ⚠️ Not in expected province, but ACCEPTING');
+      // No rechazar, solo advertir
+    }
+  }
+  
+  // 4. Validar estado del negocio
   const validacionEstado = esEstadoNegocioValido(placeDetails.business_status);
   if (!validacionEstado.valido) {
     console.log('[Complete Validation] ❌ Failed business status validation');
     return validacionEstado;
   }
   
-  // 4. Validar horarios según categoría (opcional, solo advertencia)
-  if (categoriaOSM && placeDetails.opening_hours) {
-    const validacionHorarios = validarHorariosPorCategoria(categoriaOSM, placeDetails.opening_hours);
-    if (!validacionHorarios.valido) {
-      console.log('[Complete Validation] ⚠️ Schedule validation warning:', validacionHorarios.razon);
-      // No rechazar, solo advertir
+  // 5. Validar nombre (palabras prohibidas solo si NO tiene tipos válidos)
+  if (placeDetails.name && nombreTienePalabrasProhibidas(placeDetails.name)) {
+    const tieneTiposValidos = tieneAlgunTipoValido(placeDetails.types || []);
+    const nombreIndicaOcio = nombreIndicaOcioNocturno(placeDetails.name);
+    
+    if (!tieneTiposValidos && !nombreIndicaOcio) {
+      console.log('[Complete Validation] ❌ Name has prohibited words and no valid types');
+      return {
+        valido: false,
+        razon: 'Nombre indica negocio no válido para BarLive',
+      };
     }
   }
   

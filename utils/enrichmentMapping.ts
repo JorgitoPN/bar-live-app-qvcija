@@ -2,7 +2,7 @@
 import { GooglePlaceDetails } from '@/types';
 
 /**
- * 🧠 MAPEO INTELIGENTE DE TIPOS
+ * 🧠 MAPEO INTELIGENTE DE TIPOS (SISTEMA BARLIVE)
  * Google Types → BarLive Types
  * ACTUALIZADO: Incluye nuevos tipos de Google Places API
  * MEJORADO: Análisis de nombre para detectar discotecas y salas
@@ -151,8 +151,14 @@ export function mapGoogleTypesToBarlive(googleTypes: string[], nombreLocal?: str
 }
 
 /**
- * 🧠 CATEGORIZACIÓN POR HORARIOS (INTELIGENTE)
+ * 🧠 CATEGORIZACIÓN POR HORARIOS (SISTEMA BARLIVE)
  * Analiza los horarios de apertura y cierre para categorizar el local
+ * 
+ * REGLAS:
+ * - Apertura 22:00+ y cierre 04:00–07:00 → ['discoteca','lounge']
+ * - Apertura 08:00–14:00 y cierre ≤03:00 → ['restaurante','bar']
+ * - Apertura 05:00–10:00 y cierre ≤02:00 → ['cafe','bar']
+ * - Si no hay horarios, conservar tipos base de Google
  */
 export function categorizarPorHorarios(
   openingHours: GooglePlaceDetails['opening_hours'],
@@ -174,21 +180,20 @@ export function categorizarPorHorarios(
   
   const tiposFinales = [...tiposBase];
   
-  // 1️⃣ CAFÉS: Abre 05:00-10:00, Cierra ≤02:00
-  if (aperturaMedia >= 5 && aperturaMedia <= 10 && cierreMedia <= 2) {
-    console.log('[Categorization] 📋 Pattern detected: CAFÉ');
-    console.log('[Categorization] → Opens early (5-10h), closes early (≤2h)');
+  // 1️⃣ DISCOTECAS: Apertura 22:00+ y cierre 04:00–07:00
+  if ((aperturaMedia >= 22 || aperturaMedia === 0) && cierreMedia >= 4 && cierreMedia <= 7) {
+    console.log('[Categorization] 📋 Pattern detected: DISCOTECA');
+    console.log('[Categorization] → Opens late night (≥22h or midnight), closes dawn (4-7h)');
     
-    if (!tiposFinales.includes('cafe')) {
-      tiposFinales.push('cafe');
+    if (!tiposFinales.includes('discoteca')) {
+      tiposFinales.push('discoteca');
     }
-    // Si solo tiene 'bar', reemplazar por 'cafe'
-    if (tiposFinales.length === 1 && tiposFinales[0] === 'bar') {
-      tiposFinales[0] = 'cafe';
+    if (!tiposFinales.includes('lounge')) {
+      tiposFinales.push('lounge');
     }
   }
   
-  // 2️⃣ RESTAURANTES: Abre 08:00-14:00, Cierra ≤03:00
+  // 2️⃣ RESTAURANTES: Apertura 08:00–14:00 y cierre ≤03:00
   else if (aperturaMedia >= 8 && aperturaMedia <= 14 && cierreMedia <= 3) {
     console.log('[Categorization] 📋 Pattern detected: RESTAURANTE');
     console.log('[Categorization] → Opens mid-morning (8-14h), closes early night (≤3h)');
@@ -202,36 +207,17 @@ export function categorizarPorHorarios(
     }
   }
   
-  // 3️⃣ PUBS/COCTELERÍAS: Abre 16:00-22:00, Cierra 03:00-05:00
-  else if (aperturaMedia >= 16 && aperturaMedia <= 22 && cierreMedia >= 3 && cierreMedia <= 5) {
-    console.log('[Categorization] 📋 Pattern detected: PUB/COCTELERÍA');
-    console.log('[Categorization] → Opens evening (16-22h), closes late night (3-5h)');
+  // 3️⃣ CAFÉS: Apertura 05:00–10:00 y cierre ≤02:00
+  else if (aperturaMedia >= 5 && aperturaMedia <= 10 && cierreMedia <= 2) {
+    console.log('[Categorization] 📋 Pattern detected: CAFÉ');
+    console.log('[Categorization] → Opens early (5-10h), closes early (≤2h)');
     
-    if (!tiposFinales.includes('pub') && !tiposFinales.includes('cocteleria')) {
-      // Si ya tiene 'bar', añadir 'pub'
-      if (tiposFinales.includes('bar')) {
-        tiposFinales.push('pub');
-      } else {
-        tiposFinales.push('cocteleria');
-        tiposFinales.push('lounge');
-      }
+    if (!tiposFinales.includes('cafe')) {
+      tiposFinales.push('cafe');
     }
-  }
-  
-  // 4️⃣ DISCOTECAS: Abre 20:00-00:00, Cierra 04:00-06:30
-  else if ((aperturaMedia >= 20 || aperturaMedia === 0) && cierreMedia >= 4 && cierreMedia <= 7) {
-    console.log('[Categorization] 📋 Pattern detected: DISCOTECA');
-    console.log('[Categorization] → Opens late night (≥20h or midnight), closes dawn (4-7h)');
-    
-    if (!tiposFinales.includes('discoteca')) {
-      tiposFinales.push('discoteca');
-    }
-    if (!tiposFinales.includes('lounge')) {
-      tiposFinales.push('lounge');
-    }
-    // Añadir beach_club si tiene terraza
-    if (tiposFinales.includes('terraza')) {
-      tiposFinales.push('beach_club');
+    // Si solo tiene 'bar', reemplazar por 'cafe'
+    if (tiposFinales.length === 1 && tiposFinales[0] === 'bar') {
+      tiposFinales[0] = 'cafe';
     }
   }
   

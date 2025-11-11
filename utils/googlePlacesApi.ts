@@ -92,8 +92,13 @@ export async function googlePlacesNearby(params: {
 }
 
 /**
- * 🔍 BÚSQUEDA MEJORADA CON MÚLTIPLES ESTRATEGIAS
- * Implementa 5 estrategias de búsqueda para maximizar la tasa de éxito
+ * 🔍 BÚSQUEDA MEJORADA CON MÚLTIPLES ESTRATEGIAS (SISTEMA BARLIVE)
+ * Implementa 4 estrategias de búsqueda para maximizar la tasa de éxito
+ * 
+ * ESTRATEGIA 1: tipo + nombre + ciudad + provincia + España
+ * ESTRATEGIA 2: nombre + provincia + España
+ * ESTRATEGIA 3: nombre + dirección completa
+ * ESTRATEGIA 4: búsqueda por coordenadas (radius=50m)
  */
 export async function buscarLocalConEstrategias(params: {
   nombre: string;
@@ -105,11 +110,14 @@ export async function buscarLocalConEstrategias(params: {
 }): Promise<any | null> {
   console.log('[Multi-Strategy Search] ========================================');
   console.log('[Multi-Strategy Search] Searching for:', params.nombre);
+  console.log('[Multi-Strategy Search] Type:', params.tipo);
+  console.log('[Multi-Strategy Search] Province:', params.provincia);
   
-  // ESTRATEGIA 1: Búsqueda por texto con nombre + ciudad + provincia
+  // ESTRATEGIA 1: tipo + nombre + ciudad + provincia + España
   const ciudad = params.direccion.split(',')[0].trim();
-  const query1 = `${params.nombre} ${ciudad} ${params.provincia}`;
-  console.log('[Multi-Strategy Search] Strategy 1: Text search with full address');
+  const tipoEspanol = mapearTipoAEspanol(params.tipo);
+  const query1 = `${tipoEspanol} ${params.nombre} ${ciudad} ${params.provincia} España`;
+  console.log('[Multi-Strategy Search] Strategy 1: Type + Name + City + Province + Spain');
   console.log(`[Multi-Strategy Search] Query: "${query1}"`);
   
   let result = await googlePlacesTextSearch(query1);
@@ -119,31 +127,21 @@ export async function buscarLocalConEstrategias(params: {
     return result;
   }
   
-  // ESTRATEGIA 2: Búsqueda por proximidad (nearby search) con tipo específico
-  if (params.latitud && params.longitud) {
-    console.log('[Multi-Strategy Search] Strategy 2: Nearby search with type');
-    
-    // Mapear tipo OSM a tipo Google
-    const tipoGoogle = mapearTipoOSMaGoogle(params.tipo);
-    console.log(`[Multi-Strategy Search] Type: ${tipoGoogle}`);
-    
-    result = await googlePlacesNearby({
-      location: `${params.latitud},${params.longitud}`,
-      radius: 100, // 100 metros
-      keyword: params.nombre,
-      type: tipoGoogle,
-    });
-    
-    if (result && result.place_id) {
-      console.log('[Multi-Strategy Search] ✅ Found with Strategy 2');
-      console.log('[Multi-Strategy Search] ========================================');
-      return result;
-    }
+  // ESTRATEGIA 2: nombre + provincia + España
+  const query2 = `${params.nombre} ${params.provincia} España`;
+  console.log('[Multi-Strategy Search] Strategy 2: Name + Province + Spain');
+  console.log(`[Multi-Strategy Search] Query: "${query2}"`);
+  
+  result = await googlePlacesTextSearch(query2);
+  if (result && result.place_id) {
+    console.log('[Multi-Strategy Search] ✅ Found with Strategy 2');
+    console.log('[Multi-Strategy Search] ========================================');
+    return result;
   }
   
-  // ESTRATEGIA 3: Búsqueda solo con nombre + provincia
-  const query3 = `${params.nombre} ${params.provincia}`;
-  console.log('[Multi-Strategy Search] Strategy 3: Text search with name + province');
+  // ESTRATEGIA 3: nombre + dirección completa
+  const query3 = `${params.nombre} ${params.direccion}`;
+  console.log('[Multi-Strategy Search] Strategy 3: Name + Full Address');
   console.log(`[Multi-Strategy Search] Query: "${query3}"`);
   
   result = await googlePlacesTextSearch(query3);
@@ -153,31 +151,23 @@ export async function buscarLocalConEstrategias(params: {
     return result;
   }
   
-  // ESTRATEGIA 4: Búsqueda con tipo de local + nombre + provincia
-  const tipoLocal = params.tipo === 'discoteca' ? 'nightclub' : params.tipo;
-  const query4 = `${tipoLocal} ${params.nombre} ${params.provincia}`;
-  console.log('[Multi-Strategy Search] Strategy 4: Text search with type + name');
-  console.log(`[Multi-Strategy Search] Query: "${query4}"`);
-  
-  result = await googlePlacesTextSearch(query4);
-  if (result && result.place_id) {
-    console.log('[Multi-Strategy Search] ✅ Found with Strategy 4');
-    console.log('[Multi-Strategy Search] ========================================');
-    return result;
-  }
-  
-  // ESTRATEGIA 5: Búsqueda por proximidad sin tipo específico (más amplia)
+  // ESTRATEGIA 4: búsqueda por coordenadas (radius=50m)
   if (params.latitud && params.longitud) {
-    console.log('[Multi-Strategy Search] Strategy 5: Nearby search without type');
+    console.log('[Multi-Strategy Search] Strategy 4: Nearby search (50m radius)');
+    
+    // Mapear tipo OSM a tipo Google
+    const tipoGoogle = mapearTipoOSMaGoogle(params.tipo);
+    console.log(`[Multi-Strategy Search] Type: ${tipoGoogle}`);
     
     result = await googlePlacesNearby({
       location: `${params.latitud},${params.longitud}`,
-      radius: 150, // Radio más amplio: 150 metros
+      radius: 50, // 50 metros - muy preciso
       keyword: params.nombre,
+      type: tipoGoogle,
     });
     
     if (result && result.place_id) {
-      console.log('[Multi-Strategy Search] ✅ Found with Strategy 5');
+      console.log('[Multi-Strategy Search] ✅ Found with Strategy 4');
       console.log('[Multi-Strategy Search] ========================================');
       return result;
     }
@@ -202,6 +192,25 @@ function mapearTipoOSMaGoogle(tipoOSM: string): string {
     'terraza': 'bar',
     'lounge': 'bar',
     'rooftop': 'bar',
+  };
+  
+  return mapping[tipoOSM] || 'bar';
+}
+
+/**
+ * Mapear tipo OSM a español para búsqueda
+ */
+function mapearTipoAEspanol(tipoOSM: string): string {
+  const mapping: Record<string, string> = {
+    'bar': 'bar',
+    'pub': 'pub',
+    'discoteca': 'discoteca',
+    'cafe': 'cafetería',
+    'restaurante': 'restaurante',
+    'cocteleria': 'coctelería',
+    'terraza': 'terraza',
+    'lounge': 'lounge',
+    'rooftop': 'rooftop',
   };
   
   return mapping[tipoOSM] || 'bar';
