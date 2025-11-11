@@ -14,12 +14,22 @@ export default function AuthCallbackScreen() {
 
   useEffect(() => {
     let isMounted = true;
+    let redirectTimeout: NodeJS.Timeout;
 
     const handleCallback = async () => {
       try {
         console.log('[Callback] Procesando callback de autenticación...');
         console.log('[Callback] Platform:', Platform.OS);
         console.log('[Callback] Params:', params);
+        
+        // FIXED: Set a maximum timeout to prevent infinite loading
+        redirectTimeout = setTimeout(() => {
+          if (isMounted) {
+            console.log('[Callback] ⚠️ Timeout alcanzado, redirigiendo a explorar...');
+            setMensaje('Redirigiendo...');
+            router.replace('/(tabs)/explorar');
+          }
+        }, 8000); // 8 seconds max
         
         // For web, check URL hash for tokens
         if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location.hash) {
@@ -43,11 +53,12 @@ export default function AuthCallbackScreen() {
               setError(`Error de autenticación: ${errorDescription || errorParam}`);
             }
             
+            clearTimeout(redirectTimeout);
             setTimeout(() => {
               if (isMounted) {
                 router.replace('/(tabs)/explorar');
               }
-            }, 3000);
+            }, 2000);
             return;
           }
 
@@ -68,15 +79,17 @@ export default function AuthCallbackScreen() {
                 setError('Error al establecer la sesión. Por favor, intenta nuevamente.');
               }
               
+              clearTimeout(redirectTimeout);
               setTimeout(() => {
                 if (isMounted) {
                   router.replace('/(tabs)/explorar');
                 }
-              }, 3000);
+              }, 2000);
               return;
             }
 
             if (data.user) {
+              clearTimeout(redirectTimeout);
               await processUserAfterAuth(data.user);
               return;
             }
@@ -90,7 +103,7 @@ export default function AuthCallbackScreen() {
         }
         
         // Wait a bit for the session to be established
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 1500));
         
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
@@ -100,6 +113,7 @@ export default function AuthCallbackScreen() {
             setError('Error al verificar la sesión.');
           }
           
+          clearTimeout(redirectTimeout);
           setTimeout(() => {
             if (isMounted) {
               router.replace('/(tabs)/explorar');
@@ -110,6 +124,7 @@ export default function AuthCallbackScreen() {
 
         if (session?.user) {
           console.log('[Callback] Sesión encontrada para usuario:', session.user.id);
+          clearTimeout(redirectTimeout);
           await processUserAfterAuth(session.user);
         } else {
           console.log('[Callback] No hay sesión activa, redirigiendo a explorar...');
@@ -117,6 +132,7 @@ export default function AuthCallbackScreen() {
             setMensaje('Redirigiendo...');
           }
           
+          clearTimeout(redirectTimeout);
           setTimeout(() => {
             if (isMounted) {
               router.replace('/(tabs)/explorar');
@@ -129,11 +145,12 @@ export default function AuthCallbackScreen() {
           setError(`Error inesperado: ${error.message || 'Error desconocido'}`);
         }
         
+        clearTimeout(redirectTimeout);
         setTimeout(() => {
           if (isMounted) {
             router.replace('/(tabs)/explorar');
           }
-        }, 3000);
+        }, 2000);
       }
     };
 
@@ -187,7 +204,7 @@ export default function AuthCallbackScreen() {
             if (isMounted) {
               router.replace('/(tabs)/explorar');
             }
-          }, 3000);
+          }, 2000);
           return;
         }
 
@@ -210,28 +227,23 @@ export default function AuthCallbackScreen() {
         // Check if user has username and nombre (required fields)
         const isNewUser = !profileData.username || !profileData.nombre;
         
+        if (isMounted) {
+          setMensaje('¡Autenticación exitosa! Redirigiendo...');
+        }
+        
+        // FIXED: Add a small delay before redirect to ensure state is updated
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
         if (isNewUser) {
           console.log('[Callback] Usuario nuevo sin perfil completo, redirigiendo a editar perfil...');
           if (isMounted) {
-            setMensaje('¡Bienvenido! Completa tu perfil...');
+            router.replace('/editar/perfil');
           }
-          
-          setTimeout(() => {
-            if (isMounted) {
-              router.replace('/editar/perfil');
-            }
-          }, 500);
         } else {
           console.log('[Callback] Usuario existente con perfil completo, redirigiendo a explorar...');
           if (isMounted) {
-            setMensaje('¡Autenticación exitosa! Redirigiendo...');
+            router.replace('/(tabs)/explorar');
           }
-          
-          setTimeout(() => {
-            if (isMounted) {
-              router.replace('/(tabs)/explorar');
-            }
-          }, 500);
         }
       } catch (error: any) {
         console.error('[Callback] Error procesando usuario:', error);
@@ -243,7 +255,7 @@ export default function AuthCallbackScreen() {
           if (isMounted) {
             router.replace('/(tabs)/explorar');
           }
-        }, 3000);
+        }, 2000);
       }
     };
 
@@ -251,6 +263,9 @@ export default function AuthCallbackScreen() {
 
     return () => {
       isMounted = false;
+      if (redirectTimeout) {
+        clearTimeout(redirectTimeout);
+      }
     };
   }, [router, params]);
 
@@ -266,6 +281,7 @@ export default function AuthCallbackScreen() {
         <>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.text}>{mensaje}</Text>
+          <Text style={styles.subText}>Por favor espera un momento...</Text>
         </>
       )}
     </View>
@@ -285,6 +301,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.text,
     textAlign: 'center',
+    fontWeight: '600',
   },
   errorIcon: {
     fontSize: 48,
@@ -295,10 +312,12 @@ const styles = StyleSheet.create({
     color: colors.error || '#EF4444',
     textAlign: 'center',
     marginBottom: 8,
+    fontWeight: '600',
   },
   subText: {
     fontSize: 14,
     color: colors.textSecondary,
     textAlign: 'center',
+    marginTop: 8,
   },
 });

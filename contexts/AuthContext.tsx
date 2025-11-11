@@ -103,8 +103,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               console.log('[AuthContext] Usuario actualizado:', userData.email, 'Rol:', userData.rol_app);
               setUser(userData);
               
-              // Only redirect if NOT on callback page (callback handles its own redirect)
-              if (!pathname?.includes('/auth/callback')) {
+              // FIXED: Only redirect if NOT on callback page or auth pages
+              // Let the callback page handle its own redirect logic
+              const isOnAuthPage = pathname?.includes('/auth/');
+              
+              if (!isOnAuthPage) {
                 // Check if user has accepted terms
                 if (!userData.ha_aceptado_terminos) {
                   console.log('[AuthContext] Usuario no ha aceptado términos, redirigiendo...');
@@ -125,7 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   router.replace('/(tabs)/explorar');
                 }
               } else {
-                console.log('[AuthContext] En página de callback, no redirigiendo');
+                console.log('[AuthContext] En página de auth, no redirigiendo desde AuthContext');
               }
               
               // Register for push notifications (non-blocking)

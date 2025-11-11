@@ -35,8 +35,17 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
       const cleanRoute = route.startsWith('/') ? route.substring(1) : route;
       const cleanPathname = pathname.startsWith('/') ? pathname.substring(1) : pathname;
       
-      // Check if pathname includes the route name
-      return cleanPathname.includes(cleanRoute);
+      // FIXED: More precise matching to avoid false positives
+      // For perfil tab, only match if it's exactly the perfil index, not chats/notificaciones/etc
+      if (cleanRoute === '(tabs)/perfil') {
+        // Match only if pathname is exactly /(tabs)/perfil or /(tabs)/perfil/index
+        return cleanPathname === '(tabs)/perfil' || 
+               cleanPathname === '(tabs)/perfil/' || 
+               cleanPathname === '(tabs)/perfil/index';
+      }
+      
+      // For other tabs, check if pathname starts with the route
+      return cleanPathname.startsWith(cleanRoute);
     } catch (error) {
       console.error('Error checking active route:', error);
       return false;
@@ -86,7 +95,12 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
 
             try {
               // ⚡ INSTANT NAVIGATION - Use replace with no animation
-              router.replace(tab.route as any);
+              // FIXED: For perfil tab, explicitly navigate to index
+              if (tab.name === 'perfil') {
+                router.replace('/(tabs)/perfil/index' as any);
+              } else {
+                router.replace(tab.route as any);
+              }
             } catch (error) {
               console.error('❌ Navigation error:', error);
             }
