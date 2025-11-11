@@ -538,6 +538,14 @@ export default function PerfilScreen() {
     storyProgress.stopAnimation();
   }, [storyProgress]);
 
+  const handleNextStory = useCallback(() => {
+    if (currentStoryIndex < historias.length - 1) {
+      setCurrentStoryIndex(currentStoryIndex + 1);
+    } else {
+      setShowStoryViewer(false);
+    }
+  }, [currentStoryIndex, historias.length]);
+
   useEffect(() => {
     if (showStoryViewer && !isPaused) {
       startStoryTimer();
@@ -546,19 +554,11 @@ export default function PerfilScreen() {
     }
 
     return () => stopStoryTimer();
-  }, [showStoryViewer, currentStoryIndex, isPaused, startStoryTimer, stopStoryTimer]);
+  }, [showStoryViewer, currentStoryIndex, isPaused, startStoryTimer, stopStoryTimer, handleNextStory]);
 
   const handlePreviousStory = () => {
     if (currentStoryIndex > 0) {
       setCurrentStoryIndex(currentStoryIndex - 1);
-    } else {
-      setShowStoryViewer(false);
-    }
-  };
-
-  const handleNextStory = () => {
-    if (currentStoryIndex < historias.length - 1) {
-      setCurrentStoryIndex(currentStoryIndex + 1);
     } else {
       setShowStoryViewer(false);
     }
