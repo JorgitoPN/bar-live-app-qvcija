@@ -19,7 +19,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(false); // Changed to false - don't block app startup
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -34,8 +34,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        // No timeout - let it complete in background
-        // Get current session
         const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
@@ -48,7 +46,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (currentSession) {
           setSession(currentSession);
           
-          // Get user profile
           const { user: userData, error: userError } = await getCurrentUser();
           
           if (userError) {
@@ -57,7 +54,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             console.log('[AuthContext] Usuario cargado:', userData.email, 'Rol:', userData.rol_app);
             setUser(userData);
             
-            // Register for push notifications (non-blocking)
             registerForPushNotifications()
               .then(pushToken => {
                 if (pushToken) {
@@ -71,16 +67,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch (error) {
         console.error('[AuthContext] Error inicializando auth:', error);
-        // Continue anyway - app should work without auth
       } finally {
         console.log('[AuthContext] Inicialización completada');
       }
     };
 
-    // Run in background - don't block
     initializeAuth();
 
-    // Listen for auth changes
     let subscription: { unsubscribe: () => void } | null = null;
     
     try {
@@ -94,7 +87,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (event === 'SIGNED_IN' && currentSession) {
             console.log('[AuthContext] Usuario inició sesión');
             
-            // Get user profile
             const { user: userData, error: userError } = await getCurrentUser();
             
             if (userError) {
@@ -103,32 +95,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               console.log('[AuthContext] Usuario actualizado:', userData.email, 'Rol:', userData.rol_app);
               setUser(userData);
               
-              // Only redirect if NOT on callback page (callback handles its own redirect)
+              // Only redirect if NOT on callback page
               if (!pathname?.includes('/auth/callback')) {
-                // Check if user has accepted terms
-                if (!userData.ha_aceptado_terminos) {
-                  console.log('[AuthContext] Usuario no ha aceptado términos, redirigiendo...');
-                  router.replace({
-                    pathname: '/auth/terms-acceptance',
-                    params: { userId: userData.id }
-                  });
-                }
-                // Check if user needs to complete profile
-                else if (!userData.perfil_completado || !userData.username || !userData.nombre) {
-                  console.log('[AuthContext] Usuario nuevo, redirigiendo a completar perfil...');
-                  router.replace({
-                    pathname: '/auth/completar-perfil',
-                    params: { userId: userData.id }
-                  });
-                } else {
-                  console.log('[AuthContext] Usuario existente, redirigiendo a explorar...');
-                  router.replace('/(tabs)/explorar');
-                }
+                console.log('[AuthContext] Redirigiendo a explorar...');
+                router.replace('/(tabs)/explorar');
               } else {
                 console.log('[AuthContext] En página de callback, no redirigiendo');
               }
               
-              // Register for push notifications (non-blocking)
               registerForPushNotifications()
                 .then(pushToken => {
                   if (pushToken) {
@@ -144,14 +118,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(null);
             setSession(null);
             
-            // Redirect to explorar (locales list) after logout
+            console.log('[AuthContext] Redirigiendo a explorar después de cerrar sesión...');
             router.replace('/(tabs)/explorar');
           } else if (event === 'TOKEN_REFRESHED') {
             console.log('[AuthContext] Token refrescado');
           } else if (event === 'USER_UPDATED') {
             console.log('[AuthContext] Usuario actualizado');
             
-            // Refresh user data
             getCurrentUser()
               .then(({ user: userData }) => {
                 if (userData) {
@@ -180,18 +153,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       console.log('[AuthContext] Iniciando cierre de sesión...');
       
-      // Clear local state first
       setUser(null);
       setSession(null);
       
       if (!isSupabaseConfigured()) {
         console.log('[AuthContext] Supabase no configurado, sesión local limpiada');
-        // Redirect to explorar (locales list)
         router.replace('/(tabs)/explorar');
         return;
       }
 
-      // Sign out from Supabase
       const { error } = await supabase.auth.signOut();
       
       if (error) {
@@ -200,13 +170,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       console.log('[AuthContext] Sesión cerrada exitosamente en Supabase');
-      
-      // Redirect to explorar (locales list)
+      console.log('[AuthContext] Redirigiendo a explorar...');
       router.replace('/(tabs)/explorar');
     } catch (error) {
       console.error('[AuthContext] Error en signOut:', error);
-      // Even if there's an error, we've already cleared local state
-      // This ensures the user is logged out locally
       router.replace('/(tabs)/explorar');
       throw error;
     }

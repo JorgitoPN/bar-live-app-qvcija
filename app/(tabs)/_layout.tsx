@@ -103,10 +103,10 @@ export default function TabLayout() {
           label: 'Gestión',
         },
         {
-          name: 'empleo',
-          route: '/(tabs)/empleo',
-          icon: 'person.badge.plus',
-          label: 'Empleo',
+          name: 'favoritos',
+          route: '/social/favoritos',
+          icon: 'heart.fill',
+          label: 'Favoritos',
         },
         {
           name: 'explorar',
@@ -140,10 +140,10 @@ export default function TabLayout() {
             label: 'Gestión',
           },
           {
-            name: 'empleo',
-            route: '/(tabs)/empleo',
-            icon: 'person.badge.plus',
-            label: 'Empleo',
+            name: 'favoritos',
+            route: '/social/favoritos',
+            icon: 'heart.fill',
+            label: 'Favoritos',
           },
           {
             name: 'explorar',
@@ -174,10 +174,10 @@ export default function TabLayout() {
             label: 'Eventos',
           },
           {
-            name: 'empleo',
-            route: '/(tabs)/empleo',
-            icon: 'person.badge.plus',
-            label: 'Empleo',
+            name: 'favoritos',
+            route: '/social/favoritos',
+            icon: 'heart.fill',
+            label: 'Favoritos',
           },
           {
             name: 'explorar',
@@ -188,7 +188,7 @@ export default function TabLayout() {
           {
             name: 'social',
             route: '/(tabs)/social',
-            icon: 'heart.fill',
+            icon: 'photo.on.rectangle',
             label: 'Social',
           },
           {
@@ -211,10 +211,10 @@ export default function TabLayout() {
         label: 'Eventos',
       },
       {
-        name: 'empleo',
-        route: '/(tabs)/empleo',
-        icon: 'person.badge.plus',
-        label: 'Empleo',
+        name: 'favoritos',
+        route: '/social/favoritos',
+        icon: 'heart.fill',
+        label: 'Favoritos',
       },
       {
         name: 'explorar',
@@ -225,7 +225,7 @@ export default function TabLayout() {
       {
         name: 'social',
         route: '/(tabs)/social',
-        icon: 'heart.fill',
+        icon: 'photo.on.rectangle',
         label: 'Social',
       },
       {
@@ -272,7 +272,7 @@ export default function TabLayout() {
         <Tabs.Screen 
           name="empleo" 
           options={{ 
-            href: '/(tabs)/empleo',
+            href: null,
             animation: 'none',
             animationDuration: 0,
             lazy: false,
