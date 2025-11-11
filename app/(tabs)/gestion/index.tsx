@@ -5,7 +5,6 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  Alert,
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
@@ -40,9 +39,14 @@ export default function GestionScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const cargarLocales = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     try {
+      console.log('[GestionScreen] Loading locales for user:', user.id);
+      
       // Get user's locals
       const { data: localesData, error: localesError } = await supabase
         .from('locales')
@@ -52,13 +56,18 @@ export default function GestionScreen() {
 
       if (localesError) {
         console.error('[GestionScreen] Error loading locales:', localesError);
+        setLoading(false);
         return;
       }
 
       if (!localesData || localesData.length === 0) {
+        console.log('[GestionScreen] No locales found for user');
         setLocales([]);
+        setLoading(false);
         return;
       }
+
+      console.log('[GestionScreen] Found', localesData.length, 'locales');
 
       // Get subscriptions for each local
       const localesConSuscripcion: LocalConSuscripcion[] = await Promise.all(
@@ -96,6 +105,7 @@ export default function GestionScreen() {
       );
 
       setLocales(localesConSuscripcion);
+      console.log('[GestionScreen] Locales loaded successfully');
     } catch (error) {
       console.error('[GestionScreen] Error:', error);
     } finally {
@@ -105,16 +115,14 @@ export default function GestionScreen() {
   }, [user]);
 
   useEffect(() => {
-    if (user && (user.rol_app === 'propietario' || user.rol_app === 'admin')) {
+    // Only load data if user exists
+    // Access control is handled by _layout.tsx, so we don't need to check here
+    if (user) {
       cargarLocales();
-    } else if (user) {
-      Alert.alert(
-        'Acceso Denegado',
-        'Solo los propietarios pueden acceder a esta sección.',
-        [{ text: 'OK', onPress: () => router.replace('/(tabs)/explorar') }]
-      );
+    } else {
+      setLoading(false);
     }
-  }, [user, router, cargarLocales]);
+  }, [user, cargarLocales]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -142,10 +150,6 @@ export default function GestionScreen() {
         return 'checkmark.circle.fill';
     }
   };
-
-  if (!user || (user.rol_app !== 'propietario' && user.rol_app !== 'admin')) {
-    return null;
-  }
 
   if (loading) {
     return (
