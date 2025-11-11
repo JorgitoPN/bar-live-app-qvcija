@@ -15,6 +15,16 @@ export default function AuthCallbackScreen() {
   useEffect(() => {
     let isMounted = true;
     let redirectTimeout: NodeJS.Timeout;
+    let hasRedirected = false;
+
+    const safeRedirect = (path: string) => {
+      if (!hasRedirected && isMounted) {
+        hasRedirected = true;
+        console.log('[Callback] 🚀 Redirigiendo a:', path);
+        // Use replace to avoid back button issues
+        router.replace(path as any);
+      }
+    };
 
     const handleCallback = async () => {
       try {
@@ -22,14 +32,14 @@ export default function AuthCallbackScreen() {
         console.log('[Callback] Platform:', Platform.OS);
         console.log('[Callback] Params:', params);
         
-        // FIXED: Set a maximum timeout to prevent infinite loading
+        // FIXED: Reduced timeout to 5 seconds for faster redirect
         redirectTimeout = setTimeout(() => {
-          if (isMounted) {
+          if (isMounted && !hasRedirected) {
             console.log('[Callback] ⚠️ Timeout alcanzado, redirigiendo a explorar...');
             setMensaje('Redirigiendo...');
-            router.replace('/(tabs)/explorar');
+            safeRedirect('/(tabs)/explorar');
           }
-        }, 8000); // 8 seconds max
+        }, 5000); // 5 seconds max
         
         // For web, check URL hash for tokens
         if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location.hash) {
@@ -55,9 +65,7 @@ export default function AuthCallbackScreen() {
             
             clearTimeout(redirectTimeout);
             setTimeout(() => {
-              if (isMounted) {
-                router.replace('/(tabs)/explorar');
-              }
+              safeRedirect('/(tabs)/explorar');
             }, 2000);
             return;
           }
@@ -81,9 +89,7 @@ export default function AuthCallbackScreen() {
               
               clearTimeout(redirectTimeout);
               setTimeout(() => {
-                if (isMounted) {
-                  router.replace('/(tabs)/explorar');
-                }
+                safeRedirect('/(tabs)/explorar');
               }, 2000);
               return;
             }
@@ -102,8 +108,8 @@ export default function AuthCallbackScreen() {
           setMensaje('Verificando sesión...');
         }
         
-        // Wait a bit for the session to be established
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        // FIXED: Reduced wait time to 1 second
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
@@ -115,10 +121,8 @@ export default function AuthCallbackScreen() {
           
           clearTimeout(redirectTimeout);
           setTimeout(() => {
-            if (isMounted) {
-              router.replace('/(tabs)/explorar');
-            }
-          }, 2000);
+            safeRedirect('/(tabs)/explorar');
+          }, 1500);
           return;
         }
 
@@ -134,10 +138,8 @@ export default function AuthCallbackScreen() {
           
           clearTimeout(redirectTimeout);
           setTimeout(() => {
-            if (isMounted) {
-              router.replace('/(tabs)/explorar');
-            }
-          }, 1000);
+            safeRedirect('/(tabs)/explorar');
+          }, 500);
         }
       } catch (error: any) {
         console.error('[Callback] Error en callback:', error);
@@ -147,10 +149,8 @@ export default function AuthCallbackScreen() {
         
         clearTimeout(redirectTimeout);
         setTimeout(() => {
-          if (isMounted) {
-            router.replace('/(tabs)/explorar');
-          }
-        }, 2000);
+          safeRedirect('/(tabs)/explorar');
+        }, 1500);
       }
     };
 
@@ -161,15 +161,15 @@ export default function AuthCallbackScreen() {
           setMensaje('Configurando perfil...');
         }
         
-        // Wait for the trigger to create the profile (give it a moment)
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        // FIXED: Reduced wait time to 800ms
+        await new Promise(resolve => setTimeout(resolve, 800));
         
         // Check if user profile exists (should be created by trigger)
-        let retries = 3;
+        let retries = 2; // Reduced from 3 to 2
         let profileData = null;
         
         while (retries > 0 && !profileData) {
-          console.log(`[Callback] Intentando obtener perfil (intento ${4 - retries}/3)...`);
+          console.log(`[Callback] Intentando obtener perfil (intento ${3 - retries}/2)...`);
           
           const { data, error: profileError } = await supabase
             .from('usuarios')
@@ -189,22 +189,16 @@ export default function AuthCallbackScreen() {
           
           retries--;
           if (retries > 0) {
-            console.log('[Callback] Perfil no encontrado, esperando 1 segundo antes de reintentar...');
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            console.log('[Callback] Perfil no encontrado, esperando 600ms antes de reintentar...');
+            await new Promise(resolve => setTimeout(resolve, 600));
           }
         }
 
         if (!profileData) {
           console.error('[Callback] No se pudo obtener el perfil después de varios intentos');
-          if (isMounted) {
-            setError('Error al cargar el perfil de usuario. Por favor, intenta cerrar sesión y volver a iniciar.');
-          }
-          
-          setTimeout(() => {
-            if (isMounted) {
-              router.replace('/(tabs)/explorar');
-            }
-          }, 2000);
+          // FIXED: Don't show error, just redirect - AuthContext will handle it
+          console.log('[Callback] Redirigiendo a explorar - AuthContext manejará el estado');
+          safeRedirect('/(tabs)/explorar');
           return;
         }
 
@@ -223,28 +217,17 @@ export default function AuthCallbackScreen() {
           // Continue anyway, notifications are not critical
         }
 
-        // FIXED: Determine where to redirect based on profile completeness
-        // Check if user has username and nombre (required fields)
-        const isNewUser = !profileData.username || !profileData.nombre;
-        
+        // FIXED: Let AuthContext handle the redirect logic
+        // Just redirect to explorar and let AuthContext determine if profile needs completion
         if (isMounted) {
           setMensaje('¡Autenticación exitosa! Redirigiendo...');
         }
         
-        // FIXED: Add a small delay before redirect to ensure state is updated
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // FIXED: Shorter delay before redirect
+        await new Promise(resolve => setTimeout(resolve, 300));
         
-        if (isNewUser) {
-          console.log('[Callback] Usuario nuevo sin perfil completo, redirigiendo a editar perfil...');
-          if (isMounted) {
-            router.replace('/editar/perfil');
-          }
-        } else {
-          console.log('[Callback] Usuario existente con perfil completo, redirigiendo a explorar...');
-          if (isMounted) {
-            router.replace('/(tabs)/explorar');
-          }
-        }
+        console.log('[Callback] Redirigiendo a explorar - AuthContext manejará el flujo');
+        safeRedirect('/(tabs)/explorar');
       } catch (error: any) {
         console.error('[Callback] Error procesando usuario:', error);
         if (isMounted) {
@@ -252,10 +235,8 @@ export default function AuthCallbackScreen() {
         }
         
         setTimeout(() => {
-          if (isMounted) {
-            router.replace('/(tabs)/explorar');
-          }
-        }, 2000);
+          safeRedirect('/(tabs)/explorar');
+        }, 1500);
       }
     };
 

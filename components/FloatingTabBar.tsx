@@ -129,10 +129,12 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
               activeOpacity={0.5}
             >
               <View style={[styles.tabContent, active && styles.tabContentActive]}>
+                {/* FIXED: Active icons are now BRIGHT WHITE with high contrast */}
                 <IconSymbol
                   name={tab.icon as any}
                   size={24}
-                  color={active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.5)'}
+                  color={active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.45)'}
+                  weight={active ? 'fill' : 'regular'}
                 />
                 <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
                   {tab.label}
@@ -197,17 +199,20 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   tabContentActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    // FIXED: More prominent background for active tab
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
   tabLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.5)',
+    // FIXED: Inactive labels are more dimmed for better contrast
+    color: 'rgba(255, 255, 255, 0.45)',
     marginTop: 4,
   },
   tabLabelActive: {
+    // FIXED: Active labels are BRIGHT WHITE with bold weight
     color: '#FFFFFF',
-    fontWeight: '700',
+    fontWeight: '800',
   },
   centerButton: {
     width: 64,

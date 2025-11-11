@@ -147,7 +147,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(null);
             setSession(null);
             
-            // FIXED: Redirect to explorar (locales list) after logout - NO ONBOARDING
+            // FIXED: ALWAYS redirect to explorar (locales list) after logout - NEVER show onboarding
+            console.log('[AuthContext] 🚀 Redirigiendo a explorar después de cerrar sesión');
             router.replace('/(tabs)/explorar');
           } else if (event === 'TOKEN_REFRESHED') {
             console.log('[AuthContext] Token refrescado');
@@ -189,7 +190,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (!isSupabaseConfigured()) {
         console.log('[AuthContext] Supabase no configurado, sesión local limpiada');
-        // FIXED: Redirect to explorar (locales list) - NO ONBOARDING
+        // FIXED: ALWAYS redirect to explorar (locales list) - NEVER show onboarding
+        console.log('[AuthContext] 🚀 Redirigiendo a explorar después de cerrar sesión');
         router.replace('/(tabs)/explorar');
         return;
       }
@@ -204,13 +206,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       console.log('[AuthContext] Sesión cerrada exitosamente en Supabase');
       
-      // FIXED: Redirect to explorar (locales list) - NO ONBOARDING
+      // FIXED: ALWAYS redirect to explorar (locales list) - NEVER show onboarding
+      console.log('[AuthContext] 🚀 Redirigiendo a explorar después de cerrar sesión');
       router.replace('/(tabs)/explorar');
     } catch (error) {
       console.error('[AuthContext] Error en signOut:', error);
       // Even if there's an error, we've already cleared local state
       // This ensures the user is logged out locally
-      // FIXED: Redirect to explorar (locales list) - NO ONBOARDING
+      // FIXED: ALWAYS redirect to explorar (locales list) - NEVER show onboarding
+      console.log('[AuthContext] 🚀 Redirigiendo a explorar después de error en cerrar sesión');
       router.replace('/(tabs)/explorar');
       throw error;
     }
