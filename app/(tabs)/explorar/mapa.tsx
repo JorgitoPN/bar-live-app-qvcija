@@ -185,16 +185,28 @@ export default function MapaScreen() {
     const CATEGORIAS_EXCLUIDAS = ['terrazas', 'rooftops', 'lounge'];
     
     const filtrados = todosLosLocales.filter(local => {
+      // Get all categories for this local
       const localCategories = local.barlive_types || (local.barlive_type ? [local.barlive_type] : []);
+      
+      // Exclude locales with excluded categories
       const hasExcludedCategory = localCategories.some((cat: string) => 
         CATEGORIAS_EXCLUIDAS.includes(cat.toLowerCase())
       );
       if (hasExcludedCategory) return false;
       
-      const matchCategoria = categoriaSeleccionada === 'todos' || 
-        local.barlive_type === categoriaSeleccionada ||
-        (local.barlive_types && local.barlive_types.includes(categoriaSeleccionada));
+      // FIXED: Strict category filtering for "discoteca"
+      // When "discoteca" is selected, ONLY show locales that have "discoteca" in their categories
+      let matchCategoria = false;
+      if (categoriaSeleccionada === 'todos') {
+        matchCategoria = true;
+      } else {
+        // Check if the selected category is in the local's categories array
+        matchCategoria = localCategories.some((cat: string) => 
+          cat.toLowerCase() === categoriaSeleccionada.toLowerCase()
+        );
+      }
       
+      // Filter by open/closed state
       let matchEstado = true;
       if (filtroEstado === 'abiertos') {
         const estado = getEstadoLocal(local);
@@ -204,7 +216,7 @@ export default function MapaScreen() {
       return matchCategoria && matchEstado;
     });
     
-    console.log(`[MAP] Filtered locals: ${filtrados.length} of ${todosLosLocales.length}`);
+    console.log(`[MAP] Filtered locals for category "${categoriaSeleccionada}": ${filtrados.length} of ${todosLosLocales.length}`);
     setLocalesFiltrados(filtrados);
   }, [todosLosLocales, categoriaSeleccionada, filtroEstado]);
 

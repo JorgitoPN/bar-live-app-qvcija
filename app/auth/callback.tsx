@@ -114,19 +114,19 @@ export default function AuthCallbackScreen() {
                   return;
                 }
                 
-                // Check if user needs to complete profile
+                // FIXED: Check if user needs to complete profile (username and name are mandatory)
                 if (!userData.perfil_completado || !userData.username || !userData.nombre) {
-                  console.log('[Callback] 📝 Usuario debe completar perfil');
+                  console.log('[Callback] 📝 Usuario debe completar perfil - redirigiendo a completar-perfil');
                   if (isMounted) setStatus('success');
                   safeRedirect(`/auth/completar-perfil?userId=${userData.id}`, 300);
                   return;
                 }
               }
               
-              // All good, go to main app
-              console.log('[Callback] ✅ Todo listo, redirigiendo a explorar');
+              // FIXED: After login, redirect to edit profile page instead of explorar
+              console.log('[Callback] ✅ Todo listo, redirigiendo a editar perfil');
               if (isMounted) setStatus('success');
-              safeRedirect('/(tabs)/explorar', 300);
+              safeRedirect('/editar/perfil', 300);
               return;
             }
           }
@@ -183,19 +183,19 @@ export default function AuthCallbackScreen() {
               return;
             }
             
-            // Check if user needs to complete profile
+            // FIXED: Check if user needs to complete profile (username and name are mandatory)
             if (!userData.perfil_completado || !userData.username || !userData.nombre) {
-              console.log('[Callback] 📝 Usuario debe completar perfil');
+              console.log('[Callback] 📝 Usuario debe completar perfil - redirigiendo a completar-perfil');
               if (isMounted) setStatus('success');
               safeRedirect(`/auth/completar-perfil?userId=${userData.id}`, 300);
               return;
             }
           }
           
-          // All good, go to main app
-          console.log('[Callback] ✅ Todo listo, redirigiendo a explorar');
+          // FIXED: After login, redirect to edit profile page instead of explorar
+          console.log('[Callback] ✅ Todo listo, redirigiendo a editar perfil');
           if (isMounted) setStatus('success');
-          safeRedirect('/(tabs)/explorar', 300);
+          safeRedirect('/editar/perfil', 300);
         } else {
           console.log('[Callback] ℹ️ No hay sesión activa, redirigiendo a explorar');
           safeRedirect('/(tabs)/explorar', 500);

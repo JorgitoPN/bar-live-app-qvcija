@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -30,9 +30,11 @@ export default function CompletarPerfilScreen() {
   const [paso, setPaso] = useState(1);
   const [loading, setLoading] = useState(false);
 
-  // Paso 1: Datos básicos
+  // Paso 1: Datos básicos (MANDATORY)
   const [nombreCompleto, setNombreCompleto] = useState('');
   const [username, setUsername] = useState('');
+  const [usernameValidating, setUsernameValidating] = useState(false);
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
   const [fechaNacimiento, setFechaNacimiento] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
 
@@ -57,6 +59,48 @@ export default function CompletarPerfilScreen() {
     'Arte',
     'Cultura',
   ];
+
+  // FIXED: Real-time username validation
+  useEffect(() => {
+    const validateUsername = async () => {
+      if (!username || username.length < 3) {
+        setUsernameAvailable(null);
+        return;
+      }
+
+      if (!validarUsername(username)) {
+        setUsernameAvailable(false);
+        return;
+      }
+
+      setUsernameValidating(true);
+
+      try {
+        const { data, error } = await supabase
+          .from('usuarios')
+          .select('id')
+          .eq('username', username)
+          .single();
+
+        if (error && error.code === 'PGRST116') {
+          // No rows returned - username is available
+          setUsernameAvailable(true);
+        } else if (data) {
+          // Username already exists
+          setUsernameAvailable(false);
+        }
+      } catch (error) {
+        console.error('Error validating username:', error);
+        setUsernameAvailable(null);
+      } finally {
+        setUsernameValidating(false);
+      }
+    };
+
+    // Debounce validation
+    const timeoutId = setTimeout(validateUsername, 500);
+    return () => clearTimeout(timeoutId);
+  }, [username]);
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -101,13 +145,15 @@ export default function CompletarPerfilScreen() {
   };
 
   const validarPaso1 = () => {
+    // FIXED: Nombre completo is now MANDATORY
     if (!nombreCompleto.trim()) {
-      Alert.alert('Error', 'Por favor, ingresa tu nombre completo');
+      Alert.alert('Error', 'El nombre completo es obligatorio');
       return false;
     }
 
+    // FIXED: Username is now MANDATORY
     if (!username.trim()) {
-      Alert.alert('Error', 'Por favor, elige un nombre de usuario');
+      Alert.alert('Error', 'El nombre de usuario es obligatorio');
       return false;
     }
 
@@ -118,6 +164,17 @@ export default function CompletarPerfilScreen() {
 
     if (!validarUsername(username)) {
       Alert.alert('Error', 'El nombre de usuario solo puede contener letras, números, puntos y guiones bajos');
+      return false;
+    }
+
+    // FIXED: Check if username is available
+    if (usernameAvailable === false) {
+      Alert.alert('Error', 'Este nombre de usuario ya está en uso. Por favor, elige otro.');
+      return false;
+    }
+
+    if (usernameAvailable === null) {
+      Alert.alert('Error', 'Por favor, espera mientras verificamos la disponibilidad del nombre de usuario');
       return false;
     }
 
@@ -134,7 +191,7 @@ export default function CompletarPerfilScreen() {
     if (paso === 1) {
       if (!validarPaso1()) return;
 
-      // Verificar que el username no esté en uso
+      // Double-check username availability before proceeding
       setLoading(true);
       try {
         const { data, error } = await supabase
@@ -172,7 +229,7 @@ export default function CompletarPerfilScreen() {
         avatarUrl = avatar;
       }
 
-      // Actualizar perfil del usuario
+      // FIXED: Update profile with mandatory fields (nombre and username)
       const { error } = await supabase
         .from('usuarios')
         .update({
@@ -212,20 +269,6 @@ export default function CompletarPerfilScreen() {
     }
   };
 
-  const handleOmitir = () => {
-    Alert.alert(
-      'Omitir configuración',
-      'Puedes completar tu perfil más tarde desde la configuración. ¿Continuar?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Omitir',
-          onPress: () => router.replace('/(tabs)/explorar'),
-        },
-      ]
-    );
-  };
-
   const renderPaso1 = () => (
     <View style={styles.pasoContainer}>
       <Text style={styles.pasoTitle}>Datos Básicos</Text>
@@ -246,7 +289,7 @@ export default function CompletarPerfilScreen() {
           autoCapitalize="words"
         />
         <Text style={styles.helperText}>
-          Opcional, pero recomendado para identificarte mejor
+          Tu nombre completo es obligatorio para identificarte
         </Text>
       </View>
 
@@ -265,10 +308,31 @@ export default function CompletarPerfilScreen() {
             autoCapitalize="none"
             autoCorrect={false}
           />
+          {usernameValidating && (
+            <ActivityIndicator size="small" color={colors.primary} style={styles.usernameIndicator} />
+          )}
+          {!usernameValidating && usernameAvailable === true && username.length >= 3 && (
+            <IconSymbol name="checkmark.circle.fill" size={20} color="#10B981" style={styles.usernameIndicator} />
+          )}
+          {!usernameValidating && usernameAvailable === false && username.length >= 3 && (
+            <IconSymbol name="xmark.circle.fill" size={20} color="#EF4444" style={styles.usernameIndicator} />
+          )}
         </View>
-        <Text style={styles.helperText}>
-          Único en la plataforma. Solo letras, números, puntos y guiones bajos
-        </Text>
+        {username.length >= 3 && usernameAvailable === true && (
+          <Text style={[styles.helperText, { color: '#10B981' }]}>
+            ✓ Nombre de usuario disponible
+          </Text>
+        )}
+        {username.length >= 3 && usernameAvailable === false && (
+          <Text style={[styles.helperText, { color: '#EF4444' }]}>
+            ✗ Este nombre de usuario ya está en uso
+          </Text>
+        )}
+        {username.length < 3 && (
+          <Text style={styles.helperText}>
+            Único en la plataforma. Solo letras, números, puntos y guiones bajos
+          </Text>
+        )}
       </View>
 
       <View style={styles.inputContainer}>
@@ -456,7 +520,7 @@ export default function CompletarPerfilScreen() {
         <TouchableOpacity
           style={[styles.button, styles.buttonPrimary, { flex: 1 }]}
           onPress={handleContinuar}
-          disabled={loading}
+          disabled={loading || (paso === 1 && usernameValidating)}
         >
           {loading ? (
             <ActivityIndicator color="#fff" />
@@ -470,7 +534,7 @@ export default function CompletarPerfilScreen() {
         {paso === 2 && (
           <TouchableOpacity
             style={[styles.button, styles.buttonSecondary]}
-            onPress={handleOmitir}
+            onPress={() => router.replace('/(tabs)/explorar')}
             disabled={loading}
           >
             <Text style={styles.buttonTextSecondary}>Omitir</Text>
@@ -574,6 +638,7 @@ const styles = StyleSheet.create({
     borderColor: colors.cardBorder,
     borderRadius: 12,
     paddingLeft: 16,
+    paddingRight: 12,
   },
   usernamePrefix: {
     fontSize: 16,
@@ -585,6 +650,9 @@ const styles = StyleSheet.create({
     flex: 1,
     borderWidth: 0,
     paddingLeft: 0,
+  },
+  usernameIndicator: {
+    marginLeft: 8,
   },
   dateButton: {
     flexDirection: 'row',
