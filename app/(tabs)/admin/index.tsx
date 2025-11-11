@@ -134,6 +134,13 @@ export default function AdminScreen() {
       route: '/admin/gestionar-locales',
       requiresSupabase: true,
     },
+    {
+      icon: 'person.badge.plus',
+      title: 'Solicitudes Propietario',
+      description: 'Revisar y gestionar solicitudes de propietarios',
+      route: '/admin/gestionar-solicitudes',
+      requiresSupabase: true,
+    },
   ];
 
   const finanzasSection: MenuItem[] = [

@@ -105,12 +105,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               
               // Only redirect if NOT on callback page (callback handles its own redirect)
               if (!pathname?.includes('/auth/callback')) {
-                // Check if user is new (no username or nombre) or existing
-                const isNewUser = !userData.username || !userData.nombre;
-                
-                if (isNewUser) {
-                  console.log('[AuthContext] Usuario nuevo, redirigiendo a editar perfil...');
-                  router.replace('/editar/perfil');
+                // Check if user has accepted terms
+                if (!userData.ha_aceptado_terminos) {
+                  console.log('[AuthContext] Usuario no ha aceptado términos, redirigiendo...');
+                  router.replace({
+                    pathname: '/auth/terms-acceptance',
+                    params: { userId: userData.id }
+                  });
+                }
+                // Check if user needs to complete profile
+                else if (!userData.perfil_completado || !userData.username || !userData.nombre) {
+                  console.log('[AuthContext] Usuario nuevo, redirigiendo a completar perfil...');
+                  router.replace({
+                    pathname: '/auth/completar-perfil',
+                    params: { userId: userData.id }
+                  });
                 } else {
                   console.log('[AuthContext] Usuario existente, redirigiendo a explorar...');
                   router.replace('/(tabs)/explorar');

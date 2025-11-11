@@ -11,6 +11,11 @@ export interface AuthUser {
   rol_app: 'cliente' | 'propietario' | 'admin';
   provider?: 'barlive' | 'google';
   ha_visto_mensaje_propietario?: boolean;
+  ha_aceptado_terminos?: boolean;
+  fecha_aceptacion_terminos?: string;
+  perfil_completado?: boolean;
+  solicitud_propietario_id?: string;
+  fecha_aprobacion_propietario?: string;
   bio?: string;
   username?: string;
   sitio_web?: string;
@@ -407,6 +412,11 @@ export const getCurrentUser = async (): Promise<{ user: AuthUser | null; error: 
       rol_app: profileData.rol_app || 'cliente',
       provider: profileData.provider || 'barlive',
       ha_visto_mensaje_propietario: profileData.ha_visto_mensaje_propietario || false,
+      ha_aceptado_terminos: profileData.ha_aceptado_terminos || false,
+      fecha_aceptacion_terminos: profileData.fecha_aceptacion_terminos,
+      perfil_completado: profileData.perfil_completado || false,
+      solicitud_propietario_id: profileData.solicitud_propietario_id,
+      fecha_aprobacion_propietario: profileData.fecha_aprobacion_propietario,
       bio: profileData.bio,
       username: profileData.username,
       sitio_web: profileData.sitio_web,
