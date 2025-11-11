@@ -21,31 +21,48 @@ export default function TabLayout() {
 
   // Prevent access to admin pages for non-admin users
   useEffect(() => {
-    if (user && userRole !== 'admin') {
+    // Only check if user is logged in and pathname exists
+    if (!user || !pathname) return;
+    
+    // Only check if user is NOT an admin
+    if (userRole !== 'admin') {
       // Check if user is trying to access admin routes
-      const currentPath = pathname || '';
-      if (currentPath.includes('/admin')) {
+      // Must start with /(tabs)/admin to avoid false positives
+      if (pathname.startsWith('/(tabs)/admin') || pathname.startsWith('/admin')) {
         console.log('[TabLayout] ⚠️ Non-admin user trying to access admin page, redirecting...');
-        Alert.alert(
-          'Acceso Denegado',
-          'No tienes permisos para acceder a esta sección.',
-          [{ text: 'OK', onPress: () => router.replace('/(tabs)/explorar') }]
-        );
+        
+        // Use setTimeout to avoid multiple alerts
+        setTimeout(() => {
+          Alert.alert(
+            'Acceso Denegado',
+            'No tienes permisos para acceder a esta sección.',
+            [{ text: 'OK', onPress: () => router.replace('/(tabs)/explorar') }]
+          );
+        }, 100);
       }
     }
   }, [user, userRole, pathname, router]);
 
   // Prevent access to gestion pages for non-propietario users
   useEffect(() => {
-    if (user && userRole !== 'propietario' && userRole !== 'admin') {
-      const currentPath = pathname || '';
-      if (currentPath.includes('/gestion')) {
+    // Only check if user is logged in and pathname exists
+    if (!user || !pathname) return;
+    
+    // Only check if user is NOT a propietario or admin
+    if (userRole !== 'propietario' && userRole !== 'admin') {
+      // Check if user is trying to access gestion routes
+      // Must start with /(tabs)/gestion to avoid false positives
+      if (pathname.startsWith('/(tabs)/gestion') || pathname.startsWith('/gestion')) {
         console.log('[TabLayout] ⚠️ Non-propietario user trying to access gestion page, redirecting...');
-        Alert.alert(
-          'Acceso Denegado',
-          'No tienes permisos para acceder a esta sección.',
-          [{ text: 'OK', onPress: () => router.replace('/(tabs)/explorar') }]
-        );
+        
+        // Use setTimeout to avoid multiple alerts
+        setTimeout(() => {
+          Alert.alert(
+            'Acceso Denegado',
+            'No tienes permisos para acceder a esta sección.',
+            [{ text: 'OK', onPress: () => router.replace('/(tabs)/explorar') }]
+          );
+        }, 100);
       }
     }
   }, [user, userRole, pathname, router]);

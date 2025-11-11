@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -30,19 +30,7 @@ export default function AdminScreen() {
   const { user } = useAuth();
   const supabaseConfigured = isSupabaseConfigured();
 
-  // Check if user has admin access
-  useEffect(() => {
-    if (user && user.rol_app !== 'admin') {
-      console.log('[AdminScreen] Non-admin user detected, redirecting...');
-      Alert.alert(
-        'Acceso Denegado',
-        'Solo los administradores pueden acceder a esta sección.',
-        [{ text: 'OK', onPress: () => router.replace('/(tabs)/explorar') }]
-      );
-    }
-  }, [user, router]);
-
-  // If not admin, don't render anything (will redirect)
+  // If not admin, don't render anything (layout will handle redirect)
   if (!user || user.rol_app !== 'admin') {
     return null;
   }
