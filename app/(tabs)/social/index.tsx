@@ -112,6 +112,26 @@ const styles = StyleSheet.create({
   },
   headerButton: {
     padding: 4,
+    position: 'relative',
+  },
+  badge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    backgroundColor: '#EF4444',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 5,
+    borderWidth: 2,
+    borderColor: colors.headerGradientStart,
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: 'bold',
   },
   searchModal: {
     flex: 1,
@@ -403,6 +423,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginLeft: 8,
   },
+  storyDeleteButtonBottom: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(239, 68, 68, 0.9)',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 24,
+  },
+  storyDeleteText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+  },
   storyContent: {
     flex: 1,
     justifyContent: 'center',
@@ -564,6 +598,10 @@ export default function SocialScreen() {
   const [loginMessage, setLoginMessage] = useState('');
   const [showCreateOptions, setShowCreateOptions] = useState(false);
   
+  // FIXED: Notification and message indicators
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  
   // Story viewer states
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
@@ -718,11 +756,51 @@ export default function SocialScreen() {
     }
   }, [user, globalPosts, globalStories]);
 
+  // FIXED: Load unread counts
+  const loadUnreadCounts = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      // Count unread notifications
+      const { count: notifCount } = await supabase
+        .from('notificaciones')
+        .select('*', { count: 'exact', head: true })
+        .eq('usuario_id', user.id)
+        .eq('leida', false);
+
+      setUnreadNotifications(notifCount || 0);
+
+      // Count unread messages
+      const { data: chatsData } = await supabase
+        .from('chats')
+        .select('id')
+        .or(`usuario1_id.eq.${user.id},usuario2_id.eq.${user.id}`);
+
+      if (chatsData) {
+        let totalUnread = 0;
+        for (const chat of chatsData) {
+          const { count } = await supabase
+            .from('mensajes')
+            .select('*', { count: 'exact', head: true })
+            .eq('chat_id', chat.id)
+            .eq('leido', false)
+            .neq('remitente_id', user.id);
+          
+          totalUnread += count || 0;
+        }
+        setUnreadMessages(totalUnread);
+      }
+    } catch (error) {
+      console.error('[Social] Error loading unread counts:', error);
+    }
+  }, [user]);
+
   useFocusEffect(
     useCallback(() => {
       console.log('[Social] ⚡ Screen focused');
       loadData();
-    }, [loadData])
+      loadUnreadCounts();
+    }, [loadData, loadUnreadCounts])
   );
 
   const onRefresh = useCallback(async () => {
@@ -985,7 +1063,7 @@ export default function SocialScreen() {
     }
   }, [user, currentStoryIndex, viewingOwnStories, userStories, historias]);
 
-  // FIXED: Load story statistics
+  // FIXED: Load story statistics - pauses story while modal is open
   const handleViewStoryStats = useCallback(async () => {
     const currentStories = viewingOwnStories ? userStories : historias;
     const currentStory = currentStories[currentStoryIndex];
@@ -993,6 +1071,10 @@ export default function SocialScreen() {
     if (!currentStory || !user || currentStory.autor_id !== user.id) {
       return;
     }
+
+    // FIXED: Pause story when opening stats
+    setIsPaused(true);
+    stopStoryTimer();
 
     setLoadingStats(true);
     setShowStoryStats(true);
@@ -1034,7 +1116,7 @@ export default function SocialScreen() {
     } finally {
       setLoadingStats(false);
     }
-  }, [userStories, historias, currentStoryIndex, user, viewingOwnStories]);
+  }, [userStories, historias, currentStoryIndex, user, viewingOwnStories, stopStoryTimer]);
 
   // FIXED: Send message with story - removed expires_at field, added historia_id and historia_imagen
   const handleSendStoryMessage = useCallback(async () => {
@@ -1358,6 +1440,13 @@ export default function SocialScreen() {
               activeOpacity={0.7}
             >
               <IconSymbol name="message.fill" size={24} color={colors.headerText} />
+              {unreadMessages > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>
+                    {unreadMessages > 99 ? '99+' : unreadMessages}
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.headerButton}
@@ -1365,6 +1454,13 @@ export default function SocialScreen() {
               activeOpacity={0.7}
             >
               <IconSymbol name="bell.fill" size={24} color={colors.headerText} />
+              {unreadNotifications > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>
+                    {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.headerButton}
@@ -1864,15 +1960,6 @@ export default function SocialScreen() {
                       </Text>
                     </>
                   )}
-                  {user && currentStory.autor_id === user.id && (
-                    <TouchableOpacity
-                      style={styles.storyDeleteButton}
-                      onPress={handleDeleteStory}
-                      activeOpacity={0.7}
-                    >
-                      <IconSymbol name="trash" size={20} color="#fff" />
-                    </TouchableOpacity>
-                  )}
                   <TouchableOpacity
                     style={styles.storyCloseButton}
                     onPress={async () => {
@@ -1920,46 +2007,62 @@ export default function SocialScreen() {
                 />
               </View>
 
-              {/* FIXED: Only show interaction bar for other people's stories */}
-              {!viewingOwnStories && (
-                <View style={styles.storyInteractionBar}>
-                  <TouchableOpacity
-                    style={styles.storyInteractionButton}
-                    onPress={handleStoryLike}
-                    activeOpacity={0.7}
-                  >
-                    <IconSymbol 
-                      name={currentStory.liked_by_user ? 'heart.fill' : 'heart'} 
-                      size={20} 
-                      color={currentStory.liked_by_user ? '#EF4444' : '#fff'} 
-                    />
-                  </TouchableOpacity>
-                  <TextInput
-                    style={styles.storyMessageInput}
-                    placeholder="Enviar mensaje..."
-                    placeholderTextColor="rgba(255, 255, 255, 0.6)"
-                    value={storyMessage}
-                    onChangeText={setStoryMessage}
-                    onFocus={() => {
-                      setIsPaused(true);
-                      stopStoryTimer();
-                    }}
-                    onBlur={() => {
-                      setIsPaused(false);
-                      startStoryTimer();
-                    }}
-                  />
-                  {storyMessage.trim() && (
+              {/* FIXED: Interaction bar - delete button moved to bottom left for own stories */}
+              <View style={styles.storyInteractionBar}>
+                {viewingOwnStories ? (
+                  <>
+                    {/* FIXED: Delete button relocated to bottom left */}
+                    {user && currentStory.autor_id === user.id && (
+                      <TouchableOpacity
+                        style={styles.storyDeleteButtonBottom}
+                        onPress={handleDeleteStory}
+                        activeOpacity={0.7}
+                      >
+                        <IconSymbol name="trash.fill" size={22} color="#fff" />
+                        <Text style={styles.storyDeleteText}>Eliminar</Text>
+                      </TouchableOpacity>
+                    )}
+                  </>
+                ) : (
+                  <>
                     <TouchableOpacity
-                      style={styles.storySendButton}
-                      onPress={handleSendStoryMessage}
+                      style={styles.storyInteractionButton}
+                      onPress={handleStoryLike}
                       activeOpacity={0.7}
                     >
-                      <IconSymbol name="paperplane.fill" size={20} color="#fff" />
+                      <IconSymbol 
+                        name={currentStory.liked_by_user ? 'heart.fill' : 'heart'} 
+                        size={20} 
+                        color={currentStory.liked_by_user ? '#EF4444' : '#fff'} 
+                      />
                     </TouchableOpacity>
-                  )}
-                </View>
-              )}
+                    <TextInput
+                      style={styles.storyMessageInput}
+                      placeholder="Enviar mensaje..."
+                      placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                      value={storyMessage}
+                      onChangeText={setStoryMessage}
+                      onFocus={() => {
+                        setIsPaused(true);
+                        stopStoryTimer();
+                      }}
+                      onBlur={() => {
+                        setIsPaused(false);
+                        startStoryTimer();
+                      }}
+                    />
+                    {storyMessage.trim() && (
+                      <TouchableOpacity
+                        style={styles.storySendButton}
+                        onPress={handleSendStoryMessage}
+                        activeOpacity={0.7}
+                      >
+                        <IconSymbol name="paperplane.fill" size={20} color="#fff" />
+                      </TouchableOpacity>
+                    )}
+                  </>
+                )}
+              </View>
 
               <View style={styles.storyTouchZones}>
                 <Pressable
@@ -1987,10 +2090,15 @@ export default function SocialScreen() {
         </View>
       </Modal>
 
-      {/* FIXED: Story Stats Modal */}
+      {/* FIXED: Story Stats Modal - resumes story when closed */}
       <StoryStatsModal
         visible={showStoryStats}
-        onClose={() => setShowStoryStats(false)}
+        onClose={() => {
+          setShowStoryStats(false);
+          // FIXED: Resume story after closing stats
+          setIsPaused(false);
+          startStoryTimer();
+        }}
         storyId={currentStory?.id || ''}
         viewsCount={currentStory?.views_count || 0}
         likesCount={currentStory?.likes_count || 0}

@@ -26,6 +26,7 @@ import { useMode } from '@/contexts/ModeContext';
 import { supabase } from '@/utils/supabase';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 import StoryStatsModal from '@/components/social/StoryStatsModal';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const { width, height } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 3) / 3;
@@ -151,6 +152,10 @@ export default function PerfilScreen() {
   const [showCreateOptions, setShowCreateOptions] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   
+  // FIXED: Notification and message indicators
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  
   // FIXED: Local profile state for owner mode
   const [localProfile, setLocalProfile] = useState<LocalProfile | null>(null);
   const [selectedLocalId, setSelectedLocalId] = useState<string | null>(null);
@@ -176,6 +181,10 @@ export default function PerfilScreen() {
   // Search and filter states
   const [searchQuery, setSearchQuery] = useState('');
   const [provinciaFiltro, setProvinciaFiltro] = useState<string>('');
+  const [fechaDesde, setFechaDesde] = useState<Date | null>(null);
+  const [fechaHasta, setFechaHasta] = useState<Date | null>(null);
+  const [showDatePickerDesde, setShowDatePickerDesde] = useState(false);
+  const [showDatePickerHasta, setShowDatePickerHasta] = useState(false);
 
   // Story viewer states
   const [showStoryViewer, setShowStoryViewer] = useState(false);
@@ -258,11 +267,53 @@ export default function PerfilScreen() {
     }
   };
 
+  // FIXED: Load unread counts
+  const loadUnreadCounts = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      // Count unread notifications
+      const { count: notifCount } = await supabase
+        .from('notificaciones')
+        .select('*', { count: 'exact', head: true })
+        .eq('usuario_id', user.id)
+        .eq('leida', false);
+
+      setUnreadNotifications(notifCount || 0);
+
+      // Count unread messages
+      const { data: chatsData } = await supabase
+        .from('chats')
+        .select('id')
+        .or(`usuario1_id.eq.${user.id},usuario2_id.eq.${user.id}`);
+
+      if (chatsData) {
+        let totalUnread = 0;
+        for (const chat of chatsData) {
+          const { count } = await supabase
+            .from('mensajes')
+            .select('*', { count: 'exact', head: true })
+            .eq('chat_id', chat.id)
+            .eq('leido', false)
+            .neq('remitente_id', user.id);
+          
+          totalUnread += count || 0;
+        }
+        setUnreadMessages(totalUnread);
+      }
+    } catch (error) {
+      console.error('[Perfil] Error loading unread counts:', error);
+    }
+  }, [user]);
+
   const cargarDatosPerfil = async () => {
     if (!user) return;
 
     try {
       setLoading(true);
+
+      // Load unread counts
+      await loadUnreadCounts();
 
       // FIXED: Load different data based on mode
       if (isOwnerMode) {
@@ -600,6 +651,16 @@ export default function PerfilScreen() {
           query = query.eq('provincia', provinciaFiltro);
         }
 
+        // FIXED: Date range filter
+        if (fechaDesde) {
+          query = query.gte('created_at', fechaDesde.toISOString());
+        }
+        if (fechaHasta) {
+          const endOfDay = new Date(fechaHasta);
+          endOfDay.setHours(23, 59, 59, 999);
+          query = query.lte('created_at', endOfDay.toISOString());
+        }
+
         const { data: ofertasData, error: ofertasError } = await query
           .order('created_at', { ascending: false })
           .limit(20);
@@ -652,7 +713,7 @@ export default function PerfilScreen() {
     if (user) {
       cargarContenido();
     }
-  }, [activeTab, user, searchQuery, provinciaFiltro, empleoTab]);
+  }, [activeTab, user, searchQuery, provinciaFiltro, empleoTab, fechaDesde, fechaHasta]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -781,6 +842,13 @@ export default function PerfilScreen() {
   const limpiarFiltros = () => {
     setSearchQuery('');
     setProvinciaFiltro('');
+    setFechaDesde(null);
+    setFechaHasta(null);
+  };
+
+  const formatDate = (date: Date | null) => {
+    if (!date) return 'Seleccionar';
+    return date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
   const calcularDiasPublicado = (fecha: string): string => {
@@ -929,13 +997,17 @@ export default function PerfilScreen() {
     );
   }, [userStories, currentStoryIndex, user, stopStoryTimer]);
 
-  // FIXED: Load story statistics
+  // FIXED: Load story statistics - pauses story while modal is open
   const handleViewStoryStats = useCallback(async () => {
     const currentStory = userStories[currentStoryIndex];
     
     if (!currentStory || !user || currentStory.autor_id !== user.id) {
       return;
     }
+
+    // FIXED: Pause story when opening stats
+    setIsPaused(true);
+    stopStoryTimer();
 
     setLoadingStats(true);
     setShowStoryStats(true);
@@ -977,7 +1049,7 @@ export default function PerfilScreen() {
     } finally {
       setLoadingStats(false);
     }
-  }, [userStories, currentStoryIndex, user]);
+  }, [userStories, currentStoryIndex, user, stopStoryTimer]);
 
   useEffect(() => {
     if (showStoryViewer && !isPaused) {
@@ -1372,9 +1444,23 @@ export default function PerfilScreen() {
           <View style={styles.headerActions}>
             <TouchableOpacity style={styles.headerButton} onPress={handleChats}>
               <IconSymbol name="message.fill" size={24} color={colors.white} />
+              {unreadMessages > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>
+                    {unreadMessages > 99 ? '99+' : unreadMessages}
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
             <TouchableOpacity style={styles.headerButton} onPress={handleNotifications}>
               <IconSymbol name="bell.fill" size={24} color={colors.white} />
+              {unreadNotifications > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>
+                    {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
             <TouchableOpacity style={styles.headerButton} onPress={handleSettings}>
               <IconSymbol name="gearshape.fill" size={24} color={colors.white} />
@@ -1472,8 +1558,9 @@ export default function PerfilScreen() {
                   </TouchableOpacity>
                 </View>
 
+                {/* FIXED: Only show "Mis Ofertas" in owner mode, not in client mode */}
                 <View style={styles.empleoTabs}>
-                  {isPropietario && (
+                  {isOwnerMode && (
                     <TouchableOpacity
                       style={[styles.empleoTab, empleoTab === 'ofertas' && styles.empleoTabActive]}
                       onPress={() => setEmpleoTab('ofertas')}
@@ -1509,7 +1596,7 @@ export default function PerfilScreen() {
                   </View>
                 ) : (
                   <View style={styles.empleoContent}>
-                    {empleoTab === 'ofertas' && isPropietario ? (
+                    {empleoTab === 'ofertas' && isOwnerMode ? (
                       ofertas.length > 0 ? (
                         ofertas.map(renderOferta)
                       ) : (
@@ -1646,7 +1733,48 @@ export default function PerfilScreen() {
             </View>
 
             <ScrollView style={styles.filtersContent}>
-              <Text style={styles.filterLabel}>Provincia</Text>
+              {/* FIXED: Date range filter */}
+              <Text style={styles.filterLabel}>Rango de Fechas</Text>
+              <View style={styles.dateFilters}>
+                <View style={styles.dateFilterItem}>
+                  <Text style={styles.dateFilterLabel}>Desde:</Text>
+                  <TouchableOpacity
+                    style={styles.datePickerButton}
+                    onPress={() => setShowDatePickerDesde(true)}
+                  >
+                    <IconSymbol name="calendar" size={18} color={colors.primary} />
+                    <Text style={styles.datePickerText}>{formatDate(fechaDesde)}</Text>
+                  </TouchableOpacity>
+                  {fechaDesde && (
+                    <TouchableOpacity
+                      style={styles.clearDateButton}
+                      onPress={() => setFechaDesde(null)}
+                    >
+                      <IconSymbol name="xmark.circle.fill" size={20} color={colors.textSecondary} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+                <View style={styles.dateFilterItem}>
+                  <Text style={styles.dateFilterLabel}>Hasta:</Text>
+                  <TouchableOpacity
+                    style={styles.datePickerButton}
+                    onPress={() => setShowDatePickerHasta(true)}
+                  >
+                    <IconSymbol name="calendar" size={18} color={colors.primary} />
+                    <Text style={styles.datePickerText}>{formatDate(fechaHasta)}</Text>
+                  </TouchableOpacity>
+                  {fechaHasta && (
+                    <TouchableOpacity
+                      style={styles.clearDateButton}
+                      onPress={() => setFechaHasta(null)}
+                    >
+                      <IconSymbol name="xmark.circle.fill" size={20} color={colors.textSecondary} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+
+              <Text style={[styles.filterLabel, { marginTop: 20 }]}>Provincia</Text>
               <ScrollView style={styles.provinciasList} nestedScrollEnabled>
                 <TouchableOpacity
                   style={[styles.provinciaItem, !provinciaFiltro && styles.provinciaItemActive]}
@@ -1669,6 +1797,34 @@ export default function PerfilScreen() {
                 ))}
               </ScrollView>
             </ScrollView>
+
+            {/* FIXED: Date pickers */}
+            {showDatePickerDesde && (
+              <DateTimePicker
+                value={fechaDesde || new Date()}
+                mode="date"
+                display="default"
+                onChange={(event, selectedDate) => {
+                  setShowDatePickerDesde(false);
+                  if (selectedDate) {
+                    setFechaDesde(selectedDate);
+                  }
+                }}
+              />
+            )}
+            {showDatePickerHasta && (
+              <DateTimePicker
+                value={fechaHasta || new Date()}
+                mode="date"
+                display="default"
+                onChange={(event, selectedDate) => {
+                  setShowDatePickerHasta(false);
+                  if (selectedDate) {
+                    setFechaHasta(selectedDate);
+                  }
+                }}
+              />
+            )}
 
             <View style={styles.filtersFooter}>
               <TouchableOpacity 
@@ -1824,13 +1980,6 @@ export default function PerfilScreen() {
                   </TouchableOpacity>
                   
                   <TouchableOpacity
-                    style={styles.storyDeleteButton}
-                    onPress={handleDeleteStory}
-                    activeOpacity={0.7}
-                  >
-                    <IconSymbol name="trash" size={20} color="#fff" />
-                  </TouchableOpacity>
-                  <TouchableOpacity
                     style={styles.storyCloseButton}
                     onPress={async () => {
                       const currentStory = userStories[currentStoryIndex];
@@ -1874,6 +2023,20 @@ export default function PerfilScreen() {
                 />
               </View>
 
+              {/* FIXED: Delete button relocated to bottom left */}
+              <View style={styles.storyInteractionBar}>
+                {user && currentStory.autor_id === user.id && (
+                  <TouchableOpacity
+                    style={styles.storyDeleteButtonBottom}
+                    onPress={handleDeleteStory}
+                    activeOpacity={0.7}
+                  >
+                    <IconSymbol name="trash.fill" size={22} color="#fff" />
+                    <Text style={styles.storyDeleteText}>Eliminar</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
               <View style={styles.storyTouchZones}>
                 <Pressable
                   style={styles.storyTouchZone}
@@ -1900,10 +2063,15 @@ export default function PerfilScreen() {
         </View>
       </Modal>
 
-      {/* FIXED: Story Stats Modal */}
+      {/* FIXED: Story Stats Modal - resumes story when closed */}
       <StoryStatsModal
         visible={showStoryStats}
-        onClose={() => setShowStoryStats(false)}
+        onClose={() => {
+          setShowStoryStats(false);
+          // FIXED: Resume story after closing stats
+          setIsPaused(false);
+          startStoryTimer();
+        }}
         storyId={currentStory?.id || ''}
         viewsCount={currentStory?.views_count || 0}
         likesCount={currentStory?.likes_count || 0}
@@ -1932,6 +2100,26 @@ const styles = StyleSheet.create({
   },
   headerButton: {
     padding: 8,
+    position: 'relative',
+  },
+  badge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: '#EF4444',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 5,
+    borderWidth: 2,
+    borderColor: colors.headerGradientStart,
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: 'bold',
   },
   content: {
     flex: 1,
@@ -2438,6 +2626,40 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 12,
   },
+  dateFilters: {
+    gap: 16,
+    marginBottom: 16,
+  },
+  dateFilterItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  dateFilterLabel: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: colors.text,
+    width: 60,
+  },
+  datePickerButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: colors.cardBackground,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  datePickerText: {
+    fontSize: 15,
+    color: colors.text,
+  },
+  clearDateButton: {
+    padding: 4,
+  },
   provinciasList: {
     maxHeight: 300,
   },
@@ -2656,6 +2878,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
+  },
+  storyInteractionBar: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 40 : 20,
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    zIndex: 10,
+  },
+  storyDeleteButtonBottom: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(239, 68, 68, 0.9)',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 24,
+  },
+  storyDeleteText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
   },
   storyCloseButton: {
     width: 36,
