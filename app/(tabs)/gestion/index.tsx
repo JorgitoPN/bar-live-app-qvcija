@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -115,8 +116,6 @@ export default function GestionScreen() {
   }, [user]);
 
   useEffect(() => {
-    // Only load data if user exists
-    // Access control is handled by _layout.tsx, so we don't need to check here
     if (user) {
       cargarLocales();
     } else {
@@ -127,6 +126,10 @@ export default function GestionScreen() {
   const onRefresh = () => {
     setRefreshing(true);
     cargarLocales();
+  };
+
+  const handleVerLocal = (localId: string) => {
+    router.push(`/detalle/local?id=${localId}`);
   };
 
   const getPlanColor = (planNombre: string) => {
@@ -197,7 +200,17 @@ export default function GestionScreen() {
         <View style={styles.quickActions}>
           <TouchableOpacity
             style={styles.quickActionButton}
-            onPress={() => router.push('/gestion/planes-suscripcion')}
+            onPress={() => {
+              if (locales.length === 0) {
+                Alert.alert(
+                  'Sin Locales',
+                  'Primero debes añadir un local para ver los planes disponibles.',
+                  [{ text: 'OK' }]
+                );
+                return;
+              }
+              router.push(`/gestion/planes-suscripcion?localId=${locales[0].id}`);
+            }}
           >
             <LinearGradient
               colors={['#8B5CF6', '#7C3AED']}
@@ -248,7 +261,7 @@ export default function GestionScreen() {
               <TouchableOpacity
                 key={local.id}
                 style={[commonStyles.card, commonStyles.cardShadow, styles.localCard]}
-                onPress={() => router.push(`/gestion/detalle-local?id=${local.id}`)}
+                onPress={() => handleVerLocal(local.id)}
               >
                 <View style={styles.localHeader}>
                   <View style={styles.localInfo}>
@@ -263,7 +276,7 @@ export default function GestionScreen() {
                       ]}
                     >
                       <IconSymbol
-                        name={getPlanIcon(local.suscripcion.plan_nombre)}
+                        name={getPlanIcon(local.suscripcion.plan_nombre) as any}
                         size={14}
                         color="#FFFFFF"
                       />
