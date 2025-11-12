@@ -868,6 +868,7 @@ export default function PostDetailScreen() {
     if (!user || !post) return;
 
     try {
+      // Check if post is accessible
       if (post.autor?.perfil_privado) {
         const { data: followData } = await supabase
           .from('seguidores')
@@ -885,6 +886,7 @@ export default function PostDetailScreen() {
         }
       }
 
+      // Find or create chat
       const { data: existingChat } = await supabase
         .from('chats')
         .select('id')
@@ -907,6 +909,7 @@ export default function PostDetailScreen() {
         chatId = newChat.id;
       }
 
+      // FIXED: Send message with post snapshot
       const { error: messageError } = await supabase
         .from('mensajes')
         .insert({
@@ -915,6 +918,7 @@ export default function PostDetailScreen() {
           contenido: `Compartió una publicación de ${post.autorNombre}`,
           tipo_mensaje: 'post_compartido',
           post_compartido_id: post.id,
+          post_imagen: post.imagen || null, // Include post image as snapshot
         });
 
       if (messageError) throw messageError;

@@ -31,6 +31,7 @@ interface Message {
   post_compartido_id?: string;
   historia_id?: string;
   historia_imagen?: string;
+  post_imagen?: string;
   leido: boolean;
   created_at: string;
 }

@@ -4,6 +4,7 @@ import { View, Text, StyleSheet, Image, TouchableOpacity, Pressable } from 'reac
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import { isStoryExpired, getExpiredStoryText } from '@/utils/storyMessageCleanup';
+import { useRouter } from 'expo-router';
 
 interface Message {
   id: string;
@@ -14,6 +15,7 @@ interface Message {
   post_compartido_id?: string;
   historia_id?: string;
   historia_imagen?: string;
+  post_imagen?: string;
   leido: boolean;
   created_at: string;
 }
@@ -26,6 +28,7 @@ interface MessageBubbleProps {
 }
 
 export default function MessageBubble({ message, isOwn, otroUsuario, onLongPress }: MessageBubbleProps) {
+  const router = useRouter();
   const [storyExpired, setStoryExpired] = useState(false);
 
   useEffect(() => {
@@ -44,8 +47,45 @@ export default function MessageBubble({ message, isOwn, otroUsuario, onLongPress
     return `${hours}:${minutes}`;
   };
 
+  const handlePostPress = () => {
+    if (message.post_compartido_id) {
+      router.push(`/social/post?id=${message.post_compartido_id}`);
+    }
+  };
+
+  const handleStoryPress = () => {
+    if (message.historia_id && !storyExpired) {
+      // Stories are ephemeral, so we just show the image
+      // The actual story might be expired, but we keep the snapshot
+      console.log('[MessageBubble] Story snapshot pressed');
+    }
+  };
+
   const renderContent = () => {
-    // Story message
+    // Shared post with snapshot
+    if (message.tipo_mensaje === 'post_compartido' && message.post_compartido_id) {
+      return (
+        <View style={styles.sharedPostContainer}>
+          {message.post_imagen && (
+            <TouchableOpacity onPress={handlePostPress} activeOpacity={0.8}>
+              <Image 
+                source={{ uri: message.post_imagen }} 
+                style={styles.postSnapshot}
+                resizeMode="cover"
+              />
+              <View style={styles.snapshotOverlay}>
+                <IconSymbol name="arrow.up.right" size={20} color="#fff" />
+              </View>
+            </TouchableOpacity>
+          )}
+          <Text style={[styles.messageText, isOwn && styles.messageTextOwn]}>
+            {message.contenido}
+          </Text>
+        </View>
+      );
+    }
+
+    // Story message with snapshot
     if (message.tipo_mensaje === 'historia' || message.historia_id) {
       if (storyExpired || !message.historia_imagen) {
         return (
@@ -58,11 +98,17 @@ export default function MessageBubble({ message, isOwn, otroUsuario, onLongPress
 
       return (
         <View style={styles.storyContainer}>
-          <Image 
-            source={{ uri: message.historia_imagen }} 
-            style={styles.storyImage}
-            resizeMode="cover"
-          />
+          <TouchableOpacity onPress={handleStoryPress} activeOpacity={0.8}>
+            <Image 
+              source={{ uri: message.historia_imagen }} 
+              style={styles.storyImage}
+              resizeMode="cover"
+            />
+            <View style={styles.storyBadge}>
+              <IconSymbol name="camera.fill" size={14} color="#fff" />
+              <Text style={styles.storyBadgeText}>Historia</Text>
+            </View>
+          </TouchableOpacity>
           {message.contenido && (
             <Text style={[styles.messageText, isOwn && styles.messageTextOwn]}>
               {message.contenido}
@@ -148,6 +194,25 @@ const styles = StyleSheet.create({
   messageTextOwn: {
     color: colors.headerText,
   },
+  sharedPostContainer: {
+    gap: 8,
+  },
+  postSnapshot: {
+    width: 200,
+    height: 200,
+    borderRadius: 12,
+  },
+  snapshotOverlay: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   storyContainer: {
     gap: 8,
   },
@@ -155,6 +220,23 @@ const styles = StyleSheet.create({
     width: 200,
     height: 300,
     borderRadius: 12,
+  },
+  storyBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  storyBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#fff',
   },
   expiredStoryContainer: {
     flexDirection: 'row',
