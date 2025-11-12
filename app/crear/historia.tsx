@@ -1,5 +1,6 @@
 
 import { useAuth } from '@/contexts/AuthContext';
+import { useMode } from '@/contexts/ModeContext';
 import React, { useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -87,6 +88,7 @@ const convertImageToJPG = (uri: string): Promise<Blob> => {
 
 export default function CrearHistoriaScreen() {
   const { user } = useAuth();
+  const { activeLocalProfileId, isInteractingAsLocal } = useMode();
   const router = useRouter();
   const params = useLocalSearchParams();
   const localId = params.localId as string | undefined;
@@ -315,14 +317,32 @@ export default function CrearHistoriaScreen() {
         return;
       }
 
-      // Create story
-      // If localId is provided, create as local story, otherwise as user story
+      // FIXED: Determine the correct profile context
+      // Priority: localId param > activeLocalProfileId (if interacting as local) > user profile
+      let effectiveLocalId: string | null = null;
+      let storyTipo: 'usuario' | 'local' = 'usuario';
+
+      if (localId) {
+        // Explicit local ID from params (e.g., from local profile page)
+        effectiveLocalId = localId;
+        storyTipo = 'local';
+      } else if (isInteractingAsLocal && activeLocalProfileId) {
+        // User is interacting as a local
+        effectiveLocalId = activeLocalProfileId;
+        storyTipo = 'local';
+      }
+      // Otherwise, it's a user story (default)
+
+      console.log('[CrearHistoria] Effective local ID:', effectiveLocalId);
+      console.log('[CrearHistoria] Story tipo:', storyTipo);
+
+      // Create story with correct profile context
       const { data: storyData, error: storyError } = await supabase
         .from('historias')
         .insert({
           autor_id: user.id,
-          tipo: localId ? 'local' : 'usuario',
-          local_id: localId || null,
+          tipo: storyTipo,
+          local_id: effectiveLocalId,
           imagen: imagenUrl,
           ubicacion: ubicacion?.nombre,
           ubicacion_lat: ubicacion?.lat,

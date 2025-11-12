@@ -210,25 +210,25 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
           .order('destacado', { ascending: false })
           .order('rating', { ascending: false }),
         
-        // Posts - ONLY user posts (tipo='usuario'), not local posts
+        // Posts - Load ALL posts (both user and local)
         supabase
           .from('posts')
           .select(`
             *,
-            autor:usuarios!posts_autor_id_fkey(nombre, avatar, username)
+            autor:usuarios!posts_autor_id_fkey(nombre, avatar, username),
+            local:locales!posts_local_id_fkey(nombre, imagen_url)
           `)
-          .eq('tipo', 'usuario')
           .order('created_at', { ascending: false })
-          .limit(50),
+          .limit(100),
         
-        // Stories - ONLY user stories (tipo='usuario'), not local stories
+        // Stories - Load ALL stories (both user and local)
         supabase
           .from('historias')
           .select(`
             *,
-            autor:usuarios!historias_autor_id_fkey(nombre, avatar, username)
+            autor:usuarios!historias_autor_id_fkey(nombre, avatar, username),
+            local:locales!historias_local_id_fkey(nombre, imagen_url)
           `)
-          .eq('tipo', 'usuario')
           .gte('expires_at', new Date().toISOString())
           .order('created_at', { ascending: true }),
         

@@ -286,13 +286,96 @@ export default function PerfilScreen() {
     }
   };
 
-  // FIXED: Load local profile data - redirect to dedicated local profile page
+  // FIXED: Load local profile data
   const cargarPerfilLocal = async (localId: string) => {
     if (!localId) return;
 
     try {
-      // Redirect to dedicated local profile page
-      router.push(`/perfil/local?localId=${localId}`);
+      console.log('[Perfil] ✅ Loading local profile data for:', localId);
+
+      const { data: localData, error: localError } = await supabase
+        .from('locales')
+        .select('*')
+        .eq('id', localId)
+        .single();
+
+      if (localError || !localData) {
+        console.error('[Perfil] Error loading local:', localError);
+        return;
+      }
+
+      setLocalProfile(localData);
+
+      // Load local posts
+      const { data: postsData, error: postsError } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('tipo', 'local')
+        .eq('local_id', localId)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (!postsError) {
+        console.log('[Perfil] ✅ Loaded', postsData?.length || 0, 'posts for local');
+        setPosts(postsData || []);
+      }
+
+      // Load local stories
+      const { data: storiesData } = await supabase
+        .from('historias')
+        .select('*')
+        .eq('tipo', 'local')
+        .eq('local_id', localId)
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: true });
+
+      if (storiesData && user) {
+        const storyIds = storiesData.map(s => s.id);
+        
+        const [viewedData, viewsCountData, likesCountData] = await Promise.all([
+          supabase
+            .from('historia_views')
+            .select('historia_id')
+            .eq('usuario_id', user.id)
+            .in('historia_id', storyIds),
+          supabase
+            .from('historia_views')
+            .select('historia_id')
+            .in('historia_id', storyIds),
+          supabase
+            .from('historia_likes')
+            .select('historia_id')
+            .in('historia_id', storyIds),
+        ]);
+
+        const viewedStoryIds = new Set(viewedData.data?.map(v => v.historia_id) || []);
+        
+        const viewsCounts = viewsCountData.data?.reduce((acc, v) => {
+          acc[v.historia_id] = (acc[v.historia_id] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>) || {};
+        
+        const likesCounts = likesCountData.data?.reduce((acc, l) => {
+          acc[l.historia_id] = (acc[l.historia_id] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>) || {};
+
+        const storiesWithStatus = storiesData.map(story => ({
+          ...story,
+          visto_por_usuario: viewedStoryIds.has(story.id),
+          views_count: viewsCounts[story.id] || 0,
+          likes_count: likesCounts[story.id] || 0,
+          autor: {
+            nombre: localData.nombre,
+            avatar: localData.imagen_url,
+            username: localData.nombre,
+          },
+        }));
+
+        setUserStories(storiesWithStatus);
+      }
+
+      console.log('[Perfil] ✅ Local profile loaded successfully');
     } catch (error) {
       console.error('[Perfil] Error loading local profile:', error);
     }
@@ -1318,7 +1401,8 @@ export default function PerfilScreen() {
 
   // FIXED: Render different profile based on mode
   const renderProfileHeader = () => {
-    if (isOwnerMode && localProfile) {
+    // FIXED: Show local profile when in owner mode AND a local is selected
+    if (isOwnerMode && selectedLocalId && localProfile) {
       // Owner mode - show local profile
       return (
         <View style={styles.profileSection}>

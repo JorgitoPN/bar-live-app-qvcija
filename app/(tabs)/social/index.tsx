@@ -825,8 +825,20 @@ export default function SocialScreen() {
       if (globalPosts.length > 0) {
         console.log('[Social] ⚡ INSTANT posts from global data:', globalPosts.length);
         
-        if (user) {
-          const postIds = globalPosts.map(p => p.id);
+        // FIXED: Filter posts based on active local profile
+        let filteredPosts = globalPosts;
+        if (activeLocalProfileId) {
+          // When viewing as local, show ONLY posts from this local
+          filteredPosts = globalPosts.filter(p => p.tipo === 'local' && p.local_id === activeLocalProfileId);
+          console.log('[Social] 📍 Filtered posts for local:', activeLocalProfileId, 'Count:', filteredPosts.length);
+        } else {
+          // Normal user mode - show user posts only
+          filteredPosts = globalPosts.filter(p => p.tipo === 'usuario');
+          console.log('[Social] 👤 Filtered user posts, Count:', filteredPosts.length);
+        }
+        
+        if (user && filteredPosts.length > 0) {
+          const postIds = filteredPosts.map(p => p.id);
           
           const [likesResult, savesResult, commentsResult] = await Promise.all([
             supabase
@@ -853,7 +865,7 @@ export default function SocialScreen() {
             return acc;
           }, {} as Record<string, number>) || {};
 
-          const postsWithStatus = globalPosts.map(post => ({
+          const postsWithStatus = filteredPosts.map(post => ({
             ...post,
             liked: likedPostIds.has(post.id),
             saved: savedPostIds.has(post.id),
@@ -862,7 +874,7 @@ export default function SocialScreen() {
           
           setPosts(postsWithStatus);
         } else {
-          setPosts(globalPosts);
+          setPosts(filteredPosts);
         }
       }
 
@@ -876,14 +888,16 @@ export default function SocialScreen() {
         if (activeLocalProfileId) {
           // When viewing as local, show local's stories as "own stories"
           userOwnStories = globalStories.filter(s => s.tipo === 'local' && s.local_id === activeLocalProfileId);
-          otherStories = globalStories.filter(s => !(s.tipo === 'local' && s.local_id === activeLocalProfileId));
+          // Show ONLY user stories (not other local stories) in the feed
+          otherStories = globalStories.filter(s => s.tipo === 'usuario');
           console.log('[Social] 📍 Filtered stories for local:', activeLocalProfileId, 'Own:', userOwnStories.length, 'Others:', otherStories.length);
         } else if (user) {
-          // Normal user mode
+          // Normal user mode - show user's own stories and other user stories
           userOwnStories = globalStories.filter(s => s.tipo === 'usuario' && s.autor_id === user.id);
-          otherStories = globalStories.filter(s => !(s.tipo === 'usuario' && s.autor_id === user.id));
+          otherStories = globalStories.filter(s => s.tipo === 'usuario' && s.autor_id !== user.id);
         } else {
-          otherStories = globalStories;
+          // Not logged in - show all user stories
+          otherStories = globalStories.filter(s => s.tipo === 'usuario');
         }
         
         if (user) {

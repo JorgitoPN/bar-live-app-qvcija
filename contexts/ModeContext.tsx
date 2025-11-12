@@ -135,11 +135,11 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     }
   }, [user, isInitialized]);
 
-  // FIXED: Auto-reset when switching to cliente mode
+  // FIXED: Auto-reset when switching to cliente mode - but only if user manually switches
   useEffect(() => {
-    if (currentMode === 'cliente') {
+    if (currentMode === 'cliente' && isInitialized) {
       console.log('[ModeContext] 🔄 Switching to cliente mode, resetting local context');
-      setPublicationMode('cliente');
+      setPublicationModeState('cliente');
       setSelectedLocalIdState(null);
       setIsInteractingAsLocalState(false);
       setActiveLocalProfileIdState(null);
@@ -148,7 +148,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
       AsyncStorage.removeItem(ACTIVE_LOCAL_PROFILE_KEY);
       AsyncStorage.setItem(PUBLICATION_MODE_KEY, 'cliente');
     }
-  }, [currentMode]);
+  }, [currentMode, isInitialized]);
 
   const setCurrentMode = async (mode: UserMode) => {
     try {
@@ -251,9 +251,14 @@ export function ModeProvider({ children }: { children: ReactNode }) {
       setPublicationModeState(mode);
       console.log('[ModeContext] ✅ Publication mode saved to storage:', mode);
 
-      // FIXED: Auto-reset local selection when switching to cliente publication mode
-      if (mode === 'cliente') {
-        await setSelectedLocalId(null);
+      // FIXED: When switching to local mode, ensure interaction state is set
+      if (mode === 'local' && selectedLocalId) {
+        await setIsInteractingAsLocal(true);
+        await setActiveLocalProfileId(selectedLocalId);
+      } else if (mode === 'cliente') {
+        // Only reset if explicitly switching to cliente mode
+        await setIsInteractingAsLocal(false);
+        await setActiveLocalProfileId(null);
       }
     } catch (error) {
       console.error('[ModeContext] ❌ Error saving publication mode:', error);

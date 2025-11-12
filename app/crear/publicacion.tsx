@@ -325,9 +325,20 @@ export default function CrearPublicacionScreen() {
       }
 
       // FIXED: Determine the correct profile context
-      // Priority: localId param > activeLocalProfileId > user profile
-      const effectiveLocalId = localId || (isInteractingAsLocal ? activeLocalProfileId : null);
-      const postTipo = effectiveLocalId ? 'local' : 'usuario';
+      // Priority: localId param > activeLocalProfileId (if interacting as local) > user profile
+      let effectiveLocalId: string | null = null;
+      let postTipo: 'usuario' | 'local' = 'usuario';
+
+      if (localId) {
+        // Explicit local ID from params (e.g., from local profile page)
+        effectiveLocalId = localId;
+        postTipo = 'local';
+      } else if (isInteractingAsLocal && activeLocalProfileId) {
+        // User is interacting as a local
+        effectiveLocalId = activeLocalProfileId;
+        postTipo = 'local';
+      }
+      // Otherwise, it's a user post (default)
 
       console.log('[CrearPublicacion] Effective local ID:', effectiveLocalId);
       console.log('[CrearPublicacion] Post tipo:', postTipo);
