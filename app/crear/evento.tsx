@@ -11,6 +11,7 @@ import {
   Image,
   ActivityIndicator,
   Platform,
+  Switch,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -44,7 +45,8 @@ export default function CrearEventoScreen() {
   const [hora, setHora] = useState('');
   const [precio, setPrecio] = useState('');
   const [provincia, setProvincia] = useState('');
-  // FIXED: Removed entradas field as tickets are disabled
+  // FIXED: Added free event toggle
+  const [esGratis, setEsGratis] = useState(false);
   const [imagen, setImagen] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [misLocales, setMisLocales] = useState<LocalConPlan[]>([]);
@@ -209,6 +211,12 @@ export default function CrearEventoScreen() {
       return;
     }
 
+    // FIXED: Validate price only if not free
+    if (!esGratis && !precio) {
+      Alert.alert('Error', 'Por favor indica el precio o marca el evento como gratis');
+      return;
+    }
+
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para crear eventos');
       return;
@@ -237,7 +245,9 @@ export default function CrearEventoScreen() {
         imagenUrl = await uploadImage(imagen);
       }
 
-      // FIXED: Removed entradas_totales field
+      // FIXED: Set price to 0 if free, otherwise parse the price
+      const precioFinal = esGratis ? 0 : (precio ? parseFloat(precio) : null);
+
       const { data, error } = await supabase
         .from('eventos')
         .insert({
@@ -245,7 +255,7 @@ export default function CrearEventoScreen() {
           descripcion,
           fecha,
           hora,
-          precio: precio ? parseFloat(precio) : null,
+          precio: precioFinal,
           provincia,
           imagen_url: imagenUrl,
           local_id: localSeleccionado,
@@ -437,17 +447,42 @@ export default function CrearEventoScreen() {
             </View>
           </View>
 
-          {/* FIXED: Removed entradas field - only show precio */}
+          {/* FIXED: Added free event toggle */}
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Precio (€)</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="0.00"
-              value={precio}
-              onChangeText={setPrecio}
-              keyboardType="decimal-pad"
-            />
+            <View style={styles.switchContainer}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.label}>Evento Gratis</Text>
+                <Text style={styles.switchDescription}>
+                  Activa esta opción si el evento es gratuito
+                </Text>
+              </View>
+              <Switch
+                value={esGratis}
+                onValueChange={(value) => {
+                  setEsGratis(value);
+                  if (value) {
+                    setPrecio('');
+                  }
+                }}
+                trackColor={{ false: colors.cardBorder, true: colors.primary }}
+                thumbColor={colors.white}
+              />
+            </View>
           </View>
+
+          {/* FIXED: Only show price input if not free */}
+          {!esGratis && (
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Precio (€) *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="0.00"
+                value={precio}
+                onChangeText={setPrecio}
+                keyboardType="decimal-pad"
+              />
+            </View>
+          )}
 
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Provincia *</Text>
@@ -626,6 +661,21 @@ const styles = StyleSheet.create({
   localButtonPlanActive: {
     color: colors.headerText,
     opacity: 0.9,
+  },
+  switchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: 12,
+    padding: 16,
+  },
+  switchDescription: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 4,
   },
   submitButton: {
     marginTop: 30,
