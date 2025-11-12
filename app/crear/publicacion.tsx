@@ -21,6 +21,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMode } from '@/contexts/ModeContext';
 
 interface UserSuggestion {
   id: string;
@@ -29,22 +30,18 @@ interface UserSuggestion {
   avatar?: string;
 }
 
-// Helper function to convert image to JPG format
 const convertImageToJPG = (uri: string): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const processImage = async () => {
       try {
-        // Fetch the image
         const response = await fetch(uri);
         const blob = await response.blob();
         
-        // If it's already a JPEG, return it
         if (blob.type === 'image/jpeg' || blob.type === 'image/jpg') {
           resolve(blob);
           return;
         }
 
-        // Convert to JPEG using canvas
         const img = new window.Image();
         img.crossOrigin = 'anonymous';
         
@@ -84,6 +81,7 @@ const convertImageToJPG = (uri: string): Promise<Blob> => {
 export default function CrearPublicacionScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const { activeLocalProfileId, isInteractingAsLocal } = useMode();
   const params = useLocalSearchParams();
   const localId = params.localId as string | undefined;
   
@@ -256,12 +254,10 @@ export default function CrearPublicacionScreen() {
     try {
       console.log('[CrearPublicacion] Starting image upload...');
       
-      // Convert image to JPG format
       let blob: Blob;
       if (Platform.OS === 'web') {
         blob = await convertImageToJPG(uri);
       } else {
-        // For native platforms, use fetch to get the blob
         const response = await fetch(uri);
         blob = await response.blob();
       }
@@ -269,7 +265,6 @@ export default function CrearPublicacionScreen() {
       const fileName = `${user!.id}/${Date.now()}.jpg`;
       console.log('[CrearPublicacion] Uploading file:', fileName);
 
-      // Convert blob to ArrayBuffer
       const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
         const reader = new FileReader();
         reader.onloadend = () => resolve(reader.result as ArrayBuffer);
@@ -277,7 +272,6 @@ export default function CrearPublicacionScreen() {
         reader.readAsArrayBuffer(blob);
       });
 
-      // Upload to Supabase Storage
       const { data, error } = await supabase.storage
         .from('posts')
         .upload(fileName, arrayBuffer, {
@@ -292,7 +286,6 @@ export default function CrearPublicacionScreen() {
 
       console.log('[CrearPublicacion] Image uploaded successfully');
 
-      // Get public URL
       const { data: urlData } = supabase.storage.from('posts').getPublicUrl(fileName);
 
       return urlData.publicUrl;
@@ -317,8 +310,10 @@ export default function CrearPublicacionScreen() {
 
     try {
       console.log('[CrearPublicacion] Starting publication...');
+      console.log('[CrearPublicacion] Active local profile:', activeLocalProfileId);
+      console.log('[CrearPublicacion] Is interacting as local:', isInteractingAsLocal);
+      console.log('[CrearPublicacion] LocalId param:', localId);
       
-      // Upload image if exists
       let imagenUrl = null;
       if (imagen) {
         imagenUrl = await uploadImage(imagen);
@@ -329,14 +324,21 @@ export default function CrearPublicacionScreen() {
         }
       }
 
-      // Create post with autor_id (matching database schema)
-      // If localId is provided, create as local post, otherwise as user post
+      // FIXED: Determine the correct profile context
+      // Priority: localId param > activeLocalProfileId > user profile
+      const effectiveLocalId = localId || (isInteractingAsLocal ? activeLocalProfileId : null);
+      const postTipo = effectiveLocalId ? 'local' : 'usuario';
+
+      console.log('[CrearPublicacion] Effective local ID:', effectiveLocalId);
+      console.log('[CrearPublicacion] Post tipo:', postTipo);
+
+      // FIXED: Create post with correct profile context
       const { data: postData, error: postError } = await supabase
         .from('posts')
         .insert({
-          autor_id: user.id,
-          tipo: localId ? 'local' : 'usuario',
-          local_id: localId || null,
+          autor_id: user.id, // Always the logged-in user (owner)
+          tipo: postTipo,
+          local_id: effectiveLocalId,
           contenido: contenido,
           imagen: imagenUrl,
           ubicacion: ubicacion?.nombre,
@@ -351,9 +353,8 @@ export default function CrearPublicacionScreen() {
         throw postError;
       }
 
-      console.log('[CrearPublicacion] Post created successfully');
+      console.log('[CrearPublicacion] Post created successfully:', postData);
 
-      // Add tags
       if (usuariosEtiquetados.length > 0 && postData) {
         const tags = usuariosEtiquetados.map((u) => ({
           post_id: postData.id,
@@ -366,7 +367,6 @@ export default function CrearPublicacionScreen() {
 
         if (tagsError) console.error('Error adding tags:', tagsError);
 
-        // Create notifications for tagged users
         const notifications = usuariosEtiquetados.map((u) => ({
           usuario_id: u.id,
           tipo: 'mencion',
@@ -392,7 +392,6 @@ export default function CrearPublicacionScreen() {
 
   return (
     <View style={commonStyles.container}>
-      {/* Header */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         start={{ x: 0, y: 0 }}
@@ -420,7 +419,6 @@ export default function CrearPublicacionScreen() {
       </LinearGradient>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-        {/* Área de texto */}
         <TextInput
           style={styles.textInput}
           placeholder="¿Qué estás pensando? Escribe un nombre para etiquetar..."
@@ -432,7 +430,6 @@ export default function CrearPublicacionScreen() {
           editable={!publishing}
         />
 
-        {/* User suggestions */}
         {showUserSuggestions && (
           <View style={styles.suggestionsContainer}>
             {searchingUsers ? (
@@ -469,7 +466,6 @@ export default function CrearPublicacionScreen() {
           </View>
         )}
 
-        {/* Tagged users */}
         {usuariosEtiquetados.length > 0 && (
           <View style={styles.taggedUsersContainer}>
             <Text style={styles.taggedUsersTitle}>Etiquetados:</Text>
@@ -488,7 +484,6 @@ export default function CrearPublicacionScreen() {
           </View>
         )}
 
-        {/* Location display */}
         {ubicacion && (
           <View style={styles.locationContainer}>
             <IconSymbol name="mappin.circle.fill" size={20} color={colors.primary} />
@@ -499,7 +494,6 @@ export default function CrearPublicacionScreen() {
           </View>
         )}
 
-        {/* Imagen seleccionada */}
         {imagen && (
           <View style={styles.imageContainer}>
             <Image source={{ uri: imagen }} style={styles.selectedImage} />
@@ -513,7 +507,6 @@ export default function CrearPublicacionScreen() {
           </View>
         )}
 
-        {/* Opciones */}
         <View style={styles.options}>
           <TouchableOpacity 
             style={styles.optionButton} 

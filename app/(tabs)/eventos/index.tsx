@@ -29,7 +29,6 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 const { width } = Dimensions.get('window');
 const cardWidth = width - 32;
 
-// FIXED: Complete list of Spanish provinces
 const PROVINCIAS = [
   'Todas',
   'Álava', 'Albacete', 'Alicante', 'Almería', 'Asturias', 'Ávila', 'Badajoz',
@@ -50,7 +49,6 @@ export default function EventosScreen() {
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [provinciaSeleccionada, setProvinciaSeleccionada] = useState('Todas');
   
-  // FIXED: Date picker states - only show calendar inside filters modal
   const [fechaInicio, setFechaInicio] = useState<Date | null>(null);
   const [fechaFin, setFechaFin] = useState<Date | null>(null);
   const [showDatePickerInicio, setShowDatePickerInicio] = useState(false);
@@ -62,7 +60,6 @@ export default function EventosScreen() {
 
   const userRole = user?.rol_app || 'cliente';
   
-  // Only show FAB for propietarios and admins in propietario mode
   const canCreateEvents = (userRole === 'propietario' && currentMode === 'propietario') || 
                           (userRole === 'admin' && currentMode === 'propietario');
 
@@ -70,6 +67,11 @@ export default function EventosScreen() {
     try {
       setLoading(true);
       console.log('[Eventos] Cargando eventos...');
+
+      // FIXED: Filter out expired events
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayStr = today.toISOString().split('T')[0];
 
       let query = supabase
         .from('eventos')
@@ -85,6 +87,7 @@ export default function EventosScreen() {
           )
         `)
         .eq('activo', true)
+        .gte('fecha', todayStr) // Only get events from today onwards
         .order('fecha', { ascending: true });
 
       const { data, error } = await query;
@@ -96,7 +99,6 @@ export default function EventosScreen() {
 
       console.log('[Eventos] Eventos cargados:', data?.length || 0);
 
-      // Transform data to match Evento interface
       const eventosTransformados: Evento[] = (data || []).map((evento: any) => ({
         id: evento.id,
         localId: evento.local_id,
@@ -134,7 +136,6 @@ export default function EventosScreen() {
     const matchBusqueda = evento.titulo.toLowerCase().includes(busqueda.toLowerCase());
     const matchProvincia = provinciaSeleccionada === 'Todas' || evento.provincia === provinciaSeleccionada;
     
-    // FIXED: Date range filter with calendar dates
     let matchFecha = true;
     if (fechaInicio && fechaFin) {
       const eventoFecha = new Date(evento.fecha);
@@ -149,7 +150,6 @@ export default function EventosScreen() {
       matchFecha = eventoFecha >= inicio && eventoFecha <= fin;
     }
 
-    // Tab filter (hoy vs proximos)
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
     const eventoFecha = new Date(evento.fecha);
@@ -176,7 +176,6 @@ export default function EventosScreen() {
     setFechaFin(null);
   };
 
-  // FIXED: Format date for display
   const formatDate = (date: Date | null): string => {
     if (!date) return 'Seleccionar';
     return date.toLocaleDateString('es-ES', {
@@ -186,7 +185,6 @@ export default function EventosScreen() {
     });
   };
 
-  // FIXED: Handle date picker changes
   const onChangeDateInicio = (event: any, selectedDate?: Date) => {
     setShowDatePickerInicio(Platform.OS === 'ios');
     if (selectedDate) {
@@ -201,10 +199,19 @@ export default function EventosScreen() {
     }
   };
 
-  // NEW: Delete event function
+  // FIXED: Simplified delete function - just mark as inactive
   const handleDeleteEvent = useCallback(async (eventoId: string, propietarioId: string) => {
-    if (!user || user.id !== propietarioId) {
-      Alert.alert('Error', 'Solo el propietario puede eliminar este evento');
+    if (!user) {
+      Alert.alert('Error', 'Debes iniciar sesión');
+      return;
+    }
+
+    // Check if user is owner or admin
+    const isOwner = user.id === propietarioId;
+    const isAdmin = user.rol_app === 'admin';
+
+    if (!isOwner && !isAdmin) {
+      Alert.alert('Error', 'Solo el propietario o un administrador puede eliminar este evento');
       return;
     }
 
@@ -218,18 +225,24 @@ export default function EventosScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
+              console.log('[Eventos] Deleting event:', eventoId);
+              
+              // Simply mark as inactive
               const { error } = await supabase
                 .from('eventos')
                 .update({ activo: false })
                 .eq('id', eventoId);
 
-              if (error) throw error;
+              if (error) {
+                console.error('[Eventos] Error deleting event:', error);
+                throw error;
+              }
 
               Alert.alert('Éxito', 'Evento eliminado correctamente');
               await cargarEventos();
-            } catch (error) {
+            } catch (error: any) {
               console.error('[Eventos] Error deleting event:', error);
-              Alert.alert('Error', 'No se pudo eliminar el evento');
+              Alert.alert('Error', error.message || 'No se pudo eliminar el evento');
             }
           },
         },
@@ -240,6 +253,8 @@ export default function EventosScreen() {
   const renderEvento = (evento: Evento) => {
     const diasRestantes = calcularDiasRestantes(evento.fecha);
     const isOwner = user && evento.propietario_id === user.id;
+    const isAdmin = user && user.rol_app === 'admin';
+    const canDelete = isOwner || isAdmin;
 
     return (
       <TouchableOpacity
@@ -256,8 +271,7 @@ export default function EventosScreen() {
           </View>
         )}
 
-        {/* NEW: Delete button for event owner */}
-        {isOwner && (
+        {canDelete && (
           <TouchableOpacity
             style={styles.deleteButton}
             onPress={(e) => {
@@ -316,7 +330,6 @@ export default function EventosScreen() {
 
   return (
     <View style={commonStyles.container}>
-      {/* Header */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         start={{ x: 0, y: 0 }}
@@ -325,7 +338,6 @@ export default function EventosScreen() {
       >
         <Text style={[commonStyles.headerTitle, { color: colors.white }]}>Eventos</Text>
 
-        {/* Search */}
         <View style={styles.searchContainer}>
           <IconSymbol name="magnifyingglass" size={20} color="#9CA3AF" />
           <TextInput
@@ -340,7 +352,6 @@ export default function EventosScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Tabs */}
         <View style={styles.tabs}>
           <TouchableOpacity
             style={[styles.tab, tabActual === 'hoy' && styles.tabActive]}
@@ -371,7 +382,6 @@ export default function EventosScreen() {
         </View>
       </LinearGradient>
 
-      {/* Content */}
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -401,7 +411,6 @@ export default function EventosScreen() {
         </ScrollView>
       )}
 
-      {/* FAB - Create Event (only for propietarios and admins in propietario mode) */}
       {canCreateEvents && (
         <TouchableOpacity
           style={styles.fab}
@@ -416,7 +425,6 @@ export default function EventosScreen() {
         </TouchableOpacity>
       )}
 
-      {/* FIXED: Modal de filtros - calendar only shows inside filters */}
       <Modal
         visible={mostrarFiltros}
         animationType="slide"
@@ -436,12 +444,10 @@ export default function EventosScreen() {
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
-              {/* FIXED: Rango de Fechas con Calendar Picker - only visible inside filters */}
               <View style={styles.filterSection}>
                 <Text style={styles.filterTitle}>Rango de Fechas</Text>
                 
                 <View style={styles.dateInputs}>
-                  {/* Fecha Inicio */}
                   <View style={styles.dateInputContainer}>
                     <Text style={styles.dateLabel}>Desde</Text>
                     <TouchableOpacity
@@ -455,7 +461,6 @@ export default function EventosScreen() {
                     </TouchableOpacity>
                   </View>
 
-                  {/* Fecha Fin */}
                   <View style={styles.dateInputContainer}>
                     <Text style={styles.dateLabel}>Hasta</Text>
                     <TouchableOpacity
@@ -470,7 +475,6 @@ export default function EventosScreen() {
                   </View>
                 </View>
 
-                {/* Show selected date range */}
                 {fechaInicio && fechaFin && (
                   <View style={styles.dateRangeInfo}>
                     <IconSymbol name="info.circle" size={16} color={colors.primary} />
@@ -481,7 +485,6 @@ export default function EventosScreen() {
                 )}
               </View>
 
-              {/* Provincia */}
               <View style={styles.filterSection}>
                 <Text style={styles.filterTitle}>Provincia</Text>
                 <ScrollView style={styles.provinciasList} nestedScrollEnabled>
@@ -533,7 +536,6 @@ export default function EventosScreen() {
         </Pressable>
       </Modal>
 
-      {/* FIXED: Date Pickers - only show when filters modal is open */}
       {mostrarFiltros && showDatePickerInicio && (
         <DateTimePicker
           value={fechaInicio || new Date()}
