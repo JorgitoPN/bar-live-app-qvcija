@@ -123,6 +123,13 @@ export default function AdminScreen() {
       requiresSupabase: true,
     },
     {
+      icon: 'calendar.badge.clock',
+      title: 'Gestionar Eventos',
+      description: 'Ver, editar y eliminar eventos',
+      route: '/admin/gestionar-eventos',
+      requiresSupabase: true,
+    },
+    {
       icon: 'person.badge.plus',
       title: 'Solicitudes Propietario',
       description: 'Revisar y gestionar solicitudes de propietarios',
