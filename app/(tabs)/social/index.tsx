@@ -63,6 +63,9 @@ interface HistoriaConAutor {
     username?: string;
   };
   visto_por_usuario?: boolean;
+  views_count?: number;
+  likes_count?: number;
+  liked_by_user?: boolean;
 }
 
 interface SearchResult {
@@ -423,6 +426,48 @@ const styles = StyleSheet.create({
   storyTouchZone: {
     flex: 1,
   },
+  // FIXED: Story viewer interaction buttons
+  storyInteractionBar: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 40 : 20,
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    zIndex: 10,
+  },
+  storyInteractionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  storyInteractionText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  storyMessageInput: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    color: '#fff',
+    fontSize: 14,
+  },
+  storySendButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   userAvatarInStory: {
     width: 90,
     height: 90,
@@ -510,7 +555,6 @@ export default function SocialScreen() {
   const router = useRouter();
   const { user } = useAuth();
   
-  // ⚡ USE GLOBAL DATA - NO FETCHING!
   const { posts: globalPosts, stories: globalStories, isInitialLoading, refreshData } = useGlobalData();
   
   const [searchQuery, setSearchQuery] = useState('');
@@ -527,11 +571,11 @@ export default function SocialScreen() {
   // Story viewer states
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
-  const [currentStoryProgress, setCurrentStoryProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [viewingOwnStories, setViewingOwnStories] = useState(false);
+  const [storyMessage, setStoryMessage] = useState('');
   const storyTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const storyProgressRef = useRef<NodeJS.Timeout | null>(null);
+  const progressAnim = useRef(new Animated.Value(0)).current;
 
   // Scroll animation states
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -539,11 +583,9 @@ export default function SocialScreen() {
   const scrollDirection = useRef<'up' | 'down'>('down');
   const headerTranslateY = useRef(new Animated.Value(0)).current;
 
-  // OPTIMIZED: Prevent double loading
   const isLoadingRef = useRef(false);
   const likingPostsRef = useRef<Set<string>>(new Set());
 
-  // ⚡ USE GLOBAL DATA - Load user-specific data only
   const loadData = useCallback(async () => {
     if (isLoadingRef.current) {
       console.log('[Social] ⚡ Already loading, skipping...');
@@ -555,11 +597,9 @@ export default function SocialScreen() {
     try {
       console.log('[Social] ⚡ Loading user-specific data...');
 
-      // ⚡ USE GLOBAL POSTS - INSTANT!
       if (globalPosts.length > 0) {
         console.log('[Social] ⚡ INSTANT posts from global data:', globalPosts.length);
         
-        // Add user-specific data (likes, saves) if logged in
         if (user) {
           const postIds = globalPosts.map(p => p.id);
           
@@ -601,33 +641,53 @@ export default function SocialScreen() {
         }
       }
 
-      // ⚡ USE GLOBAL STORIES - INSTANT!
       if (globalStories.length > 0) {
         console.log('[Social] ⚡ INSTANT stories from global data:', globalStories.length);
         
-        // Filter user's own stories and others
         const userOwnStories = user ? globalStories.filter(s => s.autor_id === user.id) : [];
         const otherStories = user ? globalStories.filter(s => s.autor_id !== user.id) : globalStories;
         
-        // Add viewed status if logged in
         if (user) {
           const allStoryIds = globalStories.map(s => s.id);
-          const { data: viewedData } = await supabase
-            .from('historia_views')
-            .select('historia_id')
-            .eq('usuario_id', user.id)
-            .in('historia_id', allStoryIds);
           
-          const viewedStoryIds = new Set(viewedData?.map(v => v.historia_id) || []);
+          // Load views, likes for stories
+          const [viewedData, likesData, viewsCountData] = await Promise.all([
+            supabase
+              .from('historia_views')
+              .select('historia_id')
+              .eq('usuario_id', user.id)
+              .in('historia_id', allStoryIds),
+            supabase
+              .from('historia_likes')
+              .select('historia_id')
+              .eq('usuario_id', user.id)
+              .in('historia_id', allStoryIds),
+            supabase
+              .from('historia_views')
+              .select('historia_id')
+              .in('historia_id', allStoryIds),
+          ]);
+          
+          const viewedStoryIds = new Set(viewedData.data?.map(v => v.historia_id) || []);
+          const likedStoryIds = new Set(likesData.data?.map(l => l.historia_id) || []);
+          
+          const viewsCounts = viewsCountData.data?.reduce((acc, v) => {
+            acc[v.historia_id] = (acc[v.historia_id] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>) || {};
           
           const userStoriesWithStatus = userOwnStories.map(story => ({
             ...story,
             visto_por_usuario: viewedStoryIds.has(story.id),
+            liked_by_user: likedStoryIds.has(story.id),
+            views_count: viewsCounts[story.id] || 0,
           }));
           
           const otherStoriesWithStatus = otherStories.map(story => ({
             ...story,
             visto_por_usuario: viewedStoryIds.has(story.id),
+            liked_by_user: likedStoryIds.has(story.id),
+            views_count: viewsCounts[story.id] || 0,
           }));
           
           setUserStories(userStoriesWithStatus);
@@ -645,7 +705,6 @@ export default function SocialScreen() {
     }
   }, [user, globalPosts, globalStories]);
 
-  // OPTIMIZED: Use useFocusEffect for instant reload
   useFocusEffect(
     useCallback(() => {
       console.log('[Social] ⚡ Screen focused');
@@ -655,7 +714,6 @@ export default function SocialScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    // ⚡ USE GLOBAL REFRESH
     await refreshData(false);
     await loadData();
     setRefreshing(false);
@@ -716,11 +774,8 @@ export default function SocialScreen() {
       clearTimeout(storyTimerRef.current);
       storyTimerRef.current = null;
     }
-    if (storyProgressRef.current) {
-      clearInterval(storyProgressRef.current);
-      storyProgressRef.current = null;
-    }
-  }, []);
+    progressAnim.stopAnimation();
+  }, [progressAnim]);
 
   const handleNextStory = useCallback(async () => {
     const currentStories = viewingOwnStories ? userStories : historias;
@@ -768,7 +823,7 @@ export default function SocialScreen() {
     
     if (currentStoryIndex < currentStories.length - 1) {
       setCurrentStoryIndex(currentStoryIndex + 1);
-      setCurrentStoryProgress(0);
+      progressAnim.setValue(0);
     } else {
       socialCache.clearStories();
       socialCache.clearStories(user?.id);
@@ -776,31 +831,26 @@ export default function SocialScreen() {
       setShowStoryViewer(false);
       stopStoryTimer();
     }
-  }, [currentStoryIndex, historias, userStories, viewingOwnStories, stopStoryTimer, user, loadData]);
+  }, [currentStoryIndex, historias, userStories, viewingOwnStories, stopStoryTimer, user, loadData, progressAnim]);
 
   const startStoryTimer = useCallback(() => {
     if (storyTimerRef.current) {
       clearTimeout(storyTimerRef.current);
     }
-    if (storyProgressRef.current) {
-      clearInterval(storyProgressRef.current);
-    }
 
-    setCurrentStoryProgress(0);
+    progressAnim.setValue(0);
 
-    storyProgressRef.current = setInterval(() => {
-      setCurrentStoryProgress(prev => {
-        if (prev >= 100) {
-          return 100;
-        }
-        return prev + 1;
-      });
-    }, 50);
+    // FIXED: Smooth animation without flickering
+    Animated.timing(progressAnim, {
+      toValue: 1,
+      duration: 5000,
+      useNativeDriver: false,
+    }).start();
 
     storyTimerRef.current = setTimeout(() => {
       handleNextStory();
     }, 5000);
-  }, [handleNextStory]);
+  }, [handleNextStory, progressAnim]);
 
   const findFirstUnviewedStoryIndex = useCallback((stories: HistoriaConAutor[]): number => {
     const firstUnviewedIndex = stories.findIndex(story => !story.visto_por_usuario);
@@ -821,13 +871,13 @@ export default function SocialScreen() {
   const handlePreviousStory = useCallback(() => {
     if (currentStoryIndex > 0) {
       setCurrentStoryIndex(currentStoryIndex - 1);
-      setCurrentStoryProgress(0);
+      progressAnim.setValue(0);
       startStoryTimer();
     } else {
       setShowStoryViewer(false);
       stopStoryTimer();
     }
-  }, [currentStoryIndex, startStoryTimer, stopStoryTimer]);
+  }, [currentStoryIndex, startStoryTimer, stopStoryTimer, progressAnim]);
 
   const handleDeleteStory = useCallback(async () => {
     const currentStories = viewingOwnStories ? userStories : historias;
@@ -867,7 +917,6 @@ export default function SocialScreen() {
               setShowStoryViewer(false);
               stopStoryTimer();
               setCurrentStoryIndex(0);
-              setCurrentStoryProgress(0);
 
               Alert.alert('Éxito', 'Historia eliminada correctamente');
             } catch (error) {
@@ -880,7 +929,116 @@ export default function SocialScreen() {
     );
   }, [historias, userStories, currentStoryIndex, user, viewingOwnStories, stopStoryTimer]);
 
-  // OPTIMIZED: Instant like with optimistic update
+  // FIXED: Story like functionality
+  const handleStoryLike = useCallback(async () => {
+    const currentStories = viewingOwnStories ? userStories : historias;
+    const currentStory = currentStories[currentStoryIndex];
+    
+    if (!currentStory || !user) {
+      setLoginMessage('Para dar me gusta necesitas registrarte en BarLive');
+      setShowLoginModal(true);
+      return;
+    }
+
+    const isLiked = currentStory.liked_by_user;
+
+    try {
+      if (isLiked) {
+        await supabase
+          .from('historia_likes')
+          .delete()
+          .eq('historia_id', currentStory.id)
+          .eq('usuario_id', user.id);
+      } else {
+        await supabase.from('historia_likes').insert({
+          historia_id: currentStory.id,
+          usuario_id: user.id,
+        });
+      }
+
+      // Update local state
+      if (viewingOwnStories) {
+        setUserStories(prev => prev.map((s, i) => 
+          i === currentStoryIndex 
+            ? { ...s, liked_by_user: !isLiked }
+            : s
+        ));
+      } else {
+        setHistorias(prev => prev.map((s, i) => 
+          i === currentStoryIndex 
+            ? { ...s, liked_by_user: !isLiked }
+            : s
+        ));
+      }
+    } catch (error) {
+      console.error('[Social] Error toggling story like:', error);
+    }
+  }, [user, currentStoryIndex, viewingOwnStories, userStories, historias]);
+
+  // FIXED: Send message with story screenshot
+  const handleSendStoryMessage = useCallback(async () => {
+    const currentStories = viewingOwnStories ? userStories : historias;
+    const currentStory = currentStories[currentStoryIndex];
+    
+    if (!currentStory || !user || !storyMessage.trim()) {
+      return;
+    }
+
+    try {
+      // Find or create chat
+      const { data: chatExistente, error: chatError } = await supabase
+        .from('chats')
+        .select('id')
+        .or(`and(usuario1_id.eq.${user.id},usuario2_id.eq.${currentStory.autor_id}),and(usuario1_id.eq.${currentStory.autor_id},usuario2_id.eq.${user.id})`)
+        .single();
+
+      let chatId = chatExistente?.id;
+
+      if (!chatId) {
+        const { data: nuevoChat, error: nuevoChatError } = await supabase
+          .from('chats')
+          .insert({
+            usuario1_id: user.id,
+            usuario2_id: currentStory.autor_id,
+          })
+          .select()
+          .single();
+
+        if (nuevoChatError) throw nuevoChatError;
+        chatId = nuevoChat.id;
+      }
+
+      // Send message with story reference
+      const { error: mensajeError } = await supabase
+        .from('mensajes')
+        .insert({
+          chat_id: chatId,
+          remitente_id: user.id,
+          contenido: storyMessage,
+          historia_id: currentStory.id,
+          historia_imagen: currentStory.imagen,
+          expires_at: currentStory.expires_at,
+        });
+
+      if (mensajeError) throw mensajeError;
+
+      // Create notification
+      await supabase.from('notificaciones').insert({
+        usuario_id: currentStory.autor_id,
+        tipo: 'mensaje',
+        titulo: 'Mensaje sobre tu historia',
+        mensaje: `${user.nombre} te envió un mensaje sobre tu historia`,
+        usuario_origen_id: user.id,
+      });
+
+      setStoryMessage('');
+      Alert.alert('Éxito', 'Mensaje enviado correctamente');
+    } catch (error) {
+      console.error('[Social] Error sending story message:', error);
+      Alert.alert('Error', 'No se pudo enviar el mensaje');
+    }
+  }, [user, currentStoryIndex, viewingOwnStories, userStories, historias, storyMessage]);
+
   const toggleLike = useCallback(async (postId: string) => {
     if (!user) {
       setLoginMessage('Para dar me gusta necesitas registrarte en BarLive');
@@ -900,7 +1058,6 @@ export default function SocialScreen() {
 
     likingPostsRef.current.add(postId);
 
-    // INSTANT UI UPDATE
     const updatedPost = {
       ...post,
       liked: !isLiked,
@@ -911,7 +1068,6 @@ export default function SocialScreen() {
       p.id === postId ? updatedPost : p
     ));
     
-    // Update cache
     socialCache.updatePost(postId, {
       liked: !isLiked,
       likes: isLiked ? currentLikes - 1 : currentLikes + 1,
@@ -987,7 +1143,6 @@ export default function SocialScreen() {
 
     const isSaved = post.saved;
 
-    // INSTANT UI UPDATE
     setPosts(prevPosts => prevPosts.map(p => 
       p.id === postId 
         ? { ...p, saved: !isSaved }
@@ -1075,7 +1230,6 @@ export default function SocialScreen() {
     };
   }, [showStoryViewer, currentStoryIndex, isPaused, startStoryTimer, stopStoryTimer]);
 
-  // OPTIMIZED: Memoize grouped stories
   const groupedStories = useMemo(() => {
     const storyGroups = historias.reduce((acc, historia) => {
       const authorId = historia.autor_id;
@@ -1104,7 +1258,11 @@ export default function SocialScreen() {
   const hasUserStories = userStories.length > 0;
   const hasUnviewedUserStories = userStories.some(s => !s.visto_por_usuario);
 
-  // ⚡ SHOW LOADING SCREEN ONLY ON INITIAL APP STARTUP
+  const progressWidth = progressAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0%', '100%'],
+  });
+
   if (isInitialLoading) {
     return <InitialLoadingScreen />;
   }
@@ -1132,14 +1290,14 @@ export default function SocialScreen() {
               onPress={() => router.push('/(tabs)/perfil/chats')}
               activeOpacity={0.7}
             >
-              <IconSymbol name="message" size={24} color={colors.headerText} />
+              <IconSymbol name="message.fill" size={24} color={colors.headerText} />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.headerButton}
               onPress={() => router.push('/(tabs)/perfil/notificaciones')}
               activeOpacity={0.7}
             >
-              <IconSymbol name="bell" size={24} color={colors.headerText} />
+              <IconSymbol name="bell.fill" size={24} color={colors.headerText} />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.headerButton}
@@ -1543,7 +1701,7 @@ export default function SocialScreen() {
         </Pressable>
       </Modal>
 
-      {/* Story Viewer Modal */}
+      {/* FIXED: Story Viewer Modal with interaction buttons */}
       <Modal
         visible={showStoryViewer}
         animationType="fade"
@@ -1589,8 +1747,8 @@ export default function SocialScreen() {
                         <View style={[styles.storyProgressFill, { width: '100%' }]} />
                       )}
                       {index === currentStoryIndex && (
-                        <View
-                          style={[styles.storyProgressFill, { width: `${currentStoryProgress}%` }]}
+                        <Animated.View
+                          style={[styles.storyProgressFill, { width: progressWidth }]}
                         />
                       )}
                     </View>
@@ -1685,6 +1843,46 @@ export default function SocialScreen() {
                   resizeMode="contain"
                 />
               </View>
+
+              {/* FIXED: Story interaction bar with like, views, and message */}
+              {!viewingOwnStories && (
+                <View style={styles.storyInteractionBar}>
+                  <TouchableOpacity
+                    style={styles.storyInteractionButton}
+                    onPress={handleStoryLike}
+                    activeOpacity={0.7}
+                  >
+                    <IconSymbol 
+                      name={currentStory.liked_by_user ? 'heart.fill' : 'heart'} 
+                      size={20} 
+                      color={currentStory.liked_by_user ? '#EF4444' : '#fff'} 
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.storyInteractionButton}
+                    activeOpacity={0.7}
+                  >
+                    <IconSymbol name="eye" size={20} color="#fff" />
+                    <Text style={styles.storyInteractionText}>{currentStory.views_count || 0}</Text>
+                  </TouchableOpacity>
+                  <TextInput
+                    style={styles.storyMessageInput}
+                    placeholder="Enviar mensaje..."
+                    placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                    value={storyMessage}
+                    onChangeText={setStoryMessage}
+                  />
+                  {storyMessage.trim() && (
+                    <TouchableOpacity
+                      style={styles.storySendButton}
+                      onPress={handleSendStoryMessage}
+                      activeOpacity={0.7}
+                    >
+                      <IconSymbol name="paperplane.fill" size={20} color="#fff" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
 
               <View style={styles.storyTouchZones}>
                 <Pressable

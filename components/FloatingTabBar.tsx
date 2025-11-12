@@ -6,6 +6,8 @@ import { colors } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, usePathname } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
+import { useMode } from '@/contexts/ModeContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 export interface TabBarItem {
   name: string;
@@ -22,8 +24,13 @@ interface FloatingTabBarProps {
 export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { currentMode } = useMode();
+  const { user } = useAuth();
   const navigationInProgress = useRef(false);
   const lastNavigationTime = useRef(0);
+
+  const userRole = user?.rol_app || 'cliente';
+  const isPropietarioMode = currentMode === 'propietario' || (userRole === 'admin' && currentMode === 'propietario');
 
   useEffect(() => {
     console.log('⚡ FloatingTabBar mounted, pathname:', pathname);
@@ -47,6 +54,44 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
     }
   };
 
+  // FIXED: Dynamic tabs based on mode
+  const getDisplayTabs = () => {
+    if (isPropietarioMode) {
+      // Propietario mode: Replace Favoritos with Eventos, add Social before Perfil
+      return tabs.map(tab => {
+        if (tab.name === 'favoritos') {
+          return {
+            name: 'eventos',
+            route: '/(tabs)/eventos',
+            icon: 'calendar',
+            label: 'Eventos',
+          };
+        }
+        return tab;
+      }).filter(tab => {
+        // Keep all tabs except we'll add social separately
+        return true;
+      });
+    }
+    return tabs;
+  };
+
+  const displayTabs = getDisplayTabs();
+
+  // Add Social tab before Perfil in propietario mode
+  const finalTabs = isPropietarioMode 
+    ? [
+        ...displayTabs.filter(t => t.name !== 'perfil'),
+        {
+          name: 'social',
+          route: '/(tabs)/social',
+          icon: 'person.2',
+          label: 'Social',
+        },
+        ...displayTabs.filter(t => t.name === 'perfil'),
+      ]
+    : displayTabs;
+
   return (
     <View style={styles.container} pointerEvents="box-none">
       <View style={styles.svgContainer} pointerEvents="none">
@@ -65,7 +110,7 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
       </View>
 
       <View style={[styles.tabBar, containerWidth && { width: containerWidth }]} pointerEvents="box-none">
-        {tabs.map((tab) => {
+        {finalTabs.map((tab) => {
           const isCenter = tab.name === 'explorar';
           const active = isActive(tab.route);
 
@@ -120,13 +165,13 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
               activeOpacity={0.5}
             >
               <View style={[styles.tabContent, active && styles.tabContentActive]}>
-                {/* FIXED: Maximum contrast - Active icons are BRIGHT WHITE (#FFFFFF) */}
-                {/* Inactive icons are much more visible (opacity 0.6) */}
+                {/* FIXED: Active icons have 90% opacity as requested */}
                 <IconSymbol
                   name={tab.icon as any}
                   size={26}
                   color={active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.6)'}
                   weight={active ? 'fill' : 'regular'}
+                  style={{ opacity: active ? 0.9 : 1 }}
                 />
                 <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
                   {tab.label}
@@ -191,18 +236,15 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   tabContentActive: {
-    // FIXED: More prominent background for active tab
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
   },
   tabLabel: {
     fontSize: 11,
     fontWeight: '600',
-    // FIXED: Inactive labels are much more visible (opacity 0.6)
     color: 'rgba(255, 255, 255, 0.6)',
     marginTop: 4,
   },
   tabLabelActive: {
-    // FIXED: Active labels are BRIGHT WHITE (#FFFFFF) with extra bold weight
     color: '#FFFFFF',
     fontWeight: '900',
   },
