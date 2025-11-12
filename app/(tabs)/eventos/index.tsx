@@ -12,6 +12,7 @@ import {
   Modal,
   ActivityIndicator,
   RefreshControl,
+  Pressable,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -25,16 +26,16 @@ import { supabase } from '@/utils/supabase';
 const { width } = Dimensions.get('window');
 const cardWidth = width - 32;
 
+// FIXED: Complete list of Spanish provinces
 const PROVINCIAS = [
   'Todas',
-  'Madrid',
-  'Barcelona',
-  'Valencia',
-  'Sevilla',
-  'Málaga',
-  'Bilbao',
-  'Alicante',
-  'Zaragoza',
+  'Álava', 'Albacete', 'Alicante', 'Almería', 'Asturias', 'Ávila', 'Badajoz',
+  'Barcelona', 'Burgos', 'Cáceres', 'Cádiz', 'Cantabria', 'Castellón', 'Ciudad Real',
+  'Córdoba', 'Cuenca', 'Girona', 'Granada', 'Guadalajara', 'Guipúzcoa', 'Huelva',
+  'Huesca', 'Islas Baleares', 'Jaén', 'La Coruña', 'La Rioja', 'Las Palmas', 'León',
+  'Lleida', 'Lugo', 'Madrid', 'Málaga', 'Murcia', 'Navarra', 'Ourense', 'Palencia',
+  'Pontevedra', 'Salamanca', 'Santa Cruz de Tenerife', 'Segovia', 'Sevilla', 'Soria',
+  'Tarragona', 'Teruel', 'Toledo', 'Valencia', 'Valladolid', 'Vizcaya', 'Zamora', 'Zaragoza'
 ];
 
 export default function EventosScreen() {
@@ -99,7 +100,6 @@ export default function EventosScreen() {
         imagen: evento.imagen_url || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819',
         localNombre: evento.locales?.nombre || 'Local',
         provincia: evento.provincia || evento.locales?.provincia || '',
-        // REMOVED: entradas_vendidas and entradas_totales
         destacado: evento.destacado || false,
       }));
 
@@ -214,7 +214,6 @@ export default function EventosScreen() {
             </View>
           </View>
 
-          {/* REMOVED: Ticket sales progress bar */}
           <View style={styles.diasRestantesContainer}>
             <Text style={styles.diasRestantesTexto}>
               {diasRestantes > 0 ? `${diasRestantes} días restantes` : 'Hoy'}
@@ -334,8 +333,11 @@ export default function EventosScreen() {
         transparent={true}
         onRequestClose={() => setMostrarFiltros(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <Pressable 
+          style={styles.modalOverlay}
+          onPress={() => setMostrarFiltros(false)}
+        >
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Filtros</Text>
               <TouchableOpacity onPress={() => setMostrarFiltros(false)}>
@@ -347,27 +349,27 @@ export default function EventosScreen() {
               {/* Provincia */}
               <View style={styles.filterSection}>
                 <Text style={styles.filterTitle}>Provincia</Text>
-                <View style={styles.filterChips}>
+                <ScrollView style={styles.provinciasList} nestedScrollEnabled>
                   {PROVINCIAS.map((provincia) => (
                     <TouchableOpacity
                       key={provincia}
                       style={[
-                        styles.filterChip,
-                        provinciaSeleccionada === provincia && styles.filterChipActive,
+                        styles.provinciaItem,
+                        provinciaSeleccionada === provincia && styles.provinciaItemActive,
                       ]}
                       onPress={() => setProvinciaSeleccionada(provincia)}
                     >
                       <Text
                         style={[
-                          styles.filterChipText,
-                          provinciaSeleccionada === provincia && styles.filterChipTextActive,
+                          styles.provinciaText,
+                          provinciaSeleccionada === provincia && styles.provinciaTextActive,
                         ]}
                       >
                         {provincia}
                       </Text>
                     </TouchableOpacity>
                   ))}
-                </View>
+                </ScrollView>
               </View>
 
               {/* Rango de Fechas */}
@@ -419,8 +421,8 @@ export default function EventosScreen() {
                 </LinearGradient>
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
     </View>
   );
@@ -623,30 +625,26 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 12,
   },
-  filterChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+  provinciasList: {
+    maxHeight: 300,
   },
-  filterChip: {
+  provinciaItem: {
+    paddingVertical: 12,
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 8,
+    marginBottom: 8,
     backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
   },
-  filterChipActive: {
+  provinciaItemActive: {
     backgroundColor: colors.primary,
-    borderColor: colors.primary,
   },
-  filterChipText: {
-    fontSize: 14,
-    fontWeight: '600',
+  provinciaText: {
+    fontSize: 15,
     color: colors.text,
   },
-  filterChipTextActive: {
+  provinciaTextActive: {
     color: colors.white,
+    fontWeight: '600',
   },
   dateInputs: {
     flexDirection: 'row',
