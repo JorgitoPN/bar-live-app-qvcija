@@ -140,10 +140,12 @@ export default function UsuarioPerfilScreen() {
 
       setUsuario(userData);
 
+      // FIXED: Only load user posts (tipo='usuario'), not local posts
       const { data: postsData, error: postsError } = await supabase
         .from('posts')
         .select('*')
         .eq('autor_id', userId)
+        .eq('tipo', 'usuario')
         .order('created_at', { ascending: false });
 
       if (!postsError) {
@@ -165,7 +167,7 @@ export default function UsuarioPerfilScreen() {
 
       console.log('[UsuarioPerfil] ✅ User stats loaded - Posts:', postsCount, 'Seguidores:', followerCounts.seguidores, 'Seguidos:', followerCounts.seguidos);
 
-      // FIXED: Load user's stories for viewer
+      // FIXED: Load user's stories for viewer - only user stories (tipo='usuario')
       const { data: userStoriesData } = await supabase
         .from('historias')
         .select(`
@@ -178,6 +180,7 @@ export default function UsuarioPerfilScreen() {
           visto
         `)
         .eq('autor_id', userId)
+        .eq('tipo', 'usuario')
         .gt('expires_at', new Date().toISOString())
         .order('created_at', { ascending: true });
 

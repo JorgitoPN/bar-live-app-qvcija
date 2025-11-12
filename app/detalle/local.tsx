@@ -15,6 +15,7 @@ import {
   Alert,
   Modal,
 } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -1176,6 +1177,15 @@ export default function DetalleLocalScreen() {
           >
             <IconSymbol name="person.3.fill" size={20} color={colors.headerText} />
             <Text style={styles.salaVirtualButtonText}>Ver Sala Virtual</Text>
+          </TouchableOpacity>
+
+          {/* Botón Perfil Social del Local */}
+          <TouchableOpacity 
+            style={[styles.salaVirtualButton, { backgroundColor: colors.primary, marginTop: 12 }]}
+            onPress={() => router.push(`/perfil/local?localId=${local.id}`)}
+          >
+            <IconSymbol name="person.2.fill" size={20} color={colors.headerText} />
+            <Text style={styles.salaVirtualButtonText}>Ver Perfil Social</Text>
           </TouchableOpacity>
         </View>
 

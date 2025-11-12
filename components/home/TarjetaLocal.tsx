@@ -76,6 +76,11 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
     router.push(`/detalle/local?id=${local.id}`);
   };
 
+  const handlePerfilSocial = (e: any) => {
+    e.stopPropagation();
+    router.push(`/perfil/local?localId=${local.id}`);
+  };
+
   const handleComoLlegar = (e: any) => {
     e.stopPropagation();
     const { lat, lng } = local.coordenadas;
@@ -333,22 +338,29 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
           </View>
         )}
 
-        {/* Botón "Cómo llegar" con distancia dentro del botón - Ancho completo */}
-        <TouchableOpacity style={styles.comoLlegarButton} onPress={handleComoLlegar}>
-          <View style={styles.comoLlegarContent}>
-            <View style={styles.comoLlegarLeft}>
-              <IconSymbol name="arrow.triangle.turn.up.right.diamond.fill" size={16} color={colors.headerText} />
-              <Text style={styles.comoLlegarText}>Cómo llegar</Text>
-            </View>
-            
-            {local.distancia !== null && local.distancia !== undefined && (
-              <View style={styles.distanciaInButton}>
-                <IconSymbol name="location.fill" size={14} color={colors.headerText} />
-                <Text style={styles.distanciaInButtonText}>{local.distancia.toFixed(1)} km</Text>
+        {/* Action buttons */}
+        <View style={styles.actionButtonsContainer}>
+          <TouchableOpacity style={styles.perfilSocialButton} onPress={handlePerfilSocial}>
+            <IconSymbol name="person.2.fill" size={16} color={colors.headerText} />
+            <Text style={styles.perfilSocialText}>Perfil Social</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.comoLlegarButton} onPress={handleComoLlegar}>
+            <View style={styles.comoLlegarContent}>
+              <View style={styles.comoLlegarLeft}>
+                <IconSymbol name="arrow.triangle.turn.up.right.diamond.fill" size={16} color={colors.headerText} />
+                <Text style={styles.comoLlegarText}>Cómo llegar</Text>
               </View>
-            )}
-          </View>
-        </TouchableOpacity>
+              
+              {local.distancia !== null && local.distancia !== undefined && (
+                <View style={styles.distanciaInButton}>
+                  <IconSymbol name="location.fill" size={14} color={colors.headerText} />
+                  <Text style={styles.distanciaInButtonText}>{local.distancia.toFixed(1)} km</Text>
+                </View>
+              )}
+            </View>
+          </TouchableOpacity>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -572,10 +584,30 @@ const styles = StyleSheet.create({
     color: colors.primary,
     textTransform: 'capitalize',
   },
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  perfilSocialButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.secondary + '99',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 6,
+  },
+  perfilSocialText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.headerText,
+  },
   comoLlegarButton: {
-    width: '100%',
+    flex: 1,
     backgroundColor: colors.primary + '99',
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingVertical: 12,
     borderRadius: 8,
   },

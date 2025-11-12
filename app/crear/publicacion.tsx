@@ -13,7 +13,7 @@ import {
   FlatList,
   ActivityIndicator,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
@@ -84,6 +84,9 @@ const convertImageToJPG = (uri: string): Promise<Blob> => {
 export default function CrearPublicacionScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const params = useLocalSearchParams();
+  const localId = params.localId as string | undefined;
+  
   const [contenido, setContenido] = useState('');
   const [imagen, setImagen] = useState<string | null>(null);
   const [ubicacion, setUbicacion] = useState<{
@@ -327,11 +330,13 @@ export default function CrearPublicacionScreen() {
       }
 
       // Create post with autor_id (matching database schema)
+      // If localId is provided, create as local post, otherwise as user post
       const { data: postData, error: postError } = await supabase
         .from('posts')
         .insert({
           autor_id: user.id,
-          tipo: 'usuario',
+          tipo: localId ? 'local' : 'usuario',
+          local_id: localId || null,
           contenido: contenido,
           imagen: imagenUrl,
           ubicacion: ubicacion?.nombre,

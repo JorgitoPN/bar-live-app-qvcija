@@ -1,7 +1,7 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import React, { useState } from 'react';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
 import * as ImagePicker from 'expo-image-picker';
@@ -88,6 +88,9 @@ const convertImageToJPG = (uri: string): Promise<Blob> => {
 export default function CrearHistoriaScreen() {
   const { user } = useAuth();
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const localId = params.localId as string | undefined;
+  
   const [imagen, setImagen] = useState<string | null>(null);
   const [ubicacion, setUbicacion] = useState<{
     nombre: string;
@@ -313,11 +316,13 @@ export default function CrearHistoriaScreen() {
       }
 
       // Create story
+      // If localId is provided, create as local story, otherwise as user story
       const { data: storyData, error: storyError } = await supabase
         .from('historias')
         .insert({
           autor_id: user.id,
-          tipo: 'usuario',
+          tipo: localId ? 'local' : 'usuario',
+          local_id: localId || null,
           imagen: imagenUrl,
           ubicacion: ubicacion?.nombre,
           ubicacion_lat: ubicacion?.lat,

@@ -286,29 +286,13 @@ export default function PerfilScreen() {
     }
   };
 
-  // FIXED: Load local profile data
+  // FIXED: Load local profile data - redirect to dedicated local profile page
   const cargarPerfilLocal = async (localId: string) => {
     if (!localId) return;
 
     try {
-      const { data: localData, error } = await supabase
-        .from('locales')
-        .select('*')
-        .eq('id', localId)
-        .single();
-
-      if (error) throw error;
-
-      // Count followers for this local
-      const { count: seguidoresCount } = await supabase
-        .from('locales_favoritos')
-        .select('*', { count: 'exact', head: true })
-        .eq('local_id', localId);
-
-      setLocalProfile({
-        ...localData,
-        seguidores: seguidoresCount || 0,
-      });
+      // Redirect to dedicated local profile page
+      router.push(`/perfil/local?localId=${localId}`);
     } catch (error) {
       console.error('[Perfil] Error loading local profile:', error);
     }
@@ -395,6 +379,7 @@ export default function PerfilScreen() {
 
         setHasActiveStory((storiesData?.length || 0) > 0);
 
+        // FIXED: Only load user stories (tipo='usuario'), not local stories
         const { data: userStoriesData } = await supabase
           .from('historias')
           .select(`
@@ -407,6 +392,7 @@ export default function PerfilScreen() {
             visto
           `)
           .eq('autor_id', user.id)
+          .eq('tipo', 'usuario')
           .gt('expires_at', new Date().toISOString())
           .order('created_at', { ascending: true });
 
@@ -491,6 +477,7 @@ export default function PerfilScreen() {
     if (!user) return;
 
     try {
+      // FIXED: Only load user posts (tipo='usuario'), not local posts
       const { data, error } = await supabase
         .from('posts')
         .select(`
@@ -503,6 +490,7 @@ export default function PerfilScreen() {
           )
         `)
         .eq('autor_id', user.id)
+        .eq('tipo', 'usuario')
         .order('created_at', { ascending: false })
         .limit(20);
 
