@@ -54,24 +54,24 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
     }
   };
 
-  // FIXED: Dynamic tabs based on mode
+  // FIXED: Dynamic tabs based on mode - Remove Events icon in owner mode
   const getDisplayTabs = () => {
     if (isPropietarioMode) {
-      // Propietario mode: Replace Favoritos with Eventos, add Social before Perfil
-      return tabs.map(tab => {
-        if (tab.name === 'favoritos') {
-          return {
-            name: 'eventos',
-            route: '/(tabs)/eventos',
-            icon: 'calendar',
-            label: 'Eventos',
-          };
-        }
-        return tab;
-      }).filter(tab => {
-        // Keep all tabs except we'll add social separately
-        return true;
-      });
+      // Owner mode: Remove Events, add Social before Perfil
+      return tabs
+        .filter(tab => tab.name !== 'eventos') // Remove Events icon
+        .map(tab => {
+          // Replace Favoritos with Eventos in the same position
+          if (tab.name === 'favoritos') {
+            return {
+              name: 'eventos',
+              route: '/(tabs)/eventos',
+              icon: 'calendar',
+              label: 'Eventos',
+            };
+          }
+          return tab;
+        });
     }
     return tabs;
   };
@@ -165,7 +165,7 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
               activeOpacity={0.5}
             >
               <View style={[styles.tabContent, active && styles.tabContentActive]}>
-                {/* FIXED: Active icons have 90% opacity as requested */}
+                {/* FIXED: Active icons have 90% opacity, inactive have 60% opacity */}
                 <IconSymbol
                   name={tab.icon as any}
                   size={26}
@@ -247,6 +247,7 @@ const styles = StyleSheet.create({
   tabLabelActive: {
     color: '#FFFFFF',
     fontWeight: '900',
+    opacity: 0.9,
   },
   centerButton: {
     width: 64,

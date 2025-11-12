@@ -108,13 +108,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 16,
   },
+  // FIXED: Remove rounded background from header buttons
   headerButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    padding: 4,
   },
   searchModal: {
     flex: 1,
@@ -975,7 +971,7 @@ export default function SocialScreen() {
     }
   }, [user, currentStoryIndex, viewingOwnStories, userStories, historias]);
 
-  // FIXED: Send message with story screenshot
+  // FIXED: Send message with story screenshot - pause story when typing
   const handleSendStoryMessage = useCallback(async () => {
     const currentStories = viewingOwnStories ? userStories : historias;
     const currentStory = currentStories[currentStoryIndex];
@@ -1701,7 +1697,7 @@ export default function SocialScreen() {
         </Pressable>
       </Modal>
 
-      {/* FIXED: Story Viewer Modal with interaction buttons */}
+      {/* FIXED: Story Viewer Modal with interaction buttons and pause on typing */}
       <Modal
         visible={showStoryViewer}
         animationType="fade"
@@ -1844,7 +1840,7 @@ export default function SocialScreen() {
                 />
               </View>
 
-              {/* FIXED: Story interaction bar with like, views, and message */}
+              {/* FIXED: Story interaction bar with like, views, and message - only for other users' stories */}
               {!viewingOwnStories && (
                 <View style={styles.storyInteractionBar}>
                   <TouchableOpacity
@@ -1871,6 +1867,14 @@ export default function SocialScreen() {
                     placeholderTextColor="rgba(255, 255, 255, 0.6)"
                     value={storyMessage}
                     onChangeText={setStoryMessage}
+                    onFocus={() => {
+                      setIsPaused(true);
+                      stopStoryTimer();
+                    }}
+                    onBlur={() => {
+                      setIsPaused(false);
+                      startStoryTimer();
+                    }}
                   />
                   {storyMessage.trim() && (
                     <TouchableOpacity

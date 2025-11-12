@@ -1,8 +1,4 @@
 
-import { IconSymbol } from '@/components/IconSymbol';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import { supabase, isSupabaseConfigured } from '@/utils/supabase';
 import {
   View,
   Text,
@@ -17,6 +13,10 @@ import {
   Pressable,
   ScrollView,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import { IconSymbol } from '@/components/IconSymbol';
+import { supabase, isSupabaseConfigured } from '@/utils/supabase';
 import React, { useState, useEffect, useCallback } from 'react';
 import { colors, commonStyles } from '@/styles/commonStyles';
 
@@ -476,23 +476,48 @@ export default function GestionarUsuariosScreen() {
     }
   };
 
+  // FIXED: Persistent role assignment
   const cambiarRolUsuario = async (usuarioId: string, nuevoRol: string) => {
     try {
-      const { error } = await supabase
+      console.log('[GestionarUsuarios] Changing role for user:', usuarioId, 'to:', nuevoRol);
+      
+      // Update role in usuarios table
+      const { error: updateError } = await supabase
         .from('usuarios')
         .update({ rol_app: nuevoRol })
         .eq('id', usuarioId);
 
-      if (error) throw error;
+      if (updateError) {
+        console.error('[GestionarUsuarios] Error updating role:', updateError);
+        throw updateError;
+      }
+
+      // Verify the update
+      const { data: verifyData, error: verifyError } = await supabase
+        .from('usuarios')
+        .select('rol_app')
+        .eq('id', usuarioId)
+        .single();
+
+      if (verifyError) {
+        console.error('[GestionarUsuarios] Error verifying role:', verifyError);
+        throw verifyError;
+      }
+
+      console.log('[GestionarUsuarios] Role verified:', verifyData.rol_app);
+
+      if (verifyData.rol_app !== nuevoRol) {
+        throw new Error('Role update verification failed');
+      }
 
       Alert.alert('Éxito', 'Rol actualizado correctamente');
       setShowRolModal(false);
       setSelectedUsuarioForRol(null);
-      cargarUsuarios();
-      cargarContadores();
+      await cargarUsuarios();
+      await cargarContadores();
     } catch (error) {
-      console.error('Error cambiando rol:', error);
-      Alert.alert('Error', 'No se pudo cambiar el rol del usuario');
+      console.error('[GestionarUsuarios] Error changing role:', error);
+      Alert.alert('Error', 'No se pudo cambiar el rol del usuario. Verifica los permisos de la base de datos.');
     }
   };
 
