@@ -99,6 +99,8 @@ export default function LocalPerfilScreen() {
     }
 
     try {
+      console.log('[LocalPerfil] Loading local data for:', localId);
+
       // Load local details
       const { data: localData, error: localError } = await supabase
         .from('locales')
@@ -119,15 +121,15 @@ export default function LocalPerfilScreen() {
       if (user && localData.propietario_id === user.id) {
         setIsOwner(true);
         
-        // FIXED: Set this local as selected and switch to owner mode
-        console.log('[LocalPerfil] User is owner, setting local as selected and switching to owner mode');
-        setSelectedLocalId(localId);
-        setCurrentMode('propietario');
-        setIsInteractingAsLocal(true);
+        // FIXED: Set this local as selected, switch to owner mode, and persist interaction
+        console.log('[LocalPerfil] ✅ User is owner, setting local as selected and switching to owner mode');
+        await setSelectedLocalId(localId);
+        await setCurrentMode('propietario');
+        await setIsInteractingAsLocal(true);
       } else {
         // FIXED: User is viewing another local, maintain interaction state
-        console.log('[LocalPerfil] User is viewing local, maintaining interaction state');
-        setIsInteractingAsLocal(true);
+        console.log('[LocalPerfil] ✅ User is viewing local, maintaining interaction state');
+        await setIsInteractingAsLocal(true);
       }
 
       // Load local posts (ONLY posts with tipo='local' and matching local_id)
@@ -226,6 +228,8 @@ export default function LocalPerfilScreen() {
 
         setIsFavorito(!!favData);
       }
+
+      console.log('[LocalPerfil] ✅ Local data loaded successfully');
     } catch (error) {
       console.error('[LocalPerfil] Error loading data:', error);
     } finally {
