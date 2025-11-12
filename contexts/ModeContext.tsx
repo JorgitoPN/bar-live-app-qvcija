@@ -36,7 +36,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
   const [publicationMode, setPublicationModeState] = useState<PublicationMode>('cliente');
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // FIXED: Initialize all state from AsyncStorage on mount
+  // Initialize all state from AsyncStorage on mount
   useEffect(() => {
     const initializeMode = async () => {
       try {
@@ -68,7 +68,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
           setActiveLocalProfileIdState(savedActiveProfile);
         }
 
-        // FIXED: Restore publication mode with proper persistence
+        // Restore publication mode with proper persistence
         if (savedPubMode === 'local' || savedPubMode === 'cliente') {
           console.log('[ModeContext] ✅ Restored publication mode:', savedPubMode);
           setPublicationModeState(savedPubMode as PublicationMode);
@@ -135,15 +135,20 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     }
   }, [user, isInitialized]);
 
-  // FIXED: Auto-reset publication mode when switching to cliente mode
+  // FIXED: Auto-reset when switching to cliente mode
   useEffect(() => {
-    if (currentMode === 'cliente' && publicationMode === 'local') {
-      console.log('[ModeContext] 🔄 Auto-resetting publication mode to cliente');
+    if (currentMode === 'cliente') {
+      console.log('[ModeContext] 🔄 Switching to cliente mode, resetting local context');
       setPublicationMode('cliente');
       setSelectedLocalIdState(null);
+      setIsInteractingAsLocalState(false);
+      setActiveLocalProfileIdState(null);
       AsyncStorage.removeItem(SELECTED_LOCAL_STORAGE_KEY);
+      AsyncStorage.removeItem(INTERACTING_AS_LOCAL_KEY);
+      AsyncStorage.removeItem(ACTIVE_LOCAL_PROFILE_KEY);
+      AsyncStorage.setItem(PUBLICATION_MODE_KEY, 'cliente');
     }
-  }, [currentMode, publicationMode]);
+  }, [currentMode]);
 
   const setCurrentMode = async (mode: UserMode) => {
     try {
@@ -167,12 +172,6 @@ export function ModeProvider({ children }: { children: ReactNode }) {
       await AsyncStorage.setItem(MODE_STORAGE_KEY, mode);
       setCurrentModeState(mode);
       console.log('[ModeContext] ✅ Mode saved to storage:', mode);
-
-      // FIXED: When switching to cliente mode, reset publication mode and local selection
-      if (mode === 'cliente') {
-        await setPublicationMode('cliente');
-        await setSelectedLocalId(null);
-      }
     } catch (error) {
       console.error('[ModeContext] ❌ Error saving mode:', error);
       setCurrentModeState(mode);
@@ -205,6 +204,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
         await AsyncStorage.setItem(INTERACTING_AS_LOCAL_KEY, 'true');
       } else {
         await AsyncStorage.removeItem(INTERACTING_AS_LOCAL_KEY);
+        // FIXED: Also clear active local profile when stopping interaction
         await AsyncStorage.removeItem(ACTIVE_LOCAL_PROFILE_KEY);
         setActiveLocalProfileIdState(null);
       }
@@ -223,6 +223,9 @@ export function ModeProvider({ children }: { children: ReactNode }) {
       
       if (localId) {
         await AsyncStorage.setItem(ACTIVE_LOCAL_PROFILE_KEY, localId);
+        // FIXED: When setting active local profile, also set interaction state
+        await AsyncStorage.setItem(INTERACTING_AS_LOCAL_KEY, 'true');
+        setIsInteractingAsLocalState(true);
       } else {
         await AsyncStorage.removeItem(ACTIVE_LOCAL_PROFILE_KEY);
       }
@@ -235,7 +238,6 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // FIXED: Persist publication mode with proper state management
   const setPublicationMode = async (mode: PublicationMode) => {
     try {
       console.log('[ModeContext] 🔄 Setting publication mode to:', mode);
