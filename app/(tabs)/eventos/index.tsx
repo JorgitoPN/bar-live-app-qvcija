@@ -14,6 +14,7 @@ import {
   RefreshControl,
   Pressable,
   Platform,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -49,7 +50,7 @@ export default function EventosScreen() {
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [provinciaSeleccionada, setProvinciaSeleccionada] = useState('Todas');
   
-  // NEW: Date picker states
+  // FIXED: Date picker states - only show calendar inside filters modal
   const [fechaInicio, setFechaInicio] = useState<Date | null>(null);
   const [fechaFin, setFechaFin] = useState<Date | null>(null);
   const [showDatePickerInicio, setShowDatePickerInicio] = useState(false);
@@ -108,6 +109,7 @@ export default function EventosScreen() {
         localNombre: evento.locales?.nombre || 'Local',
         provincia: evento.provincia || evento.locales?.provincia || '',
         destacado: evento.destacado || false,
+        propietario_id: evento.propietario_id,
       }));
 
       setEventos(eventosTransformados);
@@ -132,7 +134,7 @@ export default function EventosScreen() {
     const matchBusqueda = evento.titulo.toLowerCase().includes(busqueda.toLowerCase());
     const matchProvincia = provinciaSeleccionada === 'Todas' || evento.provincia === provinciaSeleccionada;
     
-    // NEW: Date range filter with calendar dates
+    // FIXED: Date range filter with calendar dates
     let matchFecha = true;
     if (fechaInicio && fechaFin) {
       const eventoFecha = new Date(evento.fecha);
@@ -174,7 +176,7 @@ export default function EventosScreen() {
     setFechaFin(null);
   };
 
-  // NEW: Format date for display
+  // FIXED: Format date for display
   const formatDate = (date: Date | null): string => {
     if (!date) return 'Seleccionar';
     return date.toLocaleDateString('es-ES', {
@@ -184,7 +186,7 @@ export default function EventosScreen() {
     });
   };
 
-  // NEW: Handle date picker changes
+  // FIXED: Handle date picker changes
   const onChangeDateInicio = (event: any, selectedDate?: Date) => {
     setShowDatePickerInicio(Platform.OS === 'ios');
     if (selectedDate) {
@@ -199,8 +201,45 @@ export default function EventosScreen() {
     }
   };
 
+  // NEW: Delete event function
+  const handleDeleteEvent = useCallback(async (eventoId: string, propietarioId: string) => {
+    if (!user || user.id !== propietarioId) {
+      Alert.alert('Error', 'Solo el propietario puede eliminar este evento');
+      return;
+    }
+
+    Alert.alert(
+      'Eliminar Evento',
+      '¿Estás seguro de que quieres eliminar este evento?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('eventos')
+                .update({ activo: false })
+                .eq('id', eventoId);
+
+              if (error) throw error;
+
+              Alert.alert('Éxito', 'Evento eliminado correctamente');
+              await cargarEventos();
+            } catch (error) {
+              console.error('[Eventos] Error deleting event:', error);
+              Alert.alert('Error', 'No se pudo eliminar el evento');
+            }
+          },
+        },
+      ]
+    );
+  }, [user, cargarEventos]);
+
   const renderEvento = (evento: Evento) => {
     const diasRestantes = calcularDiasRestantes(evento.fecha);
+    const isOwner = user && evento.propietario_id === user.id;
 
     return (
       <TouchableOpacity
@@ -215,6 +254,19 @@ export default function EventosScreen() {
           <View style={[styles.badgeDestacado, commonStyles.badgeDestacado]}>
             <Text style={commonStyles.badgeDestacadoText}>⭐ Destacado</Text>
           </View>
+        )}
+
+        {/* NEW: Delete button for event owner */}
+        {isOwner && (
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={(e) => {
+              e.stopPropagation();
+              handleDeleteEvent(evento.id, evento.propietario_id!);
+            }}
+          >
+            <IconSymbol name="trash.fill" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
         )}
 
         <View style={styles.eventoInfo}>
@@ -364,7 +416,7 @@ export default function EventosScreen() {
         </TouchableOpacity>
       )}
 
-      {/* Modal de filtros */}
+      {/* FIXED: Modal de filtros - calendar only shows inside filters */}
       <Modal
         visible={mostrarFiltros}
         animationType="slide"
@@ -384,33 +436,7 @@ export default function EventosScreen() {
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
-              {/* Provincia */}
-              <View style={styles.filterSection}>
-                <Text style={styles.filterTitle}>Provincia</Text>
-                <ScrollView style={styles.provinciasList} nestedScrollEnabled>
-                  {PROVINCIAS.map((provincia) => (
-                    <TouchableOpacity
-                      key={provincia}
-                      style={[
-                        styles.provinciaItem,
-                        provinciaSeleccionada === provincia && styles.provinciaItemActive,
-                      ]}
-                      onPress={() => setProvinciaSeleccionada(provincia)}
-                    >
-                      <Text
-                        style={[
-                          styles.provinciaText,
-                          provinciaSeleccionada === provincia && styles.provinciaTextActive,
-                        ]}
-                      >
-                        {provincia}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-
-              {/* NEW: Rango de Fechas con Calendar Picker */}
+              {/* FIXED: Rango de Fechas con Calendar Picker - only visible inside filters */}
               <View style={styles.filterSection}>
                 <Text style={styles.filterTitle}>Rango de Fechas</Text>
                 
@@ -455,6 +481,32 @@ export default function EventosScreen() {
                 )}
               </View>
 
+              {/* Provincia */}
+              <View style={styles.filterSection}>
+                <Text style={styles.filterTitle}>Provincia</Text>
+                <ScrollView style={styles.provinciasList} nestedScrollEnabled>
+                  {PROVINCIAS.map((provincia) => (
+                    <TouchableOpacity
+                      key={provincia}
+                      style={[
+                        styles.provinciaItem,
+                        provinciaSeleccionada === provincia && styles.provinciaItemActive,
+                      ]}
+                      onPress={() => setProvinciaSeleccionada(provincia)}
+                    >
+                      <Text
+                        style={[
+                          styles.provinciaText,
+                          provinciaSeleccionada === provincia && styles.provinciaTextActive,
+                        ]}
+                      >
+                        {provincia}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
               <View style={{ height: 20 }} />
             </ScrollView>
 
@@ -481,8 +533,8 @@ export default function EventosScreen() {
         </Pressable>
       </Modal>
 
-      {/* NEW: Date Pickers */}
-      {showDatePickerInicio && (
+      {/* FIXED: Date Pickers - only show when filters modal is open */}
+      {mostrarFiltros && showDatePickerInicio && (
         <DateTimePicker
           value={fechaInicio || new Date()}
           mode="date"
@@ -492,7 +544,7 @@ export default function EventosScreen() {
         />
       )}
 
-      {showDatePickerFin && (
+      {mostrarFiltros && showDatePickerFin && (
         <DateTimePicker
           value={fechaFin || new Date()}
           mode="date"
@@ -595,6 +647,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 6,
+  },
+  deleteButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(239, 68, 68, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   eventoInfo: {
     padding: 16,
@@ -702,27 +765,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 12,
   },
-  provinciasList: {
-    maxHeight: 300,
-  },
-  provinciaItem: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginBottom: 8,
-    backgroundColor: colors.background,
-  },
-  provinciaItemActive: {
-    backgroundColor: colors.primary,
-  },
-  provinciaText: {
-    fontSize: 15,
-    color: colors.text,
-  },
-  provinciaTextActive: {
-    color: colors.white,
-    fontWeight: '600',
-  },
   dateInputs: {
     flexDirection: 'row',
     gap: 12,
@@ -766,6 +808,27 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.text,
     lineHeight: 18,
+  },
+  provinciasList: {
+    maxHeight: 300,
+  },
+  provinciaItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 8,
+    backgroundColor: colors.background,
+  },
+  provinciaItemActive: {
+    backgroundColor: colors.primary,
+  },
+  provinciaText: {
+    fontSize: 15,
+    color: colors.text,
+  },
+  provinciaTextActive: {
+    color: colors.white,
+    fontWeight: '600',
   },
   modalFooter: {
     flexDirection: 'row',
