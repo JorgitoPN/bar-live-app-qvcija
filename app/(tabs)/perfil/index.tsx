@@ -21,7 +21,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
 import { supabase } from '@/utils/supabase';
@@ -124,7 +124,7 @@ interface LocalProfile {
   imagen_url?: string;
   descripcion?: string;
   telefono?: string;
-  sitio_web?: string;
+  website?: string;
   seguidores?: number;
 }
 
@@ -153,7 +153,7 @@ export default function PerfilScreen() {
   const [showCreateOptions, setShowCreateOptions] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   
-  // FIXED: Notification and message indicators
+  // FIXED: Notification and message indicators with real-time updates
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
   
@@ -205,6 +205,52 @@ export default function PerfilScreen() {
   const isPropietario = userRole === 'propietario' || (userRole === 'admin' && currentMode === 'propietario');
   const isOwnerMode = currentMode === 'propietario' && isPropietario;
 
+  // FIXED: Real-time updates for unread counts using useFocusEffect
+  useFocusEffect(
+    useCallback(() => {
+      if (user) {
+        loadUnreadCounts();
+        
+        // Set up real-time subscriptions
+        const notificationsChannel = supabase
+          .channel('notifications-changes')
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'notificaciones',
+              filter: `usuario_id=eq.${user.id}`,
+            },
+            () => {
+              loadUnreadCounts();
+            }
+          )
+          .subscribe();
+
+        const messagesChannel = supabase
+          .channel('messages-changes')
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'mensajes',
+            },
+            () => {
+              loadUnreadCounts();
+            }
+          )
+          .subscribe();
+
+        return () => {
+          supabase.removeChannel(notificationsChannel);
+          supabase.removeChannel(messagesChannel);
+        };
+      }
+    }, [user])
+  );
+
   useEffect(() => {
     if (!authLoading) {
       if (user) {
@@ -222,7 +268,7 @@ export default function PerfilScreen() {
     try {
       const { data: localesData, error } = await supabase
         .from('locales')
-        .select('id, nombre, tipo, direccion, provincia, imagen_url, descripcion, telefono, sitio_web')
+        .select('id, nombre, tipo, direccion, provincia, imagen_url, descripcion, telefono, website')
         .eq('propietario_id', user.id)
         .eq('activo', true);
 
@@ -833,8 +879,8 @@ export default function PerfilScreen() {
   };
 
   const handleWebsite = () => {
-    if (isOwnerMode && localProfile?.sitio_web) {
-      Linking.openURL(localProfile.sitio_web);
+    if (isOwnerMode && localProfile?.website) {
+      Linking.openURL(localProfile.website);
     } else if (user?.sitio_web) {
       Linking.openURL(user.sitio_web);
     }
@@ -1308,10 +1354,10 @@ export default function PerfilScreen() {
             <Text style={styles.profileBio}>{localProfile.descripcion}</Text>
           )}
 
-          {localProfile.sitio_web && (
+          {localProfile.website && (
             <TouchableOpacity style={styles.websiteContainer} onPress={handleWebsite} activeOpacity={0.7}>
               <IconSymbol name="link" size={16} color={colors.primary} />
-              <Text style={styles.websiteText}>{localProfile.sitio_web}</Text>
+              <Text style={styles.websiteText}>{localProfile.website}</Text>
             </TouchableOpacity>
           )}
 

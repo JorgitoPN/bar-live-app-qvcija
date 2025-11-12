@@ -55,7 +55,11 @@ const SERVICIOS_OPTIONS = [
 export default function EditarLocalScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { user } = useAuth();
   const localId = params.id as string;
+  
+  // FIXED: Check if user is admin
+  const isAdmin = user?.rol_app === 'admin';
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -414,7 +418,8 @@ export default function EditarLocalScreen() {
 
       <ScrollView style={styles.content}>
         <View style={styles.form}>
-          {/* Google Places Enrichment Section */}
+          {/* FIXED: Google Places Enrichment Section - only for admins */}
+          {isAdmin && (
           <View style={styles.enrichmentSection}>
             <Text style={styles.sectionTitle}>🌐 Enriquecimiento con Google Places</Text>
             <Text style={styles.sectionDescription}>
@@ -465,6 +470,7 @@ export default function EditarLocalScreen() {
               </View>
             )}
           </View>
+          )}
 
           {/* Imagen Principal */}
           <View style={styles.imageSection}>

@@ -121,10 +121,24 @@ export default function ChatsScreen() {
   }, [loadChats]);
 
   // Handle navigation from notification or other screens
-  const handleOpenChat = useCallback(async (otroUsuarioId: string) => {
+  const handleOpenChat = useCallback(async (otroUsuarioId: string, chatId?: string) => {
     if (!user) {
       setShowLoginModal(true);
       return;
+    }
+
+    // FIXED: Mark messages as read when opening chat
+    if (chatId) {
+      try {
+        await supabase
+          .from('mensajes')
+          .update({ leido: true })
+          .eq('chat_id', chatId)
+          .eq('leido', false)
+          .neq('remitente_id', user.id);
+      } catch (error) {
+        console.error('[Chats] Error marking messages as read:', error);
+      }
     }
 
     // Find existing chat
@@ -278,7 +292,7 @@ export default function ChatsScreen() {
           <TouchableOpacity
             key={chat.id}
             style={styles.chatCard}
-            onPress={() => router.push(`/chat/conversacion?chatId=${chat.id}`)}
+            onPress={() => handleOpenChat(chat.otro_usuario.id, chat.id)}
           >
             <View style={styles.avatarContainer}>
               {chat.otro_usuario.avatar ? (
