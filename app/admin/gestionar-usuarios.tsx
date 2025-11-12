@@ -15,6 +15,7 @@ import {
   ActivityIndicator,
   Modal,
   Pressable,
+  ScrollView,
 } from 'react-native';
 import React, { useState, useEffect, useCallback } from 'react';
 import { colors, commonStyles } from '@/styles/commonStyles';
@@ -27,6 +28,14 @@ interface Usuario {
   avatar?: string;
   fecha_registro: string;
   activo: boolean;
+}
+
+interface Local {
+  id: string;
+  nombre: string;
+  direccion: string;
+  provincia: string;
+  propietario_id?: string;
 }
 
 const USUARIOS_POR_PAGINA = 20;
@@ -257,8 +266,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     borderRadius: 16,
     padding: 24,
-    width: '80%',
+    width: '85%',
     maxWidth: 400,
+    maxHeight: '80%',
   },
   modalTitle: {
     fontSize: 20,
@@ -285,6 +295,54 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontWeight: '600',
   },
+  localSearchInput: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    marginBottom: 16,
+  },
+  localItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  localItemSelected: {
+    backgroundColor: colors.primary + '20',
+  },
+  localNombre: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  localDireccion: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  modalScrollView: {
+    maxHeight: 400,
+  },
+  assignButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  assignButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.headerText,
+  },
+  assignButtonDisabled: {
+    backgroundColor: colors.cardBorder,
+  },
 });
 
 export default function GestionarUsuariosScreen() {
@@ -296,7 +354,13 @@ export default function GestionarUsuariosScreen() {
   const [filtroEstado, setFiltroEstado] = useState<string | null>(null);
   const [selectedUsuarios, setSelectedUsuarios] = useState<Set<string>>(new Set());
   const [showRolModal, setShowRolModal] = useState(false);
+  const [showLocalModal, setShowLocalModal] = useState(false);
   const [selectedUsuarioForRol, setSelectedUsuarioForRol] = useState<string | null>(null);
+  const [selectedUsuarioForLocal, setSelectedUsuarioForLocal] = useState<string | null>(null);
+  const [locales, setLocales] = useState<Local[]>([]);
+  const [localSearch, setLocalSearch] = useState('');
+  const [selectedLocal, setSelectedLocal] = useState<string | null>(null);
+  const [loadingLocales, setLoadingLocales] = useState(false);
   const [contadores, setContadores] = useState({
     total: 0,
     clientes: 0,
@@ -365,6 +429,26 @@ export default function GestionarUsuariosScreen() {
     }
   }, [busqueda, filtroRol, filtroEstado]);
 
+  const cargarLocales = useCallback(async () => {
+    try {
+      setLoadingLocales(true);
+      const { data, error } = await supabase
+        .from('locales')
+        .select('id, nombre, direccion, provincia, propietario_id')
+        .eq('activo', true)
+        .order('nombre');
+
+      if (error) throw error;
+
+      setLocales(data || []);
+    } catch (error) {
+      console.error('Error cargando locales:', error);
+      Alert.alert('Error', 'No se pudieron cargar los locales');
+    } finally {
+      setLoadingLocales(false);
+    }
+  }, []);
+
   useEffect(() => {
     cargarContadores();
     cargarUsuarios();
@@ -409,6 +493,52 @@ export default function GestionarUsuariosScreen() {
     } catch (error) {
       console.error('Error cambiando rol:', error);
       Alert.alert('Error', 'No se pudo cambiar el rol del usuario');
+    }
+  };
+
+  const abrirModalAsignarLocal = async (usuarioId: string) => {
+    const usuario = usuarios.find(u => u.id === usuarioId);
+    
+    if (!usuario) return;
+
+    if (usuario.rol_app !== 'propietario') {
+      Alert.alert(
+        'Rol Incorrecto',
+        'Solo puedes asignar locales a usuarios con rol de propietario.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    setSelectedUsuarioForLocal(usuarioId);
+    setSelectedLocal(null);
+    setLocalSearch('');
+    await cargarLocales();
+    setShowLocalModal(true);
+  };
+
+  const asignarLocalAUsuario = async () => {
+    if (!selectedUsuarioForLocal || !selectedLocal) {
+      Alert.alert('Error', 'Debes seleccionar un local');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('locales')
+        .update({ propietario_id: selectedUsuarioForLocal })
+        .eq('id', selectedLocal);
+
+      if (error) throw error;
+
+      Alert.alert('Éxito', 'Local asignado correctamente al propietario');
+      setShowLocalModal(false);
+      setSelectedUsuarioForLocal(null);
+      setSelectedLocal(null);
+      cargarLocales();
+    } catch (error) {
+      console.error('Error asignando local:', error);
+      Alert.alert('Error', 'No se pudo asignar el local al usuario');
     }
   };
 
@@ -531,6 +661,12 @@ export default function GestionarUsuariosScreen() {
     }
   };
 
+  const localesFiltrados = locales.filter(local => {
+    if (!localSearch) return true;
+    return local.nombre.toLowerCase().includes(localSearch.toLowerCase()) ||
+           local.direccion.toLowerCase().includes(localSearch.toLowerCase());
+  });
+
   const renderUsuarioCard = ({ item }: { item: Usuario }) => (
     <TouchableOpacity
       style={[
@@ -579,6 +715,14 @@ export default function GestionarUsuariosScreen() {
       </View>
 
       <View style={styles.usuarioActions}>
+        {item.rol_app === 'propietario' && (
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => abrirModalAsignarLocal(item.id)}
+          >
+            <IconSymbol name="building.2" size={20} color={colors.text} />
+          </TouchableOpacity>
+        )}
         <TouchableOpacity
           style={styles.actionButton}
           onPress={() => {
@@ -791,6 +935,7 @@ export default function GestionarUsuariosScreen() {
         contentContainerStyle={{ flexGrow: 1 }}
       />
 
+      {/* Modal de cambio de rol */}
       <Modal
         visible={showRolModal}
         transparent
@@ -819,6 +964,75 @@ export default function GestionarUsuariosScreen() {
               <Text style={styles.modalOptionText}>Admin</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.modalCancel} onPress={() => setShowRolModal(false)}>
+              <Text style={styles.modalCancelText}>Cancelar</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Modal de asignación de local */}
+      <Modal
+        visible={showLocalModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowLocalModal(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowLocalModal(false)}>
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+            <Text style={styles.modalTitle}>Asignar Local a Propietario</Text>
+            
+            <TextInput
+              style={styles.localSearchInput}
+              placeholder="Buscar local..."
+              placeholderTextColor={colors.textSecondary}
+              value={localSearch}
+              onChangeText={setLocalSearch}
+            />
+
+            {loadingLocales ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color={colors.primary} />
+              </View>
+            ) : (
+              <ScrollView style={styles.modalScrollView}>
+                {localesFiltrados.map((local) => (
+                  <TouchableOpacity
+                    key={local.id}
+                    style={[
+                      styles.localItem,
+                      selectedLocal === local.id && styles.localItemSelected,
+                    ]}
+                    onPress={() => setSelectedLocal(local.id)}
+                  >
+                    <Text style={styles.localNombre}>{local.nombre}</Text>
+                    <Text style={styles.localDireccion}>
+                      {local.direccion} - {local.provincia}
+                    </Text>
+                    {local.propietario_id && (
+                      <Text style={[styles.localDireccion, { color: colors.primary }]}>
+                        Ya tiene propietario asignado
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                ))}
+                {localesFiltrados.length === 0 && (
+                  <Text style={styles.emptyText}>No se encontraron locales</Text>
+                )}
+              </ScrollView>
+            )}
+
+            <TouchableOpacity
+              style={[
+                styles.assignButton,
+                !selectedLocal && styles.assignButtonDisabled,
+              ]}
+              onPress={asignarLocalAUsuario}
+              disabled={!selectedLocal}
+            >
+              <Text style={styles.assignButtonText}>Asignar Local</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.modalCancel} onPress={() => setShowLocalModal(false)}>
               <Text style={styles.modalCancelText}>Cancelar</Text>
             </TouchableOpacity>
           </Pressable>

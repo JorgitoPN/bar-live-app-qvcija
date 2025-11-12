@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -68,6 +69,7 @@ interface OfertaTrabajo {
   salario?: string;
   requisitos?: string[];
   provincia?: string;
+  imagen_url?: string;
   created_at: string;
   local?: {
     nombre: string;
@@ -79,6 +81,7 @@ interface OfertaTrabajo {
 
 interface PerfilProfesional {
   id: string;
+  usuario_id?: string;
   nombre_completo: string;
   puesto_deseado: string;
   experiencia: string;
@@ -328,60 +331,71 @@ export default function EmpleoScreen() {
         }}
         activeOpacity={0.8}
       >
-        <View style={styles.ofertaHeader}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.ofertaTitulo}>{oferta.titulo}</Text>
-            <Text style={styles.ofertaLocal}>
-              {oferta.local?.nombre || oferta.propietario?.nombre || 'Local'}
-            </Text>
-          </View>
-          {diasPublicado < 7 && (
-            <View style={[styles.badgeNuevo, commonStyles.badgeNuevo]}>
-              <Text style={commonStyles.badgeNuevoText}>Nuevo</Text>
-            </View>
-          )}
-        </View>
-
-        <Text style={styles.ofertaDescripcion} numberOfLines={2}>
-          {oferta.descripcion}
-        </Text>
-
-        <View style={styles.ofertaDetalles}>
-          <View style={styles.detalleChip}>
-            <IconSymbol name="briefcase" size={14} color={colors.primary} />
-            <Text style={styles.detalleTexto}>{oferta.tipo}</Text>
-          </View>
-          {oferta.salario && (
-            <View style={styles.detalleChip}>
-              <IconSymbol name="eurosign.circle" size={14} color={colors.primary} />
-              <Text style={styles.detalleTexto}>{oferta.salario}</Text>
-            </View>
-          )}
-          {oferta.provincia && (
-            <View style={styles.detalleChip}>
-              <IconSymbol name="mappin" size={14} color={colors.primary} />
-              <Text style={styles.detalleTexto}>{oferta.provincia}</Text>
-            </View>
-          )}
-        </View>
-
-        {oferta.requisitos && oferta.requisitos.length > 0 && (
-          <View style={styles.requisitosContainer}>
-            {oferta.requisitos.slice(0, 2).map((requisito, index) => (
-              <View key={index} style={styles.requisitoChip}>
-                <Text style={styles.requisitoTexto}>{requisito}</Text>
-              </View>
-            ))}
-          </View>
+        {/* Imagen de portada del local */}
+        {oferta.imagen_url && (
+          <Image 
+            source={{ uri: oferta.imagen_url }} 
+            style={styles.ofertaImagen}
+            resizeMode="cover"
+          />
         )}
 
-        <View style={styles.ofertaFooter}>
-          <Text style={styles.fechaTexto}>
-            Publicado hace {diasPublicado} {diasPublicado === 1 ? 'día' : 'días'}
+        <View style={styles.ofertaContent}>
+          <View style={styles.ofertaHeader}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.ofertaTitulo}>{oferta.titulo}</Text>
+              <Text style={styles.ofertaLocal}>
+                {oferta.local?.nombre || oferta.propietario?.nombre || 'Local'}
+              </Text>
+            </View>
+            {diasPublicado < 7 && (
+              <View style={[styles.badgeNuevo, commonStyles.badgeNuevo]}>
+                <Text style={commonStyles.badgeNuevoText}>Nuevo</Text>
+              </View>
+            )}
+          </View>
+
+          <Text style={styles.ofertaDescripcion} numberOfLines={2}>
+            {oferta.descripcion}
           </Text>
-          <TouchableOpacity style={styles.aplicarButton}>
-            <Text style={styles.aplicarTexto}>Aplicar</Text>
-          </TouchableOpacity>
+
+          <View style={styles.ofertaDetalles}>
+            <View style={styles.detalleChip}>
+              <IconSymbol name="briefcase" size={14} color={colors.primary} />
+              <Text style={styles.detalleTexto}>{oferta.tipo}</Text>
+            </View>
+            {oferta.salario && (
+              <View style={styles.detalleChip}>
+                <IconSymbol name="eurosign.circle" size={14} color={colors.primary} />
+                <Text style={styles.detalleTexto}>{oferta.salario}</Text>
+              </View>
+            )}
+            {oferta.provincia && (
+              <View style={styles.detalleChip}>
+                <IconSymbol name="mappin" size={14} color={colors.primary} />
+                <Text style={styles.detalleTexto}>{oferta.provincia}</Text>
+              </View>
+            )}
+          </View>
+
+          {oferta.requisitos && oferta.requisitos.length > 0 && (
+            <View style={styles.requisitosContainer}>
+              {oferta.requisitos.slice(0, 2).map((requisito, index) => (
+                <View key={index} style={styles.requisitoChip}>
+                  <Text style={styles.requisitoTexto}>{requisito}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          <View style={styles.ofertaFooter}>
+            <Text style={styles.fechaTexto}>
+              Publicado hace {diasPublicado} {diasPublicado === 1 ? 'día' : 'días'}
+            </Text>
+            <TouchableOpacity style={styles.aplicarButton}>
+              <Text style={styles.aplicarTexto}>Aplicar</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -389,6 +403,7 @@ export default function EmpleoScreen() {
 
   const renderPerfil = (perfil: PerfilProfesional) => {
     const diasPublicado = calcularDiasPublicado(perfil.created_at);
+    const fotoUrl = perfil.foto_url || perfil.usuario?.avatar;
 
     return (
       <TouchableOpacity
@@ -400,16 +415,28 @@ export default function EmpleoScreen() {
         }}
         activeOpacity={0.8}
       >
-        <View style={styles.ofertaHeader}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.ofertaTitulo}>{perfil.nombre_completo}</Text>
-            <Text style={styles.ofertaLocal}>{perfil.puesto_deseado}</Text>
-          </View>
-          {diasPublicado < 7 && (
-            <View style={[styles.badgeNuevo, commonStyles.badgeNuevo]}>
-              <Text style={commonStyles.badgeNuevoText}>Nuevo</Text>
+        <View style={styles.perfilHeader}>
+          {fotoUrl ? (
+            <Image 
+              source={{ uri: fotoUrl }} 
+              style={styles.perfilFoto}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.perfilFotoPlaceholder}>
+              <IconSymbol name="person.circle" size={40} color={colors.textSecondary} />
             </View>
           )}
+          
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <Text style={styles.ofertaTitulo}>{perfil.nombre_completo}</Text>
+            <Text style={styles.ofertaLocal}>{perfil.puesto_deseado}</Text>
+            {diasPublicado < 7 && (
+              <View style={[styles.badgeNuevo, commonStyles.badgeNuevo, { marginTop: 4 }]}>
+                <Text style={commonStyles.badgeNuevoText}>Nuevo</Text>
+              </View>
+            )}
+          </View>
         </View>
 
         <Text style={styles.ofertaDescripcion} numberOfLines={2}>
@@ -766,9 +793,17 @@ const styles = StyleSheet.create({
   ofertaCard: {
     backgroundColor: colors.cardBackground,
     borderRadius: 12,
-    padding: 16,
     borderWidth: 1,
     borderColor: colors.cardBorder,
+    overflow: 'hidden',
+  },
+  ofertaImagen: {
+    width: '100%',
+    height: 160,
+    backgroundColor: colors.cardBorder,
+  },
+  ofertaContent: {
+    padding: 16,
   },
   ofertaHeader: {
     flexDirection: 'row',
@@ -858,6 +893,26 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: colors.white,
+  },
+  perfilHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    paddingBottom: 12,
+  },
+  perfilFoto: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: colors.cardBorder,
+  },
+  perfilFotoPlaceholder: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: colors.cardBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyState: {
     flex: 1,

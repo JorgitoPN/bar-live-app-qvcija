@@ -9,6 +9,7 @@ import {
   Alert,
   ScrollView,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -23,6 +24,7 @@ interface LocalConSuscripcion {
   id: string;
   nombre: string;
   provincia: string;
+  imagen_url?: string;
 }
 
 export default function CrearOfertaTrabajoScreen() {
@@ -46,7 +48,7 @@ export default function CrearOfertaTrabajoScreen() {
       console.log('[OfertaTrabajo] Cargando locales del propietario...');
       const { data, error } = await supabase
         .from('locales')
-        .select('id, nombre, provincia')
+        .select('id, nombre, provincia, imagen_url')
         .eq('propietario_id', user.id)
         .eq('activo', true);
 
@@ -112,6 +114,7 @@ export default function CrearOfertaTrabajoScreen() {
           local_id: localSeleccionado,
           propietario_id: user.id,
           provincia: localData?.provincia,
+          imagen_url: localData?.imagen_url || null,
           activo: true,
         });
 
@@ -127,6 +130,8 @@ export default function CrearOfertaTrabajoScreen() {
       setLoading(false);
     }
   };
+
+  const localSeleccionadoData = misLocales.find(l => l.id === localSeleccionado);
 
   if (loadingLocales) {
     return (
@@ -152,6 +157,18 @@ export default function CrearOfertaTrabajoScreen() {
 
       <ScrollView style={styles.content}>
         <View style={styles.form}>
+          {/* Preview de la foto del local */}
+          {localSeleccionadoData?.imagen_url && (
+            <View style={styles.previewContainer}>
+              <Text style={styles.previewLabel}>Foto de portada (del local)</Text>
+              <Image 
+                source={{ uri: localSeleccionadoData.imagen_url }} 
+                style={styles.previewImage}
+                resizeMode="cover"
+              />
+            </View>
+          )}
+
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Local *</Text>
             <View style={styles.localButtons}>
@@ -295,6 +312,21 @@ const styles = StyleSheet.create({
   },
   form: {
     padding: 20,
+  },
+  previewContainer: {
+    marginBottom: 24,
+  },
+  previewLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  previewImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
+    backgroundColor: colors.cardBackground,
   },
   inputContainer: {
     marginBottom: 20,
