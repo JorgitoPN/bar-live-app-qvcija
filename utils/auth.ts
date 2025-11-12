@@ -39,7 +39,7 @@ const waitForUserProfile = async (userId: string, maxRetries = 5): Promise<{ suc
       .maybeSingle();
 
     if (profile) {
-      console.log('[Auth] Perfil encontrado');
+      console.log('[Auth] Perfil encontrado:', profile);
       return { success: true, profile };
     }
     
@@ -55,6 +55,40 @@ const waitForUserProfile = async (userId: string, maxRetries = 5): Promise<{ suc
   }
   
   return { success: false, error: 'No se pudo encontrar el perfil después de varios intentos' };
+};
+
+// Helper function to create user profile manually if trigger fails
+const createUserProfileManually = async (userId: string, email: string, nombre: string, avatar?: string, provider: 'barlive' | 'google' = 'barlive'): Promise<{ success: boolean; profile?: any; error?: string }> => {
+  try {
+    console.log('[Auth] Creando perfil de usuario manualmente...');
+    
+    const { data: profile, error } = await supabase
+      .from('usuarios')
+      .insert({
+        id: userId,
+        email: email,
+        nombre: nombre,
+        avatar: avatar,
+        rol_app: 'cliente',
+        provider: provider,
+        activo: true,
+        ha_visto_mensaje_propietario: false,
+        fecha_registro: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[Auth] Error creando perfil manualmente:', error);
+      return { success: false, error: error.message };
+    }
+
+    console.log('[Auth] Perfil creado manualmente:', profile);
+    return { success: true, profile };
+  } catch (error: any) {
+    console.error('[Auth] Excepción al crear perfil manualmente:', error);
+    return { success: false, error: error.message };
+  }
 };
 
 // BarLive Authentication (Email/Password)
@@ -309,25 +343,50 @@ export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error
 
           if (sessionData.user) {
             console.log('[Google Auth] Sesión establecida para usuario:', sessionData.user.id);
+            console.log('[Google Auth] User metadata:', sessionData.user.user_metadata);
+            console.log('[Google Auth] App metadata:', sessionData.user.app_metadata);
             
             // Wait for trigger to create profile
-            const { success, profile } = await waitForUserProfile(sessionData.user.id);
+            let profileResult = await waitForUserProfile(sessionData.user.id);
             
-            if (!success || !profile) {
-              console.error('[Google Auth] No se pudo obtener el perfil del usuario');
-              return { user: null, error: 'Error al obtener el perfil de usuario' };
+            // If profile not found, try to create it manually
+            if (!profileResult.success || !profileResult.profile) {
+              console.log('[Google Auth] Perfil no encontrado por trigger, intentando crear manualmente...');
+              
+              const nombre = sessionData.user.user_metadata?.full_name || 
+                            sessionData.user.user_metadata?.name || 
+                            sessionData.user.email?.split('@')[0] || 
+                            'Usuario';
+              const avatar = sessionData.user.user_metadata?.avatar_url || 
+                            sessionData.user.user_metadata?.picture;
+              
+              profileResult = await createUserProfileManually(
+                sessionData.user.id,
+                sessionData.user.email || '',
+                nombre,
+                avatar,
+                'google'
+              );
+            }
+            
+            if (!profileResult.success || !profileResult.profile) {
+              console.error('[Google Auth] No se pudo obtener ni crear el perfil del usuario');
+              return { 
+                user: null, 
+                error: 'Error al obtener el perfil de usuario. Por favor, intenta cerrar sesión y volver a iniciar sesión.' 
+              };
             }
 
-            const isNewUser = !profile.ha_visto_mensaje_propietario;
+            const isNewUser = !profileResult.profile.ha_visto_mensaje_propietario;
 
             const user: AuthUser = {
               id: sessionData.user.id,
               email: sessionData.user.email || '',
-              nombre: profile.nombre || 'Usuario',
-              avatar: profile.avatar,
-              rol_app: profile.rol_app || 'cliente',
+              nombre: profileResult.profile.nombre || 'Usuario',
+              avatar: profileResult.profile.avatar,
+              rol_app: profileResult.profile.rol_app || 'cliente',
               provider: 'google',
-              ha_visto_mensaje_propietario: profile.ha_visto_mensaje_propietario || false,
+              ha_visto_mensaje_propietario: profileResult.profile.ha_visto_mensaje_propietario || false,
             };
 
             console.log('[Google Auth] Google Sign-In completado exitosamente');
