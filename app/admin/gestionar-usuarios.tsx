@@ -36,6 +36,7 @@ interface Local {
   direccion: string;
   provincia: string;
   propietario_id?: string;
+  imagen_url?: string;
 }
 
 const USUARIOS_POR_PAGINA = 20;
@@ -325,6 +326,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
   },
+  localPropietarioInfo: {
+    fontSize: 12,
+    color: colors.primary,
+    marginTop: 2,
+  },
   modalScrollView: {
     maxHeight: 400,
   },
@@ -389,7 +395,7 @@ export default function GestionarUsuariosScreen() {
 
       setContadores(stats);
     } catch (error) {
-      console.error('Error cargando contadores:', error);
+      console.error('[GestionarUsuarios] Error cargando contadores:', error);
     }
   }, []);
 
@@ -422,7 +428,7 @@ export default function GestionarUsuariosScreen() {
 
       setUsuarios(data || []);
     } catch (error) {
-      console.error('Error cargando usuarios:', error);
+      console.error('[GestionarUsuarios] Error cargando usuarios:', error);
       Alert.alert('Error', 'No se pudieron cargar los usuarios');
     } finally {
       setLoading(false);
@@ -434,7 +440,7 @@ export default function GestionarUsuariosScreen() {
       setLoadingLocales(true);
       const { data, error } = await supabase
         .from('locales')
-        .select('id, nombre, direccion, provincia, propietario_id')
+        .select('id, nombre, direccion, provincia, propietario_id, imagen_url')
         .eq('activo', true)
         .order('nombre');
 
@@ -442,7 +448,7 @@ export default function GestionarUsuariosScreen() {
 
       setLocales(data || []);
     } catch (error) {
-      console.error('Error cargando locales:', error);
+      console.error('[GestionarUsuarios] Error cargando locales:', error);
       Alert.alert('Error', 'No se pudieron cargar los locales');
     } finally {
       setLoadingLocales(false);
@@ -471,7 +477,7 @@ export default function GestionarUsuariosScreen() {
       cargarUsuarios();
       cargarContadores();
     } catch (error) {
-      console.error('Error actualizando estado:', error);
+      console.error('[GestionarUsuarios] Error actualizando estado:', error);
       Alert.alert('Error', 'No se pudo actualizar el estado del usuario');
     }
   };
@@ -521,6 +527,7 @@ export default function GestionarUsuariosScreen() {
     }
   };
 
+  // IMPLEMENTED: Manual locale assignment for owner users
   const abrirModalAsignarLocal = async (usuarioId: string) => {
     const usuario = usuarios.find(u => u.id === usuarioId);
     
@@ -549,6 +556,8 @@ export default function GestionarUsuariosScreen() {
     }
 
     try {
+      console.log('[GestionarUsuarios] Assigning locale:', selectedLocal, 'to user:', selectedUsuarioForLocal);
+
       const { error } = await supabase
         .from('locales')
         .update({ propietario_id: selectedUsuarioForLocal })
@@ -562,7 +571,7 @@ export default function GestionarUsuariosScreen() {
       setSelectedLocal(null);
       cargarLocales();
     } catch (error) {
-      console.error('Error asignando local:', error);
+      console.error('[GestionarUsuarios] Error asignando local:', error);
       Alert.alert('Error', 'No se pudo asignar el local al usuario');
     }
   };
@@ -589,7 +598,7 @@ export default function GestionarUsuariosScreen() {
               cargarUsuarios();
               cargarContadores();
             } catch (error) {
-              console.error('Error eliminando usuario:', error);
+              console.error('[GestionarUsuarios] Error eliminando usuario:', error);
               Alert.alert('Error', 'No se pudo eliminar el usuario');
             }
           },
@@ -641,7 +650,7 @@ export default function GestionarUsuariosScreen() {
               cargarUsuarios();
               cargarContadores();
             } catch (error) {
-              console.error('Error eliminando usuarios:', error);
+              console.error('[GestionarUsuarios] Error eliminando usuarios:', error);
               Alert.alert('Error', 'No se pudieron eliminar los usuarios');
             }
           },
@@ -740,6 +749,7 @@ export default function GestionarUsuariosScreen() {
       </View>
 
       <View style={styles.usuarioActions}>
+        {/* IMPLEMENTED: Building icon button for owner users to assign locales */}
         {item.rol_app === 'propietario' && (
           <TouchableOpacity
             style={styles.actionButton}
@@ -995,7 +1005,7 @@ export default function GestionarUsuariosScreen() {
         </Pressable>
       </Modal>
 
-      {/* Modal de asignación de local */}
+      {/* IMPLEMENTED: Modal de asignación de local con búsqueda y filtrado */}
       <Modal
         visible={showLocalModal}
         transparent
@@ -1034,8 +1044,8 @@ export default function GestionarUsuariosScreen() {
                       {local.direccion} - {local.provincia}
                     </Text>
                     {local.propietario_id && (
-                      <Text style={[styles.localDireccion, { color: colors.primary }]}>
-                        Ya tiene propietario asignado
+                      <Text style={styles.localPropietarioInfo}>
+                        ⚠️ Ya tiene propietario asignado
                       </Text>
                     )}
                   </TouchableOpacity>

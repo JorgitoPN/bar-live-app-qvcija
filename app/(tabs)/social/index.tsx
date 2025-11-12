@@ -971,7 +971,7 @@ export default function SocialScreen() {
     }
   }, [user, currentStoryIndex, viewingOwnStories, userStories, historias]);
 
-  // FIXED: Send message with story screenshot - pause story when typing
+  // FIXED: Send message with story screenshot - pause story when typing - removed expires_at field
   const handleSendStoryMessage = useCallback(async () => {
     const currentStories = viewingOwnStories ? userStories : historias;
     const currentStory = currentStories[currentStoryIndex];
@@ -981,6 +981,8 @@ export default function SocialScreen() {
     }
 
     try {
+      console.log('[Social] Sending story message...');
+      
       // Find or create chat
       const { data: chatExistente, error: chatError } = await supabase
         .from('chats')
@@ -991,6 +993,7 @@ export default function SocialScreen() {
       let chatId = chatExistente?.id;
 
       if (!chatId) {
+        console.log('[Social] Creating new chat...');
         const { data: nuevoChat, error: nuevoChatError } = await supabase
           .from('chats')
           .insert({
@@ -1002,9 +1005,10 @@ export default function SocialScreen() {
 
         if (nuevoChatError) throw nuevoChatError;
         chatId = nuevoChat.id;
+        console.log('[Social] Chat created:', chatId);
       }
 
-      // Send message with story reference
+      // FIXED: Send message without expires_at field (removed from insert)
       const { error: mensajeError } = await supabase
         .from('mensajes')
         .insert({
@@ -1013,10 +1017,11 @@ export default function SocialScreen() {
           contenido: storyMessage,
           historia_id: currentStory.id,
           historia_imagen: currentStory.imagen,
-          expires_at: currentStory.expires_at,
         });
 
       if (mensajeError) throw mensajeError;
+
+      console.log('[Social] Message sent successfully');
 
       // Create notification
       await supabase.from('notificaciones').insert({
