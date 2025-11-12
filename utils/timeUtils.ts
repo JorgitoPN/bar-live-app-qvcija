@@ -268,10 +268,11 @@ export function buscarProximaApertura(local: any, ahora: Date): ProximaApertura 
  * Handles multiple time ranges per day and midnight crossings
  * 
  * CRITICAL FIX: Properly handles overnight schedules
- * Example: Monday 23:30-06:30 means:
- * - Opens Monday at 23:30 PM
- * - Closes Tuesday at 06:30 AM
- * - At Monday 05:27 AM, the venue is CLOSED (hasn't opened yet)
+ * Example: Wednesday 23:30-06:30 means:
+ * - Opens Wednesday at 23:30 PM (still Wednesday night)
+ * - Closes Thursday at 06:30 AM (early Thursday morning)
+ * - At Wednesday 23:45 PM, the venue is OPEN and it's still Wednesday
+ * - At Thursday 00:15 AM, the venue is OPEN but now in Thursday's early morning (from Wednesday's night schedule)
  */
 export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLocal {
   const diaActualIndex = ahora.getDay();
@@ -279,13 +280,14 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
   const horaActual = ahora.getHours() * 60 + ahora.getMinutes();
   
   console.log(`⏰ [TIME] Calculando estado para: ${local.nombre || 'Local sin nombre'}`);
-  console.log(`⏰ [TIME] Día del reloj: ${diaActual}, Hora actual: ${formatearHora(horaActual)} (${horaActual} minutos)`);
+  console.log(`⏰ [TIME] Día del calendario: ${diaActual}, Hora actual: ${formatearHora(horaActual)} (${horaActual} minutos)`);
   
   // STEP 1: Determine the logical day
-  // If we're in early morning (00:00-06:30), we need to check if we're still in the previous day's night
-  let diaReferencia = diaActual;
-  let diaReferenciaIndex = diaActualIndex;
-  let estamosEnNochePreviaDelDiaAnterior = false;
+  // The logical day is the day when the venue's operating period started
+  // If we're in early morning (00:00-06:30), we might still be in the previous day's night schedule
+  let diaLogico = diaActual;
+  let diaLogicoIndex = diaActualIndex;
+  let estamosEnMadrugadaDelDiaAnterior = false;
   
   if (horaActual < 390) { // Before 6:30 AM (390 minutes)
     const diaAnteriorIndex = (diaActualIndex - 1 + 7) % 7;
@@ -313,10 +315,10 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
             
             // If current time is before the closing time, we're in the previous day's night
             if (horaActual < cierre) {
-              console.log(`⏰ [TIME] ✅ Estamos en la noche del ${diaAnterior} (día lógico)`);
-              diaReferencia = diaAnterior;
-              diaReferenciaIndex = diaAnteriorIndex;
-              estamosEnNochePreviaDelDiaAnterior = true;
+              console.log(`⏰ [TIME] ✅ Estamos en la madrugada del horario nocturno del ${diaAnterior} (día lógico)`);
+              diaLogico = diaAnterior;
+              diaLogicoIndex = diaAnteriorIndex;
+              estamosEnMadrugadaDelDiaAnterior = true;
               break;
             }
           }
@@ -325,10 +327,10 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
     }
   }
   
-  console.log(`⏰ [TIME] Día lógico: ${diaReferencia}`);
+  console.log(`⏰ [TIME] Día lógico determinado: ${diaLogico}`);
   
   // STEP 2: Get the schedule for the logical day
-  let horarioReferencia = local.horarios_completos?.[diaReferencia];
+  let horarioReferencia = local.horarios_completos?.[diaLogico];
   
   if (!horarioReferencia) {
     horarioReferencia = [];
@@ -336,9 +338,9 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
   
   const franjas = normalizarFranjas(horarioReferencia);
   
-  // CASE A: Reference day is closed (no schedule)
+  // CASE A: Logical day is closed (no schedule)
   if (franjas.length === 0 || franjas[0] === 'Cerrado') {
-    console.log(`⏰ [TIME] Local cerrado en día de referencia (${diaReferencia})`);
+    console.log(`⏰ [TIME] Local cerrado en día lógico (${diaLogico})`);
     
     // Search for next opening
     const proximaApertura = buscarProximaApertura(local, ahora);
@@ -351,7 +353,7 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
         claseBg: 'bg-yellow-500',
         overlayIcon: null,
         tiempoRestante: formatearTiempo(proximaApertura.minutosRestantes),
-        diaLogico: diaReferencia,
+        diaLogico: diaLogico,
       };
     }
     
@@ -364,12 +366,12 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
       claseBg: 'bg-red-500',
       overlayIcon: 'lock',
       tiempoRestante: proximaApertura ? formatearTiempo(proximaApertura.minutosRestantes) : null,
-      diaLogico: diaReferencia,
+      diaLogico: diaLogico,
     };
   }
   
-  // CASE B: Reference day has schedules → check if it's open NOW
-  console.log(`⏰ [TIME] Verificando ${franjas.length} rangos horarios del día lógico ${diaReferencia}`);
+  // CASE B: Logical day has schedules → check if it's open NOW
+  console.log(`⏰ [TIME] Verificando ${franjas.length} rangos horarios del día lógico ${diaLogico}`);
   
   for (let i = 0; i < franjas.length; i++) {
     const rango = franjas[i];
@@ -391,10 +393,10 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
       console.log(`⏰ [TIME] Horario nocturno detectado (cruza medianoche)`);
       
       // If we're in the early morning and already determined we're in the previous day's night
-      if (estamosEnNochePreviaDelDiaAnterior) {
+      if (estamosEnMadrugadaDelDiaAnterior) {
         // We're in the overnight period (after midnight, before closing)
         if (horaActual < cierre) {
-          console.log(`⏰ [TIME] ✅ ABIERTO (en la madrugada del horario nocturno del día anterior)`);
+          console.log(`⏰ [TIME] ✅ ABIERTO (en la madrugada del horario nocturno del ${diaLogico})`);
           
           const minutosHastaCierre = cierre - horaActual;
           console.log(`⏰ [TIME] Minutos hasta cierre: ${minutosHastaCierre}`);
@@ -406,7 +408,7 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
               claseBg: 'bg-orange-500',
               overlayIcon: null,
               tiempoRestante: formatearTiempo(minutosHastaCierre),
-              diaLogico: diaReferencia,
+              diaLogico: diaLogico,
             };
           }
           
@@ -416,17 +418,18 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
             claseBg: 'bg-green-500',
             overlayIcon: null,
             tiempoRestante: formatearTiempo(minutosHastaCierre),
-            diaLogico: diaReferencia,
+            diaLogico: diaLogico,
           };
         }
       } else {
-        // We're in the same day, check if we're after opening time
+        // We're in the same calendar day as the logical day
+        // Check if we're after opening time (which means we're in the night)
         if (horaActual >= apertura) {
-          console.log(`⏰ [TIME] ✅ ABIERTO (después de la apertura del horario nocturno)`);
+          console.log(`⏰ [TIME] ✅ ABIERTO (después de la apertura del horario nocturno del ${diaLogico})`);
           
-          // Calculate minutes until closing (tomorrow)
+          // Calculate minutes until closing (tomorrow morning)
           const minutosHastaCierre = (24 * 60 - horaActual) + cierre;
-          console.log(`⏰ [TIME] Minutos hasta cierre: ${minutosHastaCierre}`);
+          console.log(`⏰ [TIME] Minutos hasta cierre (mañana): ${minutosHastaCierre}`);
           
           if (minutosHastaCierre <= 60) {
             return {
@@ -435,7 +438,7 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
               claseBg: 'bg-orange-500',
               overlayIcon: null,
               tiempoRestante: formatearTiempo(minutosHastaCierre),
-              diaLogico: diaReferencia,
+              diaLogico: diaLogico,
             };
           }
           
@@ -445,7 +448,7 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
             claseBg: 'bg-green-500',
             overlayIcon: null,
             tiempoRestante: formatearTiempo(minutosHastaCierre),
-            diaLogico: diaReferencia,
+            diaLogico: diaLogico,
           };
         } else {
           console.log(`⏰ [TIME] ❌ CERRADO (antes de la apertura del horario nocturno)`);
@@ -457,7 +460,7 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
       
       if (horaActual >= apertura && horaActual < cierre) {
         // ✅ OPEN (between opening and closing)
-        console.log(`⏰ [TIME] ✅ ABIERTO (horario diurno)`);
+        console.log(`⏰ [TIME] ✅ ABIERTO (horario diurno del ${diaLogico})`);
         
         const minutosHastaCierre = cierre - horaActual;
         console.log(`⏰ [TIME] Minutos hasta cierre: ${minutosHastaCierre}`);
@@ -469,7 +472,7 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
             claseBg: 'bg-orange-500',
             overlayIcon: null,
             tiempoRestante: formatearTiempo(minutosHastaCierre),
-            diaLogico: diaReferencia,
+            diaLogico: diaLogico,
           };
         }
         
@@ -479,7 +482,7 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
           claseBg: 'bg-green-500',
           overlayIcon: null,
           tiempoRestante: formatearTiempo(minutosHastaCierre),
-          diaLogico: diaReferencia,
+          diaLogico: diaLogico,
         };
       } else {
         console.log(`⏰ [TIME] ❌ CERRADO (fuera del rango ${apertura}-${cierre})`);
@@ -500,7 +503,7 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
       claseBg: 'bg-yellow-500',
       overlayIcon: null,
       tiempoRestante: formatearTiempo(proximaApertura.minutosRestantes),
-      diaLogico: diaReferencia,
+      diaLogico: diaLogico,
     };
   }
   
@@ -513,7 +516,7 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
     claseBg: 'bg-red-500',
     overlayIcon: 'lock',
     tiempoRestante: proximaApertura ? formatearTiempo(proximaApertura.minutosRestantes) : null,
-    diaLogico: diaReferencia,
+    diaLogico: diaLogico,
   };
 }
 
