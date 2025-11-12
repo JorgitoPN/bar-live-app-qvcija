@@ -1,4 +1,5 @@
 
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -14,11 +15,10 @@ import {
   ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import { IconSymbol } from '@/components/IconSymbol';
-import { supabase, isSupabaseConfigured } from '@/utils/supabase';
-import React, { useState, useEffect, useCallback } from 'react';
 import { colors, commonStyles } from '@/styles/commonStyles';
+import { IconSymbol } from '@/components/IconSymbol';
+import { supabase } from '@/utils/supabase';
+import { useRouter } from 'expo-router';
 
 interface Usuario {
   id: string;
@@ -240,23 +240,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 16,
   },
-  footer: {
-    padding: 16,
-    backgroundColor: colors.cardBackground,
-    borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
-  },
-  footerButton: {
-    backgroundColor: colors.primary,
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  footerButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.headerText,
-  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -460,10 +443,6 @@ export default function GestionarUsuariosScreen() {
     cargarUsuarios();
   }, [cargarContadores, cargarUsuarios]);
 
-  useEffect(() => {
-    cargarUsuarios();
-  }, [cargarUsuarios]);
-
   const toggleEstadoUsuario = async (usuarioId: string, activo: boolean) => {
     try {
       const { error } = await supabase
@@ -482,12 +461,10 @@ export default function GestionarUsuariosScreen() {
     }
   };
 
-  // FIXED: Persistent role assignment
   const cambiarRolUsuario = async (usuarioId: string, nuevoRol: string) => {
     try {
       console.log('[GestionarUsuarios] Changing role for user:', usuarioId, 'to:', nuevoRol);
       
-      // Update role in usuarios table
       const { error: updateError } = await supabase
         .from('usuarios')
         .update({ rol_app: nuevoRol })
@@ -498,7 +475,6 @@ export default function GestionarUsuariosScreen() {
         throw updateError;
       }
 
-      // Verify the update
       const { data: verifyData, error: verifyError } = await supabase
         .from('usuarios')
         .select('rol_app')
@@ -527,7 +503,6 @@ export default function GestionarUsuariosScreen() {
     }
   };
 
-  // IMPLEMENTED: Manual locale assignment for owner users
   const abrirModalAsignarLocal = async (usuarioId: string) => {
     const usuario = usuarios.find(u => u.id === usuarioId);
     
@@ -749,7 +724,6 @@ export default function GestionarUsuariosScreen() {
       </View>
 
       <View style={styles.usuarioActions}>
-        {/* IMPLEMENTED: Building icon button for owner users to assign locales */}
         {item.rol_app === 'propietario' && (
           <TouchableOpacity
             style={styles.actionButton}
@@ -970,7 +944,6 @@ export default function GestionarUsuariosScreen() {
         contentContainerStyle={{ flexGrow: 1 }}
       />
 
-      {/* Modal de cambio de rol */}
       <Modal
         visible={showRolModal}
         transparent
@@ -1005,7 +978,6 @@ export default function GestionarUsuariosScreen() {
         </Pressable>
       </Modal>
 
-      {/* IMPLEMENTED: Modal de asignación de local con búsqueda y filtrado */}
       <Modal
         visible={showLocalModal}
         transparent
