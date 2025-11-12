@@ -141,7 +141,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: 'bold',
   },
-  // FIXED: Local selector for owner mode
   localSelectorContainer: {
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -703,7 +702,7 @@ function formatearFecha(fecha: string): string {
 export default function SocialScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const { currentMode, selectedLocalId, setSelectedLocalId } = useMode();
+  const { currentMode, selectedLocalId, setSelectedLocalId, activeLocalProfileId } = useMode();
   
   const { posts: globalPosts, stories: globalStories, isInitialLoading, refreshData } = useGlobalData();
   
@@ -724,6 +723,9 @@ export default function SocialScreen() {
   // FIXED: Local selector for owner mode - using persistent state from ModeContext
   const [userLocales, setUserLocales] = useState<LocalProfile[]>([]);
   const [showLocalSelector, setShowLocalSelector] = useState(false);
+  
+  // FIXED: Active local data for display
+  const [activeLocalData, setActiveLocalData] = useState<LocalProfile | null>(null);
   
   // Story viewer states
   const [showStoryViewer, setShowStoryViewer] = useState(false);
@@ -775,6 +777,31 @@ export default function SocialScreen() {
     }
   }, [user, isPropietario, selectedLocalId]);
 
+  // FIXED: Load active local data for display
+  const loadActiveLocalData = useCallback(async () => {
+    if (!activeLocalProfileId) {
+      setActiveLocalData(null);
+      return;
+    }
+
+    try {
+      console.log('[Social] 🔍 Loading active local data:', activeLocalProfileId);
+      const { data, error } = await supabase
+        .from('locales')
+        .select('id, nombre, tipo, imagen_url')
+        .eq('id', activeLocalProfileId)
+        .single();
+
+      if (error) throw error;
+
+      console.log('[Social] ✅ Active local data loaded:', data?.nombre);
+      setActiveLocalData(data);
+    } catch (error) {
+      console.error('[Social] Error loading active local data:', error);
+      setActiveLocalData(null);
+    }
+  }, [activeLocalProfileId]);
+
   const loadData = useCallback(async () => {
     if (isLoadingRef.current) {
       console.log('[Social] ⚡ Already loading, skipping...');
@@ -785,11 +812,15 @@ export default function SocialScreen() {
 
     try {
       console.log('[Social] ⚡ Loading user-specific data...');
+      console.log('[Social] 📍 Active local profile ID:', activeLocalProfileId);
 
       // FIXED: Load locales in owner mode
       if (isOwnerMode) {
         await loadUserLocales();
       }
+
+      // FIXED: Load active local data
+      await loadActiveLocalData();
 
       if (globalPosts.length > 0) {
         console.log('[Social] ⚡ INSTANT posts from global data:', globalPosts.length);
@@ -838,8 +869,22 @@ export default function SocialScreen() {
       if (globalStories.length > 0) {
         console.log('[Social] ⚡ INSTANT stories from global data:', globalStories.length);
         
-        const userOwnStories = user ? globalStories.filter(s => s.autor_id === user.id) : [];
-        const otherStories = user ? globalStories.filter(s => s.autor_id !== user.id) : globalStories;
+        // FIXED: Filter stories based on active local profile
+        let userOwnStories: typeof globalStories = [];
+        let otherStories: typeof globalStories = [];
+
+        if (activeLocalProfileId) {
+          // When viewing as local, show local's stories as "own stories"
+          userOwnStories = globalStories.filter(s => s.tipo === 'local' && s.local_id === activeLocalProfileId);
+          otherStories = globalStories.filter(s => !(s.tipo === 'local' && s.local_id === activeLocalProfileId));
+          console.log('[Social] 📍 Filtered stories for local:', activeLocalProfileId, 'Own:', userOwnStories.length, 'Others:', otherStories.length);
+        } else if (user) {
+          // Normal user mode
+          userOwnStories = globalStories.filter(s => s.tipo === 'usuario' && s.autor_id === user.id);
+          otherStories = globalStories.filter(s => !(s.tipo === 'usuario' && s.autor_id === user.id));
+        } else {
+          otherStories = globalStories;
+        }
         
         if (user) {
           const allStoryIds = globalStories.map(s => s.id);
@@ -907,7 +952,7 @@ export default function SocialScreen() {
     } finally {
       isLoadingRef.current = false;
     }
-  }, [user, globalPosts, globalStories, isOwnerMode, loadUserLocales]);
+  }, [user, globalPosts, globalStories, isOwnerMode, loadUserLocales, activeLocalProfileId, loadActiveLocalData]);
 
   const loadUnreadCounts = useCallback(async () => {
     if (!user) return;
@@ -1123,7 +1168,16 @@ export default function SocialScreen() {
     const currentStories = viewingOwnStories ? userStories : historias;
     const currentStory = currentStories[currentStoryIndex];
     
-    if (!currentStory || !user || currentStory.autor_id !== user.id) {
+    if (!currentStory || !user) {
+      return;
+    }
+
+    // FIXED: Check if user owns this story (either as user or as local owner)
+    const isOwner = currentStory.tipo === 'usuario' 
+      ? currentStory.autor_id === user.id
+      : currentStory.tipo === 'local' && activeLocalProfileId === currentStory.local_id;
+
+    if (!isOwner) {
       return;
     }
 
@@ -1167,7 +1221,7 @@ export default function SocialScreen() {
         },
       ]
     );
-  }, [historias, userStories, currentStoryIndex, user, viewingOwnStories, stopStoryTimer]);
+  }, [historias, userStories, currentStoryIndex, user, viewingOwnStories, stopStoryTimer, activeLocalProfileId]);
 
   const handleStoryLike = useCallback(async () => {
     const currentStories = viewingOwnStories ? userStories : historias;
@@ -1217,7 +1271,16 @@ export default function SocialScreen() {
     const currentStories = viewingOwnStories ? userStories : historias;
     const currentStory = currentStories[currentStoryIndex];
     
-    if (!currentStory || !user || currentStory.autor_id !== user.id) {
+    if (!currentStory || !user) {
+      return;
+    }
+
+    // FIXED: Check if user owns this story
+    const isOwner = currentStory.tipo === 'usuario' 
+      ? currentStory.autor_id === user.id
+      : currentStory.tipo === 'local' && activeLocalProfileId === currentStory.local_id;
+
+    if (!isOwner) {
       return;
     }
 
@@ -1262,7 +1325,7 @@ export default function SocialScreen() {
     } finally {
       setLoadingStats(false);
     }
-  }, [userStories, historias, currentStoryIndex, user, viewingOwnStories, stopStoryTimer]);
+  }, [userStories, historias, currentStoryIndex, user, viewingOwnStories, stopStoryTimer, activeLocalProfileId]);
 
   const handleSendStoryMessage = useCallback(async () => {
     const currentStories = viewingOwnStories ? userStories : historias;
@@ -1468,7 +1531,16 @@ export default function SocialScreen() {
 
   const handleDeletePost = useCallback(async (postId: string) => {
     const post = posts.find(p => p.id === postId);
-    if (!post || !user || post.autor_id !== user.id) {
+    if (!post || !user) {
+      return;
+    }
+
+    // FIXED: Check if user owns this post (either as user or as local owner)
+    const isOwner = post.tipo === 'usuario' 
+      ? post.autor_id === user.id
+      : post.tipo === 'local' && activeLocalProfileId === post.local_id;
+
+    if (!isOwner) {
       return;
     }
 
@@ -1501,7 +1573,7 @@ export default function SocialScreen() {
         },
       ]
     );
-  }, [posts, user]);
+  }, [posts, user, activeLocalProfileId]);
 
   const handleCreatePress = useCallback(() => {
     if (!user) {
@@ -1555,6 +1627,11 @@ export default function SocialScreen() {
   });
 
   const selectedLocal = userLocales.find(l => l.id === selectedLocalId);
+
+  // FIXED: Determine which avatar and name to show
+  const displayAvatar = activeLocalData?.imagen_url || user?.avatar;
+  const displayName = activeLocalData?.nombre || user?.nombre || 'Usuario';
+  const displayInitial = displayName.charAt(0).toUpperCase();
 
   if (isInitialLoading) {
     return <InitialLoadingScreen />;
@@ -1691,38 +1768,33 @@ export default function SocialScreen() {
                         end={{ x: 1, y: 0 }}
                         style={styles.historiaGradientBorder}
                       >
-                        {user.avatar ? (
-                          <Image source={{ uri: user.avatar }} style={styles.historiaAvatar} />
+                        {/* FIXED: Show local avatar if interacting as local */}
+                        {displayAvatar ? (
+                          <Image source={{ uri: displayAvatar }} style={styles.historiaAvatar} />
                         ) : (
                           <View style={[styles.historiaAvatar, styles.avatarPlaceholder]}>
-                            <Text style={styles.avatarText}>
-                              {user.nombre?.charAt(0).toUpperCase() || 'U'}
-                            </Text>
+                            <Text style={styles.avatarText}>{displayInitial}</Text>
                           </View>
                         )}
                       </LinearGradient>
                     ) : (
                       <>
-                        {user.avatar ? (
-                          <Image source={{ uri: user.avatar }} style={[styles.historiaAvatar, { borderWidth: 2, borderColor: colors.cardBorder }]} />
+                        {displayAvatar ? (
+                          <Image source={{ uri: displayAvatar }} style={[styles.historiaAvatar, { borderWidth: 2, borderColor: colors.cardBorder }]} />
                         ) : (
                           <View style={[styles.historiaAvatar, styles.avatarPlaceholder, { borderWidth: 2, borderColor: colors.cardBorder }]}>
-                            <Text style={styles.avatarText}>
-                              {user.nombre?.charAt(0).toUpperCase() || 'U'}
-                            </Text>
+                            <Text style={styles.avatarText}>{displayInitial}</Text>
                           </View>
                         )}
                       </>
                     )
                   ) : (
                     <>
-                      {user.avatar ? (
-                        <Image source={{ uri: user.avatar }} style={styles.historiaUserAvatar} />
+                      {displayAvatar ? (
+                        <Image source={{ uri: displayAvatar }} style={styles.historiaUserAvatar} />
                       ) : (
                         <View style={[styles.historiaUserAvatar, styles.avatarPlaceholder]}>
-                          <Text style={styles.avatarText}>
-                            {user.nombre?.charAt(0).toUpperCase() || 'U'}
-                          </Text>
+                          <Text style={styles.avatarText}>{displayInitial}</Text>
                         </View>
                       )}
                       <View style={styles.historiaAddIcon}>
@@ -1731,7 +1803,7 @@ export default function SocialScreen() {
                     </>
                   )}
                 </View>
-                <Text style={styles.historiaNombre}>Tu historia</Text>
+                <Text style={styles.historiaNombre}>{activeLocalData ? activeLocalData.nombre : 'Tu historia'}</Text>
               </TouchableOpacity>
             )}
 
@@ -1791,121 +1863,129 @@ export default function SocialScreen() {
         {/* Posts Feed */}
         <View style={styles.feedContainer}>
           {posts.length > 0 ? (
-            posts.map((post) => (
-              <View key={post.id} style={styles.postCard}>
-                <View style={styles.postHeader}>
-                  <TouchableOpacity
-                    style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
-                    onPress={() => {
-                      if (user && post.autor_id === user.id) {
-                        router.push('/(tabs)/perfil');
-                      } else if (post.tipo === 'local' && post.local_id) {
-                        router.push(`/perfil/local?localId=${post.local_id}`);
-                      } else {
-                        router.push(`/perfil/usuario?userId=${post.autor_id}`);
-                      }
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    {post.autor?.avatar ? (
-                      <Image source={{ uri: post.autor.avatar }} style={styles.postAvatar} />
-                    ) : (
-                      <View style={[styles.postAvatar, styles.avatarPlaceholder]}>
-                        <Text style={styles.avatarText}>
-                          {post.autor?.nombre?.charAt(0).toUpperCase() || 'U'}
-                        </Text>
-                      </View>
-                    )}
-                    <View style={styles.postAutorInfo}>
-                      <Text style={styles.postAutorNombre}>{post.autor?.nombre || 'Usuario'}</Text>
-                      <Text style={styles.postFecha}>{formatearFecha(post.created_at)}</Text>
-                    </View>
-                  </TouchableOpacity>
-                  {user && post.autor_id === user.id && (
-                    <TouchableOpacity 
-                      style={styles.postOptionsButton}
-                      onPress={() => handleDeletePost(post.id)}
+            posts.map((post) => {
+              // FIXED: Check if current user can delete this post
+              const canDelete = user && (
+                (post.tipo === 'usuario' && post.autor_id === user.id) ||
+                (post.tipo === 'local' && activeLocalProfileId === post.local_id)
+              );
+
+              return (
+                <View key={post.id} style={styles.postCard}>
+                  <View style={styles.postHeader}>
+                    <TouchableOpacity
+                      style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
+                      onPress={() => {
+                        if (user && post.autor_id === user.id) {
+                          router.push('/(tabs)/perfil');
+                        } else if (post.tipo === 'local' && post.local_id) {
+                          router.push(`/perfil/local?localId=${post.local_id}`);
+                        } else {
+                          router.push(`/perfil/usuario?userId=${post.autor_id}`);
+                        }
+                      }}
                       activeOpacity={0.7}
                     >
-                      <IconSymbol name="trash" size={22} color="#000000" />
+                      {post.autor?.avatar ? (
+                        <Image source={{ uri: post.autor.avatar }} style={styles.postAvatar} />
+                      ) : (
+                        <View style={[styles.postAvatar, styles.avatarPlaceholder]}>
+                          <Text style={styles.avatarText}>
+                            {post.autor?.nombre?.charAt(0).toUpperCase() || 'U'}
+                          </Text>
+                        </View>
+                      )}
+                      <View style={styles.postAutorInfo}>
+                        <Text style={styles.postAutorNombre}>{post.autor?.nombre || 'Usuario'}</Text>
+                        <Text style={styles.postFecha}>{formatearFecha(post.created_at)}</Text>
+                      </View>
+                    </TouchableOpacity>
+                    {canDelete && (
+                      <TouchableOpacity 
+                        style={styles.postOptionsButton}
+                        onPress={() => handleDeletePost(post.id)}
+                        activeOpacity={0.7}
+                      >
+                        <IconSymbol name="trash" size={22} color={colors.text} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+
+                  {post.imagen && (
+                    <TouchableOpacity 
+                      onPress={() => router.push(`/social/post?id=${post.id}`)}
+                      activeOpacity={0.9}
+                    >
+                      <Image source={{ uri: post.imagen }} style={styles.postImagen} />
+                    </TouchableOpacity>
+                  )}
+
+                  <View style={styles.postActions}>
+                    <TouchableOpacity 
+                      style={styles.postActionButton}
+                      onPress={() => toggleLike(post.id)}
+                      activeOpacity={0.7}
+                    >
+                      <IconSymbol 
+                        name={post.liked ? 'heart.fill' : 'heart'} 
+                        size={26} 
+                        color={post.liked ? '#EF4444' : colors.text} 
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.postActionButton}
+                      onPress={() => router.push(`/social/post?id=${post.id}`)}
+                      activeOpacity={0.7}
+                    >
+                      <IconSymbol name="message" size={26} color={colors.text} />
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={styles.postActionButton}
+                      onPress={() => router.push(`/social/post?id=${post.id}&share=true`)}
+                      activeOpacity={0.7}
+                    >
+                      <IconSymbol name="paperplane" size={26} color={colors.text} />
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={styles.postActionButtonRight}
+                      onPress={() => toggleSave(post.id)}
+                      activeOpacity={0.7}
+                    >
+                      <IconSymbol 
+                        name={post.saved ? 'bookmark.fill' : 'bookmark'} 
+                        size={26} 
+                        color={post.saved ? colors.primary : colors.text} 
+                      />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.postLikes}>
+                    <Text style={styles.postLikesText}>{post.likes || 0} me gusta</Text>
+                  </View>
+
+                  {post.contenido && (
+                    <View style={styles.postDescripcion}>
+                      <Text style={styles.postDescripcionText}>
+                        <Text style={{ fontWeight: '600' }}>{post.autor?.nombre || 'Usuario'}</Text>{' '}
+                        {post.contenido}
+                      </Text>
+                    </View>
+                  )}
+
+                  {post.comentarios > 0 && (
+                    <TouchableOpacity
+                      style={styles.postComentarios}
+                      onPress={() => router.push(`/social/post?id=${post.id}`)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.postComentariosText}>
+                        Ver {post.comentarios === 1 ? 'el comentario' : `los ${post.comentarios} comentarios`}
+                      </Text>
                     </TouchableOpacity>
                   )}
                 </View>
-
-                {post.imagen && (
-                  <TouchableOpacity 
-                    onPress={() => router.push(`/social/post?id=${post.id}`)}
-                    activeOpacity={0.9}
-                  >
-                    <Image source={{ uri: post.imagen }} style={styles.postImagen} />
-                  </TouchableOpacity>
-                )}
-
-                <View style={styles.postActions}>
-                  <TouchableOpacity 
-                    style={styles.postActionButton}
-                    onPress={() => toggleLike(post.id)}
-                    activeOpacity={0.7}
-                  >
-                    <IconSymbol 
-                      name={post.liked ? 'heart.fill' : 'heart'} 
-                      size={26} 
-                      color={post.liked ? '#EF4444' : colors.text} 
-                    />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.postActionButton}
-                    onPress={() => router.push(`/social/post?id=${post.id}`)}
-                    activeOpacity={0.7}
-                  >
-                    <IconSymbol name="message" size={26} color={colors.text} />
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={styles.postActionButton}
-                    onPress={() => router.push(`/social/post?id=${post.id}&share=true`)}
-                    activeOpacity={0.7}
-                  >
-                    <IconSymbol name="paperplane" size={26} color={colors.text} />
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={styles.postActionButtonRight}
-                    onPress={() => toggleSave(post.id)}
-                    activeOpacity={0.7}
-                  >
-                    <IconSymbol 
-                      name={post.saved ? 'bookmark.fill' : 'bookmark'} 
-                      size={26} 
-                      color={post.saved ? colors.primary : colors.text} 
-                    />
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.postLikes}>
-                  <Text style={styles.postLikesText}>{post.likes || 0} me gusta</Text>
-                </View>
-
-                {post.contenido && (
-                  <View style={styles.postDescripcion}>
-                    <Text style={styles.postDescripcionText}>
-                      <Text style={{ fontWeight: '600' }}>{post.autor?.nombre || 'Usuario'}</Text>{' '}
-                      {post.contenido}
-                    </Text>
-                  </View>
-                )}
-
-                {post.comentarios > 0 && (
-                  <TouchableOpacity
-                    style={styles.postComentarios}
-                    onPress={() => router.push(`/social/post?id=${post.id}`)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.postComentariosText}>
-                      Ver {post.comentarios === 1 ? 'el comentario' : `los ${post.comentarios} comentarios`}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            ))
+              );
+            })
           ) : (
             <View style={styles.emptyContainer}>
               <IconSymbol name="photo.on.rectangle" size={64} color={colors.textSecondary} />
@@ -2147,18 +2227,17 @@ export default function SocialScreen() {
                 </View>
 
                 <View style={styles.storyAutorInfo}>
-                  {viewingOwnStories && user ? (
+                  {viewingOwnStories ? (
                     <>
-                      {user.avatar ? (
-                        <Image source={{ uri: user.avatar }} style={styles.storyAutorAvatar} />
+                      {/* FIXED: Show local avatar if viewing local stories */}
+                      {displayAvatar ? (
+                        <Image source={{ uri: displayAvatar }} style={styles.storyAutorAvatar} />
                       ) : (
                         <View style={[styles.storyAutorAvatar, styles.avatarPlaceholder]}>
-                          <Text style={styles.avatarText}>
-                            {user.nombre?.charAt(0).toUpperCase() || 'U'}
-                          </Text>
+                          <Text style={styles.avatarText}>{displayInitial}</Text>
                         </View>
                       )}
-                      <Text style={styles.storyAutorNombre}>{user.nombre}</Text>
+                      <Text style={styles.storyAutorNombre}>{displayName}</Text>
                       <TouchableOpacity
                         style={styles.storyInteractionButton}
                         onPress={handleViewStoryStats}
@@ -2237,7 +2316,11 @@ export default function SocialScreen() {
               <View style={styles.storyInteractionBar}>
                 {viewingOwnStories ? (
                   <>
-                    {user && currentStory.autor_id === user.id && (
+                    {/* FIXED: Check ownership for delete button */}
+                    {user && (
+                      (currentStory.tipo === 'usuario' && currentStory.autor_id === user.id) ||
+                      (currentStory.tipo === 'local' && activeLocalProfileId === currentStory.local_id)
+                    ) && (
                       <TouchableOpacity
                         style={styles.storyDeleteButtonBottom}
                         onPress={handleDeleteStory}
