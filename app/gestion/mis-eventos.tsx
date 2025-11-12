@@ -70,6 +70,7 @@ export default function MisEventosScreen() {
           )
         `)
         .eq('propietario_id', user.id)
+        .eq('activo', true)
         .order('fecha', { ascending: true });
 
       if (error) {
@@ -108,15 +109,17 @@ export default function MisEventosScreen() {
     setShowDeleteModal(true);
   };
 
+  // FIXED: Use DELETE instead of UPDATE to avoid RLS policy violation
   const handleDeleteEvento = async () => {
     if (!eventoToDelete) return;
 
     try {
       setDeleting(true);
 
+      // FIXED: DELETE the event instead of updating activo = false
       const { error } = await supabase
         .from('eventos')
-        .update({ activo: false })
+        .delete()
         .eq('id', eventoToDelete);
 
       if (error) throw error;
@@ -267,12 +270,6 @@ export default function MisEventosScreen() {
                 {evento.destacado && (
                   <View style={styles.badgeDestacado}>
                     <Text style={styles.badgeDestacadoText}>⭐ Destacado</Text>
-                  </View>
-                )}
-
-                {!evento.activo && (
-                  <View style={styles.badgeInactivo}>
-                    <Text style={styles.badgeInactivoText}>Inactivo</Text>
                   </View>
                 )}
 
@@ -500,20 +497,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: colors.badgeDestacadoText,
-  },
-  badgeInactivo: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: '#6B7280',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  badgeInactivoText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#FFFFFF',
   },
   eventoInfo: {
     padding: 16,

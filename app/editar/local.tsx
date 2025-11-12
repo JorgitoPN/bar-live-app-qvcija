@@ -21,6 +21,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '@/utils/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 import { googlePlacesTextSearch, googlePlacesDetails, getGooglePlacePhotoUrl } from '@/utils/googlePlacesApi';
 import { mapGoogleTypesToBarlive, categorizarPorHorarios, mapearNivelPrecio } from '@/utils/enrichmentMapping';
 import { validarLocalCompleto, estaEnEspana } from '@/utils/localTypesBackend';
