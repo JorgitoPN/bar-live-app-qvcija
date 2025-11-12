@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -31,11 +31,7 @@ export default function ContenidoOcultoScreen() {
   const [hiddenContent, setHiddenContent] = useState<HiddenContent[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadHiddenContent();
-  }, []);
-
-  const loadHiddenContent = async () => {
+  const loadHiddenContent = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -47,7 +43,11 @@ export default function ContenidoOcultoScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    loadHiddenContent();
+  }, [loadHiddenContent]);
 
   const handleUnhide = (contentId: string) => {
     Alert.alert(

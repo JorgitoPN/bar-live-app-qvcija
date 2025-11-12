@@ -4,6 +4,8 @@
  * Helps identify performance bottlenecks and slow operations
  */
 
+import React from 'react';
+
 interface PerformanceMetric {
   name: string;
   duration: number;
@@ -235,8 +237,6 @@ export function measurePerformance(name?: string) {
 /**
  * Hook for measuring React component render performance
  */
-import React from 'react';
-
 export function usePerformanceMonitor(componentName: string) {
   const renderCount = React.useRef(0);
   const lastRenderTime = React.useRef(Date.now());

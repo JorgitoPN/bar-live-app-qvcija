@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -404,22 +404,7 @@ export default function PostDetailScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<ChatUser[]>([]);
 
-  useEffect(() => {
-    if (params.id) {
-      loadPost();
-      loadComentarios();
-    }
-
-    // Check if share parameter is present
-    if (params.share === 'true') {
-      // Delay to ensure post is loaded
-      setTimeout(() => {
-        handleShare();
-      }, 500);
-    }
-  }, [params.id]);
-
-  const loadPost = async () => {
+  const loadPost = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -475,9 +460,9 @@ export default function PostDetailScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [params.id, user]);
 
-  const loadComentarios = async () => {
+  const loadComentarios = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('comentarios')
@@ -536,7 +521,34 @@ export default function PostDetailScreen() {
     } catch (error) {
       console.error('[PostDetail] Error:', error);
     }
-  };
+  }, [params.id, user]);
+
+  const handleShare = useCallback(() => {
+    console.log('[PostDetail] Share button pressed - opening user search directly');
+    
+    if (!user) {
+      setLoginMessage('Para compartir por mensaje necesitas registrarte en BarLive');
+      setShowLoginModal(true);
+      return;
+    }
+
+    setShowUserList(true);
+  }, [user]);
+
+  useEffect(() => {
+    if (params.id) {
+      loadPost();
+      loadComentarios();
+    }
+
+    // Check if share parameter is present
+    if (params.share === 'true') {
+      // Delay to ensure post is loaded
+      setTimeout(() => {
+        handleShare();
+      }, 500);
+    }
+  }, [params.id, loadPost, loadComentarios, params.share, handleShare]);
 
   // FIXED: Prevent double-clicking with a ref to track ongoing operations
   const isLikingRef = useRef(false);
@@ -827,18 +839,6 @@ export default function PostDetailScreen() {
   const handleCommentPress = () => {
     console.log('[PostDetail] Comment button pressed, scrolling to bottom');
     scrollViewRef.current?.scrollToEnd({ animated: true });
-  };
-
-  const handleShare = () => {
-    console.log('[PostDetail] Share button pressed - opening user search directly');
-    
-    if (!user) {
-      setLoginMessage('Para compartir por mensaje necesitas registrarte en BarLive');
-      setShowLoginModal(true);
-      return;
-    }
-
-    setShowUserList(true);
   };
 
   const searchUsers = async (query: string) => {

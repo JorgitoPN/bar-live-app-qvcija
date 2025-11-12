@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -628,8 +628,8 @@ export default function DetalleLocalScreen() {
   const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
   const [expandedReviews, setExpandedReviews] = useState<Set<number>>(new Set());
 
-  // Define functions BEFORE useEffect
-  const cargarLocal = async () => {
+  // FIXED: Wrap cargarLocal in useCallback
+  const cargarLocal = useCallback(async () => {
     try {
       // Try to get cached data first - INSTANT LOAD
       const cachedData = localPreloader.getCached(params.id as string);
@@ -661,9 +661,9 @@ export default function DetalleLocalScreen() {
       console.error('[DetalleLocal] Error:', error);
       setLoading(false);
     }
-  };
+  }, [params.id]);
 
-  const cargarReviewsBarlive = async () => {
+  const cargarReviewsBarlive = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('reviews_barlive')
@@ -683,14 +683,14 @@ export default function DetalleLocalScreen() {
     } catch (error) {
       console.error('[DetalleLocal] Error:', error);
     }
-  };
+  }, [params.id]);
 
   // Now useEffect can reference the functions
   useEffect(() => {
     if (params.id) {
       cargarLocal();
     }
-  }, [params.id]);
+  }, [params.id, cargarLocal]);
 
   const handleEnviarReview = async () => {
     if (!user) {

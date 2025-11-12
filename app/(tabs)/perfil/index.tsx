@@ -960,7 +960,7 @@ export default function PerfilScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -1838,9 +1838,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 8,
-  },
-  empleoContent: {
-    padding: 16,
   },
   perfilCard: {
     backgroundColor: colors.cardBackground,

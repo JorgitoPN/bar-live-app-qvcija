@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -31,11 +31,7 @@ export default function UsuariosBloqueadosScreen() {
   const [blockedUsers, setBlockedUsers] = useState<BlockedUser[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadBlockedUsers();
-  }, []);
-
-  const loadBlockedUsers = async () => {
+  const loadBlockedUsers = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -47,7 +43,11 @@ export default function UsuariosBloqueadosScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    loadBlockedUsers();
+  }, [loadBlockedUsers]);
 
   const handleUnblock = (userId: string) => {
     Alert.alert(

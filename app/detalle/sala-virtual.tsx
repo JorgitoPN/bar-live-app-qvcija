@@ -56,6 +56,8 @@ interface InteractionMessage {
   };
 }
 
+type InteractionMessageArray = InteractionMessage[];
+
 const MENSAJES_RAPIDOS = [
   { id: '1', texto: '¿Me invitas a una copa? 🍹', emoji: '🍹' },
   { id: '2', texto: 'Te invito a una copa 🥂', emoji: '🥂' },
