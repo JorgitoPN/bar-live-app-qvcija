@@ -239,7 +239,13 @@ export default function LocalPerfilScreen() {
 
   useEffect(() => {
     loadLocalData();
-  }, [loadLocalData]);
+
+    // FIXED: Cleanup function to reset interaction state when leaving
+    return () => {
+      console.log('[LocalPerfil] Component unmounting, resetting interaction state');
+      setIsInteractingAsLocal(false);
+    };
+  }, [loadLocalData, setIsInteractingAsLocal]);
 
   const onRefresh = async () => {
     setRefreshing(true);

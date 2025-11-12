@@ -26,6 +26,8 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
   const [isFavorite, setIsFavorite] = useState(false);
   const [loadingFavorite, setLoadingFavorite] = useState(false);
   const [hasPreloaded, setHasPreloaded] = useState(false);
+  const [hasSocialProfile, setHasSocialProfile] = useState(false);
+  const [checkingSocialProfile, setCheckingSocialProfile] = useState(true);
 
   const estado = getEstadoLocal(local);
   const imagenPrincipal = local.imagenes?.[0] || local.imagen_url;
@@ -43,6 +45,58 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
       }
     }
   }, [local.id, hasPreloaded, onVisible]);
+
+  // FIXED: Check if local has social profile (posts or stories)
+  useEffect(() => {
+    const checkSocialProfile = async () => {
+      if (!local.id) {
+        setCheckingSocialProfile(false);
+        return;
+      }
+
+      try {
+        // Check for posts
+        const { data: posts, error: postsError } = await supabase
+          .from('posts')
+          .select('id')
+          .eq('tipo', 'local')
+          .eq('local_id', local.id)
+          .limit(1);
+
+        if (postsError) throw postsError;
+
+        if (posts && posts.length > 0) {
+          setHasSocialProfile(true);
+          setCheckingSocialProfile(false);
+          return;
+        }
+
+        // Check for active stories
+        const { data: stories, error: storiesError } = await supabase
+          .from('historias')
+          .select('id')
+          .eq('tipo', 'local')
+          .eq('local_id', local.id)
+          .gt('expires_at', new Date().toISOString())
+          .limit(1);
+
+        if (storiesError) throw storiesError;
+
+        if (stories && stories.length > 0) {
+          setHasSocialProfile(true);
+        } else {
+          setHasSocialProfile(false);
+        }
+      } catch (error) {
+        console.error('[TarjetaLocal] Error checking social profile:', error);
+        setHasSocialProfile(false);
+      } finally {
+        setCheckingSocialProfile(false);
+      }
+    };
+
+    checkSocialProfile();
+  }, [local.id]);
 
   // Define checkIfFavorite before useEffect
   const checkIfFavorite = useCallback(async () => {
@@ -338,24 +392,34 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
           </View>
         )}
 
-        {/* Action buttons */}
+        {/* FIXED: Action buttons - Only show Perfil Social if local has social content */}
         <View style={styles.actionButtonsContainer}>
-          <TouchableOpacity style={styles.perfilSocialButton} onPress={handlePerfilSocial}>
-            <IconSymbol name="person.2.fill" size={16} color={colors.headerText} />
-            <Text style={styles.perfilSocialText}>Perfil Social</Text>
-          </TouchableOpacity>
+          {!checkingSocialProfile && hasSocialProfile && (
+            <TouchableOpacity style={styles.perfilSocialButton} onPress={handlePerfilSocial}>
+              <IconSymbol name="person.2.fill" size={16} color={colors.headerText} />
+              <Text style={styles.perfilSocialText} numberOfLines={1}>Perfil Social</Text>
+            </TouchableOpacity>
+          )}
           
-          <TouchableOpacity style={styles.comoLlegarButton} onPress={handleComoLlegar}>
+          <TouchableOpacity 
+            style={[
+              styles.comoLlegarButton,
+              !hasSocialProfile && styles.comoLlegarButtonFull
+            ]} 
+            onPress={handleComoLlegar}
+          >
             <View style={styles.comoLlegarContent}>
               <View style={styles.comoLlegarLeft}>
                 <IconSymbol name="arrow.triangle.turn.up.right.diamond.fill" size={16} color={colors.headerText} />
-                <Text style={styles.comoLlegarText}>Cómo llegar</Text>
+                <Text style={styles.comoLlegarText} numberOfLines={1}>Cómo llegar</Text>
               </View>
               
               {local.distancia !== null && local.distancia !== undefined && (
                 <View style={styles.distanciaInButton}>
                   <IconSymbol name="location.fill" size={14} color={colors.headerText} />
-                  <Text style={styles.distanciaInButtonText}>{local.distancia.toFixed(1)} km</Text>
+                  <Text style={styles.distanciaInButtonText} numberOfLines={1}>
+                    {local.distancia.toFixed(1)} km
+                  </Text>
                 </View>
               )}
             </View>
@@ -594,45 +658,56 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.secondary + '99',
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 12,
     borderRadius: 8,
     gap: 6,
+    minWidth: 0,
   },
   perfilSocialText: {
     fontSize: 13,
     fontWeight: '600',
     color: colors.headerText,
+    flexShrink: 1,
   },
   comoLlegarButton: {
     flex: 1,
     backgroundColor: colors.primary + '99',
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 12,
     borderRadius: 8,
+    minWidth: 0,
+  },
+  comoLlegarButtonFull: {
+    flex: 1,
   },
   comoLlegarContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 6,
   },
   comoLlegarLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
+    flexShrink: 1,
+    minWidth: 0,
   },
   comoLlegarText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: colors.headerText,
+    flexShrink: 1,
   },
   distanciaInButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    flexShrink: 0,
   },
   distanciaInButtonText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: colors.headerText,
   },
