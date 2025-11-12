@@ -354,8 +354,9 @@ export default function ExplorarScreen() {
                 </TouchableOpacity>
               )}
               
+              {/* FIXED: Remove round background from map button */}
               <TouchableOpacity
-                style={styles.mapaButton}
+                style={styles.headerIconButton}
                 onPress={() => router.push('/explorar/mapa')}
               >
                 <IconSymbol name="map.fill" size={24} color={colors.headerText} />
@@ -585,13 +586,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.headerText,
   },
-  mapaButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
+  // FIXED: Remove round background styling
+  headerIconButton: {
+    padding: 8,
   },
   searchContainer: {
     flexDirection: 'row',
