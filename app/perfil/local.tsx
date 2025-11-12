@@ -72,7 +72,16 @@ export default function LocalPerfilScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { user } = useAuth();
-  const { currentMode, selectedLocalId, setSelectedLocalId, setCurrentMode, isInteractingAsLocal, setIsInteractingAsLocal } = useMode();
+  const { 
+    currentMode, 
+    selectedLocalId, 
+    setSelectedLocalId, 
+    setCurrentMode, 
+    isInteractingAsLocal, 
+    setIsInteractingAsLocal,
+    activeLocalProfileId,
+    setActiveLocalProfileId,
+  } = useMode();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [local, setLocal] = useState<any>(null);
@@ -99,7 +108,7 @@ export default function LocalPerfilScreen() {
     }
 
     try {
-      console.log('[LocalPerfil] Loading local data for:', localId);
+      console.log('[LocalPerfil] ✅ Loading local data for:', localId);
 
       // Load local details
       const { data: localData, error: localError } = await supabase
@@ -126,13 +135,15 @@ export default function LocalPerfilScreen() {
         await setSelectedLocalId(localId);
         await setCurrentMode('propietario');
         await setIsInteractingAsLocal(true);
+        await setActiveLocalProfileId(localId);
       } else {
         // FIXED: User is viewing another local, maintain interaction state
         console.log('[LocalPerfil] ✅ User is viewing local, maintaining interaction state');
         await setIsInteractingAsLocal(true);
+        await setActiveLocalProfileId(localId);
       }
 
-      // Load local posts (ONLY posts with tipo='local' and matching local_id)
+      // FIXED: Load local posts (ONLY posts with tipo='local' and matching local_id)
       const { data: postsData, error: postsError } = await supabase
         .from('posts')
         .select('*')
@@ -141,7 +152,10 @@ export default function LocalPerfilScreen() {
         .order('created_at', { ascending: false });
 
       if (!postsError) {
+        console.log('[LocalPerfil] ✅ Loaded', postsData?.length || 0, 'posts for local');
         setPosts(postsData || []);
+      } else {
+        console.error('[LocalPerfil] Error loading posts:', postsError);
       }
 
       // Load local events
@@ -158,7 +172,7 @@ export default function LocalPerfilScreen() {
         setEvents(eventsData || []);
       }
 
-      // Load local stories (ONLY stories with tipo='local' and matching local_id)
+      // FIXED: Load local stories (ONLY stories with tipo='local' and matching local_id)
       const { data: storiesData } = await supabase
         .from('historias')
         .select('*')
@@ -168,6 +182,7 @@ export default function LocalPerfilScreen() {
         .order('created_at', { ascending: true });
 
       if (storiesData && user) {
+        console.log('[LocalPerfil] ✅ Loaded', storiesData.length, 'stories for local');
         const storyIds = storiesData.map(s => s.id);
         
         const [viewedData, viewsCountData, likesCountData, likedData] = await Promise.all([
@@ -235,17 +250,19 @@ export default function LocalPerfilScreen() {
     } finally {
       setLoading(false);
     }
-  }, [localId, user, router, setSelectedLocalId, setCurrentMode, setIsInteractingAsLocal]);
+  }, [localId, user, router, setSelectedLocalId, setCurrentMode, setIsInteractingAsLocal, setActiveLocalProfileId]);
 
   useEffect(() => {
     loadLocalData();
 
-    // FIXED: Cleanup function to reset interaction state when leaving
+    // FIXED: Don't reset interaction state when unmounting
+    // The interaction state should persist until the user explicitly leaves the local profile
+    // by navigating to a different profile or switching modes
     return () => {
-      console.log('[LocalPerfil] Component unmounting, resetting interaction state');
-      setIsInteractingAsLocal(false);
+      console.log('[LocalPerfil] Component unmounting, keeping interaction state');
+      // Don't reset here - let the user navigate freely within the local profile
     };
-  }, [loadLocalData, setIsInteractingAsLocal]);
+  }, [loadLocalData]);
 
   const onRefresh = async () => {
     setRefreshing(true);

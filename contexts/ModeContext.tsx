@@ -12,6 +12,9 @@ interface ModeContextType {
   setSelectedLocalId: (localId: string | null) => void;
   isInteractingAsLocal: boolean;
   setIsInteractingAsLocal: (value: boolean) => void;
+  // FIXED: Add active local ID for persistent local profile interaction
+  activeLocalProfileId: string | null;
+  setActiveLocalProfileId: (localId: string | null) => void;
 }
 
 const ModeContext = createContext<ModeContextType | undefined>(undefined);
@@ -19,23 +22,27 @@ const ModeContext = createContext<ModeContextType | undefined>(undefined);
 const MODE_STORAGE_KEY = '@barlive_user_mode';
 const SELECTED_LOCAL_STORAGE_KEY = '@barlive_selected_local';
 const INTERACTING_AS_LOCAL_KEY = '@barlive_interacting_as_local';
+const ACTIVE_LOCAL_PROFILE_KEY = '@barlive_active_local_profile';
 
 export function ModeProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [currentMode, setCurrentModeState] = useState<UserMode>('cliente');
   const [selectedLocalId, setSelectedLocalIdState] = useState<string | null>(null);
   const [isInteractingAsLocal, setIsInteractingAsLocalState] = useState(false);
+  // FIXED: Track which local profile is currently active
+  const [activeLocalProfileId, setActiveLocalProfileIdState] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Initialize mode, selected local, and interaction state from storage or user role (only once)
   useEffect(() => {
     const initializeMode = async () => {
       try {
-        // Try to load saved mode, local, and interaction state from storage
-        const [savedMode, savedLocalId, savedInteracting] = await Promise.all([
+        // Try to load saved mode, local, interaction state, and active profile from storage
+        const [savedMode, savedLocalId, savedInteracting, savedActiveProfile] = await Promise.all([
           AsyncStorage.getItem(MODE_STORAGE_KEY),
           AsyncStorage.getItem(SELECTED_LOCAL_STORAGE_KEY),
           AsyncStorage.getItem(INTERACTING_AS_LOCAL_KEY),
+          AsyncStorage.getItem(ACTIVE_LOCAL_PROFILE_KEY),
         ]);
         
         // Restore selected local if available
@@ -48,6 +55,12 @@ export function ModeProvider({ children }: { children: ReactNode }) {
         if (savedInteracting === 'true') {
           console.log('[ModeContext] Restored interaction state: true');
           setIsInteractingAsLocalState(true);
+        }
+
+        // FIXED: Restore active local profile
+        if (savedActiveProfile) {
+          console.log('[ModeContext] Restored active local profile:', savedActiveProfile);
+          setActiveLocalProfileIdState(savedActiveProfile);
         }
         
         if (savedMode && (savedMode === 'cliente' || savedMode === 'propietario' || savedMode === 'admin')) {
@@ -145,6 +158,8 @@ export function ModeProvider({ children }: { children: ReactNode }) {
       if (mode === 'cliente') {
         setIsInteractingAsLocalState(false);
         await AsyncStorage.removeItem(INTERACTING_AS_LOCAL_KEY);
+        // FIXED: Don't clear active local profile when switching modes
+        // This allows users to return to the local profile they were viewing
       }
     } catch (error) {
       console.error('[ModeContext] Error saving mode:', error);
@@ -180,6 +195,9 @@ export function ModeProvider({ children }: { children: ReactNode }) {
         await AsyncStorage.setItem(INTERACTING_AS_LOCAL_KEY, 'true');
       } else {
         await AsyncStorage.removeItem(INTERACTING_AS_LOCAL_KEY);
+        // FIXED: Clear active local profile when stopping interaction
+        await AsyncStorage.removeItem(ACTIVE_LOCAL_PROFILE_KEY);
+        setActiveLocalProfileIdState(null);
       }
       
       setIsInteractingAsLocalState(value);
@@ -191,6 +209,26 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // FIXED: New function to set active local profile
+  const setActiveLocalProfileId = async (localId: string | null) => {
+    try {
+      console.log('[ModeContext] Setting active local profile to:', localId);
+      
+      if (localId) {
+        await AsyncStorage.setItem(ACTIVE_LOCAL_PROFILE_KEY, localId);
+      } else {
+        await AsyncStorage.removeItem(ACTIVE_LOCAL_PROFILE_KEY);
+      }
+      
+      setActiveLocalProfileIdState(localId);
+      console.log('[ModeContext] Active local profile saved to storage:', localId);
+    } catch (error) {
+      console.error('[ModeContext] Error saving active local profile:', error);
+      // Still update state even if storage fails
+      setActiveLocalProfileIdState(localId);
+    }
+  };
+
   return (
     <ModeContext.Provider value={{ 
       currentMode, 
@@ -199,6 +237,8 @@ export function ModeProvider({ children }: { children: ReactNode }) {
       setSelectedLocalId,
       isInteractingAsLocal,
       setIsInteractingAsLocal,
+      activeLocalProfileId,
+      setActiveLocalProfileId,
     }}>
       {children}
     </ModeContext.Provider>
