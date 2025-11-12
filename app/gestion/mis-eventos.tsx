@@ -109,28 +109,53 @@ export default function MisEventosScreen() {
     setShowDeleteModal(true);
   };
 
-  // FIXED: Use DELETE instead of UPDATE to avoid RLS policy violation
+  // FIXED: Properly delete the event with correct RLS policy check
   const handleDeleteEvento = async () => {
-    if (!eventoToDelete) return;
+    if (!eventoToDelete || !user) return;
 
     try {
       setDeleting(true);
 
-      // FIXED: DELETE the event instead of updating activo = false
-      const { error } = await supabase
+      console.log('[MisEventos] Deleting event:', eventoToDelete);
+      console.log('[MisEventos] User ID:', user.id);
+
+      // First, verify the user owns this event
+      const { data: evento, error: fetchError } = await supabase
+        .from('eventos')
+        .select('propietario_id')
+        .eq('id', eventoToDelete)
+        .single();
+
+      if (fetchError) {
+        console.error('[MisEventos] Error fetching event:', fetchError);
+        throw new Error('No se pudo verificar el evento');
+      }
+
+      if (evento.propietario_id !== user.id) {
+        throw new Error('No tienes permiso para eliminar este evento');
+      }
+
+      // Delete the event
+      const { error: deleteError } = await supabase
         .from('eventos')
         .delete()
-        .eq('id', eventoToDelete);
+        .eq('id', eventoToDelete)
+        .eq('propietario_id', user.id); // Double check ownership in the query
 
-      if (error) throw error;
+      if (deleteError) {
+        console.error('[MisEventos] Error deleting event:', deleteError);
+        throw deleteError;
+      }
+
+      console.log('[MisEventos] Event deleted successfully');
 
       Alert.alert('Éxito', 'Evento eliminado correctamente');
       setShowDeleteModal(false);
       setEventoToDelete(null);
       await loadEventos();
-    } catch (error) {
+    } catch (error: any) {
       console.error('[MisEventos] Error deleting event:', error);
-      Alert.alert('Error', 'No se pudo eliminar el evento');
+      Alert.alert('Error', error.message || 'No se pudo eliminar el evento');
     } finally {
       setDeleting(false);
     }
@@ -297,10 +322,12 @@ export default function MisEventosScreen() {
                       <IconSymbol name="clock" size={16} color={colors.primary} />
                       <Text style={styles.detalleTexto}>{evento.hora}</Text>
                     </View>
-                    {evento.precio && (
+                    {evento.precio !== null && evento.precio !== undefined && (
                       <View style={styles.detalleItem}>
                         <IconSymbol name="eurosign.circle" size={16} color={colors.primary} />
-                        <Text style={styles.detalleTexto}>{evento.precio}€</Text>
+                        <Text style={styles.detalleTexto}>
+                          {evento.precio === 0 ? 'Gratis' : `${evento.precio}€`}
+                        </Text>
                       </View>
                     )}
                   </View>

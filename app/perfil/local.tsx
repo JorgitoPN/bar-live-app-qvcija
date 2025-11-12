@@ -119,7 +119,7 @@ export default function LocalPerfilScreen() {
       if (user && localData.propietario_id === user.id) {
         setIsOwner(true);
         
-        // FIXED: Set this local as selected in owner mode
+        // Set this local as selected in owner mode
         if (currentMode === 'propietario') {
           setSelectedLocalId(localId);
         }
@@ -498,8 +498,9 @@ export default function LocalPerfilScreen() {
         style={styles.header}
       >
         <View style={styles.headerTop}>
+          {/* FIXED: Back button with contrasting color */}
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+            <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{local.nombre}</Text>
           <TouchableOpacity onPress={toggleFavorito} style={styles.headerButton}>
@@ -1010,6 +1011,8 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    borderRadius: 20,
   },
   headerTitle: {
     fontSize: 20,

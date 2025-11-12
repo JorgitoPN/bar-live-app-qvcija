@@ -45,7 +45,6 @@ export default function CrearEventoScreen() {
   const [hora, setHora] = useState('');
   const [precio, setPrecio] = useState('');
   const [provincia, setProvincia] = useState('');
-  // FIXED: Added free event toggle
   const [esGratis, setEsGratis] = useState(false);
   const [imagen, setImagen] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -211,7 +210,6 @@ export default function CrearEventoScreen() {
       return;
     }
 
-    // FIXED: Validate price only if not free
     if (!esGratis && !precio) {
       Alert.alert('Error', 'Por favor indica el precio o marca el evento como gratis');
       return;
@@ -245,7 +243,6 @@ export default function CrearEventoScreen() {
         imagenUrl = await uploadImage(imagen);
       }
 
-      // FIXED: Set price to 0 if free, otherwise parse the price
       const precioFinal = esGratis ? 0 : (precio ? parseFloat(precio) : null);
 
       const { data, error } = await supabase
@@ -408,6 +405,7 @@ export default function CrearEventoScreen() {
             <TextInput
               style={styles.input}
               placeholder="Ej: Noche de Jazz en vivo"
+              placeholderTextColor={colors.textSecondary}
               value={titulo}
               onChangeText={setTitulo}
             />
@@ -418,6 +416,7 @@ export default function CrearEventoScreen() {
             <TextInput
               style={[styles.input, styles.textArea]}
               placeholder="Describe el evento..."
+              placeholderTextColor={colors.textSecondary}
               value={descripcion}
               onChangeText={setDescripcion}
               multiline
@@ -431,6 +430,7 @@ export default function CrearEventoScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="YYYY-MM-DD"
+                placeholderTextColor={colors.textSecondary}
                 value={fecha}
                 onChangeText={setFecha}
               />
@@ -441,13 +441,13 @@ export default function CrearEventoScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="HH:MM"
+                placeholderTextColor={colors.textSecondary}
                 value={hora}
                 onChangeText={setHora}
               />
             </View>
           </View>
 
-          {/* FIXED: Added free event toggle */}
           <View style={styles.inputContainer}>
             <View style={styles.switchContainer}>
               <View style={{ flex: 1 }}>
@@ -470,13 +470,13 @@ export default function CrearEventoScreen() {
             </View>
           </View>
 
-          {/* FIXED: Only show price input if not free */}
           {!esGratis && (
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Precio (€) *</Text>
               <TextInput
                 style={styles.input}
                 placeholder="0.00"
+                placeholderTextColor={colors.textSecondary}
                 value={precio}
                 onChangeText={setPrecio}
                 keyboardType="decimal-pad"
@@ -489,6 +489,7 @@ export default function CrearEventoScreen() {
             <TextInput
               style={styles.input}
               placeholder="Madrid"
+              placeholderTextColor={colors.textSecondary}
               value={provincia}
               onChangeText={setProvincia}
             />
