@@ -15,7 +15,6 @@ import {
   Alert,
   Modal,
 } from 'react-native';
-import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
