@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from './AuthContext';
 
 type UserMode = 'cliente' | 'propietario' | 'admin';
+type PublicationMode = 'cliente' | 'local';
 
 interface ModeContextType {
   currentMode: UserMode;
@@ -14,9 +15,8 @@ interface ModeContextType {
   setIsInteractingAsLocal: (value: boolean) => Promise<void>;
   activeLocalProfileId: string | null;
   setActiveLocalProfileId: (localId: string | null) => Promise<void>;
-  // NEW: Publication mode for social content
-  publicationMode: 'cliente' | 'local';
-  setPublicationMode: (mode: 'cliente' | 'local') => Promise<void>;
+  publicationMode: PublicationMode;
+  setPublicationMode: (mode: PublicationMode) => Promise<void>;
 }
 
 const ModeContext = createContext<ModeContextType | undefined>(undefined);
@@ -33,13 +33,15 @@ export function ModeProvider({ children }: { children: ReactNode }) {
   const [selectedLocalId, setSelectedLocalIdState] = useState<string | null>(null);
   const [isInteractingAsLocal, setIsInteractingAsLocalState] = useState(false);
   const [activeLocalProfileId, setActiveLocalProfileIdState] = useState<string | null>(null);
-  const [publicationMode, setPublicationModeState] = useState<'cliente' | 'local'>('cliente');
+  const [publicationMode, setPublicationModeState] = useState<PublicationMode>('cliente');
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Initialize mode, selected local, interaction state, and publication mode from storage
+  // FIXED: Initialize all state from AsyncStorage on mount
   useEffect(() => {
     const initializeMode = async () => {
       try {
+        console.log('[ModeContext] 🔄 Initializing from AsyncStorage...');
+        
         const [savedMode, savedLocalId, savedInteracting, savedActiveProfile, savedPubMode] = await Promise.all([
           AsyncStorage.getItem(MODE_STORAGE_KEY),
           AsyncStorage.getItem(SELECTED_LOCAL_STORAGE_KEY),
@@ -66,10 +68,10 @@ export function ModeProvider({ children }: { children: ReactNode }) {
           setActiveLocalProfileIdState(savedActiveProfile);
         }
 
-        // Restore publication mode
+        // FIXED: Restore publication mode with proper persistence
         if (savedPubMode === 'local' || savedPubMode === 'cliente') {
           console.log('[ModeContext] ✅ Restored publication mode:', savedPubMode);
-          setPublicationModeState(savedPubMode);
+          setPublicationModeState(savedPubMode as PublicationMode);
         }
         
         if (savedMode && (savedMode === 'cliente' || savedMode === 'propietario' || savedMode === 'admin')) {
@@ -133,6 +135,16 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     }
   }, [user, isInitialized]);
 
+  // FIXED: Auto-reset publication mode when switching to cliente mode
+  useEffect(() => {
+    if (currentMode === 'cliente' && publicationMode === 'local') {
+      console.log('[ModeContext] 🔄 Auto-resetting publication mode to cliente');
+      setPublicationMode('cliente');
+      setSelectedLocalIdState(null);
+      AsyncStorage.removeItem(SELECTED_LOCAL_STORAGE_KEY);
+    }
+  }, [currentMode, publicationMode]);
+
   const setCurrentMode = async (mode: UserMode) => {
     try {
       console.log('[ModeContext] 🔄 Setting mode to:', mode);
@@ -156,9 +168,10 @@ export function ModeProvider({ children }: { children: ReactNode }) {
       setCurrentModeState(mode);
       console.log('[ModeContext] ✅ Mode saved to storage:', mode);
 
-      // When switching to cliente mode, reset publication mode
+      // FIXED: When switching to cliente mode, reset publication mode and local selection
       if (mode === 'cliente') {
         await setPublicationMode('cliente');
+        await setSelectedLocalId(null);
       }
     } catch (error) {
       console.error('[ModeContext] ❌ Error saving mode:', error);
@@ -222,13 +235,19 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const setPublicationMode = async (mode: 'cliente' | 'local') => {
+  // FIXED: Persist publication mode with proper state management
+  const setPublicationMode = async (mode: PublicationMode) => {
     try {
       console.log('[ModeContext] 🔄 Setting publication mode to:', mode);
       
       await AsyncStorage.setItem(PUBLICATION_MODE_KEY, mode);
       setPublicationModeState(mode);
       console.log('[ModeContext] ✅ Publication mode saved to storage:', mode);
+
+      // FIXED: Auto-reset local selection when switching to cliente publication mode
+      if (mode === 'cliente') {
+        await setSelectedLocalId(null);
+      }
     } catch (error) {
       console.error('[ModeContext] ❌ Error saving publication mode:', error);
       setPublicationModeState(mode);
