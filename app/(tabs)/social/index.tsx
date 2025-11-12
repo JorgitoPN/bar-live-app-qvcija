@@ -24,6 +24,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMode } from '@/contexts/ModeContext';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 import { supabase } from '@/utils/supabase';
 import { socialCache } from '@/utils/socialCache';
@@ -87,6 +88,13 @@ interface ChatUser {
   avatar?: string;
 }
 
+interface LocalProfile {
+  id: string;
+  nombre: string;
+  tipo: string;
+  imagen_url?: string;
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -132,6 +140,112 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 11,
     fontWeight: 'bold',
+  },
+  // FIXED: Local selector for owner mode
+  localSelectorContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: colors.cardBackground,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  localSelectorButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.background,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  localSelectorContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  localSelectorImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
+  },
+  localSelectorImagePlaceholder: {
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  localSelectorText: {
+    flex: 1,
+  },
+  localSelectorLabel: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginBottom: 2,
+  },
+  localSelectorName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  localSelectorModal: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '70%',
+  },
+  localSelectorModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  localSelectorModalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  localSelectorModalContent: {
+    padding: 16,
+  },
+  localSelectorItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  localSelectorItemActive: {
+    backgroundColor: colors.primary + '20',
+    borderColor: colors.primary,
+  },
+  localSelectorItemImage: {
+    width: 56,
+    height: 56,
+    borderRadius: 12,
+    marginRight: 16,
+  },
+  localSelectorItemInfo: {
+    flex: 1,
+  },
+  localSelectorItemName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  localSelectorItemNameActive: {
+    color: colors.primary,
+  },
+  localSelectorItemType: {
+    fontSize: 14,
+    color: colors.textSecondary,
   },
   searchModal: {
     flex: 1,
@@ -564,6 +678,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
   },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
 });
 
 function formatearFecha(fecha: string): string {
@@ -584,6 +703,7 @@ function formatearFecha(fecha: string): string {
 export default function SocialScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const { currentMode } = useMode();
   
   const { posts: globalPosts, stories: globalStories, isInitialLoading, refreshData } = useGlobalData();
   
@@ -598,9 +718,13 @@ export default function SocialScreen() {
   const [loginMessage, setLoginMessage] = useState('');
   const [showCreateOptions, setShowCreateOptions] = useState(false);
   
-  // FIXED: Notification and message indicators
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  
+  // FIXED: Local selector for owner mode
+  const [userLocales, setUserLocales] = useState<LocalProfile[]>([]);
+  const [selectedLocalId, setSelectedLocalId] = useState<string | null>(null);
+  const [showLocalSelector, setShowLocalSelector] = useState(false);
   
   // Story viewer states
   const [showStoryViewer, setShowStoryViewer] = useState(false);
@@ -611,13 +735,11 @@ export default function SocialScreen() {
   const storyTimerRef = useRef<NodeJS.Timeout | null>(null);
   const progressAnim = useRef(new Animated.Value(0)).current;
 
-  // FIXED: Story stats modal states
   const [showStoryStats, setShowStoryStats] = useState(false);
   const [storyViews, setStoryViews] = useState<any[]>([]);
   const [storyLikes, setStoryLikes] = useState<any[]>([]);
   const [loadingStats, setLoadingStats] = useState(false);
 
-  // Scroll animation states
   const scrollY = useRef(new Animated.Value(0)).current;
   const lastScrollY = useRef(0);
   const scrollDirection = useRef<'up' | 'down'>('down');
@@ -625,6 +747,34 @@ export default function SocialScreen() {
 
   const isLoadingRef = useRef(false);
   const likingPostsRef = useRef<Set<string>>(new Set());
+
+  const userRole = user?.rol_app || 'cliente';
+  const isPropietario = userRole === 'propietario' || (userRole === 'admin' && currentMode === 'propietario');
+  const isOwnerMode = currentMode === 'propietario' && isPropietario;
+
+  // FIXED: Load user's locales when in owner mode
+  const loadUserLocales = useCallback(async () => {
+    if (!user || !isPropietario) return;
+
+    try {
+      const { data: localesData, error } = await supabase
+        .from('locales')
+        .select('id, nombre, tipo, imagen_url')
+        .eq('propietario_id', user.id)
+        .eq('activo', true);
+
+      if (error) throw error;
+
+      setUserLocales(localesData || []);
+
+      // Auto-select first local if none selected and only one local
+      if (localesData && localesData.length === 1 && !selectedLocalId) {
+        setSelectedLocalId(localesData[0].id);
+      }
+    } catch (error) {
+      console.error('[Social] Error loading user locales:', error);
+    }
+  }, [user, isPropietario, selectedLocalId]);
 
   const loadData = useCallback(async () => {
     if (isLoadingRef.current) {
@@ -636,6 +786,11 @@ export default function SocialScreen() {
 
     try {
       console.log('[Social] ⚡ Loading user-specific data...');
+
+      // FIXED: Load locales in owner mode
+      if (isOwnerMode) {
+        await loadUserLocales();
+      }
 
       if (globalPosts.length > 0) {
         console.log('[Social] ⚡ INSTANT posts from global data:', globalPosts.length);
@@ -690,7 +845,6 @@ export default function SocialScreen() {
         if (user) {
           const allStoryIds = globalStories.map(s => s.id);
           
-          // Load views, likes, comments for stories
           const [viewedData, likesData, viewsCountData, commentsCountData] = await Promise.all([
             supabase
               .from('historia_views')
@@ -754,14 +908,12 @@ export default function SocialScreen() {
     } finally {
       isLoadingRef.current = false;
     }
-  }, [user, globalPosts, globalStories]);
+  }, [user, globalPosts, globalStories, isOwnerMode, loadUserLocales]);
 
-  // FIXED: Load unread counts
   const loadUnreadCounts = useCallback(async () => {
     if (!user) return;
 
     try {
-      // Count unread notifications
       const { count: notifCount } = await supabase
         .from('notificaciones')
         .select('*', { count: 'exact', head: true })
@@ -770,7 +922,6 @@ export default function SocialScreen() {
 
       setUnreadNotifications(notifCount || 0);
 
-      // Count unread messages
       const { data: chatsData } = await supabase
         .from('chats')
         .select('id')
@@ -1063,7 +1214,6 @@ export default function SocialScreen() {
     }
   }, [user, currentStoryIndex, viewingOwnStories, userStories, historias]);
 
-  // FIXED: Load story statistics - pauses story while modal is open
   const handleViewStoryStats = useCallback(async () => {
     const currentStories = viewingOwnStories ? userStories : historias;
     const currentStory = currentStories[currentStoryIndex];
@@ -1072,7 +1222,6 @@ export default function SocialScreen() {
       return;
     }
 
-    // FIXED: Pause story when opening stats
     setIsPaused(true);
     stopStoryTimer();
 
@@ -1080,7 +1229,6 @@ export default function SocialScreen() {
     setShowStoryStats(true);
 
     try {
-      // Load views
       const { data: viewsData, error: viewsError } = await supabase
         .from('historia_views')
         .select(`
@@ -1094,7 +1242,6 @@ export default function SocialScreen() {
 
       if (viewsError) throw viewsError;
 
-      // Load likes
       const { data: likesData, error: likesError } = await supabase
         .from('historia_likes')
         .select(`
@@ -1118,7 +1265,6 @@ export default function SocialScreen() {
     }
   }, [userStories, historias, currentStoryIndex, user, viewingOwnStories, stopStoryTimer]);
 
-  // FIXED: Send message with story - removed expires_at field, added historia_id and historia_imagen
   const handleSendStoryMessage = useCallback(async () => {
     const currentStories = viewingOwnStories ? userStories : historias;
     const currentStory = currentStories[currentStoryIndex];
@@ -1130,7 +1276,6 @@ export default function SocialScreen() {
     try {
       console.log('[Social] Sending story message...');
       
-      // Find or create chat
       const { data: chatExistente, error: chatError } = await supabase
         .from('chats')
         .select('id')
@@ -1155,7 +1300,6 @@ export default function SocialScreen() {
         console.log('[Social] Chat created:', chatId);
       }
 
-      // FIXED: Send message with historia_id and historia_imagen instead of expires_at
       const { error: mensajeError } = await supabase
         .from('mensajes')
         .insert({
@@ -1171,7 +1315,6 @@ export default function SocialScreen() {
 
       console.log('[Social] Message sent successfully');
 
-      // Create notification
       await supabase.from('notificaciones').insert({
         usuario_id: currentStory.autor_id,
         tipo: 'mensaje_privado',
@@ -1412,6 +1555,8 @@ export default function SocialScreen() {
     outputRange: ['0%', '100%'],
   });
 
+  const selectedLocal = userLocales.find(l => l.id === selectedLocalId);
+
   if (isInitialLoading) {
     return <InitialLoadingScreen />;
   }
@@ -1478,11 +1623,41 @@ export default function SocialScreen() {
             </TouchableOpacity>
           </View>
         </LinearGradient>
+
+        {/* FIXED: Local selector for owner mode */}
+        {isOwnerMode && userLocales.length > 0 && (
+          <View style={styles.localSelectorContainer}>
+            <TouchableOpacity
+              style={styles.localSelectorButton}
+              onPress={() => userLocales.length > 1 && setShowLocalSelector(true)}
+              activeOpacity={userLocales.length > 1 ? 0.7 : 1}
+            >
+              <View style={styles.localSelectorContent}>
+                {selectedLocal?.imagen_url ? (
+                  <Image source={{ uri: selectedLocal.imagen_url }} style={styles.localSelectorImage} />
+                ) : (
+                  <View style={[styles.localSelectorImage, styles.localSelectorImagePlaceholder]}>
+                    <IconSymbol name="building.2" size={20} color={colors.headerText} />
+                  </View>
+                )}
+                <View style={styles.localSelectorText}>
+                  <Text style={styles.localSelectorLabel}>Interactuando como:</Text>
+                  <Text style={styles.localSelectorName} numberOfLines={1}>
+                    {selectedLocal?.nombre || 'Seleccionar local'}
+                  </Text>
+                </View>
+              </View>
+              {userLocales.length > 1 && (
+                <IconSymbol name="chevron.down" size={20} color={colors.text} />
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
       </Animated.View>
 
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingTop: HEADER_HEIGHT }}
+        contentContainerStyle={{ paddingTop: isOwnerMode && userLocales.length > 0 ? HEADER_HEIGHT + 70 : HEADER_HEIGHT }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
@@ -1625,6 +1800,8 @@ export default function SocialScreen() {
                     onPress={() => {
                       if (user && post.autor_id === user.id) {
                         router.push('/(tabs)/perfil');
+                      } else if (post.tipo === 'local' && post.local_id) {
+                        router.push(`/perfil/local?localId=${post.local_id}`);
                       } else {
                         router.push(`/perfil/usuario?userId=${post.autor_id}`);
                       }
@@ -1738,6 +1915,58 @@ export default function SocialScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/* Local Selector Modal */}
+      <Modal
+        visible={showLocalSelector}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowLocalSelector(false)}
+      >
+        <Pressable 
+          style={styles.modalOverlay}
+          onPress={() => setShowLocalSelector(false)}
+        >
+          <Pressable style={styles.localSelectorModal} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.localSelectorModalHeader}>
+              <Text style={styles.localSelectorModalTitle}>Seleccionar Local</Text>
+              <TouchableOpacity onPress={() => setShowLocalSelector(false)}>
+                <IconSymbol name="xmark" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.localSelectorModalContent}>
+              {userLocales.map((local) => (
+                <TouchableOpacity
+                  key={local.id}
+                  style={[styles.localSelectorItem, selectedLocalId === local.id && styles.localSelectorItemActive]}
+                  onPress={() => {
+                    setSelectedLocalId(local.id);
+                    setShowLocalSelector(false);
+                  }}
+                >
+                  {local.imagen_url ? (
+                    <Image source={{ uri: local.imagen_url }} style={styles.localSelectorItemImage} />
+                  ) : (
+                    <View style={[styles.localSelectorItemImage, styles.localSelectorImagePlaceholder]}>
+                      <IconSymbol name="building.2" size={24} color={colors.headerText} />
+                    </View>
+                  )}
+                  <View style={styles.localSelectorItemInfo}>
+                    <Text style={[styles.localSelectorItemName, selectedLocalId === local.id && styles.localSelectorItemNameActive]}>
+                      {local.nombre}
+                    </Text>
+                    <Text style={styles.localSelectorItemType}>{local.tipo}</Text>
+                  </View>
+                  {selectedLocalId === local.id && (
+                    <IconSymbol name="checkmark.circle.fill" size={24} color={colors.primary} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {/* Search Modal */}
       <Modal
@@ -1931,7 +2160,6 @@ export default function SocialScreen() {
                         </View>
                       )}
                       <Text style={styles.storyAutorNombre}>{user.nombre}</Text>
-                      {/* FIXED: Eye icon only for own stories */}
                       <TouchableOpacity
                         style={styles.storyInteractionButton}
                         onPress={handleViewStoryStats}
@@ -2007,11 +2235,9 @@ export default function SocialScreen() {
                 />
               </View>
 
-              {/* FIXED: Interaction bar - delete button moved to bottom left for own stories */}
               <View style={styles.storyInteractionBar}>
                 {viewingOwnStories ? (
                   <>
-                    {/* FIXED: Delete button relocated to bottom left */}
                     {user && currentStory.autor_id === user.id && (
                       <TouchableOpacity
                         style={styles.storyDeleteButtonBottom}
@@ -2090,12 +2316,10 @@ export default function SocialScreen() {
         </View>
       </Modal>
 
-      {/* FIXED: Story Stats Modal - resumes story when closed */}
       <StoryStatsModal
         visible={showStoryStats}
         onClose={() => {
           setShowStoryStats(false);
-          // FIXED: Resume story after closing stats
           setIsPaused(false);
           startStoryTimer();
         }}

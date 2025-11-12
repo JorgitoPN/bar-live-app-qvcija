@@ -44,7 +44,7 @@ export default function CrearEventoScreen() {
   const [hora, setHora] = useState('');
   const [precio, setPrecio] = useState('');
   const [provincia, setProvincia] = useState('');
-  const [entradasTotales, setEntradasTotales] = useState('');
+  // FIXED: Removed entradas field as tickets are disabled
   const [imagen, setImagen] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [misLocales, setMisLocales] = useState<LocalConPlan[]>([]);
@@ -75,7 +75,6 @@ export default function CrearEventoScreen() {
         return;
       }
 
-      // Check subscription for each local
       const localesConPlan: LocalConPlan[] = await Promise.all(
         localesData.map(async (local) => {
           const { data: suscripcion } = await supabase
@@ -109,11 +108,9 @@ export default function CrearEventoScreen() {
         })
       );
 
-      // Filter only locals that can create events
       const localesConAcceso = localesConPlan.filter((l) => l.suscripcion?.puede_crear_eventos);
 
       if (localesConAcceso.length === 0) {
-        // FIXED: Correct navigation to plans page
         Alert.alert(
           'Plan Requerido',
           'Necesitas un plan de pago activo para crear eventos. Activa un plan Estándar o Premium para desbloquear esta funcionalidad.',
@@ -123,7 +120,6 @@ export default function CrearEventoScreen() {
               text: 'Ver Planes',
               onPress: () => {
                 router.back();
-                // Navigate to plans page with the first local's ID
                 const firstLocalId = localesConPlan[0]?.id;
                 if (firstLocalId) {
                   router.push(`/gestion/planes-suscripcion?localId=${firstLocalId}`);
@@ -139,7 +135,6 @@ export default function CrearEventoScreen() {
 
       setMisLocales(localesConAcceso);
 
-      // Pre-select local if provided
       if (localId) {
         const localPreseleccionado = localesConAcceso.find((l) => l.id === localId);
         if (localPreseleccionado) {
@@ -219,7 +214,6 @@ export default function CrearEventoScreen() {
       return;
     }
 
-    // Verify subscription again before creating
     const localActual = misLocales.find((l) => l.id === localSeleccionado);
     if (!localActual?.suscripcion?.puede_crear_eventos) {
       Alert.alert(
@@ -243,6 +237,7 @@ export default function CrearEventoScreen() {
         imagenUrl = await uploadImage(imagen);
       }
 
+      // FIXED: Removed entradas_totales field
       const { data, error } = await supabase
         .from('eventos')
         .insert({
@@ -252,7 +247,6 @@ export default function CrearEventoScreen() {
           hora,
           precio: precio ? parseFloat(precio) : null,
           provincia,
-          entradas_totales: entradasTotales ? parseInt(entradasTotales) : null,
           imagen_url: imagenUrl,
           local_id: localSeleccionado,
           propietario_id: user.id,
@@ -267,7 +261,6 @@ export default function CrearEventoScreen() {
         return;
       }
 
-      // Increment event counter
       const { error: updateError } = await supabase
         .from('suscripciones_locales')
         .update({
@@ -328,7 +321,6 @@ export default function CrearEventoScreen() {
 
       <ScrollView style={styles.content}>
         <View style={styles.form}>
-          {/* Plan Info Banner */}
           {misLocales.length > 0 && localSeleccionado && (
             <View style={styles.planInfoBanner}>
               <IconSymbol name="info.circle.fill" size={20} color={colors.primary} />
@@ -351,7 +343,6 @@ export default function CrearEventoScreen() {
             </View>
           )}
 
-          {/* Imagen */}
           <TouchableOpacity style={styles.imagenContainer} onPress={seleccionarImagen}>
             {imagen ? (
               <Image source={{ uri: imagen }} style={styles.imagen} />
@@ -363,7 +354,6 @@ export default function CrearEventoScreen() {
             )}
           </TouchableOpacity>
 
-          {/* Local */}
           {misLocales.length > 0 && (
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Local *</Text>
@@ -447,28 +437,16 @@ export default function CrearEventoScreen() {
             </View>
           </View>
 
-          <View style={styles.row}>
-            <View style={[styles.inputContainer, { flex: 1 }]}>
-              <Text style={styles.label}>Precio (€)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="0.00"
-                value={precio}
-                onChangeText={setPrecio}
-                keyboardType="decimal-pad"
-              />
-            </View>
-
-            <View style={[styles.inputContainer, { flex: 1 }]}>
-              <Text style={styles.label}>Entradas totales</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="100"
-                value={entradasTotales}
-                onChangeText={setEntradasTotales}
-                keyboardType="number-pad"
-              />
-            </View>
+          {/* FIXED: Removed entradas field - only show precio */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Precio (€)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="0.00"
+              value={precio}
+              onChangeText={setPrecio}
+              keyboardType="decimal-pad"
+            />
           </View>
 
           <View style={styles.inputContainer}>
