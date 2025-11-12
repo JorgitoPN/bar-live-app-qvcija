@@ -88,7 +88,7 @@ const convertImageToJPG = (uri: string): Promise<Blob> => {
 
 export default function CrearHistoriaScreen() {
   const { user } = useAuth();
-  const { activeLocalProfileId, isInteractingAsLocal } = useMode();
+  const { activeLocalProfileId, isInteractingAsLocal, publicationMode } = useMode();
   const router = useRouter();
   const params = useLocalSearchParams();
   const localId = params.localId as string | undefined;
@@ -308,6 +308,10 @@ export default function CrearHistoriaScreen() {
 
     try {
       console.log('[CrearHistoria] Starting publication...');
+      console.log('[CrearHistoria] Active local profile:', activeLocalProfileId);
+      console.log('[CrearHistoria] Is interacting as local:', isInteractingAsLocal);
+      console.log('[CrearHistoria] Publication mode:', publicationMode);
+      console.log('[CrearHistoria] LocalId param:', localId);
       
       // Upload image
       const imagenUrl = await uploadImage(imagen);
@@ -318,7 +322,7 @@ export default function CrearHistoriaScreen() {
       }
 
       // FIXED: Determine the correct profile context
-      // Priority: localId param > activeLocalProfileId (if interacting as local) > user profile
+      // Priority: localId param > publicationMode === 'local' > activeLocalProfileId (if interacting as local) > user profile
       let effectiveLocalId: string | null = null;
       let storyTipo: 'usuario' | 'local' = 'usuario';
 
@@ -326,15 +330,22 @@ export default function CrearHistoriaScreen() {
         // Explicit local ID from params (e.g., from local profile page)
         effectiveLocalId = localId;
         storyTipo = 'local';
+        console.log('[CrearHistoria] ✅ Using localId from params:', localId);
+      } else if (publicationMode === 'local' && activeLocalProfileId) {
+        // Publication mode is set to local
+        effectiveLocalId = activeLocalProfileId;
+        storyTipo = 'local';
+        console.log('[CrearHistoria] ✅ Using publicationMode=local with activeLocalProfileId:', activeLocalProfileId);
       } else if (isInteractingAsLocal && activeLocalProfileId) {
         // User is interacting as a local
         effectiveLocalId = activeLocalProfileId;
         storyTipo = 'local';
+        console.log('[CrearHistoria] ✅ Using isInteractingAsLocal with activeLocalProfileId:', activeLocalProfileId);
       }
       // Otherwise, it's a user story (default)
 
-      console.log('[CrearHistoria] Effective local ID:', effectiveLocalId);
-      console.log('[CrearHistoria] Story tipo:', storyTipo);
+      console.log('[CrearHistoria] ✅ Final effective local ID:', effectiveLocalId);
+      console.log('[CrearHistoria] ✅ Final story tipo:', storyTipo);
 
       // Create story with correct profile context
       const { data: storyData, error: storyError } = await supabase
@@ -353,7 +364,7 @@ export default function CrearHistoriaScreen() {
 
       if (storyError) throw storyError;
 
-      console.log('[CrearHistoria] Story created successfully');
+      console.log('[CrearHistoria] ✅ Story created successfully');
 
       // Add tags
       if (usuariosEtiquetados.length > 0 && storyData) {

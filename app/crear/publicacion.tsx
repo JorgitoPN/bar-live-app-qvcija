@@ -81,7 +81,7 @@ const convertImageToJPG = (uri: string): Promise<Blob> => {
 export default function CrearPublicacionScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const { activeLocalProfileId, isInteractingAsLocal } = useMode();
+  const { activeLocalProfileId, isInteractingAsLocal, publicationMode } = useMode();
   const params = useLocalSearchParams();
   const localId = params.localId as string | undefined;
   
@@ -312,6 +312,7 @@ export default function CrearPublicacionScreen() {
       console.log('[CrearPublicacion] Starting publication...');
       console.log('[CrearPublicacion] Active local profile:', activeLocalProfileId);
       console.log('[CrearPublicacion] Is interacting as local:', isInteractingAsLocal);
+      console.log('[CrearPublicacion] Publication mode:', publicationMode);
       console.log('[CrearPublicacion] LocalId param:', localId);
       
       let imagenUrl = null;
@@ -325,7 +326,7 @@ export default function CrearPublicacionScreen() {
       }
 
       // FIXED: Determine the correct profile context
-      // Priority: localId param > activeLocalProfileId (if interacting as local) > user profile
+      // Priority: localId param > publicationMode === 'local' > activeLocalProfileId (if interacting as local) > user profile
       let effectiveLocalId: string | null = null;
       let postTipo: 'usuario' | 'local' = 'usuario';
 
@@ -333,15 +334,22 @@ export default function CrearPublicacionScreen() {
         // Explicit local ID from params (e.g., from local profile page)
         effectiveLocalId = localId;
         postTipo = 'local';
+        console.log('[CrearPublicacion] ✅ Using localId from params:', localId);
+      } else if (publicationMode === 'local' && activeLocalProfileId) {
+        // Publication mode is set to local
+        effectiveLocalId = activeLocalProfileId;
+        postTipo = 'local';
+        console.log('[CrearPublicacion] ✅ Using publicationMode=local with activeLocalProfileId:', activeLocalProfileId);
       } else if (isInteractingAsLocal && activeLocalProfileId) {
         // User is interacting as a local
         effectiveLocalId = activeLocalProfileId;
         postTipo = 'local';
+        console.log('[CrearPublicacion] ✅ Using isInteractingAsLocal with activeLocalProfileId:', activeLocalProfileId);
       }
       // Otherwise, it's a user post (default)
 
-      console.log('[CrearPublicacion] Effective local ID:', effectiveLocalId);
-      console.log('[CrearPublicacion] Post tipo:', postTipo);
+      console.log('[CrearPublicacion] ✅ Final effective local ID:', effectiveLocalId);
+      console.log('[CrearPublicacion] ✅ Final post tipo:', postTipo);
 
       // FIXED: Create post with correct profile context
       const { data: postData, error: postError } = await supabase
@@ -364,7 +372,7 @@ export default function CrearPublicacionScreen() {
         throw postError;
       }
 
-      console.log('[CrearPublicacion] Post created successfully:', postData);
+      console.log('[CrearPublicacion] ✅ Post created successfully:', postData);
 
       if (usuariosEtiquetados.length > 0 && postData) {
         const tags = usuariosEtiquetados.map((u) => ({
