@@ -200,6 +200,19 @@ export default function GestionScreen() {
         <View style={styles.quickActions}>
           <TouchableOpacity
             style={styles.quickActionButton}
+            onPress={() => router.push('/gestion/mis-eventos')}
+          >
+            <LinearGradient
+              colors={['#F59E0B', '#D97706']}
+              style={styles.quickActionGradient}
+            >
+              <IconSymbol name="calendar" size={24} color="#FFFFFF" />
+              <Text style={styles.quickActionText}>Mis Eventos</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.quickActionButton}
             onPress={() => {
               if (locales.length === 0) {
                 Alert.alert(
@@ -335,6 +348,13 @@ export default function GestionScreen() {
                 <View style={styles.localActions}>
                   <TouchableOpacity
                     style={styles.localActionButton}
+                    onPress={() => router.push(`/editar/local?id=${local.id}`)}
+                  >
+                    <IconSymbol name="pencil" size={18} color={colors.primary} />
+                    <Text style={styles.localActionText}>Editar Local</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.localActionButton}
                     onPress={() => router.push(`/crear/evento?localId=${local.id}`)}
                   >
                     <IconSymbol name="calendar.badge.plus" size={18} color={colors.primary} />
@@ -403,7 +423,7 @@ const styles = StyleSheet.create({
   },
   quickActionText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
   },
   emptyState: {
@@ -527,7 +547,7 @@ const styles = StyleSheet.create({
   },
   localActions: {
     flexDirection: 'row',
-    gap: 16,
+    gap: 12,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
     paddingTop: 16,
@@ -541,7 +561,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   localActionText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: colors.primary,
   },

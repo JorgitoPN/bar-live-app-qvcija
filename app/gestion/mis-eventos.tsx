@@ -7,60 +7,69 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  RefreshControl,
   ActivityIndicator,
+  RefreshControl,
   Alert,
+  Modal,
+  Pressable,
   Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
-import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
+import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 
 interface Evento {
   id: string;
   titulo: string;
-  descripcion: string;
+  descripcion?: string;
   fecha: string;
   hora: string;
   precio?: number;
   imagen_url?: string;
+  local_id?: string;
+  propietario_id?: string;
   provincia?: string;
-  local?: {
-    nombre: string;
-  };
   destacado: boolean;
   activo: boolean;
+  created_at: string;
+  locales?: {
+    nombre: string;
+    provincia: string;
+  };
 }
 
 export default function MisEventosScreen() {
-  const { user } = useAuth();
   const router = useRouter();
+  const { user } = useAuth();
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [eventoToDelete, setEventoToDelete] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
-  const cargarEventos = useCallback(async () => {
+  const loadEventos = useCallback(async () => {
     if (!user) {
       setLoading(false);
       return;
     }
 
     try {
-      console.log('[MisEventos] Loading events for user:', user.id);
-      
       const { data, error } = await supabase
         .from('eventos')
         .select(`
           *,
           locales:local_id (
-            nombre
+            nombre,
+            provincia
           )
         `)
         .eq('propietario_id', user.id)
-        .eq('activo', true)
         .order('fecha', { ascending: true });
 
       if (error) {
@@ -68,7 +77,6 @@ export default function MisEventosScreen() {
         return;
       }
 
-      console.log('[MisEventos] Events loaded:', data?.length || 0);
       setEventos(data || []);
     } catch (error) {
       console.error('[MisEventos] Error:', error);
@@ -79,46 +87,59 @@ export default function MisEventosScreen() {
   }, [user]);
 
   useEffect(() => {
-    cargarEventos();
-  }, [cargarEventos]);
+    if (!user) {
+      setShowLoginModal(true);
+    } else {
+      loadEventos();
+    }
+  }, [user, loadEventos]);
 
   const onRefresh = () => {
     setRefreshing(true);
-    cargarEventos();
+    loadEventos();
   };
 
-  const handleEditEvent = (eventoId: string) => {
+  const handleEditEvento = (eventoId: string) => {
     router.push(`/crear/evento?id=${eventoId}`);
   };
 
-  const handleDeleteEvent = (eventoId: string) => {
-    Alert.alert(
-      'Eliminar Evento',
-      '¿Estás seguro de que quieres eliminar este evento?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const { error } = await supabase
-                .from('eventos')
-                .update({ activo: false })
-                .eq('id', eventoId);
+  const confirmDeleteEvento = (eventoId: string) => {
+    setEventoToDelete(eventoId);
+    setShowDeleteModal(true);
+  };
 
-              if (error) throw error;
+  const handleDeleteEvento = async () => {
+    if (!eventoToDelete) return;
 
-              Alert.alert('Éxito', 'Evento eliminado correctamente');
-              await cargarEventos();
-            } catch (error) {
-              console.error('[MisEventos] Error deleting event:', error);
-              Alert.alert('Error', 'No se pudo eliminar el evento');
-            }
-          },
-        },
-      ]
-    );
+    try {
+      setDeleting(true);
+
+      const { error } = await supabase
+        .from('eventos')
+        .update({ activo: false })
+        .eq('id', eventoToDelete);
+
+      if (error) throw error;
+
+      Alert.alert('Éxito', 'Evento eliminado correctamente');
+      setShowDeleteModal(false);
+      setEventoToDelete(null);
+      await loadEventos();
+    } catch (error) {
+      console.error('[MisEventos] Error deleting event:', error);
+      Alert.alert('Error', 'No se pudo eliminar el evento');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const formatDate = (fecha: string): string => {
+    const date = new Date(fecha);
+    return date.toLocaleDateString('es-ES', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
   };
 
   const calcularDiasRestantes = (fecha: string): number => {
@@ -127,6 +148,36 @@ export default function MisEventosScreen() {
     const diff = fechaEvento.getTime() - hoy.getTime();
     return Math.ceil(diff / (1000 * 60 * 60 * 24));
   };
+
+  if (!user) {
+    return (
+      <View style={commonStyles.container}>
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.header}
+        >
+          <View style={styles.headerTop}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Mis Eventos</Text>
+            <View style={{ width: 40 }} />
+          </View>
+        </LinearGradient>
+
+        <LoginRequiredModal
+          visible={showLoginModal}
+          onClose={() => {
+            setShowLoginModal(false);
+            router.back();
+          }}
+          message="Para gestionar eventos necesitas registrarte en BarLive"
+        />
+      </View>
+    );
+  }
 
   if (loading) {
     return (
@@ -145,8 +196,10 @@ export default function MisEventosScreen() {
             <View style={{ width: 40 }} />
           </View>
         </LinearGradient>
+
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Cargando eventos...</Text>
         </View>
       </View>
     );
@@ -165,9 +218,9 @@ export default function MisEventosScreen() {
             <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Mis Eventos</Text>
-          <TouchableOpacity 
-            onPress={() => router.push('/crear/evento')}
+          <TouchableOpacity
             style={styles.addButton}
+            onPress={() => router.push('/crear/evento')}
           >
             <IconSymbol name="plus" size={24} color={colors.headerText} />
           </TouchableOpacity>
@@ -175,8 +228,9 @@ export default function MisEventosScreen() {
       </LinearGradient>
 
       <ScrollView
-        style={styles.content}
+        style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {eventos.length === 0 ? (
@@ -191,9 +245,10 @@ export default function MisEventosScreen() {
               onPress={() => router.push('/crear/evento')}
             >
               <LinearGradient
-                colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+                colors={[colors.primary, colors.secondary]}
                 style={styles.createButtonGradient}
               >
+                <IconSymbol name="plus" size={20} color={colors.white} />
                 <Text style={styles.createButtonText}>Crear Evento</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -201,75 +256,87 @@ export default function MisEventosScreen() {
         ) : (
           eventos.map((evento) => {
             const diasRestantes = calcularDiasRestantes(evento.fecha);
-            
+            const isPast = diasRestantes < 0;
+
             return (
-              <View key={evento.id} style={[commonStyles.card, commonStyles.cardShadow, styles.eventoCard]}>
+              <View key={evento.id} style={styles.eventoCard}>
                 {evento.imagen_url && (
                   <Image source={{ uri: evento.imagen_url }} style={styles.eventoImagen} />
                 )}
-                
+
                 {evento.destacado && (
                   <View style={styles.badgeDestacado}>
-                    <Text style={styles.badgeText}>⭐ Destacado</Text>
+                    <Text style={styles.badgeDestacadoText}>⭐ Destacado</Text>
                   </View>
                 )}
 
-                <View style={styles.eventoContent}>
-                  <Text style={styles.eventoTitulo}>{evento.titulo}</Text>
-                  {evento.local && (
-                    <Text style={styles.eventoLocal}>{evento.local.nombre}</Text>
+                {!evento.activo && (
+                  <View style={styles.badgeInactivo}>
+                    <Text style={styles.badgeInactivoText}>Inactivo</Text>
+                  </View>
+                )}
+
+                <View style={styles.eventoInfo}>
+                  <Text style={styles.eventoTitulo} numberOfLines={2}>
+                    {evento.titulo}
+                  </Text>
+
+                  {evento.locales && (
+                    <Text style={styles.eventoLocal}>{evento.locales.nombre}</Text>
                   )}
-                  
+
+                  {evento.descripcion && (
+                    <Text style={styles.eventoDescripcion} numberOfLines={2}>
+                      {evento.descripcion}
+                    </Text>
+                  )}
+
                   <View style={styles.eventoDetalles}>
                     <View style={styles.detalleItem}>
                       <IconSymbol name="calendar" size={16} color={colors.primary} />
-                      <Text style={styles.detalleTexto}>
-                        {new Date(evento.fecha).toLocaleDateString('es-ES', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                        })}
-                      </Text>
+                      <Text style={styles.detalleTexto}>{formatDate(evento.fecha)}</Text>
                     </View>
                     <View style={styles.detalleItem}>
                       <IconSymbol name="clock" size={16} color={colors.primary} />
                       <Text style={styles.detalleTexto}>{evento.hora}</Text>
                     </View>
-                    {evento.provincia && (
+                    {evento.precio && (
                       <View style={styles.detalleItem}>
-                        <IconSymbol name="mappin" size={16} color={colors.primary} />
-                        <Text style={styles.detalleTexto}>{evento.provincia}</Text>
+                        <IconSymbol name="eurosign.circle" size={16} color={colors.primary} />
+                        <Text style={styles.detalleTexto}>{evento.precio}€</Text>
                       </View>
                     )}
                   </View>
 
-                  <View style={styles.diasRestantesContainer}>
-                    <Text style={styles.diasRestantesTexto}>
-                      {diasRestantes > 0 ? `${diasRestantes} días restantes` : diasRestantes === 0 ? 'Hoy' : 'Finalizado'}
-                    </Text>
-                  </View>
+                  {!isPast && (
+                    <View style={styles.diasRestantesContainer}>
+                      <Text style={styles.diasRestantesTexto}>
+                        {diasRestantes === 0
+                          ? 'Hoy'
+                          : diasRestantes === 1
+                          ? 'Mañana'
+                          : `${diasRestantes} días restantes`}
+                      </Text>
+                    </View>
+                  )}
 
                   <View style={styles.eventoActions}>
                     <TouchableOpacity
                       style={styles.actionButton}
-                      onPress={() => router.push(`/detalle/evento?id=${evento.id}`)}
-                    >
-                      <IconSymbol name="eye" size={18} color={colors.primary} />
-                      <Text style={styles.actionButtonText}>Ver</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.actionButton}
-                      onPress={() => handleEditEvent(evento.id)}
+                      onPress={() => handleEditEvento(evento.id)}
                     >
                       <IconSymbol name="pencil" size={18} color={colors.primary} />
                       <Text style={styles.actionButtonText}>Editar</Text>
                     </TouchableOpacity>
+
                     <TouchableOpacity
                       style={[styles.actionButton, styles.deleteActionButton]}
-                      onPress={() => handleDeleteEvent(evento.id)}
+                      onPress={() => confirmDeleteEvento(evento.id)}
                     >
                       <IconSymbol name="trash" size={18} color="#EF4444" />
-                      <Text style={[styles.actionButtonText, { color: '#EF4444' }]}>Eliminar</Text>
+                      <Text style={[styles.actionButtonText, styles.deleteActionButtonText]}>
+                        Eliminar
+                      </Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -278,6 +345,49 @@ export default function MisEventosScreen() {
           })
         )}
       </ScrollView>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        visible={showDeleteModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowDeleteModal(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowDeleteModal(false)}>
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalHeader}>
+              <IconSymbol name="exclamationmark.triangle.fill" size={48} color="#EF4444" />
+            </View>
+
+            <Text style={styles.modalTitle}>Eliminar Evento</Text>
+            <Text style={styles.modalMessage}>
+              ¿Estás seguro de que quieres eliminar este evento? Esta acción no se puede deshacer.
+            </Text>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                onPress={() => setShowDeleteModal(false)}
+                style={[styles.modalButton, styles.modalButtonCancel]}
+                disabled={deleting}
+              >
+                <Text style={styles.modalButtonTextCancel}>Cancelar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleDeleteEvento}
+                style={[styles.modalButton, styles.modalButtonDelete]}
+                disabled={deleting}
+              >
+                {deleting ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.modalButtonTextDelete}>Eliminar</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -312,7 +422,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  content: {
+  scrollView: {
     flex: 1,
   },
   scrollContent: {
@@ -323,48 +433,58 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 40,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: colors.textSecondary,
   },
   emptyState: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 32,
-    marginTop: 60,
+    paddingVertical: 80,
+    gap: 16,
   },
   emptyText: {
     fontSize: 18,
-    fontWeight: '600',
     color: colors.text,
-    marginTop: 16,
-    textAlign: 'center',
+    fontWeight: '600',
   },
   emptySubtext: {
     fontSize: 14,
     color: colors.textSecondary,
-    marginTop: 8,
     textAlign: 'center',
+    paddingHorizontal: 40,
   },
   createButton: {
-    marginTop: 24,
+    marginTop: 16,
     borderRadius: 12,
     overflow: 'hidden',
   },
   createButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 24,
     paddingVertical: 14,
-    paddingHorizontal: 32,
   },
   createButtonText: {
-    color: colors.white,
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
+    color: colors.white,
   },
   eventoCard: {
-    marginBottom: 16,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
     overflow: 'hidden',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
   eventoImagen: {
     width: '100%',
-    height: 180,
+    height: 200,
     backgroundColor: colors.cardBorder,
   },
   badgeDestacado: {
@@ -376,12 +496,26 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 6,
   },
-  badgeText: {
-    color: colors.badgeDestacadoText,
+  badgeDestacadoText: {
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    color: colors.badgeDestacadoText,
   },
-  eventoContent: {
+  badgeInactivo: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: '#6B7280',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  badgeInactivoText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  eventoInfo: {
     padding: 16,
   },
   eventoTitulo: {
@@ -393,6 +527,12 @@ const styles = StyleSheet.create({
   eventoLocal: {
     fontSize: 14,
     color: colors.textSecondary,
+    marginBottom: 8,
+  },
+  eventoDescripcion: {
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 20,
     marginBottom: 12,
   },
   eventoDetalles: {
@@ -422,9 +562,6 @@ const styles = StyleSheet.create({
   eventoActions: {
     flexDirection: 'row',
     gap: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
-    paddingTop: 16,
   },
   actionButton: {
     flex: 1,
@@ -432,16 +569,83 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderRadius: 8,
     backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.primary,
   },
   deleteActionButton: {
-    backgroundColor: '#FEE2E2',
+    borderColor: '#EF4444',
   },
   actionButtonText: {
     fontSize: 14,
     fontWeight: '600',
     color: colors.primary,
+  },
+  deleteActionButtonText: {
+    color: '#EF4444',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: colors.background,
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    alignItems: 'center',
+  },
+  modalHeader: {
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: 15,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalButtonCancel: {
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  modalButtonDelete: {
+    backgroundColor: '#EF4444',
+  },
+  modalButtonTextCancel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  modalButtonTextDelete: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
