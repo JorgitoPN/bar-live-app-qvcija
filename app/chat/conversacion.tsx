@@ -20,14 +20,17 @@ import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import MessageBubble from '@/components/chat/MessageBubble';
+import { cleanupExpiredStoryImages } from '@/utils/storyMessageCleanup';
 
 interface Message {
   id: string;
   chat_id: string;
   remitente_id: string;
   contenido: string;
-  tipo_mensaje: 'texto' | 'post_compartido' | 'imagen';
+  tipo_mensaje: 'texto' | 'post_compartido' | 'imagen' | 'historia';
   post_compartido_id?: string;
+  historia_id?: string;
+  historia_imagen?: string;
   leido: boolean;
   created_at: string;
 }
@@ -47,6 +50,43 @@ export default function ConversacionScreen() {
 
   // Real-time subscription ref
   const channelRef = useRef<any>(null);
+
+  const loadMessages = useCallback(async (chatIdToLoad: string) => {
+    try {
+      // Clean up expired story images before loading
+      await cleanupExpiredStoryImages();
+
+      const { data, error } = await supabase
+        .from('mensajes')
+        .select('*')
+        .eq('chat_id', chatIdToLoad)
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        console.error('[Conversacion] Error loading messages:', error);
+        return;
+      }
+
+      setMensajes(data || []);
+
+      // Mark messages as read
+      if (user) {
+        await supabase
+          .from('mensajes')
+          .update({ leido: true })
+          .eq('chat_id', chatIdToLoad)
+          .neq('remitente_id', user.id)
+          .eq('leido', false);
+      }
+
+      // Scroll to bottom
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    } catch (error) {
+      console.error('[Conversacion] Error:', error);
+    }
+  }, [user]);
 
   const loadOrCreateChat = useCallback(async () => {
     if (!user) return;
@@ -84,7 +124,7 @@ export default function ConversacionScreen() {
         setOtroUsuario(userData);
 
         // Load messages
-        loadMessages(chatData.id);
+        await loadMessages(chatData.id);
       } else if (params.userId) {
         // Check if chat exists
         const { data: existingChat } = await supabase
@@ -97,7 +137,7 @@ export default function ConversacionScreen() {
 
         if (existingChat) {
           setChatId(existingChat.id);
-          loadMessages(existingChat.id);
+          await loadMessages(existingChat.id);
         } else {
           // Create new chat
           const { data: newChat, error: createError } = await supabase
@@ -137,40 +177,6 @@ export default function ConversacionScreen() {
       setLoading(false);
     }
   }, [user, params.chatId, params.userId, loadMessages, router]);
-
-  const loadMessages = useCallback(async (chatIdToLoad: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('mensajes')
-        .select('*')
-        .eq('chat_id', chatIdToLoad)
-        .order('created_at', { ascending: true });
-
-      if (error) {
-        console.error('[Conversacion] Error loading messages:', error);
-        return;
-      }
-
-      setMensajes(data || []);
-
-      // Mark messages as read
-      if (user) {
-        await supabase
-          .from('mensajes')
-          .update({ leido: true })
-          .eq('chat_id', chatIdToLoad)
-          .neq('remitente_id', user.id)
-          .eq('leido', false);
-      }
-
-      // Scroll to bottom
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
-    } catch (error) {
-      console.error('[Conversacion] Error:', error);
-    }
-  }, [user, flatListRef]);
 
   useEffect(() => {
     loadOrCreateChat();

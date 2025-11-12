@@ -129,6 +129,13 @@ export default function AdminScreen() {
       route: '/admin/gestionar-solicitudes',
       requiresSupabase: true,
     },
+    {
+      icon: 'creditcard.fill',
+      title: 'Gestionar Planes de Pago',
+      description: 'Administrar planes y suscripciones',
+      route: '/admin/gestionar-planes',
+      requiresSupabase: true,
+    },
   ];
 
   const finanzasSection: MenuItem[] = [
