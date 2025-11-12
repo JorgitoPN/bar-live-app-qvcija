@@ -201,6 +201,30 @@ export function esLocal24Horas(horarios: Record<string, any>): boolean {
 }
 
 /**
+ * Determine if a schedule is a nighttime schedule
+ * A nighttime schedule is one that closes in the early morning hours (after midnight)
+ * This includes:
+ * - Schedules that open before midnight and close after (e.g., 23:00-06:00)
+ * - Schedules that open after midnight and close in early morning (e.g., 00:30-06:00)
+ */
+function esHorarioNocturno(apertura: number, cierre: number): boolean {
+  // If closing time is in early morning (00:00-08:00), it's nighttime
+  // This covers both cases:
+  // 1. cierre < apertura (crosses midnight, e.g., 23:00-06:00)
+  // 2. Both apertura and cierre are after midnight but cierre is in early morning (e.g., 00:30-06:00)
+  if (cierre < 480) { // Before 8:00 AM
+    return true;
+  }
+  
+  // If it crosses midnight (cierre < apertura), it's nighttime
+  if (cierre < apertura) {
+    return true;
+  }
+  
+  return false;
+}
+
+/**
  * Search for the next opening time in the next 7 days
  */
 export function buscarProximaApertura(local: any, ahora: Date): ProximaApertura | null {
@@ -267,12 +291,25 @@ export function buscarProximaApertura(local: any, ahora: Date): ProximaApertura 
  * Calculate the current status for a local with normal hours
  * Handles multiple time ranges per day and midnight crossings
  * 
- * CRITICAL FIX: Properly handles overnight schedules
- * Example: Wednesday 23:30-06:30 means:
- * - Opens Wednesday at 23:30 PM (still Wednesday night)
- * - Closes Thursday at 06:30 AM (early Thursday morning)
- * - At Wednesday 23:45 PM, the venue is OPEN and it's still Wednesday
- * - At Thursday 00:15 AM, the venue is OPEN but now in Thursday's early morning (from Wednesday's night schedule)
+ * CRITICAL FIX: Properly handles overnight schedules including venues that open after midnight
+ * 
+ * NIGHTTIME SCHEDULE DEFINITION:
+ * A nighttime schedule is any schedule that closes in the early morning hours (alta madrugada).
+ * This includes:
+ * 1. Venues that open before midnight and close after (e.g., 23:00-06:00)
+ * 2. Venues that open after midnight and close in early morning (e.g., 00:30-06:00)
+ * 
+ * LOGICAL DAY RULE:
+ * The logical day is the day when the nighttime activity is reported.
+ * For nighttime venues:
+ * - If it's Wednesday night at 23:30 and venue opens at 23:00, logical day = Wednesday
+ * - If it's Thursday at 00:30 and venue opened at 00:30 (nighttime schedule), logical day = Wednesday
+ * - If it's Thursday at 02:00 and venue opened Wednesday at 23:00, logical day = Wednesday
+ * 
+ * Example: Blaster opens Wednesday at 00:30 and closes at 06:00
+ * - At Wednesday 00:45, venue is OPEN, logical day = Wednesday (not Thursday)
+ * - At Wednesday 05:00, venue is OPEN, logical day = Wednesday
+ * - The activity is reported as Wednesday's nighttime activity
  */
 export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLocal {
   const diaActualIndex = ahora.getDay();
@@ -284,17 +321,24 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
   
   // STEP 1: Determine the logical day
   // The logical day is the day when the venue's operating period started
-  // If we're in early morning (00:00-06:30), we might still be in the previous day's night schedule
+  // For nighttime venues, if we're in early morning (00:00-08:00), we need to check:
+  // 1. If the previous day has an overnight schedule that extends to now
+  // 2. If the current day has a nighttime schedule that starts after midnight
   let diaLogico = diaActual;
   let diaLogicoIndex = diaActualIndex;
   let estamosEnMadrugadaDelDiaAnterior = false;
   
-  if (horaActual < 390) { // Before 6:30 AM (390 minutes)
+  if (horaActual < 480) { // Before 8:00 AM (480 minutes)
+    console.log(`⏰ [TIME] Es madrugada (${formatearHora(horaActual)}), determinando día lógico...`);
+    
+    // Check previous day's schedule first
     const diaAnteriorIndex = (diaActualIndex - 1 + 7) % 7;
     const diaAnterior = diasSemana[diaAnteriorIndex];
     const horarioAnterior = local.horarios_completos?.[diaAnterior];
     
-    console.log(`⏰ [TIME] Es madrugada (${formatearHora(horaActual)}), verificando horario del día anterior: ${diaAnterior}`);
+    console.log(`⏰ [TIME] Verificando horario del día anterior: ${diaAnterior}`);
+    
+    let encontradoHorarioAnterior = false;
     
     if (horarioAnterior) {
       const franjasAnterior = normalizarFranjas(horarioAnterior);
@@ -309,16 +353,52 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
           
           const { apertura, cierre } = parsed;
           
-          // If closing < opening, it's an overnight schedule
-          if (cierre < apertura) {
-            console.log(`⏰ [TIME] Horario nocturno detectado del día anterior: ${formatearHora(apertura)}–${formatearHora(cierre)}`);
+          // If it's a nighttime schedule and current time is before closing
+          if (esHorarioNocturno(apertura, cierre) && horaActual < cierre) {
+            console.log(`⏰ [TIME] Horario nocturno del día anterior detectado: ${formatearHora(apertura)}–${formatearHora(cierre)}`);
+            console.log(`⏰ [TIME] ✅ Estamos en la madrugada del horario nocturno del ${diaAnterior} (día lógico)`);
+            diaLogico = diaAnterior;
+            diaLogicoIndex = diaAnteriorIndex;
+            estamosEnMadrugadaDelDiaAnterior = true;
+            encontradoHorarioAnterior = true;
+            break;
+          }
+        }
+      }
+    }
+    
+    // If no previous day schedule applies, check current day for nighttime schedules
+    if (!encontradoHorarioAnterior) {
+      const horarioActual = local.horarios_completos?.[diaActual];
+      
+      if (horarioActual) {
+        const franjasActual = normalizarFranjas(horarioActual);
+        
+        if (franjasActual.length > 0 && franjasActual[0] !== 'Cerrado') {
+          for (const rango of franjasActual) {
+            if (rango === 'Cerrado' || rango.toLowerCase().includes('24')) continue;
             
-            // If current time is before the closing time, we're in the previous day's night
-            if (horaActual < cierre) {
-              console.log(`⏰ [TIME] ✅ Estamos en la madrugada del horario nocturno del ${diaAnterior} (día lógico)`);
-              diaLogico = diaAnterior;
-              diaLogicoIndex = diaAnteriorIndex;
-              estamosEnMadrugadaDelDiaAnterior = true;
+            const parsed = parsearRangoHorario(rango);
+            if (!parsed) continue;
+            
+            const { apertura, cierre } = parsed;
+            
+            // Check if this is a nighttime schedule that starts after midnight
+            // Example: 00:30-06:00 on Wednesday should be considered Wednesday's nighttime activity
+            if (esHorarioNocturno(apertura, cierre) && apertura < 480) { // Opens before 8:00 AM
+              console.log(`⏰ [TIME] Horario nocturno del día actual detectado (abre después de medianoche): ${formatearHora(apertura)}–${formatearHora(cierre)}`);
+              
+              // This is a nighttime schedule on the current calendar day
+              // The logical day should be the PREVIOUS day (the night belongs to the previous day)
+              const diaLogicoNocturnoIndex = (diaActualIndex - 1 + 7) % 7;
+              const diaLogicoNocturno = diasSemana[diaLogicoNocturnoIndex];
+              
+              console.log(`⏰ [TIME] ✅ Horario nocturno del ${diaActual} se reporta como actividad del ${diaLogicoNocturno}`);
+              diaLogico = diaLogicoNocturno;
+              diaLogicoIndex = diaLogicoNocturnoIndex;
+              
+              // We'll check this schedule in STEP 2 by looking at the current day's schedule
+              // but report it as the previous day's activity
               break;
             }
           }
@@ -329,18 +409,33 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
   
   console.log(`⏰ [TIME] Día lógico determinado: ${diaLogico}`);
   
-  // STEP 2: Get the schedule for the logical day
-  let horarioReferencia = local.horarios_completos?.[diaLogico];
+  // STEP 2: Get the schedule for checking
+  // If we're in early morning and found a nighttime schedule on current day,
+  // we need to check the current day's schedule but report it as previous day's activity
+  let horarioParaVerificar;
+  let diaParaVerificar;
   
-  if (!horarioReferencia) {
-    horarioReferencia = [];
+  if (horaActual < 480 && !estamosEnMadrugadaDelDiaAnterior && diaLogico !== diaActual) {
+    // We're checking current day's nighttime schedule but reporting as previous day
+    horarioParaVerificar = local.horarios_completos?.[diaActual];
+    diaParaVerificar = diaActual;
+    console.log(`⏰ [TIME] Verificando horario del día calendario (${diaActual}) pero reportando como ${diaLogico}`);
+  } else {
+    // Normal case: check the logical day's schedule
+    horarioParaVerificar = local.horarios_completos?.[diaLogico];
+    diaParaVerificar = diaLogico;
+    console.log(`⏰ [TIME] Verificando horario del día lógico (${diaLogico})`);
   }
   
-  const franjas = normalizarFranjas(horarioReferencia);
+  if (!horarioParaVerificar) {
+    horarioParaVerificar = [];
+  }
   
-  // CASE A: Logical day is closed (no schedule)
+  const franjas = normalizarFranjas(horarioParaVerificar);
+  
+  // CASE A: Day is closed (no schedule)
   if (franjas.length === 0 || franjas[0] === 'Cerrado') {
-    console.log(`⏰ [TIME] Local cerrado en día lógico (${diaLogico})`);
+    console.log(`⏰ [TIME] Local cerrado en día para verificar (${diaParaVerificar})`);
     
     // Search for next opening
     const proximaApertura = buscarProximaApertura(local, ahora);
@@ -370,8 +465,8 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
     };
   }
   
-  // CASE B: Logical day has schedules → check if it's open NOW
-  console.log(`⏰ [TIME] Verificando ${franjas.length} rangos horarios del día lógico ${diaLogico}`);
+  // CASE B: Day has schedules → check if it's open NOW
+  console.log(`⏰ [TIME] Verificando ${franjas.length} rangos horarios del día ${diaParaVerificar}`);
   
   for (let i = 0; i < franjas.length; i++) {
     const rango = franjas[i];
@@ -388,13 +483,16 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
     const { apertura, cierre } = parsed;
     console.log(`⏰ [TIME] Apertura: ${formatearHora(apertura)} (${apertura} min), Cierre: ${formatearHora(cierre)} (${cierre} min)`);
     
-    // OVERNIGHT SCHEDULE: Closing after midnight (cierre < apertura)
-    if (cierre < apertura) {
-      console.log(`⏰ [TIME] Horario nocturno detectado (cruza medianoche)`);
+    const esNocturno = esHorarioNocturno(apertura, cierre);
+    console.log(`⏰ [TIME] ¿Es horario nocturno? ${esNocturno ? 'Sí' : 'No'}`);
+    
+    // NIGHTTIME SCHEDULE
+    if (esNocturno) {
+      console.log(`⏰ [TIME] Horario nocturno detectado`);
       
-      // If we're in the early morning and already determined we're in the previous day's night
-      if (estamosEnMadrugadaDelDiaAnterior) {
-        // We're in the overnight period (after midnight, before closing)
+      // Case 1: We're in the early morning continuation of previous day's night
+      if (estamosEnMadrugadaDelDiaAnterior && cierre < apertura) {
+        // Traditional overnight schedule (e.g., 23:00-06:00)
         if (horaActual < cierre) {
           console.log(`⏰ [TIME] ✅ ABIERTO (en la madrugada del horario nocturno del ${diaLogico})`);
           
@@ -421,15 +519,17 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
             diaLogico: diaLogico,
           };
         }
-      } else {
-        // We're in the same calendar day as the logical day
-        // Check if we're after opening time (which means we're in the night)
-        if (horaActual >= apertura) {
-          console.log(`⏰ [TIME] ✅ ABIERTO (después de la apertura del horario nocturno del ${diaLogico})`);
+      }
+      // Case 2: Nighttime schedule that opens after midnight (e.g., 00:30-06:00)
+      else if (apertura < cierre && apertura < 480 && cierre < 480) {
+        // Both opening and closing are after midnight and before 8 AM
+        console.log(`⏰ [TIME] Horario nocturno que abre después de medianoche`);
+        
+        if (horaActual >= apertura && horaActual < cierre) {
+          console.log(`⏰ [TIME] ✅ ABIERTO (horario nocturno del ${diaLogico})`);
           
-          // Calculate minutes until closing (tomorrow morning)
-          const minutosHastaCierre = (24 * 60 - horaActual) + cierre;
-          console.log(`⏰ [TIME] Minutos hasta cierre (mañana): ${minutosHastaCierre}`);
+          const minutosHastaCierre = cierre - horaActual;
+          console.log(`⏰ [TIME] Minutos hasta cierre: ${minutosHastaCierre}`);
           
           if (minutosHastaCierre <= 60) {
             return {
@@ -450,9 +550,37 @@ export function calcularEstadoHorarioNormal(local: any, ahora: Date): EstadoLoca
             tiempoRestante: formatearTiempo(minutosHastaCierre),
             diaLogico: diaLogico,
           };
-        } else {
-          console.log(`⏰ [TIME] ❌ CERRADO (antes de la apertura del horario nocturno)`);
         }
+      }
+      // Case 3: Traditional overnight schedule, we're in the evening part
+      else if (cierre < apertura && horaActual >= apertura) {
+        console.log(`⏰ [TIME] ✅ ABIERTO (después de la apertura del horario nocturno del ${diaLogico})`);
+        
+        // Calculate minutes until closing (tomorrow morning)
+        const minutosHastaCierre = (24 * 60 - horaActual) + cierre;
+        console.log(`⏰ [TIME] Minutos hasta cierre (mañana): ${minutosHastaCierre}`);
+        
+        if (minutosHastaCierre <= 60) {
+          return {
+            badge: 'Cierra pronto',
+            estaAbierto: true,
+            claseBg: 'bg-orange-500',
+            overlayIcon: null,
+            tiempoRestante: formatearTiempo(minutosHastaCierre),
+            diaLogico: diaLogico,
+          };
+        }
+        
+        return {
+          badge: 'Abierto ahora',
+          estaAbierto: true,
+          claseBg: 'bg-green-500',
+          overlayIcon: null,
+          tiempoRestante: formatearTiempo(minutosHastaCierre),
+          diaLogico: diaLogico,
+        };
+      } else {
+        console.log(`⏰ [TIME] ❌ CERRADO (fuera del horario nocturno)`);
       }
     } else {
       // DAYTIME SCHEDULE: Closing before midnight
