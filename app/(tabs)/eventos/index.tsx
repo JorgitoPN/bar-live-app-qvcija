@@ -99,8 +99,7 @@ export default function EventosScreen() {
         imagen: evento.imagen_url || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819',
         localNombre: evento.locales?.nombre || 'Local',
         provincia: evento.provincia || evento.locales?.provincia || '',
-        entradasVendidas: evento.entradas_vendidas || 0,
-        entradasTotales: evento.entradas_totales || 0,
+        // REMOVED: entradas_vendidas and entradas_totales
         destacado: evento.destacado || false,
       }));
 
@@ -156,11 +155,6 @@ export default function EventosScreen() {
     return Math.ceil(diff / (1000 * 60 * 60 * 24));
   };
 
-  const calcularPorcentajeVendido = (evento: Evento): number => {
-    if (!evento.entradasVendidas || !evento.entradasTotales) return 0;
-    return Math.round((evento.entradasVendidas / evento.entradasTotales) * 100);
-  };
-
   const limpiarFiltros = () => {
     setProvinciaSeleccionada('Todas');
     setFechaInicio('');
@@ -169,7 +163,6 @@ export default function EventosScreen() {
 
   const renderEvento = (evento: Evento) => {
     const diasRestantes = calcularDiasRestantes(evento.fecha);
-    const porcentajeVendido = calcularPorcentajeVendido(evento);
 
     return (
       <TouchableOpacity
@@ -221,21 +214,12 @@ export default function EventosScreen() {
             </View>
           </View>
 
-          {evento.entradasVendidas && evento.entradasTotales && (
-            <View style={styles.entradasContainer}>
-              <View style={styles.progressBar}>
-                <View
-                  style={[
-                    styles.progressFill,
-                    { width: `${porcentajeVendido}%` },
-                  ]}
-                />
-              </View>
-              <Text style={styles.entradasTexto}>
-                {porcentajeVendido}% vendido • {diasRestantes} días restantes
-              </Text>
-            </View>
-          )}
+          {/* REMOVED: Ticket sales progress bar */}
+          <View style={styles.diasRestantesContainer}>
+            <Text style={styles.diasRestantesTexto}>
+              {diasRestantes > 0 ? `${diasRestantes} días restantes` : 'Hoy'}
+            </Text>
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -579,21 +563,10 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontWeight: '500',
   },
-  entradasContainer: {
+  diasRestantesContainer: {
     marginTop: 8,
   },
-  progressBar: {
-    height: 6,
-    backgroundColor: colors.cardBorder,
-    borderRadius: 3,
-    overflow: 'hidden',
-    marginBottom: 6,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: colors.primary,
-  },
-  entradasTexto: {
+  diasRestantesTexto: {
     fontSize: 13,
     color: colors.textSecondary,
     fontWeight: '500',
