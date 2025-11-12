@@ -50,7 +50,7 @@ export default function MisEventosScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [eventoToDelete, setEventoToDelete] = useState<string | null>(null);
+  const [eventoToDelete, setEventoToDelete] = useState<Evento | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   const loadEventos = useCallback(async () => {
@@ -60,6 +60,8 @@ export default function MisEventosScreen() {
     }
 
     try {
+      console.log('[MisEventos] Loading events for user:', user.id);
+
       const { data, error } = await supabase
         .from('eventos')
         .select(`
@@ -75,12 +77,15 @@ export default function MisEventosScreen() {
 
       if (error) {
         console.error('[MisEventos] Error loading events:', error);
+        Alert.alert('Error', 'No se pudieron cargar los eventos');
         return;
       }
 
+      console.log('[MisEventos] Loaded events:', data?.length || 0);
       setEventos(data || []);
     } catch (error) {
-      console.error('[MisEventos] Error:', error);
+      console.error('[MisEventos] Unexpected error:', error);
+      Alert.alert('Error', 'Ocurrió un error inesperado');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -104,58 +109,85 @@ export default function MisEventosScreen() {
     router.push(`/crear/evento?id=${eventoId}`);
   };
 
-  const confirmDeleteEvento = (eventoId: string) => {
-    setEventoToDelete(eventoId);
+  const confirmDeleteEvento = (evento: Evento) => {
+    setEventoToDelete(evento);
     setShowDeleteModal(true);
   };
 
-  // FIXED: Properly delete the event with correct RLS policy check
   const handleDeleteEvento = async () => {
-    if (!eventoToDelete || !user) return;
+    if (!eventoToDelete || !user) {
+      console.error('[MisEventos] Missing evento or user');
+      return;
+    }
 
     try {
       setDeleting(true);
 
-      console.log('[MisEventos] Deleting event:', eventoToDelete);
-      console.log('[MisEventos] User ID:', user.id);
+      console.log('[MisEventos] ========================================');
+      console.log('[MisEventos] Starting event deletion process');
+      console.log('[MisEventos] Event ID:', eventoToDelete.id);
+      console.log('[MisEventos] Event Title:', eventoToDelete.titulo);
+      console.log('[MisEventos] Event Owner ID:', eventoToDelete.propietario_id);
+      console.log('[MisEventos] Current User ID:', user.id);
+      console.log('[MisEventos] ========================================');
 
-      // First, verify the user owns this event
-      const { data: evento, error: fetchError } = await supabase
-        .from('eventos')
-        .select('propietario_id')
-        .eq('id', eventoToDelete)
-        .single();
-
-      if (fetchError) {
-        console.error('[MisEventos] Error fetching event:', fetchError);
-        throw new Error('No se pudo verificar el evento');
-      }
-
-      if (evento.propietario_id !== user.id) {
+      // Verify ownership
+      if (eventoToDelete.propietario_id !== user.id) {
+        console.error('[MisEventos] Ownership mismatch!');
         throw new Error('No tienes permiso para eliminar este evento');
       }
 
-      // Delete the event
-      const { error: deleteError } = await supabase
+      // Optimistically remove from UI
+      const eventIdToDelete = eventoToDelete.id;
+      setEventos(prev => prev.filter(e => e.id !== eventIdToDelete));
+
+      // Perform deletion
+      console.log('[MisEventos] Executing DELETE query...');
+      const { error: deleteError, data: deleteData } = await supabase
         .from('eventos')
         .delete()
-        .eq('id', eventoToDelete)
-        .eq('propietario_id', user.id); // Double check ownership in the query
+        .eq('id', eventIdToDelete)
+        .eq('propietario_id', user.id)
+        .select();
 
       if (deleteError) {
-        console.error('[MisEventos] Error deleting event:', deleteError);
+        console.error('[MisEventos] Delete error:', deleteError);
+        console.error('[MisEventos] Error code:', deleteError.code);
+        console.error('[MisEventos] Error message:', deleteError.message);
+        console.error('[MisEventos] Error details:', deleteError.details);
+        console.error('[MisEventos] Error hint:', deleteError.hint);
+        
+        // Rollback optimistic update
+        setEventos(prev => [...prev, eventoToDelete].sort((a, b) => 
+          new Date(a.fecha).getTime() - new Date(b.fecha).getTime()
+        ));
+        
         throw deleteError;
       }
 
-      console.log('[MisEventos] Event deleted successfully');
+      console.log('[MisEventos] Delete successful!');
+      console.log('[MisEventos] Deleted data:', deleteData);
+      console.log('[MisEventos] ========================================');
 
       Alert.alert('Éxito', 'Evento eliminado correctamente');
       setShowDeleteModal(false);
       setEventoToDelete(null);
-      await loadEventos();
     } catch (error: any) {
-      console.error('[MisEventos] Error deleting event:', error);
-      Alert.alert('Error', error.message || 'No se pudo eliminar el evento');
+      console.error('[MisEventos] Error in deletion process:', error);
+      
+      let errorMessage = 'No se pudo eliminar el evento';
+      
+      if (error.message) {
+        errorMessage += `: ${error.message}`;
+      }
+      
+      if (error.code === 'PGRST301') {
+        errorMessage = 'No tienes permiso para eliminar este evento. Verifica que seas el propietario.';
+      } else if (error.code === '42501') {
+        errorMessage = 'Permisos insuficientes. Contacta con el administrador.';
+      }
+      
+      Alert.alert('Error', errorMessage);
     } finally {
       setDeleting(false);
     }
@@ -188,7 +220,7 @@ export default function MisEventosScreen() {
         >
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+              <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Mis Eventos</Text>
             <View style={{ width: 40 }} />
@@ -218,7 +250,7 @@ export default function MisEventosScreen() {
         >
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+              <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Mis Eventos</Text>
             <View style={{ width: 40 }} />
@@ -243,14 +275,14 @@ export default function MisEventosScreen() {
       >
         <View style={styles.headerTop}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+            <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Mis Eventos</Text>
           <TouchableOpacity
             style={styles.addButton}
             onPress={() => router.push('/crear/evento')}
           >
-            <IconSymbol name="plus" size={24} color={colors.headerText} />
+            <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={24} color={colors.headerText} />
           </TouchableOpacity>
         </View>
       </LinearGradient>
@@ -263,7 +295,7 @@ export default function MisEventosScreen() {
       >
         {eventos.length === 0 ? (
           <View style={styles.emptyState}>
-            <IconSymbol name="calendar" size={64} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={64} color={colors.textSecondary} />
             <Text style={styles.emptyText}>No tienes eventos creados</Text>
             <Text style={styles.emptySubtext}>
               Crea tu primer evento para promocionar tu local
@@ -276,7 +308,7 @@ export default function MisEventosScreen() {
                 colors={[colors.primary, colors.secondary]}
                 style={styles.createButtonGradient}
               >
-                <IconSymbol name="plus" size={20} color={colors.white} />
+                <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={20} color={colors.white} />
                 <Text style={styles.createButtonText}>Crear Evento</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -315,16 +347,16 @@ export default function MisEventosScreen() {
 
                   <View style={styles.eventoDetalles}>
                     <View style={styles.detalleItem}>
-                      <IconSymbol name="calendar" size={16} color={colors.primary} />
+                      <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={16} color={colors.primary} />
                       <Text style={styles.detalleTexto}>{formatDate(evento.fecha)}</Text>
                     </View>
                     <View style={styles.detalleItem}>
-                      <IconSymbol name="clock" size={16} color={colors.primary} />
+                      <IconSymbol ios_icon_name="clock" android_material_icon_name="schedule" size={16} color={colors.primary} />
                       <Text style={styles.detalleTexto}>{evento.hora}</Text>
                     </View>
                     {evento.precio !== null && evento.precio !== undefined && (
                       <View style={styles.detalleItem}>
-                        <IconSymbol name="eurosign.circle" size={16} color={colors.primary} />
+                        <IconSymbol ios_icon_name="eurosign.circle" android_material_icon_name="euro" size={16} color={colors.primary} />
                         <Text style={styles.detalleTexto}>
                           {evento.precio === 0 ? 'Gratis' : `${evento.precio}€`}
                         </Text>
@@ -349,15 +381,15 @@ export default function MisEventosScreen() {
                       style={styles.actionButton}
                       onPress={() => handleEditEvento(evento.id)}
                     >
-                      <IconSymbol name="pencil" size={18} color={colors.primary} />
+                      <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={18} color={colors.primary} />
                       <Text style={styles.actionButtonText}>Editar</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
                       style={[styles.actionButton, styles.deleteActionButton]}
-                      onPress={() => confirmDeleteEvento(evento.id)}
+                      onPress={() => confirmDeleteEvento(evento)}
                     >
-                      <IconSymbol name="trash" size={18} color="#EF4444" />
+                      <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={18} color="#EF4444" />
                       <Text style={[styles.actionButtonText, styles.deleteActionButtonText]}>
                         Eliminar
                       </Text>
@@ -375,17 +407,20 @@ export default function MisEventosScreen() {
         visible={showDeleteModal}
         transparent={true}
         animationType="fade"
-        onRequestClose={() => setShowDeleteModal(false)}
+        onRequestClose={() => !deleting && setShowDeleteModal(false)}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setShowDeleteModal(false)}>
+        <Pressable 
+          style={styles.modalOverlay} 
+          onPress={() => !deleting && setShowDeleteModal(false)}
+        >
           <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
-              <IconSymbol name="exclamationmark.triangle.fill" size={48} color="#EF4444" />
+              <IconSymbol ios_icon_name="exclamationmark.triangle.fill" android_material_icon_name="warning" size={48} color="#EF4444" />
             </View>
 
             <Text style={styles.modalTitle}>Eliminar Evento</Text>
             <Text style={styles.modalMessage}>
-              ¿Estás seguro de que quieres eliminar este evento? Esta acción no se puede deshacer.
+              ¿Estás seguro de que quieres eliminar "{eventoToDelete?.titulo}"? Esta acción no se puede deshacer.
             </Text>
 
             <View style={styles.modalButtons}>
@@ -639,6 +674,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 44,
   },
   modalButtonCancel: {
     backgroundColor: colors.cardBackground,

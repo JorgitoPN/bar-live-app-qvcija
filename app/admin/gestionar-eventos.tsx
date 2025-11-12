@@ -59,6 +59,7 @@ export default function GestionarEventosScreen() {
   const [paginaActual, setPaginaActual] = useState(1);
   const [totalEventos, setTotalEventos] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
+  const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
 
   useEffect(() => {
     cargarEventos();
@@ -151,10 +152,10 @@ export default function GestionarEventosScreen() {
     }
   };
 
-  const eliminarEvento = async (eventoId: string) => {
+  const eliminarEvento = async (evento: Evento) => {
     Alert.alert(
       'Confirmar eliminación',
-      '¿Estás seguro de que quieres eliminar este evento? Esta acción no se puede deshacer.',
+      `¿Estás seguro de que quieres eliminar "${evento.titulo}"? Esta acción no se puede deshacer.`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -162,26 +163,61 @@ export default function GestionarEventosScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log('[GestionarEventos] Deleting event:', eventoId);
+              setDeletingEventId(evento.id);
               
-              const { error } = await supabase
+              console.log('[GestionarEventos] ========================================');
+              console.log('[GestionarEventos] Admin deleting event');
+              console.log('[GestionarEventos] Event ID:', evento.id);
+              console.log('[GestionarEventos] Event Title:', evento.titulo);
+              console.log('[GestionarEventos] Event Owner ID:', evento.propietario_id);
+              console.log('[GestionarEventos] ========================================');
+
+              // Optimistically remove from UI
+              setEventos(prev => prev.filter(e => e.id !== evento.id));
+              
+              // Admin can delete any event
+              const { error, data } = await supabase
                 .from('eventos')
                 .delete()
-                .eq('id', eventoId);
+                .eq('id', evento.id)
+                .select();
 
               if (error) {
                 console.error('[GestionarEventos] Delete error:', error);
+                console.error('[GestionarEventos] Error code:', error.code);
+                console.error('[GestionarEventos] Error message:', error.message);
+                
+                // Rollback optimistic update
+                await cargarEventos();
                 throw error;
               }
 
+              console.log('[GestionarEventos] Delete successful!');
+              console.log('[GestionarEventos] Deleted data:', data);
+              console.log('[GestionarEventos] ========================================');
+
               Alert.alert('Éxito', 'Evento eliminado correctamente');
-              cargarEventos();
+              
+              // Reload to ensure consistency
+              await cargarEventos();
             } catch (error: any) {
               console.error('[GestionarEventos] Error eliminando evento:', error);
-              Alert.alert(
-                'Error', 
-                `No se pudo eliminar el evento: ${error.message || 'Error desconocido'}`
-              );
+              
+              let errorMessage = 'No se pudo eliminar el evento';
+              
+              if (error.message) {
+                errorMessage += `: ${error.message}`;
+              }
+              
+              if (error.code === 'PGRST301') {
+                errorMessage = 'Error de permisos. Verifica tu rol de administrador.';
+              } else if (error.code === '42501') {
+                errorMessage = 'Permisos insuficientes. Contacta con el administrador del sistema.';
+              }
+              
+              Alert.alert('Error', errorMessage);
+            } finally {
+              setDeletingEventId(null);
             }
           },
         },
@@ -201,92 +237,106 @@ export default function GestionarEventosScreen() {
     return busqueda || filtroEstado !== 'todos' || filtroDestacado !== 'todos' || filtroProvincia;
   };
 
-  const renderEventoCard = ({ item }: { item: Evento }) => (
-    <View style={styles.eventoCard}>
-      <View style={styles.eventoHeader}>
-        {item.imagen_url && (
-          <Image source={{ uri: item.imagen_url }} style={styles.eventoImagen} />
-        )}
-        <View style={styles.eventoInfo}>
-          <Text style={styles.eventoTitulo} numberOfLines={2}>{item.titulo}</Text>
-          {item.local && (
-            <Text style={styles.eventoLocal}>{item.local.nombre}</Text>
+  const renderEventoCard = ({ item }: { item: Evento }) => {
+    const isDeleting = deletingEventId === item.id;
+    
+    return (
+      <View style={[styles.eventoCard, isDeleting && styles.eventoCardDeleting]}>
+        <View style={styles.eventoHeader}>
+          {item.imagen_url && (
+            <Image source={{ uri: item.imagen_url }} style={styles.eventoImagen} />
           )}
-          <View style={styles.eventoMeta}>
-            <IconSymbol name="calendar" size={14} color={colors.textSecondary} />
-            <Text style={styles.eventoMetaText}>
-              {new Date(item.fecha).toLocaleDateString('es-ES')}
-            </Text>
-            <IconSymbol name="clock" size={14} color={colors.textSecondary} />
-            <Text style={styles.eventoMetaText}>{item.hora}</Text>
-          </View>
-          {item.precio !== null && item.precio !== undefined && (
-            <Text style={styles.eventoPrecio}>
-              {item.precio === 0 ? 'Gratis' : `${item.precio}€`}
-            </Text>
-          )}
-        </View>
-      </View>
-
-      <View style={styles.eventoActions}>
-        <View style={styles.eventoBadges}>
-          <View style={[styles.badge, item.activo ? styles.badgeActivo : styles.badgeInactivo]}>
-            <Text style={styles.badgeText}>{item.activo ? 'Activo' : 'Inactivo'}</Text>
-          </View>
-          {item.destacado && (
-            <View style={[styles.badge, styles.badgeDestacado]}>
-              <IconSymbol name="star.fill" size={12} color="#fff" />
-              <Text style={styles.badgeText}>Destacado</Text>
+          <View style={styles.eventoInfo}>
+            <Text style={styles.eventoTitulo} numberOfLines={2}>{item.titulo}</Text>
+            {item.local && (
+              <Text style={styles.eventoLocal}>{item.local.nombre}</Text>
+            )}
+            <View style={styles.eventoMeta}>
+              <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={14} color={colors.textSecondary} />
+              <Text style={styles.eventoMetaText}>
+                {new Date(item.fecha).toLocaleDateString('es-ES')}
+              </Text>
+              <IconSymbol ios_icon_name="clock" android_material_icon_name="schedule" size={14} color={colors.textSecondary} />
+              <Text style={styles.eventoMetaText}>{item.hora}</Text>
             </View>
-          )}
+            {item.precio !== null && item.precio !== undefined && (
+              <Text style={styles.eventoPrecio}>
+                {item.precio === 0 ? 'Gratis' : `${item.precio}€`}
+              </Text>
+            )}
+          </View>
         </View>
 
-        <View style={styles.actionButtons}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => router.push(`/detalle/evento?id=${item.id}` as any)}
-            activeOpacity={0.7}
-          >
-            <IconSymbol name="eye" size={20} color={colors.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => toggleDestacado(item.id, item.destacado)}
-            activeOpacity={0.7}
-          >
-            <IconSymbol 
-              name={item.destacado ? 'star.fill' : 'star'} 
-              size={20} 
-              color={item.destacado ? '#F59E0B' : colors.textSecondary} 
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => toggleEstadoEvento(item.id, item.activo)}
-            activeOpacity={0.7}
-          >
-            <IconSymbol 
-              name={item.activo ? 'eye.slash' : 'eye'} 
-              size={20} 
-              color={colors.textSecondary} 
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => eliminarEvento(item.id)}
-            activeOpacity={0.7}
-          >
-            <IconSymbol name="trash" size={20} color="#EF4444" />
-          </TouchableOpacity>
+        <View style={styles.eventoActions}>
+          <View style={styles.eventoBadges}>
+            <View style={[styles.badge, item.activo ? styles.badgeActivo : styles.badgeInactivo]}>
+              <Text style={styles.badgeText}>{item.activo ? 'Activo' : 'Inactivo'}</Text>
+            </View>
+            {item.destacado && (
+              <View style={[styles.badge, styles.badgeDestacado]}>
+                <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={12} color="#fff" />
+                <Text style={styles.badgeText}>Destacado</Text>
+              </View>
+            )}
+          </View>
+
+          <View style={styles.actionButtons}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => router.push(`/detalle/evento?id=${item.id}` as any)}
+              activeOpacity={0.7}
+              disabled={isDeleting}
+            >
+              <IconSymbol ios_icon_name="eye" android_material_icon_name="visibility" size={20} color={colors.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => toggleDestacado(item.id, item.destacado)}
+              activeOpacity={0.7}
+              disabled={isDeleting}
+            >
+              <IconSymbol 
+                ios_icon_name={item.destacado ? 'star.fill' : 'star'} 
+                android_material_icon_name={item.destacado ? 'star' : 'star_border'}
+                size={20} 
+                color={item.destacado ? '#F59E0B' : colors.textSecondary} 
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => toggleEstadoEvento(item.id, item.activo)}
+              activeOpacity={0.7}
+              disabled={isDeleting}
+            >
+              <IconSymbol 
+                ios_icon_name={item.activo ? 'eye.slash' : 'eye'} 
+                android_material_icon_name={item.activo ? 'visibility_off' : 'visibility'}
+                size={20} 
+                color={colors.textSecondary} 
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => eliminarEvento(item)}
+              activeOpacity={0.7}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <ActivityIndicator size="small" color="#EF4444" />
+              ) : (
+                <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={20} color="#EF4444" />
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   const renderHeader = () => (
     <View style={styles.header}>
       <View style={styles.searchContainer}>
-        <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
+        <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
         <TextInput
           style={styles.searchInput}
           placeholder="Buscar eventos..."
@@ -296,7 +346,7 @@ export default function GestionarEventosScreen() {
         />
         {busqueda.length > 0 && (
           <TouchableOpacity onPress={() => setBusqueda('')} activeOpacity={0.7}>
-            <IconSymbol name="xmark.circle.fill" size={20} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         )}
       </View>
@@ -307,7 +357,7 @@ export default function GestionarEventosScreen() {
           onPress={() => setShowFilters(true)}
           activeOpacity={0.7}
         >
-          <IconSymbol name="line.3.horizontal.decrease.circle" size={20} color={colors.primary} />
+          <IconSymbol ios_icon_name="line.3.horizontal.decrease.circle" android_material_icon_name="filter_list" size={20} color={colors.primary} />
           <Text style={styles.filterButtonText}>Filtros</Text>
           {hayFiltrosActivos() && <View style={styles.filterDot} />}
         </TouchableOpacity>
@@ -347,7 +397,7 @@ export default function GestionarEventosScreen() {
           disabled={paginaActual === 1}
           activeOpacity={0.7}
         >
-          <IconSymbol name="chevron.left" size={20} color={paginaActual === 1 ? colors.textSecondary : colors.primary} />
+          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="chevron_left" size={20} color={paginaActual === 1 ? colors.textSecondary : colors.primary} />
         </TouchableOpacity>
 
         <Text style={styles.paginationText}>
@@ -360,7 +410,7 @@ export default function GestionarEventosScreen() {
           disabled={paginaActual === totalPaginas}
           activeOpacity={0.7}
         >
-          <IconSymbol name="chevron.right" size={20} color={paginaActual === totalPaginas ? colors.textSecondary : colors.primary} />
+          <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={paginaActual === totalPaginas ? colors.textSecondary : colors.primary} />
         </TouchableOpacity>
       </View>
     );
@@ -368,7 +418,7 @@ export default function GestionarEventosScreen() {
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <IconSymbol name="calendar" size={64} color={colors.textSecondary} />
+      <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={64} color={colors.textSecondary} />
       <Text style={styles.emptyText}>No se encontraron eventos</Text>
       {hayFiltrosActivos() && (
         <TouchableOpacity style={styles.emptyButton} onPress={limpiarFiltros} activeOpacity={0.7}>
@@ -385,7 +435,7 @@ export default function GestionarEventosScreen() {
         style={styles.topHeader}
       >
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton} activeOpacity={0.7}>
-          <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
         </TouchableOpacity>
         <Text style={styles.title}>Gestionar Eventos</Text>
         <View style={{ width: 40 }} />
@@ -420,7 +470,7 @@ export default function GestionarEventosScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Filtros</Text>
               <TouchableOpacity onPress={() => setShowFilters(false)} activeOpacity={0.7}>
-                <IconSymbol name="xmark" size={24} color={colors.text} />
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
 
@@ -627,6 +677,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: colors.cardBorder,
+  },
+  eventoCardDeleting: {
+    opacity: 0.5,
   },
   eventoHeader: {
     flexDirection: 'row',
