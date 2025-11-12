@@ -29,6 +29,7 @@ import { supabase } from '@/utils/supabase';
 import { socialCache } from '@/utils/socialCache';
 import { useGlobalData } from '@/contexts/GlobalDataContext';
 import InitialLoadingScreen from '@/components/common/InitialLoadingScreen';
+import StoryStatsModal from '@/components/social/StoryStatsModal';
 
 const { width, height } = Dimensions.get('window');
 const HEADER_HEIGHT = 120;
@@ -572,6 +573,12 @@ export default function SocialScreen() {
   const storyTimerRef = useRef<NodeJS.Timeout | null>(null);
   const progressAnim = useRef(new Animated.Value(0)).current;
 
+  // FIXED: Story stats modal states
+  const [showStoryStats, setShowStoryStats] = useState(false);
+  const [storyViews, setStoryViews] = useState<any[]>([]);
+  const [storyLikes, setStoryLikes] = useState<any[]>([]);
+  const [loadingStats, setLoadingStats] = useState(false);
+
   // Scroll animation states
   const scrollY = useRef(new Animated.Value(0)).current;
   const lastScrollY = useRef(0);
@@ -977,6 +984,57 @@ export default function SocialScreen() {
       console.error('[Social] Error toggling story like:', error);
     }
   }, [user, currentStoryIndex, viewingOwnStories, userStories, historias]);
+
+  // FIXED: Load story statistics
+  const handleViewStoryStats = useCallback(async () => {
+    const currentStories = viewingOwnStories ? userStories : historias;
+    const currentStory = currentStories[currentStoryIndex];
+    
+    if (!currentStory || !user || currentStory.autor_id !== user.id) {
+      return;
+    }
+
+    setLoadingStats(true);
+    setShowStoryStats(true);
+
+    try {
+      // Load views
+      const { data: viewsData, error: viewsError } = await supabase
+        .from('historia_views')
+        .select(`
+          id,
+          usuario_id,
+          viewed_at,
+          usuario:usuarios(nombre, avatar, username)
+        `)
+        .eq('historia_id', currentStory.id)
+        .order('viewed_at', { ascending: false });
+
+      if (viewsError) throw viewsError;
+
+      // Load likes
+      const { data: likesData, error: likesError } = await supabase
+        .from('historia_likes')
+        .select(`
+          id,
+          usuario_id,
+          created_at,
+          usuario:usuarios(nombre, avatar, username)
+        `)
+        .eq('historia_id', currentStory.id)
+        .order('created_at', { ascending: false });
+
+      if (likesError) throw likesError;
+
+      setStoryViews(viewsData || []);
+      setStoryLikes(likesData || []);
+    } catch (error) {
+      console.error('[Social] Error loading story stats:', error);
+      Alert.alert('Error', 'No se pudieron cargar las estadísticas');
+    } finally {
+      setLoadingStats(false);
+    }
+  }, [userStories, historias, currentStoryIndex, user, viewingOwnStories]);
 
   // FIXED: Send message with story - removed expires_at field, added historia_id and historia_imagen
   const handleSendStoryMessage = useCallback(async () => {
@@ -1777,6 +1835,15 @@ export default function SocialScreen() {
                         </View>
                       )}
                       <Text style={styles.storyAutorNombre}>{user.nombre}</Text>
+                      {/* FIXED: Eye icon only for own stories */}
+                      <TouchableOpacity
+                        style={styles.storyInteractionButton}
+                        onPress={handleViewStoryStats}
+                        activeOpacity={0.7}
+                      >
+                        <IconSymbol name="eye" size={18} color="#fff" />
+                        <Text style={styles.storyInteractionText}>{currentStory.views_count || 0}</Text>
+                      </TouchableOpacity>
                     </>
                   ) : (
                     <>
@@ -1853,6 +1920,7 @@ export default function SocialScreen() {
                 />
               </View>
 
+              {/* FIXED: Only show interaction bar for other people's stories */}
               {!viewingOwnStories && (
                 <View style={styles.storyInteractionBar}>
                   <TouchableOpacity
@@ -1865,13 +1933,6 @@ export default function SocialScreen() {
                       size={20} 
                       color={currentStory.liked_by_user ? '#EF4444' : '#fff'} 
                     />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.storyInteractionButton}
-                    activeOpacity={0.7}
-                  >
-                    <IconSymbol name="eye" size={20} color="#fff" />
-                    <Text style={styles.storyInteractionText}>{currentStory.views_count || 0}</Text>
                   </TouchableOpacity>
                   <TextInput
                     style={styles.storyMessageInput}
@@ -1925,6 +1986,18 @@ export default function SocialScreen() {
           )}
         </View>
       </Modal>
+
+      {/* FIXED: Story Stats Modal */}
+      <StoryStatsModal
+        visible={showStoryStats}
+        onClose={() => setShowStoryStats(false)}
+        storyId={currentStory?.id || ''}
+        viewsCount={currentStory?.views_count || 0}
+        likesCount={currentStory?.likes_count || 0}
+        views={storyViews}
+        likes={storyLikes}
+        loading={loadingStats}
+      />
 
       <LoginRequiredModal
         visible={showLoginModal}
