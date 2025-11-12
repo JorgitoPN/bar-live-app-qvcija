@@ -66,6 +66,7 @@ interface HistoriaConAutor {
   views_count?: number;
   likes_count?: number;
   liked_by_user?: boolean;
+  comments_count?: number;
 }
 
 interface SearchResult {
@@ -108,7 +109,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 16,
   },
-  // FIXED: Remove rounded background from header buttons
   headerButton: {
     padding: 4,
   },
@@ -422,7 +422,6 @@ const styles = StyleSheet.create({
   storyTouchZone: {
     flex: 1,
   },
-  // FIXED: Story viewer interaction buttons
   storyInteractionBar: {
     position: 'absolute',
     bottom: Platform.OS === 'ios' ? 40 : 20,
@@ -646,8 +645,8 @@ export default function SocialScreen() {
         if (user) {
           const allStoryIds = globalStories.map(s => s.id);
           
-          // Load views, likes for stories
-          const [viewedData, likesData, viewsCountData] = await Promise.all([
+          // Load views, likes, comments for stories
+          const [viewedData, likesData, viewsCountData, commentsCountData] = await Promise.all([
             supabase
               .from('historia_views')
               .select('historia_id')
@@ -662,6 +661,10 @@ export default function SocialScreen() {
               .from('historia_views')
               .select('historia_id')
               .in('historia_id', allStoryIds),
+            supabase
+              .from('historia_comentarios')
+              .select('historia_id')
+              .in('historia_id', allStoryIds),
           ]);
           
           const viewedStoryIds = new Set(viewedData.data?.map(v => v.historia_id) || []);
@@ -672,11 +675,17 @@ export default function SocialScreen() {
             return acc;
           }, {} as Record<string, number>) || {};
           
+          const commentsCounts = commentsCountData.data?.reduce((acc, c) => {
+            acc[c.historia_id] = (acc[c.historia_id] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>) || {};
+          
           const userStoriesWithStatus = userOwnStories.map(story => ({
             ...story,
             visto_por_usuario: viewedStoryIds.has(story.id),
             liked_by_user: likedStoryIds.has(story.id),
             views_count: viewsCounts[story.id] || 0,
+            comments_count: commentsCounts[story.id] || 0,
           }));
           
           const otherStoriesWithStatus = otherStories.map(story => ({
@@ -684,6 +693,7 @@ export default function SocialScreen() {
             visto_por_usuario: viewedStoryIds.has(story.id),
             liked_by_user: likedStoryIds.has(story.id),
             views_count: viewsCounts[story.id] || 0,
+            comments_count: commentsCounts[story.id] || 0,
           }));
           
           setUserStories(userStoriesWithStatus);
@@ -836,7 +846,6 @@ export default function SocialScreen() {
 
     progressAnim.setValue(0);
 
-    // FIXED: Smooth animation without flickering
     Animated.timing(progressAnim, {
       toValue: 1,
       duration: 5000,
@@ -925,7 +934,6 @@ export default function SocialScreen() {
     );
   }, [historias, userStories, currentStoryIndex, user, viewingOwnStories, stopStoryTimer]);
 
-  // FIXED: Story like functionality
   const handleStoryLike = useCallback(async () => {
     const currentStories = viewingOwnStories ? userStories : historias;
     const currentStory = currentStories[currentStoryIndex];
@@ -952,7 +960,6 @@ export default function SocialScreen() {
         });
       }
 
-      // Update local state
       if (viewingOwnStories) {
         setUserStories(prev => prev.map((s, i) => 
           i === currentStoryIndex 
@@ -971,7 +978,7 @@ export default function SocialScreen() {
     }
   }, [user, currentStoryIndex, viewingOwnStories, userStories, historias]);
 
-  // FIXED: Send message with story screenshot - pause story when typing - removed expires_at field
+  // FIXED: Send message with story - removed expires_at field, added historia_id and historia_imagen
   const handleSendStoryMessage = useCallback(async () => {
     const currentStories = viewingOwnStories ? userStories : historias;
     const currentStory = currentStories[currentStoryIndex];
@@ -1008,7 +1015,7 @@ export default function SocialScreen() {
         console.log('[Social] Chat created:', chatId);
       }
 
-      // FIXED: Send message without expires_at field (removed from insert)
+      // FIXED: Send message with historia_id and historia_imagen instead of expires_at
       const { error: mensajeError } = await supabase
         .from('mensajes')
         .insert({
@@ -1017,6 +1024,7 @@ export default function SocialScreen() {
           contenido: storyMessage,
           historia_id: currentStory.id,
           historia_imagen: currentStory.imagen,
+          tipo_mensaje: 'texto',
         });
 
       if (mensajeError) throw mensajeError;
@@ -1026,7 +1034,7 @@ export default function SocialScreen() {
       // Create notification
       await supabase.from('notificaciones').insert({
         usuario_id: currentStory.autor_id,
-        tipo: 'mensaje',
+        tipo: 'mensaje_privado',
         titulo: 'Mensaje sobre tu historia',
         mensaje: `${user.nombre} te envió un mensaje sobre tu historia`,
         usuario_origen_id: user.id,
@@ -1702,7 +1710,7 @@ export default function SocialScreen() {
         </Pressable>
       </Modal>
 
-      {/* FIXED: Story Viewer Modal with interaction buttons and pause on typing */}
+      {/* Story Viewer Modal */}
       <Modal
         visible={showStoryViewer}
         animationType="fade"
@@ -1845,7 +1853,6 @@ export default function SocialScreen() {
                 />
               </View>
 
-              {/* FIXED: Story interaction bar with like, views, and message - only for other users' stories */}
               {!viewingOwnStories && (
                 <View style={styles.storyInteractionBar}>
                   <TouchableOpacity
