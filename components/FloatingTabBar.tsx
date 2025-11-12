@@ -57,9 +57,9 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
   // FIXED: Dynamic tabs based on mode - Remove Events icon in owner mode
   const getDisplayTabs = () => {
     if (isPropietarioMode) {
-      // Owner mode: Remove Events, add Social before Perfil
-      return tabs
-        .filter(tab => tab.name !== 'eventos') // Remove Events icon
+      // Owner mode: Replace Favoritos with Eventos, add Social before Perfil
+      const baseTabs = tabs
+        .filter(tab => tab.name !== 'eventos') // Remove Events from base tabs
         .map(tab => {
           // Replace Favoritos with Eventos in the same position
           if (tab.name === 'favoritos') {
@@ -72,25 +72,24 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
           }
           return tab;
         });
+
+      // Add Social tab before Perfil
+      const perfilIndex = baseTabs.findIndex(t => t.name === 'perfil');
+      if (perfilIndex !== -1) {
+        baseTabs.splice(perfilIndex, 0, {
+          name: 'social-propietario', // FIXED: Unique key
+          route: '/(tabs)/social',
+          icon: 'person.2',
+          label: 'Social',
+        });
+      }
+
+      return baseTabs;
     }
     return tabs;
   };
 
-  const displayTabs = getDisplayTabs();
-
-  // Add Social tab before Perfil in propietario mode
-  const finalTabs = isPropietarioMode 
-    ? [
-        ...displayTabs.filter(t => t.name !== 'perfil'),
-        {
-          name: 'social',
-          route: '/(tabs)/social',
-          icon: 'person.2',
-          label: 'Social',
-        },
-        ...displayTabs.filter(t => t.name === 'perfil'),
-      ]
-    : displayTabs;
+  const finalTabs = getDisplayTabs();
 
   return (
     <View style={styles.container} pointerEvents="box-none">

@@ -113,6 +113,7 @@ export default function CrearEventoScreen() {
       const localesConAcceso = localesConPlan.filter((l) => l.suscripcion?.puede_crear_eventos);
 
       if (localesConAcceso.length === 0) {
+        // FIXED: Correct navigation to plans page
         Alert.alert(
           'Plan Requerido',
           'Necesitas un plan de pago activo para crear eventos. Activa un plan Estándar o Premium para desbloquear esta funcionalidad.',
@@ -122,7 +123,13 @@ export default function CrearEventoScreen() {
               text: 'Ver Planes',
               onPress: () => {
                 router.back();
-                router.push('/gestion/planes-suscripcion');
+                // Navigate to plans page with the first local's ID
+                const firstLocalId = localesConPlan[0]?.id;
+                if (firstLocalId) {
+                  router.push(`/gestion/planes-suscripcion?localId=${firstLocalId}`);
+                } else {
+                  router.push('/gestion/planes-suscripcion');
+                }
               },
             },
           ]

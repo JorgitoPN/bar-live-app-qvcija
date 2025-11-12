@@ -15,6 +15,7 @@ import {
   Linking,
   Animated,
   Alert,
+  TextInput,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -27,6 +28,16 @@ import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 
 const { width, height } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 3) / 3;
+
+const PROVINCIAS = [
+  'Álava', 'Albacete', 'Alicante', 'Almería', 'Asturias', 'Ávila', 'Badajoz',
+  'Barcelona', 'Burgos', 'Cáceres', 'Cádiz', 'Cantabria', 'Castellón', 'Ciudad Real',
+  'Córdoba', 'Cuenca', 'Girona', 'Granada', 'Guadalajara', 'Guipúzcoa', 'Huelva',
+  'Huesca', 'Islas Baleares', 'Jaén', 'La Coruña', 'La Rioja', 'Las Palmas', 'León',
+  'Lleida', 'Lugo', 'Madrid', 'Málaga', 'Murcia', 'Navarra', 'Ourense', 'Palencia',
+  'Pontevedra', 'Salamanca', 'Santa Cruz de Tenerife', 'Segovia', 'Sevilla', 'Soria',
+  'Tarragona', 'Teruel', 'Toledo', 'Valencia', 'Valladolid', 'Vizcaya', 'Zamora', 'Zaragoza'
+];
 
 interface Post {
   id: string;
@@ -124,6 +135,7 @@ export default function PerfilScreen() {
   const [loading, setLoading] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showCreateOptions, setShowCreateOptions] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   
   const [seguidores, setSeguidores] = useState(0);
   const [seguidos, setSeguidos] = useState(0);
@@ -140,6 +152,10 @@ export default function PerfilScreen() {
   const [ofertas, setOfertas] = useState<OfertaTrabajo[]>([]);
   const [perfiles, setPerfiles] = useState<PerfilProfesional[]>([]);
   const [loadingEmpleo, setLoadingEmpleo] = useState(false);
+
+  // Search and filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [provinciaFiltro, setProvinciaFiltro] = useState<string>('');
 
   // Story viewer states
   const [showStoryViewer, setShowStoryViewer] = useState(false);
@@ -214,7 +230,6 @@ export default function PerfilScreen() {
       if (userStoriesData) {
         const storyIds = userStoriesData.map(s => s.id);
         
-        // Load views count and likes for own stories
         const [viewedData, viewsCountData, likesCountData] = await Promise.all([
           supabase
             .from('historia_views')
@@ -483,7 +498,7 @@ export default function PerfilScreen() {
 
       // Load job offers created by the user (if owner)
       if (isPropietario) {
-        const { data: ofertasData, error: ofertasError } = await supabase
+        let query = supabase
           .from('ofertas_trabajo')
           .select(`
             *,
@@ -491,9 +506,21 @@ export default function PerfilScreen() {
             propietario:usuarios(nombre)
           `)
           .eq('propietario_id', user.id)
-          .eq('activo', true)
+          .eq('activo', true);
+
+        // Apply search filter
+        if (searchQuery) {
+          query = query.or(`titulo.ilike.%${searchQuery}%,descripcion.ilike.%${searchQuery}%`);
+        }
+
+        // Apply province filter
+        if (provinciaFiltro) {
+          query = query.eq('provincia', provinciaFiltro);
+        }
+
+        const { data: ofertasData, error: ofertasError } = await query
           .order('created_at', { ascending: false })
-          .limit(10);
+          .limit(20);
 
         if (ofertasError) {
           console.error('[Perfil] Error cargando ofertas:', ofertasError);
@@ -508,16 +535,28 @@ export default function PerfilScreen() {
       }
 
       // Load professional profile created by the user
-      const { data: perfilesData, error: perfilesError } = await supabase
+      let perfilQuery = supabase
         .from('perfiles_profesionales')
         .select(`
           *,
           usuario:usuarios(nombre, avatar, username)
         `)
         .eq('usuario_id', user.id)
-        .eq('activo', true)
+        .eq('activo', true);
+
+      // Apply search filter
+      if (searchQuery) {
+        perfilQuery = perfilQuery.or(`nombre_completo.ilike.%${searchQuery}%,puesto_deseado.ilike.%${searchQuery}%,experiencia.ilike.%${searchQuery}%`);
+      }
+
+      // Apply province filter
+      if (provinciaFiltro) {
+        perfilQuery = perfilQuery.eq('provincia', provinciaFiltro);
+      }
+
+      const { data: perfilesData, error: perfilesError } = await perfilQuery
         .order('created_at', { ascending: false })
-        .limit(10);
+        .limit(20);
 
       if (perfilesError) {
         console.error('[Perfil] Error cargando perfiles:', perfilesError);
@@ -536,7 +575,7 @@ export default function PerfilScreen() {
     if (user) {
       cargarContenido();
     }
-  }, [activeTab, user]);
+  }, [activeTab, user, searchQuery, provinciaFiltro, empleoTab]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -641,18 +680,24 @@ export default function PerfilScreen() {
     );
   };
 
+  // FIXED: Navigate to detail pages instead of empleo tab
   const handleVerOferta = (oferta: OfertaTrabajo) => {
-    router.push(`/(tabs)/empleo?id=${oferta.id}`);
+    router.push(`/empleo/oferta-detalle?id=${oferta.id}`);
   };
 
   const handleVerPerfil = (perfil: PerfilProfesional) => {
-    router.push(`/(tabs)/empleo?id=${perfil.id}`);
+    router.push(`/empleo/perfil-detalle?id=${perfil.id}`);
   };
 
   const handleWebsite = () => {
     if (user?.sitio_web) {
       Linking.openURL(user.sitio_web);
     }
+  };
+
+  const limpiarFiltros = () => {
+    setSearchQuery('');
+    setProvinciaFiltro('');
   };
 
   const calcularDiasPublicado = (fecha: string): string => {
@@ -827,6 +872,7 @@ export default function PerfilScreen() {
     </TouchableOpacity>
   );
 
+  // IMPROVED: Better design for job offer cards
   const renderOferta = (oferta: OfertaTrabajo) => (
     <TouchableOpacity
       key={oferta.id}
@@ -834,53 +880,57 @@ export default function PerfilScreen() {
       onPress={() => handleVerOferta(oferta)}
       activeOpacity={0.7}
     >
-      {oferta.imagen_url && (
-        <Image 
-          source={{ uri: oferta.imagen_url }} 
-          style={styles.ofertaImagen}
-          resizeMode="cover"
-        />
-      )}
-      
-      <View style={styles.empleoContent}>
-        <View style={styles.ofertaHeader}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.empleoTitulo} numberOfLines={1}>
-              {oferta.titulo}
-            </Text>
-            <Text style={styles.empleoLocal} numberOfLines={1}>
-              {oferta.local?.nombre || oferta.propietario?.nombre || 'Local'}
-            </Text>
-          </View>
-          {oferta.salario && (
-            <View style={styles.salarioContainer}>
-              <Text style={styles.salarioTexto}>{oferta.salario}</Text>
+      <LinearGradient
+        colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.7)']}
+        style={styles.ofertaGradient}
+      >
+        {oferta.imagen_url && (
+          <Image 
+            source={{ uri: oferta.imagen_url }} 
+            style={styles.ofertaImagen}
+            resizeMode="cover"
+          />
+        )}
+        
+        <View style={styles.ofertaContent}>
+          <View style={styles.ofertaHeader}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.empleoTitulo} numberOfLines={2}>
+                {oferta.titulo}
+              </Text>
+              <Text style={styles.empleoLocal} numberOfLines={1}>
+                {oferta.local?.nombre || oferta.propietario?.nombre || 'Local'}
+              </Text>
             </View>
-          )}
-        </View>
-
-        <Text style={styles.empleoDescripcion} numberOfLines={2}>
-          {oferta.descripcion}
-        </Text>
-
-        <View style={styles.empleoFooter}>
-          <View style={styles.empleoTag}>
-            <Text style={styles.empleoTagText}>{oferta.tipo}</Text>
+            {oferta.salario && (
+              <View style={styles.salarioContainer}>
+                <IconSymbol name="eurosign.circle.fill" size={16} color={colors.white} />
+                <Text style={styles.salarioTexto}>{oferta.salario}</Text>
+              </View>
+            )}
           </View>
-          {oferta.provincia && (
+
+          <View style={styles.empleoFooter}>
             <View style={styles.empleoTag}>
-              <IconSymbol name="mappin" size={12} color={colors.textSecondary} />
-              <Text style={styles.empleoTagText}>{oferta.provincia}</Text>
+              <IconSymbol name="briefcase.fill" size={14} color={colors.primary} />
+              <Text style={styles.empleoTagText}>{oferta.tipo}</Text>
             </View>
-          )}
-          <Text style={styles.empleoFecha}>
-            {calcularDiasPublicado(oferta.created_at)}
-          </Text>
+            {oferta.provincia && (
+              <View style={styles.empleoTag}>
+                <IconSymbol name="mappin.circle.fill" size={14} color={colors.primary} />
+                <Text style={styles.empleoTagText}>{oferta.provincia}</Text>
+              </View>
+            )}
+            <Text style={styles.empleoFecha}>
+              {calcularDiasPublicado(oferta.created_at)}
+            </Text>
+          </View>
         </View>
-      </View>
+      </LinearGradient>
     </TouchableOpacity>
   );
 
+  // IMPROVED: Better design for professional profile cards
   const renderPerfil = (perfil: PerfilProfesional) => {
     const fotoUrl = perfil.foto_url || perfil.usuario?.avatar || user?.avatar;
     
@@ -891,75 +941,82 @@ export default function PerfilScreen() {
         onPress={() => handleVerPerfil(perfil)}
         activeOpacity={0.7}
       >
-        <View style={styles.perfilHeader}>
-          {fotoUrl ? (
-            <Image
-              source={{ uri: fotoUrl }}
-              style={styles.perfilAvatar}
-            />
-          ) : (
-            <View style={[styles.perfilAvatar, styles.perfilAvatarPlaceholder]}>
-              <IconSymbol name="person.fill" size={24} color={colors.textSecondary} />
-            </View>
-          )}
-          <View style={{ flex: 1 }}>
-            <Text style={styles.perfilNombre} numberOfLines={1}>
-              {perfil.nombre_completo}
-            </Text>
-            <Text style={styles.perfilPuesto} numberOfLines={1}>
-              {perfil.puesto_deseado}
-            </Text>
-          </View>
-        </View>
-
-        <Text style={styles.perfilExperiencia} numberOfLines={2}>
-          {perfil.experiencia}
-        </Text>
-
-        {perfil.habilidades && (
-          <View style={styles.habilidadesContainer}>
-            {perfil.habilidades.split(',').slice(0, 3).map((habilidad, index) => (
-              <View key={index} style={styles.habilidadTag}>
-                <Text style={styles.habilidadText}>{habilidad.trim()}</Text>
+        <LinearGradient
+          colors={[colors.primary + '15', colors.secondary + '10']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.perfilGradient}
+        >
+          <View style={styles.perfilHeader}>
+            {fotoUrl ? (
+              <Image
+                source={{ uri: fotoUrl }}
+                style={styles.perfilAvatar}
+              />
+            ) : (
+              <View style={[styles.perfilAvatar, styles.perfilAvatarPlaceholder]}>
+                <IconSymbol name="person.fill" size={28} color={colors.textSecondary} />
               </View>
-            ))}
+            )}
+            <View style={{ flex: 1 }}>
+              <Text style={styles.perfilNombre} numberOfLines={1}>
+                {perfil.nombre_completo}
+              </Text>
+              <Text style={styles.perfilPuesto} numberOfLines={1}>
+                {perfil.puesto_deseado}
+              </Text>
+            </View>
           </View>
-        )}
 
-        <View style={styles.perfilFooter}>
-          {perfil.provincia && (
-            <View style={styles.perfilTag}>
-              <IconSymbol name="mappin" size={12} color={colors.textSecondary} />
-              <Text style={styles.perfilTagText}>{perfil.provincia}</Text>
+          <Text style={styles.perfilExperiencia} numberOfLines={3}>
+            {perfil.experiencia}
+          </Text>
+
+          {perfil.habilidades && (
+            <View style={styles.habilidadesContainer}>
+              {perfil.habilidades.split(',').slice(0, 3).map((habilidad, index) => (
+                <View key={index} style={styles.habilidadTag}>
+                  <Text style={styles.habilidadText}>{habilidad.trim()}</Text>
+                </View>
+              ))}
             </View>
           )}
-          {perfil.disponibilidad && (
-            <View style={styles.perfilTag}>
-              <IconSymbol name="clock" size={12} color={colors.textSecondary} />
-              <Text style={styles.perfilTagText}>{perfil.disponibilidad}</Text>
+
+          <View style={styles.perfilFooter}>
+            {perfil.provincia && (
+              <View style={styles.perfilTag}>
+                <IconSymbol name="mappin.circle.fill" size={14} color={colors.primary} />
+                <Text style={styles.perfilTagText}>{perfil.provincia}</Text>
+              </View>
+            )}
+            {perfil.disponibilidad && (
+              <View style={styles.perfilTag}>
+                <IconSymbol name="clock.fill" size={14} color={colors.primary} />
+                <Text style={styles.perfilTagText}>{perfil.disponibilidad}</Text>
+              </View>
+            )}
+            <View style={styles.perfilActions}>
+              <TouchableOpacity 
+                style={styles.perfilActionButton}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  handleEditarPerfil(perfil.id);
+                }}
+              >
+                <IconSymbol name="pencil.circle.fill" size={24} color={colors.primary} />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.perfilActionButton}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  handleEliminarPerfil(perfil.id);
+                }}
+              >
+                <IconSymbol name="trash.circle.fill" size={24} color="#EF4444" />
+              </TouchableOpacity>
             </View>
-          )}
-          <View style={styles.perfilActions}>
-            <TouchableOpacity 
-              style={styles.perfilActionButton}
-              onPress={(e) => {
-                e.stopPropagation();
-                handleEditarPerfil(perfil.id);
-              }}
-            >
-              <IconSymbol name="pencil" size={16} color={colors.primary} />
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.perfilActionButton}
-              onPress={(e) => {
-                e.stopPropagation();
-                handleEliminarPerfil(perfil.id);
-              }}
-            >
-              <IconSymbol name="trash" size={16} color="#EF4444" />
-            </TouchableOpacity>
           </View>
-        </View>
+        </LinearGradient>
       </TouchableOpacity>
     );
   };
@@ -1184,6 +1241,35 @@ export default function PerfilScreen() {
           <>
             {activeTab === 'empleo' ? (
               <View style={styles.empleoSection}>
+                {/* ADDED: Search and Filter Bar */}
+                <View style={styles.searchContainer}>
+                  <View style={styles.searchBar}>
+                    <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
+                    <TextInput
+                      style={styles.searchInput}
+                      placeholder="Buscar..."
+                      value={searchQuery}
+                      onChangeText={setSearchQuery}
+                      placeholderTextColor={colors.textSecondary}
+                    />
+                    {searchQuery.length > 0 && (
+                      <TouchableOpacity onPress={() => setSearchQuery('')}>
+                        <IconSymbol name="xmark.circle.fill" size={20} color={colors.textSecondary} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  <TouchableOpacity 
+                    style={styles.filterButton}
+                    onPress={() => setShowFilters(true)}
+                  >
+                    <IconSymbol 
+                      name="line.3.horizontal.decrease.circle" 
+                      size={24} 
+                      color={provinciaFiltro ? colors.primary : colors.text} 
+                    />
+                  </TouchableOpacity>
+                </View>
+
                 <View style={styles.empleoTabs}>
                   {isPropietario && (
                     <TouchableOpacity
@@ -1227,10 +1313,16 @@ export default function PerfilScreen() {
                       ) : (
                         <View style={styles.emptyState}>
                           <IconSymbol name="briefcase" size={48} color={colors.textSecondary} />
-                          <Text style={styles.emptyStateText}>No has creado ofertas de trabajo</Text>
-                          <TouchableOpacity style={styles.emptyStateButton} onPress={handleCrearOferta}>
-                            <Text style={styles.emptyStateButtonText}>Crear Oferta</Text>
-                          </TouchableOpacity>
+                          <Text style={styles.emptyStateText}>
+                            {searchQuery || provinciaFiltro 
+                              ? 'No se encontraron ofertas con los filtros aplicados'
+                              : 'No has creado ofertas de trabajo'}
+                          </Text>
+                          {!searchQuery && !provinciaFiltro && (
+                            <TouchableOpacity style={styles.emptyStateButton} onPress={handleCrearOferta}>
+                              <Text style={styles.emptyStateButtonText}>Crear Oferta</Text>
+                            </TouchableOpacity>
+                          )}
                         </View>
                       )
                     ) : (
@@ -1239,10 +1331,16 @@ export default function PerfilScreen() {
                       ) : (
                         <View style={styles.emptyState}>
                           <IconSymbol name="person.2" size={48} color={colors.textSecondary} />
-                          <Text style={styles.emptyStateText}>No has creado tu perfil profesional</Text>
-                          <TouchableOpacity style={styles.emptyStateButton} onPress={handleCrearPerfil}>
-                            <Text style={styles.emptyStateButtonText}>Crear Perfil</Text>
-                          </TouchableOpacity>
+                          <Text style={styles.emptyStateText}>
+                            {searchQuery || provinciaFiltro 
+                              ? 'No se encontraron perfiles con los filtros aplicados'
+                              : 'No has creado tu perfil profesional'}
+                          </Text>
+                          {!searchQuery && !provinciaFiltro && (
+                            <TouchableOpacity style={styles.emptyStateButton} onPress={handleCrearPerfil}>
+                              <Text style={styles.emptyStateButtonText}>Crear Perfil</Text>
+                            </TouchableOpacity>
+                          )}
                         </View>
                       )
                     )}
@@ -1276,6 +1374,71 @@ export default function PerfilScreen() {
           </>
         )}
       </ScrollView>
+
+      {/* Filters Modal */}
+      <Modal
+        visible={showFilters}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowFilters(false)}
+      >
+        <Pressable 
+          style={styles.modalOverlay}
+          onPress={() => setShowFilters(false)}
+        >
+          <Pressable style={styles.filtersModal} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.filtersHeader}>
+              <Text style={styles.filtersTitle}>Filtros</Text>
+              <TouchableOpacity onPress={() => setShowFilters(false)}>
+                <IconSymbol name="xmark" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.filtersContent}>
+              <Text style={styles.filterLabel}>Provincia</Text>
+              <ScrollView style={styles.provinciasList} nestedScrollEnabled>
+                <TouchableOpacity
+                  style={[styles.provinciaItem, !provinciaFiltro && styles.provinciaItemActive]}
+                  onPress={() => setProvinciaFiltro('')}
+                >
+                  <Text style={[styles.provinciaText, !provinciaFiltro && styles.provinciaTextActive]}>
+                    Todas las provincias
+                  </Text>
+                </TouchableOpacity>
+                {PROVINCIAS.map((provincia) => (
+                  <TouchableOpacity
+                    key={provincia}
+                    style={[styles.provinciaItem, provinciaFiltro === provincia && styles.provinciaItemActive]}
+                    onPress={() => setProvinciaFiltro(provincia)}
+                  >
+                    <Text style={[styles.provinciaText, provinciaFiltro === provincia && styles.provinciaTextActive]}>
+                      {provincia}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </ScrollView>
+
+            <View style={styles.filtersFooter}>
+              <TouchableOpacity 
+                style={styles.clearFiltersButton}
+                onPress={() => {
+                  limpiarFiltros();
+                  setShowFilters(false);
+                }}
+              >
+                <Text style={styles.clearFiltersText}>Limpiar Filtros</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.applyFiltersButton}
+                onPress={() => setShowFilters(false)}
+              >
+                <Text style={styles.applyFiltersText}>Aplicar</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       <Modal
         visible={showCreateOptions}
@@ -1399,7 +1562,6 @@ export default function PerfilScreen() {
                   )}
                   <Text style={styles.storyAutorNombre}>{user.nombre}</Text>
                   
-                  {/* FIXED: Show view count only to story creator */}
                   <View style={styles.storyViewsContainer}>
                     <IconSymbol name="eye" size={18} color="#fff" />
                     <Text style={styles.storyViewsText}>{currentStory.views_count || 0}</Text>
@@ -1728,6 +1890,8 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 12,
     marginBottom: 16,
+    textAlign: 'center',
+    paddingHorizontal: 20,
   },
   emptyStateButton: {
     backgroundColor: colors.primary,
@@ -1742,6 +1906,38 @@ const styles = StyleSheet.create({
   },
   empleoSection: {
     padding: 20,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  searchBar: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: colors.text,
+  },
+  filterButton: {
+    width: 48,
+    height: 48,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
   empleoTabs: {
     flexDirection: 'row',
@@ -1768,65 +1964,75 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   empleoContent: {
-    gap: 12,
+    gap: 16,
   },
   empleoCard: {
     backgroundColor: colors.cardBackground,
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: colors.cardBorder,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  ofertaGradient: {
+    position: 'relative',
   },
   ofertaImagen: {
     width: '100%',
-    height: 160,
+    height: 180,
     backgroundColor: colors.cardBorder,
   },
+  ofertaContent: {
+    padding: 16,
+  },
   empleoTitulo: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
     color: colors.text,
-    marginBottom: 4,
+    marginBottom: 6,
   },
   empleoLocal: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.textSecondary,
+    fontWeight: '500',
   },
   salarioContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     backgroundColor: colors.primary,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
   salarioTexto: {
     fontSize: 14,
     fontWeight: '700',
     color: colors.white,
   },
-  empleoDescripcion: {
-    fontSize: 14,
-    color: colors.text,
-    lineHeight: 20,
-    marginBottom: 12,
-  },
   empleoFooter: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
+    marginTop: 12,
   },
   empleoTag: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.background,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    gap: 6,
   },
   empleoTagText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontWeight: '500',
+    fontSize: 13,
+    color: colors.text,
+    fontWeight: '600',
   },
   empleoFecha: {
     fontSize: 12,
@@ -1837,25 +2043,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   perfilCard: {
     backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
     borderWidth: 1,
     borderColor: colors.cardBorder,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  perfilGradient: {
+    padding: 16,
   },
   perfilHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
   },
   perfilAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    marginRight: 12,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    marginRight: 14,
+    borderWidth: 2,
+    borderColor: colors.primary + '30',
   },
   perfilAvatarPlaceholder: {
     backgroundColor: colors.background,
@@ -1865,37 +2081,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   perfilNombre: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '700',
     color: colors.text,
-    marginBottom: 2,
+    marginBottom: 4,
   },
   perfilPuesto: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.textSecondary,
+    fontWeight: '500',
   },
   perfilExperiencia: {
     fontSize: 14,
     color: colors.text,
-    lineHeight: 20,
-    marginBottom: 12,
+    lineHeight: 21,
+    marginBottom: 14,
   },
   habilidadesContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 12,
+    gap: 8,
+    marginBottom: 14,
   },
   habilidadTag: {
     backgroundColor: colors.primary + '20',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
   habilidadText: {
     fontSize: 12,
     color: colors.primary,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   perfilFooter: {
     flexDirection: 'row',
@@ -1905,11 +2122,12 @@ const styles = StyleSheet.create({
   perfilTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
   perfilTagText: {
-    fontSize: 12,
-    color: colors.textSecondary,
+    fontSize: 13,
+    color: colors.text,
+    fontWeight: '600',
   },
   perfilActions: {
     flexDirection: 'row',
@@ -1917,7 +2135,92 @@ const styles = StyleSheet.create({
     marginLeft: 'auto',
   },
   perfilActionButton: {
-    padding: 6,
+    padding: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  filtersModal: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '80%',
+  },
+  filtersHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  filtersTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  filtersContent: {
+    padding: 20,
+  },
+  filterLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  provinciasList: {
+    maxHeight: 300,
+  },
+  provinciaItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 8,
+    backgroundColor: colors.cardBackground,
+  },
+  provinciaItemActive: {
+    backgroundColor: colors.primary,
+  },
+  provinciaText: {
+    fontSize: 15,
+    color: colors.text,
+  },
+  provinciaTextActive: {
+    color: colors.white,
+    fontWeight: '600',
+  },
+  filtersFooter: {
+    flexDirection: 'row',
+    gap: 12,
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+  },
+  clearFiltersButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: colors.cardBackground,
+    alignItems: 'center',
+  },
+  clearFiltersText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  applyFiltersButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+  },
+  applyFiltersText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.white,
   },
   createOptionsModal: {
     flex: 1,
