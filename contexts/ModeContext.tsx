@@ -10,33 +10,44 @@ interface ModeContextType {
   setCurrentMode: (mode: UserMode) => void;
   selectedLocalId: string | null;
   setSelectedLocalId: (localId: string | null) => void;
+  isInteractingAsLocal: boolean;
+  setIsInteractingAsLocal: (value: boolean) => void;
 }
 
 const ModeContext = createContext<ModeContextType | undefined>(undefined);
 
 const MODE_STORAGE_KEY = '@barlive_user_mode';
 const SELECTED_LOCAL_STORAGE_KEY = '@barlive_selected_local';
+const INTERACTING_AS_LOCAL_KEY = '@barlive_interacting_as_local';
 
 export function ModeProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [currentMode, setCurrentModeState] = useState<UserMode>('cliente');
   const [selectedLocalId, setSelectedLocalIdState] = useState<string | null>(null);
+  const [isInteractingAsLocal, setIsInteractingAsLocalState] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Initialize mode and selected local from storage or user role (only once)
+  // Initialize mode, selected local, and interaction state from storage or user role (only once)
   useEffect(() => {
     const initializeMode = async () => {
       try {
-        // Try to load saved mode and local from storage
-        const [savedMode, savedLocalId] = await Promise.all([
+        // Try to load saved mode, local, and interaction state from storage
+        const [savedMode, savedLocalId, savedInteracting] = await Promise.all([
           AsyncStorage.getItem(MODE_STORAGE_KEY),
           AsyncStorage.getItem(SELECTED_LOCAL_STORAGE_KEY),
+          AsyncStorage.getItem(INTERACTING_AS_LOCAL_KEY),
         ]);
         
         // Restore selected local if available
         if (savedLocalId) {
           console.log('[ModeContext] Restored selected local from storage:', savedLocalId);
           setSelectedLocalIdState(savedLocalId);
+        }
+
+        // Restore interaction state
+        if (savedInteracting === 'true') {
+          console.log('[ModeContext] Restored interaction state: true');
+          setIsInteractingAsLocalState(true);
         }
         
         if (savedMode && (savedMode === 'cliente' || savedMode === 'propietario' || savedMode === 'admin')) {
@@ -129,6 +140,12 @@ export function ModeProvider({ children }: { children: ReactNode }) {
       await AsyncStorage.setItem(MODE_STORAGE_KEY, mode);
       setCurrentModeState(mode);
       console.log('[ModeContext] Mode saved to storage:', mode);
+
+      // If switching to cliente mode, clear local interaction
+      if (mode === 'cliente') {
+        setIsInteractingAsLocalState(false);
+        await AsyncStorage.removeItem(INTERACTING_AS_LOCAL_KEY);
+      }
     } catch (error) {
       console.error('[ModeContext] Error saving mode:', error);
       // Still update state even if storage fails
@@ -155,8 +172,34 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const setIsInteractingAsLocal = async (value: boolean) => {
+    try {
+      console.log('[ModeContext] Setting interaction state to:', value);
+      
+      if (value) {
+        await AsyncStorage.setItem(INTERACTING_AS_LOCAL_KEY, 'true');
+      } else {
+        await AsyncStorage.removeItem(INTERACTING_AS_LOCAL_KEY);
+      }
+      
+      setIsInteractingAsLocalState(value);
+      console.log('[ModeContext] Interaction state saved to storage:', value);
+    } catch (error) {
+      console.error('[ModeContext] Error saving interaction state:', error);
+      // Still update state even if storage fails
+      setIsInteractingAsLocalState(value);
+    }
+  };
+
   return (
-    <ModeContext.Provider value={{ currentMode, setCurrentMode, selectedLocalId, setSelectedLocalId }}>
+    <ModeContext.Provider value={{ 
+      currentMode, 
+      setCurrentMode, 
+      selectedLocalId, 
+      setSelectedLocalId,
+      isInteractingAsLocal,
+      setIsInteractingAsLocal,
+    }}>
       {children}
     </ModeContext.Provider>
   );

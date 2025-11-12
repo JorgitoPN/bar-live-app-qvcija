@@ -72,7 +72,7 @@ export default function LocalPerfilScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { user } = useAuth();
-  const { currentMode, selectedLocalId, setSelectedLocalId } = useMode();
+  const { currentMode, selectedLocalId, setSelectedLocalId, setCurrentMode, isInteractingAsLocal, setIsInteractingAsLocal } = useMode();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [local, setLocal] = useState<any>(null);
@@ -119,10 +119,15 @@ export default function LocalPerfilScreen() {
       if (user && localData.propietario_id === user.id) {
         setIsOwner(true);
         
-        // Set this local as selected in owner mode
-        if (currentMode === 'propietario') {
-          setSelectedLocalId(localId);
-        }
+        // FIXED: Set this local as selected and switch to owner mode
+        console.log('[LocalPerfil] User is owner, setting local as selected and switching to owner mode');
+        setSelectedLocalId(localId);
+        setCurrentMode('propietario');
+        setIsInteractingAsLocal(true);
+      } else {
+        // FIXED: User is viewing another local, maintain interaction state
+        console.log('[LocalPerfil] User is viewing local, maintaining interaction state');
+        setIsInteractingAsLocal(true);
       }
 
       // Load local posts (ONLY posts with tipo='local' and matching local_id)
@@ -226,7 +231,7 @@ export default function LocalPerfilScreen() {
     } finally {
       setLoading(false);
     }
-  }, [localId, user, router, currentMode, setSelectedLocalId]);
+  }, [localId, user, router, setSelectedLocalId, setCurrentMode, setIsInteractingAsLocal]);
 
   useEffect(() => {
     loadLocalData();
