@@ -81,6 +81,8 @@ export default function LocalPerfilScreen() {
     setIsInteractingAsLocal,
     activeLocalProfileId,
     setActiveLocalProfileId,
+    publicationMode,
+    setPublicationMode,
   } = useMode();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -131,16 +133,15 @@ export default function LocalPerfilScreen() {
         setIsOwner(true);
         
         // FIXED: Set this local as selected, switch to owner mode, and persist interaction
-        console.log('[LocalPerfil] ✅ User is owner, setting local as selected and switching to owner mode');
+        console.log('[LocalPerfil] ✅ User is owner, setting local as active profile');
         await setSelectedLocalId(localId);
         await setCurrentMode('propietario');
         await setIsInteractingAsLocal(true);
         await setActiveLocalProfileId(localId);
+        await setPublicationMode('local');
       } else {
-        // FIXED: User is viewing another local, maintain interaction state
-        console.log('[LocalPerfil] ✅ User is viewing local, maintaining interaction state');
-        await setIsInteractingAsLocal(true);
-        await setActiveLocalProfileId(localId);
+        // User is viewing another local, don't change their mode
+        console.log('[LocalPerfil] ✅ User is viewing another local');
       }
 
       // FIXED: Load local posts (ONLY posts with tipo='local' and matching local_id)
@@ -250,17 +251,15 @@ export default function LocalPerfilScreen() {
     } finally {
       setLoading(false);
     }
-  }, [localId, user, router, setSelectedLocalId, setCurrentMode, setIsInteractingAsLocal, setActiveLocalProfileId]);
+  }, [localId, user, router, setSelectedLocalId, setCurrentMode, setIsInteractingAsLocal, setActiveLocalProfileId, setPublicationMode]);
 
   useEffect(() => {
     loadLocalData();
 
-    // FIXED: Don't reset interaction state when unmounting
+    // Don't reset interaction state when unmounting
     // The interaction state should persist until the user explicitly leaves the local profile
-    // by navigating to a different profile or switching modes
     return () => {
       console.log('[LocalPerfil] Component unmounting, keeping interaction state');
-      // Don't reset here - let the user navigate freely within the local profile
     };
   }, [loadLocalData]);
 

@@ -246,6 +246,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
   },
+  switchToClientButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    backgroundColor: colors.secondary + '20',
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.secondary,
+    gap: 8,
+  },
+  switchToClientButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.secondary,
+  },
   searchModal: {
     flex: 1,
     backgroundColor: colors.background,
@@ -702,7 +719,18 @@ function formatearFecha(fecha: string): string {
 export default function SocialScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const { currentMode, selectedLocalId, setSelectedLocalId, activeLocalProfileId } = useMode();
+  const { 
+    currentMode, 
+    selectedLocalId, 
+    setSelectedLocalId, 
+    activeLocalProfileId,
+    setActiveLocalProfileId,
+    isInteractingAsLocal,
+    setIsInteractingAsLocal,
+    publicationMode,
+    setPublicationMode,
+    setCurrentMode,
+  } = useMode();
   
   const { posts: globalPosts, stories: globalStories, isInitialLoading, refreshData } = useGlobalData();
   
@@ -720,11 +748,11 @@ export default function SocialScreen() {
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
   
-  // FIXED: Local selector for owner mode - using persistent state from ModeContext
+  // Local selector for owner mode - using persistent state from ModeContext
   const [userLocales, setUserLocales] = useState<LocalProfile[]>([]);
   const [showLocalSelector, setShowLocalSelector] = useState(false);
   
-  // FIXED: Active local data for display
+  // Active local data for display
   const [activeLocalData, setActiveLocalData] = useState<LocalProfile | null>(null);
   
   // Story viewer states
@@ -770,12 +798,12 @@ export default function SocialScreen() {
 
       // Auto-select first local if none selected and only one local
       if (localesData && localesData.length === 1 && !selectedLocalId) {
-        setSelectedLocalId(localesData[0].id);
+        await setSelectedLocalId(localesData[0].id);
       }
     } catch (error) {
       console.error('[Social] Error loading user locales:', error);
     }
-  }, [user, isPropietario, selectedLocalId]);
+  }, [user, isPropietario, selectedLocalId, setSelectedLocalId]);
 
   // FIXED: Load active local data for display
   const loadActiveLocalData = useCallback(async () => {
@@ -813,24 +841,30 @@ export default function SocialScreen() {
     try {
       console.log('[Social] ⚡ Loading user-specific data...');
       console.log('[Social] 📍 Active local profile ID:', activeLocalProfileId);
+      console.log('[Social] 📍 Is interacting as local:', isInteractingAsLocal);
+      console.log('[Social] 📍 Publication mode:', publicationMode);
 
-      // FIXED: Load locales in owner mode
+      // Load locales in owner mode
       if (isOwnerMode) {
         await loadUserLocales();
       }
 
-      // FIXED: Load active local data
+      // Load active local data
       await loadActiveLocalData();
 
       if (globalPosts.length > 0) {
         console.log('[Social] ⚡ INSTANT posts from global data:', globalPosts.length);
         
-        // FIXED: Filter posts based on active local profile
+        // FIXED: Filter posts based on active local profile and publication mode
         let filteredPosts = globalPosts;
-        if (activeLocalProfileId) {
-          // When viewing as local, show ONLY posts from this local
+        if (publicationMode === 'local' && activeLocalProfileId) {
+          // When in local mode, show ONLY posts from this local
           filteredPosts = globalPosts.filter(p => p.tipo === 'local' && p.local_id === activeLocalProfileId);
-          console.log('[Social] 📍 Filtered posts for local:', activeLocalProfileId, 'Count:', filteredPosts.length);
+          console.log('[Social] 📍 Filtered posts for local (publication mode):', activeLocalProfileId, 'Count:', filteredPosts.length);
+        } else if (isInteractingAsLocal && activeLocalProfileId) {
+          // When interacting as local, show ONLY posts from this local
+          filteredPosts = globalPosts.filter(p => p.tipo === 'local' && p.local_id === activeLocalProfileId);
+          console.log('[Social] 📍 Filtered posts for local (interacting):', activeLocalProfileId, 'Count:', filteredPosts.length);
         } else {
           // Normal user mode - show user posts only
           filteredPosts = globalPosts.filter(p => p.tipo === 'usuario');
@@ -881,16 +915,22 @@ export default function SocialScreen() {
       if (globalStories.length > 0) {
         console.log('[Social] ⚡ INSTANT stories from global data:', globalStories.length);
         
-        // FIXED: Filter stories based on active local profile
+        // FIXED: Filter stories based on active local profile and publication mode
         let userOwnStories: typeof globalStories = [];
         let otherStories: typeof globalStories = [];
 
-        if (activeLocalProfileId) {
-          // When viewing as local, show local's stories as "own stories"
+        if (publicationMode === 'local' && activeLocalProfileId) {
+          // When in local mode, show local's stories as "own stories"
           userOwnStories = globalStories.filter(s => s.tipo === 'local' && s.local_id === activeLocalProfileId);
           // Show ONLY user stories (not other local stories) in the feed
           otherStories = globalStories.filter(s => s.tipo === 'usuario');
-          console.log('[Social] 📍 Filtered stories for local:', activeLocalProfileId, 'Own:', userOwnStories.length, 'Others:', otherStories.length);
+          console.log('[Social] 📍 Filtered stories for local (publication mode):', activeLocalProfileId, 'Own:', userOwnStories.length, 'Others:', otherStories.length);
+        } else if (isInteractingAsLocal && activeLocalProfileId) {
+          // When interacting as local, show local's stories as "own stories"
+          userOwnStories = globalStories.filter(s => s.tipo === 'local' && s.local_id === activeLocalProfileId);
+          // Show ONLY user stories (not other local stories) in the feed
+          otherStories = globalStories.filter(s => s.tipo === 'usuario');
+          console.log('[Social] 📍 Filtered stories for local (interacting):', activeLocalProfileId, 'Own:', userOwnStories.length, 'Others:', otherStories.length);
         } else if (user) {
           // Normal user mode - show user's own stories and other user stories
           userOwnStories = globalStories.filter(s => s.tipo === 'usuario' && s.autor_id === user.id);
@@ -966,7 +1006,7 @@ export default function SocialScreen() {
     } finally {
       isLoadingRef.current = false;
     }
-  }, [user, globalPosts, globalStories, isOwnerMode, loadUserLocales, activeLocalProfileId, loadActiveLocalData]);
+  }, [user, globalPosts, globalStories, isOwnerMode, loadUserLocales, activeLocalProfileId, loadActiveLocalData, isInteractingAsLocal, publicationMode]);
 
   const loadUnreadCounts = useCallback(async () => {
     if (!user) return;
@@ -1598,6 +1638,26 @@ export default function SocialScreen() {
     }
   }, [user]);
 
+  // FIXED: Handle switching back to client mode
+  const handleSwitchToClientMode = useCallback(async () => {
+    try {
+      console.log('[Social] 🔄 Switching to client mode...');
+      await setCurrentMode('cliente');
+      await setPublicationMode('cliente');
+      await setIsInteractingAsLocal(false);
+      await setActiveLocalProfileId(null);
+      await setSelectedLocalId(null);
+      
+      // Reload data to show user content
+      await loadData();
+      
+      Alert.alert('Modo Cliente', 'Has cambiado al modo cliente');
+    } catch (error) {
+      console.error('[Social] Error switching to client mode:', error);
+      Alert.alert('Error', 'No se pudo cambiar al modo cliente');
+    }
+  }, [setCurrentMode, setPublicationMode, setIsInteractingAsLocal, setActiveLocalProfileId, setSelectedLocalId, loadData]);
+
   useEffect(() => {
     if (showStoryViewer && !isPaused) {
       startStoryTimer();
@@ -1768,7 +1828,12 @@ export default function SocialScreen() {
                   if (hasUserStories) {
                     handleStoryPress(0, true);
                   } else {
-                    router.push('/crear/historia');
+                    // FIXED: Pass localId if creating story for local
+                    if (publicationMode === 'local' && activeLocalProfileId) {
+                      router.push(`/crear/historia?localId=${activeLocalProfileId}`);
+                    } else {
+                      router.push('/crear/historia');
+                    }
                   }
                 }}
                 activeOpacity={0.7}
@@ -1890,10 +1955,10 @@ export default function SocialScreen() {
                     <TouchableOpacity
                       style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
                       onPress={() => {
-                        if (user && post.autor_id === user.id) {
-                          router.push('/(tabs)/perfil');
-                        } else if (post.tipo === 'local' && post.local_id) {
+                        if (post.tipo === 'local' && post.local_id) {
                           router.push(`/perfil/local?localId=${post.local_id}`);
+                        } else if (user && post.autor_id === user.id) {
+                          router.push('/(tabs)/perfil');
                         } else {
                           router.push(`/perfil/usuario?userId=${post.autor_id}`);
                         }
@@ -2003,7 +2068,11 @@ export default function SocialScreen() {
           ) : (
             <View style={styles.emptyContainer}>
               <IconSymbol name="photo.on.rectangle" size={64} color={colors.textSecondary} />
-              <Text style={styles.emptyText}>No hay publicaciones aún</Text>
+              <Text style={styles.emptyText}>
+                {publicationMode === 'local' && activeLocalProfileId 
+                  ? 'Este local no tiene publicaciones aún'
+                  : 'No hay publicaciones aún'}
+              </Text>
             </View>
           )}
         </View>
@@ -2029,12 +2098,26 @@ export default function SocialScreen() {
             </View>
 
             <ScrollView style={styles.localSelectorModalContent}>
+              {/* FIXED: Add option to switch back to client mode */}
+              <TouchableOpacity
+                style={styles.switchToClientButton}
+                onPress={() => {
+                  setShowLocalSelector(false);
+                  handleSwitchToClientMode();
+                }}
+              >
+                <IconSymbol name="person.fill" size={20} color={colors.secondary} />
+                <Text style={styles.switchToClientButtonText}>
+                  Volver a modo cliente
+                </Text>
+              </TouchableOpacity>
+
               {userLocales.map((local) => (
                 <TouchableOpacity
                   key={local.id}
                   style={[styles.localSelectorItem, selectedLocalId === local.id && styles.localSelectorItemActive]}
-                  onPress={() => {
-                    setSelectedLocalId(local.id);
+                  onPress={async () => {
+                    await setSelectedLocalId(local.id);
                     setShowLocalSelector(false);
                   }}
                 >
@@ -2149,7 +2232,12 @@ export default function SocialScreen() {
                 style={styles.createOptionButton}
                 onPress={() => {
                   setShowCreateOptions(false);
-                  router.push('/crear/historia');
+                  // FIXED: Pass localId if creating for local
+                  if (publicationMode === 'local' && activeLocalProfileId) {
+                    router.push(`/crear/historia?localId=${activeLocalProfileId}`);
+                  } else {
+                    router.push('/crear/historia');
+                  }
                 }}
                 activeOpacity={0.7}
               >
@@ -2167,7 +2255,12 @@ export default function SocialScreen() {
                 style={styles.createOptionButton}
                 onPress={() => {
                   setShowCreateOptions(false);
-                  router.push('/crear/publicacion');
+                  // FIXED: Pass localId if creating for local
+                  if (publicationMode === 'local' && activeLocalProfileId) {
+                    router.push(`/crear/publicacion?localId=${activeLocalProfileId}`);
+                  } else {
+                    router.push('/crear/publicacion');
+                  }
                 }}
                 activeOpacity={0.7}
               >

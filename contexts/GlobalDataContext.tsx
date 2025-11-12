@@ -259,16 +259,36 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
         console.log('[GlobalData] ✅ Locales loaded:', transformedLocales.length);
       }
 
-      // Process posts
+      // FIXED: Process posts - map autor field to use local info if tipo='local'
       if (!postsResult.error && postsResult.data) {
-        setPosts(postsResult.data);
-        console.log('[GlobalData] ✅ Posts loaded:', postsResult.data.length);
+        const mappedPosts = postsResult.data.map(post => ({
+          ...post,
+          autor: post.tipo === 'local' && post.local 
+            ? {
+                nombre: post.local.nombre,
+                avatar: post.local.imagen_url,
+                username: post.local.nombre,
+              }
+            : post.autor,
+        }));
+        setPosts(mappedPosts);
+        console.log('[GlobalData] ✅ Posts loaded:', mappedPosts.length);
       }
 
-      // Process stories
+      // FIXED: Process stories - map autor field to use local info if tipo='local'
       if (!storiesResult.error && storiesResult.data) {
-        setStories(storiesResult.data);
-        console.log('[GlobalData] ✅ Stories loaded:', storiesResult.data.length);
+        const mappedStories = storiesResult.data.map(story => ({
+          ...story,
+          autor: story.tipo === 'local' && story.local 
+            ? {
+                nombre: story.local.nombre,
+                avatar: story.local.imagen_url,
+                username: story.local.nombre,
+              }
+            : story.autor,
+        }));
+        setStories(mappedStories);
+        console.log('[GlobalData] ✅ Stories loaded:', mappedStories.length);
       }
 
       // Process eventos
@@ -286,8 +306,26 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
       // Save to cache
       await saveToCache({
         locales: localesResult.data ? localesResult.data.map(transformarLocal) : undefined,
-        posts: postsResult.data || undefined,
-        stories: storiesResult.data || undefined,
+        posts: postsResult.data ? postsResult.data.map(post => ({
+          ...post,
+          autor: post.tipo === 'local' && post.local 
+            ? {
+                nombre: post.local.nombre,
+                avatar: post.local.imagen_url,
+                username: post.local.nombre,
+              }
+            : post.autor,
+        })) : undefined,
+        stories: storiesResult.data ? storiesResult.data.map(story => ({
+          ...story,
+          autor: story.tipo === 'local' && story.local 
+            ? {
+                nombre: story.local.nombre,
+                avatar: story.local.imagen_url,
+                username: story.local.nombre,
+              }
+            : story.autor,
+        })) : undefined,
         eventos: eventosResult.data || undefined,
         ofertas: ofertasResult.data || undefined,
       });

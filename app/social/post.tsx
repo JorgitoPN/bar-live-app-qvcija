@@ -23,6 +23,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMode } from '@/contexts/ModeContext';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 
 const { width } = Dimensions.get('window');
@@ -34,6 +35,8 @@ interface Comentario {
   created_at: string;
   likes: number;
   parent_comment_id?: string;
+  tipo?: string;
+  local_id?: string;
   autor?: {
     nombre: string;
     avatar?: string;
@@ -390,6 +393,7 @@ export default function PostDetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { user } = useAuth();
+  const { activeLocalProfileId, isInteractingAsLocal } = useMode();
   const scrollViewRef = useRef<ScrollView>(null);
   const [loading, setLoading] = useState(true);
   const [post, setPost] = useState<any>(null);
@@ -408,11 +412,13 @@ export default function PostDetailScreen() {
     try {
       setLoading(true);
 
+      // FIXED: Load post with local info if it's a local post
       const { data, error } = await supabase
         .from('posts')
         .select(`
           *,
-          autor:usuarios!posts_autor_id_fkey(nombre, avatar, username, perfil_privado)
+          autor:usuarios!posts_autor_id_fkey(nombre, avatar, username, perfil_privado),
+          local:locales(nombre, imagen_url)
         `)
         .eq('id', params.id)
         .single();
@@ -447,10 +453,18 @@ export default function PostDetailScreen() {
         saved = !!saveData;
       }
 
+      // FIXED: Use local info if it's a local post
+      const displayName = data.tipo === 'local' && data.local 
+        ? data.local.nombre 
+        : data.autor?.nombre || 'Usuario';
+      const displayAvatar = data.tipo === 'local' && data.local 
+        ? data.local.imagen_url 
+        : data.autor?.avatar || '';
+
       setPost({
         ...data,
-        autorNombre: data.autor?.nombre || 'Usuario',
-        autorAvatar: data.autor?.avatar || '',
+        autorNombre: displayName,
+        autorAvatar: displayAvatar,
         liked,
         saved,
       });
@@ -464,11 +478,13 @@ export default function PostDetailScreen() {
 
   const loadComentarios = useCallback(async () => {
     try {
+      // FIXED: Load comments with local info if they're local comments
       const { data, error } = await supabase
         .from('comentarios')
         .select(`
           *,
-          autor:usuarios!comentarios_autor_id_fkey(nombre, avatar, username)
+          autor:usuarios!comentarios_autor_id_fkey(nombre, avatar, username),
+          local:locales(nombre, imagen_url)
         `)
         .eq('post_id', params.id)
         .order('created_at', { ascending: true });
@@ -480,9 +496,21 @@ export default function PostDetailScreen() {
 
       console.log('[PostDetail] Loaded comments for post:', params.id, 'Count:', data?.length || 0);
 
-      if (user && data) {
+      // FIXED: Map comments to use local info if tipo='local'
+      const mappedComments = (data || []).map(comment => ({
+        ...comment,
+        autor: comment.tipo === 'local' && comment.local 
+          ? {
+              nombre: comment.local.nombre,
+              avatar: comment.local.imagen_url,
+              username: comment.local.nombre,
+            }
+          : comment.autor,
+      }));
+
+      if (user && mappedComments.length > 0) {
         const commentsWithLikes = await Promise.all(
-          data.map(async (comment) => {
+          mappedComments.map(async (comment) => {
             const { data: likeData } = await supabase
               .from('comment_likes')
               .select('id')
@@ -508,8 +536,8 @@ export default function PostDetailScreen() {
 
         setComentarios(organizedComments);
       } else {
-        const parentComments = (data || []).filter(c => !c.parent_comment_id);
-        const childComments = (data || []).filter(c => c.parent_comment_id);
+        const parentComments = mappedComments.filter(c => !c.parent_comment_id);
+        const childComments = mappedComments.filter(c => c.parent_comment_id);
 
         const organizedComments = parentComments.map(parent => ({
           ...parent,
@@ -550,7 +578,7 @@ export default function PostDetailScreen() {
     }
   }, [params.id, loadPost, loadComentarios, params.share, handleShare]);
 
-  // FIXED: Prevent double-clicking with a ref to track ongoing operations
+  // Prevent double-clicking with a ref to track ongoing operations
   const isLikingRef = useRef(false);
 
   const toggleLike = async () => {
@@ -568,7 +596,7 @@ export default function PostDetailScreen() {
       return;
     }
 
-    // FIXED: Prevent double-clicking
+    // Prevent double-clicking
     if (isLikingRef.current) {
       console.log('[PostDetail] Like operation already in progress');
       return;
@@ -615,7 +643,7 @@ export default function PostDetailScreen() {
       } else {
         console.log('[PostDetail] Adding like');
         
-        // FIXED: Check if like already exists before inserting
+        // Check if like already exists before inserting
         const { data: existingLike } = await supabase
           .from('likes')
           .select('id')
@@ -909,7 +937,7 @@ export default function PostDetailScreen() {
         chatId = newChat.id;
       }
 
-      // FIXED: Send message with post snapshot
+      // Send message with post snapshot
       const { error: messageError } = await supabase
         .from('mensajes')
         .insert({
@@ -918,7 +946,7 @@ export default function PostDetailScreen() {
           contenido: `Compartió una publicación de ${post.autorNombre}`,
           tipo_mensaje: 'post_compartido',
           post_compartido_id: post.id,
-          post_imagen: post.imagen || null, // Include post image as snapshot
+          post_imagen: post.imagen || null,
         });
 
       if (messageError) throw messageError;
@@ -959,7 +987,12 @@ export default function PostDetailScreen() {
       return;
     }
 
-    if (post.autor_id !== user.id) {
+    // FIXED: Check ownership - either user post or local post owned by user
+    const isOwner = post.tipo === 'usuario' 
+      ? post.autor_id === user.id
+      : post.tipo === 'local' && activeLocalProfileId === post.local_id;
+
+    if (!isOwner) {
       Alert.alert('Error', 'Solo puedes eliminar tus propias publicaciones');
       return;
     }
@@ -1010,18 +1043,25 @@ export default function PostDetailScreen() {
 
     try {
       console.log('[PostDetail] Inserting comment:', comentarioTexto);
+      console.log('[PostDetail] Active local profile:', activeLocalProfileId);
+      console.log('[PostDetail] Is interacting as local:', isInteractingAsLocal);
       
+      // FIXED: Create comment with correct profile context
       const { data, error } = await supabase
         .from('comentarios')
         .insert({
           post_id: params.id,
-          autor_id: user.id,
+          autor_id: user.id, // Always the logged-in user
           texto: comentarioTexto,
           parent_comment_id: replyingTo?.id || null,
+          // FIXED: Add tipo and local_id if commenting as local
+          tipo: isInteractingAsLocal && activeLocalProfileId ? 'local' : 'usuario',
+          local_id: isInteractingAsLocal && activeLocalProfileId ? activeLocalProfileId : null,
         })
         .select(`
           *,
-          autor:usuarios!comentarios_autor_id_fkey(nombre, avatar, username)
+          autor:usuarios!comentarios_autor_id_fkey(nombre, avatar, username),
+          local:locales(nombre, imagen_url)
         `)
         .single();
 
@@ -1033,17 +1073,30 @@ export default function PostDetailScreen() {
 
       console.log('[PostDetail] Comment inserted successfully');
       
+      // FIXED: Map comment to use local info if tipo='local'
+      const mappedComment = {
+        ...data,
+        autor: data.tipo === 'local' && data.local 
+          ? {
+              nombre: data.local.nombre,
+              avatar: data.local.imagen_url,
+              username: data.local.nombre,
+            }
+          : data.autor,
+        liked: false,
+      };
+      
       // Add to local state
       if (replyingTo) {
         // Add as reply
         setComentarios(comentarios.map(c =>
           c.id === replyingTo.id
-            ? { ...c, replies: [...(c.replies || []), { ...data, liked: false }] }
+            ? { ...c, replies: [...(c.replies || []), mappedComment] }
             : c
         ));
       } else {
         // Add as parent comment
-        setComentarios([...comentarios, { ...data, liked: false, replies: [] }]);
+        setComentarios([...comentarios, { ...mappedComment, replies: [] }]);
       }
 
       setComentarioTexto('');
@@ -1073,123 +1126,131 @@ export default function PostDetailScreen() {
     }
   };
 
-  const renderComentario = (comentario: Comentario, isReply: boolean = false) => (
-    <View key={comentario.id}>
-      <View style={styles.comentarioItem}>
-        {comentario.autor?.avatar ? (
-          <Image
-            source={{ uri: comentario.autor.avatar }}
-            style={styles.comentarioAvatar}
-          />
-        ) : (
-          <View style={[styles.comentarioAvatar, styles.avatarPlaceholder]}>
-            <Text style={[styles.avatarText, { fontSize: 14 }]}>
-              {comentario.autor?.nombre?.charAt(0).toUpperCase() || 'U'}
-            </Text>
-          </View>
-        )}
-        <View style={styles.comentarioContent}>
-          <View style={styles.comentarioHeader}>
-            <Text style={styles.comentarioAutor}>
-              {comentario.autor?.nombre || 'Usuario'}
-            </Text>
-            <Text style={styles.comentarioFecha}>
-              {formatearFecha(comentario.created_at)}
-            </Text>
-            {user && comentario.autor_id === user.id && (
-              <TouchableOpacity 
-                style={styles.comentarioOptionsButton}
-                onPress={() => {
-                  Alert.alert(
-                    'Eliminar comentario',
-                    '¿Estás seguro de que quieres eliminar este comentario?',
-                    [
-                      { text: 'Cancelar', style: 'cancel' },
-                      {
-                        text: 'Eliminar',
-                        style: 'destructive',
-                        onPress: async () => {
-                          try {
-                            const { error } = await supabase
-                              .from('comentarios')
-                              .delete()
-                              .eq('id', comentario.id);
+  const renderComentario = (comentario: Comentario, isReply: boolean = false) => {
+    // FIXED: Check if current user can delete this comment
+    const canDelete = user && (
+      (comentario.tipo === 'usuario' && comentario.autor_id === user.id) ||
+      (comentario.tipo === 'local' && activeLocalProfileId === comentario.local_id)
+    );
 
-                            if (error) throw error;
+    return (
+      <View key={comentario.id}>
+        <View style={styles.comentarioItem}>
+          {comentario.autor?.avatar ? (
+            <Image
+              source={{ uri: comentario.autor.avatar }}
+              style={styles.comentarioAvatar}
+            />
+          ) : (
+            <View style={[styles.comentarioAvatar, styles.avatarPlaceholder]}>
+              <Text style={[styles.avatarText, { fontSize: 14 }]}>
+                {comentario.autor?.nombre?.charAt(0).toUpperCase() || 'U'}
+              </Text>
+            </View>
+          )}
+          <View style={styles.comentarioContent}>
+            <View style={styles.comentarioHeader}>
+              <Text style={styles.comentarioAutor}>
+                {comentario.autor?.nombre || 'Usuario'}
+              </Text>
+              <Text style={styles.comentarioFecha}>
+                {formatearFecha(comentario.created_at)}
+              </Text>
+              {canDelete && (
+                <TouchableOpacity 
+                  style={styles.comentarioOptionsButton}
+                  onPress={() => {
+                    Alert.alert(
+                      'Eliminar comentario',
+                      '¿Estás seguro de que quieres eliminar este comentario?',
+                      [
+                        { text: 'Cancelar', style: 'cancel' },
+                        {
+                          text: 'Eliminar',
+                          style: 'destructive',
+                          onPress: async () => {
+                            try {
+                              const { error } = await supabase
+                                .from('comentarios')
+                                .delete()
+                                .eq('id', comentario.id);
 
-                            if (isReply) {
-                              setComentarios(comentarios.map(c => ({
-                                ...c,
-                                replies: c.replies?.filter(r => r.id !== comentario.id),
-                              })));
-                            } else {
-                              setComentarios(comentarios.filter(c => c.id !== comentario.id));
+                              if (error) throw error;
+
+                              if (isReply) {
+                                setComentarios(comentarios.map(c => ({
+                                  ...c,
+                                  replies: c.replies?.filter(r => r.id !== comentario.id),
+                                })));
+                              } else {
+                                setComentarios(comentarios.filter(c => c.id !== comentario.id));
+                              }
+                              
+                              if (post) {
+                                setPost({
+                                  ...post,
+                                  comentarios: (post.comentarios || 0) - 1,
+                                });
+                              }
+                            } catch (error) {
+                              console.error('[PostDetail] Error deleting comment:', error);
+                              Alert.alert('Error', 'No se pudo eliminar el comentario');
                             }
-                            
-                            if (post) {
-                              setPost({
-                                ...post,
-                                comentarios: (post.comentarios || 0) - 1,
-                              });
-                            }
-                          } catch (error) {
-                            console.error('[PostDetail] Error deleting comment:', error);
-                            Alert.alert('Error', 'No se pudo eliminar el comentario');
-                          }
+                          },
                         },
-                      },
-                    ]
-                  );
-                }}
-                activeOpacity={0.7}
-              >
-                <IconSymbol name="trash" size={18} color={colors.textSecondary} />
-              </TouchableOpacity>
-            )}
-          </View>
-          <Text style={styles.comentarioTexto}>{comentario.texto}</Text>
-          <View style={styles.comentarioActions}>
-            <TouchableOpacity 
-              style={styles.comentarioActionButton}
-              onPress={() => toggleCommentLike(comentario.id)}
-              activeOpacity={0.7}
-            >
-              <IconSymbol 
-                name={comentario.liked ? 'heart.fill' : 'heart'} 
-                size={24} 
-                color={comentario.liked ? '#EF4444' : colors.textSecondary} 
-              />
-              <Text style={styles.comentarioActionText}>{comentario.likes || 0}</Text>
-            </TouchableOpacity>
-            {!isReply && (
+                      ]
+                    );
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <IconSymbol name="trash" size={18} color={colors.textSecondary} />
+                </TouchableOpacity>
+              )}
+            </View>
+            <Text style={styles.comentarioTexto}>{comentario.texto}</Text>
+            <View style={styles.comentarioActions}>
               <TouchableOpacity 
                 style={styles.comentarioActionButton}
-                onPress={() => {
-                  if (!user) {
-                    setLoginMessage('Para responder necesitas registrarte en BarLive');
-                    setShowLoginModal(true);
-                    return;
-                  }
-                  setReplyingTo(comentario);
-                  scrollViewRef.current?.scrollToEnd({ animated: true });
-                }}
+                onPress={() => toggleCommentLike(comentario.id)}
                 activeOpacity={0.7}
               >
-                <Text style={styles.comentarioActionText}>Responder</Text>
+                <IconSymbol 
+                  name={comentario.liked ? 'heart.fill' : 'heart'} 
+                  size={24} 
+                  color={comentario.liked ? '#EF4444' : colors.textSecondary} 
+                />
+                <Text style={styles.comentarioActionText}>{comentario.likes || 0}</Text>
               </TouchableOpacity>
-            )}
+              {!isReply && (
+                <TouchableOpacity 
+                  style={styles.comentarioActionButton}
+                  onPress={() => {
+                    if (!user) {
+                      setLoginMessage('Para responder necesitas registrarte en BarLive');
+                      setShowLoginModal(true);
+                      return;
+                    }
+                    setReplyingTo(comentario);
+                    scrollViewRef.current?.scrollToEnd({ animated: true });
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.comentarioActionText}>Responder</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         </View>
-      </View>
 
-      {/* Render replies */}
-      {!isReply && comentario.replies && comentario.replies.length > 0 && (
-        <View style={styles.replyContainer}>
-          {comentario.replies.map(reply => renderComentario(reply, true))}
-        </View>
-      )}
-    </View>
-  );
+        {/* Render replies */}
+        {!isReply && comentario.replies && comentario.replies.length > 0 && (
+          <View style={styles.replyContainer}>
+            {comentario.replies.map(reply => renderComentario(reply, true))}
+          </View>
+        )}
+      </View>
+    );
+  };
 
   if (loading) {
     return (
@@ -1198,7 +1259,6 @@ export default function PostDetailScreen() {
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
           style={styles.header}
         >
-          {/* FIXED: Use router.back() instead of hardcoded navigation */}
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
           </TouchableOpacity>
@@ -1219,7 +1279,6 @@ export default function PostDetailScreen() {
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
           style={styles.header}
         >
-          {/* FIXED: Use router.back() instead of hardcoded navigation */}
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
           </TouchableOpacity>
@@ -1241,7 +1300,6 @@ export default function PostDetailScreen() {
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         style={styles.header}
       >
-        {/* FIXED: Use router.back() instead of hardcoded navigation */}
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
         </TouchableOpacity>
@@ -1260,7 +1318,9 @@ export default function PostDetailScreen() {
               <TouchableOpacity
                 style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
                 onPress={() => {
-                  if (user && post.autor_id === user.id) {
+                  if (post.tipo === 'local' && post.local_id) {
+                    router.push(`/perfil/local?localId=${post.local_id}`);
+                  } else if (user && post.autor_id === user.id) {
                     router.push('/(tabs)/perfil');
                   } else {
                     router.push(`/perfil/usuario?userId=${post.autor_id}`);
@@ -1282,7 +1342,10 @@ export default function PostDetailScreen() {
                   <Text style={styles.postFecha}>{formatearFecha(post.created_at)}</Text>
                 </View>
               </TouchableOpacity>
-              {user && post.autor_id === user.id && (
+              {user && (
+                (post.tipo === 'usuario' && post.autor_id === user.id) ||
+                (post.tipo === 'local' && activeLocalProfileId === post.local_id)
+              ) && (
                 <TouchableOpacity 
                   style={styles.postOptionsButton} 
                   onPress={() => {

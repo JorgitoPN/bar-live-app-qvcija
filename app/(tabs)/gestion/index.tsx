@@ -348,23 +348,40 @@ export default function GestionScreen() {
                 <View style={styles.localActions}>
                   <TouchableOpacity
                     style={styles.localActionButton}
-                    onPress={() => router.push(`/editar/local?id=${local.id}`)}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      router.push(`/perfil/local?localId=${local.id}`);
+                    }}
+                  >
+                    <IconSymbol name="person.2.fill" size={18} color={colors.primary} />
+                    <Text style={styles.localActionText}>Perfil Social</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.localActionButton}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      router.push(`/editar/local?id=${local.id}`);
+                    }}
                   >
                     <IconSymbol name="pencil" size={18} color={colors.primary} />
                     <Text style={styles.localActionText}>Editar Local</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.localActionButton}
-                    onPress={() => router.push(`/crear/evento?localId=${local.id}`)}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      router.push(`/crear/evento?localId=${local.id}`);
+                    }}
                   >
                     <IconSymbol name="calendar.badge.plus" size={18} color={colors.primary} />
                     <Text style={styles.localActionText}>Crear Evento</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.localActionButton}
-                    onPress={() =>
-                      router.push(`/gestion/planes-suscripcion?localId=${local.id}`)
-                    }
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      router.push(`/gestion/planes-suscripcion?localId=${local.id}`);
+                    }}
                   >
                     <IconSymbol name="arrow.up.circle" size={18} color={colors.primary} />
                     <Text style={styles.localActionText}>Mejorar Plan</Text>
@@ -547,18 +564,24 @@ const styles = StyleSheet.create({
   },
   localActions: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
     paddingTop: 16,
   },
   localActionButton: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
     paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    minWidth: '47%',
   },
   localActionText: {
     fontSize: 13,
