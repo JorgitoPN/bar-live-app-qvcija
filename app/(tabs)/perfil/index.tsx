@@ -53,9 +53,11 @@ interface OfertaTrabajo {
   salario?: string;
   requisitos?: string[];
   provincia?: string;
+  imagen_url?: string;
   created_at: string;
   local?: {
     nombre: string;
+    imagen_url?: string;
   };
   propietario?: {
     nombre: string;
@@ -64,6 +66,7 @@ interface OfertaTrabajo {
 
 interface PerfilProfesional {
   id: string;
+  usuario_id?: string;
   nombre_completo: string;
   puesto_deseado: string;
   experiencia: string;
@@ -93,6 +96,9 @@ interface HistoriaConAutor {
     username?: string;
   };
   visto_por_usuario?: boolean;
+  views_count?: number;
+  likes_count?: number;
+  liked_by_user?: boolean;
 }
 
 function formatearFecha(fecha: string): string {
@@ -135,7 +141,7 @@ export default function PerfilScreen() {
   const [perfiles, setPerfiles] = useState<PerfilProfesional[]>([]);
   const [loadingEmpleo, setLoadingEmpleo] = useState(false);
 
-  // FIXED: Story viewer states with smooth animation
+  // Story viewer states
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [userStories, setUserStories] = useState<HistoriaConAutor[]>([]);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
@@ -207,17 +213,41 @@ export default function PerfilScreen() {
 
       if (userStoriesData) {
         const storyIds = userStoriesData.map(s => s.id);
-        const { data: viewedData } = await supabase
-          .from('historia_views')
-          .select('historia_id')
-          .eq('usuario_id', user.id)
-          .in('historia_id', storyIds);
+        
+        // Load views count and likes for own stories
+        const [viewedData, viewsCountData, likesCountData] = await Promise.all([
+          supabase
+            .from('historia_views')
+            .select('historia_id')
+            .eq('usuario_id', user.id)
+            .in('historia_id', storyIds),
+          supabase
+            .from('historia_views')
+            .select('historia_id')
+            .in('historia_id', storyIds),
+          supabase
+            .from('historia_likes')
+            .select('historia_id')
+            .in('historia_id', storyIds),
+        ]);
 
-        const viewedStoryIds = new Set(viewedData?.map(v => v.historia_id) || []);
+        const viewedStoryIds = new Set(viewedData.data?.map(v => v.historia_id) || []);
+        
+        const viewsCounts = viewsCountData.data?.reduce((acc, v) => {
+          acc[v.historia_id] = (acc[v.historia_id] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>) || {};
+        
+        const likesCounts = likesCountData.data?.reduce((acc, l) => {
+          acc[l.historia_id] = (acc[l.historia_id] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>) || {};
 
         const storiesWithStatus = userStoriesData.map(story => ({
           ...story,
           visto_por_usuario: viewedStoryIds.has(story.id),
+          views_count: viewsCounts[story.id] || 0,
+          likes_count: likesCounts[story.id] || 0,
           autor: {
             nombre: user.nombre,
             avatar: user.avatar,
@@ -445,17 +475,22 @@ export default function PerfilScreen() {
   };
 
   const cargarDatosEmpleo = async () => {
+    if (!user) return;
+
     try {
       setLoadingEmpleo(true);
+      console.log('[Perfil] Cargando datos de empleo para usuario:', user.id);
 
+      // Load job offers created by the user (if owner)
       if (isPropietario) {
         const { data: ofertasData, error: ofertasError } = await supabase
           .from('ofertas_trabajo')
           .select(`
             *,
-            locales:local_id (nombre),
-            usuarios:propietario_id (nombre)
+            local:locales(nombre, imagen_url),
+            propietario:usuarios(nombre)
           `)
+          .eq('propietario_id', user.id)
           .eq('activo', true)
           .order('created_at', { ascending: false })
           .limit(10);
@@ -463,16 +498,23 @@ export default function PerfilScreen() {
         if (ofertasError) {
           console.error('[Perfil] Error cargando ofertas:', ofertasError);
         } else {
-          setOfertas(ofertasData || []);
+          console.log('[Perfil] Ofertas cargadas:', ofertasData?.length || 0);
+          const ofertasConImagenes = (ofertasData || []).map(oferta => ({
+            ...oferta,
+            imagen_url: oferta.imagen_url || oferta.local?.imagen_url,
+          }));
+          setOfertas(ofertasConImagenes);
         }
       }
 
+      // Load professional profile created by the user
       const { data: perfilesData, error: perfilesError } = await supabase
         .from('perfiles_profesionales')
         .select(`
           *,
-          usuarios:usuario_id (nombre, avatar, username)
+          usuario:usuarios(nombre, avatar, username)
         `)
+        .eq('usuario_id', user.id)
         .eq('activo', true)
         .order('created_at', { ascending: false })
         .limit(10);
@@ -480,6 +522,7 @@ export default function PerfilScreen() {
       if (perfilesError) {
         console.error('[Perfil] Error cargando perfiles:', perfilesError);
       } else {
+        console.log('[Perfil] Perfiles cargados:', perfilesData?.length || 0);
         setPerfiles(perfilesData || []);
       }
     } catch (error) {
@@ -564,9 +607,51 @@ export default function PerfilScreen() {
     router.push('/crear/perfil-profesional');
   };
 
+  const handleEditarPerfil = (perfilId: string) => {
+    router.push('/crear/perfil-profesional');
+  };
+
+  const handleEliminarPerfil = async (perfilId: string) => {
+    Alert.alert(
+      'Eliminar Perfil',
+      '¿Estás seguro de que quieres eliminar tu perfil profesional?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('perfiles_profesionales')
+                .update({ activo: false })
+                .eq('id', perfilId);
+
+              if (error) throw error;
+
+              Alert.alert('Éxito', 'Perfil eliminado correctamente');
+              await cargarDatosEmpleo();
+            } catch (error) {
+              console.error('[Perfil] Error eliminando perfil:', error);
+              Alert.alert('Error', 'No se pudo eliminar el perfil');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleVerOferta = (oferta: OfertaTrabajo) => {
+    router.push(`/(tabs)/empleo?id=${oferta.id}`);
+  };
+
+  const handleVerPerfil = (perfil: PerfilProfesional) => {
+    router.push(`/(tabs)/empleo?id=${perfil.id}`);
+  };
+
   const handleWebsite = () => {
-    if (user?.website) {
-      Linking.openURL(user.website);
+    if (user?.sitio_web) {
+      Linking.openURL(user.sitio_web);
     }
   };
 
@@ -583,7 +668,7 @@ export default function PerfilScreen() {
     return `Hace ${Math.floor(diffDias / 30)} meses`;
   };
 
-  // FIXED: Story viewer functions with smooth animation
+  // Story viewer functions
   const stopStoryTimer = useCallback(() => {
     if (storyTimerRef.current) {
       clearTimeout(storyTimerRef.current);
@@ -746,102 +831,138 @@ export default function PerfilScreen() {
     <TouchableOpacity
       key={oferta.id}
       style={styles.empleoCard}
+      onPress={() => handleVerOferta(oferta)}
       activeOpacity={0.7}
     >
-      <View style={styles.empleoHeader}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.empleoTitulo} numberOfLines={1}>
-            {oferta.titulo}
-          </Text>
-          <Text style={styles.empleoLocal} numberOfLines={1}>
-            {oferta.local?.nombre || oferta.propietario?.nombre || 'Local'}
-          </Text>
-        </View>
-        {oferta.salario && (
-          <View style={styles.salarioContainer}>
-            <Text style={styles.salarioTexto}>{oferta.salario}</Text>
-          </View>
-        )}
-      </View>
-
-      <Text style={styles.empleoDescripcion} numberOfLines={2}>
-        {oferta.descripcion}
-      </Text>
-
-      <View style={styles.empleoFooter}>
-        <View style={styles.empleoTag}>
-          <Text style={styles.empleoTagText}>{oferta.tipo}</Text>
-        </View>
-        {oferta.provincia && (
-          <View style={styles.empleoTag}>
-            <IconSymbol name="mappin" size={12} color={colors.textSecondary} />
-            <Text style={styles.empleoTagText}>{oferta.provincia}</Text>
-          </View>
-        )}
-        <Text style={styles.empleoFecha}>
-          {calcularDiasPublicado(oferta.created_at)}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
-
-  const renderPerfil = (perfil: PerfilProfesional) => (
-    <TouchableOpacity
-      key={perfil.id}
-      style={styles.perfilCard}
-      activeOpacity={0.7}
-    >
-      <View style={styles.perfilHeader}>
-        {perfil.usuario?.avatar ? (
-          <Image
-            source={{ uri: perfil.usuario.avatar }}
-            style={styles.perfilAvatar}
-          />
-        ) : (
-          <View style={[styles.perfilAvatar, styles.perfilAvatarPlaceholder]}>
-            <IconSymbol name="person.fill" size={24} color={colors.textSecondary} />
-          </View>
-        )}
-        <View style={{ flex: 1 }}>
-          <Text style={styles.perfilNombre} numberOfLines={1}>
-            {perfil.nombre_completo}
-          </Text>
-          <Text style={styles.perfilPuesto} numberOfLines={1}>
-            {perfil.puesto_deseado}
-          </Text>
-        </View>
-      </View>
-
-      <Text style={styles.perfilExperiencia} numberOfLines={2}>
-        {perfil.experiencia}
-      </Text>
-
-      {perfil.habilidades && (
-        <View style={styles.habilidadesContainer}>
-          {perfil.habilidades.split(',').slice(0, 3).map((habilidad, index) => (
-            <View key={index} style={styles.habilidadTag}>
-              <Text style={styles.habilidadText}>{habilidad.trim()}</Text>
-            </View>
-          ))}
-        </View>
+      {oferta.imagen_url && (
+        <Image 
+          source={{ uri: oferta.imagen_url }} 
+          style={styles.ofertaImagen}
+          resizeMode="cover"
+        />
       )}
+      
+      <View style={styles.empleoContent}>
+        <View style={styles.ofertaHeader}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.empleoTitulo} numberOfLines={1}>
+              {oferta.titulo}
+            </Text>
+            <Text style={styles.empleoLocal} numberOfLines={1}>
+              {oferta.local?.nombre || oferta.propietario?.nombre || 'Local'}
+            </Text>
+          </View>
+          {oferta.salario && (
+            <View style={styles.salarioContainer}>
+              <Text style={styles.salarioTexto}>{oferta.salario}</Text>
+            </View>
+          )}
+        </View>
 
-      <View style={styles.perfilFooter}>
-        {perfil.provincia && (
-          <View style={styles.perfilTag}>
-            <IconSymbol name="mappin" size={12} color={colors.textSecondary} />
-            <Text style={styles.perfilTagText}>{perfil.provincia}</Text>
+        <Text style={styles.empleoDescripcion} numberOfLines={2}>
+          {oferta.descripcion}
+        </Text>
+
+        <View style={styles.empleoFooter}>
+          <View style={styles.empleoTag}>
+            <Text style={styles.empleoTagText}>{oferta.tipo}</Text>
           </View>
-        )}
-        {perfil.disponibilidad && (
-          <View style={styles.perfilTag}>
-            <IconSymbol name="clock" size={12} color={colors.textSecondary} />
-            <Text style={styles.perfilTagText}>{perfil.disponibilidad}</Text>
-          </View>
-        )}
+          {oferta.provincia && (
+            <View style={styles.empleoTag}>
+              <IconSymbol name="mappin" size={12} color={colors.textSecondary} />
+              <Text style={styles.empleoTagText}>{oferta.provincia}</Text>
+            </View>
+          )}
+          <Text style={styles.empleoFecha}>
+            {calcularDiasPublicado(oferta.created_at)}
+          </Text>
+        </View>
       </View>
     </TouchableOpacity>
   );
+
+  const renderPerfil = (perfil: PerfilProfesional) => {
+    const fotoUrl = perfil.foto_url || perfil.usuario?.avatar || user?.avatar;
+    
+    return (
+      <TouchableOpacity
+        key={perfil.id}
+        style={styles.perfilCard}
+        onPress={() => handleVerPerfil(perfil)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.perfilHeader}>
+          {fotoUrl ? (
+            <Image
+              source={{ uri: fotoUrl }}
+              style={styles.perfilAvatar}
+            />
+          ) : (
+            <View style={[styles.perfilAvatar, styles.perfilAvatarPlaceholder]}>
+              <IconSymbol name="person.fill" size={24} color={colors.textSecondary} />
+            </View>
+          )}
+          <View style={{ flex: 1 }}>
+            <Text style={styles.perfilNombre} numberOfLines={1}>
+              {perfil.nombre_completo}
+            </Text>
+            <Text style={styles.perfilPuesto} numberOfLines={1}>
+              {perfil.puesto_deseado}
+            </Text>
+          </View>
+        </View>
+
+        <Text style={styles.perfilExperiencia} numberOfLines={2}>
+          {perfil.experiencia}
+        </Text>
+
+        {perfil.habilidades && (
+          <View style={styles.habilidadesContainer}>
+            {perfil.habilidades.split(',').slice(0, 3).map((habilidad, index) => (
+              <View key={index} style={styles.habilidadTag}>
+                <Text style={styles.habilidadText}>{habilidad.trim()}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        <View style={styles.perfilFooter}>
+          {perfil.provincia && (
+            <View style={styles.perfilTag}>
+              <IconSymbol name="mappin" size={12} color={colors.textSecondary} />
+              <Text style={styles.perfilTagText}>{perfil.provincia}</Text>
+            </View>
+          )}
+          {perfil.disponibilidad && (
+            <View style={styles.perfilTag}>
+              <IconSymbol name="clock" size={12} color={colors.textSecondary} />
+              <Text style={styles.perfilTagText}>{perfil.disponibilidad}</Text>
+            </View>
+          )}
+          <View style={styles.perfilActions}>
+            <TouchableOpacity 
+              style={styles.perfilActionButton}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleEditarPerfil(perfil.id);
+              }}
+            >
+              <IconSymbol name="pencil" size={16} color={colors.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.perfilActionButton}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleEliminarPerfil(perfil.id);
+              }}
+            >
+              <IconSymbol name="trash" size={16} color="#EF4444" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    );
+  };
 
   if (authLoading || loading) {
     return (
@@ -902,7 +1023,7 @@ export default function PerfilScreen() {
 
   return (
     <View style={commonStyles.container}>
-      {/* FIXED: Header with unified filled icon style */}
+      {/* Header */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         start={{ x: 0, y: 0 }}
@@ -973,10 +1094,10 @@ export default function PerfilScreen() {
             <Text style={styles.profileBio}>{user.bio}</Text>
           )}
 
-          {user.website && (
+          {user.sitio_web && (
             <TouchableOpacity style={styles.websiteContainer} onPress={handleWebsite} activeOpacity={0.7}>
               <IconSymbol name="link" size={16} color={colors.primary} />
-              <Text style={styles.websiteText}>{user.website}</Text>
+              <Text style={styles.websiteText}>{user.sitio_web}</Text>
             </TouchableOpacity>
           )}
 
@@ -1075,7 +1196,7 @@ export default function PerfilScreen() {
                           empleoTab === 'ofertas' && styles.empleoTabTextActive,
                         ]}
                       >
-                        Ofertas
+                        Mis Ofertas
                       </Text>
                     </TouchableOpacity>
                   )}
@@ -1089,7 +1210,7 @@ export default function PerfilScreen() {
                         empleoTab === 'perfiles' && styles.empleoTabTextActive,
                       ]}
                     >
-                      Perfiles
+                      Mi Perfil
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -1106,7 +1227,7 @@ export default function PerfilScreen() {
                       ) : (
                         <View style={styles.emptyState}>
                           <IconSymbol name="briefcase" size={48} color={colors.textSecondary} />
-                          <Text style={styles.emptyStateText}>No hay ofertas disponibles</Text>
+                          <Text style={styles.emptyStateText}>No has creado ofertas de trabajo</Text>
                           <TouchableOpacity style={styles.emptyStateButton} onPress={handleCrearOferta}>
                             <Text style={styles.emptyStateButtonText}>Crear Oferta</Text>
                           </TouchableOpacity>
@@ -1118,12 +1239,10 @@ export default function PerfilScreen() {
                       ) : (
                         <View style={styles.emptyState}>
                           <IconSymbol name="person.2" size={48} color={colors.textSecondary} />
-                          <Text style={styles.emptyStateText}>No hay perfiles disponibles</Text>
-                          {!isPropietario && (
-                            <TouchableOpacity style={styles.emptyStateButton} onPress={handleCrearPerfil}>
-                              <Text style={styles.emptyStateButtonText}>Crear Perfil</Text>
-                            </TouchableOpacity>
-                          )}
+                          <Text style={styles.emptyStateText}>No has creado tu perfil profesional</Text>
+                          <TouchableOpacity style={styles.emptyStateButton} onPress={handleCrearPerfil}>
+                            <Text style={styles.emptyStateButtonText}>Crear Perfil</Text>
+                          </TouchableOpacity>
                         </View>
                       )
                     )}
@@ -1217,7 +1336,7 @@ export default function PerfilScreen() {
         </Pressable>
       </Modal>
 
-      {/* FIXED: Story Viewer Modal with smooth progress bar and delete button */}
+      {/* Story Viewer Modal */}
       <Modal
         visible={showStoryViewer}
         animationType="fade"
@@ -1279,6 +1398,13 @@ export default function PerfilScreen() {
                     </View>
                   )}
                   <Text style={styles.storyAutorNombre}>{user.nombre}</Text>
+                  
+                  {/* FIXED: Show view count only to story creator */}
+                  <View style={styles.storyViewsContainer}>
+                    <IconSymbol name="eye" size={18} color="#fff" />
+                    <Text style={styles.storyViewsText}>{currentStory.views_count || 0}</Text>
+                  </View>
+                  
                   <TouchableOpacity
                     style={styles.storyDeleteButton}
                     onPress={handleDeleteStory}
@@ -1647,15 +1773,14 @@ const styles = StyleSheet.create({
   empleoCard: {
     backgroundColor: colors.cardBackground,
     borderRadius: 12,
-    padding: 16,
+    overflow: 'hidden',
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
-  empleoHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
+  ofertaImagen: {
+    width: '100%',
+    height: 160,
+    backgroundColor: colors.cardBorder,
   },
   empleoTitulo: {
     fontSize: 16,
@@ -1707,6 +1832,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
     marginLeft: 'auto',
+  },
+  ofertaHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  empleoContent: {
+    padding: 16,
   },
   perfilCard: {
     backgroundColor: colors.cardBackground,
@@ -1779,6 +1913,14 @@ const styles = StyleSheet.create({
   perfilTagText: {
     fontSize: 12,
     color: colors.textSecondary,
+  },
+  perfilActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginLeft: 'auto',
+  },
+  perfilActionButton: {
+    padding: 6,
   },
   createOptionsModal: {
     flex: 1,
@@ -1886,6 +2028,21 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#fff',
     flex: 1,
+  },
+  storyViewsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginRight: 8,
+  },
+  storyViewsText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
   },
   storyDeleteButton: {
     width: 36,
