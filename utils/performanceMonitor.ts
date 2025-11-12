@@ -235,6 +235,8 @@ export function measurePerformance(name?: string) {
 /**
  * Hook for measuring React component render performance
  */
+import React from 'react';
+
 export function usePerformanceMonitor(componentName: string) {
   const renderCount = React.useRef(0);
   const lastRenderTime = React.useRef(Date.now());
@@ -256,6 +258,3 @@ export function usePerformanceMonitor(componentName: string) {
     renderCount: renderCount.current,
   };
 }
-
-// Import React for the hook
-import React from 'react';

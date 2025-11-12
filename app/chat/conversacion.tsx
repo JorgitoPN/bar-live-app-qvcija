@@ -136,9 +136,9 @@ export default function ConversacionScreen() {
     } finally {
       setLoading(false);
     }
-  }, [user, params.chatId, params.userId]);
+  }, [user, params.chatId, params.userId, loadMessages, router]);
 
-  const loadMessages = async (chatIdToLoad: string) => {
+  const loadMessages = useCallback(async (chatIdToLoad: string) => {
     try {
       const { data, error } = await supabase
         .from('mensajes')
@@ -170,7 +170,7 @@ export default function ConversacionScreen() {
     } catch (error) {
       console.error('[Conversacion] Error:', error);
     }
-  };
+  }, [user, flatListRef]);
 
   useEffect(() => {
     loadOrCreateChat();
