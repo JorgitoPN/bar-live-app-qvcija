@@ -73,6 +73,7 @@ interface OfertaTrabajo {
   created_at: string;
   local?: {
     nombre: string;
+    imagen_url?: string;
   };
   propietario?: {
     nombre: string;
@@ -119,11 +120,13 @@ export default function EmpleoScreen() {
   const cargarOfertas = useCallback(async () => {
     try {
       console.log('[Empleo] Cargando ofertas...');
+      
+      // FIXED: Load locale cover photo (imagen_url) with job offers
       const { data, error } = await supabase
         .from('ofertas_trabajo')
         .select(`
           *,
-          local:locales(nombre),
+          local:locales(nombre, imagen_url),
           propietario:usuarios(nombre)
         `)
         .eq('activo', true)
@@ -131,7 +134,14 @@ export default function EmpleoScreen() {
 
       if (error) throw error;
       console.log('[Empleo] Ofertas cargadas:', data?.length);
-      setOfertas(data || []);
+      
+      // Map the data to include locale cover photo
+      const ofertasConImagenes = (data || []).map(oferta => ({
+        ...oferta,
+        imagen_url: oferta.imagen_url || oferta.local?.imagen_url,
+      }));
+      
+      setOfertas(ofertasConImagenes);
     } catch (error) {
       console.error('[Empleo] Error cargando ofertas:', error);
       Alert.alert('Error', 'No se pudieron cargar las ofertas de trabajo');
@@ -141,6 +151,8 @@ export default function EmpleoScreen() {
   const cargarPerfiles = useCallback(async () => {
     try {
       console.log('[Empleo] Cargando perfiles profesionales...');
+      
+      // FIXED: Load profile pictures (foto_url) and social avatars
       const { data, error } = await supabase
         .from('perfiles_profesionales')
         .select(`
@@ -356,7 +368,7 @@ export default function EmpleoScreen() {
         }}
         activeOpacity={0.8}
       >
-        {/* Imagen de portada del local */}
+        {/* FIXED: Display locale cover photo at the top of job posting card */}
         {oferta.imagen_url && (
           <Image 
             source={{ uri: oferta.imagen_url }} 
@@ -428,6 +440,8 @@ export default function EmpleoScreen() {
 
   const renderPerfil = (perfil: PerfilProfesional) => {
     const diasPublicado = calcularDiasPublicado(perfil.created_at);
+    
+    // FIXED: Display profile picture from foto_url or fallback to social avatar
     const fotoUrl = perfil.foto_url || perfil.usuario?.avatar;
 
     return (
@@ -441,6 +455,7 @@ export default function EmpleoScreen() {
         activeOpacity={0.8}
       >
         <View style={styles.perfilHeader}>
+          {/* FIXED: Circular profile picture with fallback to placeholder icon */}
           {fotoUrl ? (
             <Image 
               source={{ uri: fotoUrl }} 

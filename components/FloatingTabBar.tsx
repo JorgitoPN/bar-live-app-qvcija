@@ -165,13 +165,12 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
               activeOpacity={0.5}
             >
               <View style={[styles.tabContent, active && styles.tabContentActive]}>
-                {/* FIXED: Active icons have 90% opacity, inactive have 60% opacity */}
+                {/* FIXED: Active icons have bright white with 90% opacity, inactive have 60% opacity */}
                 <IconSymbol
                   name={tab.icon as any}
                   size={26}
-                  color={active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.6)'}
+                  color={active ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.6)'}
                   weight={active ? 'fill' : 'regular'}
-                  style={{ opacity: active ? 0.9 : 1 }}
                 />
                 <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
                   {tab.label}
@@ -245,9 +244,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   tabLabelActive: {
-    color: '#FFFFFF',
+    color: 'rgba(255, 255, 255, 0.9)',
     fontWeight: '900',
-    opacity: 0.9,
   },
   centerButton: {
     width: 64,
