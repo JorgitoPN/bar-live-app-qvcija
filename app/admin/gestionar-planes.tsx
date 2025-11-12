@@ -362,6 +362,40 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  formGroup: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  switchRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  switchLabel: {
+    fontSize: 15,
+    color: colors.text,
+    fontWeight: '500',
+  },
 });
 
 export default function GestionarPlanesScreen() {
@@ -371,12 +405,27 @@ export default function GestionarPlanesScreen() {
   const [planes, setPlanes] = useState<Plan[]>([]);
   const [suscripciones, setSuscripciones] = useState<Suscripcion[]>([]);
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
   const [locales, setLocales] = useState<Local[]>([]);
   const [localSearch, setLocalSearch] = useState('');
   const [selectedLocal, setSelectedLocal] = useState<string | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [loadingLocales, setLoadingLocales] = useState(false);
   const [assigning, setAssigning] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Edit form state
+  const [editNombre, setEditNombre] = useState('');
+  const [editDescripcion, setEditDescripcion] = useState('');
+  const [editPrecio, setEditPrecio] = useState('');
+  const [editEventos, setEditEventos] = useState('');
+  const [editPromos, setEditPromos] = useState('');
+  const [editPerfilSocial, setEditPerfilSocial] = useState(false);
+  const [editPanelAnalisis, setEditPanelAnalisis] = useState(false);
+  const [editSoportePrioritario, setEditSoportePrioritario] = useState(false);
+  const [editVisibilidadExtra, setEditVisibilidadExtra] = useState(false);
+  const [editVisibilidadMaxima, setEditVisibilidadMaxima] = useState(false);
 
   const cargarPlanes = useCallback(async () => {
     try {
@@ -477,6 +526,82 @@ export default function GestionarPlanesScreen() {
     setShowAssignModal(true);
   };
 
+  const abrirModalEditar = (plan: Plan) => {
+    setEditingPlan(plan);
+    setEditNombre(plan.nombre);
+    setEditDescripcion(plan.descripcion);
+    setEditPrecio(plan.precio_mensual.toString());
+    setEditEventos(plan.eventos_mes.toString());
+    setEditPromos(plan.promos_destacadas.toString());
+    setEditPerfilSocial(plan.perfil_social);
+    setEditPanelAnalisis(plan.panel_analisis);
+    setEditSoportePrioritario(plan.soporte_prioritario);
+    setEditVisibilidadExtra(plan.visibilidad_extra);
+    setEditVisibilidadMaxima(plan.visibilidad_maxima);
+    setShowEditModal(true);
+  };
+
+  const guardarPlan = async () => {
+    if (!editingPlan) return;
+
+    if (!editNombre.trim() || !editDescripcion.trim()) {
+      Alert.alert('Error', 'El nombre y la descripción son obligatorios');
+      return;
+    }
+
+    const precio = parseFloat(editPrecio);
+    const eventos = parseInt(editEventos);
+    const promos = parseInt(editPromos);
+
+    if (isNaN(precio) || precio < 0) {
+      Alert.alert('Error', 'El precio debe ser un número válido');
+      return;
+    }
+
+    if (isNaN(eventos) || eventos < 0) {
+      Alert.alert('Error', 'Los eventos deben ser un número válido');
+      return;
+    }
+
+    if (isNaN(promos) || promos < 0) {
+      Alert.alert('Error', 'Las promos deben ser un número válido');
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      const { error } = await supabase
+        .from('planes_suscripcion')
+        .update({
+          nombre: editNombre.trim(),
+          descripcion: editDescripcion.trim(),
+          precio_mensual: precio,
+          eventos_mes: eventos,
+          promos_destacadas: promos,
+          perfil_social: editPerfilSocial,
+          panel_analisis: editPanelAnalisis,
+          soporte_prioritario: editSoportePrioritario,
+          visibilidad_extra: editVisibilidadExtra,
+          visibilidad_maxima: editVisibilidadMaxima,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', editingPlan.id);
+
+      if (error) throw error;
+
+      Alert.alert('Éxito', 'Plan actualizado correctamente');
+      setShowEditModal(false);
+      setEditingPlan(null);
+      cargarPlanes();
+    } catch (error) {
+      console.error('[GestionarPlanes] Error saving plan:', error);
+      Alert.alert('Error', 'No se pudo guardar el plan');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const asignarPlanManual = async () => {
     if (!selectedLocal || !selectedPlan) {
       Alert.alert('Error', 'Debes seleccionar un local y un plan');
@@ -492,7 +617,6 @@ export default function GestionarPlanesScreen() {
         return;
       }
 
-      // Check if subscription exists
       const { data: existingSub, error: checkError } = await supabase
         .from('suscripciones_locales')
         .select('id')
@@ -504,7 +628,6 @@ export default function GestionarPlanesScreen() {
       }
 
       if (existingSub) {
-        // Update existing subscription
         const { error: updateError } = await supabase
           .from('suscripciones_locales')
           .update({
@@ -520,7 +643,6 @@ export default function GestionarPlanesScreen() {
 
         if (updateError) throw updateError;
       } else {
-        // Create new subscription
         const { error: insertError } = await supabase
           .from('suscripciones_locales')
           .insert({
@@ -683,6 +805,12 @@ export default function GestionarPlanesScreen() {
                 </View>
                 <View style={styles.planActions}>
                   <TouchableOpacity
+                    style={[styles.actionButton, { backgroundColor: colors.primary }]}
+                    onPress={() => abrirModalEditar(plan)}
+                  >
+                    <Text style={styles.actionButtonText}>Editar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
                     style={[styles.actionButton, { backgroundColor: plan.activo ? '#EF4444' : '#10B981' }]}
                     onPress={() => togglePlanActivo(plan.id, plan.activo)}
                   >
@@ -762,6 +890,145 @@ export default function GestionarPlanesScreen() {
         )}
       </ScrollView>
 
+      {/* Edit Plan Modal */}
+      <Modal
+        visible={showEditModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowEditModal(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowEditModal(false)}>
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+            <Text style={styles.modalTitle}>Editar Plan</Text>
+
+            <ScrollView style={styles.modalScrollView}>
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Nombre del Plan</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editNombre}
+                  onChangeText={setEditNombre}
+                  placeholder="Ej: Básico, Estándar, Premium"
+                  placeholderTextColor={colors.textSecondary}
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Descripción</Text>
+                <TextInput
+                  style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+                  value={editDescripcion}
+                  onChangeText={setEditDescripcion}
+                  placeholder="Descripción del plan"
+                  placeholderTextColor={colors.textSecondary}
+                  multiline
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Precio Mensual (€)</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editPrecio}
+                  onChangeText={setEditPrecio}
+                  placeholder="0"
+                  placeholderTextColor={colors.textSecondary}
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Eventos por Mes</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editEventos}
+                  onChangeText={setEditEventos}
+                  placeholder="0"
+                  placeholderTextColor={colors.textSecondary}
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Promos Destacadas</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editPromos}
+                  onChangeText={setEditPromos}
+                  placeholder="0"
+                  placeholderTextColor={colors.textSecondary}
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Características</Text>
+                <View style={styles.switchRow}>
+                  <Text style={styles.switchLabel}>Perfil Social</Text>
+                  <Switch
+                    value={editPerfilSocial}
+                    onValueChange={setEditPerfilSocial}
+                    trackColor={{ false: colors.cardBorder, true: colors.primary }}
+                  />
+                </View>
+                <View style={styles.switchRow}>
+                  <Text style={styles.switchLabel}>Panel de Análisis</Text>
+                  <Switch
+                    value={editPanelAnalisis}
+                    onValueChange={setEditPanelAnalisis}
+                    trackColor={{ false: colors.cardBorder, true: colors.primary }}
+                  />
+                </View>
+                <View style={styles.switchRow}>
+                  <Text style={styles.switchLabel}>Soporte Prioritario</Text>
+                  <Switch
+                    value={editSoportePrioritario}
+                    onValueChange={setEditSoportePrioritario}
+                    trackColor={{ false: colors.cardBorder, true: colors.primary }}
+                  />
+                </View>
+                <View style={styles.switchRow}>
+                  <Text style={styles.switchLabel}>Visibilidad Extra</Text>
+                  <Switch
+                    value={editVisibilidadExtra}
+                    onValueChange={setEditVisibilidadExtra}
+                    trackColor={{ false: colors.cardBorder, true: colors.primary }}
+                  />
+                </View>
+                <View style={styles.switchRow}>
+                  <Text style={styles.switchLabel}>Visibilidad Máxima</Text>
+                  <Switch
+                    value={editVisibilidadMaxima}
+                    onValueChange={setEditVisibilidadMaxima}
+                    trackColor={{ false: colors.cardBorder, true: colors.primary }}
+                  />
+                </View>
+              </View>
+            </ScrollView>
+
+            <TouchableOpacity
+              style={[
+                styles.assignButton,
+                saving && styles.assignButtonDisabled,
+              ]}
+              onPress={guardarPlan}
+              disabled={saving}
+            >
+              {saving ? (
+                <ActivityIndicator color={colors.headerText} />
+              ) : (
+                <Text style={styles.assignButtonText}>Guardar Cambios</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.modalCancel} onPress={() => setShowEditModal(false)}>
+              <Text style={styles.modalCancelText}>Cancelar</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Assign Plan Modal */}
       <Modal
         visible={showAssignModal}
         transparent
