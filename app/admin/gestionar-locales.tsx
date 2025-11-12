@@ -98,16 +98,15 @@ export default function GestionarLocalesScreen() {
     }
   }, []);
 
-  const cargarLocales = useCallback(async (reset: boolean = false) => {
+  const cargarLocales = useCallback(async (reset: boolean = false, currentPage: number = 1) => {
     try {
       if (reset) {
         setInitialLoading(true);
-        setPaginaActual(1);
       } else {
         setLoadingMore(true);
       }
 
-      const from = reset ? 0 : (paginaActual - 1) * LOCALES_POR_PAGINA;
+      const from = reset ? 0 : (currentPage - 1) * LOCALES_POR_PAGINA;
       const to = from + LOCALES_POR_PAGINA - 1;
 
       let query = supabase
@@ -166,16 +165,14 @@ export default function GestionarLocalesScreen() {
       
       if (reset) {
         setLocales(data || []);
+        setPaginaActual(2); // Next page will be 2
       } else {
         setLocales(prev => [...prev, ...(data || [])]);
+        setPaginaActual(currentPage + 1);
       }
       
       setTotalLocales(count || 0);
       setHasMore((data?.length || 0) === LOCALES_POR_PAGINA);
-      
-      if (!reset) {
-        setPaginaActual(prev => prev + 1);
-      }
     } catch (error) {
       console.error('[GestionarLocales] Error cargando locales:', error);
       Alert.alert('Error', 'No se pudieron cargar los locales');
@@ -183,23 +180,25 @@ export default function GestionarLocalesScreen() {
       setInitialLoading(false);
       setLoadingMore(false);
     }
-  }, [busqueda, filtroPropietario, filtroTipo, filtroEstado, filtroEnriquecido, filtroDestacado, paginaActual]);
+  }, [busqueda, filtroPropietario, filtroTipo, filtroEstado, filtroEnriquecido, filtroDestacado]);
 
-  // Initial load only
+  // Initial load only - runs once on mount
   useEffect(() => {
+    console.log('[GestionarLocales] Initial load');
     cargarContadores();
-    cargarLocales(true);
+    cargarLocales(true, 1);
   }, []);
 
-  // FIXED: Recargar cuando cambien los filtros (with debounce) - only if not initial loading
+  // Reload when filters change - with debounce to prevent rapid calls
   useEffect(() => {
     if (!initialLoading) {
+      console.log('[GestionarLocales] Filters changed, reloading...');
       const timer = setTimeout(() => {
-        cargarLocales(true);
+        cargarLocales(true, 1);
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [busqueda, filtroPropietario, filtroTipo, filtroEstado, filtroEnriquecido, filtroDestacado, initialLoading]);
+  }, [busqueda, filtroPropietario, filtroTipo, filtroEstado, filtroEnriquecido, filtroDestacado]);
 
   const toggleEstadoLocal = useCallback(async (localId: string, activo: boolean) => {
     try {
@@ -228,7 +227,7 @@ export default function GestionarLocalesScreen() {
     }
   }, [cargarContadores]);
 
-  const toggleDestacadoLocal = async (localId: string, destacado: boolean) => {
+  const toggleDestacadoLocal = useCallback(async (localId: string, destacado: boolean) => {
     try {
       const { error } = await supabase
         .from('locales')
@@ -246,7 +245,7 @@ export default function GestionarLocalesScreen() {
       console.error('[GestionarLocales] Error actualizando destacado:', error);
       Alert.alert('Error', 'No se pudo actualizar el estado destacado');
     }
-  };
+  }, []);
 
   const eliminarLocal = useCallback(async (localId: string) => {
     try {
@@ -269,7 +268,7 @@ export default function GestionarLocalesScreen() {
     }
   }, [cargarContadores]);
 
-  const toggleSeleccionLocal = (localId: string) => {
+  const toggleSeleccionLocal = useCallback((localId: string) => {
     setLocalesSeleccionados(prev => {
       const newSet = new Set(prev);
       if (newSet.has(localId)) {
@@ -279,7 +278,7 @@ export default function GestionarLocalesScreen() {
       }
       return newSet;
     });
-  };
+  }, []);
 
   const seleccionarTodos = useCallback(() => {
     if (localesSeleccionados.size === locales.length) {
@@ -339,14 +338,14 @@ export default function GestionarLocalesScreen() {
     );
   }, [localesSeleccionados, cargarContadores]);
 
-  const limpiarFiltros = () => {
+  const limpiarFiltros = useCallback(() => {
     setFiltroPropietario('todos');
     setFiltroTipo('todos');
     setFiltroEstado('todos');
     setFiltroEnriquecido('todos');
     setFiltroDestacado('todos');
     setBusqueda('');
-  };
+  }, []);
 
   const hayFiltrosActivos = useCallback(() => {
     return filtroPropietario !== 'todos' ||
@@ -356,6 +355,13 @@ export default function GestionarLocalesScreen() {
            filtroDestacado !== 'todos' ||
            busqueda !== '';
   }, [filtroPropietario, filtroTipo, filtroEstado, filtroEnriquecido, filtroDestacado, busqueda]);
+
+  const handleLoadMore = useCallback(() => {
+    if (hasMore && !loadingMore && !initialLoading) {
+      console.log('[GestionarLocales] Loading more, page:', paginaActual);
+      cargarLocales(false, paginaActual);
+    }
+  }, [hasMore, loadingMore, initialLoading, paginaActual, cargarLocales]);
 
   const renderLocalCard = useCallback(({ item: local }: { item: Local }) => (
     <View style={styles.localCard}>
@@ -430,17 +436,17 @@ export default function GestionarLocalesScreen() {
 
           <View style={styles.ownerInfo}>
             {local.propietario ? (
-              <>
+              <React.Fragment>
                 <IconSymbol name="envelope.fill" size={12} color={colors.textSecondary} />
                 <Text style={styles.ownerEmail} numberOfLines={1}>
                   {local.propietario.email}
                 </Text>
-              </>
+              </React.Fragment>
             ) : (
-              <>
+              <React.Fragment>
                 <IconSymbol name="person.crop.circle.badge.xmark" size={12} color={colors.textSecondary} />
                 <Text style={styles.ownerEmail}>Sin propietario</Text>
-              </>
+              </React.Fragment>
             )}
           </View>
 
@@ -488,7 +494,6 @@ export default function GestionarLocalesScreen() {
             </View>
           </View>
 
-          {/* FIXED: Add Edit button */}
           <View style={styles.actionButtons}>
             <TouchableOpacity
               style={styles.editButton}
@@ -520,10 +525,10 @@ export default function GestionarLocalesScreen() {
         </View>
       )}
     </View>
-  ), [modoSeleccion, localesSeleccionados, router, toggleEstadoLocal, eliminarLocal]);
+  ), [modoSeleccion, localesSeleccionados, router, toggleEstadoLocal, toggleDestacadoLocal, eliminarLocal, toggleSeleccionLocal]);
 
   const renderHeader = useMemo(() => (
-    <>
+    <React.Fragment>
       {/* Contadores informativos */}
       <View style={styles.statsSection}>
         <Text style={styles.statsSectionTitle}>Estadísticas de Locales</Text>
@@ -589,7 +594,7 @@ export default function GestionarLocalesScreen() {
         <View style={{ flex: 1 }} />
 
         {modoSeleccion ? (
-          <>
+          <React.Fragment>
             <TouchableOpacity
               style={styles.selectAllButton}
               onPress={seleccionarTodos}
@@ -617,7 +622,7 @@ export default function GestionarLocalesScreen() {
             >
               <Text style={styles.cancelSelectionText}>Cancelar</Text>
             </TouchableOpacity>
-          </>
+          </React.Fragment>
         ) : (
           <TouchableOpacity
             style={styles.selectionModeButton}
@@ -635,10 +640,10 @@ export default function GestionarLocalesScreen() {
           Mostrando {locales.length} de {totalLocales} locales
         </Text>
       </View>
-    </>
-  ), [contadores, busqueda, hayFiltrosActivos, modoSeleccion, localesSeleccionados, locales.length, totalLocales, seleccionarTodos, eliminarSeleccionados]);
+    </React.Fragment>
+  ), [contadores, busqueda, hayFiltrosActivos, modoSeleccion, localesSeleccionados, locales.length, totalLocales, seleccionarTodos, eliminarSeleccionados, limpiarFiltros]);
 
-  const renderFooter = () => {
+  const renderFooter = useCallback(() => {
     if (!loadingMore) return null;
     return (
       <View style={styles.footerLoader}>
@@ -646,9 +651,9 @@ export default function GestionarLocalesScreen() {
         <Text style={styles.footerLoaderText}>Cargando más...</Text>
       </View>
     );
-  };
+  }, [loadingMore]);
 
-  const renderEmpty = () => (
+  const renderEmpty = useCallback(() => (
     <View style={styles.emptyState}>
       <IconSymbol name="building.2" size={48} color={colors.textSecondary} />
       <Text style={styles.emptyText}>No se encontraron locales</Text>
@@ -656,7 +661,7 @@ export default function GestionarLocalesScreen() {
         Intenta ajustar los filtros de búsqueda
       </Text>
     </View>
-  );
+  ), []);
 
   if (initialLoading) {
     return (
@@ -692,11 +697,7 @@ export default function GestionarLocalesScreen() {
         ListHeaderComponent={renderHeader}
         ListFooterComponent={renderFooter}
         ListEmptyComponent={renderEmpty}
-        onEndReached={() => {
-          if (hasMore && !loadingMore) {
-            cargarLocales(false);
-          }
-        }}
+        onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
