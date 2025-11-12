@@ -36,7 +36,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
   const [publicationMode, setPublicationModeState] = useState<PublicationMode>('cliente');
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Initialize all state from AsyncStorage on mount
+  // FIXED: Initialize all state from AsyncStorage on mount
   useEffect(() => {
     const initializeMode = async () => {
       try {
@@ -50,25 +50,25 @@ export function ModeProvider({ children }: { children: ReactNode }) {
           AsyncStorage.getItem(PUBLICATION_MODE_KEY),
         ]);
         
-        // Restore selected local if available
+        // FIXED: Restore selected local if available
         if (savedLocalId) {
           console.log('[ModeContext] ✅ Restored selected local from storage:', savedLocalId);
           setSelectedLocalIdState(savedLocalId);
         }
 
-        // Restore interaction state
+        // FIXED: Restore interaction state
         if (savedInteracting === 'true') {
           console.log('[ModeContext] ✅ Restored interaction state: true');
           setIsInteractingAsLocalState(true);
         }
 
-        // Restore active local profile
+        // FIXED: Restore active local profile
         if (savedActiveProfile) {
           console.log('[ModeContext] ✅ Restored active local profile:', savedActiveProfile);
           setActiveLocalProfileIdState(savedActiveProfile);
         }
 
-        // Restore publication mode with proper persistence
+        // FIXED: Restore publication mode with proper persistence
         if (savedPubMode === 'local' || savedPubMode === 'cliente') {
           console.log('[ModeContext] ✅ Restored publication mode:', savedPubMode);
           setPublicationModeState(savedPubMode as PublicationMode);
@@ -184,6 +184,11 @@ export function ModeProvider({ children }: { children: ReactNode }) {
       
       if (localId) {
         await AsyncStorage.setItem(SELECTED_LOCAL_STORAGE_KEY, localId);
+        // FIXED: When selecting a local, also set it as active profile
+        await AsyncStorage.setItem(ACTIVE_LOCAL_PROFILE_KEY, localId);
+        await AsyncStorage.setItem(INTERACTING_AS_LOCAL_KEY, 'true');
+        setActiveLocalProfileIdState(localId);
+        setIsInteractingAsLocalState(true);
       } else {
         await AsyncStorage.removeItem(SELECTED_LOCAL_STORAGE_KEY);
       }
