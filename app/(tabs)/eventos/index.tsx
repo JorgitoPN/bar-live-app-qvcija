@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Pressable,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -22,6 +23,7 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
 import { supabase } from '@/utils/supabase';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const { width } = Dimensions.get('window');
 const cardWidth = width - 32;
@@ -46,8 +48,13 @@ export default function EventosScreen() {
   const [busqueda, setBusqueda] = useState('');
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [provinciaSeleccionada, setProvinciaSeleccionada] = useState('Todas');
-  const [fechaInicio, setFechaInicio] = useState('');
-  const [fechaFin, setFechaFin] = useState('');
+  
+  // NEW: Date picker states
+  const [fechaInicio, setFechaInicio] = useState<Date | null>(null);
+  const [fechaFin, setFechaFin] = useState<Date | null>(null);
+  const [showDatePickerInicio, setShowDatePickerInicio] = useState(false);
+  const [showDatePickerFin, setShowDatePickerFin] = useState(false);
+  
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -125,12 +132,18 @@ export default function EventosScreen() {
     const matchBusqueda = evento.titulo.toLowerCase().includes(busqueda.toLowerCase());
     const matchProvincia = provinciaSeleccionada === 'Todas' || evento.provincia === provinciaSeleccionada;
     
-    // Date range filter
+    // NEW: Date range filter with calendar dates
     let matchFecha = true;
     if (fechaInicio && fechaFin) {
       const eventoFecha = new Date(evento.fecha);
+      eventoFecha.setHours(0, 0, 0, 0);
+      
       const inicio = new Date(fechaInicio);
+      inicio.setHours(0, 0, 0, 0);
+      
       const fin = new Date(fechaFin);
+      fin.setHours(23, 59, 59, 999);
+      
       matchFecha = eventoFecha >= inicio && eventoFecha <= fin;
     }
 
@@ -157,8 +170,33 @@ export default function EventosScreen() {
 
   const limpiarFiltros = () => {
     setProvinciaSeleccionada('Todas');
-    setFechaInicio('');
-    setFechaFin('');
+    setFechaInicio(null);
+    setFechaFin(null);
+  };
+
+  // NEW: Format date for display
+  const formatDate = (date: Date | null): string => {
+    if (!date) return 'Seleccionar';
+    return date.toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  };
+
+  // NEW: Handle date picker changes
+  const onChangeDateInicio = (event: any, selectedDate?: Date) => {
+    setShowDatePickerInicio(Platform.OS === 'ios');
+    if (selectedDate) {
+      setFechaInicio(selectedDate);
+    }
+  };
+
+  const onChangeDateFin = (event: any, selectedDate?: Date) => {
+    setShowDatePickerFin(Platform.OS === 'ios');
+    if (selectedDate) {
+      setFechaFin(selectedDate);
+    }
   };
 
   const renderEvento = (evento: Evento) => {
@@ -372,31 +410,49 @@ export default function EventosScreen() {
                 </ScrollView>
               </View>
 
-              {/* Rango de Fechas */}
+              {/* NEW: Rango de Fechas con Calendar Picker */}
               <View style={styles.filterSection}>
                 <Text style={styles.filterTitle}>Rango de Fechas</Text>
+                
                 <View style={styles.dateInputs}>
+                  {/* Fecha Inicio */}
                   <View style={styles.dateInputContainer}>
                     <Text style={styles.dateLabel}>Desde</Text>
-                    <TextInput
-                      style={styles.dateInput}
-                      placeholder="DD/MM/AAAA"
-                      placeholderTextColor={colors.textSecondary}
-                      value={fechaInicio}
-                      onChangeText={setFechaInicio}
-                    />
+                    <TouchableOpacity
+                      style={styles.dateButton}
+                      onPress={() => setShowDatePickerInicio(true)}
+                    >
+                      <IconSymbol name="calendar" size={18} color={colors.primary} />
+                      <Text style={styles.dateButtonText}>
+                        {formatDate(fechaInicio)}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
+
+                  {/* Fecha Fin */}
                   <View style={styles.dateInputContainer}>
                     <Text style={styles.dateLabel}>Hasta</Text>
-                    <TextInput
-                      style={styles.dateInput}
-                      placeholder="DD/MM/AAAA"
-                      placeholderTextColor={colors.textSecondary}
-                      value={fechaFin}
-                      onChangeText={setFechaFin}
-                    />
+                    <TouchableOpacity
+                      style={styles.dateButton}
+                      onPress={() => setShowDatePickerFin(true)}
+                    >
+                      <IconSymbol name="calendar" size={18} color={colors.primary} />
+                      <Text style={styles.dateButtonText}>
+                        {formatDate(fechaFin)}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
+
+                {/* Show selected date range */}
+                {fechaInicio && fechaFin && (
+                  <View style={styles.dateRangeInfo}>
+                    <IconSymbol name="info.circle" size={16} color={colors.primary} />
+                    <Text style={styles.dateRangeText}>
+                      Filtrando eventos del {formatDate(fechaInicio)} al {formatDate(fechaFin)}
+                    </Text>
+                  </View>
+                )}
               </View>
 
               <View style={{ height: 20 }} />
@@ -424,6 +480,27 @@ export default function EventosScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {/* NEW: Date Pickers */}
+      {showDatePickerInicio && (
+        <DateTimePicker
+          value={fechaInicio || new Date()}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={onChangeDateInicio}
+          minimumDate={new Date()}
+        />
+      )}
+
+      {showDatePickerFin && (
+        <DateTimePicker
+          value={fechaFin || new Date()}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={onChangeDateFin}
+          minimumDate={fechaInicio || new Date()}
+        />
+      )}
     </View>
   );
 }
@@ -659,15 +736,36 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 8,
   },
-  dateInput: {
+  dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     borderRadius: 8,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 12,
+  },
+  dateButtonText: {
     fontSize: 14,
     color: colors.text,
+    fontWeight: '500',
+  },
+  dateRangeInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: colors.primary + '15',
+    borderRadius: 8,
+  },
+  dateRangeText: {
+    flex: 1,
+    fontSize: 13,
+    color: colors.text,
+    lineHeight: 18,
   },
   modalFooter: {
     flexDirection: 'row',
