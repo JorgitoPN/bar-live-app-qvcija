@@ -56,6 +56,8 @@ const MAPPING = {
   "multiply": "clear",
   "trash.fill": "delete",
   "trash": "delete-outline",
+  "pause.circle": "pause-circle-outline",
+  "play.circle": "play-circle-outline",
 
   // Editing & Creation
   "pencil": "edit",
@@ -121,6 +123,7 @@ const MAPPING = {
   "dollarsign.circle.fill": "monetization-on",
   "bag.fill": "shopping-bag",
   "bag": "shopping-bag",
+  "eurosign.circle": "euro",
 
   // Location & Maps
   "location.fill": "location-on",
@@ -128,6 +131,8 @@ const MAPPING = {
   "map.fill": "map",
   "map": "map",
   "compass.drawing": "explore",
+  "mappin": "place",
+  "building.2": "business",
 
   // Time & Calendar
   "clock.fill": "access-time",
@@ -144,6 +149,11 @@ const MAPPING = {
   "person.circle": "account-circle",
   "person.crop.circle.fill": "account-circle",
   "person.crop.circle": "account-circle",
+  "person.badge.key": "admin-panel-settings",
+
+  // Work & Business
+  "briefcase": "work",
+  "briefcase.fill": "work",
 
   // Sharing & Export
   "square.and.arrow.up": "share",

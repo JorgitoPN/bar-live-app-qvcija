@@ -251,18 +251,31 @@ export default function EmpleoScreen() {
       return;
     }
 
+    if (!usuarioId) {
+      Alert.alert('Error', 'No se pudo obtener la información del usuario');
+      return;
+    }
+
     try {
+      console.log('[Empleo] Contactando perfil:', perfilId, 'Usuario:', usuarioId);
+
       // Crear o encontrar chat existente
       const { data: chatExistente, error: chatError } = await supabase
         .from('chats')
         .select('id')
         .or(`and(usuario1_id.eq.${user.id},usuario2_id.eq.${usuarioId}),and(usuario1_id.eq.${usuarioId},usuario2_id.eq.${user.id})`)
-        .single();
+        .maybeSingle();
+
+      if (chatError && chatError.code !== 'PGRST116') {
+        console.error('[Empleo] Error buscando chat:', chatError);
+        throw chatError;
+      }
 
       let chatId = chatExistente?.id;
 
       if (!chatId) {
         // Crear nuevo chat
+        console.log('[Empleo] Creando nuevo chat...');
         const { data: nuevoChat, error: nuevoChatError } = await supabase
           .from('chats')
           .insert({
@@ -272,8 +285,14 @@ export default function EmpleoScreen() {
           .select()
           .single();
 
-        if (nuevoChatError) throw nuevoChatError;
+        if (nuevoChatError) {
+          console.error('[Empleo] Error creando chat:', nuevoChatError);
+          throw nuevoChatError;
+        }
         chatId = nuevoChat.id;
+        console.log('[Empleo] Chat creado:', chatId);
+      } else {
+        console.log('[Empleo] Chat existente encontrado:', chatId);
       }
 
       // Registrar interés en el perfil
@@ -287,6 +306,9 @@ export default function EmpleoScreen() {
 
       if (interesError && !interesError.message.includes('duplicate')) {
         console.error('[Empleo] Error registrando interés:', interesError);
+        // No lanzar error, solo registrar
+      } else {
+        console.log('[Empleo] Interés registrado correctamente');
       }
 
       // Crear notificación para el profesional
@@ -302,6 +324,9 @@ export default function EmpleoScreen() {
 
       if (notifError) {
         console.error('[Empleo] Error creando notificación:', notifError);
+        // No lanzar error, solo registrar
+      } else {
+        console.log('[Empleo] Notificación creada correctamente');
       }
 
       Alert.alert(
@@ -472,7 +497,7 @@ export default function EmpleoScreen() {
           <Text style={styles.fechaTexto}>
             Publicado hace {diasPublicado} {diasPublicado === 1 ? 'día' : 'días'}
           </Text>
-          {isPropietarioMode && (
+          {isPropietarioMode && perfil.usuario_id && (
             <TouchableOpacity 
               style={styles.aplicarButton}
               onPress={() => handleContactarPerfil(perfil.id, perfil.usuario_id!)}
