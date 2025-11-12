@@ -25,6 +25,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
 import { supabase } from '@/utils/supabase';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
+import StoryStatsModal from '@/components/social/StoryStatsModal';
 
 const { width, height } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 3) / 3;
@@ -112,6 +113,19 @@ interface HistoriaConAutor {
   liked_by_user?: boolean;
 }
 
+interface LocalProfile {
+  id: string;
+  nombre: string;
+  tipo: string;
+  direccion: string;
+  provincia: string;
+  imagen_url?: string;
+  descripcion?: string;
+  telefono?: string;
+  sitio_web?: string;
+  seguidores?: number;
+}
+
 function formatearFecha(fecha: string): string {
   const ahora = new Date();
   const fechaPost = new Date(fecha);
@@ -136,6 +150,12 @@ export default function PerfilScreen() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showCreateOptions, setShowCreateOptions] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  
+  // FIXED: Local profile state for owner mode
+  const [localProfile, setLocalProfile] = useState<LocalProfile | null>(null);
+  const [selectedLocalId, setSelectedLocalId] = useState<string | null>(null);
+  const [userLocales, setUserLocales] = useState<LocalProfile[]>([]);
+  const [showLocalSelector, setShowLocalSelector] = useState(false);
   
   const [seguidores, setSeguidores] = useState(0);
   const [seguidos, setSeguidos] = useState(0);
@@ -165,8 +185,15 @@ export default function PerfilScreen() {
   const storyTimerRef = useRef<NodeJS.Timeout | null>(null);
   const progressAnim = useRef(new Animated.Value(0)).current;
 
+  // FIXED: Story stats modal state
+  const [showStoryStats, setShowStoryStats] = useState(false);
+  const [storyViews, setStoryViews] = useState<any[]>([]);
+  const [storyLikes, setStoryLikes] = useState<any[]>([]);
+  const [loadingStats, setLoadingStats] = useState(false);
+
   const userRole = user?.rol_app || 'cliente';
   const isPropietario = userRole === 'propietario' || (userRole === 'admin' && currentMode === 'propietario');
+  const isOwnerMode = currentMode === 'propietario' && isPropietario;
 
   useEffect(() => {
     if (!authLoading) {
@@ -176,7 +203,60 @@ export default function PerfilScreen() {
         setLoading(false);
       }
     }
-  }, [user, authLoading]);
+  }, [user, authLoading, currentMode]);
+
+  // FIXED: Load user's locales when in owner mode
+  const cargarLocalesUsuario = async () => {
+    if (!user || !isPropietario) return;
+
+    try {
+      const { data: localesData, error } = await supabase
+        .from('locales')
+        .select('id, nombre, tipo, direccion, provincia, imagen_url, descripcion, telefono, sitio_web')
+        .eq('propietario_id', user.id)
+        .eq('activo', true);
+
+      if (error) throw error;
+
+      setUserLocales(localesData || []);
+
+      // Auto-select first local if none selected
+      if (localesData && localesData.length > 0 && !selectedLocalId) {
+        setSelectedLocalId(localesData[0].id);
+        await cargarPerfilLocal(localesData[0].id);
+      }
+    } catch (error) {
+      console.error('[Perfil] Error loading user locales:', error);
+    }
+  };
+
+  // FIXED: Load local profile data
+  const cargarPerfilLocal = async (localId: string) => {
+    if (!localId) return;
+
+    try {
+      const { data: localData, error } = await supabase
+        .from('locales')
+        .select('*')
+        .eq('id', localId)
+        .single();
+
+      if (error) throw error;
+
+      // Count followers for this local
+      const { count: seguidoresCount } = await supabase
+        .from('locales_favoritos')
+        .select('*', { count: 'exact', head: true })
+        .eq('local_id', localId);
+
+      setLocalProfile({
+        ...localData,
+        seguidores: seguidoresCount || 0,
+      });
+    } catch (error) {
+      console.error('[Perfil] Error loading local profile:', error);
+    }
+  };
 
   const cargarDatosPerfil = async () => {
     if (!user) return;
@@ -184,93 +264,99 @@ export default function PerfilScreen() {
     try {
       setLoading(true);
 
-      const { count: seguidoresCount } = await supabase
-        .from('seguidores')
-        .select('*', { count: 'exact', head: true })
-        .eq('seguido_id', user.id);
+      // FIXED: Load different data based on mode
+      if (isOwnerMode) {
+        await cargarLocalesUsuario();
+      } else {
+        // Load client profile data
+        const { count: seguidoresCount } = await supabase
+          .from('seguidores')
+          .select('*', { count: 'exact', head: true })
+          .eq('seguido_id', user.id);
 
-      const { count: seguidosCount } = await supabase
-        .from('seguidores')
-        .select('*', { count: 'exact', head: true })
-        .eq('seguidor_id', user.id);
+        const { count: seguidosCount } = await supabase
+          .from('seguidores')
+          .select('*', { count: 'exact', head: true })
+          .eq('seguidor_id', user.id);
 
-      const { count: publicacionesCount } = await supabase
-        .from('posts')
-        .select('*', { count: 'exact', head: true })
-        .eq('autor_id', user.id);
+        const { count: publicacionesCount } = await supabase
+          .from('posts')
+          .select('*', { count: 'exact', head: true })
+          .eq('autor_id', user.id);
 
-      setSeguidores(seguidoresCount || 0);
-      setSeguidos(seguidosCount || 0);
-      setPublicaciones(publicacionesCount || 0);
+        setSeguidores(seguidoresCount || 0);
+        setSeguidos(seguidosCount || 0);
+        setPublicaciones(publicacionesCount || 0);
 
-      const { data: storiesData } = await supabase
-        .from('historias')
-        .select('id')
-        .eq('autor_id', user.id)
-        .gt('expires_at', new Date().toISOString())
-        .limit(1);
+        const { data: storiesData } = await supabase
+          .from('historias')
+          .select('id')
+          .eq('autor_id', user.id)
+          .gt('expires_at', new Date().toISOString())
+          .limit(1);
 
-      setHasActiveStory((storiesData?.length || 0) > 0);
+        setHasActiveStory((storiesData?.length || 0) > 0);
 
-      const { data: userStoriesData } = await supabase
-        .from('historias')
-        .select(`
-          id,
-          autor_id,
-          tipo,
-          imagen,
-          created_at,
-          expires_at,
-          visto
-        `)
-        .eq('autor_id', user.id)
-        .gt('expires_at', new Date().toISOString())
-        .order('created_at', { ascending: true });
+        const { data: userStoriesData } = await supabase
+          .from('historias')
+          .select(`
+            id,
+            autor_id,
+            tipo,
+            imagen,
+            created_at,
+            expires_at,
+            visto
+          `)
+          .eq('autor_id', user.id)
+          .gt('expires_at', new Date().toISOString())
+          .order('created_at', { ascending: true });
 
-      if (userStoriesData) {
-        const storyIds = userStoriesData.map(s => s.id);
-        
-        const [viewedData, viewsCountData, likesCountData] = await Promise.all([
-          supabase
-            .from('historia_views')
-            .select('historia_id')
-            .eq('usuario_id', user.id)
-            .in('historia_id', storyIds),
-          supabase
-            .from('historia_views')
-            .select('historia_id')
-            .in('historia_id', storyIds),
-          supabase
-            .from('historia_likes')
-            .select('historia_id')
-            .in('historia_id', storyIds),
-        ]);
+        if (userStoriesData) {
+          const storyIds = userStoriesData.map(s => s.id);
+          
+          const [viewedData, viewsCountData, likesCountData] = await Promise.all([
+            supabase
+              .from('historia_views')
+              .select('historia_id')
+              .eq('usuario_id', user.id)
+              .in('historia_id', storyIds),
+            supabase
+              .from('historia_views')
+              .select('historia_id')
+              .in('historia_id', storyIds),
+            supabase
+              .from('historia_likes')
+              .select('historia_id')
+              .in('historia_id', storyIds),
+          ]);
 
-        const viewedStoryIds = new Set(viewedData.data?.map(v => v.historia_id) || []);
-        
-        const viewsCounts = viewsCountData.data?.reduce((acc, v) => {
-          acc[v.historia_id] = (acc[v.historia_id] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>) || {};
-        
-        const likesCounts = likesCountData.data?.reduce((acc, l) => {
-          acc[l.historia_id] = (acc[l.historia_id] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>) || {};
+          const viewedStoryIds = new Set(viewedData.data?.map(v => v.historia_id) || []);
+          
+          const viewsCounts = viewsCountData.data?.reduce((acc, v) => {
+            acc[v.historia_id] = (acc[v.historia_id] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>) || {};
+          
+          const likesCounts = likesCountData.data?.reduce((acc, l) => {
+            acc[l.historia_id] = (acc[l.historia_id] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>) || {};
 
-        const storiesWithStatus = userStoriesData.map(story => ({
-          ...story,
-          visto_por_usuario: viewedStoryIds.has(story.id),
-          views_count: viewsCounts[story.id] || 0,
-          likes_count: likesCounts[story.id] || 0,
-          autor: {
-            nombre: user.nombre,
-            avatar: user.avatar,
-            username: user.username,
-          },
-        }));
+          const storiesWithStatus = userStoriesData.map(story => ({
+            ...story,
+            visto_por_usuario: viewedStoryIds.has(story.id),
+            views_count: viewsCounts[story.id] || 0,
+            likes_count: likesCounts[story.id] || 0,
+            autor: {
+              nombre: user.nombre,
+              avatar: user.avatar,
+              username: user.username,
+            },
+          }));
 
-        setUserStories(storiesWithStatus);
+          setUserStories(storiesWithStatus);
+        }
       }
 
       await cargarContenido();
@@ -494,9 +580,7 @@ export default function PerfilScreen() {
 
     try {
       setLoadingEmpleo(true);
-      console.log('[Perfil] Cargando datos de empleo para usuario:', user.id);
 
-      // Load job offers created by the user (if owner)
       if (isPropietario) {
         let query = supabase
           .from('ofertas_trabajo')
@@ -508,12 +592,10 @@ export default function PerfilScreen() {
           .eq('propietario_id', user.id)
           .eq('activo', true);
 
-        // Apply search filter
         if (searchQuery) {
           query = query.or(`titulo.ilike.%${searchQuery}%,descripcion.ilike.%${searchQuery}%`);
         }
 
-        // Apply province filter
         if (provinciaFiltro) {
           query = query.eq('provincia', provinciaFiltro);
         }
@@ -525,7 +607,6 @@ export default function PerfilScreen() {
         if (ofertasError) {
           console.error('[Perfil] Error cargando ofertas:', ofertasError);
         } else {
-          console.log('[Perfil] Ofertas cargadas:', ofertasData?.length || 0);
           const ofertasConImagenes = (ofertasData || []).map(oferta => ({
             ...oferta,
             imagen_url: oferta.imagen_url || oferta.local?.imagen_url,
@@ -534,7 +615,6 @@ export default function PerfilScreen() {
         }
       }
 
-      // Load professional profile created by the user
       let perfilQuery = supabase
         .from('perfiles_profesionales')
         .select(`
@@ -544,12 +624,10 @@ export default function PerfilScreen() {
         .eq('usuario_id', user.id)
         .eq('activo', true);
 
-      // Apply search filter
       if (searchQuery) {
         perfilQuery = perfilQuery.or(`nombre_completo.ilike.%${searchQuery}%,puesto_deseado.ilike.%${searchQuery}%,experiencia.ilike.%${searchQuery}%`);
       }
 
-      // Apply province filter
       if (provinciaFiltro) {
         perfilQuery = perfilQuery.eq('provincia', provinciaFiltro);
       }
@@ -561,7 +639,6 @@ export default function PerfilScreen() {
       if (perfilesError) {
         console.error('[Perfil] Error cargando perfiles:', perfilesError);
       } else {
-        console.log('[Perfil] Perfiles cargados:', perfilesData?.length || 0);
         setPerfiles(perfilesData || []);
       }
     } catch (error) {
@@ -587,7 +664,12 @@ export default function PerfilScreen() {
       setShowLoginModal(true);
       return;
     }
-    router.push('/editar/perfil');
+    
+    if (isOwnerMode && selectedLocalId) {
+      router.push(`/editar/local?id=${selectedLocalId}`);
+    } else {
+      router.push('/editar/perfil');
+    }
   };
 
   const handleSettings = () => {
@@ -680,7 +762,6 @@ export default function PerfilScreen() {
     );
   };
 
-  // FIXED: Navigate to detail pages instead of empleo tab
   const handleVerOferta = (oferta: OfertaTrabajo) => {
     router.push(`/empleo/oferta-detalle?id=${oferta.id}`);
   };
@@ -690,7 +771,9 @@ export default function PerfilScreen() {
   };
 
   const handleWebsite = () => {
-    if (user?.sitio_web) {
+    if (isOwnerMode && localProfile?.sitio_web) {
+      Linking.openURL(localProfile.sitio_web);
+    } else if (user?.sitio_web) {
       Linking.openURL(user.sitio_web);
     }
   };
@@ -846,6 +929,56 @@ export default function PerfilScreen() {
     );
   }, [userStories, currentStoryIndex, user, stopStoryTimer]);
 
+  // FIXED: Load story statistics
+  const handleViewStoryStats = useCallback(async () => {
+    const currentStory = userStories[currentStoryIndex];
+    
+    if (!currentStory || !user || currentStory.autor_id !== user.id) {
+      return;
+    }
+
+    setLoadingStats(true);
+    setShowStoryStats(true);
+
+    try {
+      // Load views
+      const { data: viewsData, error: viewsError } = await supabase
+        .from('historia_views')
+        .select(`
+          id,
+          usuario_id,
+          viewed_at,
+          usuario:usuarios(nombre, avatar, username)
+        `)
+        .eq('historia_id', currentStory.id)
+        .order('viewed_at', { ascending: false });
+
+      if (viewsError) throw viewsError;
+
+      // Load likes
+      const { data: likesData, error: likesError } = await supabase
+        .from('historia_likes')
+        .select(`
+          id,
+          usuario_id,
+          created_at,
+          usuario:usuarios(nombre, avatar, username)
+        `)
+        .eq('historia_id', currentStory.id)
+        .order('created_at', { ascending: false });
+
+      if (likesError) throw likesError;
+
+      setStoryViews(viewsData || []);
+      setStoryLikes(likesData || []);
+    } catch (error) {
+      console.error('[Perfil] Error loading story stats:', error);
+      Alert.alert('Error', 'No se pudieron cargar las estadísticas');
+    } finally {
+      setLoadingStats(false);
+    }
+  }, [userStories, currentStoryIndex, user]);
+
   useEffect(() => {
     if (showStoryViewer && !isPaused) {
       startStoryTimer();
@@ -872,7 +1005,6 @@ export default function PerfilScreen() {
     </TouchableOpacity>
   );
 
-  // IMPROVED: Better design for job offer cards
   const renderOferta = (oferta: OfertaTrabajo) => (
     <TouchableOpacity
       key={oferta.id}
@@ -930,7 +1062,6 @@ export default function PerfilScreen() {
     </TouchableOpacity>
   );
 
-  // IMPROVED: Better design for professional profile cards
   const renderPerfil = (perfil: PerfilProfesional) => {
     const fotoUrl = perfil.foto_url || perfil.usuario?.avatar || user?.avatar;
     
@@ -1078,39 +1209,71 @@ export default function PerfilScreen() {
     outputRange: ['0%', '100%'],
   });
 
-  return (
-    <View style={commonStyles.container}>
-      {/* Header */}
-      <LinearGradient
-        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={commonStyles.headerGradient}
-      >
-        <View style={styles.headerContent}>
-          <Text style={[commonStyles.headerTitle, { color: colors.white }]}>Mi Perfil</Text>
-          <View style={styles.headerActions}>
-            <TouchableOpacity style={styles.headerButton} onPress={handleChats}>
-              <IconSymbol name="message.fill" size={24} color={colors.white} />
+  // FIXED: Render different profile based on mode
+  const renderProfileHeader = () => {
+    if (isOwnerMode && localProfile) {
+      // Owner mode - show local profile
+      return (
+        <View style={styles.profileSection}>
+          <View style={styles.profileHeader}>
+            <View style={styles.avatarContainer}>
+              {localProfile.imagen_url ? (
+                <Image source={{ uri: localProfile.imagen_url }} style={styles.avatar} />
+              ) : (
+                <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                  <IconSymbol name="building.2" size={40} color={colors.textSecondary} />
+                </View>
+              )}
+            </View>
+            <View style={styles.profileInfo}>
+              <Text style={styles.profileName}>{localProfile.nombre}</Text>
+              <Text style={styles.profileUsername}>{localProfile.tipo}</Text>
+            </View>
+          </View>
+
+          {localProfile.descripcion && (
+            <Text style={styles.profileBio}>{localProfile.descripcion}</Text>
+          )}
+
+          {localProfile.sitio_web && (
+            <TouchableOpacity style={styles.websiteContainer} onPress={handleWebsite} activeOpacity={0.7}>
+              <IconSymbol name="link" size={16} color={colors.primary} />
+              <Text style={styles.websiteText}>{localProfile.sitio_web}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.headerButton} onPress={handleNotifications}>
-              <IconSymbol name="bell.fill" size={24} color={colors.white} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.headerButton} onPress={handleSettings}>
-              <IconSymbol name="gearshape.fill" size={24} color={colors.white} />
+          )}
+
+          <View style={styles.statsContainer}>
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{localProfile.seguidores || 0}</Text>
+              <Text style={styles.statLabel}>Seguidores</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{localProfile.provincia}</Text>
+              <Text style={styles.statLabel}>Ubicación</Text>
+            </View>
+          </View>
+
+          <View style={styles.actionButtons}>
+            {userLocales.length > 1 && (
+              <TouchableOpacity 
+                style={styles.actionButton} 
+                onPress={() => setShowLocalSelector(true)}
+              >
+                <IconSymbol name="building.2" size={18} color={colors.text} />
+                <Text style={styles.actionButtonText}>Cambiar Local</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={styles.actionButton} onPress={handleEditProfile}>
+              <IconSymbol name="pencil" size={18} color={colors.text} />
+              <Text style={styles.actionButtonText}>Editar Local</Text>
             </TouchableOpacity>
           </View>
         </View>
-      </LinearGradient>
-
-      <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.contentContainer}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
+      );
+    } else {
+      // Client mode - show user profile
+      return (
         <View style={styles.profileSection}>
           <View style={styles.profileHeader}>
             <TouchableOpacity 
@@ -1189,6 +1352,46 @@ export default function PerfilScreen() {
             </TouchableOpacity>
           </View>
         </View>
+      );
+    }
+  };
+
+  return (
+    <View style={commonStyles.container}>
+      {/* Header */}
+      <LinearGradient
+        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={commonStyles.headerGradient}
+      >
+        <View style={styles.headerContent}>
+          <Text style={[commonStyles.headerTitle, { color: colors.white }]}>
+            {isOwnerMode ? 'Perfil del Local' : 'Mi Perfil'}
+          </Text>
+          <View style={styles.headerActions}>
+            <TouchableOpacity style={styles.headerButton} onPress={handleChats}>
+              <IconSymbol name="message.fill" size={24} color={colors.white} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.headerButton} onPress={handleNotifications}>
+              <IconSymbol name="bell.fill" size={24} color={colors.white} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.headerButton} onPress={handleSettings}>
+              <IconSymbol name="gearshape.fill" size={24} color={colors.white} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </LinearGradient>
+
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {renderProfileHeader()}
 
         <View style={styles.tabsContainer}>
           <TouchableOpacity
@@ -1241,7 +1444,6 @@ export default function PerfilScreen() {
           <>
             {activeTab === 'empleo' ? (
               <View style={styles.empleoSection}>
-                {/* ADDED: Search and Filter Bar */}
                 <View style={styles.searchContainer}>
                   <View style={styles.searchBar}>
                     <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
@@ -1374,6 +1576,55 @@ export default function PerfilScreen() {
           </>
         )}
       </ScrollView>
+
+      {/* Local Selector Modal */}
+      <Modal
+        visible={showLocalSelector}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowLocalSelector(false)}
+      >
+        <Pressable 
+          style={styles.modalOverlay}
+          onPress={() => setShowLocalSelector(false)}
+        >
+          <Pressable style={styles.filtersModal} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.filtersHeader}>
+              <Text style={styles.filtersTitle}>Seleccionar Local</Text>
+              <TouchableOpacity onPress={() => setShowLocalSelector(false)}>
+                <IconSymbol name="xmark" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.filtersContent}>
+              {userLocales.map((local) => (
+                <TouchableOpacity
+                  key={local.id}
+                  style={[styles.localItem, selectedLocalId === local.id && styles.localItemActive]}
+                  onPress={async () => {
+                    setSelectedLocalId(local.id);
+                    await cargarPerfilLocal(local.id);
+                    setShowLocalSelector(false);
+                  }}
+                >
+                  {local.imagen_url && (
+                    <Image source={{ uri: local.imagen_url }} style={styles.localItemImage} />
+                  )}
+                  <View style={styles.localItemInfo}>
+                    <Text style={[styles.localItemName, selectedLocalId === local.id && styles.localItemNameActive]}>
+                      {local.nombre}
+                    </Text>
+                    <Text style={styles.localItemType}>{local.tipo}</Text>
+                  </View>
+                  {selectedLocalId === local.id && (
+                    <IconSymbol name="checkmark.circle.fill" size={24} color={colors.primary} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {/* Filters Modal */}
       <Modal
@@ -1562,10 +1813,15 @@ export default function PerfilScreen() {
                   )}
                   <Text style={styles.storyAutorNombre}>{user.nombre}</Text>
                   
-                  <View style={styles.storyViewsContainer}>
+                  {/* FIXED: Eye icon only for author's own stories */}
+                  <TouchableOpacity
+                    style={styles.storyViewsContainer}
+                    onPress={handleViewStoryStats}
+                    activeOpacity={0.7}
+                  >
                     <IconSymbol name="eye" size={18} color="#fff" />
                     <Text style={styles.storyViewsText}>{currentStory.views_count || 0}</Text>
-                  </View>
+                  </TouchableOpacity>
                   
                   <TouchableOpacity
                     style={styles.storyDeleteButton}
@@ -1643,6 +1899,18 @@ export default function PerfilScreen() {
           )}
         </View>
       </Modal>
+
+      {/* FIXED: Story Stats Modal */}
+      <StoryStatsModal
+        visible={showStoryStats}
+        onClose={() => setShowStoryStats(false)}
+        storyId={currentStory?.id || ''}
+        viewsCount={currentStory?.views_count || 0}
+        likesCount={currentStory?.likes_count || 0}
+        views={storyViews}
+        likes={storyLikes}
+        loading={loadingStats}
+      />
 
       <LoginRequiredModal
         visible={showLoginModal}
@@ -2221,6 +2489,42 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: colors.white,
+  },
+  localItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  localItemActive: {
+    backgroundColor: colors.primary + '20',
+    borderColor: colors.primary,
+  },
+  localItemImage: {
+    width: 56,
+    height: 56,
+    borderRadius: 12,
+    marginRight: 16,
+  },
+  localItemInfo: {
+    flex: 1,
+  },
+  localItemName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  localItemNameActive: {
+    color: colors.primary,
+  },
+  localItemType: {
+    fontSize: 14,
+    color: colors.textSecondary,
   },
   createOptionsModal: {
     flex: 1,
