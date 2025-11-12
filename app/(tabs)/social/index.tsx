@@ -703,7 +703,7 @@ function formatearFecha(fecha: string): string {
 export default function SocialScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const { currentMode } = useMode();
+  const { currentMode, selectedLocalId, setSelectedLocalId } = useMode();
   
   const { posts: globalPosts, stories: globalStories, isInitialLoading, refreshData } = useGlobalData();
   
@@ -721,9 +721,8 @@ export default function SocialScreen() {
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
   
-  // FIXED: Local selector for owner mode
+  // FIXED: Local selector for owner mode - using persistent state from ModeContext
   const [userLocales, setUserLocales] = useState<LocalProfile[]>([]);
-  const [selectedLocalId, setSelectedLocalId] = useState<string | null>(null);
   const [showLocalSelector, setShowLocalSelector] = useState(false);
   
   // Story viewer states

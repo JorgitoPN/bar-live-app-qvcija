@@ -22,6 +22,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMode } from '@/contexts/ModeContext';
 import { supabase } from '@/utils/supabase';
 import { getEstadoLocal, calcularTiempoHasta } from '@/utils/timeUtils';
 import { getCategoryIcon } from '@/utils/categoryIcons';
@@ -71,6 +72,7 @@ export default function LocalPerfilScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { user } = useAuth();
+  const { currentMode, selectedLocalId, setSelectedLocalId } = useMode();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [local, setLocal] = useState<any>(null);
@@ -116,6 +118,11 @@ export default function LocalPerfilScreen() {
       // Check if current user is the owner
       if (user && localData.propietario_id === user.id) {
         setIsOwner(true);
+        
+        // FIXED: Set this local as selected in owner mode
+        if (currentMode === 'propietario') {
+          setSelectedLocalId(localId);
+        }
       }
 
       // Load local posts (ONLY posts with tipo='local' and matching local_id)
@@ -219,7 +226,7 @@ export default function LocalPerfilScreen() {
     } finally {
       setLoading(false);
     }
-  }, [localId, user, router]);
+  }, [localId, user, router, currentMode, setSelectedLocalId]);
 
   useEffect(() => {
     loadLocalData();
@@ -666,6 +673,7 @@ export default function LocalPerfilScreen() {
       {/* Content */}
       <ScrollView
         style={styles.content}
+        contentContainerStyle={{ paddingBottom: 100 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {activeTab === 'posts' && (
