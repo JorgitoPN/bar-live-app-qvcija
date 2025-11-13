@@ -14,6 +14,7 @@ import {
   ActivityIndicator,
   Modal,
   Pressable,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -522,130 +523,140 @@ export default function CrearPublicacionScreen() {
         </View>
       </LinearGradient>
 
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-        <TextInput
-          style={styles.textInput}
-          placeholder="¿Qué estás pensando?"
-          placeholderTextColor={colors.textSecondary}
-          value={contenido}
-          onChangeText={setContenido}
-          multiline
-          maxLength={500}
-          editable={!publishing}
-        />
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      >
+        <ScrollView 
+          style={styles.content} 
+          contentContainerStyle={styles.contentContainer}
+          keyboardShouldPersistTaps="handled"
+        >
+          <TextInput
+            style={styles.textInput}
+            placeholder="¿Qué estás pensando?"
+            placeholderTextColor={colors.textSecondary}
+            value={contenido}
+            onChangeText={setContenido}
+            multiline
+            maxLength={500}
+            editable={!publishing}
+          />
 
-        {usuariosEtiquetados.length > 0 && (
-          <View style={styles.taggedUsersContainer}>
-            <Text style={styles.taggedUsersTitle}>Etiquetados:</Text>
-            <View style={styles.taggedUsersList}>
-              {usuariosEtiquetados.map((item) => (
-                <View key={`${item.id}-${item.tipo}`} style={styles.taggedUserChip}>
-                  <IconSymbol 
-                    name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'} 
-                    size={12} 
-                    color={colors.text} 
-                  />
-                  <Text style={styles.taggedUserName}>
-                    {item.username || item.nombre}
-                  </Text>
-                  <TouchableOpacity onPress={() => eliminarEtiqueta(item.id, item.tipo!)} activeOpacity={0.7}>
-                    <IconSymbol name="xmark.circle.fill" size={16} color={colors.textSecondary} />
-                  </TouchableOpacity>
-                </View>
-              ))}
+          {usuariosEtiquetados.length > 0 && (
+            <View style={styles.taggedUsersContainer}>
+              <Text style={styles.taggedUsersTitle}>Etiquetados:</Text>
+              <View style={styles.taggedUsersList}>
+                {usuariosEtiquetados.map((item) => (
+                  <View key={`${item.id}-${item.tipo}`} style={styles.taggedUserChip}>
+                    <IconSymbol 
+                      name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'} 
+                      size={12} 
+                      color={colors.text} 
+                    />
+                    <Text style={styles.taggedUserName}>
+                      {item.username || item.nombre}
+                    </Text>
+                    <TouchableOpacity onPress={() => eliminarEtiqueta(item.id, item.tipo!)} activeOpacity={0.7}>
+                      <IconSymbol name="xmark.circle.fill" size={16} color={colors.textSecondary} />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
             </View>
-          </View>
-        )}
+          )}
 
-        {ubicacion && (
-          <View style={styles.locationContainer}>
-            <IconSymbol name="mappin.circle.fill" size={20} color={colors.primary} />
-            <Text style={styles.locationText}>{ubicacion.nombre}</Text>
-            <TouchableOpacity onPress={() => setUbicacion(null)} activeOpacity={0.7}>
-              <IconSymbol name="xmark.circle.fill" size={20} color={colors.textSecondary} />
+          {ubicacion && (
+            <View style={styles.locationContainer}>
+              <IconSymbol name="mappin.circle.fill" size={20} color={colors.primary} />
+              <Text style={styles.locationText}>{ubicacion.nombre}</Text>
+              <TouchableOpacity onPress={() => setUbicacion(null)} activeOpacity={0.7}>
+                <IconSymbol name="xmark.circle.fill" size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {imagenes.length > 0 && (
+            <View style={styles.imagesContainer}>
+              <View style={styles.imagesHeader}>
+                <Text style={styles.imagesCount}>
+                  {imagenes.length} {imagenes.length === 1 ? 'imagen' : 'imágenes'}
+                </Text>
+                {imagenes.length < MAX_IMAGES && (
+                  <Text style={styles.imagesLimit}>
+                    (máximo {MAX_IMAGES})
+                  </Text>
+                )}
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagesScroll}>
+                {imagenes.map((uri, index) => (
+                  <View key={index} style={styles.imageWrapper}>
+                    <Image source={{ uri }} style={styles.selectedImage} />
+                    <TouchableOpacity
+                      style={styles.removeImageButton}
+                      onPress={() => eliminarImagen(index)}
+                      activeOpacity={0.7}
+                    >
+                      <IconSymbol name="xmark.circle.fill" size={28} color={colors.badgeNuevo} />
+                    </TouchableOpacity>
+                    <View style={styles.imageIndexBadge}>
+                      <Text style={styles.imageIndexText}>{index + 1}</Text>
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          <View style={styles.options}>
+            <TouchableOpacity 
+              style={styles.optionButton} 
+              onPress={seleccionarImagenes}
+              disabled={publishing || imagenes.length >= MAX_IMAGES}
+              activeOpacity={0.7}
+            >
+              <IconSymbol name="photo" size={28} color={imagenes.length >= MAX_IMAGES ? colors.textSecondary : colors.primary} />
+              <Text style={[styles.optionText, imagenes.length >= MAX_IMAGES && styles.optionTextDisabled]}>
+                Galería
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.optionButton} 
+              onPress={tomarFoto}
+              disabled={publishing || imagenes.length >= MAX_IMAGES}
+              activeOpacity={0.7}
+            >
+              <IconSymbol name="camera" size={28} color={imagenes.length >= MAX_IMAGES ? colors.textSecondary : colors.secondary} />
+              <Text style={[styles.optionText, imagenes.length >= MAX_IMAGES && styles.optionTextDisabled]}>
+                Cámara
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.optionButton}
+              onPress={obtenerUbicacion}
+              disabled={loadingLocation || publishing}
+              activeOpacity={0.7}
+            >
+              {loadingLocation ? (
+                <ActivityIndicator size="small" color={colors.badgeDestacado} />
+              ) : (
+                <IconSymbol name="mappin.and.ellipse" size={28} color={colors.badgeDestacado} />
+              )}
+              <Text style={styles.optionText}>Ubicación</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.optionButton}
+              onPress={() => setShowTagModal(true)}
+              disabled={publishing}
+              activeOpacity={0.7}
+            >
+              <IconSymbol name="person.crop.circle.badge.plus" size={28} color={colors.badgeNuevo} />
+              <Text style={styles.optionText}>Etiquetar</Text>
             </TouchableOpacity>
           </View>
-        )}
-
-        {imagenes.length > 0 && (
-          <View style={styles.imagesContainer}>
-            <View style={styles.imagesHeader}>
-              <Text style={styles.imagesCount}>
-                {imagenes.length} {imagenes.length === 1 ? 'imagen' : 'imágenes'}
-              </Text>
-              {imagenes.length < MAX_IMAGES && (
-                <Text style={styles.imagesLimit}>
-                  (máximo {MAX_IMAGES})
-                </Text>
-              )}
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagesScroll}>
-              {imagenes.map((uri, index) => (
-                <View key={index} style={styles.imageWrapper}>
-                  <Image source={{ uri }} style={styles.selectedImage} />
-                  <TouchableOpacity
-                    style={styles.removeImageButton}
-                    onPress={() => eliminarImagen(index)}
-                    activeOpacity={0.7}
-                  >
-                    <IconSymbol name="xmark.circle.fill" size={28} color={colors.badgeNuevo} />
-                  </TouchableOpacity>
-                  <View style={styles.imageIndexBadge}>
-                    <Text style={styles.imageIndexText}>{index + 1}</Text>
-                  </View>
-                </View>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        <View style={styles.options}>
-          <TouchableOpacity 
-            style={styles.optionButton} 
-            onPress={seleccionarImagenes}
-            disabled={publishing || imagenes.length >= MAX_IMAGES}
-            activeOpacity={0.7}
-          >
-            <IconSymbol name="photo" size={28} color={imagenes.length >= MAX_IMAGES ? colors.textSecondary : colors.primary} />
-            <Text style={[styles.optionText, imagenes.length >= MAX_IMAGES && styles.optionTextDisabled]}>
-              Galería
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.optionButton} 
-            onPress={tomarFoto}
-            disabled={publishing || imagenes.length >= MAX_IMAGES}
-            activeOpacity={0.7}
-          >
-            <IconSymbol name="camera" size={28} color={imagenes.length >= MAX_IMAGES ? colors.textSecondary : colors.secondary} />
-            <Text style={[styles.optionText, imagenes.length >= MAX_IMAGES && styles.optionTextDisabled]}>
-              Cámara
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.optionButton}
-            onPress={obtenerUbicacion}
-            disabled={loadingLocation || publishing}
-            activeOpacity={0.7}
-          >
-            {loadingLocation ? (
-              <ActivityIndicator size="small" color={colors.badgeDestacado} />
-            ) : (
-              <IconSymbol name="mappin.and.ellipse" size={28} color={colors.badgeDestacado} />
-            )}
-            <Text style={styles.optionText}>Ubicación</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.optionButton}
-            onPress={() => setShowTagModal(true)}
-            disabled={publishing}
-            activeOpacity={0.7}
-          >
-            <IconSymbol name="person.crop.circle.badge.plus" size={28} color={colors.badgeNuevo} />
-            <Text style={styles.optionText}>Etiquetar</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Tag Modal */}
       <Modal
@@ -658,77 +669,82 @@ export default function CrearPublicacionScreen() {
           style={styles.modalOverlay}
           onPress={() => setShowTagModal(false)}
         >
-          <Pressable style={styles.tagModal} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.tagModalHeader}>
-              <Text style={styles.tagModalTitle}>Etiquetar</Text>
-              <TouchableOpacity onPress={() => setShowTagModal(false)} activeOpacity={0.7}>
-                <IconSymbol name="xmark" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.tagSearchContainer}>
-              <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
-              <TextInput
-                style={styles.tagSearchInput}
-                placeholder="Buscar usuarios o locales..."
-                placeholderTextColor={colors.textSecondary}
-                value={tagSearchQuery}
-                onChangeText={handleTagSearchChange}
-                autoFocus
-              />
-              {tagSearchQuery.length > 0 && (
-                <TouchableOpacity onPress={() => setTagSearchQuery('')} activeOpacity={0.7}>
-                  <IconSymbol name="xmark.circle.fill" size={20} color={colors.textSecondary} />
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={{ flex: 1, justifyContent: 'flex-end' }}
+          >
+            <Pressable style={styles.tagModal} onPress={(e) => e.stopPropagation()}>
+              <View style={styles.tagModalHeader}>
+                <Text style={styles.tagModalTitle}>Etiquetar</Text>
+                <TouchableOpacity onPress={() => setShowTagModal(false)} activeOpacity={0.7}>
+                  <IconSymbol name="xmark" size={24} color={colors.text} />
                 </TouchableOpacity>
-              )}
-            </View>
+              </View>
 
-            <ScrollView style={styles.tagSuggestionsContainer}>
-              {searchingTags ? (
-                <View style={styles.tagLoadingContainer}>
-                  <ActivityIndicator size="small" color={colors.primary} />
-                </View>
-              ) : tagSuggestions.length > 0 ? (
-                tagSuggestions.map((item) => (
-                  <TouchableOpacity
-                    key={`${item.id}-${item.tipo}`}
-                    style={styles.tagSuggestionItem}
-                    onPress={() => {
-                      seleccionarEtiqueta(item);
-                      setShowTagModal(false);
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    {item.avatar ? (
-                      <Image source={{ uri: item.avatar }} style={styles.tagSuggestionAvatar} />
-                    ) : (
-                      <View style={[styles.tagSuggestionAvatar, styles.avatarPlaceholder]}>
-                        <IconSymbol 
-                          name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'} 
-                          size={20} 
-                          color={colors.textSecondary} 
-                        />
-                      </View>
-                    )}
-                    <View style={styles.tagSuggestionInfo}>
-                      <Text style={styles.tagSuggestionName}>{item.nombre}</Text>
-                      <Text style={styles.tagSuggestionType}>
-                        {item.tipo === 'local' ? 'Local' : `@${item.username}`}
-                      </Text>
-                    </View>
+              <View style={styles.tagSearchContainer}>
+                <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
+                <TextInput
+                  style={styles.tagSearchInput}
+                  placeholder="Buscar usuarios o locales..."
+                  placeholderTextColor={colors.textSecondary}
+                  value={tagSearchQuery}
+                  onChangeText={handleTagSearchChange}
+                  autoFocus
+                />
+                {tagSearchQuery.length > 0 && (
+                  <TouchableOpacity onPress={() => setTagSearchQuery('')} activeOpacity={0.7}>
+                    <IconSymbol name="xmark.circle.fill" size={20} color={colors.textSecondary} />
                   </TouchableOpacity>
-                ))
-              ) : tagSearchQuery.length >= 2 ? (
-                <View style={styles.tagEmptyState}>
-                  <Text style={styles.tagEmptyText}>No se encontraron resultados</Text>
-                </View>
-              ) : (
-                <View style={styles.tagEmptyState}>
-                  <Text style={styles.tagEmptyText}>Busca usuarios o locales para etiquetar</Text>
-                </View>
-              )}
-            </ScrollView>
-          </Pressable>
+                )}
+              </View>
+
+              <ScrollView style={styles.tagSuggestionsContainer}>
+                {searchingTags ? (
+                  <View style={styles.tagLoadingContainer}>
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  </View>
+                ) : tagSuggestions.length > 0 ? (
+                  tagSuggestions.map((item) => (
+                    <TouchableOpacity
+                      key={`${item.id}-${item.tipo}`}
+                      style={styles.tagSuggestionItem}
+                      onPress={() => {
+                        seleccionarEtiqueta(item);
+                        setShowTagModal(false);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      {item.avatar ? (
+                        <Image source={{ uri: item.avatar }} style={styles.tagSuggestionAvatar} />
+                      ) : (
+                        <View style={[styles.tagSuggestionAvatar, styles.avatarPlaceholder]}>
+                          <IconSymbol 
+                            name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'} 
+                            size={20} 
+                            color={colors.textSecondary} 
+                          />
+                        </View>
+                      )}
+                      <View style={styles.tagSuggestionInfo}>
+                        <Text style={styles.tagSuggestionName}>{item.nombre}</Text>
+                        <Text style={styles.tagSuggestionType}>
+                          {item.tipo === 'local' ? 'Local' : `@${item.username}`}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))
+                ) : tagSearchQuery.length >= 2 ? (
+                  <View style={styles.tagEmptyState}>
+                    <Text style={styles.tagEmptyText}>No se encontraron resultados</Text>
+                  </View>
+                ) : (
+                  <View style={styles.tagEmptyState}>
+                    <Text style={styles.tagEmptyText}>Busca usuarios o locales para etiquetar</Text>
+                  </View>
+                )}
+              </ScrollView>
+            </Pressable>
+          </KeyboardAvoidingView>
         </Pressable>
       </Modal>
 

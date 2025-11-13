@@ -14,6 +14,7 @@ import {
   Modal,
   Pressable,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -417,303 +418,312 @@ export default function EditarLocalScreen() {
         </TouchableOpacity>
       </LinearGradient>
 
-      <ScrollView style={styles.content}>
-        <View style={styles.form}>
-          {/* FIXED: Google Places Enrichment Section - only for admins */}
-          {isAdmin && (
-          <View style={styles.enrichmentSection}>
-            <Text style={styles.sectionTitle}>🌐 Enriquecimiento con Google Places</Text>
-            <Text style={styles.sectionDescription}>
-              Busca tu local en Google Places para autocompletar información
-            </Text>
-            
-            <View style={styles.searchContainer}>
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Buscar en Google Places..."
-                placeholderTextColor={colors.textSecondary}
-                onChangeText={(text) => {
-                  searchGooglePlaces(text);
-                }}
-              />
-              {searchingGoogle && (
-                <ActivityIndicator size="small" color={colors.primary} style={styles.searchLoader} />
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      >
+        <ScrollView 
+          style={styles.content}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.form}>
+            {/* FIXED: Google Places Enrichment Section - only for admins */}
+            {isAdmin && (
+            <View style={styles.enrichmentSection}>
+              <Text style={styles.sectionTitle}>🌐 Enriquecimiento con Google Places</Text>
+              <Text style={styles.sectionDescription}>
+                Busca tu local en Google Places para autocompletar información
+              </Text>
+              
+              <View style={styles.searchContainer}>
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Buscar en Google Places..."
+                  placeholderTextColor={colors.textSecondary}
+                  onChangeText={(text) => {
+                    searchGooglePlaces(text);
+                  }}
+                />
+                {searchingGoogle && (
+                  <ActivityIndicator size="small" color={colors.primary} style={styles.searchLoader} />
+                )}
+              </View>
+
+              {googleSuggestions.length > 0 && (
+                <View style={styles.suggestionsContainer}>
+                  {googleSuggestions.map((suggestion, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={styles.suggestionItem}
+                      onPress={() => enrichWithGooglePlace(suggestion.place_id)}
+                      disabled={enriching}
+                    >
+                      <View style={styles.suggestionInfo}>
+                        <Text style={styles.suggestionName}>{suggestion.name}</Text>
+                        <Text style={styles.suggestionAddress}>{suggestion.formatted_address}</Text>
+                      </View>
+                      {enriching ? (
+                        <ActivityIndicator size="small" color={colors.primary} />
+                      ) : (
+                        <IconSymbol name="arrow.down.circle" size={24} color={colors.primary} />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+              {enriquecido && googlePlaceId && (
+                <View style={styles.enrichedBadge}>
+                  <IconSymbol name="checkmark.seal.fill" size={20} color={colors.primary} />
+                  <Text style={styles.enrichedText}>Local enriquecido con Google Places</Text>
+                </View>
               )}
             </View>
+            )}
 
-            {googleSuggestions.length > 0 && (
-              <View style={styles.suggestionsContainer}>
-                {googleSuggestions.map((suggestion, index) => (
+            {/* Imagen Principal */}
+            <View style={styles.imageSection}>
+              <Text style={styles.label}>Imagen Principal</Text>
+              <TouchableOpacity style={styles.imageContainer} onPress={pickImage}>
+                {imagenUrl ? (
+                  <Image source={{ uri: imagenUrl }} style={styles.image} />
+                ) : (
+                  <View style={[styles.image, styles.imagePlaceholder]}>
+                    <IconSymbol name="photo" size={48} color={colors.textSecondary} />
+                    <Text style={styles.imagePlaceholderText}>Toca para añadir imagen</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            {/* Galería de Imágenes */}
+            <View style={styles.gallerySection}>
+              <Text style={styles.label}>Galería de Imágenes</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.galleryScroll}>
+                {galeriaUrls.map((url, index) => (
+                  <View key={index} style={styles.galleryImageContainer}>
+                    <Image source={{ uri: url }} style={styles.galleryImage} />
+                    <TouchableOpacity
+                      style={styles.removeGalleryButton}
+                      onPress={() => removeGalleryImage(index)}
+                    >
+                      <IconSymbol name="xmark.circle.fill" size={24} color={colors.badgeNuevo} />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                <TouchableOpacity style={styles.addGalleryButton} onPress={pickGalleryImages}>
+                  <IconSymbol name="plus.circle.fill" size={48} color={colors.primary} />
+                  <Text style={styles.addGalleryText}>Añadir</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+
+            {/* Nombre */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Nombre del local *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Nombre del local"
+                placeholderTextColor={colors.textSecondary}
+                value={nombre}
+                onChangeText={setNombre}
+              />
+            </View>
+
+            {/* Tipo */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Tipo de local *</Text>
+              <TouchableOpacity
+                style={styles.selectButton}
+                onPress={() => setShowTipoModal(true)}
+              >
+                <Text style={styles.selectButtonText}>{tipo}</Text>
+                <IconSymbol name="chevron.down" size={20} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Dirección */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Dirección *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Calle, número, ciudad"
+                placeholderTextColor={colors.textSecondary}
+                value={direccion}
+                onChangeText={setDireccion}
+              />
+            </View>
+
+            {/* Provincia */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Provincia *</Text>
+              <TouchableOpacity
+                style={styles.selectButton}
+                onPress={() => setShowProvinciaModal(true)}
+              >
+                <Text style={styles.selectButtonText}>{provincia}</Text>
+                <IconSymbol name="chevron.down" size={20} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Teléfono */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Teléfono</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="+34 XXX XXX XXX"
+                placeholderTextColor={colors.textSecondary}
+                value={telefono}
+                onChangeText={setTelefono}
+                keyboardType="phone-pad"
+              />
+            </View>
+
+            {/* Email */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Email</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="contacto@local.com"
+                placeholderTextColor={colors.textSecondary}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
+
+            {/* Sitio Web */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Sitio web</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="https://www.local.com"
+                placeholderTextColor={colors.textSecondary}
+                value={sitioWeb}
+                onChangeText={setSitioWeb}
+                keyboardType="url"
+                autoCapitalize="none"
+              />
+            </View>
+
+            {/* Descripción */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Descripción</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Describe el local..."
+                placeholderTextColor={colors.textSecondary}
+                value={descripcion}
+                onChangeText={setDescripcion}
+                multiline
+                numberOfLines={4}
+                maxLength={500}
+              />
+              <Text style={styles.helperText}>{descripcion.length}/500 caracteres</Text>
+            </View>
+
+            {/* Precio Medio */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Nivel de Precio</Text>
+              <View style={styles.priceSelector}>
+                {[1, 2, 3, 4].map((level) => (
                   <TouchableOpacity
-                    key={index}
-                    style={styles.suggestionItem}
-                    onPress={() => enrichWithGooglePlace(suggestion.place_id)}
-                    disabled={enriching}
+                    key={level}
+                    style={[
+                      styles.priceButton,
+                      precioMedio === level && styles.priceButtonActive
+                    ]}
+                    onPress={() => setPrecioMedio(level)}
                   >
-                    <View style={styles.suggestionInfo}>
-                      <Text style={styles.suggestionName}>{suggestion.name}</Text>
-                      <Text style={styles.suggestionAddress}>{suggestion.formatted_address}</Text>
-                    </View>
-                    {enriching ? (
-                      <ActivityIndicator size="small" color={colors.primary} />
-                    ) : (
-                      <IconSymbol name="arrow.down.circle" size={24} color={colors.primary} />
-                    )}
+                    <Text style={[
+                      styles.priceButtonText,
+                      precioMedio === level && styles.priceButtonTextActive
+                    ]}>
+                      {'€'.repeat(level)}
+                    </Text>
                   </TouchableOpacity>
                 ))}
               </View>
-            )}
+            </View>
 
-            {enriquecido && googlePlaceId && (
-              <View style={styles.enrichedBadge}>
-                <IconSymbol name="checkmark.seal.fill" size={20} color={colors.primary} />
-                <Text style={styles.enrichedText}>Local enriquecido con Google Places</Text>
-              </View>
-            )}
-          </View>
-          )}
-
-          {/* Imagen Principal */}
-          <View style={styles.imageSection}>
-            <Text style={styles.label}>Imagen Principal</Text>
-            <TouchableOpacity style={styles.imageContainer} onPress={pickImage}>
-              {imagenUrl ? (
-                <Image source={{ uri: imagenUrl }} style={styles.image} />
-              ) : (
-                <View style={[styles.image, styles.imagePlaceholder]}>
-                  <IconSymbol name="photo" size={48} color={colors.textSecondary} />
-                  <Text style={styles.imagePlaceholderText}>Toca para añadir imagen</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          </View>
-
-          {/* Galería de Imágenes */}
-          <View style={styles.gallerySection}>
-            <Text style={styles.label}>Galería de Imágenes</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.galleryScroll}>
-              {galeriaUrls.map((url, index) => (
-                <View key={index} style={styles.galleryImageContainer}>
-                  <Image source={{ uri: url }} style={styles.galleryImage} />
-                  <TouchableOpacity
-                    style={styles.removeGalleryButton}
-                    onPress={() => removeGalleryImage(index)}
-                  >
-                    <IconSymbol name="xmark.circle.fill" size={24} color={colors.badgeNuevo} />
-                  </TouchableOpacity>
-                </View>
-              ))}
-              <TouchableOpacity style={styles.addGalleryButton} onPress={pickGalleryImages}>
-                <IconSymbol name="plus.circle.fill" size={48} color={colors.primary} />
-                <Text style={styles.addGalleryText}>Añadir</Text>
+            {/* Ambiente */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Ambiente</Text>
+              <TouchableOpacity
+                style={styles.selectButton}
+                onPress={() => setShowAmbienteModal(true)}
+              >
+                <Text style={styles.selectButtonText}>
+                  {ambiente.length > 0 ? `${ambiente.length} seleccionados` : 'Seleccionar ambiente'}
+                </Text>
+                <IconSymbol name="chevron.down" size={20} color={colors.text} />
               </TouchableOpacity>
-            </ScrollView>
-          </View>
+            </View>
 
-          {/* Nombre */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Nombre del local *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Nombre del local"
-              placeholderTextColor={colors.textSecondary}
-              value={nombre}
-              onChangeText={setNombre}
-            />
-          </View>
+            {/* Música */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Música</Text>
+              <TouchableOpacity
+                style={styles.selectButton}
+                onPress={() => setShowMusicaModal(true)}
+              >
+                <Text style={styles.selectButtonText}>
+                  {musica.length > 0 ? `${musica.length} seleccionados` : 'Seleccionar música'}
+                </Text>
+                <IconSymbol name="chevron.down" size={20} color={colors.text} />
+              </TouchableOpacity>
+            </View>
 
-          {/* Tipo */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Tipo de local *</Text>
-            <TouchableOpacity
-              style={styles.selectButton}
-              onPress={() => setShowTipoModal(true)}
-            >
-              <Text style={styles.selectButtonText}>{tipo}</Text>
-              <IconSymbol name="chevron.down" size={20} color={colors.text} />
-            </TouchableOpacity>
-          </View>
+            {/* Servicios */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Servicios</Text>
+              <TouchableOpacity
+                style={styles.selectButton}
+                onPress={() => setShowServiciosModal(true)}
+              >
+                <Text style={styles.selectButtonText}>
+                  {servicios.length > 0 ? `${servicios.length} seleccionados` : 'Seleccionar servicios'}
+                </Text>
+                <IconSymbol name="chevron.down" size={20} color={colors.text} />
+              </TouchableOpacity>
+            </View>
 
-          {/* Dirección */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Dirección *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Calle, número, ciudad"
-              placeholderTextColor={colors.textSecondary}
-              value={direccion}
-              onChangeText={setDireccion}
-            />
-          </View>
+            {/* Estado */}
+            <View style={styles.switchContainer}>
+              <View style={styles.switchInfo}>
+                <Text style={styles.switchTitle}>Local activo</Text>
+                <Text style={styles.switchDescription}>
+                  El local será visible en la aplicación
+                </Text>
+              </View>
+              <Switch
+                value={activo}
+                onValueChange={setActivo}
+                trackColor={{ false: colors.cardBorder, true: colors.primary }}
+                thumbColor={colors.headerText}
+              />
+            </View>
 
-          {/* Provincia */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Provincia *</Text>
-            <TouchableOpacity
-              style={styles.selectButton}
-              onPress={() => setShowProvinciaModal(true)}
-            >
-              <Text style={styles.selectButtonText}>{provincia}</Text>
-              <IconSymbol name="chevron.down" size={20} color={colors.text} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Teléfono */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Teléfono</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="+34 XXX XXX XXX"
-              placeholderTextColor={colors.textSecondary}
-              value={telefono}
-              onChangeText={setTelefono}
-              keyboardType="phone-pad"
-            />
-          </View>
-
-          {/* Email */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="contacto@local.com"
-              placeholderTextColor={colors.textSecondary}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-          </View>
-
-          {/* Sitio Web */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Sitio web</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="https://www.local.com"
-              placeholderTextColor={colors.textSecondary}
-              value={sitioWeb}
-              onChangeText={setSitioWeb}
-              keyboardType="url"
-              autoCapitalize="none"
-            />
-          </View>
-
-          {/* Descripción */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Descripción</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Describe el local..."
-              placeholderTextColor={colors.textSecondary}
-              value={descripcion}
-              onChangeText={setDescripcion}
-              multiline
-              numberOfLines={4}
-              maxLength={500}
-            />
-            <Text style={styles.helperText}>{descripcion.length}/500 caracteres</Text>
-          </View>
-
-          {/* Precio Medio */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Nivel de Precio</Text>
-            <View style={styles.priceSelector}>
-              {[1, 2, 3, 4].map((level) => (
-                <TouchableOpacity
-                  key={level}
-                  style={[
-                    styles.priceButton,
-                    precioMedio === level && styles.priceButtonActive
-                  ]}
-                  onPress={() => setPrecioMedio(level)}
-                >
-                  <Text style={[
-                    styles.priceButtonText,
-                    precioMedio === level && styles.priceButtonTextActive
-                  ]}>
-                    {'€'.repeat(level)}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+            {/* Destacado */}
+            <View style={styles.switchContainer}>
+              <View style={styles.switchInfo}>
+                <Text style={styles.switchTitle}>Local destacado</Text>
+                <Text style={styles.switchDescription}>
+                  Aparecerá en la sección de destacados
+                </Text>
+              </View>
+              <Switch
+                value={destacado}
+                onValueChange={setDestacado}
+                trackColor={{ false: colors.cardBorder, true: colors.badgeDestacado }}
+                thumbColor={colors.headerText}
+              />
             </View>
           </View>
-
-          {/* Ambiente */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Ambiente</Text>
-            <TouchableOpacity
-              style={styles.selectButton}
-              onPress={() => setShowAmbienteModal(true)}
-            >
-              <Text style={styles.selectButtonText}>
-                {ambiente.length > 0 ? `${ambiente.length} seleccionados` : 'Seleccionar ambiente'}
-              </Text>
-              <IconSymbol name="chevron.down" size={20} color={colors.text} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Música */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Música</Text>
-            <TouchableOpacity
-              style={styles.selectButton}
-              onPress={() => setShowMusicaModal(true)}
-            >
-              <Text style={styles.selectButtonText}>
-                {musica.length > 0 ? `${musica.length} seleccionados` : 'Seleccionar música'}
-              </Text>
-              <IconSymbol name="chevron.down" size={20} color={colors.text} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Servicios */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Servicios</Text>
-            <TouchableOpacity
-              style={styles.selectButton}
-              onPress={() => setShowServiciosModal(true)}
-            >
-              <Text style={styles.selectButtonText}>
-                {servicios.length > 0 ? `${servicios.length} seleccionados` : 'Seleccionar servicios'}
-              </Text>
-              <IconSymbol name="chevron.down" size={20} color={colors.text} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Estado */}
-          <View style={styles.switchContainer}>
-            <View style={styles.switchInfo}>
-              <Text style={styles.switchTitle}>Local activo</Text>
-              <Text style={styles.switchDescription}>
-                El local será visible en la aplicación
-              </Text>
-            </View>
-            <Switch
-              value={activo}
-              onValueChange={setActivo}
-              trackColor={{ false: colors.cardBorder, true: colors.primary }}
-              thumbColor={colors.headerText}
-            />
-          </View>
-
-          {/* Destacado */}
-          <View style={styles.switchContainer}>
-            <View style={styles.switchInfo}>
-              <Text style={styles.switchTitle}>Local destacado</Text>
-              <Text style={styles.switchDescription}>
-                Aparecerá en la sección de destacados
-              </Text>
-            </View>
-            <Switch
-              value={destacado}
-              onValueChange={setDestacado}
-              trackColor={{ false: colors.cardBorder, true: colors.badgeDestacado }}
-              thumbColor={colors.headerText}
-            />
-          </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Modal Tipo */}
       <Modal
@@ -1098,6 +1108,12 @@ const styles = StyleSheet.create({
   gallerySection: {
     marginBottom: 24,
   },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 8,
+  },
   galleryScroll: {
     marginTop: 12,
   },
@@ -1134,12 +1150,6 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 8,
   },
   input: {
     backgroundColor: colors.cardBackground,
