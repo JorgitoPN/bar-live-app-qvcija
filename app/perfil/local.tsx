@@ -648,13 +648,7 @@ export default function LocalPerfilScreen() {
             <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{local.nombre}</Text>
-          <TouchableOpacity onPress={toggleFavorito} style={styles.headerButton}>
-            <IconSymbol
-              name={isFavorito ? 'heart.fill' : 'heart'}
-              size={24}
-              color={isFavorito ? '#EF4444' : colors.headerText}
-            />
-          </TouchableOpacity>
+          <View style={styles.headerButton} />
         </View>
 
         {/* Local Profile Section */}
@@ -1175,6 +1169,7 @@ const styles = StyleSheet.create({
   },
   headerButton: {
     padding: 8,
+    width: 40,
   },
   profileSection: {
     flexDirection: 'row',
