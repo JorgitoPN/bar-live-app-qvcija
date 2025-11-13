@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, Image } from 'react-native';
 import { IconSymbol } from './IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -136,6 +136,45 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
             );
           }
 
+          // FIXED: For profile tab, show user avatar instead of icon
+          if (tab.name === 'perfil' && user) {
+            return (
+              <TouchableOpacity
+                key={tab.name}
+                onPress={onPress}
+                style={styles.tab}
+                activeOpacity={0.5}
+              >
+                <View style={[styles.tabContent, active && styles.tabContentActive]}>
+                  {user.avatar ? (
+                    <Image 
+                      source={{ uri: user.avatar }} 
+                      style={[
+                        styles.profileAvatar,
+                        active && styles.profileAvatarActive
+                      ]} 
+                    />
+                  ) : (
+                    <View style={[
+                      styles.profileAvatar,
+                      styles.profileAvatarPlaceholder,
+                      active && styles.profileAvatarActive
+                    ]}>
+                      <IconSymbol
+                        name="person.fill"
+                        size={16}
+                        color={active ? colors.primary : 'rgba(255, 255, 255, 0.6)'}
+                      />
+                    </View>
+                  )}
+                  <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
+                    {tab.label}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            );
+          }
+
           return (
             <TouchableOpacity
               key={tab.name}
@@ -245,5 +284,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 4,
     borderColor: colors.white,
+  },
+  profileAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  profileAvatarActive: {
+    borderColor: 'rgba(255, 255, 255, 0.9)',
+  },
+  profileAvatarPlaceholder: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

@@ -569,15 +569,32 @@ export default function PerfilScreen() {
       setSeguidos(seguidosCount || 0);
       setPublicaciones(publicacionesCount || 0);
 
+      // FIXED: Check if there are any unviewed stories
       const { data: storiesData } = await supabase
         .from('historias')
         .select('id')
         .eq('autor_id', user.id)
         .eq('tipo', 'usuario')
-        .gt('expires_at', new Date().toISOString())
-        .limit(1);
+        .gt('expires_at', new Date().toISOString());
 
-      setHasActiveStory((storiesData?.length || 0) > 0);
+      if (storiesData && storiesData.length > 0) {
+        const storyIds = storiesData.map(s => s.id);
+        
+        // Check if user has viewed all their own stories
+        const { data: viewedData } = await supabase
+          .from('historia_views')
+          .select('historia_id')
+          .eq('usuario_id', user.id)
+          .in('historia_id', storyIds);
+
+        const viewedStoryIds = new Set(viewedData?.map(v => v.historia_id) || []);
+        
+        // Only show gradient ring if there are unviewed stories
+        const hasUnviewedStories = storiesData.some(s => !viewedStoryIds.has(s.id));
+        setHasActiveStory(hasUnviewedStories);
+      } else {
+        setHasActiveStory(false);
+      }
 
       const { data: userStoriesData } = await supabase
         .from('historias')

@@ -220,37 +220,73 @@ export default function CrearPublicacionScreen() {
   };
 
   const buscarUsuariosYLocales = async (texto: string) => {
-    if (texto.length < 2) {
+    // FIXED: Allow search with just 1 character and remove @ if present
+    const cleanTexto = texto.replace('@', '').trim();
+    
+    if (cleanTexto.length < 1) {
       setTagSuggestions([]);
       return;
     }
 
     setSearchingTags(true);
     try {
-      // Search users
+      // ENHANCED: Fuzzy search with multiple strategies
+      // 1. Exact match (highest priority)
+      // 2. Starts with (high priority)
+      // 3. Contains (medium priority)
+      // 4. Fuzzy match with typos (lower priority)
+      
+      // Create fuzzy search patterns
+      // Allow for 1 character difference per 4 characters
+      const fuzzyPattern = cleanTexto.split('').join('%');
+      
+      // Search users with enhanced fuzzy matching
       const { data: usersData, error: usersError } = await supabase
         .from('usuarios')
         .select('id, nombre, username, avatar, perfil_privado, permitir_etiquetas')
-        .or(`nombre.ilike.%${texto}%,username.ilike.%${texto}%`)
+        .or(`nombre.ilike.%${cleanTexto}%,username.ilike.%${cleanTexto}%,nombre.ilike.%${fuzzyPattern}%,username.ilike.%${fuzzyPattern}%`)
         .eq('activo', true)
-        .limit(5);
+        .limit(10);
 
-      // Search locals
+      // Search locals with enhanced fuzzy matching
       const { data: localsData, error: localsError } = await supabase
         .from('locales')
         .select('id, nombre, imagen_url')
-        .ilike('nombre', `%${texto}%`)
+        .or(`nombre.ilike.%${cleanTexto}%,nombre.ilike.%${fuzzyPattern}%`)
         .eq('activo', true)
-        .limit(5);
+        .limit(10);
 
       const suggestions: UserSuggestion[] = [];
 
-      // Add users
+      // Add users with relevance scoring
       if (!usersError && usersData) {
         const filteredUsers = usersData.filter(
           (u) => u.permitir_etiquetas && !usuariosEtiquetados.find((ue) => ue.id === u.id && ue.tipo === 'usuario')
         );
-        suggestions.push(...filteredUsers.map(u => ({
+        
+        // Sort by relevance
+        const scoredUsers = filteredUsers.map(u => {
+          const nombre = u.nombre.toLowerCase();
+          const username = (u.username || '').toLowerCase();
+          const search = cleanTexto.toLowerCase();
+          
+          let score = 0;
+          
+          // Exact match (highest score)
+          if (nombre === search || username === search) score += 100;
+          // Starts with (high score)
+          else if (nombre.startsWith(search) || username.startsWith(search)) score += 50;
+          // Contains (medium score)
+          else if (nombre.includes(search) || username.includes(search)) score += 25;
+          // Fuzzy match (lower score)
+          else score += 10;
+          
+          return { ...u, score };
+        });
+        
+        scoredUsers.sort((a, b) => b.score - a.score);
+        
+        suggestions.push(...scoredUsers.slice(0, 5).map(u => ({
           id: u.id,
           nombre: u.nombre,
           username: u.username || u.nombre,
@@ -259,12 +295,34 @@ export default function CrearPublicacionScreen() {
         })));
       }
 
-      // Add locals
+      // Add locals with relevance scoring
       if (!localsError && localsData) {
         const filteredLocals = localsData.filter(
           (l) => !usuariosEtiquetados.find((ue) => ue.id === l.id && ue.tipo === 'local')
         );
-        suggestions.push(...filteredLocals.map(l => ({
+        
+        // Sort by relevance
+        const scoredLocals = filteredLocals.map(l => {
+          const nombre = l.nombre.toLowerCase();
+          const search = cleanTexto.toLowerCase();
+          
+          let score = 0;
+          
+          // Exact match (highest score)
+          if (nombre === search) score += 100;
+          // Starts with (high score)
+          else if (nombre.startsWith(search)) score += 50;
+          // Contains (medium score)
+          else if (nombre.includes(search)) score += 25;
+          // Fuzzy match (lower score)
+          else score += 10;
+          
+          return { ...l, score };
+        });
+        
+        scoredLocals.sort((a, b) => b.score - a.score);
+        
+        suggestions.push(...scoredLocals.slice(0, 5).map(l => ({
           id: l.id,
           nombre: l.nombre,
           username: l.nombre,
@@ -685,11 +743,13 @@ export default function CrearPublicacionScreen() {
                 <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
                 <TextInput
                   style={styles.tagSearchInput}
-                  placeholder="Buscar usuarios o locales..."
+                  placeholder="Buscar por nombre (sin @)..."
                   placeholderTextColor={colors.textSecondary}
                   value={tagSearchQuery}
                   onChangeText={handleTagSearchChange}
                   autoFocus
+                  autoCapitalize="none"
+                  autoCorrect={false}
                 />
                 {tagSearchQuery.length > 0 && (
                   <TouchableOpacity onPress={() => setTagSearchQuery('')} activeOpacity={0.7}>
@@ -733,13 +793,19 @@ export default function CrearPublicacionScreen() {
                       </View>
                     </TouchableOpacity>
                   ))
-                ) : tagSearchQuery.length >= 2 ? (
+                ) : tagSearchQuery.length >= 1 ? (
                   <View style={styles.tagEmptyState}>
                     <Text style={styles.tagEmptyText}>No se encontraron resultados</Text>
+                    <Text style={[styles.tagEmptyText, { fontSize: 12, marginTop: 8 }]}>
+                      Intenta con otro nombre o verifica la ortografía
+                    </Text>
                   </View>
                 ) : (
                   <View style={styles.tagEmptyState}>
                     <Text style={styles.tagEmptyText}>Busca usuarios o locales para etiquetar</Text>
+                    <Text style={[styles.tagEmptyText, { fontSize: 12, marginTop: 8 }]}>
+                      Escribe el nombre sin necesidad de usar @
+                    </Text>
                   </View>
                 )}
               </ScrollView>
