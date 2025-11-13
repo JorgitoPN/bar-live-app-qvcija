@@ -91,16 +91,19 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
             lastNavigationTime.current = now;
 
             try {
-              // FIXED: Check if this is the perfil tab and handle navigation based on active profile type
+              // FIXED: Check if this is the perfil tab and handle navigation based on current mode
               if (tab.name === 'perfil') {
-                console.log('[FloatingTabBar] 🔍 Perfil tab pressed, activeProfileType:', activeProfileType, 'activeProfileId:', activeProfileId);
+                console.log('[FloatingTabBar] 🔍 Perfil tab pressed, currentMode:', currentMode, 'activeProfileType:', activeProfileType, 'activeProfileId:', activeProfileId);
                 
-                if (activeProfileType === 'local' && activeProfileId) {
+                // Navigate based on current mode, not just activeProfileType
+                // In client mode, ALWAYS go to user profile
+                // In owner mode with a local profile active, go to local profile
+                if (currentMode === 'propietario' && activeProfileType === 'local' && activeProfileId) {
                   // Navigate to local profile page
                   console.log('[FloatingTabBar] ✅ Navigating to local profile:', activeProfileId);
                   router.push(`/perfil/local?localId=${activeProfileId}` as any);
                 } else {
-                  // Navigate to user profile page
+                  // Navigate to user profile page (default for client mode)
                   console.log('[FloatingTabBar] ✅ Navigating to user profile');
                   router.push(tab.route as any);
                 }
