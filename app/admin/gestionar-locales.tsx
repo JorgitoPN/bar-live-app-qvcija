@@ -187,7 +187,7 @@ export default function GestionarLocalesScreen() {
     console.log('[GestionarLocales] Initial load');
     cargarContadores();
     cargarLocales(true, 1);
-  }, []);
+  }, [cargarContadores, cargarLocales]);
 
   // Reload when filters change - with debounce to prevent rapid calls
   useEffect(() => {
@@ -198,7 +198,7 @@ export default function GestionarLocalesScreen() {
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [busqueda, filtroPropietario, filtroTipo, filtroEstado, filtroEnriquecido, filtroDestacado]);
+  }, [busqueda, filtroPropietario, filtroTipo, filtroEstado, filtroEnriquecido, filtroDestacado, cargarLocales, initialLoading]);
 
   const toggleEstadoLocal = useCallback(async (localId: string, activo: boolean) => {
     try {

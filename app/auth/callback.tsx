@@ -88,10 +88,14 @@ export default function AuthCallbackScreen() {
               registerForPushNotifications()
                 .then(pushToken => {
                   if (pushToken) {
-                    savePushToken(data.user.id, pushToken).catch(() => {});
+                    savePushToken(data.user.id, pushToken).catch(() => {
+                      console.log('[Callback] Failed to save push token');
+                    });
                   }
                 })
-                .catch(() => {});
+                .catch(() => {
+                  console.log('[Callback] Failed to register push notifications');
+                });
               
               // Get user profile to check if needs profile completion
               console.log('[Callback] 🔍 Obteniendo perfil de usuario...');
@@ -164,10 +168,14 @@ export default function AuthCallbackScreen() {
           registerForPushNotifications()
             .then(pushToken => {
               if (pushToken) {
-                savePushToken(session.user.id, pushToken).catch(() => {});
+                savePushToken(session.user.id, pushToken).catch(() => {
+                  console.log('[Callback] Failed to save push token');
+                });
               }
             })
-            .catch(() => {});
+            .catch(() => {
+              console.log('[Callback] Failed to register push notifications');
+            });
           
           // Get user profile to check if needs profile completion
           console.log('[Callback] 🔍 Obteniendo perfil de usuario...');
@@ -233,7 +241,7 @@ export default function AuthCallbackScreen() {
         clearTimeout(redirectTimeout);
       }
     };
-  }, [router]);
+  }, [router, params]);
 
   return (
     <View style={styles.container}>

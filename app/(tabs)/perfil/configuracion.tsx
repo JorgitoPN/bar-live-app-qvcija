@@ -1,11 +1,5 @@
 
-import { colors, commonStyles } from '@/styles/commonStyles';
-import { useRouter } from 'expo-router';
 import React, { useState, useEffect, useCallback } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from '@/utils/supabase';
-import { LinearGradient } from 'expo-linear-gradient';
-import { IconSymbol } from '@/components/IconSymbol';
 import {
   View,
   Text,
@@ -18,6 +12,12 @@ import {
   Modal,
   Pressable,
 } from 'react-native';
+import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { IconSymbol } from '@/components/IconSymbol';
+import { colors, commonStyles } from '@/styles/commonStyles';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function ConfiguracionScreen() {
@@ -32,12 +32,6 @@ export default function ConfiguracionScreen() {
   const [cacheSizeMB, setCacheSizeMB] = useState(0);
   const [showTamanoModal, setShowTamanoModal] = useState(false);
   const [showIdiomaModal, setShowIdiomaModal] = useState(false);
-
-  useEffect(() => {
-    if (user) {
-      loadUserSettings();
-    }
-  }, [user]);
 
   const loadUserSettings = useCallback(async () => {
     try {
@@ -62,6 +56,12 @@ export default function ConfiguracionScreen() {
       console.error('[Configuracion] Error cargando configuración:', error);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      loadUserSettings();
+    }
+  }, [user, loadUserSettings]);
 
   const calculateCacheSize = async () => {
     try {

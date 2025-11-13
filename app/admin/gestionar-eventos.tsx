@@ -61,11 +61,7 @@ export default function GestionarEventosScreen() {
   const [showFilters, setShowFilters] = useState(false);
   const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
 
-  useEffect(() => {
-    cargarEventos();
-  }, [busqueda, filtroEstado, filtroDestacado, filtroProvincia, paginaActual]);
-
-  const cargarEventos = async () => {
+  const cargarEventos = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -116,7 +112,11 @@ export default function GestionarEventosScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [busqueda, filtroEstado, filtroDestacado, filtroProvincia, paginaActual]);
+
+  useEffect(() => {
+    cargarEventos();
+  }, [cargarEventos]);
 
   const toggleEstadoEvento = async (eventoId: string, activo: boolean) => {
     try {

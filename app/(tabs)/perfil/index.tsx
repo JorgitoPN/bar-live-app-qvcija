@@ -158,13 +158,7 @@ export default function PerfilScreen() {
     ownedLocals,
   } = useMode();
   
-  // FIXED: Immediate redirect if active profile is local
-  // This prevents the user profile page from loading at all
-  if (activeProfileType === 'local' && activeProfileId) {
-    console.log('[Perfil] ✅ Active profile is local, redirecting immediately to:', activeProfileId);
-    return <Redirect href={`/perfil/local?localId=${activeProfileId}`} />;
-  }
-
+  // FIXED: Move all hooks to the top level before any conditional returns
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -219,76 +213,6 @@ export default function PerfilScreen() {
   const displayName = user?.nombre || 'Usuario';
   const displayAvatar = user?.avatar;
 
-  useFocusEffect(
-    useCallback(() => {
-      console.log('[Perfil] 📍 Screen focused, active profile type:', activeProfileType);
-      
-      // FIXED: If active profile is local when screen is focused, redirect immediately
-      if (activeProfileType === 'local' && activeProfileId) {
-        console.log('[Perfil] ⚠️ Active profile is local on focus, redirecting to:', activeProfileId);
-        router.replace(`/perfil/local?localId=${activeProfileId}`);
-        return;
-      }
-      
-      if (user) {
-        loadUnreadCounts();
-        
-        const notificationsChannel = supabase
-          .channel('notifications-changes')
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'notificaciones',
-              filter: `usuario_id=eq.${user.id}`,
-            },
-            () => {
-              loadUnreadCounts();
-            }
-          )
-          .subscribe();
-
-        const messagesChannel = supabase
-          .channel('messages-changes')
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'mensajes',
-            },
-            () => {
-              loadUnreadCounts();
-            }
-          )
-          .subscribe();
-
-        return () => {
-          supabase.removeChannel(notificationsChannel);
-          supabase.removeChannel(messagesChannel);
-        };
-      }
-    }, [user, activeProfileType, activeProfileId, router])
-  );
-
-  useEffect(() => {
-    if (!authLoading) {
-      if (user) {
-        // FIXED: Only load user profile data if active profile is cliente
-        if (activeProfileType === 'cliente') {
-          console.log('[Perfil] ✅ Loading user profile (active profile is cliente)');
-          cargarDatosPerfil();
-        } else {
-          console.log('[Perfil] ⚠️ Active profile is not cliente, skipping data load');
-          setLoading(false);
-        }
-      } else {
-        setLoading(false);
-      }
-    }
-  }, [user, authLoading, activeProfileType]);
-
   const loadUnreadCounts = useCallback(async () => {
     if (!user) return;
 
@@ -325,7 +249,7 @@ export default function PerfilScreen() {
     }
   }, [user]);
 
-  const cargarDatosPerfil = async () => {
+  const cargarDatosPerfil = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -435,9 +359,9 @@ export default function PerfilScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [user, loadUnreadCounts]);
 
-  const cargarContenido = async () => {
+  const cargarContenido = useCallback(async () => {
     if (!user) return;
 
     setLoadingPosts(true);
@@ -456,9 +380,9 @@ export default function PerfilScreen() {
     } finally {
       setLoadingPosts(false);
     }
-  };
+  }, [user, activeTab, searchQuery, provinciaFiltro, empleoTab, fechaDesde, fechaHasta, isPropietario]);
 
-  const cargarPosts = async () => {
+  const cargarPosts = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -513,9 +437,9 @@ export default function PerfilScreen() {
     } catch (error) {
       console.error('[Perfil] Error cargando posts:', error);
     }
-  };
+  }, [user]);
 
-  const cargarFavoritos = async () => {
+  const cargarFavoritos = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -575,9 +499,9 @@ export default function PerfilScreen() {
     } catch (error) {
       console.error('[Perfil] Error cargando favoritos:', error);
     }
-  };
+  }, [user]);
 
-  const cargarEtiquetados = async () => {
+  const cargarEtiquetados = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -643,9 +567,9 @@ export default function PerfilScreen() {
     } catch (error) {
       console.error('[Perfil] Error cargando etiquetados:', error);
     }
-  };
+  }, [user]);
 
-  const cargarDatosEmpleo = async () => {
+  const cargarDatosEmpleo = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -725,157 +649,7 @@ export default function PerfilScreen() {
     } finally {
       setLoadingEmpleo(false);
     }
-  };
-
-  useEffect(() => {
-    if (user && activeProfileType === 'cliente') {
-      cargarContenido();
-    }
-  }, [activeTab, user, searchQuery, provinciaFiltro, empleoTab, fechaDesde, fechaHasta, activeProfileType]);
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    cargarDatosPerfil();
-  };
-
-  const handleEditProfile = () => {
-    if (!user) {
-      setShowLoginModal(true);
-      return;
-    }
-    
-    router.push('/editar/perfil');
-  };
-
-  const handleSettings = () => {
-    if (!user) {
-      setShowLoginModal(true);
-      return;
-    }
-    router.push('/(tabs)/perfil/configuracion');
-  };
-
-  const handleNotifications = () => {
-    if (!user) {
-      setShowLoginModal(true);
-      return;
-    }
-    router.push('/(tabs)/perfil/notificaciones');
-  };
-
-  const handleChats = () => {
-    if (!user) {
-      setShowLoginModal(true);
-      return;
-    }
-    router.push('/(tabs)/perfil/chats');
-  };
-
-  const handleSeguidores = () => {
-    if (!user) {
-      setShowLoginModal(true);
-      return;
-    }
-    
-    router.push(`/perfil/seguidores?userId=${user.id}`);
-  };
-
-  const handleSeguidos = () => {
-    if (!user) {
-      setShowLoginModal(true);
-      return;
-    }
-    router.push(`/perfil/seguidos?userId=${user.id}`);
-  };
-
-  const handleCrearOferta = () => {
-    if (!user) {
-      setShowLoginModal(true);
-      return;
-    }
-    router.push('/crear/oferta-trabajo');
-  };
-
-  const handleCrearPerfil = () => {
-    if (!user) {
-      setShowLoginModal(true);
-      return;
-    }
-    router.push('/crear/perfil-profesional');
-  };
-
-  const handleEditarPerfil = (perfilId: string) => {
-    router.push('/crear/perfil-profesional');
-  };
-
-  const handleEliminarPerfil = async (perfilId: string) => {
-    Alert.alert(
-      'Eliminar Perfil',
-      '¿Estás seguro de que quieres eliminar tu perfil profesional?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const { error } = await supabase
-                .from('perfiles_profesionales')
-                .update({ activo: false })
-                .eq('id', perfilId);
-
-              if (error) throw error;
-
-              Alert.alert('Éxito', 'Perfil eliminado correctamente');
-              await cargarDatosEmpleo();
-            } catch (error) {
-              console.error('[Perfil] Error eliminando perfil:', error);
-              Alert.alert('Error', 'No se pudo eliminar el perfil');
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const handleVerOferta = (oferta: OfertaTrabajo) => {
-    router.push(`/empleo/oferta-detalle?id=${oferta.id}`);
-  };
-
-  const handleVerPerfil = (perfil: PerfilProfesional) => {
-    router.push(`/empleo/perfil-detalle?id=${perfil.id}`);
-  };
-
-  const handleWebsite = () => {
-    if (user?.sitio_web) {
-      Linking.openURL(user.sitio_web);
-    }
-  };
-
-  const limpiarFiltros = () => {
-    setSearchQuery('');
-    setProvinciaFiltro('');
-    setFechaDesde(null);
-    setFechaHasta(null);
-  };
-
-  const formatDate = (date: Date | null) => {
-    if (!date) return 'Seleccionar';
-    return date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  };
-
-  const calcularDiasPublicado = (fecha: string): string => {
-    const ahora = new Date();
-    const fechaPublicacion = new Date(fecha);
-    const diffMs = ahora.getTime() - fechaPublicacion.getTime();
-    const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-    if (diffDias === 0) return 'Hoy';
-    if (diffDias === 1) return 'Ayer';
-    if (diffDias < 7) return `Hace ${diffDias} días`;
-    if (diffDias < 30) return `Hace ${Math.floor(diffDias / 7)} semanas`;
-    return `Hace ${Math.floor(diffDias / 30)} meses`;
-  };
+  }, [user, isPropietario, searchQuery, provinciaFiltro, fechaDesde, fechaHasta]);
 
   const stopStoryTimer = useCallback(() => {
     if (storyTimerRef.current) {
@@ -1071,6 +845,82 @@ export default function PerfilScreen() {
     }
   }, [userStories, currentStoryIndex, user, stopStoryTimer]);
 
+  useFocusEffect(
+    useCallback(() => {
+      console.log('[Perfil] 📍 Screen focused, active profile type:', activeProfileType);
+      
+      // FIXED: If active profile is local when screen is focused, redirect immediately
+      if (activeProfileType === 'local' && activeProfileId) {
+        console.log('[Perfil] ⚠️ Active profile is local on focus, redirecting to:', activeProfileId);
+        router.replace(`/perfil/local?localId=${activeProfileId}`);
+        return;
+      }
+      
+      if (user) {
+        loadUnreadCounts();
+        
+        const notificationsChannel = supabase
+          .channel('notifications-changes')
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'notificaciones',
+              filter: `usuario_id=eq.${user.id}`,
+            },
+            () => {
+              loadUnreadCounts();
+            }
+          )
+          .subscribe();
+
+        const messagesChannel = supabase
+          .channel('messages-changes')
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'mensajes',
+            },
+            () => {
+              loadUnreadCounts();
+            }
+          )
+          .subscribe();
+
+        return () => {
+          supabase.removeChannel(notificationsChannel);
+          supabase.removeChannel(messagesChannel);
+        };
+      }
+    }, [user, activeProfileType, activeProfileId, router, loadUnreadCounts])
+  );
+
+  useEffect(() => {
+    if (!authLoading) {
+      if (user) {
+        // FIXED: Only load user profile data if active profile is cliente
+        if (activeProfileType === 'cliente') {
+          console.log('[Perfil] ✅ Loading user profile (active profile is cliente)');
+          cargarDatosPerfil();
+        } else {
+          console.log('[Perfil] ⚠️ Active profile is not cliente, skipping data load');
+          setLoading(false);
+        }
+      } else {
+        setLoading(false);
+      }
+    }
+  }, [user, authLoading, activeProfileType, cargarDatosPerfil]);
+
+  useEffect(() => {
+    if (user && activeProfileType === 'cliente') {
+      cargarContenido();
+    }
+  }, [activeTab, user, searchQuery, provinciaFiltro, empleoTab, fechaDesde, fechaHasta, activeProfileType, cargarContenido]);
+
   useEffect(() => {
     if (showStoryViewer && !isPaused) {
       startStoryTimer();
@@ -1079,6 +929,156 @@ export default function PerfilScreen() {
       stopStoryTimer();
     };
   }, [showStoryViewer, currentStoryIndex, isPaused, startStoryTimer, stopStoryTimer]);
+
+  // FIXED: Now check for redirect AFTER all hooks are called
+  if (activeProfileType === 'local' && activeProfileId) {
+    console.log('[Perfil] ✅ Active profile is local, redirecting immediately to:', activeProfileId);
+    return <Redirect href={`/perfil/local?localId=${activeProfileId}`} />;
+  }
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    cargarDatosPerfil();
+  };
+
+  const handleEditProfile = () => {
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+    
+    router.push('/editar/perfil');
+  };
+
+  const handleSettings = () => {
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+    router.push('/(tabs)/perfil/configuracion');
+  };
+
+  const handleNotifications = () => {
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+    router.push('/(tabs)/perfil/notificaciones');
+  };
+
+  const handleChats = () => {
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+    router.push('/(tabs)/perfil/chats');
+  };
+
+  const handleSeguidores = () => {
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+    
+    router.push(`/perfil/seguidores?userId=${user.id}`);
+  };
+
+  const handleSeguidos = () => {
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+    router.push(`/perfil/seguidos?userId=${user.id}`);
+  };
+
+  const handleCrearOferta = () => {
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+    router.push('/crear/oferta-trabajo');
+  };
+
+  const handleCrearPerfil = () => {
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+    router.push('/crear/perfil-profesional');
+  };
+
+  const handleEditarPerfil = (perfilId: string) => {
+    router.push('/crear/perfil-profesional');
+  };
+
+  const handleEliminarPerfil = async (perfilId: string) => {
+    Alert.alert(
+      'Eliminar Perfil',
+      '¿Estás seguro de que quieres eliminar tu perfil profesional?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('perfiles_profesionales')
+                .update({ activo: false })
+                .eq('id', perfilId);
+
+              if (error) throw error;
+
+              Alert.alert('Éxito', 'Perfil eliminado correctamente');
+              await cargarDatosEmpleo();
+            } catch (error) {
+              console.error('[Perfil] Error eliminando perfil:', error);
+              Alert.alert('Error', 'No se pudo eliminar el perfil');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleVerOferta = (oferta: OfertaTrabajo) => {
+    router.push(`/empleo/oferta-detalle?id=${oferta.id}`);
+  };
+
+  const handleVerPerfil = (perfil: PerfilProfesional) => {
+    router.push(`/empleo/perfil-detalle?id=${perfil.id}`);
+  };
+
+  const handleWebsite = () => {
+    if (user?.sitio_web) {
+      Linking.openURL(user.sitio_web);
+    }
+  };
+
+  const limpiarFiltros = () => {
+    setSearchQuery('');
+    setProvinciaFiltro('');
+    setFechaDesde(null);
+    setFechaHasta(null);
+  };
+
+  const formatDate = (date: Date | null) => {
+    if (!date) return 'Seleccionar';
+    return date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  };
+
+  const calcularDiasPublicado = (fecha: string): string => {
+    const ahora = new Date();
+    const fechaPublicacion = new Date(fecha);
+    const diffMs = ahora.getTime() - fechaPublicacion.getTime();
+    const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDias === 0) return 'Hoy';
+    if (diffDias === 1) return 'Ayer';
+    if (diffDias < 7) return `Hace ${diffDias} días`;
+    if (diffDias < 30) return `Hace ${Math.floor(diffDias / 7)} semanas`;
+    return `Hace ${Math.floor(diffDias / 30)} meses`;
+  };
 
   const renderGridPost = (post: Post) => (
     <TouchableOpacity
