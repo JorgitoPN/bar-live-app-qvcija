@@ -89,7 +89,7 @@ export default function CrearPublicacionScreen() {
   const localId = params.localId as string | undefined;
   
   const [contenido, setContenido] = useState('');
-  const [imagen, setImagen] = useState<string | null>(null);
+  const [imagenes, setImagenes] = useState<string[]>([]);
   const [ubicacion, setUbicacion] = useState<{
     nombre: string;
     lat: number;
@@ -104,7 +104,9 @@ export default function CrearPublicacionScreen() {
   const [userSuggestions, setUserSuggestions] = useState<UserSuggestion[]>([]);
   const [searchingUsers, setSearchingUsers] = useState(false);
 
-  const seleccionarImagen = async () => {
+  const MAX_IMAGES = 10; // Instagram allows up to 10 images
+
+  const seleccionarImagenes = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
     if (status !== 'granted') {
@@ -115,15 +117,22 @@ export default function CrearPublicacionScreen() {
       return;
     }
 
+    const remainingSlots = MAX_IMAGES - imagenes.length;
+    if (remainingSlots <= 0) {
+      Alert.alert('Límite alcanzado', `Solo puedes subir hasta ${MAX_IMAGES} imágenes por publicación`);
+      return;
+    }
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
+      allowsMultipleSelection: true,
       quality: 0.8,
+      selectionLimit: remainingSlots,
     });
 
-    if (!result.canceled && result.assets[0]) {
-      setImagen(result.assets[0].uri);
+    if (!result.canceled && result.assets.length > 0) {
+      const newImages = result.assets.map(asset => asset.uri);
+      setImagenes([...imagenes, ...newImages]);
     }
   };
 
@@ -138,6 +147,11 @@ export default function CrearPublicacionScreen() {
       return;
     }
 
+    if (imagenes.length >= MAX_IMAGES) {
+      Alert.alert('Límite alcanzado', `Solo puedes subir hasta ${MAX_IMAGES} imágenes por publicación`);
+      return;
+    }
+
     const result = await ImagePicker.launchCameraAsync({
       allowsEditing: true,
       aspect: [4, 3],
@@ -145,8 +159,14 @@ export default function CrearPublicacionScreen() {
     });
 
     if (!result.canceled && result.assets[0]) {
-      setImagen(result.assets[0].uri);
+      setImagenes([...imagenes, result.assets[0].uri]);
     }
+  };
+
+  const eliminarImagen = (index: number) => {
+    const newImagenes = [...imagenes];
+    newImagenes.splice(index, 1);
+    setImagenes(newImagenes);
   };
 
   const obtenerUbicacion = async () => {
@@ -257,9 +277,6 @@ export default function CrearPublicacionScreen() {
 
   const uploadImage = async (uri: string): Promise<string | null> => {
     try {
-      console.log('[CrearPublicacion] Starting image upload...');
-      setUploadProgress(10);
-      
       let blob: Blob;
       if (Platform.OS === 'web') {
         blob = await convertImageToJPG(uri);
@@ -268,10 +285,7 @@ export default function CrearPublicacionScreen() {
         blob = await response.blob();
       }
 
-      setUploadProgress(30);
-
-      const fileName = `${user!.id}/${Date.now()}.jpg`;
-      console.log('[CrearPublicacion] Uploading file:', fileName);
+      const fileName = `${user!.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
 
       const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
         const reader = new FileReader();
@@ -279,8 +293,6 @@ export default function CrearPublicacionScreen() {
         reader.onerror = reject;
         reader.readAsArrayBuffer(blob);
       });
-
-      setUploadProgress(50);
 
       const { data, error } = await supabase.storage
         .from('posts')
@@ -294,12 +306,7 @@ export default function CrearPublicacionScreen() {
         return null;
       }
 
-      setUploadProgress(70);
-      console.log('[CrearPublicacion] Image uploaded successfully');
-
       const { data: urlData } = supabase.storage.from('posts').getPublicUrl(fileName);
-
-      setUploadProgress(80);
       return urlData.publicUrl;
     } catch (error) {
       console.error('[CrearPublicacion] Error in uploadImage:', error);
@@ -308,8 +315,8 @@ export default function CrearPublicacionScreen() {
   };
 
   const publicar = async () => {
-    if (!contenido.trim() && !imagen) {
-      Alert.alert('Error', 'Debes agregar contenido o una imagen');
+    if (!contenido.trim() && imagenes.length === 0) {
+      Alert.alert('Error', 'Debes agregar contenido o al menos una imagen');
       return;
     }
 
@@ -328,18 +335,33 @@ export default function CrearPublicacionScreen() {
       console.log('[CrearPublicacion] Active profile ID:', activeProfileId);
       console.log('[CrearPublicacion] LocalId param:', localId);
       console.log('[CrearPublicacion] User ID:', user.id);
+      console.log('[CrearPublicacion] Number of images:', imagenes.length);
       
-      let imagenUrl = null;
-      if (imagen) {
-        imagenUrl = await uploadImage(imagen);
-        if (!imagenUrl) {
-          Alert.alert('Error', 'No se pudo subir la imagen');
-          setPublishing(false);
-          setShowUploadProgress(false);
-          return;
+      let imagenesUrls: string[] = [];
+      if (imagenes.length > 0) {
+        console.log('[CrearPublicacion] Uploading', imagenes.length, 'images...');
+        
+        // Upload images with progress tracking
+        for (let i = 0; i < imagenes.length; i++) {
+          const progressStart = 10 + (i * 60 / imagenes.length);
+          setUploadProgress(progressStart);
+          
+          const imageUrl = await uploadImage(imagenes[i]);
+          if (!imageUrl) {
+            Alert.alert('Error', `No se pudo subir la imagen ${i + 1}`);
+            setPublishing(false);
+            setShowUploadProgress(false);
+            return;
+          }
+          imagenesUrls.push(imageUrl);
+          
+          const progressEnd = 10 + ((i + 1) * 60 / imagenes.length);
+          setUploadProgress(progressEnd);
         }
+        
+        console.log('[CrearPublicacion] All images uploaded successfully');
       } else {
-        setUploadProgress(80);
+        setUploadProgress(70);
       }
 
       // Determine the correct author based on active profile
@@ -362,21 +384,29 @@ export default function CrearPublicacionScreen() {
       console.log('[CrearPublicacion] ✅ Final effective local ID:', effectiveLocalId);
       console.log('[CrearPublicacion] ✅ Final post tipo:', postTipo);
 
-      setUploadProgress(85);
+      setUploadProgress(75);
 
       // Create post with correct author context
-      const { data: postData, error: postError } = await supabase
+      // Keep backward compatibility: if only one image, also set 'imagen' field
+      const postData: any = {
+        autor_id: user.id,
+        tipo: postTipo,
+        local_id: effectiveLocalId,
+        contenido: contenido,
+        imagenes: imagenesUrls,
+        ubicacion: ubicacion?.nombre,
+        ubicacion_lat: ubicacion?.lat,
+        ubicacion_lng: ubicacion?.lng,
+      };
+
+      // Backward compatibility: set imagen field if only one image
+      if (imagenesUrls.length === 1) {
+        postData.imagen = imagenesUrls[0];
+      }
+
+      const { data: postData2, error: postError } = await supabase
         .from('posts')
-        .insert({
-          autor_id: user.id,
-          tipo: postTipo,
-          local_id: effectiveLocalId,
-          contenido: contenido,
-          imagen: imagenUrl,
-          ubicacion: ubicacion?.nombre,
-          ubicacion_lat: ubicacion?.lat,
-          ubicacion_lng: ubicacion?.lng,
-        })
+        .insert(postData)
         .select()
         .single();
 
@@ -385,13 +415,13 @@ export default function CrearPublicacionScreen() {
         throw postError;
       }
 
-      console.log('[CrearPublicacion] ✅ Post created successfully:', postData);
+      console.log('[CrearPublicacion] ✅ Post created successfully:', postData2);
 
-      setUploadProgress(90);
+      setUploadProgress(85);
 
-      if (usuariosEtiquetados.length > 0 && postData) {
+      if (usuariosEtiquetados.length > 0 && postData2) {
         const tags = usuariosEtiquetados.map((u) => ({
-          post_id: postData.id,
+          post_id: postData2.id,
           usuario_id: u.id,
         }));
 
@@ -407,13 +437,13 @@ export default function CrearPublicacionScreen() {
           titulo: 'Te han etiquetado',
           mensaje: `${user.nombre} te ha etiquetado en una publicación`,
           usuario_origen_id: user.id,
-          post_id: postData.id,
+          post_id: postData2.id,
         }));
 
         await supabase.from('notificaciones').insert(notifications);
       }
 
-      setUploadProgress(95);
+      setUploadProgress(90);
 
       // Refresh global data to show new post immediately
       console.log('[CrearPublicacion] 🔄 Refreshing global data...');
@@ -541,37 +571,60 @@ export default function CrearPublicacionScreen() {
           </View>
         )}
 
-        {imagen && (
-          <View style={styles.imageContainer}>
-            <Image source={{ uri: imagen }} style={styles.selectedImage} />
-            <TouchableOpacity
-              style={styles.removeImageButton}
-              onPress={() => setImagen(null)}
-              activeOpacity={0.7}
-            >
-              <IconSymbol name="xmark.circle.fill" size={32} color={colors.badgeNuevo} />
-            </TouchableOpacity>
+        {imagenes.length > 0 && (
+          <View style={styles.imagesContainer}>
+            <View style={styles.imagesHeader}>
+              <Text style={styles.imagesCount}>
+                {imagenes.length} {imagenes.length === 1 ? 'imagen' : 'imágenes'}
+              </Text>
+              {imagenes.length < MAX_IMAGES && (
+                <Text style={styles.imagesLimit}>
+                  (máximo {MAX_IMAGES})
+                </Text>
+              )}
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagesScroll}>
+              {imagenes.map((uri, index) => (
+                <View key={index} style={styles.imageWrapper}>
+                  <Image source={{ uri }} style={styles.selectedImage} />
+                  <TouchableOpacity
+                    style={styles.removeImageButton}
+                    onPress={() => eliminarImagen(index)}
+                    activeOpacity={0.7}
+                  >
+                    <IconSymbol name="xmark.circle.fill" size={28} color={colors.badgeNuevo} />
+                  </TouchableOpacity>
+                  <View style={styles.imageIndexBadge}>
+                    <Text style={styles.imageIndexText}>{index + 1}</Text>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
           </View>
         )}
 
         <View style={styles.options}>
           <TouchableOpacity 
             style={styles.optionButton} 
-            onPress={seleccionarImagen}
-            disabled={publishing}
+            onPress={seleccionarImagenes}
+            disabled={publishing || imagenes.length >= MAX_IMAGES}
             activeOpacity={0.7}
           >
-            <IconSymbol name="photo" size={28} color={colors.primary} />
-            <Text style={styles.optionText}>Galería</Text>
+            <IconSymbol name="photo" size={28} color={imagenes.length >= MAX_IMAGES ? colors.textSecondary : colors.primary} />
+            <Text style={[styles.optionText, imagenes.length >= MAX_IMAGES && styles.optionTextDisabled]}>
+              Galería
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.optionButton} 
             onPress={tomarFoto}
-            disabled={publishing}
+            disabled={publishing || imagenes.length >= MAX_IMAGES}
             activeOpacity={0.7}
           >
-            <IconSymbol name="camera" size={28} color={colors.secondary} />
-            <Text style={styles.optionText}>Cámara</Text>
+            <IconSymbol name="camera" size={28} color={imagenes.length >= MAX_IMAGES ? colors.textSecondary : colors.secondary} />
+            <Text style={[styles.optionText, imagenes.length >= MAX_IMAGES && styles.optionTextDisabled]}>
+              Cámara
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.optionButton}
@@ -592,7 +645,7 @@ export default function CrearPublicacionScreen() {
       <UploadProgressModal
         visible={showUploadProgress}
         progress={uploadProgress}
-        message="Publicando contenido..."
+        message={imagenes.length > 1 ? `Subiendo ${imagenes.length} imágenes...` : "Publicando contenido..."}
       />
     </View>
   );
@@ -736,20 +789,57 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.text,
   },
-  imageContainer: {
-    position: 'relative',
+  imagesContainer: {
     marginBottom: 20,
   },
+  imagesHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
+  },
+  imagesCount: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  imagesLimit: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  imagesScroll: {
+    flexDirection: 'row',
+  },
+  imageWrapper: {
+    position: 'relative',
+    marginRight: 12,
+  },
   selectedImage: {
-    width: '100%',
-    height: 300,
+    width: 200,
+    height: 200,
     borderRadius: 12,
     backgroundColor: colors.cardBorder,
   },
   removeImageButton: {
     position: 'absolute',
-    top: 12,
-    right: 12,
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 14,
+  },
+  imageIndexBadge: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  imageIndexText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.headerText,
   },
   options: {
     flexDirection: 'row',
@@ -771,5 +861,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: colors.text,
+  },
+  optionTextDisabled: {
+    color: colors.textSecondary,
   },
 });

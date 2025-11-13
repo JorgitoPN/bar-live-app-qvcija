@@ -119,10 +119,52 @@ const styles = StyleSheet.create({
   postOptionsButton: {
     padding: 8,
   },
+  imageCarouselContainer: {
+    position: 'relative',
+  },
+  imageCarousel: {
+    width: width,
+  },
   postImagen: {
     width: width,
     height: width,
     backgroundColor: colors.cardBorder,
+  },
+  imageIndicatorContainer: {
+    position: 'absolute',
+    bottom: 12,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+  },
+  imageIndicatorDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  imageIndicatorDotActive: {
+    backgroundColor: 'rgba(255, 255, 255, 1)',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  imageCountBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  imageCountText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.headerText,
   },
   postActions: {
     flexDirection: 'row',
@@ -400,6 +442,7 @@ export default function PostDetailScreen() {
   const [comentarios, setComentarios] = useState<Comentario[]>([]);
   const [comentarioTexto, setComentarioTexto] = useState('');
   const [replyingTo, setReplyingTo] = useState<Comentario | null>(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginMessage, setLoginMessage] = useState('');
@@ -412,7 +455,6 @@ export default function PostDetailScreen() {
     try {
       setLoading(true);
 
-      // FIXED: Load post with local info if it's a local post
       const { data, error } = await supabase
         .from('posts')
         .select(`
@@ -453,7 +495,6 @@ export default function PostDetailScreen() {
         saved = !!saveData;
       }
 
-      // FIXED: Use local info if it's a local post
       const displayName = data.tipo === 'local' && data.local 
         ? data.local.nombre 
         : data.autor?.nombre || 'Usuario';
@@ -461,12 +502,20 @@ export default function PostDetailScreen() {
         ? data.local.imagen_url 
         : data.autor?.avatar || '';
 
+      // Get images array - prioritize imagenes array, fallback to imagen field
+      const images = data.imagenes && data.imagenes.length > 0 
+        ? data.imagenes 
+        : data.imagen 
+          ? [data.imagen] 
+          : [];
+
       setPost({
         ...data,
         autorNombre: displayName,
         autorAvatar: displayAvatar,
         liked,
         saved,
+        images,
       });
     } catch (error) {
       console.error('[PostDetail] Error:', error);
@@ -478,7 +527,6 @@ export default function PostDetailScreen() {
 
   const loadComentarios = useCallback(async () => {
     try {
-      // FIXED: Load comments with local info if they're local comments
       const { data, error } = await supabase
         .from('comentarios')
         .select(`
@@ -496,7 +544,6 @@ export default function PostDetailScreen() {
 
       console.log('[PostDetail] Loaded comments for post:', params.id, 'Count:', data?.length || 0);
 
-      // FIXED: Map comments to use local info if tipo='local'
       const mappedComments = (data || []).map(comment => ({
         ...comment,
         autor: comment.tipo === 'local' && comment.local 
@@ -525,7 +572,6 @@ export default function PostDetailScreen() {
           })
         );
 
-        // Organize comments into parent-child structure
         const parentComments = commentsWithLikes.filter(c => !c.parent_comment_id);
         const childComments = commentsWithLikes.filter(c => c.parent_comment_id);
 
@@ -569,16 +615,13 @@ export default function PostDetailScreen() {
       loadComentarios();
     }
 
-    // Check if share parameter is present
     if (params.share === 'true') {
-      // Delay to ensure post is loaded
       setTimeout(() => {
         handleShare();
       }, 500);
     }
   }, [params.id, loadPost, loadComentarios, params.share, handleShare]);
 
-  // Prevent double-clicking with a ref to track ongoing operations
   const isLikingRef = useRef(false);
 
   const toggleLike = async () => {
@@ -596,7 +639,6 @@ export default function PostDetailScreen() {
       return;
     }
 
-    // Prevent double-clicking
     if (isLikingRef.current) {
       console.log('[PostDetail] Like operation already in progress');
       return;
@@ -607,10 +649,8 @@ export default function PostDetailScreen() {
 
     console.log('[PostDetail] Current like status:', isLiked, 'Likes:', currentLikes);
 
-    // Mark as in progress
     isLikingRef.current = true;
 
-    // Optimistic update
     setPost({
       ...post,
       liked: !isLiked,
@@ -631,7 +671,6 @@ export default function PostDetailScreen() {
           throw deleteError;
         }
         
-        // Update post likes count
         const { error: updateError } = await supabase
           .from('posts')
           .update({ likes: Math.max(0, currentLikes - 1) })
@@ -643,7 +682,6 @@ export default function PostDetailScreen() {
       } else {
         console.log('[PostDetail] Adding like');
         
-        // Check if like already exists before inserting
         const { data: existingLike } = await supabase
           .from('likes')
           .select('id')
@@ -653,7 +691,6 @@ export default function PostDetailScreen() {
         
         if (existingLike) {
           console.log('[PostDetail] Like already exists, skipping insert');
-          // Revert optimistic update
           setPost({
             ...post,
             liked: true,
@@ -673,7 +710,6 @@ export default function PostDetailScreen() {
           throw insertError;
         }
         
-        // Update post likes count
         const { error: updateError } = await supabase
           .from('posts')
           .update({ likes: currentLikes + 1 })
@@ -694,7 +730,6 @@ export default function PostDetailScreen() {
       });
       Alert.alert('Error', 'No se pudo actualizar el me gusta');
     } finally {
-      // Remove from in-progress
       isLikingRef.current = false;
     }
   };
@@ -766,7 +801,6 @@ export default function PostDetailScreen() {
       return;
     }
 
-    // Find comment in parent or replies
     let comment: Comentario | undefined;
     let isReply = false;
     let parentId: string | undefined;
@@ -792,7 +826,6 @@ export default function PostDetailScreen() {
     const isLiked = comment.liked;
     const currentLikes = comment.likes || 0;
 
-    // Optimistic update
     if (isReply && parentId) {
       setComentarios(comentarios.map(c => 
         c.id === parentId 
@@ -839,7 +872,6 @@ export default function PostDetailScreen() {
       }
     } catch (error) {
       console.error('[PostDetail] Error toggling comment like:', error);
-      // Revert on error
       if (isReply && parentId) {
         setComentarios(comentarios.map(c => 
           c.id === parentId 
@@ -896,7 +928,6 @@ export default function PostDetailScreen() {
     if (!user || !post) return;
 
     try {
-      // Check if post is accessible
       if (post.autor?.perfil_privado) {
         const { data: followData } = await supabase
           .from('seguidores')
@@ -914,7 +945,6 @@ export default function PostDetailScreen() {
         }
       }
 
-      // Find or create chat
       const { data: existingChat } = await supabase
         .from('chats')
         .select('id')
@@ -937,7 +967,9 @@ export default function PostDetailScreen() {
         chatId = newChat.id;
       }
 
-      // Send message with post snapshot
+      // Use first image for preview
+      const previewImage = post.images && post.images.length > 0 ? post.images[0] : null;
+
       const { error: messageError } = await supabase
         .from('mensajes')
         .insert({
@@ -946,7 +978,7 @@ export default function PostDetailScreen() {
           contenido: `Compartió una publicación de ${post.autorNombre}`,
           tipo_mensaje: 'post_compartido',
           post_compartido_id: post.id,
-          post_imagen: post.imagen || null,
+          post_imagen: previewImage,
         });
 
       if (messageError) throw messageError;
@@ -987,7 +1019,6 @@ export default function PostDetailScreen() {
       return;
     }
 
-    // FIXED: Check ownership - either user post or local post owned by user
     const isOwner = post.tipo === 'usuario' 
       ? post.autor_id === user.id
       : post.tipo === 'local' && activeLocalProfileId === post.local_id;
@@ -1047,16 +1078,13 @@ export default function PostDetailScreen() {
       console.log('[PostDetail] Is interacting as local:', isInteractingAsLocal);
       console.log('[PostDetail] User:', user?.id, user?.nombre);
       
-      // FIXED: Create comment with correct profile context
-      // If activeLocalProfileId is set, we're commenting as the local
       const commentData: any = {
         post_id: params.id,
-        autor_id: user.id, // Always the logged-in user
+        autor_id: user.id,
         texto: comentarioTexto,
         parent_comment_id: replyingTo?.id || null,
       };
       
-      // Add tipo and local_id if we have an active local profile
       if (activeLocalProfileId) {
         commentData.tipo = 'local';
         commentData.local_id = activeLocalProfileId;
@@ -1084,7 +1112,6 @@ export default function PostDetailScreen() {
 
       console.log('[PostDetail] Comment inserted successfully');
       
-      // FIXED: Map comment to use local info if tipo='local'
       const mappedComment = {
         ...data,
         autor: data.tipo === 'local' && data.local 
@@ -1097,16 +1124,13 @@ export default function PostDetailScreen() {
         liked: false,
       };
       
-      // Add to local state
       if (replyingTo) {
-        // Add as reply
         setComentarios(comentarios.map(c =>
           c.id === replyingTo.id
             ? { ...c, replies: [...(c.replies || []), mappedComment] }
             : c
         ));
       } else {
-        // Add as parent comment
         setComentarios([...comentarios, { ...mappedComment, replies: [] }]);
       }
 
@@ -1120,7 +1144,6 @@ export default function PostDetailScreen() {
         });
       }
 
-      // Update post comments count
       const { error: updateError } = await supabase
         .from('posts')
         .update({ comentarios: (post?.comentarios || 0) + 1 })
@@ -1137,8 +1160,13 @@ export default function PostDetailScreen() {
     }
   };
 
+  const handleScroll = (event: any) => {
+    const contentOffsetX = event.nativeEvent.contentOffset.x;
+    const index = Math.round(contentOffsetX / width);
+    setCurrentImageIndex(index);
+  };
+
   const renderComentario = (comentario: Comentario, isReply: boolean = false) => {
-    // FIXED: Check if current user can delete this comment
     const canDelete = user && (
       (comentario.tipo === 'usuario' && comentario.autor_id === user.id) ||
       (comentario.tipo === 'local' && activeLocalProfileId === comentario.local_id)
@@ -1147,7 +1175,6 @@ export default function PostDetailScreen() {
     return (
       <View key={comentario.id}>
         <View style={styles.comentarioItem}>
-          {/* FIXED: Make avatar clickable to navigate to profile */}
           <TouchableOpacity
             onPress={() => {
               if (comentario.tipo === 'local' && comentario.local_id) {
@@ -1175,7 +1202,6 @@ export default function PostDetailScreen() {
           </TouchableOpacity>
           <View style={styles.comentarioContent}>
             <View style={styles.comentarioHeader}>
-              {/* FIXED: Make name clickable to navigate to profile */}
               <TouchableOpacity
                 onPress={() => {
                   if (comentario.tipo === 'local' && comentario.local_id) {
@@ -1281,7 +1307,6 @@ export default function PostDetailScreen() {
           </View>
         </View>
 
-        {/* Render replies */}
         {!isReply && comentario.replies && comentario.replies.length > 0 && (
           <View style={styles.replyContainer}>
             {comentario.replies.map(reply => renderComentario(reply, true))}
@@ -1354,7 +1379,6 @@ export default function PostDetailScreen() {
         <ScrollView ref={scrollViewRef}>
           <View style={styles.postCard}>
             <View style={styles.postHeader}>
-              {/* FIXED: Make avatar and name clickable to navigate to profile */}
               <TouchableOpacity
                 style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
                 onPress={() => {
@@ -1409,8 +1433,48 @@ export default function PostDetailScreen() {
               )}
             </View>
 
-            {post.imagen && (
-              <Image source={{ uri: post.imagen }} style={styles.postImagen} resizeMode="cover" />
+            {post.images && post.images.length > 0 && (
+              <View style={styles.imageCarouselContainer}>
+                <ScrollView
+                  horizontal
+                  pagingEnabled
+                  showsHorizontalScrollIndicator={false}
+                  onScroll={handleScroll}
+                  scrollEventThrottle={16}
+                  style={styles.imageCarousel}
+                >
+                  {post.images.map((imageUrl: string, index: number) => (
+                    <Image 
+                      key={index} 
+                      source={{ uri: imageUrl }} 
+                      style={styles.postImagen} 
+                      resizeMode="cover" 
+                    />
+                  ))}
+                </ScrollView>
+                
+                {post.images.length > 1 && (
+                  <View style={styles.imageIndicatorContainer}>
+                    {post.images.map((_: string, index: number) => (
+                      <View
+                        key={index}
+                        style={[
+                          styles.imageIndicatorDot,
+                          currentImageIndex === index && styles.imageIndicatorDotActive,
+                        ]}
+                      />
+                    ))}
+                  </View>
+                )}
+
+                {post.images.length > 1 && (
+                  <View style={styles.imageCountBadge}>
+                    <Text style={styles.imageCountText}>
+                      {currentImageIndex + 1}/{post.images.length}
+                    </Text>
+                  </View>
+                )}
+              </View>
             )}
 
             <View style={styles.postActions}>
@@ -1515,7 +1579,6 @@ export default function PostDetailScreen() {
         </View>
       </KeyboardAvoidingView>
 
-      {/* User List Modal for sharing via message */}
       <Modal
         visible={showUserList}
         animationType="slide"
