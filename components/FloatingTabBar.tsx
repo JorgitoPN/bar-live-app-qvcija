@@ -1,12 +1,13 @@
 
-import React, { useState, useEffect } from 'react';
-import { View, TouchableOpacity, StyleSheet, Dimensions, Platform, Text } from 'react-native';
-import { useRouter, usePathname } from 'expo-router';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { IconSymbol } from './IconSymbol';
 import { colors } from '@/styles/commonStyles';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter, usePathname } from 'expo-router';
 import { useMode } from '@/contexts/ModeContext';
-
-const { width: screenWidth } = Dimensions.get('window');
+import { useAuth } from '@/contexts/AuthContext';
+import Svg, { Path } from 'react-native-svg';
 
 export interface TabBarItem {
   name: string;
@@ -20,84 +21,120 @@ interface FloatingTabBarProps {
   containerWidth?: number;
 }
 
-export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: FloatingTabBarProps) {
+export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { activeProfileType, activeProfileId } = useMode();
-  const [activeTab, setActiveTab] = useState<string>('');
+  const { currentMode } = useMode();
+  const { user } = useAuth();
+  const navigationInProgress = useRef(false);
+  const lastNavigationTime = useRef(0);
 
   useEffect(() => {
-    // Determine active tab based on current pathname
-    const currentTab = tabs.find(tab => {
-      // Handle nested routes
-      if (pathname.startsWith(tab.route)) {
-        return true;
+    console.log('⚡ FloatingTabBar mounted, pathname:', pathname);
+  }, [pathname]);
+
+  const isActive = (route: string) => {
+    try {
+      const cleanRoute = route.startsWith('/') ? route.substring(1) : route;
+      const cleanPathname = pathname.startsWith('/') ? pathname.substring(1) : pathname;
+      
+      if (cleanRoute === '(tabs)/perfil') {
+        return cleanPathname === '(tabs)/perfil' || 
+               cleanPathname === '(tabs)/perfil/' || 
+               cleanPathname === '(tabs)/perfil/index';
       }
-      // Handle exact match
-      if (pathname === tab.route) {
-        return true;
-      }
-      // Handle index routes
-      if (pathname === `${tab.route}/index`) {
-        return true;
-      }
-      // Special handling for local profile pages
-      if (tab.name === 'perfil' && pathname.startsWith('/perfil/local')) {
-        return true;
-      }
+      
+      return cleanPathname.startsWith(cleanRoute);
+    } catch (error) {
+      console.error('Error checking active route:', error);
       return false;
-    });
-
-    if (currentTab) {
-      setActiveTab(currentTab.name);
     }
-  }, [pathname, tabs]);
-
-  const handleTabPress = (tab: TabBarItem) => {
-    console.log('[FloatingTabBar] 🔘 Tab pressed:', tab.name, 'Active profile type:', activeProfileType, 'Active profile ID:', activeProfileId);
-    
-    // Special handling for Perfil tab
-    if (tab.name === 'perfil') {
-      // FIXED: If currently interacting as a local, navigate to that local's profile page
-      if (activeProfileType === 'local' && activeProfileId) {
-        console.log('[FloatingTabBar] 🏢 Navigating to local profile:', activeProfileId);
-        router.push(`/perfil/local?localId=${activeProfileId}`);
-        return;
-      }
-      // Otherwise, navigate to user's personal profile
-      console.log('[FloatingTabBar] 👤 Navigating to user profile');
-      router.push('/(tabs)/perfil');
-      return;
-    }
-
-    // For all other tabs, use the default route
-    console.log('[FloatingTabBar] 📍 Navigating to:', tab.route);
-    router.push(tab.route as any);
   };
 
-  const tabWidth = containerWidth / tabs.length;
-
   return (
-    <View style={[styles.container, { width: containerWidth }]}>
-      <View style={styles.tabBar}>
+    <View style={styles.container} pointerEvents="box-none">
+      <View style={styles.svgContainer} pointerEvents="none">
+        <Svg
+          width="100%"
+          height="80"
+          viewBox="0 0 375 80"
+          preserveAspectRatio="none"
+          style={styles.svg}
+        >
+          <Path
+            d="M0,0 H375 V80 H0 Z"
+            fill={colors.primary}
+          />
+        </Svg>
+      </View>
+
+      <View style={[styles.tabBar, containerWidth && { width: containerWidth }]} pointerEvents="box-none">
         {tabs.map((tab) => {
-          const isActive = activeTab === tab.name;
-          
+          const isCenter = tab.name === 'explorar';
+          const active = isActive(tab.route);
+
+          const onPress = () => {
+            const now = Date.now();
+            
+            if (now - lastNavigationTime.current < 50) {
+              console.log('⚠️ Tap too fast, ignoring');
+              return;
+            }
+
+            if (active) {
+              console.log('✅ Already on route:', tab.name);
+              return;
+            }
+
+            console.log('⚡ INSTANT NAV to:', tab.name, tab.route);
+            lastNavigationTime.current = now;
+
+            try {
+              router.push(tab.route as any);
+            } catch (error) {
+              console.error('❌ Navigation error:', error);
+            }
+          };
+
+          if (isCenter) {
+            return (
+              <TouchableOpacity
+                key={tab.name}
+                onPress={onPress}
+                style={styles.centerButton}
+                activeOpacity={0.6}
+              >
+                <LinearGradient
+                  colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.centerGradient}
+                >
+                  <IconSymbol name={tab.icon as any} size={30} color={colors.white} />
+                </LinearGradient>
+              </TouchableOpacity>
+            );
+          }
+
           return (
             <TouchableOpacity
               key={tab.name}
-              style={[styles.tab, { width: tabWidth }]}
-              onPress={() => handleTabPress(tab)}
-              activeOpacity={0.7}
+              onPress={onPress}
+              style={styles.tab}
+              activeOpacity={0.5}
             >
-              <IconSymbol
-                name={tab.icon}
-                size={26}
-                color={isActive ? colors.primary : colors.text}
-              />
-              <Text style={[styles.label, isActive && styles.labelActive]}>
-                {tab.label}
-              </Text>
+              <View style={[styles.tabContent, active && styles.tabContentActive]}>
+                {/* FIXED: Active icons have bright white with 90% opacity, inactive have 60% opacity */}
+                <IconSymbol
+                  name={tab.icon as any}
+                  size={26}
+                  color={active ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.6)'}
+                  weight={active ? 'fill' : 'regular'}
+                />
+                <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
+                  {tab.label}
+                </Text>
+              </View>
             </TouchableOpacity>
           );
         })}
@@ -112,41 +149,81 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 10,
-    paddingTop: 10,
-    paddingHorizontal: 16,
+    height: 80,
     backgroundColor: 'transparent',
-    pointerEvents: 'box-none',
+  },
+  svgContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 80,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -5 },
+    shadowOpacity: 0.15,
+    shadowRadius: 15,
+    elevation: 10,
+  },
+  svg: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: colors.cardBackground,
-    borderRadius: 24,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
+    paddingTop: 8,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 8,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'space-evenly',
+    width: '100%',
+    zIndex: 1,
+  },
+  tab: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+  },
+  tabContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+  },
+  tabContentActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+  },
+  tabLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.6)',
+    marginTop: 4,
+  },
+  tabLabelActive: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '900',
+  },
+  centerButton: {
+    width: 64,
+    height: 64,
+    marginTop: -32,
+    borderRadius: 32,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
   },
-  tab: {
+  centerGradient: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 6,
-  },
-  label: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.text,
-    marginTop: 4,
-  },
-  labelActive: {
-    color: colors.primary,
+    borderWidth: 4,
+    borderColor: colors.white,
   },
 });
