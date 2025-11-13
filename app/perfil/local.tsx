@@ -137,16 +137,13 @@ export default function LocalPerfilScreen() {
       // Check if current user is the owner
       if (user && localData.propietario_id === user.id) {
         setIsOwner(true);
+        console.log('[LocalPerfil] ✅ User is owner of this local');
         
-        // FIXED: Set this local as selected, switch to owner mode, and persist interaction
-        console.log('[LocalPerfil] ✅ User is owner, setting local as active profile');
-        await setSelectedLocalId(localId);
-        await setCurrentMode('propietario');
-        await setIsInteractingAsLocal(true);
-        await setActiveLocalProfileId(localId);
-        await setPublicationMode('local');
+        // FIXED: DO NOT automatically set interaction state
+        // Only set it when user explicitly enters owner mode
+        // This prevents navigation issues when just viewing the profile
       } else {
-        // User is viewing another local, don't change their mode
+        setIsOwner(false);
         console.log('[LocalPerfil] ✅ User is viewing another local');
       }
 
@@ -257,17 +254,24 @@ export default function LocalPerfilScreen() {
     } finally {
       setLoading(false);
     }
-  }, [localId, user, router, setSelectedLocalId, setCurrentMode, setIsInteractingAsLocal, setActiveLocalProfileId, setPublicationMode]);
+  }, [localId, user, router]);
 
   useEffect(() => {
     loadLocalData();
 
-    // Don't reset interaction state when unmounting
-    // The interaction state should persist until the user explicitly leaves the local profile
+    // FIXED: Clean up interaction state when unmounting
+    // This ensures navigation works correctly after leaving the local profile
     return () => {
-      console.log('[LocalPerfil] Component unmounting, keeping interaction state');
+      console.log('[LocalPerfil] Component unmounting, clearing interaction state if needed');
+      // Only clear if we're currently interacting as this specific local
+      if (isInteractingAsLocal && activeLocalProfileId === localId) {
+        console.log('[LocalPerfil] Clearing interaction state for local:', localId);
+        setIsInteractingAsLocal(false);
+        setActiveLocalProfileId(null);
+        setPublicationMode('usuario');
+      }
     };
-  }, [loadLocalData]);
+  }, [loadLocalData, localId, isInteractingAsLocal, activeLocalProfileId, setIsInteractingAsLocal, setActiveLocalProfileId, setPublicationMode]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -355,7 +359,7 @@ export default function LocalPerfilScreen() {
     router.push(`/detalle/evento?id=${eventoId}`);
   };
 
-  const handleCrearPost = () => {
+  const handleCrearPost = async () => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión');
       return;
@@ -364,10 +368,19 @@ export default function LocalPerfilScreen() {
       Alert.alert('Error', 'Solo el propietario puede crear publicaciones');
       return;
     }
+    
+    // FIXED: Set interaction state before creating content
+    console.log('[LocalPerfil] Setting interaction state for creating post');
+    await setSelectedLocalId(localId);
+    await setCurrentMode('propietario');
+    await setIsInteractingAsLocal(true);
+    await setActiveLocalProfileId(localId);
+    await setPublicationMode('local');
+    
     router.push(`/crear/publicacion?localId=${localId}`);
   };
 
-  const handleCrearHistoria = () => {
+  const handleCrearHistoria = async () => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión');
       return;
@@ -376,10 +389,19 @@ export default function LocalPerfilScreen() {
       Alert.alert('Error', 'Solo el propietario puede crear historias');
       return;
     }
+    
+    // FIXED: Set interaction state before creating content
+    console.log('[LocalPerfil] Setting interaction state for creating story');
+    await setSelectedLocalId(localId);
+    await setCurrentMode('propietario');
+    await setIsInteractingAsLocal(true);
+    await setActiveLocalProfileId(localId);
+    await setPublicationMode('local');
+    
     router.push(`/crear/historia?localId=${localId}`);
   };
 
-  const handleCrearEvento = () => {
+  const handleCrearEvento = async () => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión');
       return;
@@ -388,10 +410,19 @@ export default function LocalPerfilScreen() {
       Alert.alert('Error', 'Solo el propietario puede crear eventos');
       return;
     }
+    
+    // FIXED: Set interaction state before creating content
+    console.log('[LocalPerfil] Setting interaction state for creating event');
+    await setSelectedLocalId(localId);
+    await setCurrentMode('propietario');
+    await setIsInteractingAsLocal(true);
+    await setActiveLocalProfileId(localId);
+    await setPublicationMode('local');
+    
     router.push(`/crear/evento?localId=${localId}`);
   };
 
-  const handleEditarLocal = () => {
+  const handleEditarLocal = async () => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión');
       return;
@@ -400,12 +431,29 @@ export default function LocalPerfilScreen() {
       Alert.alert('Error', 'Solo el propietario puede editar el local');
       return;
     }
+    
+    // FIXED: Set interaction state before editing
+    console.log('[LocalPerfil] Setting interaction state for editing local');
+    await setSelectedLocalId(localId);
+    await setCurrentMode('propietario');
+    await setIsInteractingAsLocal(true);
+    await setActiveLocalProfileId(localId);
+    await setPublicationMode('local');
+    
     router.push(`/editar/local?id=${localId}`);
   };
 
-  // FIXED: Safe back navigation - properly call the method
+  // FIXED: Safe back navigation
   const handleGoBack = () => {
     try {
+      // Clear interaction state before navigating back
+      if (isInteractingAsLocal && activeLocalProfileId === localId) {
+        console.log('[LocalPerfil] Clearing interaction state before going back');
+        setIsInteractingAsLocal(false);
+        setActiveLocalProfileId(null);
+        setPublicationMode('usuario');
+      }
+      
       // Check if we can go back in the navigation stack
       if (router.canGoBack()) {
         console.log('[LocalPerfil] ✅ Going back to previous screen');
@@ -493,7 +541,7 @@ export default function LocalPerfilScreen() {
     }
   }, [currentStoryIndex, startStoryTimer, stopStoryTimer, progressAnim]);
 
-  const handleAvatarPress = useCallback(() => {
+  const handleAvatarPress = useCallback(async () => {
     if (localStories.length > 0) {
       setCurrentStoryIndex(0);
       setShowStoryViewer(true);
