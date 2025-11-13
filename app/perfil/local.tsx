@@ -26,6 +26,7 @@ import { useMode } from '@/contexts/ModeContext';
 import { supabase } from '@/utils/supabase';
 import { getEstadoLocal, calcularTiempoHasta } from '@/utils/timeUtils';
 import { getCategoryIcon } from '@/utils/categoryIcons';
+import FloatingTabBar, { TabBarItem } from '@/components/FloatingTabBar';
 
 const { width, height } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 3) / 3;
@@ -402,13 +403,21 @@ export default function LocalPerfilScreen() {
     router.push(`/editar/local?id=${localId}`);
   };
 
-  // FIXED: Safe back navigation
+  // FIXED: Safe back navigation - properly call the method
   const handleGoBack = () => {
-    // Check if we can go back in the navigation stack
-    if (router.canGoBack && router.canGoBack()) {
-      router.back();
-    } else {
-      // If there's no screen to go back to, navigate to explorar
+    try {
+      // Check if we can go back in the navigation stack
+      if (router.canGoBack()) {
+        console.log('[LocalPerfil] ✅ Going back to previous screen');
+        router.back();
+      } else {
+        // If there's no screen to go back to, navigate to explorar
+        console.log('[LocalPerfil] ⚠️ No previous screen, navigating to explorar');
+        router.replace('/(tabs)/explorar');
+      }
+    } catch (error) {
+      console.error('[LocalPerfil] ❌ Error navigating back:', error);
+      // Fallback to explorar if there's any error
       router.replace('/(tabs)/explorar');
     }
   };
@@ -504,6 +513,177 @@ export default function LocalPerfilScreen() {
     };
   }, [showStoryViewer, currentStoryIndex, isPaused, startStoryTimer, stopStoryTimer]);
 
+  // FIXED: Get tabs for FloatingTabBar based on user role and mode
+  const getTabsForRole = (): TabBarItem[] => {
+    const userRole = user?.rol_app || 'cliente';
+
+    // Admin users see admin tabs when in admin mode
+    if (userRole === 'admin' && currentMode === 'admin') {
+      return [
+        {
+          name: 'admin',
+          route: '/(tabs)/admin',
+          icon: 'gear',
+          label: 'Admin',
+        },
+        {
+          name: 'explorar',
+          route: '/(tabs)/explorar',
+          icon: 'sparkles',
+          label: 'Explorar',
+        },
+        {
+          name: 'perfil',
+          route: '/(tabs)/perfil',
+          icon: 'person.fill',
+          label: 'Perfil',
+        },
+      ];
+    }
+
+    // Admin users in propietario mode
+    if (userRole === 'admin' && currentMode === 'propietario') {
+      return [
+        {
+          name: 'gestion',
+          route: '/(tabs)/gestion',
+          icon: 'briefcase.fill',
+          label: 'Gestión',
+        },
+        {
+          name: 'favoritos',
+          route: '/(tabs)/favoritos',
+          icon: 'heart.fill',
+          label: 'Favoritos',
+        },
+        {
+          name: 'explorar',
+          route: '/(tabs)/explorar',
+          icon: 'sparkles',
+          label: 'Explorar',
+        },
+        {
+          name: 'eventos',
+          route: '/(tabs)/eventos',
+          icon: 'calendar',
+          label: 'Eventos',
+        },
+        {
+          name: 'perfil',
+          route: '/(tabs)/perfil',
+          icon: 'person.fill',
+          label: 'Perfil',
+        },
+      ];
+    }
+
+    // Propietario users can switch between cliente and propietario modes
+    if (userRole === 'propietario') {
+      if (currentMode === 'propietario') {
+        return [
+          {
+            name: 'gestion',
+            route: '/(tabs)/gestion',
+            icon: 'briefcase.fill',
+            label: 'Gestión',
+          },
+          {
+            name: 'favoritos',
+            route: '/(tabs)/favoritos',
+            icon: 'heart.fill',
+            label: 'Favoritos',
+          },
+          {
+            name: 'explorar',
+            route: '/(tabs)/explorar',
+            icon: 'sparkles',
+            label: 'Explorar',
+          },
+          {
+            name: 'eventos',
+            route: '/(tabs)/eventos',
+            icon: 'calendar',
+            label: 'Eventos',
+          },
+          {
+            name: 'perfil',
+            route: '/(tabs)/perfil',
+            icon: 'person.fill',
+            label: 'Perfil',
+          },
+        ];
+      } else {
+        // Cliente mode for propietario
+        return [
+          {
+            name: 'eventos',
+            route: '/(tabs)/eventos',
+            icon: 'calendar',
+            label: 'Eventos',
+          },
+          {
+            name: 'favoritos',
+            route: '/(tabs)/favoritos',
+            icon: 'heart.fill',
+            label: 'Favoritos',
+          },
+          {
+            name: 'explorar',
+            route: '/(tabs)/explorar',
+            icon: 'sparkles',
+            label: 'Explorar',
+          },
+          {
+            name: 'social',
+            route: '/(tabs)/social',
+            icon: 'person.2.fill',
+            label: 'Social',
+          },
+          {
+            name: 'perfil',
+            route: '/(tabs)/perfil',
+            icon: 'person.fill',
+            label: 'Perfil',
+          },
+        ];
+      }
+    }
+
+    // Cliente users see cliente tabs (default)
+    return [
+      {
+        name: 'eventos',
+        route: '/(tabs)/eventos',
+        icon: 'calendar',
+        label: 'Eventos',
+      },
+      {
+        name: 'favoritos',
+        route: '/(tabs)/favoritos',
+        icon: 'heart.fill',
+        label: 'Favoritos',
+      },
+      {
+        name: 'explorar',
+        route: '/(tabs)/explorar',
+        icon: 'sparkles',
+        label: 'Explorar',
+      },
+      {
+        name: 'social',
+        route: '/(tabs)/social',
+        icon: 'person.2.fill',
+        label: 'Social',
+      },
+      {
+        name: 'perfil',
+        route: '/(tabs)/perfil',
+        icon: 'person.fill',
+        label: 'Perfil',
+      },
+    ];
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -536,6 +716,8 @@ export default function LocalPerfilScreen() {
   if (categoriasLocal.length === 0 && local.barlive_type) {
     categoriasLocal = [local.barlive_type];
   }
+
+  const tabs = getTabsForRole();
 
   return (
     <View style={styles.container}>
@@ -1036,6 +1218,13 @@ export default function LocalPerfilScreen() {
           )}
         </View>
       </Modal>
+
+      {/* FIXED: Add FloatingTabBar to show bottom menu */}
+      <FloatingTabBar 
+        tabs={tabs} 
+        containerWidth={width}
+        key={`${user?.rol_app || 'cliente'}-${currentMode}`}
+      />
     </View>
   );
 }
