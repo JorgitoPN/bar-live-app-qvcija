@@ -1,8 +1,7 @@
-
 {
   "expo": {
     "name": "BarLive",
-    "slug": "barlive",
+    "slug": "BarLive",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/natively-dark.png",
@@ -19,7 +18,7 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSUserTrackingUsageDescription": "Esta app necesita tu permiso para enviarte notificaciones sobre eventos, ofertas y actividad social.",
-        "NSLocationWhenInUseUsageDescription": "BarLive necesita tu ubicación para mostrarte locales cercanos."
+        "NSLocationWhenInUseUsageDescription": "BarLive necesita tu ubicaci\u00f3n para mostrarte locales cercanos."
       }
     },
     "android": {
@@ -69,5 +68,6 @@
       "androidMode": "default",
       "androidCollapsedTitle": "BarLive"
     }
-  }
+  },
+  "scheme": "BarLive"
 }

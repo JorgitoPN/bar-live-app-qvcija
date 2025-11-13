@@ -1376,7 +1376,7 @@ export default function PostDetailScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
-        <ScrollView ref={scrollViewRef}>
+        <ScrollView ref={scrollViewRef} keyboardShouldPersistTaps="handled">
           <View style={styles.postCard}>
             <View style={styles.postHeader}>
               <TouchableOpacity
