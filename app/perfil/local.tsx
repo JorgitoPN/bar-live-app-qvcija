@@ -104,8 +104,12 @@ export default function LocalPerfilScreen() {
   const localId = params.localId as string;
 
   const loadLocalData = useCallback(async () => {
+    // FIXED: Check if localId exists before proceeding
     if (!localId) {
-      router.back();
+      console.error('[LocalPerfil] ❌ No localId provided');
+      Alert.alert('Error', 'No se pudo cargar el perfil del local', [
+        { text: 'OK', onPress: () => router.replace('/(tabs)/explorar') }
+      ]);
       return;
     }
 
@@ -121,8 +125,9 @@ export default function LocalPerfilScreen() {
 
       if (localError || !localData) {
         console.error('[LocalPerfil] Error loading local:', localError);
-        Alert.alert('Error', 'No se pudo cargar el perfil del local');
-        router.back();
+        Alert.alert('Error', 'No se pudo cargar el perfil del local', [
+          { text: 'OK', onPress: () => router.replace('/(tabs)/explorar') }
+        ]);
         return;
       }
 
@@ -397,6 +402,17 @@ export default function LocalPerfilScreen() {
     router.push(`/editar/local?id=${localId}`);
   };
 
+  // FIXED: Safe back navigation
+  const handleGoBack = () => {
+    // Check if we can go back in the navigation stack
+    if (router.canGoBack && router.canGoBack()) {
+      router.back();
+    } else {
+      // If there's no screen to go back to, navigate to explorar
+      router.replace('/(tabs)/explorar');
+    }
+  };
+
   // Story viewer functions
   const stopStoryTimer = useCallback(() => {
     if (storyTimerRef.current) {
@@ -529,8 +545,8 @@ export default function LocalPerfilScreen() {
         style={styles.header}
       >
         <View style={styles.headerTop}>
-          {/* FIXED: Back button with contrasting color */}
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          {/* FIXED: Back button with contrasting color and safe navigation */}
+          <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
             <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{local.nombre}</Text>
