@@ -5,6 +5,8 @@ import { IconSymbol } from './IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, usePathname } from 'expo-router';
+import { useMode } from '@/contexts/ModeContext';
+import { useAuth } from '@/contexts/AuthContext';
 import Svg, { Path } from 'react-native-svg';
 
 export interface TabBarItem {
