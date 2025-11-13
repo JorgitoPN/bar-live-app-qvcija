@@ -842,7 +842,7 @@ export default function PerfilScreen() {
   }, [userStories, currentStoryIndex, user, stopStoryTimer]);
 
   // FIXED: When the screen is focused, just reload the data
-  // Don't force a profile switch - let the redirect at the top handle it
+  // Don't force a profile switch - let the user navigate naturally
   useFocusEffect(
     useCallback(() => {
       console.log('[Perfil] 📍 Screen focused, current mode:', currentMode, 'active profile type:', activeProfileType);
@@ -916,12 +916,9 @@ export default function PerfilScreen() {
     };
   }, [showStoryViewer, currentStoryIndex, isPaused, startStoryTimer, stopStoryTimer]);
 
-  // FIXED: Check if we should redirect to local profile page
-  // If the active profile is a local, redirect to the local profile page
-  if (user && activeProfileType === 'local' && activeProfileId) {
-    console.log('[Perfil] 🔀 Redirecting to local profile page:', activeProfileId);
-    return <Redirect href={`/perfil/local?localId=${activeProfileId}`} />;
-  }
+  // REMOVED: The redirect logic that was causing the issue
+  // This page should ALWAYS show the user's personal profile
+  // If the user wants to see a local profile, they should navigate to /perfil/local
 
   // Always show the user's own profile on this page
   const displayName = user?.nombre || 'Usuario';
