@@ -45,16 +45,17 @@ export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherPro
     }
   }, [visible, user, loadOwnedLocals]);
 
-  // 🆕 FEATURE: Log current active profile when modal opens
+  // 🆕 FEATURE: Log current active profile when modal opens or when active profile changes
   useEffect(() => {
     if (visible) {
       console.log('[ProfileSwitcher] 📊 Current active profile:', {
         activeProfileType,
         activeProfileId,
         activeLocalName: activeLocalData?.nombre,
+        userId: user?.id,
       });
     }
-  }, [visible, activeProfileType, activeProfileId, activeLocalData]);
+  }, [visible, activeProfileType, activeProfileId, activeLocalData, user]);
 
   const handleSwitchToClient = async () => {
     setSwitching(true);
@@ -92,7 +93,17 @@ export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherPro
 
   if (!user) return null;
 
-  const isClientActive = activeProfileType === 'cliente';
+  // FIXED: Determine if client profile is active by checking if activeProfileType is 'cliente'
+  // AND if the activeProfileId matches the user's ID
+  const isClientActive = activeProfileType === 'cliente' && activeProfileId === user.id;
+
+  console.log('[ProfileSwitcher] 🔍 Render state:', {
+    activeProfileType,
+    activeProfileId,
+    userId: user.id,
+    isClientActive,
+    ownedLocalsCount: ownedLocals.length,
+  });
 
   return (
     <Modal
@@ -149,7 +160,16 @@ export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherPro
                 </View>
 
                 {ownedLocals.map((local) => {
+                  // FIXED: Check if this local is active by comparing IDs and checking profile type
                   const isActive = activeProfileType === 'local' && activeProfileId === local.id;
+                  
+                  console.log('[ProfileSwitcher] 🔍 Local card:', {
+                    localId: local.id,
+                    localName: local.nombre,
+                    activeProfileId,
+                    activeProfileType,
+                    isActive,
+                  });
                   
                   return (
                     <TouchableOpacity
