@@ -156,6 +156,7 @@ export default function PerfilScreen() {
     activeProfileType,
     activeLocalData,
     ownedLocals,
+    switchToClientProfile,
   } = useMode();
   
   // FIXED: Move all hooks to the top level before any conditional returns
@@ -845,16 +846,17 @@ export default function PerfilScreen() {
     }
   }, [userStories, currentStoryIndex, user, stopStoryTimer]);
 
-  // FIXED: Check if we should redirect to local profile page
+  // FIXED: When the screen is focused, ensure we're in client mode
+  // This prevents the issue where clicking "Perfil" shows the local profile
   useFocusEffect(
     useCallback(() => {
-      console.log('[Perfil] 📍 Screen focused, active profile type:', activeProfileType);
+      console.log('[Perfil] 📍 Screen focused, current mode:', currentMode, 'active profile type:', activeProfileType);
       
-      // FIXED: If the active profile is a local, redirect to the local profile page
-      if (activeProfileType === 'local' && activeProfileId) {
-        console.log('[Perfil] 🔄 Redirecting to local profile:', activeProfileId);
-        router.replace(`/perfil/local?localId=${activeProfileId}`);
-        return;
+      // FIXED: When the user navigates to the Perfil tab, always switch to client profile
+      // This ensures that clicking "Perfil" in the bottom menu always shows the user's personal profile
+      if (user && activeProfileType === 'local') {
+        console.log('[Perfil] 🔄 Switching to client profile because user navigated to Perfil tab');
+        switchToClientProfile();
       }
       
       if (user) {
@@ -896,7 +898,7 @@ export default function PerfilScreen() {
           supabase.removeChannel(messagesChannel);
         };
       }
-    }, [user, loadUnreadCounts, activeProfileType, activeProfileId, router])
+    }, [user, loadUnreadCounts, activeProfileType, currentMode, switchToClientProfile])
   );
 
   useEffect(() => {
