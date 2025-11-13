@@ -12,6 +12,8 @@ import {
   Alert,
   FlatList,
   ActivityIndicator,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -30,6 +32,7 @@ interface UserSuggestion {
   nombre: string;
   username: string;
   avatar?: string;
+  tipo?: 'usuario' | 'local';
 }
 
 const convertImageToJPG = (uri: string): Promise<Blob> => {
@@ -100,9 +103,10 @@ export default function CrearPublicacionScreen() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showUploadProgress, setShowUploadProgress] = useState(false);
   const [usuariosEtiquetados, setUsuariosEtiquetados] = useState<UserSuggestion[]>([]);
-  const [showUserSuggestions, setShowUserSuggestions] = useState(false);
-  const [userSuggestions, setUserSuggestions] = useState<UserSuggestion[]>([]);
-  const [searchingUsers, setSearchingUsers] = useState(false);
+  const [showTagModal, setShowTagModal] = useState(false);
+  const [tagSearchQuery, setTagSearchQuery] = useState('');
+  const [tagSuggestions, setTagSuggestions] = useState<UserSuggestion[]>([]);
+  const [searchingTags, setSearchingTags] = useState(false);
 
   const MAX_IMAGES = 10; // Instagram allows up to 10 images
 
@@ -214,65 +218,81 @@ export default function CrearPublicacionScreen() {
     }
   };
 
-  const buscarUsuarios = async (texto: string) => {
+  const buscarUsuariosYLocales = async (texto: string) => {
     if (texto.length < 2) {
-      setUserSuggestions([]);
-      setShowUserSuggestions(false);
+      setTagSuggestions([]);
       return;
     }
 
-    setSearchingUsers(true);
+    setSearchingTags(true);
     try {
-      const { data, error } = await supabase
+      // Search users
+      const { data: usersData, error: usersError } = await supabase
         .from('usuarios')
         .select('id, nombre, username, avatar, perfil_privado, permitir_etiquetas')
         .or(`nombre.ilike.%${texto}%,username.ilike.%${texto}%`)
         .eq('activo', true)
-        .limit(10);
+        .limit(5);
 
-      if (!error && data) {
-        const filteredUsers = data.filter(
-          (u) => u.permitir_etiquetas && !usuariosEtiquetados.find((ue) => ue.id === u.id)
+      // Search locals
+      const { data: localsData, error: localsError } = await supabase
+        .from('locales')
+        .select('id, nombre, imagen_url')
+        .ilike('nombre', `%${texto}%`)
+        .eq('activo', true)
+        .limit(5);
+
+      const suggestions: UserSuggestion[] = [];
+
+      // Add users
+      if (!usersError && usersData) {
+        const filteredUsers = usersData.filter(
+          (u) => u.permitir_etiquetas && !usuariosEtiquetados.find((ue) => ue.id === u.id && ue.tipo === 'usuario')
         );
-        setUserSuggestions(filteredUsers);
-        setShowUserSuggestions(filteredUsers.length > 0);
+        suggestions.push(...filteredUsers.map(u => ({
+          id: u.id,
+          nombre: u.nombre,
+          username: u.username || u.nombre,
+          avatar: u.avatar,
+          tipo: 'usuario' as const,
+        })));
       }
+
+      // Add locals
+      if (!localsError && localsData) {
+        const filteredLocals = localsData.filter(
+          (l) => !usuariosEtiquetados.find((ue) => ue.id === l.id && ue.tipo === 'local')
+        );
+        suggestions.push(...filteredLocals.map(l => ({
+          id: l.id,
+          nombre: l.nombre,
+          username: l.nombre,
+          avatar: l.imagen_url,
+          tipo: 'local' as const,
+        })));
+      }
+
+      setTagSuggestions(suggestions);
     } catch (error) {
-      console.error('Error buscando usuarios:', error);
+      console.error('Error buscando usuarios y locales:', error);
     } finally {
-      setSearchingUsers(false);
+      setSearchingTags(false);
     }
   };
 
-  const handleContenidoChange = (text: string) => {
-    setContenido(text);
-
-    const words = text.split(/\s+/);
-    const lastWord = words[words.length - 1];
-
-    if (lastWord && lastWord.length >= 2 && !lastWord.startsWith('@')) {
-      const beforeLastWord = text.substring(0, text.lastIndexOf(lastWord));
-      if (beforeLastWord.length === 0 || beforeLastWord.endsWith(' ')) {
-        buscarUsuarios(lastWord);
-      }
-    } else {
-      setShowUserSuggestions(false);
-    }
+  const handleTagSearchChange = (text: string) => {
+    setTagSearchQuery(text);
+    buscarUsuariosYLocales(text);
   };
 
-  const seleccionarUsuario = (usuario: UserSuggestion) => {
-    setUsuariosEtiquetados([...usuariosEtiquetados, usuario]);
-
-    const words = contenido.split(/\s+/);
-    words[words.length - 1] = `@${usuario.username || usuario.nombre}`;
-    setContenido(words.join(' ') + ' ');
-
-    setShowUserSuggestions(false);
-    setUserSuggestions([]);
+  const seleccionarEtiqueta = (item: UserSuggestion) => {
+    setUsuariosEtiquetados([...usuariosEtiquetados, item]);
+    setTagSearchQuery('');
+    setTagSuggestions([]);
   };
 
-  const eliminarEtiqueta = (usuarioId: string) => {
-    setUsuariosEtiquetados(usuariosEtiquetados.filter((u) => u.id !== usuarioId));
+  const eliminarEtiqueta = (itemId: string, tipo: 'usuario' | 'local') => {
+    setUsuariosEtiquetados(usuariosEtiquetados.filter((u) => !(u.id === itemId && u.tipo === tipo)));
   };
 
   const uploadImage = async (uri: string): Promise<string | null> => {
@@ -419,28 +439,35 @@ export default function CrearPublicacionScreen() {
 
       setUploadProgress(85);
 
+      // Handle tags - only for users (not locals)
       if (usuariosEtiquetados.length > 0 && postData2) {
-        const tags = usuariosEtiquetados.map((u) => ({
-          post_id: postData2.id,
-          usuario_id: u.id,
-        }));
+        const userTags = usuariosEtiquetados.filter(u => u.tipo === 'usuario');
+        
+        if (userTags.length > 0) {
+          const tags = userTags.map((u) => ({
+            post_id: postData2.id,
+            usuario_id: u.id,
+            estado: 'pendiente',
+          }));
 
-        const { error: tagsError } = await supabase
-          .from('post_tags')
-          .insert(tags);
+          const { error: tagsError } = await supabase
+            .from('post_tags')
+            .insert(tags);
 
-        if (tagsError) console.error('Error adding tags:', tagsError);
+          if (tagsError) console.error('Error adding tags:', tagsError);
 
-        const notifications = usuariosEtiquetados.map((u) => ({
-          usuario_id: u.id,
-          tipo: 'mencion',
-          titulo: 'Te han etiquetado',
-          mensaje: `${user.nombre} te ha etiquetado en una publicación`,
-          usuario_origen_id: user.id,
-          post_id: postData2.id,
-        }));
+          // Send notifications to tagged users
+          const notifications = userTags.map((u) => ({
+            usuario_id: u.id,
+            tipo: 'mencion',
+            titulo: 'Te han etiquetado',
+            mensaje: `${user.nombre} te ha etiquetado en una publicación`,
+            usuario_origen_id: user.id,
+            post_id: postData2.id,
+          }));
 
-        await supabase.from('notificaciones').insert(notifications);
+          await supabase.from('notificaciones').insert(notifications);
+        }
       }
 
       setUploadProgress(90);
@@ -498,61 +525,30 @@ export default function CrearPublicacionScreen() {
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         <TextInput
           style={styles.textInput}
-          placeholder="¿Qué estás pensando? Escribe un nombre para etiquetar..."
+          placeholder="¿Qué estás pensando?"
           placeholderTextColor={colors.textSecondary}
           value={contenido}
-          onChangeText={handleContenidoChange}
+          onChangeText={setContenido}
           multiline
           maxLength={500}
           editable={!publishing}
         />
 
-        {showUserSuggestions && (
-          <View style={styles.suggestionsContainer}>
-            {searchingUsers ? (
-              <ActivityIndicator size="small" color={colors.primary} />
-            ) : (
-              <FlatList
-                data={userSuggestions}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.suggestionItem}
-                    onPress={() => seleccionarUsuario(item)}
-                    activeOpacity={0.7}
-                  >
-                    {item.avatar ? (
-                      <Image source={{ uri: item.avatar }} style={styles.suggestionAvatar} />
-                    ) : (
-                      <View style={[styles.suggestionAvatar, styles.avatarPlaceholder]}>
-                        <Text style={styles.avatarText}>
-                          {item.nombre.charAt(0).toUpperCase()}
-                        </Text>
-                      </View>
-                    )}
-                    <View style={styles.suggestionInfo}>
-                      <Text style={styles.suggestionName}>{item.nombre}</Text>
-                      {item.username && (
-                        <Text style={styles.suggestionUsername}>@{item.username}</Text>
-                      )}
-                    </View>
-                  </TouchableOpacity>
-                )}
-              />
-            )}
-          </View>
-        )}
-
         {usuariosEtiquetados.length > 0 && (
           <View style={styles.taggedUsersContainer}>
             <Text style={styles.taggedUsersTitle}>Etiquetados:</Text>
             <View style={styles.taggedUsersList}>
-              {usuariosEtiquetados.map((usuario) => (
-                <View key={usuario.id} style={styles.taggedUserChip}>
+              {usuariosEtiquetados.map((item) => (
+                <View key={`${item.id}-${item.tipo}`} style={styles.taggedUserChip}>
+                  <IconSymbol 
+                    name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'} 
+                    size={12} 
+                    color={colors.text} 
+                  />
                   <Text style={styles.taggedUserName}>
-                    @{usuario.username || usuario.nombre}
+                    {item.username || item.nombre}
                   </Text>
-                  <TouchableOpacity onPress={() => eliminarEtiqueta(usuario.id)} activeOpacity={0.7}>
+                  <TouchableOpacity onPress={() => eliminarEtiqueta(item.id, item.tipo!)} activeOpacity={0.7}>
                     <IconSymbol name="xmark.circle.fill" size={16} color={colors.textSecondary} />
                   </TouchableOpacity>
                 </View>
@@ -639,8 +635,102 @@ export default function CrearPublicacionScreen() {
             )}
             <Text style={styles.optionText}>Ubicación</Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.optionButton}
+            onPress={() => setShowTagModal(true)}
+            disabled={publishing}
+            activeOpacity={0.7}
+          >
+            <IconSymbol name="person.crop.circle.badge.plus" size={28} color={colors.badgeNuevo} />
+            <Text style={styles.optionText}>Etiquetar</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Tag Modal */}
+      <Modal
+        visible={showTagModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowTagModal(false)}
+      >
+        <Pressable 
+          style={styles.modalOverlay}
+          onPress={() => setShowTagModal(false)}
+        >
+          <Pressable style={styles.tagModal} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.tagModalHeader}>
+              <Text style={styles.tagModalTitle}>Etiquetar</Text>
+              <TouchableOpacity onPress={() => setShowTagModal(false)} activeOpacity={0.7}>
+                <IconSymbol name="xmark" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.tagSearchContainer}>
+              <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
+              <TextInput
+                style={styles.tagSearchInput}
+                placeholder="Buscar usuarios o locales..."
+                placeholderTextColor={colors.textSecondary}
+                value={tagSearchQuery}
+                onChangeText={handleTagSearchChange}
+                autoFocus
+              />
+              {tagSearchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setTagSearchQuery('')} activeOpacity={0.7}>
+                  <IconSymbol name="xmark.circle.fill" size={20} color={colors.textSecondary} />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <ScrollView style={styles.tagSuggestionsContainer}>
+              {searchingTags ? (
+                <View style={styles.tagLoadingContainer}>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                </View>
+              ) : tagSuggestions.length > 0 ? (
+                tagSuggestions.map((item) => (
+                  <TouchableOpacity
+                    key={`${item.id}-${item.tipo}`}
+                    style={styles.tagSuggestionItem}
+                    onPress={() => {
+                      seleccionarEtiqueta(item);
+                      setShowTagModal(false);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    {item.avatar ? (
+                      <Image source={{ uri: item.avatar }} style={styles.tagSuggestionAvatar} />
+                    ) : (
+                      <View style={[styles.tagSuggestionAvatar, styles.avatarPlaceholder]}>
+                        <IconSymbol 
+                          name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'} 
+                          size={20} 
+                          color={colors.textSecondary} 
+                        />
+                      </View>
+                    )}
+                    <View style={styles.tagSuggestionInfo}>
+                      <Text style={styles.tagSuggestionName}>{item.nombre}</Text>
+                      <Text style={styles.tagSuggestionType}>
+                        {item.tipo === 'local' ? 'Local' : `@${item.username}`}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ))
+              ) : tagSearchQuery.length >= 2 ? (
+                <View style={styles.tagEmptyState}>
+                  <Text style={styles.tagEmptyText}>No se encontraron resultados</Text>
+                </View>
+              ) : (
+                <View style={styles.tagEmptyState}>
+                  <Text style={styles.tagEmptyText}>Busca usuarios o locales para etiquetar</Text>
+                </View>
+              )}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       <UploadProgressModal
         visible={showUploadProgress}
@@ -700,49 +790,6 @@ const styles = StyleSheet.create({
     minHeight: 150,
     textAlignVertical: 'top',
     marginBottom: 20,
-  },
-  suggestionsContainer: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    padding: 8,
-    marginBottom: 16,
-    maxHeight: 200,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  suggestionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 8,
-    borderRadius: 8,
-  },
-  suggestionAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 12,
-  },
-  avatarPlaceholder: {
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.headerText,
-  },
-  suggestionInfo: {
-    flex: 1,
-  },
-  suggestionName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  suggestionUsername: {
-    fontSize: 12,
-    color: colors.textSecondary,
   },
   taggedUsersContainer: {
     marginBottom: 16,
@@ -843,11 +890,13 @@ const styles = StyleSheet.create({
   },
   options: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
     marginTop: 20,
   },
   optionButton: {
     flex: 1,
+    minWidth: '45%',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 16,
@@ -864,5 +913,97 @@ const styles = StyleSheet.create({
   },
   optionTextDisabled: {
     color: colors.textSecondary,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  tagModal: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '80%',
+  },
+  tagModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  tagModalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  tagSearchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    margin: 16,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  tagSearchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: colors.text,
+  },
+  tagSuggestionsContainer: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  tagLoadingContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
+  },
+  tagSuggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 8,
+    backgroundColor: colors.cardBackground,
+  },
+  tagSuggestionAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 12,
+  },
+  avatarPlaceholder: {
+    backgroundColor: colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  tagSuggestionInfo: {
+    flex: 1,
+  },
+  tagSuggestionName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 2,
+  },
+  tagSuggestionType: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  tagEmptyState: {
+    paddingVertical: 40,
+    alignItems: 'center',
+  },
+  tagEmptyText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
   },
 });

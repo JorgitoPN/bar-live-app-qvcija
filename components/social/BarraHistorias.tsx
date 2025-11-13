@@ -40,33 +40,38 @@ export default function BarraHistorias({
         )}
 
         {/* Historias */}
-        {historias.map((historia) => (
-          <TouchableOpacity
-            key={historia.id}
-            style={styles.historiaContainer}
-            onPress={() => onHistoriaPress(historia)}
-          >
-            <LinearGradient
-              colors={historia.visto ? ['#E5E7EB', '#E5E7EB'] : [colors.primary, colors.secondary]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.historiaGradient}
+        {historias.map((historia) => {
+          // FIXED: Check if the story has been viewed by the current user
+          const hasBeenViewed = historia.visto_por_usuario === true;
+          
+          return (
+            <TouchableOpacity
+              key={historia.id}
+              style={styles.historiaContainer}
+              onPress={() => onHistoriaPress(historia)}
             >
-              <View style={styles.historiaImageContainer}>
-                {historia.autorAvatar ? (
-                  <Image source={{ uri: historia.autorAvatar }} style={styles.historiaImage} />
-                ) : (
-                  <View style={styles.historiaPlaceholder}>
-                    <IconSymbol name="person.fill" size={24} color={colors.textSecondary} />
-                  </View>
-                )}
-              </View>
-            </LinearGradient>
-            <Text style={styles.historiaNombre} numberOfLines={1}>
-              {historia.autorNombre}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <LinearGradient
+                colors={hasBeenViewed ? ['#E5E7EB', '#E5E7EB'] : [colors.primary, colors.secondary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.historiaGradient}
+              >
+                <View style={styles.historiaImageContainer}>
+                  {historia.autorAvatar ? (
+                    <Image source={{ uri: historia.autorAvatar }} style={styles.historiaImage} />
+                  ) : (
+                    <View style={styles.historiaPlaceholder}>
+                      <IconSymbol name="person.fill" size={24} color={colors.textSecondary} />
+                    </View>
+                  )}
+                </View>
+              </LinearGradient>
+              <Text style={styles.historiaNombre} numberOfLines={1}>
+                {historia.autorNombre}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
     </View>
   );

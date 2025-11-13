@@ -56,6 +56,10 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
     setCurrentImageIndex(index);
   };
 
+  const handleImagePress = () => {
+    router.push(`/social/post?id=${post.id}`);
+  };
+
   return (
     <View style={styles.card}>
       {/* Header */}
@@ -88,7 +92,7 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
       {/* Contenido */}
       {post.contenido && <Text style={styles.contenido}>{post.contenido}</Text>}
 
-      {/* Images Carousel with Swipe Support */}
+      {/* Images Carousel with Swipe Support - FIXED: Made scrollable */}
       {images.length > 0 && (
         <View style={styles.imageCarouselContainer}>
           <ScrollView
@@ -99,12 +103,16 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
             onScroll={handleScroll}
             scrollEventThrottle={16}
             style={styles.imageCarousel}
+            scrollEnabled={true}
+            bounces={false}
+            decelerationRate="fast"
           >
             {images.map((imageUrl, index) => (
               <TouchableOpacity
                 key={index}
                 activeOpacity={0.95}
-                onPress={() => router.push(`/social/post?id=${post.id}`)}
+                onPress={handleImagePress}
+                style={styles.imageContainer}
               >
                 <Image 
                   source={{ uri: imageUrl }} 
@@ -235,9 +243,13 @@ const styles = StyleSheet.create({
   imageCarousel: {
     width: SCREEN_WIDTH,
   },
-  imagen: {
+  imageContainer: {
     width: SCREEN_WIDTH,
     height: SCREEN_WIDTH,
+  },
+  imagen: {
+    width: '100%',
+    height: '100%',
     backgroundColor: colors.cardBorder,
   },
   imageIndicatorContainer: {
