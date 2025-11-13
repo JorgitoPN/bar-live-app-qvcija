@@ -159,7 +159,7 @@ export default function PerfilScreen() {
     switchToClientProfile,
   } = useMode();
   
-  // FIXED: Move all hooks to the top level before any conditional returns
+  // Move all hooks to the top level before any conditional returns
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -209,8 +209,14 @@ export default function PerfilScreen() {
   const isPropietario = userRole === 'propietario' || (userRole === 'admin' && currentMode === 'propietario');
   const isOwnerMode = currentMode === 'propietario' && isPropietario;
 
-  // FIXED: Always show the user's own profile on this page
-  // The ProfileSwitcher component will handle navigation to local profiles
+  // FIXED: Check if we should redirect to local profile page
+  // If the active profile is a local, redirect to the local profile page
+  if (user && activeProfileType === 'local' && activeProfileId) {
+    console.log('[Perfil] 🔀 Redirecting to local profile page:', activeProfileId);
+    return <Redirect href={`/perfil/local?localId=${activeProfileId}`} />;
+  }
+
+  // Always show the user's own profile on this page
   const displayName = user?.nombre || 'Usuario';
   const displayAvatar = user?.avatar;
 
@@ -846,18 +852,11 @@ export default function PerfilScreen() {
     }
   }, [userStories, currentStoryIndex, user, stopStoryTimer]);
 
-  // FIXED: When the screen is focused, ensure we're in client mode
-  // This prevents the issue where clicking "Perfil" shows the local profile
+  // FIXED: When the screen is focused, just reload the data
+  // Don't force a profile switch - let the redirect at the top handle it
   useFocusEffect(
     useCallback(() => {
       console.log('[Perfil] 📍 Screen focused, current mode:', currentMode, 'active profile type:', activeProfileType);
-      
-      // FIXED: When the user navigates to the Perfil tab, always switch to client profile
-      // This ensures that clicking "Perfil" in the bottom menu always shows the user's personal profile
-      if (user && activeProfileType === 'local') {
-        console.log('[Perfil] 🔄 Switching to client profile because user navigated to Perfil tab');
-        switchToClientProfile();
-      }
       
       if (user) {
         loadUnreadCounts();
@@ -898,14 +897,13 @@ export default function PerfilScreen() {
           supabase.removeChannel(messagesChannel);
         };
       }
-    }, [user, loadUnreadCounts, activeProfileType, currentMode, switchToClientProfile])
+    }, [user, loadUnreadCounts, activeProfileType, currentMode])
   );
 
   useEffect(() => {
     if (!authLoading) {
       if (user) {
-        // FIXED: Always load user profile data on this page
-        // This page is for the user's personal profile, not local profiles
+        // Always load user profile data on this page
         console.log('[Perfil] ✅ Loading user profile');
         cargarDatosPerfil();
       } else {
