@@ -27,6 +27,7 @@ import { supabase } from '@/utils/supabase';
 import { getEstadoLocal, calcularTiempoHasta } from '@/utils/timeUtils';
 import { getCategoryIcon } from '@/utils/categoryIcons';
 import FloatingTabBar, { TabBarItem } from '@/components/FloatingTabBar';
+import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
 
 const { width, height } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 3) / 3;
@@ -81,6 +82,7 @@ export default function LocalPerfilScreen() {
     activeProfileType,
     switchToLocalProfile,
     setCurrentMode,
+    ownedLocals,
   } = useMode();
   
   const [loading, setLoading] = useState(true);
@@ -102,6 +104,9 @@ export default function LocalPerfilScreen() {
 
   // NEW: Create options modal state
   const [showCreateOptions, setShowCreateOptions] = useState(false);
+
+  // NEW: Profile switcher state
+  const [showProfileSwitcher, setShowProfileSwitcher] = useState(false);
 
   const localId = params.localId as string;
 
@@ -651,7 +656,17 @@ export default function LocalPerfilScreen() {
             <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{local.nombre}</Text>
-          <View style={styles.headerButton} />
+          {/* NEW: Profile Switcher Button */}
+          {isOwner && (user?.rol_app === 'propietario' || ownedLocals.length > 0) && (
+            <TouchableOpacity 
+              style={styles.switchProfileButton}
+              onPress={() => setShowProfileSwitcher(true)}
+              activeOpacity={0.7}
+            >
+              <IconSymbol name="arrow.triangle.2.circlepath" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          )}
+          {!isOwner && <View style={styles.headerButton} />}
         </View>
 
         {/* Local Profile Section */}
@@ -1192,6 +1207,12 @@ export default function LocalPerfilScreen() {
         </Pressable>
       </Modal>
 
+      {/* NEW: Profile Switcher Modal */}
+      <ProfileSwitcher
+        visible={showProfileSwitcher}
+        onClose={() => setShowProfileSwitcher(false)}
+      />
+
       {/* FIXED: Add FloatingTabBar to show bottom menu */}
       <FloatingTabBar 
         tabs={tabs} 
@@ -1233,6 +1254,11 @@ const styles = StyleSheet.create({
   headerButton: {
     padding: 8,
     width: 40,
+  },
+  switchProfileButton: {
+    padding: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    borderRadius: 20,
   },
   profileSection: {
     flexDirection: 'row',
