@@ -91,24 +91,17 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
             lastNavigationTime.current = now;
 
             try {
-              // FIXED: Check if this is the perfil tab and handle navigation based on current mode
               if (tab.name === 'perfil') {
                 console.log('[FloatingTabBar] 🔍 Perfil tab pressed, currentMode:', currentMode, 'activeProfileType:', activeProfileType, 'activeProfileId:', activeProfileId);
                 
-                // Navigate based on current mode, not just activeProfileType
-                // In client mode, ALWAYS go to user profile
-                // In owner mode with a local profile active, go to local profile
                 if (currentMode === 'propietario' && activeProfileType === 'local' && activeProfileId) {
-                  // Navigate to local profile page
                   console.log('[FloatingTabBar] ✅ Navigating to local profile:', activeProfileId);
                   router.push(`/perfil/local?localId=${activeProfileId}` as any);
                 } else {
-                  // Navigate to user profile page (default for client mode)
                   console.log('[FloatingTabBar] ✅ Navigating to user profile');
                   router.push(tab.route as any);
                 }
               } else {
-                // Normal navigation for other tabs
                 router.push(tab.route as any);
               }
             } catch (error) {
@@ -130,13 +123,13 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                   end={{ x: 1, y: 1 }}
                   style={styles.centerGradient}
                 >
-                  <IconSymbol name={tab.icon as any} size={30} color={colors.white} />
+                  <IconSymbol name={tab.icon as any} size={32} color={colors.white} />
                 </LinearGradient>
               </TouchableOpacity>
             );
           }
 
-          // FIXED: For profile tab, show user avatar instead of icon
+          // For profile tab, show user avatar instead of icon
           if (tab.name === 'perfil' && user) {
             return (
               <TouchableOpacity
@@ -162,14 +155,11 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                     ]}>
                       <IconSymbol
                         name="person.fill"
-                        size={16}
+                        size={18}
                         color={active ? colors.primary : 'rgba(255, 255, 255, 0.6)'}
                       />
                     </View>
                   )}
-                  <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
-                    {tab.label}
-                  </Text>
                 </View>
               </TouchableOpacity>
             );
@@ -183,16 +173,12 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
               activeOpacity={0.5}
             >
               <View style={[styles.tabContent, active && styles.tabContentActive]}>
-                {/* FIXED: Active icons have bright white with 90% opacity, inactive have 60% opacity */}
                 <IconSymbol
                   name={tab.icon as any}
-                  size={26}
+                  size={32}
                   color={active ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.6)'}
                   weight={active ? 'fill' : 'regular'}
                 />
-                <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
-                  {tab.label}
-                </Text>
               </View>
             </TouchableOpacity>
           );
@@ -249,21 +235,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 14,
+    paddingVertical: 8,
+    borderRadius: 16,
   },
   tabContentActive: {
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
-  },
-  tabLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.6)',
-    marginTop: 4,
-  },
-  tabLabelActive: {
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontWeight: '900',
   },
   centerButton: {
     width: 64,
@@ -286,9 +262,9 @@ const styles = StyleSheet.create({
     borderColor: colors.white,
   },
   profileAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     borderWidth: 2,
     borderColor: 'transparent',
   },

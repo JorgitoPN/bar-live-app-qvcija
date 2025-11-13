@@ -1033,6 +1033,7 @@ export default function SocialScreen() {
 
     try {
       // Search both users and local profiles
+      // For locals, only show those with active 'estandar' or 'premium' plans
       const [usersResult, localsResult] = await Promise.all([
         supabase
           .from('usuarios')
@@ -1041,9 +1042,21 @@ export default function SocialScreen() {
           .limit(10),
         supabase
           .from('locales')
-          .select('id, nombre, imagen_url, tipo, provincia')
+          .select(`
+            id, 
+            nombre, 
+            imagen_url, 
+            tipo, 
+            provincia,
+            suscripciones_locales!inner(
+              estado,
+              planes_suscripcion!inner(nombre)
+            )
+          `)
           .or(`nombre.ilike.%${query}%`)
           .eq('activo', true)
+          .eq('suscripciones_locales.estado', 'activa')
+          .in('suscripciones_locales.planes_suscripcion.nombre', ['estandar', 'premium'])
           .limit(10)
       ]);
 
@@ -1060,7 +1073,7 @@ export default function SocialScreen() {
         })));
       }
 
-      // Add local results
+      // Add local results (only those with active estandar or premium plans)
       if (localsResult.data) {
         results.push(...localsResult.data.map(l => ({
           id: l.id,
