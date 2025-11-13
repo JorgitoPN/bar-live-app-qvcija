@@ -73,18 +73,16 @@ export default function LocalPerfilScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { user } = useAuth();
+  
+  // FIXED: Use correct context values and functions
   const { 
-    currentMode, 
-    selectedLocalId, 
-    setSelectedLocalId, 
-    setCurrentMode, 
-    isInteractingAsLocal, 
-    setIsInteractingAsLocal,
-    activeLocalProfileId,
-    setActiveLocalProfileId,
-    publicationMode,
-    setPublicationMode,
+    currentMode,
+    activeProfileId,
+    activeProfileType,
+    switchToLocalProfile,
+    setCurrentMode,
   } = useMode();
+  
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [local, setLocal] = useState<any>(null);
@@ -103,6 +101,10 @@ export default function LocalPerfilScreen() {
   const progressAnim = useRef(new Animated.Value(0)).current;
 
   const localId = params.localId as string;
+
+  // FIXED: Computed values from context
+  const isInteractingAsLocal = activeProfileType === 'local';
+  const activeLocalProfileId = activeProfileType === 'local' ? activeProfileId : null;
 
   const loadLocalData = useCallback(async () => {
     // FIXED: Check if localId exists before proceeding
@@ -360,13 +362,10 @@ export default function LocalPerfilScreen() {
       return;
     }
     
-    // FIXED: Set interaction state before creating content
+    // FIXED: Set interaction state before creating content using correct context function
     console.log('[LocalPerfil] Setting interaction state for creating post');
-    await setSelectedLocalId(localId);
+    await switchToLocalProfile(localId);
     await setCurrentMode('propietario');
-    await setIsInteractingAsLocal(true);
-    await setActiveLocalProfileId(localId);
-    await setPublicationMode('local');
     
     router.push(`/crear/publicacion?localId=${localId}`);
   };
@@ -381,13 +380,10 @@ export default function LocalPerfilScreen() {
       return;
     }
     
-    // FIXED: Set interaction state before creating content
+    // FIXED: Set interaction state before creating content using correct context function
     console.log('[LocalPerfil] Setting interaction state for creating story');
-    await setSelectedLocalId(localId);
+    await switchToLocalProfile(localId);
     await setCurrentMode('propietario');
-    await setIsInteractingAsLocal(true);
-    await setActiveLocalProfileId(localId);
-    await setPublicationMode('local');
     
     router.push(`/crear/historia?localId=${localId}`);
   };
@@ -402,13 +398,10 @@ export default function LocalPerfilScreen() {
       return;
     }
     
-    // FIXED: Set interaction state before creating content
+    // FIXED: Set interaction state before creating content using correct context function
     console.log('[LocalPerfil] Setting interaction state for creating event');
-    await setSelectedLocalId(localId);
+    await switchToLocalProfile(localId);
     await setCurrentMode('propietario');
-    await setIsInteractingAsLocal(true);
-    await setActiveLocalProfileId(localId);
-    await setPublicationMode('local');
     
     router.push(`/crear/evento?localId=${localId}`);
   };
@@ -423,13 +416,10 @@ export default function LocalPerfilScreen() {
       return;
     }
     
-    // FIXED: Set interaction state before editing
+    // FIXED: Set interaction state before editing using correct context function
     console.log('[LocalPerfil] Setting interaction state for editing local');
-    await setSelectedLocalId(localId);
+    await switchToLocalProfile(localId);
     await setCurrentMode('propietario');
-    await setIsInteractingAsLocal(true);
-    await setActiveLocalProfileId(localId);
-    await setPublicationMode('local');
     
     router.push(`/editar/local?id=${localId}`);
   };
@@ -437,14 +427,6 @@ export default function LocalPerfilScreen() {
   // FIXED: Safe back navigation
   const handleGoBack = () => {
     try {
-      // Clear interaction state before navigating back
-      if (isInteractingAsLocal && activeLocalProfileId === localId) {
-        console.log('[LocalPerfil] Clearing interaction state before going back');
-        setIsInteractingAsLocal(false);
-        setActiveLocalProfileId(null);
-        setPublicationMode('usuario');
-      }
-      
       // Check if we can go back in the navigation stack
       if (router.canGoBack()) {
         console.log('[LocalPerfil] ✅ Going back to previous screen');

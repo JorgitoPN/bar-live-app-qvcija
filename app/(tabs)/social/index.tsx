@@ -719,16 +719,16 @@ function formatearFecha(fecha: string): string {
 export default function SocialScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  
+  // FIXED: Use correct context values and functions
   const { 
-    currentMode, 
-    selectedLocalId, 
-    setSelectedLocalId, 
-    activeLocalProfileId,
-    setActiveLocalProfileId,
-    isInteractingAsLocal,
-    setIsInteractingAsLocal,
-    publicationMode,
-    setPublicationMode,
+    currentMode,
+    activeProfileId,
+    activeProfileType,
+    activeLocalData,
+    ownedLocals,
+    switchToClientProfile,
+    switchToLocalProfile,
     setCurrentMode,
   } = useMode();
   
@@ -748,12 +748,8 @@ export default function SocialScreen() {
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
   
-  // Local selector for owner mode - using persistent state from ModeContext
-  const [userLocales, setUserLocales] = useState<LocalProfile[]>([]);
+  // Local selector for owner mode
   const [showLocalSelector, setShowLocalSelector] = useState(false);
-  
-  // Active local data for display
-  const [activeLocalData, setActiveLocalData] = useState<LocalProfile | null>(null);
   
   // Story viewer states
   const [showStoryViewer, setShowStoryViewer] = useState(false);
@@ -781,54 +777,9 @@ export default function SocialScreen() {
   const isPropietario = userRole === 'propietario' || (userRole === 'admin' && currentMode === 'propietario');
   const isOwnerMode = currentMode === 'propietario' && isPropietario;
 
-  // FIXED: Load user's locales when in owner mode
-  const loadUserLocales = useCallback(async () => {
-    if (!user || !isPropietario) return;
-
-    try {
-      const { data: localesData, error } = await supabase
-        .from('locales')
-        .select('id, nombre, tipo, imagen_url')
-        .eq('propietario_id', user.id)
-        .eq('activo', true);
-
-      if (error) throw error;
-
-      setUserLocales(localesData || []);
-
-      // Auto-select first local if none selected and only one local
-      if (localesData && localesData.length === 1 && !selectedLocalId) {
-        await setSelectedLocalId(localesData[0].id);
-      }
-    } catch (error) {
-      console.error('[Social] Error loading user locales:', error);
-    }
-  }, [user, isPropietario, selectedLocalId, setSelectedLocalId]);
-
-  // FIXED: Load active local data for display
-  const loadActiveLocalData = useCallback(async () => {
-    if (!activeLocalProfileId) {
-      setActiveLocalData(null);
-      return;
-    }
-
-    try {
-      console.log('[Social] 🔍 Loading active local data:', activeLocalProfileId);
-      const { data, error } = await supabase
-        .from('locales')
-        .select('id, nombre, tipo, imagen_url')
-        .eq('id', activeLocalProfileId)
-        .single();
-
-      if (error) throw error;
-
-      console.log('[Social] ✅ Active local data loaded:', data?.nombre);
-      setActiveLocalData(data);
-    } catch (error) {
-      console.error('[Social] Error loading active local data:', error);
-      setActiveLocalData(null);
-    }
-  }, [activeLocalProfileId]);
+  // FIXED: Computed values from context
+  const isInteractingAsLocal = activeProfileType === 'local';
+  const activeLocalProfileId = activeProfileType === 'local' ? activeProfileId : null;
 
   const loadData = useCallback(async () => {
     if (isLoadingRef.current) {
@@ -842,23 +793,15 @@ export default function SocialScreen() {
       console.log('[Social] ⚡ Loading user-specific data...');
       console.log('[Social] 📍 Current mode:', currentMode);
       console.log('[Social] 📍 Is owner mode:', isOwnerMode);
-      console.log('[Social] 📍 Active local profile ID:', activeLocalProfileId);
-      console.log('[Social] 📍 Selected local ID:', selectedLocalId);
+      console.log('[Social] 📍 Active profile ID:', activeProfileId);
+      console.log('[Social] 📍 Active profile type:', activeProfileType);
+      console.log('[Social] 📍 Active local data:', activeLocalData?.nombre);
       console.log('[Social] 📍 Is interacting as local:', isInteractingAsLocal);
-      console.log('[Social] 📍 Publication mode:', publicationMode);
       console.log('[Social] 📍 User role:', user?.rol_app);
-
-      // Load locales in owner mode
-      if (isOwnerMode) {
-        await loadUserLocales();
-      }
-
-      // Load active local data
-      await loadActiveLocalData();
 
       if (globalPosts.length > 0) {
         console.log('[Social] ⚡ INSTANT posts from global data:', globalPosts.length);
-        console.log('[Social] 📍 Current context - Mode:', currentMode, 'Publication:', publicationMode, 'Interacting:', isInteractingAsLocal, 'Active Local:', activeLocalProfileId);
+        console.log('[Social] 📍 Current context - Mode:', currentMode, 'Type:', activeProfileType, 'Interacting:', isInteractingAsLocal, 'Active Local:', activeLocalProfileId);
         
         // FIXED: Filter posts based on owner mode and active local profile
         let filteredPosts = globalPosts;
@@ -1007,7 +950,7 @@ export default function SocialScreen() {
     } finally {
       isLoadingRef.current = false;
     }
-  }, [user, globalPosts, globalStories, isOwnerMode, loadUserLocales, activeLocalProfileId, loadActiveLocalData, isInteractingAsLocal, publicationMode]);
+  }, [user, globalPosts, globalStories, isOwnerMode, activeLocalProfileId, isInteractingAsLocal, activeProfileType, currentMode, activeProfileId, activeLocalData]);
 
   const loadUnreadCounts = useCallback(async () => {
     if (!user) return;
@@ -1644,15 +1587,9 @@ export default function SocialScreen() {
     try {
       console.log('[Social] 🔄 Switching to client mode...');
       
-      // Clear all local-related state
+      // Use the correct context function
+      await switchToClientProfile();
       await setCurrentMode('cliente');
-      await setPublicationMode('cliente');
-      await setIsInteractingAsLocal(false);
-      await setActiveLocalProfileId(null);
-      await setSelectedLocalId(null);
-      
-      // Clear active local data
-      setActiveLocalData(null);
       
       // Reload data to show user content
       await loadData();
@@ -1662,7 +1599,7 @@ export default function SocialScreen() {
       console.error('[Social] Error switching to client mode:', error);
       Alert.alert('Error', 'No se pudo cambiar al modo cliente');
     }
-  }, [setCurrentMode, setPublicationMode, setIsInteractingAsLocal, setActiveLocalProfileId, setSelectedLocalId, loadData]);
+  }, [switchToClientProfile, setCurrentMode, loadData]);
 
   useEffect(() => {
     if (showStoryViewer && !isPaused) {
@@ -1705,8 +1642,6 @@ export default function SocialScreen() {
     inputRange: [0, 1],
     outputRange: ['0%', '100%'],
   });
-
-  const selectedLocal = userLocales.find(l => l.id === selectedLocalId);
 
   // FIXED: Determine which avatar and name to show based on owner mode
   const displayAvatar = (isOwnerMode && activeLocalData) ? activeLocalData.imagen_url : user?.avatar;
@@ -1781,16 +1716,16 @@ export default function SocialScreen() {
         </LinearGradient>
 
         {/* FIXED: Local selector for owner mode */}
-        {isOwnerMode && userLocales.length > 0 && (
+        {isOwnerMode && ownedLocals.length > 0 && (
           <View style={styles.localSelectorContainer}>
             <TouchableOpacity
               style={styles.localSelectorButton}
-              onPress={() => userLocales.length > 1 && setShowLocalSelector(true)}
-              activeOpacity={userLocales.length > 1 ? 0.7 : 1}
+              onPress={() => ownedLocals.length > 1 && setShowLocalSelector(true)}
+              activeOpacity={ownedLocals.length > 1 ? 0.7 : 1}
             >
               <View style={styles.localSelectorContent}>
-                {selectedLocal?.imagen_url ? (
-                  <Image source={{ uri: selectedLocal.imagen_url }} style={styles.localSelectorImage} />
+                {activeLocalData?.imagen_url ? (
+                  <Image source={{ uri: activeLocalData.imagen_url }} style={styles.localSelectorImage} />
                 ) : (
                   <View style={[styles.localSelectorImage, styles.localSelectorImagePlaceholder]}>
                     <IconSymbol name="building.2" size={20} color={colors.headerText} />
@@ -1799,11 +1734,11 @@ export default function SocialScreen() {
                 <View style={styles.localSelectorText}>
                   <Text style={styles.localSelectorLabel}>Interactuando como:</Text>
                   <Text style={styles.localSelectorName} numberOfLines={1}>
-                    {selectedLocal?.nombre || 'Seleccionar local'}
+                    {activeLocalData?.nombre || 'Seleccionar local'}
                   </Text>
                 </View>
               </View>
-              {userLocales.length > 1 && (
+              {ownedLocals.length > 1 && (
                 <IconSymbol name="chevron.down" size={20} color={colors.text} />
               )}
             </TouchableOpacity>
@@ -1813,7 +1748,7 @@ export default function SocialScreen() {
 
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingTop: isOwnerMode && userLocales.length > 0 ? HEADER_HEIGHT + 70 : HEADER_HEIGHT }}
+        contentContainerStyle={{ paddingTop: isOwnerMode && ownedLocals.length > 0 ? HEADER_HEIGHT + 70 : HEADER_HEIGHT }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
@@ -2075,7 +2010,7 @@ export default function SocialScreen() {
             <View style={styles.emptyContainer}>
               <IconSymbol name="photo.on.rectangle" size={64} color={colors.textSecondary} />
               <Text style={styles.emptyText}>
-                {publicationMode === 'local' && activeLocalProfileId 
+                {activeProfileType === 'local' && activeLocalProfileId 
                   ? 'Este local no tiene publicaciones aún'
                   : 'No hay publicaciones aún'}
               </Text>
@@ -2118,21 +2053,15 @@ export default function SocialScreen() {
                 </Text>
               </TouchableOpacity>
 
-              {userLocales.map((local) => (
+              {ownedLocals.map((local) => (
                 <TouchableOpacity
                   key={local.id}
-                  style={[styles.localSelectorItem, selectedLocalId === local.id && styles.localSelectorItemActive]}
+                  style={[styles.localSelectorItem, activeLocalProfileId === local.id && styles.localSelectorItemActive]}
                   onPress={async () => {
                     console.log('[Social] 🏢 Selecting local:', local.id, local.nombre);
                     
-                    // Set all the necessary context states
-                    await setSelectedLocalId(local.id);
-                    await setActiveLocalProfileId(local.id);
-                    await setIsInteractingAsLocal(true);
-                    await setPublicationMode('local');
-                    
-                    // Update active local data
-                    setActiveLocalData(local);
+                    // FIXED: Use the correct context function
+                    await switchToLocalProfile(local.id);
                     
                     // Reload data to show local's content
                     await loadData();
@@ -2148,12 +2077,12 @@ export default function SocialScreen() {
                     </View>
                   )}
                   <View style={styles.localSelectorItemInfo}>
-                    <Text style={[styles.localSelectorItemName, selectedLocalId === local.id && styles.localSelectorItemNameActive]}>
+                    <Text style={[styles.localSelectorItemName, activeLocalProfileId === local.id && styles.localSelectorItemNameActive]}>
                       {local.nombre}
                     </Text>
                     <Text style={styles.localSelectorItemType}>{local.tipo}</Text>
                   </View>
-                  {selectedLocalId === local.id && (
+                  {activeLocalProfileId === local.id && (
                     <IconSymbol name="checkmark.circle.fill" size={24} color={colors.primary} />
                   )}
                 </TouchableOpacity>
