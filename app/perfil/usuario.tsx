@@ -24,6 +24,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
 
 const { width, height } = Dimensions.get('window');
+const GRID_ITEM_SIZE = (width - 4) / 3;
 
 interface HistoriaConAutor {
   id: string;
@@ -57,21 +58,36 @@ export default function UsuarioPerfilScreen() {
     seguidos: 0,
   });
 
-  // FIXED: Story viewer states
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [userStories, setUserStories] = useState<HistoriaConAutor[]>([]);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
-  const [currentStoryProgress, setCurrentStoryProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const storyTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const storyProgressRef = useRef<NodeJS.Timeout | null>(null);
+  const progressAnim = useRef(new Animated.Value(0)).current;
+
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.95)).current;
 
   const isTogglingFollow = useRef(false);
 
   const userId = params.userId as string;
-
-  // FIXED: Check if viewing own profile
   const isOwnProfile = currentUser && currentUser.id === userId;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   const loadFollowerCounts = useCallback(async (targetUserId: string) => {
     try {
@@ -143,7 +159,6 @@ export default function UsuarioPerfilScreen() {
 
       setUsuario(userData);
 
-      // FIXED: Only load user posts (tipo='usuario'), not local posts
       const { data: postsData, error: postsError } = await supabase
         .from('posts')
         .select('*')
@@ -170,7 +185,6 @@ export default function UsuarioPerfilScreen() {
 
       console.log('[UsuarioPerfil] ✅ User stats loaded - Posts:', postsCount, 'Seguidores:', followerCounts.seguidores, 'Seguidos:', followerCounts.seguidos);
 
-      // FIXED: Load user's stories for viewer - only user stories (tipo='usuario')
       const { data: userStoriesData } = await supabase
         .from('historias')
         .select(`
@@ -466,17 +480,21 @@ export default function UsuarioPerfilScreen() {
     router.push(`/social/post?id=${postId}`);
   };
 
-  // FIXED: Story viewer functions
+  const handleSeguidores = () => {
+    router.push(`/perfil/seguidores?userId=${userId}`);
+  };
+
+  const handleSeguidos = () => {
+    router.push(`/perfil/seguidos?userId=${userId}`);
+  };
+
   const stopStoryTimer = useCallback(() => {
     if (storyTimerRef.current) {
       clearTimeout(storyTimerRef.current);
       storyTimerRef.current = null;
     }
-    if (storyProgressRef.current) {
-      clearInterval(storyProgressRef.current);
-      storyProgressRef.current = null;
-    }
-  }, []);
+    progressAnim.stopAnimation();
+  }, [progressAnim]);
 
   const handleNextStory = useCallback(async () => {
     const currentStory = userStories[currentStoryIndex];
@@ -503,48 +521,42 @@ export default function UsuarioPerfilScreen() {
     
     if (currentStoryIndex < userStories.length - 1) {
       setCurrentStoryIndex(currentStoryIndex + 1);
-      setCurrentStoryProgress(0);
+      progressAnim.setValue(0);
     } else {
       await loadUserData();
       setShowStoryViewer(false);
       stopStoryTimer();
     }
-  }, [currentStoryIndex, userStories, stopStoryTimer, currentUser, loadUserData]);
+  }, [currentStoryIndex, userStories, stopStoryTimer, currentUser, loadUserData, progressAnim]);
 
   const startStoryTimer = useCallback(() => {
     if (storyTimerRef.current) {
       clearTimeout(storyTimerRef.current);
     }
-    if (storyProgressRef.current) {
-      clearInterval(storyProgressRef.current);
-    }
 
-    setCurrentStoryProgress(0);
+    progressAnim.setValue(0);
 
-    storyProgressRef.current = setInterval(() => {
-      setCurrentStoryProgress(prev => {
-        if (prev >= 100) {
-          return 100;
-        }
-        return prev + 1;
-      });
-    }, 50);
+    Animated.timing(progressAnim, {
+      toValue: 1,
+      duration: 5000,
+      useNativeDriver: false,
+    }).start();
 
     storyTimerRef.current = setTimeout(() => {
       handleNextStory();
     }, 5000);
-  }, [handleNextStory]);
+  }, [handleNextStory, progressAnim]);
 
   const handlePreviousStory = useCallback(() => {
     if (currentStoryIndex > 0) {
       setCurrentStoryIndex(currentStoryIndex - 1);
-      setCurrentStoryProgress(0);
+      progressAnim.setValue(0);
       startStoryTimer();
     } else {
       setShowStoryViewer(false);
       stopStoryTimer();
     }
-  }, [currentStoryIndex, startStoryTimer, stopStoryTimer]);
+  }, [currentStoryIndex, startStoryTimer, stopStoryTimer, progressAnim]);
 
   const handleAvatarPress = useCallback(() => {
     if (!currentUser) {
@@ -590,10 +602,17 @@ export default function UsuarioPerfilScreen() {
   const hasActiveStory = userStories.length > 0;
   const hasUnviewedStories = userStories.some(s => !s.visto_por_usuario);
 
+  const progressWidth = progressAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0%', '100%'],
+  });
+
   return (
     <View style={styles.container}>
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
         style={styles.header}
       >
         <View style={styles.headerTop}>
@@ -601,7 +620,6 @@ export default function UsuarioPerfilScreen() {
             <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{usuario.username || usuario.nombre}</Text>
-          {/* FIXED: Only show block button if not viewing own profile */}
           {!isOwnProfile && (
             <TouchableOpacity onPress={handleBlock} style={styles.headerButton}>
               <IconSymbol
@@ -614,87 +632,89 @@ export default function UsuarioPerfilScreen() {
           {isOwnProfile && <View style={{ width: 40 }} />}
         </View>
 
-        <View style={styles.profileSection}>
-          {/* FIXED: Avatar with story ring - clickable to open story viewer */}
-          <TouchableOpacity 
-            style={styles.avatarContainer}
-            onPress={handleAvatarPress}
-            activeOpacity={0.7}
-            disabled={!hasActiveStory}
-          >
-            {hasActiveStory && hasUnviewedStories && (
-              <LinearGradient
-                colors={[colors.primary, colors.secondary]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.storyRing}
-              />
-            )}
-            {usuario.avatar ? (
-              <Image source={{ uri: usuario.avatar }} style={styles.avatar} />
-            ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <Text style={styles.avatarText}>{usuario.nombre.charAt(0).toUpperCase()}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
+        <Animated.View 
+          style={[
+            styles.profileSection,
+            {
+              opacity: fadeAnim,
+              transform: [{ scale: scaleAnim }],
+            }
+          ]}
+        >
+          <View style={styles.profileHeader}>
+            <TouchableOpacity 
+              style={styles.avatarContainer}
+              onPress={handleAvatarPress}
+              activeOpacity={0.8}
+              disabled={!hasActiveStory}
+            >
+              {hasActiveStory && hasUnviewedStories && (
+                <LinearGradient
+                  colors={[colors.primary, colors.secondary]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.storyRing}
+                />
+              )}
+              {usuario.avatar ? (
+                <Image source={{ uri: usuario.avatar }} style={styles.avatar} />
+              ) : (
+                <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                  <IconSymbol name="person.fill" size={40} color={colors.headerText} />
+                </View>
+              )}
+            </TouchableOpacity>
+            <View style={styles.profileInfo}>
+              <Text style={styles.profileName}>{usuario.nombre}</Text>
+              {usuario.username && (
+                <Text style={styles.profileUsername}>@{usuario.username}</Text>
+              )}
+            </View>
+          </View>
+
+          {usuario.bio && (
+            <Text style={styles.profileBio}>{usuario.bio}</Text>
+          )}
 
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
               <Text style={styles.statNumber}>{stats.posts}</Text>
-              <Text style={styles.statLabel}>Posts</Text>
+              <Text style={styles.statLabel}>Publicaciones</Text>
             </View>
-            <TouchableOpacity
-              style={styles.statItem}
-              onPress={() => router.push(`/perfil/seguidores?userId=${userId}`)}
-            >
+            <View style={styles.statDivider} />
+            <TouchableOpacity style={styles.statItem} onPress={handleSeguidores}>
               <Text style={styles.statNumber}>{stats.seguidores}</Text>
               <Text style={styles.statLabel}>Seguidores</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.statItem}
-              onPress={() => router.push(`/perfil/seguidos?userId=${userId}`)}
-            >
+            <View style={styles.statDivider} />
+            <TouchableOpacity style={styles.statItem} onPress={handleSeguidos}>
               <Text style={styles.statNumber}>{stats.seguidos}</Text>
               <Text style={styles.statLabel}>Seguidos</Text>
             </TouchableOpacity>
           </View>
-        </View>
 
-        <View style={styles.userInfo}>
-          <Text style={styles.userName}>{usuario.nombre}</Text>
-          {usuario.username && (
-            <Text style={styles.userUsername}>@{usuario.username}</Text>
+          {!isOwnProfile && (
+            <View style={styles.actionsContainer}>
+              <TouchableOpacity
+                style={[styles.actionButton, isFollowing && styles.actionButtonFollowing]}
+                onPress={handleFollow}
+                disabled={isTogglingFollow.current}
+              >
+                <Text style={[styles.actionButtonText, isFollowing && styles.actionButtonTextFollowing]}>
+                  {isFollowing ? 'Siguiendo' : 'Seguir'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.actionButton} onPress={handleMessage}>
+                <Text style={styles.actionButtonText}>Mensaje</Text>
+              </TouchableOpacity>
+            </View>
           )}
-        </View>
-
-        {usuario.bio && (
-          <View style={styles.bioSection}>
-            <Text style={styles.bioText}>{usuario.bio}</Text>
-          </View>
-        )}
-
-        {/* FIXED: Only show action buttons if not viewing own profile */}
-        {!isOwnProfile && (
-          <View style={styles.actionsContainer}>
-            <TouchableOpacity
-              style={[styles.actionButton, isFollowing && styles.actionButtonFollowing]}
-              onPress={handleFollow}
-              disabled={isTogglingFollow.current}
-            >
-              <Text style={[styles.actionButtonText, isFollowing && styles.actionButtonTextFollowing]}>
-                {isFollowing ? 'Siguiendo' : 'Seguir'}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton} onPress={handleMessage}>
-              <Text style={styles.actionButtonText}>Mensaje</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+        </Animated.View>
       </LinearGradient>
 
       <ScrollView
         style={styles.content}
+        contentContainerStyle={{ paddingBottom: 100 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {posts.length > 0 ? (
@@ -702,11 +722,16 @@ export default function UsuarioPerfilScreen() {
             {posts.map((post) => (
               <TouchableOpacity
                 key={post.id}
-                style={styles.postItem}
+                style={styles.gridItem}
                 onPress={() => handleVerPost(post.id)}
+                activeOpacity={0.8}
               >
-                {post.imagen && (
-                  <Image source={{ uri: post.imagen }} style={styles.postImage} resizeMode="cover" />
+                {post.imagen ? (
+                  <Image source={{ uri: post.imagen }} style={styles.gridImage} resizeMode="cover" />
+                ) : (
+                  <View style={[styles.gridImage, styles.gridImagePlaceholder]}>
+                    <IconSymbol name="photo" size={32} color={colors.textSecondary} />
+                  </View>
                 )}
               </TouchableOpacity>
             ))}
@@ -719,7 +744,6 @@ export default function UsuarioPerfilScreen() {
         )}
       </ScrollView>
 
-      {/* FIXED: Story Viewer Modal */}
       <Modal
         visible={showStoryViewer}
         animationType="fade"
@@ -762,8 +786,8 @@ export default function UsuarioPerfilScreen() {
                         <View style={[styles.storyProgressFill, { width: '100%' }]} />
                       )}
                       {index === currentStoryIndex && (
-                        <View
-                          style={[styles.storyProgressFill, { width: `${currentStoryProgress}%` }]}
+                        <Animated.View
+                          style={[styles.storyProgressFill, { width: progressWidth }]}
                         />
                       )}
                     </View>
@@ -810,7 +834,7 @@ export default function UsuarioPerfilScreen() {
                       setShowStoryViewer(false);
                       stopStoryTimer();
                     }}
-                    activeOpacity={0.7}
+                    activeOpacity={0.8}
                   >
                     <IconSymbol name="xmark" size={20} color="#fff" />
                   </TouchableOpacity>
@@ -861,14 +885,14 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingTop: 50,
-    paddingBottom: 20,
-    paddingHorizontal: 16,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
   },
   headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 24,
+    marginBottom: 28,
   },
   backButton: {
     padding: 8,
@@ -884,9 +908,12 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   profileSection: {
+    paddingTop: 0,
+  },
+  profileHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   avatarContainer: {
     position: 'relative',
@@ -902,10 +929,10 @@ const styles = StyleSheet.create({
     zIndex: 0,
   },
   avatar: {
-    width: 86,
-    height: 86,
-    borderRadius: 43,
-    borderWidth: 3,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    borderWidth: 4,
     borderColor: colors.headerText,
     zIndex: 1,
   },
@@ -915,89 +942,103 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatarText: {
-    fontSize: 32,
+    fontSize: 20,
     fontWeight: 'bold',
     color: colors.headerText,
   },
-  statsContainer: {
+  profileInfo: {
     flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
   },
-  statItem: {
-    alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.headerText,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginTop: 2,
-  },
-  userInfo: {
-    paddingHorizontal: 0,
-    marginBottom: 8,
-  },
-  userName: {
-    fontSize: 16,
+  profileName: {
+    fontSize: 22,
     fontWeight: 'bold',
     color: colors.headerText,
     marginBottom: 4,
   },
-  userUsername: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.85)',
+  profileUsername: {
+    fontSize: 15,
+    color: 'rgba(255, 255, 255, 0.9)',
   },
-  bioSection: {
-    paddingHorizontal: 0,
+  profileBio: {
+    fontSize: 15,
+    color: colors.headerText,
+    lineHeight: 22,
     marginBottom: 16,
   },
-  bioText: {
-    fontSize: 14,
+  statsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    marginBottom: 24,
+    paddingVertical: 4,
+  },
+  statItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statNumber: {
+    fontSize: 22,
+    fontWeight: 'bold',
     color: colors.headerText,
-    lineHeight: 20,
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+  statDivider: {
+    width: 1,
+    height: 44,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
   actionsContainer: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 16,
   },
   actionButton: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    paddingVertical: 8,
-    borderRadius: 8,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: 16,
+    paddingVertical: 14,
+    gap: 8,
   },
   actionButtonFollowing: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
   },
   actionButtonText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     color: colors.headerText,
   },
   actionButtonTextFollowing: {
-    color: colors.primary,
+    color: colors.headerText,
   },
   content: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   postsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    gap: 2,
+    backgroundColor: colors.cardBorder,
   },
-  postItem: {
-    width: (width - 3) / 3,
-    height: (width - 3) / 3,
-    padding: 0.5,
+  gridItem: {
+    width: GRID_ITEM_SIZE,
+    height: GRID_ITEM_SIZE,
+    position: 'relative',
   },
-  postImage: {
+  gridImage: {
     width: '100%',
     height: '100%',
+    backgroundColor: colors.background,
+    borderRadius: 4,
+  },
+  gridImagePlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   emptyState: {
     alignItems: 'center',

@@ -30,7 +30,7 @@ import FloatingTabBar, { TabBarItem } from '@/components/FloatingTabBar';
 import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
 
 const { width, height } = Dimensions.get('window');
-const GRID_ITEM_SIZE = (width - 3) / 3;
+const GRID_ITEM_SIZE = (width - 4) / 3;
 
 interface LocalPost {
   id: string;
@@ -75,7 +75,6 @@ export default function LocalPerfilScreen() {
   const params = useLocalSearchParams();
   const { user } = useAuth();
   
-  // FIXED: Use correct context values and functions
   const { 
     currentMode,
     activeProfileId,
@@ -94,7 +93,6 @@ export default function LocalPerfilScreen() {
   const [isOwner, setIsOwner] = useState(false);
   const [activeTab, setActiveTab] = useState<'posts' | 'eventos' | 'info'>('posts');
 
-  // Story viewer states
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [localStories, setLocalStories] = useState<LocalStory[]>([]);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
@@ -102,20 +100,34 @@ export default function LocalPerfilScreen() {
   const storyTimerRef = useRef<NodeJS.Timeout | null>(null);
   const progressAnim = useRef(new Animated.Value(0)).current;
 
-  // NEW: Create options modal state
   const [showCreateOptions, setShowCreateOptions] = useState(false);
-
-  // NEW: Profile switcher state
   const [showProfileSwitcher, setShowProfileSwitcher] = useState(false);
+
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.95)).current;
 
   const localId = params.localId as string;
 
-  // FIXED: Computed values from context
   const isInteractingAsLocal = activeProfileType === 'local';
   const activeLocalProfileId = activeProfileType === 'local' ? activeProfileId : null;
 
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
   const loadLocalData = useCallback(async () => {
-    // FIXED: Check if localId exists before proceeding
     if (!localId) {
       console.error('[LocalPerfil] ❌ No localId provided');
       Alert.alert('Error', 'No se pudo cargar el perfil del local', [
@@ -127,7 +139,6 @@ export default function LocalPerfilScreen() {
     try {
       console.log('[LocalPerfil] ✅ Loading local data for:', localId);
 
-      // Load local details
       const { data: localData, error: localError } = await supabase
         .from('locales')
         .select('*')
@@ -144,20 +155,14 @@ export default function LocalPerfilScreen() {
 
       setLocal(localData);
 
-      // Check if current user is the owner
       if (user && localData.propietario_id === user.id) {
         setIsOwner(true);
         console.log('[LocalPerfil] ✅ User is owner of this local');
-        
-        // FIXED: DO NOT automatically set interaction state
-        // Only set it when user explicitly enters owner mode
-        // This prevents navigation issues when just viewing the profile
       } else {
         setIsOwner(false);
         console.log('[LocalPerfil] ✅ User is viewing another local');
       }
 
-      // FIXED: Load local posts (ONLY posts with tipo='local' and matching local_id)
       const { data: postsData, error: postsError } = await supabase
         .from('posts')
         .select('*')
@@ -172,7 +177,6 @@ export default function LocalPerfilScreen() {
         console.error('[LocalPerfil] Error loading posts:', postsError);
       }
 
-      // Load local events
       const { data: eventsData, error: eventsError } = await supabase
         .from('eventos')
         .select('*')
@@ -186,7 +190,6 @@ export default function LocalPerfilScreen() {
         setEvents(eventsData || []);
       }
 
-      // FIXED: Load local stories (ONLY stories with tipo='local' and matching local_id)
       const { data: storiesData } = await supabase
         .from('historias')
         .select('*')
@@ -246,7 +249,6 @@ export default function LocalPerfilScreen() {
         setLocalStories(storiesData);
       }
 
-      // Check if user has favorited this local
       if (user) {
         const { data: favData } = await supabase
           .from('locales_favoritos')
@@ -268,10 +270,6 @@ export default function LocalPerfilScreen() {
 
   useEffect(() => {
     loadLocalData();
-
-    // REMOVED: Cleanup that was clearing interaction state
-    // This was causing the context to revert when navigating
-    // The interaction state should persist across navigation
   }, [loadLocalData, localId]);
 
   const onRefresh = async () => {
@@ -295,7 +293,6 @@ export default function LocalPerfilScreen() {
           .eq('local_id', localId);
         setIsFavorito(false);
         
-        // Update local state
         if (local) {
           setLocal({
             ...local,
@@ -311,7 +308,6 @@ export default function LocalPerfilScreen() {
           });
         setIsFavorito(true);
         
-        // Update local state
         if (local) {
           setLocal({
             ...local,
@@ -370,7 +366,6 @@ export default function LocalPerfilScreen() {
       return;
     }
     
-    // FIXED: Set interaction state before creating content using correct context function
     console.log('[LocalPerfil] Setting interaction state for creating post');
     await switchToLocalProfile(localId);
     await setCurrentMode('propietario');
@@ -388,7 +383,6 @@ export default function LocalPerfilScreen() {
       return;
     }
     
-    // FIXED: Set interaction state before creating content using correct context function
     console.log('[LocalPerfil] Setting interaction state for creating story');
     await switchToLocalProfile(localId);
     await setCurrentMode('propietario');
@@ -406,7 +400,6 @@ export default function LocalPerfilScreen() {
       return;
     }
     
-    // FIXED: Set interaction state before creating content using correct context function
     console.log('[LocalPerfil] Setting interaction state for creating event');
     await switchToLocalProfile(localId);
     await setCurrentMode('propietario');
@@ -424,7 +417,6 @@ export default function LocalPerfilScreen() {
       return;
     }
     
-    // FIXED: Set interaction state before editing using correct context function
     console.log('[LocalPerfil] Setting interaction state for editing local');
     await switchToLocalProfile(localId);
     await setCurrentMode('propietario');
@@ -432,26 +424,21 @@ export default function LocalPerfilScreen() {
     router.push(`/editar/local?id=${localId}`);
   };
 
-  // FIXED: Safe back navigation
   const handleGoBack = () => {
     try {
-      // Check if we can go back in the navigation stack
       if (router.canGoBack()) {
         console.log('[LocalPerfil] ✅ Going back to previous screen');
         router.back();
       } else {
-        // If there's no screen to go back to, navigate to explorar
         console.log('[LocalPerfil] ⚠️ No previous screen, navigating to explorar');
         router.replace('/(tabs)/explorar');
       }
     } catch (error) {
       console.error('[LocalPerfil] ❌ Error navigating back:', error);
-      // Fallback to explorar if there's any error
       router.replace('/(tabs)/explorar');
     }
   };
 
-  // Story viewer functions
   const stopStoryTimer = useCallback(() => {
     if (storyTimerRef.current) {
       clearTimeout(storyTimerRef.current);
@@ -542,12 +529,9 @@ export default function LocalPerfilScreen() {
     };
   }, [showStoryViewer, currentStoryIndex, isPaused, startStoryTimer, stopStoryTimer]);
 
-  // FIXED: Get tabs for FloatingTabBar - always show social mode tabs on local profile page
-  // The local profile page is a detail view, not a mode switch
   const getTabsForRole = (): TabBarItem[] => {
     const userRole = user?.rol_app || 'cliente';
 
-    // Admin users see admin tabs when in admin mode
     if (userRole === 'admin' && currentMode === 'admin') {
       return [
         {
@@ -571,9 +555,6 @@ export default function LocalPerfilScreen() {
       ];
     }
 
-    // FIXED: When viewing a local profile, always show social mode tabs
-    // This ensures consistency - the local profile is a detail view, not a mode
-    // Users can still create content for the local using the action buttons on the profile
     return [
       {
         name: 'eventos',
@@ -635,7 +616,6 @@ export default function LocalPerfilScreen() {
     outputRange: ['0%', '100%'],
   });
 
-  // Get categories
   let categoriasLocal = local.barlive_types || [];
   if (categoriasLocal.length === 0 && local.barlive_type) {
     categoriasLocal = [local.barlive_type];
@@ -645,156 +625,163 @@ export default function LocalPerfilScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
         style={styles.header}
       >
         <View style={styles.headerTop}>
-          {/* FIXED: Back button with contrasting color and safe navigation */}
           <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
-            <IconSymbol name="chevron.left" size={24} color="#FFFFFF" />
+            <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{local.nombre}</Text>
-          {/* NEW: Profile Switcher Button */}
           {isOwner && (user?.rol_app === 'propietario' || ownedLocals.length > 0) && (
             <TouchableOpacity 
               style={styles.switchProfileButton}
               onPress={() => setShowProfileSwitcher(true)}
-              activeOpacity={0.7}
+              activeOpacity={0.8}
             >
-              <IconSymbol name="arrow.triangle.2.circlepath" size={24} color="#FFFFFF" />
+              <IconSymbol name="arrow.triangle.2.circlepath" size={24} color={colors.headerText} />
             </TouchableOpacity>
           )}
           {!isOwner && <View style={styles.headerButton} />}
         </View>
 
-        {/* Local Profile Section */}
-        <View style={styles.profileSection}>
-          {/* Avatar with story ring */}
-          <TouchableOpacity 
-            style={styles.avatarContainer}
-            onPress={handleAvatarPress}
-            activeOpacity={0.7}
-          >
-            {hasActiveStory && hasUnviewedStories && (
-              <LinearGradient
-                colors={[colors.primary, colors.secondary]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.storyRing}
-              />
-            )}
-            {local.imagen_url ? (
-              <Image source={{ uri: local.imagen_url }} style={styles.avatar} />
-            ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <IconSymbol name="building.2" size={40} color={colors.headerText} />
-              </View>
-            )}
-            {!hasActiveStory && isOwner && (
-              <View style={styles.addStoryIcon}>
-                <IconSymbol name="plus" size={18} color={colors.white} />
-              </View>
-            )}
-          </TouchableOpacity>
-
-          {/* Stats */}
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{posts.length}</Text>
-              <Text style={styles.statLabel}>Posts</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{local.seguidores || 0}</Text>
-              <Text style={styles.statLabel}>Seguidores</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{events.length}</Text>
-              <Text style={styles.statLabel}>Eventos</Text>
-            </View>
+        {/* Cover Photo - UNIQUE TO LOCAL PROFILES */}
+        {local.imagen_portada && (
+          <View style={styles.coverPhotoContainer}>
+            <Image 
+              source={{ uri: local.imagen_portada }} 
+              style={styles.coverPhoto}
+              resizeMode="cover"
+            />
+            <LinearGradient
+              colors={['transparent', 'rgba(0,0,0,0.3)']}
+              style={styles.coverGradient}
+            />
           </View>
-        </View>
+        )}
 
-        {/* Local Info */}
-        <View style={styles.localInfo}>
-          <Text style={styles.localName}>{local.nombre}</Text>
-          
-          {/* Categories */}
-          {categoriasLocal.length > 0 && (
-            <View style={styles.categoriesContainer}>
-              {categoriasLocal.slice(0, 3).map((categoria: string, index: number) => (
-                <View key={index} style={styles.categoryBadge}>
-                  <Text style={styles.categoryIcon}>{getCategoryIcon(categoria)}</Text>
-                  <Text style={styles.categoryText}>{categoria}</Text>
+        <Animated.View 
+          style={[
+            styles.profileSection,
+            {
+              opacity: fadeAnim,
+              transform: [{ scale: scaleAnim }],
+            }
+          ]}
+        >
+          <View style={styles.profileHeader}>
+            <TouchableOpacity 
+              style={styles.avatarContainer}
+              onPress={handleAvatarPress}
+              activeOpacity={0.8}
+            >
+              {hasActiveStory && hasUnviewedStories && (
+                <LinearGradient
+                  colors={[colors.primary, colors.secondary]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.storyRing}
+                />
+              )}
+              {local.imagen_url ? (
+                <Image source={{ uri: local.imagen_url }} style={styles.avatar} />
+              ) : (
+                <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                  <IconSymbol name="building.2" size={40} color={colors.headerText} />
                 </View>
-              ))}
+              )}
+              {!hasActiveStory && isOwner && (
+                <View style={styles.addStoryIcon}>
+                  <IconSymbol name="plus" size={18} color={colors.white} />
+                </View>
+              )}
+            </TouchableOpacity>
+            <View style={styles.profileInfo}>
+              <Text style={styles.profileName}>{local.nombre}</Text>
+              {categoriasLocal.length > 0 && (
+                <View style={styles.categoriesContainer}>
+                  {categoriasLocal.slice(0, 2).map((categoria: string, index: number) => (
+                    <View key={index} style={styles.categoryBadge}>
+                      <Text style={styles.categoryIcon}>{getCategoryIcon(categoria)}</Text>
+                      <Text style={styles.categoryText}>{categoria}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
             </View>
-          )}
-
-          {/* Status Badge */}
-          <View style={[styles.statusBadge, { backgroundColor: estado.estaAbierto ? '#22C55E' : '#EF4444' }]}>
-            <View style={styles.statusDot} />
-            <Text style={styles.statusText}>{estado.badge}</Text>
           </View>
 
-          {/* Address */}
           {local.direccion && (
             <View style={styles.addressContainer}>
               <IconSymbol name="mappin" size={16} color={colors.headerText} />
               <Text style={styles.addressText}>{local.direccion}</Text>
             </View>
           )}
-        </View>
 
-        {/* Action Buttons */}
-        <View style={styles.actionsContainer}>
-          {isOwner ? (
-            <>
-              <TouchableOpacity style={styles.actionButton} onPress={handleEditarLocal}>
-                <IconSymbol name="pencil" size={18} color={colors.headerText} />
-                <Text style={styles.actionButtonText}>Editar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.actionButton} onPress={() => setShowCreateOptions(true)}>
-                <IconSymbol name="plus.circle" size={18} color={colors.headerText} />
-                <Text style={styles.actionButtonText}>Publicar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.actionButton} onPress={handleCrearEvento}>
-                <IconSymbol name="calendar.badge.plus" size={18} color={colors.headerText} />
-                <Text style={styles.actionButtonText}>Evento</Text>
-              </TouchableOpacity>
-            </>
-          ) : (
-            <>
-              <TouchableOpacity 
-                style={[styles.actionButton, isFavorito && styles.actionButtonFollowing]} 
-                onPress={toggleFavorito}
-              >
-                <IconSymbol 
-                  name={isFavorito ? 'heart.fill' : 'heart'} 
-                  size={18} 
-                  color={colors.headerText} 
-                />
-                <Text style={styles.actionButtonText}>
-                  {isFavorito ? 'Siguiendo' : 'Seguir'}
-                </Text>
-              </TouchableOpacity>
-              {local.telefono && (
-                <TouchableOpacity style={styles.actionButton} onPress={handleLlamar}>
-                  <IconSymbol name="phone.fill" size={18} color={colors.headerText} />
-                  <Text style={styles.actionButtonText}>Llamar</Text>
+          <View style={styles.statusBadge}>
+            <View style={[styles.statusDot, { backgroundColor: estado.estaAbierto ? '#22C55E' : '#EF4444' }]} />
+            <Text style={styles.statusText}>{estado.badge}</Text>
+          </View>
+
+          <View style={styles.statsContainer}>
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{posts.length}</Text>
+              <Text style={styles.statLabel}>Publicaciones</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{local.seguidores || 0}</Text>
+              <Text style={styles.statLabel}>Seguidores</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statNumber}>{events.length}</Text>
+              <Text style={styles.statLabel}>Eventos</Text>
+            </View>
+          </View>
+
+          <View style={styles.actionsContainer}>
+            {isOwner ? (
+              <>
+                <TouchableOpacity style={styles.actionButton} onPress={handleEditarLocal}>
+                  <IconSymbol name="pencil" size={18} color={colors.headerText} />
+                  <Text style={styles.actionButtonText}>Editar</Text>
                 </TouchableOpacity>
-              )}
-              <TouchableOpacity style={styles.actionButton} onPress={handleComoLlegar}>
-                <IconSymbol name="map.fill" size={18} color={colors.headerText} />
-                <Text style={styles.actionButtonText}>Cómo llegar</Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
+                <TouchableOpacity style={[styles.actionButton, styles.createButton]} onPress={() => setShowCreateOptions(true)}>
+                  <IconSymbol name="plus.circle.fill" size={18} color={colors.white} />
+                  <Text style={[styles.actionButtonText, { color: colors.white }]}>Publicar</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <TouchableOpacity 
+                  style={[styles.actionButton, isFavorito && styles.actionButtonFollowing]} 
+                  onPress={toggleFavorito}
+                >
+                  <IconSymbol 
+                    name={isFavorito ? 'heart.fill' : 'heart'} 
+                    size={18} 
+                    color={colors.headerText} 
+                  />
+                  <Text style={styles.actionButtonText}>
+                    {isFavorito ? 'Siguiendo' : 'Seguir'}
+                  </Text>
+                </TouchableOpacity>
+                {local.telefono && (
+                  <TouchableOpacity style={styles.actionButton} onPress={handleLlamar}>
+                    <IconSymbol name="phone.fill" size={18} color={colors.headerText} />
+                    <Text style={styles.actionButtonText}>Llamar</Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
+          </View>
+        </Animated.View>
       </LinearGradient>
 
-      {/* Tabs */}
       <View style={styles.tabsContainer}>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'posts' && styles.tabActive]}
@@ -828,7 +815,6 @@ export default function LocalPerfilScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Content */}
       <ScrollView
         style={styles.content}
         contentContainerStyle={{ paddingBottom: 100 }}
@@ -842,7 +828,7 @@ export default function LocalPerfilScreen() {
                   key={post.id}
                   style={styles.gridItem}
                   onPress={() => handleVerPost(post.id)}
-                  activeOpacity={0.9}
+                  activeOpacity={0.8}
                 >
                   {post.imagen ? (
                     <Image source={{ uri: post.imagen }} style={styles.gridImage} />
@@ -877,7 +863,7 @@ export default function LocalPerfilScreen() {
                   key={event.id}
                   style={styles.eventCard}
                   onPress={() => handleVerEvento(event.id)}
-                  activeOpacity={0.7}
+                  activeOpacity={0.8}
                 >
                   {event.imagen_url && (
                     <Image source={{ uri: event.imagen_url }} style={styles.eventImage} />
@@ -921,7 +907,6 @@ export default function LocalPerfilScreen() {
 
         {activeTab === 'info' && (
           <View style={styles.infoContainer}>
-            {/* Description */}
             {local.descripcion_google && (
               <View style={styles.infoSection}>
                 <Text style={styles.infoSectionTitle}>Descripción</Text>
@@ -929,7 +914,6 @@ export default function LocalPerfilScreen() {
               </View>
             )}
 
-            {/* Contact Info */}
             <View style={styles.infoSection}>
               <Text style={styles.infoSectionTitle}>Contacto</Text>
               {local.telefono && (
@@ -952,7 +936,6 @@ export default function LocalPerfilScreen() {
               )}
             </View>
 
-            {/* Opening Hours */}
             {local.horarios_completos && Object.keys(local.horarios_completos).length > 0 && (
               <View style={styles.infoSection}>
                 <Text style={styles.infoSectionTitle}>Horarios</Text>
@@ -967,7 +950,6 @@ export default function LocalPerfilScreen() {
               </View>
             )}
 
-            {/* Services */}
             {local.servicios_disponibles && Object.keys(local.servicios_disponibles).length > 0 && (
               <View style={styles.infoSection}>
                 <Text style={styles.infoSectionTitle}>Servicios</Text>
@@ -985,7 +967,6 @@ export default function LocalPerfilScreen() {
               </View>
             )}
 
-            {/* Distance & Directions */}
             <View style={styles.infoSection}>
               <Text style={styles.infoSectionTitle}>Ubicación</Text>
               <TouchableOpacity style={styles.directionsButton} onPress={handleComoLlegar}>
@@ -994,7 +975,6 @@ export default function LocalPerfilScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* Virtual Room */}
             <View style={styles.infoSection}>
               <Text style={styles.infoSectionTitle}>Sala Virtual</Text>
               <TouchableOpacity style={styles.virtualRoomButton} onPress={handleSalaVirtual}>
@@ -1003,7 +983,6 @@ export default function LocalPerfilScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* More Info */}
             <View style={styles.infoSection}>
               <TouchableOpacity 
                 style={styles.moreInfoButton} 
@@ -1017,7 +996,6 @@ export default function LocalPerfilScreen() {
         )}
       </ScrollView>
 
-      {/* Story Viewer Modal */}
       <Modal
         visible={showStoryViewer}
         animationType="fade"
@@ -1106,7 +1084,7 @@ export default function LocalPerfilScreen() {
                       setShowStoryViewer(false);
                       stopStoryTimer();
                     }}
-                    activeOpacity={0.7}
+                    activeOpacity={0.8}
                   >
                     <IconSymbol name="xmark" size={20} color="#fff" />
                   </TouchableOpacity>
@@ -1147,7 +1125,6 @@ export default function LocalPerfilScreen() {
         </View>
       </Modal>
 
-      {/* Create Options Modal */}
       <Modal
         visible={showCreateOptions}
         animationType="slide"
@@ -1161,7 +1138,7 @@ export default function LocalPerfilScreen() {
           <Pressable style={styles.createOptionsContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.createOptionsHeader}>
               <Text style={styles.createOptionsTitle}>Publicar</Text>
-              <TouchableOpacity onPress={() => setShowCreateOptions(false)} activeOpacity={0.7}>
+              <TouchableOpacity onPress={() => setShowCreateOptions(false)} activeOpacity={0.8}>
                 <IconSymbol name="xmark" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
@@ -1172,7 +1149,7 @@ export default function LocalPerfilScreen() {
                   setShowCreateOptions(false);
                   handleCrearHistoria();
                 }}
-                activeOpacity={0.7}
+                activeOpacity={0.8}
               >
                 <View style={styles.createOptionIcon}>
                   <IconSymbol name="camera.fill" size={24} color={colors.headerText} />
@@ -1190,7 +1167,7 @@ export default function LocalPerfilScreen() {
                   setShowCreateOptions(false);
                   handleCrearPost();
                 }}
-                activeOpacity={0.7}
+                activeOpacity={0.8}
               >
                 <View style={styles.createOptionIcon}>
                   <IconSymbol name="photo.fill" size={24} color={colors.headerText} />
@@ -1207,13 +1184,11 @@ export default function LocalPerfilScreen() {
         </Pressable>
       </Modal>
 
-      {/* NEW: Profile Switcher Modal */}
       <ProfileSwitcher
         visible={showProfileSwitcher}
         onClose={() => setShowProfileSwitcher(false)}
       />
 
-      {/* FIXED: Add FloatingTabBar to show bottom menu */}
       <FloatingTabBar 
         tabs={tabs} 
         containerWidth={width}
@@ -1230,19 +1205,17 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingTop: 50,
-    paddingBottom: 20,
-    paddingHorizontal: 16,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
   },
   headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 24,
+    marginBottom: 16,
   },
   backButton: {
     padding: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    borderRadius: 20,
   },
   headerTitle: {
     fontSize: 20,
@@ -1257,13 +1230,33 @@ const styles = StyleSheet.create({
   },
   switchProfileButton: {
     padding: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    borderRadius: 20,
+  },
+  coverPhotoContainer: {
+    width: '100%',
+    height: 140,
+    marginBottom: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  coverPhoto: {
+    width: '100%',
+    height: '100%',
+  },
+  coverGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 60,
   },
   profileSection: {
+    paddingTop: 0,
+  },
+  profileHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   avatarContainer: {
     position: 'relative',
@@ -1279,10 +1272,10 @@ const styles = StyleSheet.create({
     zIndex: 0,
   },
   avatar: {
-    width: 86,
-    height: 86,
-    borderRadius: 43,
-    borderWidth: 3,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    borderWidth: 4,
     borderColor: colors.headerText,
     zIndex: 1,
   },
@@ -1295,40 +1288,21 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 3,
+    borderWidth: 4,
     borderColor: colors.headerGradientStart,
     zIndex: 2,
   },
-  statsContainer: {
+  profileInfo: {
     flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
   },
-  statItem: {
-    alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.headerText,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginTop: 2,
-  },
-  localInfo: {
-    paddingHorizontal: 0,
-    marginBottom: 16,
-  },
-  localName: {
-    fontSize: 20,
+  profileName: {
+    fontSize: 22,
     fontWeight: 'bold',
     color: colors.headerText,
     marginBottom: 8,
@@ -1337,7 +1311,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginBottom: 8,
   },
   categoryBadge: {
     flexDirection: 'row',
@@ -1357,6 +1330,17 @@ const styles = StyleSheet.create({
     color: colors.headerText,
     textTransform: 'capitalize',
   },
+  addressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 12,
+  },
+  addressText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
+    flex: 1,
+  },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1365,32 +1349,48 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 16,
     gap: 6,
-    marginBottom: 8,
+    marginBottom: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
   },
   statusDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: colors.headerText,
   },
   statusText: {
     fontSize: 13,
     fontWeight: '600',
     color: colors.headerText,
   },
-  addressContainer: {
+  statsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    justifyContent: 'space-around',
+    marginBottom: 24,
+    paddingVertical: 4,
   },
-  addressText: {
+  statItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statNumber: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: colors.headerText,
+    marginBottom: 4,
+  },
+  statLabel: {
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.9)',
-    flex: 1,
+  },
+  statDivider: {
+    width: 1,
+    height: 44,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
   actionsContainer: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 16,
   },
   actionButton: {
     flex: 1,
@@ -1398,15 +1398,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    paddingVertical: 10,
-    borderRadius: 12,
-    gap: 6,
+    borderRadius: 16,
+    paddingVertical: 14,
+    gap: 8,
+  },
+  createButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
   },
   actionButtonFollowing: {
     backgroundColor: 'rgba(255, 255, 255, 0.4)',
   },
   actionButtonText: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '600',
     color: colors.headerText,
   },
@@ -1432,17 +1435,19 @@ const styles = StyleSheet.create({
   postsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 1,
+    gap: 2,
     backgroundColor: colors.cardBorder,
   },
   gridItem: {
     width: GRID_ITEM_SIZE,
     height: GRID_ITEM_SIZE,
+    position: 'relative',
   },
   gridImage: {
     width: '100%',
     height: '100%',
     backgroundColor: colors.background,
+    borderRadius: 4,
   },
   gridImagePlaceholder: {
     justifyContent: 'center',
@@ -1696,14 +1701,14 @@ const styles = StyleSheet.create({
   },
   createOptionsContent: {
     backgroundColor: colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     paddingBottom: 34,
   },
   createOptionsHeader: {
-    paddingTop: 20,
-    paddingBottom: 12,
-    paddingHorizontal: 16,
+    paddingTop: 24,
+    paddingBottom: 16,
+    paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -1711,43 +1716,44 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.cardBorder,
   },
   createOptionsTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     color: colors.text,
   },
   createOptionsButtons: {
-    padding: 16,
-    gap: 12,
+    padding: 20,
+    gap: 16,
   },
   createOptionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    padding: 20,
     backgroundColor: colors.cardBackground,
-    borderRadius: 12,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
   createOptionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: 20,
   },
   createOptionInfo: {
     flex: 1,
   },
   createOptionTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
     color: colors.text,
-    marginBottom: 4,
+    marginBottom: 6,
   },
   createOptionDescription: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.textSecondary,
+    lineHeight: 20,
   },
 });
