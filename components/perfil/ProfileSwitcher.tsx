@@ -62,11 +62,16 @@ export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherPro
     try {
       console.log('[ProfileSwitcher] 🔄 Switching to client profile');
       await switchToClientProfile();
-      console.log('[ProfileSwitcher] ✅ Profile switched, closing modal');
+      console.log('[ProfileSwitcher] ✅ Profile switched to client');
+      
+      // Close modal first
       onClose();
-      // Navigate to user profile page
-      console.log('[ProfileSwitcher] ✅ Navigating to user profile');
-      router.push('/(tabs)/perfil');
+      
+      // Small delay to ensure modal is closed before navigation
+      setTimeout(() => {
+        console.log('[ProfileSwitcher] ✅ Navigating to user profile');
+        router.push('/(tabs)/perfil');
+      }, 100);
     } catch (error) {
       console.error('[ProfileSwitcher] ❌ Error switching to client:', error);
     } finally {
@@ -79,11 +84,16 @@ export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherPro
     try {
       console.log('[ProfileSwitcher] 🔄 Switching to local profile:', localId);
       await switchToLocalProfile(localId);
-      console.log('[ProfileSwitcher] ✅ Profile switched, closing modal');
+      console.log('[ProfileSwitcher] ✅ Profile switched to local');
+      
+      // Close modal first
       onClose();
-      // Navigate to local profile page
-      console.log('[ProfileSwitcher] ✅ Navigating to local profile');
-      router.push(`/perfil/local?localId=${localId}`);
+      
+      // Small delay to ensure modal is closed before navigation
+      setTimeout(() => {
+        console.log('[ProfileSwitcher] ✅ Navigating to local profile');
+        router.push(`/perfil/local?localId=${localId}`);
+      }, 100);
     } catch (error) {
       console.error('[ProfileSwitcher] ❌ Error switching to local:', error);
     } finally {

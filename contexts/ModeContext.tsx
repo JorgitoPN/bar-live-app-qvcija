@@ -322,6 +322,12 @@ export function ModeProvider({ children }: { children: ReactNode }) {
           }
         }, 100);
       }
+      
+      // 🆕 FIX: When switching to cliente mode, automatically switch to client profile
+      if (mode === 'cliente' && user) {
+        console.log('[ModeContext] 🔄 Mode changed to cliente, switching to client profile');
+        await switchToClientProfile();
+      }
     } catch (error) {
       console.error('[ModeContext] ❌ Error saving mode:', error);
       setCurrentModeState(mode);

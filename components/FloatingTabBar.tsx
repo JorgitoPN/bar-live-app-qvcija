@@ -33,13 +33,15 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
     console.log('⚡ FloatingTabBar mounted, pathname:', pathname);
   }, [pathname]);
 
+  // 🆕 FIX: Log when active profile changes to ensure reactivity
   useEffect(() => {
     console.log('[FloatingTabBar] 📊 Active profile changed:', {
       activeProfileType,
       activeProfileId,
       activeLocalName: activeLocalData?.nombre,
+      userAvatar: user?.avatar,
     });
-  }, [activeProfileType, activeProfileId, activeLocalData]);
+  }, [activeProfileType, activeProfileId, activeLocalData, user]);
 
   const isActive = (route: string) => {
     try {
@@ -61,18 +63,26 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
   };
 
   // 🆕 FEATURE 2: Get the avatar for the currently active profile
+  // This function now properly returns the correct avatar based on activeProfileType
   const getActiveAvatar = () => {
     if (activeProfileType === 'local' && activeLocalData) {
-      console.log('[FloatingTabBar] 🏢 Using local avatar:', activeLocalData.nombre);
+      console.log('[FloatingTabBar] 🏢 Using local avatar:', activeLocalData.nombre, activeLocalData.imagen_url);
       return activeLocalData.imagen_url;
     } else if (user) {
-      console.log('[FloatingTabBar] 👤 Using user avatar:', user.nombre);
+      console.log('[FloatingTabBar] 👤 Using user avatar:', user.nombre, user.avatar);
       return user.avatar;
     }
+    console.log('[FloatingTabBar] ⚠️ No avatar available');
     return null;
   };
 
+  // 🆕 FIX: Recalculate avatar whenever dependencies change
   const activeAvatar = getActiveAvatar();
+
+  // 🆕 FIX: Log avatar changes for debugging
+  useEffect(() => {
+    console.log('[FloatingTabBar] 🖼️ Active avatar updated:', activeAvatar);
+  }, [activeAvatar]);
 
   return (
     <View style={styles.container} pointerEvents="box-none">
