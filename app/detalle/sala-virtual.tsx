@@ -24,6 +24,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { getEstadoLocal } from '@/utils/timeUtils';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 
 const { width, height } = Dimensions.get('window');
@@ -423,6 +424,47 @@ export default function SalaVirtualScreen() {
     try {
       console.log('[SalaVirtual] 📍 Starting check-in process...');
 
+      // FIXED: Check if local is currently open before allowing check-in
+      if (local) {
+        const estado = getEstadoLocal(local);
+        
+        console.log('[SalaVirtual] 🕐 Local status:', estado.badge, 'Open:', estado.estaAbierto);
+        
+        if (estado.estaAbierto === false) {
+          Alert.alert(
+            'Local cerrado',
+            `No puedes hacer check-in porque el local está cerrado. ${estado.badge}`,
+            [{ text: 'Entendido' }]
+          );
+          return;
+        }
+        
+        if (estado.estaAbierto === null) {
+          Alert.alert(
+            'Horario desconocido',
+            'No se puede verificar si el local está abierto. ¿Deseas continuar de todos modos?',
+            [
+              { text: 'Cancelar', style: 'cancel' },
+              { text: 'Continuar', onPress: () => proceedWithCheckIn() }
+            ]
+          );
+          return;
+        }
+        
+        console.log('[SalaVirtual] ✅ Local is open, proceeding with check-in');
+      }
+
+      await proceedWithCheckIn();
+    } catch (error) {
+      console.error('[SalaVirtual] ❌ Error:', error);
+      Alert.alert('Error', 'Ocurrió un error al hacer check-in');
+    }
+  };
+
+  const proceedWithCheckIn = async () => {
+    if (!user) return;
+
+    try {
       // Check if user is already checked in to another local
       const { data: existingCheckIns, error: checkError } = await supabase
         .from('check_ins')
@@ -504,7 +546,7 @@ export default function SalaVirtualScreen() {
 
       Alert.alert('¡Check-in exitoso!', 'Ahora apareces en la sala virtual');
     } catch (error) {
-      console.error('[SalaVirtual] ❌ Error:', error);
+      console.error('[SalaVirtual] ❌ Error in proceedWithCheckIn:', error);
       Alert.alert('Error', 'Ocurrió un error al hacer check-in');
     }
   };
