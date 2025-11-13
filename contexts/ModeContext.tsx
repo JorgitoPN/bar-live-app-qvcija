@@ -286,6 +286,42 @@ export function ModeProvider({ children }: { children: ReactNode }) {
       setCurrentModeState(mode);
       
       console.log('[ModeContext] ✅ Mode saved to storage:', mode);
+
+      // 🆕 FEATURE 1: Auto-select single local when switching to propietario mode
+      if (mode === 'propietario' && user) {
+        console.log('[ModeContext] 🔍 Checking for auto-selection of single local...');
+        
+        // Load owned locals if not already loaded
+        if (ownedLocals.length === 0) {
+          await loadOwnedLocals();
+        }
+        
+        // Wait a bit for state to update
+        setTimeout(async () => {
+          const { data, error } = await supabase
+            .from('propietarios_locales')
+            .select(`
+              local_id,
+              locales (
+                id,
+                nombre,
+                imagen_url,
+                tipo
+              )
+            `)
+            .eq('propietario_id', user.id);
+
+          if (!error && data && data.length === 1) {
+            const singleLocal = data[0].locales;
+            if (singleLocal) {
+              console.log('[ModeContext] ✅ Auto-selecting single local:', singleLocal.nombre);
+              await switchToLocalProfile(singleLocal.id);
+            }
+          } else {
+            console.log('[ModeContext] ℹ️ User has', data?.length || 0, 'locals, no auto-selection');
+          }
+        }, 100);
+      }
     } catch (error) {
       console.error('[ModeContext] ❌ Error saving mode:', error);
       setCurrentModeState(mode);

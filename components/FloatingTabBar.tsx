@@ -24,7 +24,7 @@ interface FloatingTabBarProps {
 export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { currentMode, activeProfileType, activeProfileId } = useMode();
+  const { currentMode, activeProfileType, activeProfileId, activeLocalData } = useMode();
   const { user } = useAuth();
   const navigationInProgress = useRef(false);
   const lastNavigationTime = useRef(0);
@@ -32,6 +32,14 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
   useEffect(() => {
     console.log('⚡ FloatingTabBar mounted, pathname:', pathname);
   }, [pathname]);
+
+  useEffect(() => {
+    console.log('[FloatingTabBar] 📊 Active profile changed:', {
+      activeProfileType,
+      activeProfileId,
+      activeLocalName: activeLocalData?.nombre,
+    });
+  }, [activeProfileType, activeProfileId, activeLocalData]);
 
   const isActive = (route: string) => {
     try {
@@ -51,6 +59,20 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
       return false;
     }
   };
+
+  // 🆕 FEATURE 2: Get the avatar for the currently active profile
+  const getActiveAvatar = () => {
+    if (activeProfileType === 'local' && activeLocalData) {
+      console.log('[FloatingTabBar] 🏢 Using local avatar:', activeLocalData.nombre);
+      return activeLocalData.imagen_url;
+    } else if (user) {
+      console.log('[FloatingTabBar] 👤 Using user avatar:', user.nombre);
+      return user.avatar;
+    }
+    return null;
+  };
+
+  const activeAvatar = getActiveAvatar();
 
   return (
     <View style={styles.container} pointerEvents="box-none">
@@ -129,8 +151,8 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
             );
           }
 
-          // For profile tab, show user avatar instead of icon
-          if (tab.name === 'perfil' && user) {
+          // 🆕 FEATURE 2: For profile tab, show the active profile avatar (user or local)
+          if (tab.name === 'perfil') {
             return (
               <TouchableOpacity
                 key={tab.name}
@@ -139,9 +161,9 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                 activeOpacity={0.5}
               >
                 <View style={[styles.tabContent, active && styles.tabContentActive]}>
-                  {user.avatar ? (
+                  {activeAvatar ? (
                     <Image 
-                      source={{ uri: user.avatar }} 
+                      source={{ uri: activeAvatar }} 
                       style={[
                         styles.profileAvatar,
                         active && styles.profileAvatarActive
@@ -154,7 +176,7 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                       active && styles.profileAvatarActive
                     ]}>
                       <IconSymbol
-                        name="person.fill"
+                        name={activeProfileType === 'local' ? 'building.2' : 'person.fill'}
                         size={18}
                         color={active ? colors.primary : 'rgba(255, 255, 255, 0.6)'}
                       />
