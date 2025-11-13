@@ -2,38 +2,54 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from './AuthContext';
+import { supabase } from '@/utils/supabase';
 
 type UserMode = 'cliente' | 'propietario' | 'admin';
-type PublicationMode = 'cliente' | 'local';
+
+interface LocalProfile {
+  id: string;
+  nombre: string;
+  imagen_url?: string;
+  tipo: string;
+}
 
 interface ModeContextType {
   currentMode: UserMode;
   setCurrentMode: (mode: UserMode) => Promise<void>;
+  
+  // Active profile management
+  activeProfileId: string | null; // The current active user ID (could be client user or local profile user)
+  activeProfileType: 'cliente' | 'local'; // Type of the active profile
+  activeLocalData: LocalProfile | null; // If activeProfileType is 'local', this contains the local data
+  
+  // Owner's local profiles
+  ownedLocals: LocalProfile[]; // All locals owned by the current user
+  loadOwnedLocals: () => Promise<void>;
+  
+  // Profile switching
+  switchToClientProfile: () => Promise<void>;
+  switchToLocalProfile: (localId: string) => Promise<void>;
+  
+  // Legacy support (for backwards compatibility)
   selectedLocalId: string | null;
-  setSelectedLocalId: (localId: string | null) => Promise<void>;
   isInteractingAsLocal: boolean;
-  setIsInteractingAsLocal: (value: boolean) => Promise<void>;
   activeLocalProfileId: string | null;
-  setActiveLocalProfileId: (localId: string | null) => Promise<void>;
-  publicationMode: PublicationMode;
-  setPublicationMode: (mode: PublicationMode) => Promise<void>;
+  publicationMode: 'cliente' | 'local';
 }
 
 const ModeContext = createContext<ModeContextType | undefined>(undefined);
 
 const MODE_STORAGE_KEY = '@barlive_user_mode';
-const SELECTED_LOCAL_STORAGE_KEY = '@barlive_selected_local';
-const INTERACTING_AS_LOCAL_KEY = '@barlive_interacting_as_local';
-const ACTIVE_LOCAL_PROFILE_KEY = '@barlive_active_local_profile';
-const PUBLICATION_MODE_KEY = '@barlive_publication_mode';
+const ACTIVE_PROFILE_STORAGE_KEY = '@barlive_active_profile';
+const ACTIVE_PROFILE_TYPE_STORAGE_KEY = '@barlive_active_profile_type';
 
 export function ModeProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [currentMode, setCurrentModeState] = useState<UserMode>('cliente');
-  const [selectedLocalId, setSelectedLocalIdState] = useState<string | null>(null);
-  const [isInteractingAsLocal, setIsInteractingAsLocalState] = useState(false);
-  const [activeLocalProfileId, setActiveLocalProfileIdState] = useState<string | null>(null);
-  const [publicationMode, setPublicationModeState] = useState<PublicationMode>('cliente');
+  const [activeProfileId, setActiveProfileIdState] = useState<string | null>(null);
+  const [activeProfileType, setActiveProfileTypeState] = useState<'cliente' | 'local'>('cliente');
+  const [activeLocalData, setActiveLocalData] = useState<LocalProfile | null>(null);
+  const [ownedLocals, setOwnedLocals] = useState<LocalProfile[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Initialize all state from AsyncStorage on mount
@@ -42,40 +58,14 @@ export function ModeProvider({ children }: { children: ReactNode }) {
       try {
         console.log('[ModeContext] 🔄 Initializing from AsyncStorage...');
         
-        const [savedMode, savedLocalId, savedInteracting, savedActiveProfile, savedPubMode] = await Promise.all([
+        const [savedMode, savedProfileId, savedProfileType] = await Promise.all([
           AsyncStorage.getItem(MODE_STORAGE_KEY),
-          AsyncStorage.getItem(SELECTED_LOCAL_STORAGE_KEY),
-          AsyncStorage.getItem(INTERACTING_AS_LOCAL_KEY),
-          AsyncStorage.getItem(ACTIVE_LOCAL_PROFILE_KEY),
-          AsyncStorage.getItem(PUBLICATION_MODE_KEY),
+          AsyncStorage.getItem(ACTIVE_PROFILE_STORAGE_KEY),
+          AsyncStorage.getItem(ACTIVE_PROFILE_TYPE_STORAGE_KEY),
         ]);
         
-        // Restore selected local if available
-        if (savedLocalId) {
-          console.log('[ModeContext] ✅ Restored selected local from storage:', savedLocalId);
-          setSelectedLocalIdState(savedLocalId);
-        }
-
-        // Restore interaction state
-        if (savedInteracting === 'true') {
-          console.log('[ModeContext] ✅ Restored interaction state: true');
-          setIsInteractingAsLocalState(true);
-        }
-
-        // Restore active local profile
-        if (savedActiveProfile) {
-          console.log('[ModeContext] ✅ Restored active local profile:', savedActiveProfile);
-          setActiveLocalProfileIdState(savedActiveProfile);
-        }
-
-        // Restore publication mode with proper persistence
-        if (savedPubMode === 'local' || savedPubMode === 'cliente') {
-          console.log('[ModeContext] ✅ Restored publication mode:', savedPubMode);
-          setPublicationModeState(savedPubMode as PublicationMode);
-        }
-        
+        // Restore mode
         if (savedMode && (savedMode === 'cliente' || savedMode === 'propietario' || savedMode === 'admin')) {
-          // Validate that the saved mode is still valid for the current user
           if (user) {
             const userRole = user.rol_app || 'cliente';
             
@@ -87,39 +77,34 @@ export function ModeProvider({ children }: { children: ReactNode }) {
             if (isValidMode) {
               console.log('[ModeContext] ✅ Restored mode from storage:', savedMode);
               setCurrentModeState(savedMode as UserMode);
-              setIsInitialized(true);
-              return;
             }
-          } else {
-            if (savedMode === 'cliente') {
-              console.log('[ModeContext] ✅ No user, using saved cliente mode');
-              setCurrentModeState('cliente');
-              setIsInitialized(true);
-              return;
-            }
+          } else if (savedMode === 'cliente') {
+            setCurrentModeState('cliente');
           }
         }
-        
-        // No saved mode or invalid mode - set default based on user
-        if (!user) {
-          console.log('[ModeContext] ✅ No user, defaulting to cliente mode');
-          setCurrentModeState('cliente');
-        } else {
-          const userRole = user.rol_app || 'cliente';
+
+        // Restore active profile
+        if (savedProfileId && savedProfileType) {
+          console.log('[ModeContext] ✅ Restored active profile:', savedProfileId, savedProfileType);
+          setActiveProfileIdState(savedProfileId);
+          setActiveProfileTypeState(savedProfileType as 'cliente' | 'local');
           
-          if (userRole === 'admin') {
-            console.log('[ModeContext] ✅ Admin user, defaulting to admin mode');
-            setCurrentModeState('admin');
-            await AsyncStorage.setItem(MODE_STORAGE_KEY, 'admin');
-          } else if (userRole === 'propietario') {
-            console.log('[ModeContext] ✅ Propietario user, defaulting to cliente mode');
-            setCurrentModeState('cliente');
-            await AsyncStorage.setItem(MODE_STORAGE_KEY, 'cliente');
-          } else {
-            console.log('[ModeContext] ✅ Cliente user, defaulting to cliente mode');
-            setCurrentModeState('cliente');
-            await AsyncStorage.setItem(MODE_STORAGE_KEY, 'cliente');
+          // If it's a local profile, load the local data
+          if (savedProfileType === 'local') {
+            const { data: localData } = await supabase
+              .from('locales')
+              .select('id, nombre, imagen_url, tipo')
+              .eq('id', savedProfileId)
+              .single();
+            
+            if (localData) {
+              setActiveLocalData(localData);
+            }
           }
+        } else if (user) {
+          // Default to client profile
+          setActiveProfileIdState(user.id);
+          setActiveProfileTypeState('cliente');
         }
         
         setIsInitialized(true);
@@ -135,9 +120,57 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     }
   }, [user, isInitialized]);
 
-  // REMOVED: Auto-reset when switching to cliente mode
-  // This was causing issues with owner mode interaction
-  // The reset should only happen when explicitly requested by the user
+  // Load owned locals when user changes or mode changes to propietario
+  useEffect(() => {
+    if (user && (currentMode === 'propietario' || user.rol_app === 'propietario' || user.rol_app === 'admin')) {
+      loadOwnedLocals();
+    }
+  }, [user, currentMode]);
+
+  const loadOwnedLocals = async () => {
+    if (!user) {
+      setOwnedLocals([]);
+      return;
+    }
+
+    try {
+      console.log('[ModeContext] 🔄 Loading owned locals for user:', user.id);
+      
+      const { data, error } = await supabase
+        .from('propietarios_locales')
+        .select(`
+          local_id,
+          locales (
+            id,
+            nombre,
+            imagen_url,
+            tipo
+          )
+        `)
+        .eq('propietario_id', user.id);
+
+      if (error) {
+        console.error('[ModeContext] ❌ Error loading owned locals:', error);
+        return;
+      }
+
+      const locals = data
+        ?.map(item => item.locales)
+        .filter(Boolean)
+        .map(local => ({
+          id: local.id,
+          nombre: local.nombre,
+          imagen_url: local.imagen_url,
+          tipo: local.tipo,
+        })) || [];
+
+      console.log('[ModeContext] ✅ Loaded', locals.length, 'owned locals');
+      setOwnedLocals(locals);
+    } catch (error) {
+      console.error('[ModeContext] ❌ Error loading owned locals:', error);
+      setOwnedLocals([]);
+    }
+  };
 
   const setCurrentMode = async (mode: UserMode) => {
     try {
@@ -160,6 +193,12 @@ export function ModeProvider({ children }: { children: ReactNode }) {
       
       await AsyncStorage.setItem(MODE_STORAGE_KEY, mode);
       setCurrentModeState(mode);
+      
+      // When switching to cliente mode, reset to client profile
+      if (mode === 'cliente' && user) {
+        await switchToClientProfile();
+      }
+      
       console.log('[ModeContext] ✅ Mode saved to storage:', mode);
     } catch (error) {
       console.error('[ModeContext] ❌ Error saving mode:', error);
@@ -167,112 +206,102 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const setSelectedLocalId = async (localId: string | null) => {
+  const switchToClientProfile = async () => {
+    if (!user) {
+      console.warn('[ModeContext] ⚠️ Cannot switch to client profile: no user');
+      return;
+    }
+
     try {
-      console.log('[ModeContext] 🔄 Setting selected local to:', localId);
+      console.log('[ModeContext] 🔄 Switching to client profile:', user.id);
       
-      if (localId) {
-        await AsyncStorage.setItem(SELECTED_LOCAL_STORAGE_KEY, localId);
-        // When selecting a local, also set it as active profile and switch to local mode
-        await AsyncStorage.setItem(ACTIVE_LOCAL_PROFILE_KEY, localId);
-        await AsyncStorage.setItem(INTERACTING_AS_LOCAL_KEY, 'true');
-        await AsyncStorage.setItem(PUBLICATION_MODE_KEY, 'local');
-        setActiveLocalProfileIdState(localId);
-        setIsInteractingAsLocalState(true);
-        setPublicationModeState('local');
-      } else {
-        await AsyncStorage.removeItem(SELECTED_LOCAL_STORAGE_KEY);
-      }
+      await AsyncStorage.setItem(ACTIVE_PROFILE_STORAGE_KEY, user.id);
+      await AsyncStorage.setItem(ACTIVE_PROFILE_TYPE_STORAGE_KEY, 'cliente');
       
-      setSelectedLocalIdState(localId);
-      console.log('[ModeContext] ✅ Selected local saved to storage:', localId);
+      setActiveProfileIdState(user.id);
+      setActiveProfileTypeState('cliente');
+      setActiveLocalData(null);
+      
+      console.log('[ModeContext] ✅ Switched to client profile');
     } catch (error) {
-      console.error('[ModeContext] ❌ Error saving selected local:', error);
-      setSelectedLocalIdState(localId);
+      console.error('[ModeContext] ❌ Error switching to client profile:', error);
     }
   };
 
-  const setIsInteractingAsLocal = async (value: boolean) => {
+  const switchToLocalProfile = async (localId: string) => {
+    if (!user) {
+      console.warn('[ModeContext] ⚠️ Cannot switch to local profile: no user');
+      return;
+    }
+
     try {
-      console.log('[ModeContext] 🔄 Setting interaction state to:', value);
+      console.log('[ModeContext] 🔄 Switching to local profile:', localId);
       
-      if (value) {
-        await AsyncStorage.setItem(INTERACTING_AS_LOCAL_KEY, 'true');
-      } else {
-        await AsyncStorage.removeItem(INTERACTING_AS_LOCAL_KEY);
-        // Also clear active local profile when stopping interaction
-        await AsyncStorage.removeItem(ACTIVE_LOCAL_PROFILE_KEY);
-        await AsyncStorage.setItem(PUBLICATION_MODE_KEY, 'cliente');
-        setActiveLocalProfileIdState(null);
-        setPublicationModeState('cliente');
+      // Verify user owns this local
+      const { data: ownershipData } = await supabase
+        .from('propietarios_locales')
+        .select('id')
+        .eq('propietario_id', user.id)
+        .eq('local_id', localId)
+        .single();
+
+      if (!ownershipData) {
+        console.error('[ModeContext] ❌ User does not own this local');
+        return;
+      }
+
+      // Load local data
+      const { data: localData, error: localError } = await supabase
+        .from('locales')
+        .select('id, nombre, imagen_url, tipo')
+        .eq('id', localId)
+        .single();
+
+      if (localError || !localData) {
+        console.error('[ModeContext] ❌ Error loading local data:', localError);
+        return;
+      }
+
+      await AsyncStorage.setItem(ACTIVE_PROFILE_STORAGE_KEY, localId);
+      await AsyncStorage.setItem(ACTIVE_PROFILE_TYPE_STORAGE_KEY, 'local');
+      
+      setActiveProfileIdState(localId);
+      setActiveProfileTypeState('local');
+      setActiveLocalData(localData);
+      
+      // Automatically switch to propietario mode when switching to local profile
+      if (currentMode !== 'propietario') {
+        await setCurrentMode('propietario');
       }
       
-      setIsInteractingAsLocalState(value);
-      console.log('[ModeContext] ✅ Interaction state saved to storage:', value);
+      console.log('[ModeContext] ✅ Switched to local profile:', localData.nombre);
     } catch (error) {
-      console.error('[ModeContext] ❌ Error saving interaction state:', error);
-      setIsInteractingAsLocalState(value);
+      console.error('[ModeContext] ❌ Error switching to local profile:', error);
     }
   };
 
-  const setActiveLocalProfileId = async (localId: string | null) => {
-    try {
-      console.log('[ModeContext] 🔄 Setting active local profile to:', localId);
-      
-      if (localId) {
-        await AsyncStorage.setItem(ACTIVE_LOCAL_PROFILE_KEY, localId);
-        // When setting active local profile, also set interaction state and publication mode
-        await AsyncStorage.setItem(INTERACTING_AS_LOCAL_KEY, 'true');
-        await AsyncStorage.setItem(PUBLICATION_MODE_KEY, 'local');
-        setIsInteractingAsLocalState(true);
-        setPublicationModeState('local');
-      } else {
-        await AsyncStorage.removeItem(ACTIVE_LOCAL_PROFILE_KEY);
-      }
-      
-      setActiveLocalProfileIdState(localId);
-      console.log('[ModeContext] ✅ Active local profile saved to storage:', localId);
-    } catch (error) {
-      console.error('[ModeContext] ❌ Error saving active local profile:', error);
-      setActiveLocalProfileIdState(localId);
-    }
-  };
-
-  const setPublicationMode = async (mode: PublicationMode) => {
-    try {
-      console.log('[ModeContext] 🔄 Setting publication mode to:', mode);
-      
-      await AsyncStorage.setItem(PUBLICATION_MODE_KEY, mode);
-      setPublicationModeState(mode);
-      console.log('[ModeContext] ✅ Publication mode saved to storage:', mode);
-
-      // When switching to local mode, ensure interaction state is set
-      if (mode === 'local' && selectedLocalId) {
-        await setIsInteractingAsLocal(true);
-        await setActiveLocalProfileId(selectedLocalId);
-      } else if (mode === 'cliente') {
-        // Only reset if explicitly switching to cliente mode
-        await setIsInteractingAsLocal(false);
-        await setActiveLocalProfileId(null);
-      }
-    } catch (error) {
-      console.error('[ModeContext] ❌ Error saving publication mode:', error);
-      setPublicationModeState(mode);
-    }
-  };
+  // Legacy support - compute these values from the new state
+  const selectedLocalId = activeProfileType === 'local' ? activeProfileId : null;
+  const isInteractingAsLocal = activeProfileType === 'local';
+  const activeLocalProfileId = activeProfileType === 'local' ? activeProfileId : null;
+  const publicationMode = activeProfileType === 'local' ? 'local' : 'cliente';
 
   return (
     <ModeContext.Provider value={{ 
       currentMode, 
-      setCurrentMode, 
-      selectedLocalId, 
-      setSelectedLocalId,
+      setCurrentMode,
+      activeProfileId,
+      activeProfileType,
+      activeLocalData,
+      ownedLocals,
+      loadOwnedLocals,
+      switchToClientProfile,
+      switchToLocalProfile,
+      // Legacy support
+      selectedLocalId,
       isInteractingAsLocal,
-      setIsInteractingAsLocal,
       activeLocalProfileId,
-      setActiveLocalProfileId,
       publicationMode,
-      setPublicationMode,
     }}>
       {children}
     </ModeContext.Provider>

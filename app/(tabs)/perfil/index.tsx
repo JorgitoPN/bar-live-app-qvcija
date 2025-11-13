@@ -27,6 +27,7 @@ import { useMode } from '@/contexts/ModeContext';
 import { supabase } from '@/utils/supabase';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 import StoryStatsModal from '@/components/social/StoryStatsModal';
+import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 const { width, height } = Dimensions.get('window');
@@ -149,12 +150,19 @@ function formatearFecha(fecha: string): string {
 export default function PerfilScreen() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const { currentMode, activeLocalProfileId, publicationMode } = useMode();
+  const { 
+    currentMode, 
+    activeProfileId,
+    activeProfileType,
+    activeLocalData,
+    ownedLocals,
+  } = useMode();
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showCreateOptions, setShowCreateOptions] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [showProfileSwitcher, setShowProfileSwitcher] = useState(false);
   
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
@@ -198,10 +206,18 @@ export default function PerfilScreen() {
   const isPropietario = userRole === 'propietario' || (userRole === 'admin' && currentMode === 'propietario');
   const isOwnerMode = currentMode === 'propietario' && isPropietario;
 
-  // FIXED: Never auto-redirect from the user profile page
-  // The user profile page should always show the user's own profile
-  // Local profiles should only be accessed via direct navigation
-  const shouldShowLocalProfile = false;
+  // FIXED: Determine what profile to show based on active profile
+  // If activeProfileType is 'local', redirect to the local profile page
+  // Otherwise, show the user's own profile
+  const shouldShowLocalProfile = activeProfileType === 'local' && activeLocalData;
+  
+  // Display information based on active profile
+  const displayName = activeProfileType === 'local' && activeLocalData 
+    ? activeLocalData.nombre 
+    : user?.nombre || 'Usuario';
+  const displayAvatar = activeProfileType === 'local' && activeLocalData
+    ? activeLocalData.imagen_url
+    : user?.avatar;
 
   useFocusEffect(
     useCallback(() => {
@@ -250,21 +266,20 @@ export default function PerfilScreen() {
   useEffect(() => {
     if (!authLoading) {
       if (user) {
-        // FIXED: Only redirect when explicitly viewing a local profile
-        // Don't redirect just because we're in owner mode
-        if (shouldShowLocalProfile && activeLocalProfileId) {
-          console.log('[Perfil] ✅ Redirecting to dedicated local profile page');
-          router.replace(`/perfil/local?localId=${activeLocalProfileId}`);
+        // FIXED: Redirect to local profile page when viewing a local profile
+        if (shouldShowLocalProfile && activeLocalData) {
+          console.log('[Perfil] ✅ Redirecting to local profile page:', activeLocalData.id);
+          router.replace(`/perfil/local?localId=${activeLocalData.id}`);
         } else {
-          // Always load user profile when on this page
-          console.log('[Perfil] ✅ Loading user profile (not redirecting)');
+          // Load user profile when on this page
+          console.log('[Perfil] ✅ Loading user profile');
           cargarDatosPerfil();
         }
       } else {
         setLoading(false);
       }
     }
-  }, [user, authLoading, shouldShowLocalProfile, activeLocalProfileId]);
+  }, [user, authLoading, shouldShowLocalProfile, activeLocalData]);
 
   const loadUnreadCounts = useCallback(async () => {
     if (!user) return;
@@ -1295,8 +1310,8 @@ export default function PerfilScreen() {
                 style={styles.storyRing}
               />
             )}
-            {user.avatar ? (
-              <Image source={{ uri: user.avatar }} style={styles.avatar} />
+            {displayAvatar ? (
+              <Image source={{ uri: displayAvatar }} style={styles.avatar} />
             ) : (
               <View style={[styles.avatar, styles.avatarPlaceholder]}>
                 <IconSymbol name="person.fill" size={40} color={colors.textSecondary} />
@@ -1309,11 +1324,21 @@ export default function PerfilScreen() {
             )}
           </TouchableOpacity>
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>{user.nombre || 'Usuario'}</Text>
+            <Text style={styles.profileName}>{displayName}</Text>
             {user.username && (
               <Text style={styles.profileUsername}>@{user.username}</Text>
             )}
           </View>
+          {/* Profile Switcher Button */}
+          {(isPropietario || ownedLocals.length > 0) && (
+            <TouchableOpacity 
+              style={styles.switchProfileButton}
+              onPress={() => setShowProfileSwitcher(true)}
+              activeOpacity={0.7}
+            >
+              <IconSymbol name="arrow.triangle.2.circlepath" size={24} color={colors.primary} />
+            </TouchableOpacity>
+          )}
         </View>
 
         {user.bio && (
@@ -1966,6 +1991,11 @@ export default function PerfilScreen() {
         visible={showLoginModal}
         onClose={() => setShowLoginModal(false)}
       />
+
+      <ProfileSwitcher
+        visible={showProfileSwitcher}
+        onClose={() => setShowProfileSwitcher(false)}
+      />
     </View>
   );
 }
@@ -2112,6 +2142,13 @@ const styles = StyleSheet.create({
   profileUsername: {
     fontSize: 14,
     color: colors.textSecondary,
+  },
+  switchProfileButton: {
+    padding: 8,
+    backgroundColor: colors.background,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
   profileBio: {
     fontSize: 14,
