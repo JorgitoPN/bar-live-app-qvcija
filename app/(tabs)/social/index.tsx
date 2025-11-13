@@ -1,4 +1,12 @@
 
+import { useRouter, useFocusEffect } from 'expo-router';
+import { IconSymbol } from '@/components/IconSymbol';
+import { useMode } from '@/contexts/ModeContext';
+import LoginRequiredModal from '@/components/common/LoginRequiredModal';
+import { socialCache } from '@/utils/socialCache';
+import InitialLoadingScreen from '@/components/common/InitialLoadingScreen';
+import { LinearGradient } from 'expo-linear-gradient';
+import StoryStatsModal from '@/components/social/StoryStatsModal';
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
@@ -19,22 +27,10 @@ import {
   Pressable,
   FlatList,
 } from 'react-native';
-import { colors, commonStyles } from '@/styles/commonStyles';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter, useFocusEffect } from 'expo-router';
-import { IconSymbol } from '@/components/IconSymbol';
-import { useAuth } from '@/contexts/AuthContext';
-import { useMode } from '@/contexts/ModeContext';
-import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 import { supabase } from '@/utils/supabase';
-import { socialCache } from '@/utils/socialCache';
 import { useGlobalData } from '@/contexts/GlobalDataContext';
-import InitialLoadingScreen from '@/components/common/InitialLoadingScreen';
-import StoryStatsModal from '@/components/social/StoryStatsModal';
-
-const { width, height } = Dimensions.get('window');
-const HEADER_HEIGHT = 120;
-const SCREEN_WIDTH = width;
+import { colors, commonStyles } from '@/styles/commonStyles';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Comentario {
   id: string;
@@ -95,6 +91,10 @@ interface LocalProfile {
   tipo: string;
   imagen_url?: string;
 }
+
+const HEADER_HEIGHT = 120;
+const { width, height } = Dimensions.get('window');
+const SCREEN_WIDTH = width;
 
 const styles = StyleSheet.create({
   container: {
@@ -979,8 +979,6 @@ function PostCardWithSwipe({ post, user, activeLocalProfileId, router, toggleLik
     </View>
   );
 }
-
-export default function SocialScreen() {
 
 export default function SocialScreen() {
   const router = useRouter();
