@@ -194,11 +194,6 @@ export function ModeProvider({ children }: { children: ReactNode }) {
       await AsyncStorage.setItem(MODE_STORAGE_KEY, mode);
       setCurrentModeState(mode);
       
-      // When switching to cliente mode, reset to client profile
-      if (mode === 'cliente' && user) {
-        await switchToClientProfile();
-      }
-      
       console.log('[ModeContext] ✅ Mode saved to storage:', mode);
     } catch (error) {
       console.error('[ModeContext] ❌ Error saving mode:', error);
@@ -222,7 +217,10 @@ export function ModeProvider({ children }: { children: ReactNode }) {
       setActiveProfileTypeState('cliente');
       setActiveLocalData(null);
       
-      console.log('[ModeContext] ✅ Switched to client profile');
+      // FIXED: Automatically switch to cliente mode when switching to client profile
+      await setCurrentMode('cliente');
+      
+      console.log('[ModeContext] ✅ Switched to client profile and cliente mode');
     } catch (error) {
       console.error('[ModeContext] ❌ Error switching to client profile:', error);
     }
@@ -269,12 +267,10 @@ export function ModeProvider({ children }: { children: ReactNode }) {
       setActiveProfileTypeState('local');
       setActiveLocalData(localData);
       
-      // Automatically switch to propietario mode when switching to local profile
-      if (currentMode !== 'propietario') {
-        await setCurrentMode('propietario');
-      }
+      // FIXED: Automatically switch to propietario mode when switching to local profile
+      await setCurrentMode('propietario');
       
-      console.log('[ModeContext] ✅ Switched to local profile:', localData.nombre);
+      console.log('[ModeContext] ✅ Switched to local profile and propietario mode:', localData.nombre);
     } catch (error) {
       console.error('[ModeContext] ❌ Error switching to local profile:', error);
     }

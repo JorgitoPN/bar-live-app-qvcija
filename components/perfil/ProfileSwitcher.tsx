@@ -40,12 +40,14 @@ export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherPro
   const handleSwitchToClient = async () => {
     setSwitching(true);
     try {
+      console.log('[ProfileSwitcher] 🔄 Switching to client profile');
       await switchToClientProfile();
       onClose();
       // Navigate to user profile page
+      console.log('[ProfileSwitcher] ✅ Navigating to user profile');
       router.push('/(tabs)/perfil');
     } catch (error) {
-      console.error('[ProfileSwitcher] Error switching to client:', error);
+      console.error('[ProfileSwitcher] ❌ Error switching to client:', error);
     } finally {
       setSwitching(false);
     }
@@ -54,12 +56,14 @@ export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherPro
   const handleSwitchToLocal = async (localId: string) => {
     setSwitching(true);
     try {
+      console.log('[ProfileSwitcher] 🔄 Switching to local profile:', localId);
       await switchToLocalProfile(localId);
       onClose();
       // Navigate to local profile page
+      console.log('[ProfileSwitcher] ✅ Navigating to local profile');
       router.push(`/perfil/local?localId=${localId}`);
     } catch (error) {
-      console.error('[ProfileSwitcher] Error switching to local:', error);
+      console.error('[ProfileSwitcher] ❌ Error switching to local:', error);
     } finally {
       setSwitching(false);
     }
