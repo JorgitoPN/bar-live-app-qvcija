@@ -41,6 +41,10 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
       if (pathname === `${tab.route}/index`) {
         return true;
       }
+      // Special handling for local profile pages
+      if (tab.name === 'perfil' && pathname.startsWith('/perfil/local')) {
+        return true;
+      }
       return false;
     });
 
@@ -50,11 +54,11 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
   }, [pathname, tabs]);
 
   const handleTabPress = (tab: TabBarItem) => {
-    console.log('[FloatingTabBar] 🔘 Tab pressed:', tab.name, 'Active profile type:', activeProfileType);
+    console.log('[FloatingTabBar] 🔘 Tab pressed:', tab.name, 'Active profile type:', activeProfileType, 'Active profile ID:', activeProfileId);
     
     // Special handling for Perfil tab
     if (tab.name === 'perfil') {
-      // If currently viewing a local profile, navigate to that local's profile page
+      // FIXED: If currently interacting as a local, navigate to that local's profile page
       if (activeProfileType === 'local' && activeProfileId) {
         console.log('[FloatingTabBar] 🏢 Navigating to local profile:', activeProfileId);
         router.push(`/perfil/local?localId=${activeProfileId}`);
@@ -86,13 +90,11 @@ export default function FloatingTabBar({ tabs, containerWidth = screenWidth }: F
               onPress={() => handleTabPress(tab)}
               activeOpacity={0.7}
             >
-              <View style={[styles.iconContainer, isActive && styles.iconContainerActive]}>
-                <IconSymbol
-                  name={tab.icon}
-                  size={24}
-                  color={isActive ? colors.primary : colors.text}
-                />
-              </View>
+              <IconSymbol
+                name={tab.icon}
+                size={26}
+                color={isActive ? colors.primary : colors.text}
+              />
               <Text style={[styles.label, isActive && styles.labelActive]}>
                 {tab.label}
               </Text>
@@ -120,8 +122,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: colors.cardBackground,
     borderRadius: 24,
-    paddingVertical: 8,
-    paddingHorizontal: 4,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -136,23 +138,13 @@ const styles = StyleSheet.create({
   tab: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
-  },
-  iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  iconContainerActive: {
-    backgroundColor: colors.primary + '20',
+    paddingVertical: 6,
   },
   label: {
     fontSize: 11,
     fontWeight: '600',
     color: colors.text,
+    marginTop: 4,
   },
   labelActive: {
     color: colors.primary,
