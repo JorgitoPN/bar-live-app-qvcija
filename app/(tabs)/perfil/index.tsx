@@ -849,12 +849,9 @@ export default function PerfilScreen() {
     useCallback(() => {
       console.log('[Perfil] 📍 Screen focused, active profile type:', activeProfileType);
       
-      // FIXED: If active profile is local when screen is focused, redirect immediately
-      if (activeProfileType === 'local' && activeProfileId) {
-        console.log('[Perfil] ⚠️ Active profile is local on focus, redirecting to:', activeProfileId);
-        router.replace(`/perfil/local?localId=${activeProfileId}`);
-        return;
-      }
+      // REMOVED: Do not redirect based on activeProfileType
+      // The user profile page should always show the user's profile
+      // The ProfileSwitcher component handles navigation to local profiles
       
       if (user) {
         loadUnreadCounts();
@@ -895,31 +892,27 @@ export default function PerfilScreen() {
           supabase.removeChannel(messagesChannel);
         };
       }
-    }, [user, activeProfileType, activeProfileId, router, loadUnreadCounts])
+    }, [user, loadUnreadCounts])
   );
 
   useEffect(() => {
     if (!authLoading) {
       if (user) {
-        // FIXED: Only load user profile data if active profile is cliente
-        if (activeProfileType === 'cliente') {
-          console.log('[Perfil] ✅ Loading user profile (active profile is cliente)');
-          cargarDatosPerfil();
-        } else {
-          console.log('[Perfil] ⚠️ Active profile is not cliente, skipping data load');
-          setLoading(false);
-        }
+        // FIXED: Always load user profile data on this page
+        // This page is for the user's personal profile, not local profiles
+        console.log('[Perfil] ✅ Loading user profile');
+        cargarDatosPerfil();
       } else {
         setLoading(false);
       }
     }
-  }, [user, authLoading, activeProfileType, cargarDatosPerfil]);
+  }, [user, authLoading, cargarDatosPerfil]);
 
   useEffect(() => {
-    if (user && activeProfileType === 'cliente') {
+    if (user) {
       cargarContenido();
     }
-  }, [activeTab, user, searchQuery, provinciaFiltro, empleoTab, fechaDesde, fechaHasta, activeProfileType, cargarContenido]);
+  }, [activeTab, user, searchQuery, provinciaFiltro, empleoTab, fechaDesde, fechaHasta, cargarContenido]);
 
   useEffect(() => {
     if (showStoryViewer && !isPaused) {
@@ -930,11 +923,9 @@ export default function PerfilScreen() {
     };
   }, [showStoryViewer, currentStoryIndex, isPaused, startStoryTimer, stopStoryTimer]);
 
-  // FIXED: Now check for redirect AFTER all hooks are called
-  if (activeProfileType === 'local' && activeProfileId) {
-    console.log('[Perfil] ✅ Active profile is local, redirecting immediately to:', activeProfileId);
-    return <Redirect href={`/perfil/local?localId=${activeProfileId}`} />;
-  }
+  // REMOVED: Do not redirect based on activeProfileType
+  // The user profile page should always show the user's profile
+  // The ProfileSwitcher component handles navigation to local profiles
 
   const onRefresh = () => {
     setRefreshing(true);

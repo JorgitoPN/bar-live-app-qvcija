@@ -534,7 +534,8 @@ export default function LocalPerfilScreen() {
     };
   }, [showStoryViewer, currentStoryIndex, isPaused, startStoryTimer, stopStoryTimer]);
 
-  // FIXED: Get tabs for FloatingTabBar based on user role and mode
+  // FIXED: Get tabs for FloatingTabBar - always show social mode tabs on local profile page
+  // The local profile page is a detail view, not a mode switch
   const getTabsForRole = (): TabBarItem[] => {
     const userRole = user?.rol_app || 'cliente';
 
@@ -562,115 +563,9 @@ export default function LocalPerfilScreen() {
       ];
     }
 
-    // Admin users in propietario mode
-    if (userRole === 'admin' && currentMode === 'propietario') {
-      return [
-        {
-          name: 'gestion',
-          route: '/(tabs)/gestion',
-          icon: 'briefcase.fill',
-          label: 'Gestión',
-        },
-        {
-          name: 'favoritos',
-          route: '/(tabs)/favoritos',
-          icon: 'heart.fill',
-          label: 'Favoritos',
-        },
-        {
-          name: 'explorar',
-          route: '/(tabs)/explorar',
-          icon: 'sparkles',
-          label: 'Explorar',
-        },
-        {
-          name: 'eventos',
-          route: '/(tabs)/eventos',
-          icon: 'calendar',
-          label: 'Eventos',
-        },
-        {
-          name: 'perfil',
-          route: '/(tabs)/perfil',
-          icon: 'person.fill',
-          label: 'Perfil',
-        },
-      ];
-    }
-
-    // Propietario users can switch between cliente and propietario modes
-    if (userRole === 'propietario') {
-      if (currentMode === 'propietario') {
-        return [
-          {
-            name: 'gestion',
-            route: '/(tabs)/gestion',
-            icon: 'briefcase.fill',
-            label: 'Gestión',
-          },
-          {
-            name: 'favoritos',
-            route: '/(tabs)/favoritos',
-            icon: 'heart.fill',
-            label: 'Favoritos',
-          },
-          {
-            name: 'explorar',
-            route: '/(tabs)/explorar',
-            icon: 'sparkles',
-            label: 'Explorar',
-          },
-          {
-            name: 'eventos',
-            route: '/(tabs)/eventos',
-            icon: 'calendar',
-            label: 'Eventos',
-          },
-          {
-            name: 'perfil',
-            route: '/(tabs)/perfil',
-            icon: 'person.fill',
-            label: 'Perfil',
-          },
-        ];
-      } else {
-        // Cliente mode for propietario
-        return [
-          {
-            name: 'eventos',
-            route: '/(tabs)/eventos',
-            icon: 'calendar',
-            label: 'Eventos',
-          },
-          {
-            name: 'favoritos',
-            route: '/(tabs)/favoritos',
-            icon: 'heart.fill',
-            label: 'Favoritos',
-          },
-          {
-            name: 'explorar',
-            route: '/(tabs)/explorar',
-            icon: 'sparkles',
-            label: 'Explorar',
-          },
-          {
-            name: 'social',
-            route: '/(tabs)/social',
-            icon: 'person.2.fill',
-            label: 'Social',
-          },
-          {
-            name: 'perfil',
-            route: '/(tabs)/perfil',
-            icon: 'person.fill',
-            label: 'Perfil',
-          },
-        ];
-      }
-    }
-
-    // Cliente users see cliente tabs (default)
+    // FIXED: When viewing a local profile, always show social mode tabs
+    // This ensures consistency - the local profile is a detail view, not a mode
+    // Users can still create content for the local using the action buttons on the profile
     return [
       {
         name: 'eventos',

@@ -1643,9 +1643,10 @@ export default function SocialScreen() {
     outputRange: ['0%', '100%'],
   });
 
-  // FIXED: Determine which avatar and name to show based on owner mode
-  const displayAvatar = (isOwnerMode && activeLocalData) ? activeLocalData.imagen_url : user?.avatar;
-  const displayName = (isOwnerMode && activeLocalData) ? activeLocalData.nombre : (user?.nombre || 'Usuario');
+  // FIXED: Always show user avatar in stories section, regardless of mode
+  // The local selector above already indicates which profile is active
+  const displayAvatar = user?.avatar;
+  const displayName = user?.nombre || 'Usuario';
   const displayInitial = displayName.charAt(0).toUpperCase();
 
   if (isInitialLoading) {
@@ -1788,33 +1789,39 @@ export default function SocialScreen() {
                         end={{ x: 1, y: 0 }}
                         style={styles.historiaGradientBorder}
                       >
-                        {/* FIXED: Show local avatar if interacting as local */}
-                        {displayAvatar ? (
+                        {/* FIXED: Always show user avatar in client mode, local avatar in owner mode */}
+                        {(isOwnerMode && activeLocalData?.imagen_url) ? (
+                          <Image source={{ uri: activeLocalData.imagen_url }} style={styles.historiaAvatar} />
+                        ) : displayAvatar ? (
                           <Image source={{ uri: displayAvatar }} style={styles.historiaAvatar} />
                         ) : (
                           <View style={[styles.historiaAvatar, styles.avatarPlaceholder]}>
-                            <Text style={styles.avatarText}>{displayInitial}</Text>
+                            <Text style={styles.avatarText}>{isOwnerMode && activeLocalData ? activeLocalData.nombre.charAt(0).toUpperCase() : displayInitial}</Text>
                           </View>
                         )}
                       </LinearGradient>
                     ) : (
                       <>
-                        {displayAvatar ? (
+                        {(isOwnerMode && activeLocalData?.imagen_url) ? (
+                          <Image source={{ uri: activeLocalData.imagen_url }} style={[styles.historiaAvatar, { borderWidth: 2, borderColor: colors.cardBorder }]} />
+                        ) : displayAvatar ? (
                           <Image source={{ uri: displayAvatar }} style={[styles.historiaAvatar, { borderWidth: 2, borderColor: colors.cardBorder }]} />
                         ) : (
                           <View style={[styles.historiaAvatar, styles.avatarPlaceholder, { borderWidth: 2, borderColor: colors.cardBorder }]}>
-                            <Text style={styles.avatarText}>{displayInitial}</Text>
+                            <Text style={styles.avatarText}>{isOwnerMode && activeLocalData ? activeLocalData.nombre.charAt(0).toUpperCase() : displayInitial}</Text>
                           </View>
                         )}
                       </>
                     )
                   ) : (
                     <>
-                      {displayAvatar ? (
+                      {(isOwnerMode && activeLocalData?.imagen_url) ? (
+                        <Image source={{ uri: activeLocalData.imagen_url }} style={styles.historiaUserAvatar} />
+                      ) : displayAvatar ? (
                         <Image source={{ uri: displayAvatar }} style={styles.historiaUserAvatar} />
                       ) : (
                         <View style={[styles.historiaUserAvatar, styles.avatarPlaceholder]}>
-                          <Text style={styles.avatarText}>{displayInitial}</Text>
+                          <Text style={styles.avatarText}>{isOwnerMode && activeLocalData ? activeLocalData.nombre.charAt(0).toUpperCase() : displayInitial}</Text>
                         </View>
                       )}
                       <View style={styles.historiaAddIcon}>
@@ -1823,7 +1830,9 @@ export default function SocialScreen() {
                     </>
                   )}
                 </View>
-                <Text style={styles.historiaNombre}>{activeLocalData ? activeLocalData.nombre : 'Tu historia'}</Text>
+                <Text style={styles.historiaNombre}>
+                  {isOwnerMode && activeLocalData ? activeLocalData.nombre : 'Tu historia'}
+                </Text>
               </TouchableOpacity>
             )}
 
@@ -2284,15 +2293,15 @@ export default function SocialScreen() {
                 <View style={styles.storyAutorInfo}>
                   {viewingOwnStories ? (
                     <>
-                      {/* FIXED: Show local avatar if viewing local stories */}
-                      {displayAvatar ? (
-                        <Image source={{ uri: displayAvatar }} style={styles.storyAutorAvatar} />
+                      {/* FIXED: Show local avatar when viewing local stories */}
+                      {activeLocalData?.imagen_url ? (
+                        <Image source={{ uri: activeLocalData.imagen_url }} style={styles.storyAutorAvatar} />
                       ) : (
                         <View style={[styles.storyAutorAvatar, styles.avatarPlaceholder]}>
-                          <Text style={styles.avatarText}>{displayInitial}</Text>
+                          <Text style={styles.avatarText}>{activeLocalData?.nombre?.charAt(0).toUpperCase() || 'L'}</Text>
                         </View>
                       )}
-                      <Text style={styles.storyAutorNombre}>{displayName}</Text>
+                      <Text style={styles.storyAutorNombre}>{activeLocalData?.nombre || 'Local'}</Text>
                       <TouchableOpacity
                         style={styles.storyInteractionButton}
                         onPress={handleViewStoryStats}
