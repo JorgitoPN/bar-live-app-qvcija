@@ -42,6 +42,7 @@ export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherPro
     try {
       console.log('[ProfileSwitcher] 🔄 Switching to client profile');
       await switchToClientProfile();
+      console.log('[ProfileSwitcher] ✅ Profile switched, closing modal');
       onClose();
       // Navigate to user profile page
       console.log('[ProfileSwitcher] ✅ Navigating to user profile');
@@ -58,6 +59,7 @@ export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherPro
     try {
       console.log('[ProfileSwitcher] 🔄 Switching to local profile:', localId);
       await switchToLocalProfile(localId);
+      console.log('[ProfileSwitcher] ✅ Profile switched, closing modal');
       onClose();
       // Navigate to local profile page
       console.log('[ProfileSwitcher] ✅ Navigating to local profile');
