@@ -160,7 +160,6 @@ export default function PerfilScreen() {
     switchToClientProfile,
   } = useMode();
   
-  // Move all hooks to the top level before any conditional returns
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -206,9 +205,30 @@ export default function PerfilScreen() {
   const [storyLikes, setStoryLikes] = useState<any[]>([]);
   const [loadingStats, setLoadingStats] = useState(false);
 
+  // FIXED: Animated values for smooth transitions
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.95)).current;
+
   const userRole = user?.rol_app || 'cliente';
   const isPropietario = userRole === 'propietario' || (userRole === 'admin' && currentMode === 'propietario');
   const isOwnerMode = currentMode === 'propietario' && isPropietario;
+
+  // FIXED: Animate entrance
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   const loadUnreadCounts = useCallback(async () => {
     if (!user) return;
@@ -369,7 +389,6 @@ export default function PerfilScreen() {
     if (!user) return;
 
     try {
-      // NEW: Only load accepted tags
       const { data, error } = await supabase
         .from('post_tags')
         .select(`
@@ -546,7 +565,6 @@ export default function PerfilScreen() {
 
       await loadUnreadCounts();
 
-      // Always load user profile data
       console.log('[Perfil] ✅ Loading user profile');
       
       const { count: seguidoresCount } = await supabase
@@ -569,7 +587,6 @@ export default function PerfilScreen() {
       setSeguidos(seguidosCount || 0);
       setPublicaciones(publicacionesCount || 0);
 
-      // FIXED: Check if there are any unviewed stories
       const { data: storiesData } = await supabase
         .from('historias')
         .select('id')
@@ -580,7 +597,6 @@ export default function PerfilScreen() {
       if (storiesData && storiesData.length > 0) {
         const storyIds = storiesData.map(s => s.id);
         
-        // Check if user has viewed all their own stories
         const { data: viewedData } = await supabase
           .from('historia_views')
           .select('historia_id')
@@ -589,7 +605,6 @@ export default function PerfilScreen() {
 
         const viewedStoryIds = new Set(viewedData?.map(v => v.historia_id) || []);
         
-        // Only show gradient ring if there are unviewed stories
         const hasUnviewedStories = storiesData.some(s => !viewedStoryIds.has(s.id));
         setHasActiveStory(hasUnviewedStories);
       } else {
@@ -861,8 +876,6 @@ export default function PerfilScreen() {
     }
   }, [userStories, currentStoryIndex, user, stopStoryTimer]);
 
-  // FIXED: When the screen is focused, just reload the data
-  // Don't force a profile switch - let the user navigate naturally
   useFocusEffect(
     useCallback(() => {
       console.log('[Perfil] 📍 Screen focused, current mode:', currentMode, 'active profile type:', activeProfileType);
@@ -912,7 +925,6 @@ export default function PerfilScreen() {
   useEffect(() => {
     if (!authLoading) {
       if (user) {
-        // Always load user profile data on this page
         console.log('[Perfil] ✅ Loading user profile');
         cargarDatosPerfil();
       } else {
@@ -936,7 +948,6 @@ export default function PerfilScreen() {
     };
   }, [showStoryViewer, currentStoryIndex, isPaused, startStoryTimer, stopStoryTimer]);
 
-  // Always show the user's own profile on this page
   const displayName = user?.nombre || 'Usuario';
   const displayAvatar = user?.avatar;
 
@@ -1085,7 +1096,6 @@ export default function PerfilScreen() {
   };
 
   const renderGridPost = (post: Post) => {
-    // FIXED: Get first image from imagenes array or imagen field
     const firstImage = post.imagenes && post.imagenes.length > 0 
       ? post.imagenes[0] 
       : post.imagen;
@@ -1095,7 +1105,7 @@ export default function PerfilScreen() {
         key={post.id}
         style={styles.gridItem}
         onPress={() => router.push(`/social/post?id=${post.id}`)}
-        activeOpacity={0.9}
+        activeOpacity={0.8}
       >
         {firstImage ? (
           <Image source={{ uri: firstImage }} style={styles.gridImage} />
@@ -1104,7 +1114,6 @@ export default function PerfilScreen() {
             <IconSymbol name="photo" size={32} color={colors.textSecondary} />
           </View>
         )}
-        {/* Show indicator if post has multiple images */}
         {post.imagenes && post.imagenes.length > 1 && (
           <View style={styles.multipleImagesIndicator}>
             <IconSymbol name="square.stack.fill" size={16} color={colors.headerText} />
@@ -1119,7 +1128,7 @@ export default function PerfilScreen() {
       key={oferta.id}
       style={styles.empleoCard}
       onPress={() => handleVerOferta(oferta)}
-      activeOpacity={0.7}
+      activeOpacity={0.8}
     >
       <LinearGradient
         colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.7)']}
@@ -1179,7 +1188,7 @@ export default function PerfilScreen() {
         key={perfil.id}
         style={styles.perfilCard}
         onPress={() => handleVerPerfil(perfil)}
-        activeOpacity={0.7}
+        activeOpacity={0.8}
       >
         <LinearGradient
           colors={[colors.primary + '15', colors.secondary + '10']}
@@ -1263,12 +1272,20 @@ export default function PerfilScreen() {
 
   const renderProfileHeader = () => {
     return (
-      <View style={styles.profileSection}>
+      <Animated.View 
+        style={[
+          styles.profileSection,
+          {
+            opacity: fadeAnim,
+            transform: [{ scale: scaleAnim }],
+          }
+        ]}
+      >
         <View style={styles.profileHeader}>
           <TouchableOpacity 
             style={styles.avatarContainer}
             onPress={handleAvatarPress}
-            activeOpacity={0.7}
+            activeOpacity={0.8}
           >
             {hasActiveStory && (
               <LinearGradient
@@ -1297,12 +1314,11 @@ export default function PerfilScreen() {
               <Text style={styles.profileUsername}>@{user.username}</Text>
             )}
           </View>
-          {/* Profile Switcher Button */}
           {(isPropietario || ownedLocals.length > 0) && (
             <TouchableOpacity 
               style={styles.switchProfileButton}
               onPress={() => setShowProfileSwitcher(true)}
-              activeOpacity={0.7}
+              activeOpacity={0.8}
             >
               <IconSymbol name="arrow.triangle.2.circlepath" size={24} color={colors.headerText} />
             </TouchableOpacity>
@@ -1314,7 +1330,7 @@ export default function PerfilScreen() {
         )}
 
         {user?.sitio_web && (
-          <TouchableOpacity style={styles.websiteContainer} onPress={handleWebsite} activeOpacity={0.7}>
+          <TouchableOpacity style={styles.websiteContainer} onPress={handleWebsite} activeOpacity={0.8}>
             <IconSymbol name="link" size={16} color={colors.headerText} />
             <Text style={styles.websiteText}>{user.sitio_web}</Text>
           </TouchableOpacity>
@@ -1350,7 +1366,7 @@ export default function PerfilScreen() {
             <Text style={[styles.actionButtonText, { color: colors.white }]}>Crear</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </Animated.View>
     );
   };
 
@@ -1413,7 +1429,6 @@ export default function PerfilScreen() {
 
   return (
     <View style={commonStyles.container}>
-      {/* FIXED: Blue gradient header like other profile pages */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         start={{ x: 0, y: 0 }}
@@ -1449,11 +1464,9 @@ export default function PerfilScreen() {
           </View>
         </View>
 
-        {/* Profile Header inside gradient */}
         {renderProfileHeader()}
       </LinearGradient>
 
-      {/* Tabs */}
       <View style={styles.tabsContainer}>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'posts' && styles.tabActive]}
@@ -1654,7 +1667,6 @@ export default function PerfilScreen() {
         )}
       </ScrollView>
 
-      {/* Filters Modal */}
       <Modal
         visible={showFilters}
         animationType="slide"
@@ -1786,7 +1798,6 @@ export default function PerfilScreen() {
         </Pressable>
       </Modal>
 
-      {/* Create Options Modal */}
       <Modal
         visible={showCreateOptions}
         animationType="slide"
@@ -1800,7 +1811,7 @@ export default function PerfilScreen() {
           <Pressable style={styles.createOptionsContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.createOptionsHeader}>
               <Text style={styles.createOptionsTitle}>Crear</Text>
-              <TouchableOpacity onPress={() => setShowCreateOptions(false)} activeOpacity={0.7}>
+              <TouchableOpacity onPress={() => setShowCreateOptions(false)} activeOpacity={0.8}>
                 <IconSymbol name="xmark" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
@@ -1811,7 +1822,7 @@ export default function PerfilScreen() {
                   setShowCreateOptions(false);
                   router.push('/crear/historia');
                 }}
-                activeOpacity={0.7}
+                activeOpacity={0.8}
               >
                 <View style={styles.createOptionIcon}>
                   <IconSymbol name="camera.fill" size={24} color={colors.headerText} />
@@ -1829,7 +1840,7 @@ export default function PerfilScreen() {
                   setShowCreateOptions(false);
                   router.push('/crear/publicacion');
                 }}
-                activeOpacity={0.7}
+                activeOpacity={0.8}
               >
                 <View style={styles.createOptionIcon}>
                   <IconSymbol name="photo.fill" size={24} color={colors.headerText} />
@@ -1846,7 +1857,6 @@ export default function PerfilScreen() {
         </Pressable>
       </Modal>
 
-      {/* Story Viewer Modal */}
       <Modal
         visible={showStoryViewer}
         animationType="fade"
@@ -1912,7 +1922,7 @@ export default function PerfilScreen() {
                   <TouchableOpacity
                     style={styles.storyViewsContainer}
                     onPress={handleViewStoryStats}
-                    activeOpacity={0.7}
+                    activeOpacity={0.8}
                   >
                     <IconSymbol name="eye" size={18} color="#fff" />
                     <Text style={styles.storyViewsText}>{currentStory.views_count || 0}</Text>
@@ -1947,7 +1957,7 @@ export default function PerfilScreen() {
                       setShowStoryViewer(false);
                       stopStoryTimer();
                     }}
-                    activeOpacity={0.7}
+                    activeOpacity={0.8}
                   >
                     <IconSymbol name="xmark" size={20} color="#fff" />
                   </TouchableOpacity>
@@ -1967,7 +1977,7 @@ export default function PerfilScreen() {
                   <TouchableOpacity
                     style={styles.storyDeleteButtonBottom}
                     onPress={handleDeleteStory}
-                    activeOpacity={0.7}
+                    activeOpacity={0.8}
                   >
                     <IconSymbol name="trash.fill" size={22} color="#fff" />
                     <Text style={styles.storyDeleteText}>Eliminar</Text>
@@ -2032,14 +2042,14 @@ export default function PerfilScreen() {
 const styles = StyleSheet.create({
   header: {
     paddingTop: 50,
-    paddingBottom: 20,
-    paddingHorizontal: 16,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
   },
   headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 28,
   },
   headerTitle: {
     fontSize: 28,
@@ -2048,7 +2058,7 @@ const styles = StyleSheet.create({
   },
   headerActions: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 16,
   },
   headerButton: {
     padding: 8,
@@ -2100,7 +2110,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   loginButton: {
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: 'hidden',
   },
   loginButtonGradient: {
@@ -2118,11 +2128,11 @@ const styles = StyleSheet.create({
   profileHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   avatarContainer: {
     position: 'relative',
-    marginRight: 16,
+    marginRight: 20,
   },
   storyRing: {
     position: 'absolute',
@@ -2130,14 +2140,14 @@ const styles = StyleSheet.create({
     left: -4,
     right: -4,
     bottom: -4,
-    borderRadius: 44,
+    borderRadius: 48,
     zIndex: 0,
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 3,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    borderWidth: 4,
     borderColor: colors.headerText,
     zIndex: 1,
   },
@@ -2155,13 +2165,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 3,
+    borderWidth: 4,
     borderColor: colors.headerGradientStart,
     zIndex: 2,
   },
@@ -2169,34 +2179,34 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   profileName: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     color: colors.headerText,
     marginBottom: 4,
   },
   profileUsername: {
-    fontSize: 14,
+    fontSize: 15,
     color: 'rgba(255, 255, 255, 0.9)',
   },
   switchProfileButton: {
-    padding: 8,
+    padding: 10,
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    borderRadius: 20,
+    borderRadius: 24,
   },
   profileBio: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.headerText,
-    lineHeight: 20,
-    marginBottom: 12,
+    lineHeight: 22,
+    marginBottom: 16,
   },
   websiteContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginBottom: 16,
+    gap: 8,
+    marginBottom: 20,
   },
   websiteText: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.headerText,
     fontWeight: '500',
   },
@@ -2204,30 +2214,31 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
-    marginBottom: 20,
+    marginBottom: 24,
+    paddingVertical: 4,
   },
   statItem: {
     alignItems: 'center',
     flex: 1,
   },
   statNumber: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     color: colors.headerText,
     marginBottom: 4,
   },
   statLabel: {
-    fontSize: 13,
+    fontSize: 14,
     color: 'rgba(255, 255, 255, 0.9)',
   },
   statDivider: {
     width: 1,
-    height: 40,
+    height: 44,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
   actionButtons: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 16,
   },
   actionButton: {
     flex: 1,
@@ -2235,15 +2246,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    borderRadius: 12,
-    paddingVertical: 12,
+    borderRadius: 16,
+    paddingVertical: 14,
     gap: 8,
   },
   createButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.4)',
   },
   actionButtonText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     color: colors.headerText,
   },
@@ -2266,7 +2277,7 @@ const styles = StyleSheet.create({
   postsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 1,
+    gap: 2,
     backgroundColor: colors.cardBorder,
   },
   gridItem: {
@@ -2278,6 +2289,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     backgroundColor: colors.background,
+    borderRadius: 4,
   },
   gridImagePlaceholder: {
     justifyContent: 'center',
@@ -2285,11 +2297,11 @@ const styles = StyleSheet.create({
   },
   multipleImagesIndicator: {
     position: 'absolute',
-    top: 8,
-    right: 8,
+    top: 10,
+    right: 10,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    borderRadius: 12,
-    padding: 4,
+    borderRadius: 16,
+    padding: 6,
   },
   loadingContainer: {
     paddingVertical: 40,
@@ -2301,21 +2313,21 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   emptyStateText: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.textSecondary,
-    marginTop: 12,
-    marginBottom: 16,
+    marginTop: 16,
+    marginBottom: 20,
     textAlign: 'center',
     paddingHorizontal: 20,
   },
   emptyStateButton: {
     backgroundColor: colors.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
+    paddingHorizontal: 28,
+    paddingVertical: 14,
+    borderRadius: 16,
   },
   emptyStateButtonText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     color: colors.white,
   },
@@ -2325,16 +2337,16 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     gap: 12,
-    marginBottom: 16,
+    marginBottom: 20,
   },
   searchBar: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.cardBackground,
-    borderRadius: 12,
+    borderRadius: 16,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     gap: 12,
     borderWidth: 1,
     borderColor: colors.cardBorder,
@@ -2345,10 +2357,10 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   filterButton: {
-    width: 48,
-    height: 48,
+    width: 52,
+    height: 52,
     backgroundColor: colors.cardBackground,
-    borderRadius: 12,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -2357,15 +2369,15 @@ const styles = StyleSheet.create({
   empleoTabs: {
     flexDirection: 'row',
     backgroundColor: colors.background,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 4,
-    marginBottom: 16,
+    marginBottom: 20,
   },
   empleoTab: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 12,
     alignItems: 'center',
-    borderRadius: 8,
+    borderRadius: 12,
   },
   empleoTabActive: {
     backgroundColor: colors.cardBackground,
@@ -2379,39 +2391,39 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   empleoContent: {
-    gap: 16,
+    gap: 20,
   },
   empleoCard: {
     backgroundColor: colors.cardBackground,
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: colors.cardBorder,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowRadius: 12,
+    elevation: 4,
   },
   ofertaGradient: {
     position: 'relative',
   },
   ofertaImagen: {
     width: '100%',
-    height: 180,
+    height: 200,
     backgroundColor: colors.cardBorder,
   },
   ofertaContent: {
-    padding: 16,
+    padding: 20,
   },
   empleoTitulo: {
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: '700',
     color: colors.text,
-    marginBottom: 6,
+    marginBottom: 8,
   },
   empleoLocal: {
-    fontSize: 15,
+    fontSize: 16,
     color: colors.textSecondary,
     fontWeight: '500',
   },
@@ -2420,37 +2432,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     backgroundColor: colors.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
   },
   salarioTexto: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700',
     color: colors.white,
   },
   empleoFooter: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginTop: 12,
+    gap: 12,
+    marginTop: 16,
   },
   empleoTag: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.background,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
     gap: 6,
   },
   empleoTagText: {
-    fontSize: 13,
+    fontSize: 14,
     color: colors.text,
     fontWeight: '600',
   },
   empleoFecha: {
-    fontSize: 12,
+    fontSize: 13,
     color: colors.textSecondary,
     marginLeft: 'auto',
   },
@@ -2462,29 +2474,29 @@ const styles = StyleSheet.create({
   },
   perfilCard: {
     backgroundColor: colors.cardBackground,
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: colors.cardBorder,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowRadius: 12,
+    elevation: 4,
   },
   perfilGradient: {
-    padding: 16,
+    padding: 20,
   },
   perfilHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 14,
+    marginBottom: 16,
   },
   perfilAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    marginRight: 14,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginRight: 16,
     borderWidth: 2,
     borderColor: colors.primary + '30',
   },
@@ -2496,36 +2508,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   perfilNombre: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '700',
     color: colors.text,
     marginBottom: 4,
   },
   perfilPuesto: {
-    fontSize: 15,
+    fontSize: 16,
     color: colors.textSecondary,
     fontWeight: '500',
   },
   perfilExperiencia: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.text,
-    lineHeight: 21,
-    marginBottom: 14,
+    lineHeight: 22,
+    marginBottom: 16,
   },
   habilidadesContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 14,
+    gap: 10,
+    marginBottom: 16,
   },
   habilidadTag: {
     backgroundColor: colors.primary + '20',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
   },
   habilidadText: {
-    fontSize: 12,
+    fontSize: 13,
     color: colors.primary,
     fontWeight: '700',
   },
@@ -2540,7 +2552,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   perfilTagText: {
-    fontSize: 13,
+    fontSize: 14,
     color: colors.text,
     fontWeight: '600',
   },
@@ -2559,35 +2571,35 @@ const styles = StyleSheet.create({
   },
   filtersModal: {
     backgroundColor: colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     maxHeight: '80%',
   },
   filtersHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    padding: 24,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
   },
   filtersTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     color: colors.text,
   },
   filtersContent: {
-    padding: 20,
+    padding: 24,
   },
   filterLabel: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '600',
     color: colors.text,
-    marginBottom: 12,
+    marginBottom: 16,
   },
   dateFilters: {
-    gap: 16,
-    marginBottom: 16,
+    gap: 20,
+    marginBottom: 20,
   },
   dateFilterItem: {
     flexDirection: 'row',
@@ -2595,25 +2607,25 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   dateFilterLabel: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '500',
     color: colors.text,
-    width: 60,
+    width: 70,
   },
   datePickerButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
     backgroundColor: colors.cardBackground,
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
+    paddingVertical: 14,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
   datePickerText: {
-    fontSize: 15,
+    fontSize: 16,
     color: colors.text,
   },
   clearDateButton: {
@@ -2623,17 +2635,17 @@ const styles = StyleSheet.create({
     maxHeight: 300,
   },
   provinciaItem: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginBottom: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    marginBottom: 10,
     backgroundColor: colors.cardBackground,
   },
   provinciaItemActive: {
     backgroundColor: colors.primary,
   },
   provinciaText: {
-    fontSize: 15,
+    fontSize: 16,
     color: colors.text,
   },
   provinciaTextActive: {
@@ -2642,32 +2654,32 @@ const styles = StyleSheet.create({
   },
   filtersFooter: {
     flexDirection: 'row',
-    gap: 12,
-    padding: 20,
+    gap: 16,
+    padding: 24,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
   },
   clearFiltersButton: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingVertical: 16,
+    borderRadius: 16,
     backgroundColor: colors.cardBackground,
     alignItems: 'center',
   },
   clearFiltersText: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '600',
     color: colors.text,
   },
   applyFiltersButton: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingVertical: 16,
+    borderRadius: 16,
     backgroundColor: colors.primary,
     alignItems: 'center',
   },
   applyFiltersText: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '600',
     color: colors.white,
   },
@@ -2678,14 +2690,14 @@ const styles = StyleSheet.create({
   },
   createOptionsContent: {
     backgroundColor: colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     paddingBottom: 34,
   },
   createOptionsHeader: {
-    paddingTop: 20,
-    paddingBottom: 12,
-    paddingHorizontal: 16,
+    paddingTop: 24,
+    paddingBottom: 16,
+    paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -2693,44 +2705,45 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.cardBorder,
   },
   createOptionsTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     color: colors.text,
   },
   createOptionsButtons: {
-    padding: 16,
-    gap: 12,
+    padding: 20,
+    gap: 16,
   },
   createOptionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    padding: 20,
     backgroundColor: colors.cardBackground,
-    borderRadius: 12,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
   createOptionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: 20,
   },
   createOptionInfo: {
     flex: 1,
   },
   createOptionTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
     color: colors.text,
-    marginBottom: 4,
+    marginBottom: 6,
   },
   createOptionDescription: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.textSecondary,
+    lineHeight: 20,
   },
   storyViewerModal: {
     flex: 1,
