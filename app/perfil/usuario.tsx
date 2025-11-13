@@ -24,6 +24,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
 
 const { width, height } = Dimensions.get('window');
+// FIXED: Correct grid calculation for 3 columns with 2px gaps
 const GRID_ITEM_SIZE = (width - 4) / 3;
 
 interface HistoriaConAutor {
@@ -726,11 +727,20 @@ export default function UsuarioPerfilScreen() {
                 onPress={() => handleVerPost(post.id)}
                 activeOpacity={0.8}
               >
-                {post.imagen ? (
-                  <Image source={{ uri: post.imagen }} style={styles.gridImage} resizeMode="cover" />
+                {post.imagen || (post.imagenes && post.imagenes.length > 0) ? (
+                  <Image 
+                    source={{ uri: post.imagenes && post.imagenes.length > 0 ? post.imagenes[0] : post.imagen }} 
+                    style={styles.gridImage} 
+                    resizeMode="cover" 
+                  />
                 ) : (
                   <View style={[styles.gridImage, styles.gridImagePlaceholder]}>
                     <IconSymbol name="photo" size={32} color={colors.textSecondary} />
+                  </View>
+                )}
+                {post.imagenes && post.imagenes.length > 1 && (
+                  <View style={styles.multipleImagesIndicator}>
+                    <IconSymbol name="square.stack.fill" size={16} color={colors.headerText} />
                   </View>
                 )}
               </TouchableOpacity>
@@ -1039,6 +1049,14 @@ const styles = StyleSheet.create({
   gridImagePlaceholder: {
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  multipleImagesIndicator: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 16,
+    padding: 6,
   },
   emptyState: {
     alignItems: 'center',
