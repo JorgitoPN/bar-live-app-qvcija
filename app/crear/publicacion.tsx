@@ -22,6 +22,8 @@ import * as Location from 'expo-location';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
+import { useGlobalData } from '@/contexts/GlobalDataContext';
+import UploadProgressModal from '@/components/common/UploadProgressModal';
 
 interface UserSuggestion {
   id: string;
@@ -82,6 +84,7 @@ export default function CrearPublicacionScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { activeProfileType, activeProfileId } = useMode();
+  const { refreshData } = useGlobalData();
   const params = useLocalSearchParams();
   const localId = params.localId as string | undefined;
   
@@ -94,6 +97,8 @@ export default function CrearPublicacionScreen() {
   } | null>(null);
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [showUploadProgress, setShowUploadProgress] = useState(false);
   const [usuariosEtiquetados, setUsuariosEtiquetados] = useState<UserSuggestion[]>([]);
   const [showUserSuggestions, setShowUserSuggestions] = useState(false);
   const [userSuggestions, setUserSuggestions] = useState<UserSuggestion[]>([]);
@@ -253,6 +258,7 @@ export default function CrearPublicacionScreen() {
   const uploadImage = async (uri: string): Promise<string | null> => {
     try {
       console.log('[CrearPublicacion] Starting image upload...');
+      setUploadProgress(10);
       
       let blob: Blob;
       if (Platform.OS === 'web') {
@@ -261,6 +267,8 @@ export default function CrearPublicacionScreen() {
         const response = await fetch(uri);
         blob = await response.blob();
       }
+
+      setUploadProgress(30);
 
       const fileName = `${user!.id}/${Date.now()}.jpg`;
       console.log('[CrearPublicacion] Uploading file:', fileName);
@@ -271,6 +279,8 @@ export default function CrearPublicacionScreen() {
         reader.onerror = reject;
         reader.readAsArrayBuffer(blob);
       });
+
+      setUploadProgress(50);
 
       const { data, error } = await supabase.storage
         .from('posts')
@@ -284,10 +294,12 @@ export default function CrearPublicacionScreen() {
         return null;
       }
 
+      setUploadProgress(70);
       console.log('[CrearPublicacion] Image uploaded successfully');
 
       const { data: urlData } = supabase.storage.from('posts').getPublicUrl(fileName);
 
+      setUploadProgress(80);
       return urlData.publicUrl;
     } catch (error) {
       console.error('[CrearPublicacion] Error in uploadImage:', error);
@@ -307,6 +319,8 @@ export default function CrearPublicacionScreen() {
     }
 
     setPublishing(true);
+    setShowUploadProgress(true);
+    setUploadProgress(0);
 
     try {
       console.log('[CrearPublicacion] Starting publication...');
@@ -321,29 +335,26 @@ export default function CrearPublicacionScreen() {
         if (!imagenUrl) {
           Alert.alert('Error', 'No se pudo subir la imagen');
           setPublishing(false);
+          setShowUploadProgress(false);
           return;
         }
+      } else {
+        setUploadProgress(80);
       }
 
-      // FIXED: Determine the correct author based on active profile
-      // Priority: 
-      // 1. localId param (explicit local context, e.g., from local profile page)
-      // 2. activeProfileType from ModeContext (respects current active profile)
+      // Determine the correct author based on active profile
       let effectiveLocalId: string | null = null;
       let postTipo: 'usuario' | 'local' = 'usuario';
 
       if (localId) {
-        // Explicit local ID from params (e.g., creating post from local profile page)
         effectiveLocalId = localId;
         postTipo = 'local';
         console.log('[CrearPublicacion] ✅ Using localId from params:', localId);
       } else if (activeProfileType === 'local' && activeProfileId) {
-        // User is actively interacting as a local profile
         effectiveLocalId = activeProfileId;
         postTipo = 'local';
         console.log('[CrearPublicacion] ✅ Using active local profile:', activeProfileId);
       } else {
-        // Default: user is publishing as themselves (cliente)
         postTipo = 'usuario';
         console.log('[CrearPublicacion] ✅ Publishing as user (cliente)');
       }
@@ -351,11 +362,13 @@ export default function CrearPublicacionScreen() {
       console.log('[CrearPublicacion] ✅ Final effective local ID:', effectiveLocalId);
       console.log('[CrearPublicacion] ✅ Final post tipo:', postTipo);
 
+      setUploadProgress(85);
+
       // Create post with correct author context
       const { data: postData, error: postError } = await supabase
         .from('posts')
         .insert({
-          autor_id: user.id, // Always the logged-in user (owner)
+          autor_id: user.id,
           tipo: postTipo,
           local_id: effectiveLocalId,
           contenido: contenido,
@@ -373,6 +386,8 @@ export default function CrearPublicacionScreen() {
       }
 
       console.log('[CrearPublicacion] ✅ Post created successfully:', postData);
+
+      setUploadProgress(90);
 
       if (usuariosEtiquetados.length > 0 && postData) {
         const tags = usuariosEtiquetados.map((u) => ({
@@ -398,11 +413,24 @@ export default function CrearPublicacionScreen() {
         await supabase.from('notificaciones').insert(notifications);
       }
 
-      Alert.alert('Éxito', 'Publicación creada correctamente', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      setUploadProgress(95);
+
+      // Refresh global data to show new post immediately
+      console.log('[CrearPublicacion] 🔄 Refreshing global data...');
+      await refreshData(true);
+
+      setUploadProgress(100);
+
+      // Small delay to show 100% before closing
+      setTimeout(() => {
+        setShowUploadProgress(false);
+        Alert.alert('Éxito', 'Publicación creada correctamente', [
+          { text: 'OK', onPress: () => router.back() },
+        ]);
+      }, 500);
     } catch (error) {
       console.error('[CrearPublicacion] Error publicando:', error);
+      setShowUploadProgress(false);
       Alert.alert('Error', 'No se pudo crear la publicación');
     } finally {
       setPublishing(false);
@@ -560,6 +588,12 @@ export default function CrearPublicacionScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      <UploadProgressModal
+        visible={showUploadProgress}
+        progress={uploadProgress}
+        message="Publicando contenido..."
+      />
     </View>
   );
 }

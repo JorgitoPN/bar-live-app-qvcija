@@ -1,6 +1,7 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
+import { useGlobalData } from '@/contexts/GlobalDataContext';
 import React, { useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -24,6 +25,7 @@ import {
 import { supabase } from '@/utils/supabase';
 import * as Location from 'expo-location';
 import { LinearGradient } from 'expo-linear-gradient';
+import UploadProgressModal from '@/components/common/UploadProgressModal';
 
 const { height } = Dimensions.get('window');
 
@@ -34,22 +36,18 @@ interface UserSuggestion {
   avatar?: string;
 }
 
-// Helper function to convert image to JPG format
 const convertImageToJPG = (uri: string): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const processImage = async () => {
       try {
-        // Fetch the image
         const response = await fetch(uri);
         const blob = await response.blob();
         
-        // If it's already a JPEG, return it
         if (blob.type === 'image/jpeg' || blob.type === 'image/jpg') {
           resolve(blob);
           return;
         }
 
-        // Convert to JPEG using canvas
         const img = new window.Image();
         img.crossOrigin = 'anonymous';
         
@@ -89,6 +87,7 @@ const convertImageToJPG = (uri: string): Promise<Blob> => {
 export default function CrearHistoriaScreen() {
   const { user } = useAuth();
   const { activeProfileType, activeProfileId } = useMode();
+  const { refreshData } = useGlobalData();
   const router = useRouter();
   const params = useLocalSearchParams();
   const localId = params.localId as string | undefined;
@@ -101,6 +100,8 @@ export default function CrearHistoriaScreen() {
   } | null>(null);
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [showUploadProgress, setShowUploadProgress] = useState(false);
   const [usuariosEtiquetados, setUsuariosEtiquetados] = useState<UserSuggestion[]>([]);
   const [showUserSuggestions, setShowUserSuggestions] = useState(false);
   const [userSuggestions, setUserSuggestions] = useState<UserSuggestion[]>([]);
@@ -246,21 +247,21 @@ export default function CrearHistoriaScreen() {
   const uploadImage = async (uri: string): Promise<string | null> => {
     try {
       console.log('[CrearHistoria] Starting image upload...');
+      setUploadProgress(10);
       
-      // Convert image to JPG format
       let blob: Blob;
       if (Platform.OS === 'web') {
         blob = await convertImageToJPG(uri);
       } else {
-        // For native platforms, use fetch to get the blob
         const response = await fetch(uri);
         blob = await response.blob();
       }
 
+      setUploadProgress(30);
+
       const fileName = `${user!.id}/${Date.now()}.jpg`;
       console.log('[CrearHistoria] Uploading file:', fileName);
 
-      // Convert blob to ArrayBuffer
       const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
         const reader = new FileReader();
         reader.onloadend = () => resolve(reader.result as ArrayBuffer);
@@ -268,7 +269,8 @@ export default function CrearHistoriaScreen() {
         reader.readAsArrayBuffer(blob);
       });
 
-      // Upload to Supabase Storage
+      setUploadProgress(50);
+
       const { data, error } = await supabase.storage
         .from('stories')
         .upload(fileName, arrayBuffer, {
@@ -281,11 +283,12 @@ export default function CrearHistoriaScreen() {
         return null;
       }
 
+      setUploadProgress(70);
       console.log('[CrearHistoria] Image uploaded successfully');
 
-      // Get public URL
       const { data: urlData } = supabase.storage.from('stories').getPublicUrl(fileName);
 
+      setUploadProgress(80);
       return urlData.publicUrl;
     } catch (error) {
       console.error('[CrearHistoria] Error in uploadImage:', error);
@@ -305,6 +308,8 @@ export default function CrearHistoriaScreen() {
     }
 
     setPublishing(true);
+    setShowUploadProgress(true);
+    setUploadProgress(0);
 
     try {
       console.log('[CrearHistoria] Starting publication...');
@@ -313,33 +318,27 @@ export default function CrearHistoriaScreen() {
       console.log('[CrearHistoria] LocalId param:', localId);
       console.log('[CrearHistoria] User ID:', user.id);
       
-      // Upload image
       const imagenUrl = await uploadImage(imagen);
       if (!imagenUrl) {
         Alert.alert('Error', 'No se pudo subir la imagen');
         setPublishing(false);
+        setShowUploadProgress(false);
         return;
       }
 
-      // FIXED: Determine the correct author based on active profile
-      // Priority: 
-      // 1. localId param (explicit local context, e.g., from local profile page)
-      // 2. activeProfileType from ModeContext (respects current active profile)
+      // Determine the correct author based on active profile
       let effectiveLocalId: string | null = null;
       let storyTipo: 'usuario' | 'local' = 'usuario';
 
       if (localId) {
-        // Explicit local ID from params (e.g., creating story from local profile page)
         effectiveLocalId = localId;
         storyTipo = 'local';
         console.log('[CrearHistoria] ✅ Using localId from params:', localId);
       } else if (activeProfileType === 'local' && activeProfileId) {
-        // User is actively interacting as a local profile
         effectiveLocalId = activeProfileId;
         storyTipo = 'local';
         console.log('[CrearHistoria] ✅ Using active local profile:', activeProfileId);
       } else {
-        // Default: user is publishing as themselves (cliente)
         storyTipo = 'usuario';
         console.log('[CrearHistoria] ✅ Publishing as user (cliente)');
       }
@@ -347,7 +346,8 @@ export default function CrearHistoriaScreen() {
       console.log('[CrearHistoria] ✅ Final effective local ID:', effectiveLocalId);
       console.log('[CrearHistoria] ✅ Final story tipo:', storyTipo);
 
-      // Create story with correct author context
+      setUploadProgress(85);
+
       const { data: storyData, error: storyError } = await supabase
         .from('historias')
         .insert({
@@ -366,7 +366,8 @@ export default function CrearHistoriaScreen() {
 
       console.log('[CrearHistoria] ✅ Story created successfully');
 
-      // Add tags
+      setUploadProgress(90);
+
       if (usuariosEtiquetados.length > 0 && storyData) {
         const tags = usuariosEtiquetados.map((u) => ({
           historia_id: storyData.id,
@@ -379,7 +380,6 @@ export default function CrearHistoriaScreen() {
 
         if (tagsError) console.error('Error adding tags:', tagsError);
 
-        // Create notifications for tagged users
         const notifications = usuariosEtiquetados.map((u) => ({
           usuario_id: u.id,
           tipo: 'mencion',
@@ -391,11 +391,24 @@ export default function CrearHistoriaScreen() {
         await supabase.from('notificaciones').insert(notifications);
       }
 
-      Alert.alert('Éxito', 'Historia publicada correctamente', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      setUploadProgress(95);
+
+      // Refresh global data to show new story immediately
+      console.log('[CrearHistoria] 🔄 Refreshing global data...');
+      await refreshData(true);
+
+      setUploadProgress(100);
+
+      // Small delay to show 100% before closing
+      setTimeout(() => {
+        setShowUploadProgress(false);
+        Alert.alert('Éxito', 'Historia publicada correctamente', [
+          { text: 'OK', onPress: () => router.back() },
+        ]);
+      }, 500);
     } catch (error) {
       console.error('[CrearHistoria] Error publicando:', error);
+      setShowUploadProgress(false);
       Alert.alert('Error', 'No se pudo publicar la historia');
     } finally {
       setPublishing(false);
@@ -404,7 +417,6 @@ export default function CrearHistoriaScreen() {
 
   return (
     <View style={commonStyles.container}>
-      {/* Header */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         start={{ x: 0, y: 0 }}
@@ -434,7 +446,6 @@ export default function CrearHistoriaScreen() {
       </LinearGradient>
 
       <ScrollView style={styles.scrollContent} contentContainerStyle={styles.scrollContentContainer}>
-        {/* Preview de imagen */}
         {imagen ? (
           <View style={styles.imagePreviewContainer}>
             <Image source={{ uri: imagen }} style={styles.imagePreview} resizeMode="contain" />
@@ -451,7 +462,6 @@ export default function CrearHistoriaScreen() {
             <IconSymbol name="photo.on.rectangle" size={80} color={colors.textSecondary} />
             <Text style={styles.placeholderText}>Selecciona una imagen para tu historia</Text>
             
-            {/* Botones de selección de imagen dentro del placeholder */}
             <View style={styles.placeholderButtons}>
               <TouchableOpacity 
                 style={styles.placeholderButton} 
@@ -475,10 +485,8 @@ export default function CrearHistoriaScreen() {
           </View>
         )}
 
-        {/* Opciones adicionales solo cuando hay imagen */}
         {imagen && (
           <View style={styles.optionsContainer}>
-            {/* Location display */}
             {ubicacion && (
               <View style={styles.locationContainer}>
                 <IconSymbol name="mappin.circle.fill" size={20} color={colors.primary} />
@@ -489,7 +497,6 @@ export default function CrearHistoriaScreen() {
               </View>
             )}
 
-            {/* Tagged users */}
             {usuariosEtiquetados.length > 0 && (
               <View style={styles.taggedUsersContainer}>
                 <Text style={styles.taggedUsersTitle}>Etiquetados:</Text>
@@ -508,7 +515,6 @@ export default function CrearHistoriaScreen() {
               </View>
             )}
 
-            {/* Opciones adicionales */}
             <View style={styles.additionalOptions}>
               <TouchableOpacity
                 style={styles.additionalOptionButton}
@@ -537,7 +543,6 @@ export default function CrearHistoriaScreen() {
         )}
       </ScrollView>
 
-      {/* User suggestions modal */}
       <Modal
         visible={showUserSuggestions}
         animationType="slide"
@@ -597,6 +602,12 @@ export default function CrearHistoriaScreen() {
           </View>
         </View>
       </Modal>
+
+      <UploadProgressModal
+        visible={showUploadProgress}
+        progress={uploadProgress}
+        message="Publicando historia..."
+      />
     </View>
   );
 }
