@@ -24,7 +24,7 @@ interface FloatingTabBarProps {
 export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { currentMode } = useMode();
+  const { currentMode, activeProfileType, activeProfileId } = useMode();
   const { user } = useAuth();
   const navigationInProgress = useRef(false);
   const lastNavigationTime = useRef(0);
@@ -41,7 +41,8 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
       if (cleanRoute === '(tabs)/perfil') {
         return cleanPathname === '(tabs)/perfil' || 
                cleanPathname === '(tabs)/perfil/' || 
-               cleanPathname === '(tabs)/perfil/index';
+               cleanPathname === '(tabs)/perfil/index' ||
+               cleanPathname.startsWith('perfil/local');
       }
       
       return cleanPathname.startsWith(cleanRoute);
@@ -90,7 +91,23 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
             lastNavigationTime.current = now;
 
             try {
-              router.push(tab.route as any);
+              // FIXED: Check if this is the perfil tab and handle navigation based on active profile type
+              if (tab.name === 'perfil') {
+                console.log('[FloatingTabBar] 🔍 Perfil tab pressed, activeProfileType:', activeProfileType, 'activeProfileId:', activeProfileId);
+                
+                if (activeProfileType === 'local' && activeProfileId) {
+                  // Navigate to local profile page
+                  console.log('[FloatingTabBar] ✅ Navigating to local profile:', activeProfileId);
+                  router.push(`/perfil/local?localId=${activeProfileId}` as any);
+                } else {
+                  // Navigate to user profile page
+                  console.log('[FloatingTabBar] ✅ Navigating to user profile');
+                  router.push(tab.route as any);
+                }
+              } else {
+                // Normal navigation for other tabs
+                router.push(tab.route as any);
+              }
             } catch (error) {
               console.error('❌ Navigation error:', error);
             }
