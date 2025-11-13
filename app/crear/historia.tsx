@@ -15,10 +15,7 @@ import {
   Image,
   Platform,
   Alert,
-  FlatList,
-  TextInput,
   ActivityIndicator,
-  Modal,
   ScrollView,
   Dimensions,
 } from 'react-native';
@@ -28,13 +25,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import UploadProgressModal from '@/components/common/UploadProgressModal';
 
 const { height } = Dimensions.get('window');
-
-interface UserSuggestion {
-  id: string;
-  nombre: string;
-  username: string;
-  avatar?: string;
-}
 
 const convertImageToJPG = (uri: string): Promise<Blob> => {
   return new Promise((resolve, reject) => {
@@ -102,11 +92,6 @@ export default function CrearHistoriaScreen() {
   const [publishing, setPublishing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showUploadProgress, setShowUploadProgress] = useState(false);
-  const [usuariosEtiquetados, setUsuariosEtiquetados] = useState<UserSuggestion[]>([]);
-  const [showUserSuggestions, setShowUserSuggestions] = useState(false);
-  const [userSuggestions, setUserSuggestions] = useState<UserSuggestion[]>([]);
-  const [searchingUsers, setSearchingUsers] = useState(false);
-  const [searchText, setSearchText] = useState('');
 
   const seleccionarImagen = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -196,52 +181,6 @@ export default function CrearHistoriaScreen() {
     } finally {
       setLoadingLocation(false);
     }
-  };
-
-  const buscarUsuarios = async (texto: string) => {
-    if (texto.length < 2) {
-      setUserSuggestions([]);
-      setShowUserSuggestions(false);
-      return;
-    }
-
-    setSearchingUsers(true);
-    try {
-      const { data, error } = await supabase
-        .from('usuarios')
-        .select('id, nombre, username, avatar, perfil_privado, permitir_etiquetas')
-        .or(`nombre.ilike.%${texto}%,username.ilike.%${texto}%`)
-        .eq('activo', true)
-        .limit(10);
-
-      if (!error && data) {
-        const filteredUsers = data.filter(
-          (u) => u.permitir_etiquetas && !usuariosEtiquetados.find((ue) => ue.id === u.id)
-        );
-        setUserSuggestions(filteredUsers);
-        setShowUserSuggestions(filteredUsers.length > 0);
-      }
-    } catch (error) {
-      console.error('Error buscando usuarios:', error);
-    } finally {
-      setSearchingUsers(false);
-    }
-  };
-
-  const handleSearchChange = (text: string) => {
-    setSearchText(text);
-    buscarUsuarios(text);
-  };
-
-  const seleccionarUsuario = (usuario: UserSuggestion) => {
-    setUsuariosEtiquetados([...usuariosEtiquetados, usuario]);
-    setSearchText('');
-    setShowUserSuggestions(false);
-    setUserSuggestions([]);
-  };
-
-  const eliminarEtiqueta = (usuarioId: string) => {
-    setUsuariosEtiquetados(usuariosEtiquetados.filter((u) => u.id !== usuarioId));
   };
 
   const uploadImage = async (uri: string): Promise<string | null> => {
@@ -366,31 +305,6 @@ export default function CrearHistoriaScreen() {
 
       console.log('[CrearHistoria] ✅ Story created successfully');
 
-      setUploadProgress(90);
-
-      if (usuariosEtiquetados.length > 0 && storyData) {
-        const tags = usuariosEtiquetados.map((u) => ({
-          historia_id: storyData.id,
-          usuario_id: u.id,
-        }));
-
-        const { error: tagsError } = await supabase
-          .from('historia_tags')
-          .insert(tags);
-
-        if (tagsError) console.error('Error adding tags:', tagsError);
-
-        const notifications = usuariosEtiquetados.map((u) => ({
-          usuario_id: u.id,
-          tipo: 'mencion',
-          titulo: 'Te han etiquetado',
-          mensaje: `${user.nombre} te ha etiquetado en una historia`,
-          usuario_origen_id: user.id,
-        }));
-
-        await supabase.from('notificaciones').insert(notifications);
-      }
-
       setUploadProgress(95);
 
       // Refresh global data to show new story immediately
@@ -497,24 +411,6 @@ export default function CrearHistoriaScreen() {
               </View>
             )}
 
-            {usuariosEtiquetados.length > 0 && (
-              <View style={styles.taggedUsersContainer}>
-                <Text style={styles.taggedUsersTitle}>Etiquetados:</Text>
-                <View style={styles.taggedUsersList}>
-                  {usuariosEtiquetados.map((usuario) => (
-                    <View key={usuario.id} style={styles.taggedUserChip}>
-                      <Text style={styles.taggedUserName}>
-                        @{usuario.username || usuario.nombre}
-                      </Text>
-                      <TouchableOpacity onPress={() => eliminarEtiqueta(usuario.id)} activeOpacity={0.7}>
-                        <IconSymbol name="xmark.circle.fill" size={16} color={colors.textSecondary} />
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
-
             <View style={styles.additionalOptions}>
               <TouchableOpacity
                 style={styles.additionalOptionButton}
@@ -529,79 +425,10 @@ export default function CrearHistoriaScreen() {
                 )}
                 <Text style={styles.additionalOptionText}>Añadir ubicación</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.additionalOptionButton}
-                onPress={() => setShowUserSuggestions(true)}
-                disabled={publishing}
-                activeOpacity={0.7}
-              >
-                <IconSymbol name="at" size={24} color={colors.primary} />
-                <Text style={styles.additionalOptionText}>Etiquetar personas</Text>
-              </TouchableOpacity>
             </View>
           </View>
         )}
       </ScrollView>
-
-      <Modal
-        visible={showUserSuggestions}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowUserSuggestions(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Etiquetar personas</Text>
-              <TouchableOpacity onPress={() => setShowUserSuggestions(false)} activeOpacity={0.7}>
-                <IconSymbol name="xmark" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Buscar usuarios..."
-              placeholderTextColor={colors.textSecondary}
-              value={searchText}
-              onChangeText={handleSearchChange}
-              autoFocus
-            />
-            {searchingUsers ? (
-              <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 20 }} />
-            ) : (
-              <FlatList
-                data={userSuggestions}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.suggestionItem}
-                    onPress={() => {
-                      seleccionarUsuario(item);
-                      setShowUserSuggestions(false);
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    {item.avatar ? (
-                      <Image source={{ uri: item.avatar }} style={styles.suggestionAvatar} />
-                    ) : (
-                      <View style={[styles.suggestionAvatar, styles.avatarPlaceholder]}>
-                        <Text style={styles.avatarText}>
-                          {item.nombre.charAt(0).toUpperCase()}
-                        </Text>
-                      </View>
-                    )}
-                    <View style={styles.suggestionInfo}>
-                      <Text style={styles.suggestionName}>{item.nombre}</Text>
-                      {item.username && (
-                        <Text style={styles.suggestionUsername}>@{item.username}</Text>
-                      )}
-                    </View>
-                  </TouchableOpacity>
-                )}
-              />
-            )}
-          </View>
-        </View>
-      </Modal>
 
       <UploadProgressModal
         visible={showUploadProgress}
@@ -717,102 +544,6 @@ const styles = StyleSheet.create({
   },
   optionsContainer: {
     width: '100%',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 16,
-    maxHeight: '80%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.text,
-  },
-  searchInput: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    padding: 12,
-    fontSize: 16,
-    color: colors.text,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    marginBottom: 16,
-  },
-  suggestionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 8,
-    borderRadius: 8,
-  },
-  suggestionAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 12,
-  },
-  avatarPlaceholder: {
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.headerText,
-  },
-  suggestionInfo: {
-    flex: 1,
-  },
-  suggestionName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  suggestionUsername: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  taggedUsersContainer: {
-    marginBottom: 16,
-  },
-  taggedUsersTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  taggedUsersList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  taggedUserChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.cardBackground,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 6,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  taggedUserName: {
-    fontSize: 14,
-    color: colors.text,
   },
   locationContainer: {
     flexDirection: 'row',

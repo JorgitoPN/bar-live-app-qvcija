@@ -100,6 +100,9 @@ export default function LocalPerfilScreen() {
   const storyTimerRef = useRef<NodeJS.Timeout | null>(null);
   const progressAnim = useRef(new Animated.Value(0)).current;
 
+  // NEW: Create options modal state
+  const [showCreateOptions, setShowCreateOptions] = useState(false);
+
   const localId = params.localId as string;
 
   // FIXED: Computed values from context
@@ -737,9 +740,9 @@ export default function LocalPerfilScreen() {
                 <IconSymbol name="pencil" size={18} color={colors.headerText} />
                 <Text style={styles.actionButtonText}>Editar</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.actionButton} onPress={handleCrearPost}>
+              <TouchableOpacity style={styles.actionButton} onPress={() => setShowCreateOptions(true)}>
                 <IconSymbol name="plus.circle" size={18} color={colors.headerText} />
-                <Text style={styles.actionButtonText}>Post</Text>
+                <Text style={styles.actionButtonText}>Publicar</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.actionButton} onPress={handleCrearEvento}>
                 <IconSymbol name="calendar.badge.plus" size={18} color={colors.headerText} />
@@ -1127,6 +1130,66 @@ export default function LocalPerfilScreen() {
             </>
           )}
         </View>
+      </Modal>
+
+      {/* Create Options Modal */}
+      <Modal
+        visible={showCreateOptions}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowCreateOptions(false)}
+      >
+        <Pressable 
+          style={styles.createOptionsModal}
+          onPress={() => setShowCreateOptions(false)}
+        >
+          <Pressable style={styles.createOptionsContent} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.createOptionsHeader}>
+              <Text style={styles.createOptionsTitle}>Publicar</Text>
+              <TouchableOpacity onPress={() => setShowCreateOptions(false)} activeOpacity={0.7}>
+                <IconSymbol name="xmark" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.createOptionsButtons}>
+              <TouchableOpacity
+                style={styles.createOptionButton}
+                onPress={() => {
+                  setShowCreateOptions(false);
+                  handleCrearHistoria();
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={styles.createOptionIcon}>
+                  <IconSymbol name="camera.fill" size={24} color={colors.headerText} />
+                </View>
+                <View style={styles.createOptionInfo}>
+                  <Text style={styles.createOptionTitle}>Historia</Text>
+                  <Text style={styles.createOptionDescription}>
+                    Comparte un momento que desaparece en 24 horas
+                  </Text>
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.createOptionButton}
+                onPress={() => {
+                  setShowCreateOptions(false);
+                  handleCrearPost();
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={styles.createOptionIcon}>
+                  <IconSymbol name="photo.fill" size={24} color={colors.headerText} />
+                </View>
+                <View style={styles.createOptionInfo}>
+                  <Text style={styles.createOptionTitle}>Publicación</Text>
+                  <Text style={styles.createOptionDescription}>
+                    Comparte una foto o video en tu perfil
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
       </Modal>
 
       {/* FIXED: Add FloatingTabBar to show bottom menu */}
@@ -1599,5 +1662,66 @@ const styles = StyleSheet.create({
   },
   storyTouchZone: {
     flex: 1,
+  },
+  createOptionsModal: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  createOptionsContent: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingBottom: 34,
+  },
+  createOptionsHeader: {
+    paddingTop: 20,
+    paddingBottom: 12,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  createOptionsTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  createOptionsButtons: {
+    padding: 16,
+    gap: 12,
+  },
+  createOptionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  createOptionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  createOptionInfo: {
+    flex: 1,
+  },
+  createOptionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  createOptionDescription: {
+    fontSize: 14,
+    color: colors.textSecondary,
   },
 });
