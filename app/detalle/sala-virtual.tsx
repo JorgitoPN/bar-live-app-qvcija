@@ -153,7 +153,7 @@ export default function SalaVirtualScreen() {
           usuario_id,
           local_id,
           created_at,
-          usuario:usuarios(id, nombre, username, avatar)
+          usuario:usuarios!check_ins_usuario_id_fkey(id, nombre, username, avatar)
         `)
         .eq('local_id', params.id)
         .gte('created_at', sixHoursAgo.toISOString())
@@ -175,6 +175,7 @@ export default function SalaVirtualScreen() {
 
       console.log('[SalaVirtual] 📥 Loading interactions from sala_virtual_interacciones...');
 
+      // Use explicit foreign key hint to avoid ambiguity
       const { data: interactionsData, error: interactionsError } = await supabase
         .from('sala_virtual_interacciones')
         .select(`
@@ -185,7 +186,7 @@ export default function SalaVirtualScreen() {
           contenido,
           recipient_id,
           created_at,
-          usuario:usuarios(id, nombre, username, avatar)
+          usuario:usuarios!sala_virtual_interacciones_usuario_id_fkey(id, nombre, username, avatar)
         `)
         .eq('local_id', params.id)
         .gte('created_at', thirtyMinutesAgo.toISOString())
