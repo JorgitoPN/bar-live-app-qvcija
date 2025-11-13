@@ -436,6 +436,26 @@ const styles = StyleSheet.create({
     height: width,
     backgroundColor: colors.cardBorder,
   },
+  multipleImagesIndicator: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderRadius: 12,
+    padding: 6,
+  },
+  locationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 6,
+  },
+  locationText: {
+    fontSize: 13,
+    color: colors.text,
+    fontWeight: '500',
+  },
   postActions: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1940,13 +1960,31 @@ export default function SocialScreen() {
                     )}
                   </View>
 
-                  {post.imagen && (
+                  {/* FIXED: Display first image from imagenes array or imagen field */}
+                  {((post.imagenes && post.imagenes.length > 0) || post.imagen) && (
                     <TouchableOpacity 
                       onPress={() => router.push(`/social/post?id=${post.id}`)}
                       activeOpacity={0.9}
                     >
-                      <Image source={{ uri: post.imagen }} style={styles.postImagen} />
+                      <Image 
+                        source={{ uri: post.imagenes && post.imagenes.length > 0 ? post.imagenes[0] : post.imagen }} 
+                        style={styles.postImagen} 
+                      />
+                      {/* Show indicator if post has multiple images */}
+                      {post.imagenes && post.imagenes.length > 1 && (
+                        <View style={styles.multipleImagesIndicator}>
+                          <IconSymbol name="square.stack.fill" size={16} color={colors.headerText} />
+                        </View>
+                      )}
                     </TouchableOpacity>
+                  )}
+
+                  {/* NEW: Location Display */}
+                  {post.ubicacion && (
+                    <View style={styles.locationContainer}>
+                      <IconSymbol name="mappin.circle.fill" size={16} color={colors.primary} />
+                      <Text style={styles.locationText}>{post.ubicacion}</Text>
+                    </View>
                   )}
 
                   <View style={styles.postActions}>

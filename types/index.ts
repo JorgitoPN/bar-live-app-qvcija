@@ -309,11 +309,13 @@ export interface Post {
   tipo: 'usuario' | 'local';
   contenido: string;
   imagen?: string;
+  imagenes?: string[];
   likes: number;
   comentarios: number;
   fecha: string;
   localId?: string;
   liked?: boolean;
+  ubicacion?: string;
 }
 
 export interface Historia {
