@@ -1282,7 +1282,7 @@ export default function PerfilScreen() {
               <Image source={{ uri: displayAvatar }} style={styles.avatar} />
             ) : (
               <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <IconSymbol name="person.fill" size={40} color={colors.textSecondary} />
+                <IconSymbol name="person.fill" size={40} color={colors.headerText} />
               </View>
             )}
             {!hasActiveStory && (
@@ -1304,7 +1304,7 @@ export default function PerfilScreen() {
               onPress={() => setShowProfileSwitcher(true)}
               activeOpacity={0.7}
             >
-              <IconSymbol name="arrow.triangle.2.circlepath" size={24} color={colors.primary} />
+              <IconSymbol name="arrow.triangle.2.circlepath" size={24} color={colors.headerText} />
             </TouchableOpacity>
           )}
         </View>
@@ -1315,7 +1315,7 @@ export default function PerfilScreen() {
 
         {user?.sitio_web && (
           <TouchableOpacity style={styles.websiteContainer} onPress={handleWebsite} activeOpacity={0.7}>
-            <IconSymbol name="link" size={16} color={colors.primary} />
+            <IconSymbol name="link" size={16} color={colors.headerText} />
             <Text style={styles.websiteText}>{user.sitio_web}</Text>
           </TouchableOpacity>
         )}
@@ -1339,7 +1339,7 @@ export default function PerfilScreen() {
 
         <View style={styles.actionButtons}>
           <TouchableOpacity style={styles.actionButton} onPress={handleEditProfile}>
-            <IconSymbol name="pencil" size={18} color={colors.text} />
+            <IconSymbol name="pencil" size={18} color={colors.headerText} />
             <Text style={styles.actionButtonText}>Editar Perfil</Text>
           </TouchableOpacity>
           <TouchableOpacity 
@@ -1413,19 +1413,18 @@ export default function PerfilScreen() {
 
   return (
     <View style={commonStyles.container}>
+      {/* FIXED: Blue gradient header like other profile pages */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
-        style={commonStyles.headerGradient}
+        style={styles.header}
       >
         <View style={styles.headerContent}>
-          <Text style={[commonStyles.headerTitle, { color: colors.white }]}>
-            Mi Perfil
-          </Text>
+          <Text style={styles.headerTitle}>Mi Perfil</Text>
           <View style={styles.headerActions}>
             <TouchableOpacity style={styles.headerButton} onPress={handleChats}>
-              <IconSymbol name="message.fill" size={24} color={colors.white} />
+              <IconSymbol name="message.fill" size={24} color={colors.headerText} />
               {unreadMessages > 0 && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>
@@ -1435,7 +1434,7 @@ export default function PerfilScreen() {
               )}
             </TouchableOpacity>
             <TouchableOpacity style={styles.headerButton} onPress={handleNotifications}>
-              <IconSymbol name="bell.fill" size={24} color={colors.white} />
+              <IconSymbol name="bell.fill" size={24} color={colors.headerText} />
               {unreadNotifications > 0 && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>
@@ -1445,11 +1444,58 @@ export default function PerfilScreen() {
               )}
             </TouchableOpacity>
             <TouchableOpacity style={styles.headerButton} onPress={handleSettings}>
-              <IconSymbol name="gearshape.fill" size={24} color={colors.white} />
+              <IconSymbol name="gearshape.fill" size={24} color={colors.headerText} />
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Profile Header inside gradient */}
+        {renderProfileHeader()}
       </LinearGradient>
+
+      {/* Tabs */}
+      <View style={styles.tabsContainer}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'posts' && styles.tabActive]}
+          onPress={() => setActiveTab('posts')}
+        >
+          <IconSymbol 
+            name="square.grid.3x3" 
+            size={24} 
+            color={activeTab === 'posts' ? colors.primary : colors.textSecondary} 
+          />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'favoritos' && styles.tabActive]}
+          onPress={() => setActiveTab('favoritos')}
+        >
+          <IconSymbol 
+            name="bookmark" 
+            size={24} 
+            color={activeTab === 'favoritos' ? colors.primary : colors.textSecondary} 
+          />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'etiquetados' && styles.tabActive]}
+          onPress={() => setActiveTab('etiquetados')}
+        >
+          <IconSymbol 
+            name="person.crop.square" 
+            size={24} 
+            color={activeTab === 'etiquetados' ? colors.primary : colors.textSecondary} 
+          />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'empleo' && styles.tabActive]}
+          onPress={() => setActiveTab('empleo')}
+        >
+          <IconSymbol 
+            name="briefcase" 
+            size={24} 
+            color={activeTab === 'empleo' ? colors.primary : colors.textSecondary} 
+          />
+        </TouchableOpacity>
+      </View>
 
       <ScrollView
         style={styles.content}
@@ -1459,51 +1505,6 @@ export default function PerfilScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {renderProfileHeader()}
-
-        <View style={styles.tabsContainer}>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'posts' && styles.tabActive]}
-            onPress={() => setActiveTab('posts')}
-          >
-            <IconSymbol 
-              name="square.grid.3x3" 
-              size={24} 
-              color={activeTab === 'posts' ? colors.primary : colors.textSecondary} 
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'favoritos' && styles.tabActive]}
-            onPress={() => setActiveTab('favoritos')}
-          >
-            <IconSymbol 
-              name="bookmark" 
-              size={24} 
-              color={activeTab === 'favoritos' ? colors.primary : colors.textSecondary} 
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'etiquetados' && styles.tabActive]}
-            onPress={() => setActiveTab('etiquetados')}
-          >
-            <IconSymbol 
-              name="person.crop.square" 
-              size={24} 
-              color={activeTab === 'etiquetados' ? colors.primary : colors.textSecondary} 
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'empleo' && styles.tabActive]}
-            onPress={() => setActiveTab('empleo')}
-          >
-            <IconSymbol 
-              name="briefcase" 
-              size={24} 
-              color={activeTab === 'empleo' ? colors.primary : colors.textSecondary} 
-            />
-          </TouchableOpacity>
-        </View>
-
         {loadingPosts ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
@@ -2029,10 +2030,21 @@ export default function PerfilScreen() {
 }
 
 const styles = StyleSheet.create({
+  header: {
+    paddingTop: 50,
+    paddingBottom: 20,
+    paddingHorizontal: 16,
+  },
   headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 24,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: colors.headerText,
   },
   headerActions: {
     flexDirection: 'row',
@@ -2101,10 +2113,7 @@ const styles = StyleSheet.create({
     color: colors.white,
   },
   profileSection: {
-    backgroundColor: colors.cardBackground,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-    padding: 20,
+    paddingTop: 0,
   },
   profileHeader: {
     flexDirection: 'row',
@@ -2129,13 +2138,11 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 40,
     borderWidth: 3,
-    borderColor: colors.cardBackground,
+    borderColor: colors.headerText,
     zIndex: 1,
   },
   avatarPlaceholder: {
-    backgroundColor: colors.background,
-    borderWidth: 2,
-    borderColor: colors.cardBorder,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -2155,7 +2162,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
-    borderColor: colors.cardBackground,
+    borderColor: colors.headerGradientStart,
     zIndex: 2,
   },
   profileInfo: {
@@ -2164,23 +2171,21 @@ const styles = StyleSheet.create({
   profileName: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: colors.text,
+    color: colors.headerText,
     marginBottom: 4,
   },
   profileUsername: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   switchProfileButton: {
     padding: 8,
-    backgroundColor: colors.background,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
   },
   profileBio: {
     fontSize: 14,
-    color: colors.text,
+    color: colors.headerText,
     lineHeight: 20,
     marginBottom: 12,
   },
@@ -2192,7 +2197,7 @@ const styles = StyleSheet.create({
   },
   websiteText: {
     fontSize: 14,
-    color: colors.primary,
+    color: colors.headerText,
     fontWeight: '500',
   },
   statsContainer: {
@@ -2208,17 +2213,17 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: colors.text,
+    color: colors.headerText,
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   statDivider: {
     width: 1,
     height: 40,
-    backgroundColor: colors.cardBorder,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
   actionButtons: {
     flexDirection: 'row',
@@ -2229,21 +2234,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
     borderRadius: 12,
     paddingVertical: 12,
     gap: 8,
   },
   createButton: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
   },
   actionButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.text,
+    color: colors.headerText,
   },
   tabsContainer: {
     flexDirection: 'row',
