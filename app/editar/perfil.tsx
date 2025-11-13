@@ -11,6 +11,8 @@ import {
   Image,
   Switch,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -210,8 +212,17 @@ export default function EditarPerfilScreen() {
         </TouchableOpacity>
       </LinearGradient>
 
-      <ScrollView style={styles.content}>
-        <View style={styles.form}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+      >
+        <ScrollView 
+          style={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.form}>
           <TouchableOpacity style={styles.avatarContainer} onPress={pickImage}>
             {avatar ? (
               <Image source={{ uri: avatar }} style={styles.avatar} />
@@ -312,7 +323,8 @@ export default function EditarPerfilScreen() {
             />
           </View>
         </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }

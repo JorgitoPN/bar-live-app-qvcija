@@ -1032,15 +1032,46 @@ export default function SocialScreen() {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('usuarios')
-        .select('id, nombre, username, avatar')
-        .or(`nombre.ilike.%${query}%,username.ilike.%${query}%`)
-        .limit(10);
+      // Search both users and local profiles
+      const [usersResult, localsResult] = await Promise.all([
+        supabase
+          .from('usuarios')
+          .select('id, nombre, username, avatar')
+          .or(`nombre.ilike.%${query}%,username.ilike.%${query}%`)
+          .limit(10),
+        supabase
+          .from('locales')
+          .select('id, nombre, imagen_url, tipo, provincia')
+          .or(`nombre.ilike.%${query}%`)
+          .eq('activo', true)
+          .limit(10)
+      ]);
 
-      if (!error && data) {
-        setSearchResults(data.map(u => ({ ...u, tipo: 'usuario' as const })));
+      const results: SearchResult[] = [];
+
+      // Add user results
+      if (usersResult.data) {
+        results.push(...usersResult.data.map(u => ({
+          id: u.id,
+          nombre: u.nombre,
+          username: u.username,
+          avatar: u.avatar,
+          tipo: 'usuario' as const,
+        })));
       }
+
+      // Add local results
+      if (localsResult.data) {
+        results.push(...localsResult.data.map(l => ({
+          id: l.id,
+          nombre: l.nombre,
+          avatar: l.imagen_url,
+          tipo: 'local' as const,
+          bio: `${l.tipo} • ${l.provincia}`,
+        })));
+      }
+
+      setSearchResults(results);
     } catch (error) {
       console.error('[Social] Error searching:', error);
     }
@@ -2169,13 +2200,15 @@ export default function SocialScreen() {
           <ScrollView style={styles.searchResults}>
             {searchResults.map((result) => (
               <TouchableOpacity
-                key={result.id}
+                key={`${result.tipo}-${result.id}`}
                 style={styles.searchResultItem}
                 onPress={() => {
                   setSearchQuery('');
                   setSearchResults([]);
                   setShowSearchModal(false);
-                  if (user && result.id === user.id) {
+                  if (result.tipo === 'local') {
+                    router.push(`/perfil/local?localId=${result.id}`);
+                  } else if (user && result.id === user.id) {
                     router.push('/(tabs)/perfil');
                   } else {
                     router.push(`/perfil/usuario?userId=${result.id}`);
@@ -2196,6 +2229,15 @@ export default function SocialScreen() {
                   <Text style={styles.searchResultName}>{result.nombre}</Text>
                   {result.username && (
                     <Text style={styles.searchResultUsername}>@{result.username}</Text>
+                  )}
+                  {result.bio && (
+                    <Text style={styles.searchResultUsername}>{result.bio}</Text>
+                  )}
+                  {result.tipo === 'local' && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 4 }}>
+                      <IconSymbol name="building.2" size={14} color={colors.primary} />
+                      <Text style={[styles.searchResultUsername, { color: colors.primary }]}>Local</Text>
+                    </View>
                   )}
                 </View>
               </TouchableOpacity>

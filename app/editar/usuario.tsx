@@ -13,6 +13,8 @@ import {
   ActivityIndicator,
   Modal,
   Pressable,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -259,8 +261,17 @@ export default function EditarUsuarioScreen() {
         </TouchableOpacity>
       </LinearGradient>
 
-      <ScrollView style={styles.content}>
-        <View style={styles.form}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+      >
+        <ScrollView 
+          style={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.form}>
           {/* Avatar */}
           <TouchableOpacity style={styles.avatarContainer} onPress={pickImage}>
             {avatar ? (
@@ -420,7 +431,8 @@ export default function EditarUsuarioScreen() {
             />
           </View>
         </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Modal Rol */}
       <Modal
