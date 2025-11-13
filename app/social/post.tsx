@@ -1147,23 +1147,51 @@ export default function PostDetailScreen() {
     return (
       <View key={comentario.id}>
         <View style={styles.comentarioItem}>
-          {comentario.autor?.avatar ? (
-            <Image
-              source={{ uri: comentario.autor.avatar }}
-              style={styles.comentarioAvatar}
-            />
-          ) : (
-            <View style={[styles.comentarioAvatar, styles.avatarPlaceholder]}>
-              <Text style={[styles.avatarText, { fontSize: 14 }]}>
-                {comentario.autor?.nombre?.charAt(0).toUpperCase() || 'U'}
-              </Text>
-            </View>
-          )}
+          {/* FIXED: Make avatar clickable to navigate to profile */}
+          <TouchableOpacity
+            onPress={() => {
+              if (comentario.tipo === 'local' && comentario.local_id) {
+                router.push(`/perfil/local?localId=${comentario.local_id}`);
+              } else if (user && comentario.autor_id === user.id) {
+                router.push('/(tabs)/perfil');
+              } else {
+                router.push(`/perfil/usuario?userId=${comentario.autor_id}`);
+              }
+            }}
+            activeOpacity={0.7}
+          >
+            {comentario.autor?.avatar ? (
+              <Image
+                source={{ uri: comentario.autor.avatar }}
+                style={styles.comentarioAvatar}
+              />
+            ) : (
+              <View style={[styles.comentarioAvatar, styles.avatarPlaceholder]}>
+                <Text style={[styles.avatarText, { fontSize: 14 }]}>
+                  {comentario.autor?.nombre?.charAt(0).toUpperCase() || 'U'}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
           <View style={styles.comentarioContent}>
             <View style={styles.comentarioHeader}>
-              <Text style={styles.comentarioAutor}>
-                {comentario.autor?.nombre || 'Usuario'}
-              </Text>
+              {/* FIXED: Make name clickable to navigate to profile */}
+              <TouchableOpacity
+                onPress={() => {
+                  if (comentario.tipo === 'local' && comentario.local_id) {
+                    router.push(`/perfil/local?localId=${comentario.local_id}`);
+                  } else if (user && comentario.autor_id === user.id) {
+                    router.push('/(tabs)/perfil');
+                  } else {
+                    router.push(`/perfil/usuario?userId=${comentario.autor_id}`);
+                  }
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.comentarioAutor}>
+                  {comentario.autor?.nombre || 'Usuario'}
+                </Text>
+              </TouchableOpacity>
               <Text style={styles.comentarioFecha}>
                 {formatearFecha(comentario.created_at)}
               </Text>
@@ -1326,6 +1354,7 @@ export default function PostDetailScreen() {
         <ScrollView ref={scrollViewRef}>
           <View style={styles.postCard}>
             <View style={styles.postHeader}>
+              {/* FIXED: Make avatar and name clickable to navigate to profile */}
               <TouchableOpacity
                 style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
                 onPress={() => {

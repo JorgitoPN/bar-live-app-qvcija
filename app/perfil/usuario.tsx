@@ -70,6 +70,9 @@ export default function UsuarioPerfilScreen() {
 
   const userId = params.userId as string;
 
+  // FIXED: Check if viewing own profile
+  const isOwnProfile = currentUser && currentUser.id === userId;
+
   const loadFollowerCounts = useCallback(async (targetUserId: string) => {
     try {
       console.log('[UsuarioPerfil] 🔄 Loading follower counts from seguidores table...');
@@ -598,13 +601,17 @@ export default function UsuarioPerfilScreen() {
             <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{usuario.username || usuario.nombre}</Text>
-          <TouchableOpacity onPress={handleBlock} style={styles.headerButton}>
-            <IconSymbol
-              name={isBlocked ? 'person.fill.checkmark' : 'person.fill.xmark'}
-              size={24}
-              color={colors.headerText}
-            />
-          </TouchableOpacity>
+          {/* FIXED: Only show block button if not viewing own profile */}
+          {!isOwnProfile && (
+            <TouchableOpacity onPress={handleBlock} style={styles.headerButton}>
+              <IconSymbol
+                name={isBlocked ? 'person.fill.checkmark' : 'person.fill.xmark'}
+                size={24}
+                color={colors.headerText}
+              />
+            </TouchableOpacity>
+          )}
+          {isOwnProfile && <View style={{ width: 40 }} />}
         </View>
 
         <View style={styles.profileSection}>
@@ -667,20 +674,23 @@ export default function UsuarioPerfilScreen() {
           </View>
         )}
 
-        <View style={styles.actionsContainer}>
-          <TouchableOpacity
-            style={[styles.actionButton, isFollowing && styles.actionButtonFollowing]}
-            onPress={handleFollow}
-            disabled={isTogglingFollow.current}
-          >
-            <Text style={[styles.actionButtonText, isFollowing && styles.actionButtonTextFollowing]}>
-              {isFollowing ? 'Siguiendo' : 'Seguir'}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton} onPress={handleMessage}>
-            <Text style={styles.actionButtonText}>Mensaje</Text>
-          </TouchableOpacity>
-        </View>
+        {/* FIXED: Only show action buttons if not viewing own profile */}
+        {!isOwnProfile && (
+          <View style={styles.actionsContainer}>
+            <TouchableOpacity
+              style={[styles.actionButton, isFollowing && styles.actionButtonFollowing]}
+              onPress={handleFollow}
+              disabled={isTogglingFollow.current}
+            >
+              <Text style={[styles.actionButtonText, isFollowing && styles.actionButtonTextFollowing]}>
+                {isFollowing ? 'Siguiendo' : 'Seguir'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionButton} onPress={handleMessage}>
+              <Text style={styles.actionButtonText}>Mensaje</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </LinearGradient>
 
       <ScrollView
