@@ -60,7 +60,7 @@ export default function EditarLocalScreen() {
   const { user } = useAuth();
   const localId = params.id as string;
   
-  // FIXED: Check if user is admin
+  // Check if user is admin
   const isAdmin = user?.rol_app === 'admin';
 
   const [loading, setLoading] = useState(true);
@@ -428,7 +428,7 @@ export default function EditarLocalScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.form}>
-            {/* FIXED: Google Places Enrichment Section - only for admins */}
+            {/* Google Places Enrichment Section - only for admins */}
             {isAdmin && (
             <View style={styles.enrichmentSection}>
               <Text style={styles.sectionTitle}>🌐 Enriquecimiento con Google Places</Text>

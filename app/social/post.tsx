@@ -1374,7 +1374,7 @@ export default function PostDetailScreen() {
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         <ScrollView ref={scrollViewRef} keyboardShouldPersistTaps="handled">
           <View style={styles.postCard}>
@@ -1592,6 +1592,7 @@ export default function PostDetailScreen() {
         <KeyboardAvoidingView
           style={{ flex: 1, backgroundColor: colors.background }}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
         >
           <LinearGradient
             colors={[colors.headerGradientStart, colors.headerGradientEnd]}
