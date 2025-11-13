@@ -38,22 +38,35 @@ export default function TermsAcceptanceScreen() {
 
     setLoading(true);
     try {
+      console.log('[TermsAcceptance] Recording terms acceptance for user:', userId);
+
       // Record terms acceptance
-      await supabase.from('terms_acceptance').insert({
+      const { error: termsError } = await supabase.from('terms_acceptance').insert({
         usuario_id: userId,
         terms_version: '1.0',
         privacy_version: '1.0',
         cookies_consent: true,
       });
 
+      if (termsError) {
+        console.error('[TermsAcceptance] Error recording terms:', termsError);
+        // Continue anyway - this is not critical
+      }
+
       // Update user profile
-      await supabase
+      const { error: updateError } = await supabase
         .from('usuarios')
         .update({
           ha_aceptado_terminos: true,
           fecha_aceptacion_terminos: new Date().toISOString(),
         })
         .eq('id', userId);
+
+      if (updateError) {
+        console.error('[TermsAcceptance] Error updating user:', updateError);
+        Alert.alert('Error', 'No se pudo actualizar tu perfil. Intenta de nuevo.');
+        return;
+      }
 
       // Refresh user data
       await refreshUser();

@@ -140,12 +140,17 @@ export default function ConversacionScreen() {
           setChatId(existingChat.id);
           await loadMessages(existingChat.id);
         } else {
-          // Create new chat
+          // Create new chat - IMPORTANT: Ensure usuario1_id < usuario2_id to satisfy constraint
+          const userId1 = user.id < (params.userId as string) ? user.id : (params.userId as string);
+          const userId2 = user.id < (params.userId as string) ? (params.userId as string) : user.id;
+
+          console.log('[Conversacion] Creating new chat with ordered IDs:', { userId1, userId2 });
+
           const { data: newChat, error: createError } = await supabase
             .from('chats')
             .insert({
-              usuario1_id: user.id,
-              usuario2_id: params.userId,
+              usuario1_id: userId1,
+              usuario2_id: userId2,
               ultimo_mensaje: '',
               ultimo_mensaje_fecha: new Date().toISOString(),
             })

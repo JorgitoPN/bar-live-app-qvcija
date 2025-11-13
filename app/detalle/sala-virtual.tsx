@@ -47,6 +47,7 @@ interface InteractionMessage {
   local_id: string;
   tipo: 'mensaje' | 'emoticon' | 'chat';
   contenido: string;
+  recipient_id?: string;
   created_at: string;
   usuario: {
     id: string;
@@ -95,6 +96,7 @@ export default function SalaVirtualScreen() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showQuickMessages, setShowQuickMessages] = useState(false);
   const [showEmoticons, setShowEmoticons] = useState(false);
+  const [selectedRecipient, setSelectedRecipient] = useState<string | null>(null);
   const [interactions, setInteractions] = useState<InteractionMessage[]>([]);
   const [floatingEmojis, setFloatingEmojis] = useState<Array<{ id: string; emoji: string; x: number; y: Animated.Value; opacity: Animated.Value }>>([]);
   
@@ -181,6 +183,7 @@ export default function SalaVirtualScreen() {
           local_id,
           tipo,
           contenido,
+          recipient_id,
           created_at,
           usuario:usuarios(id, nombre, username, avatar)
         `)
@@ -191,21 +194,24 @@ export default function SalaVirtualScreen() {
 
       if (interactionsError) {
         console.error('[SalaVirtual] ⚠️ Error loading interactions:', interactionsError);
-        console.error('[SalaVirtual] ⚠️ This error means the table sala_virtual_interacciones does not exist in your Supabase database.');
-        console.error('[SalaVirtual] ⚠️ Please create the table using the SQL provided in the implementation plan.');
-        
-        // Set empty arrays to prevent crashes
         setInteractions([]);
         setChatMessages([]);
       } else {
         console.log('[SalaVirtual] ✅ Loaded', interactionsData?.length || 0, 'interactions');
         const allInteractions = interactionsData || [];
         
-        // Separate chat messages from other interactions
-        const chatMsgs = allInteractions.filter(i => i.tipo === 'chat');
-        const otherInteractions = allInteractions.filter(i => i.tipo !== 'chat');
+        // Filter interactions: show broadcast messages OR messages directed to/from current user
+        const visibleInteractions = allInteractions.filter(i => {
+          if (i.tipo === 'chat') return false; // Chat messages go to separate list
+          if (!i.recipient_id) return true; // Broadcast message
+          if (!user) return false;
+          return i.recipient_id === user.id || i.usuario_id === user.id; // Directed to or from me
+        });
         
-        setInteractions(otherInteractions);
+        // Separate chat messages
+        const chatMsgs = allInteractions.filter(i => i.tipo === 'chat');
+        
+        setInteractions(visibleInteractions);
         setChatMessages(chatMsgs.reverse()); // Reverse to show oldest first in chat
       }
 
@@ -224,6 +230,7 @@ export default function SalaVirtualScreen() {
     }
   }, [params.id, loadData]);
 
+  // Real-time subscriptions using postgres_changes for INSTANT updates
   useEffect(() => {
     if (!params.id) return;
 
@@ -265,11 +272,16 @@ export default function SalaVirtualScreen() {
               flatListRef.current?.scrollToEnd({ animated: true });
             }, 50);
           } else {
-            // Otherwise add to interactions feed
-            setInteractions((prev) => [newInteraction, ...prev].slice(0, 50));
+            // Check if this interaction should be visible to current user
+            const isVisible = !newInteraction.recipient_id || 
+                             (user && (newInteraction.recipient_id === user.id || newInteraction.usuario_id === user.id));
+            
+            if (isVisible) {
+              setInteractions((prev) => [newInteraction, ...prev].slice(0, 50));
 
-            if (payload.new.tipo === 'emoticon') {
-              showFloatingEmoji(payload.new.contenido);
+              if (payload.new.tipo === 'emoticon') {
+                showFloatingEmoji(payload.new.contenido);
+              }
             }
           }
         }
@@ -304,6 +316,19 @@ export default function SalaVirtualScreen() {
         {
           event: 'DELETE',
           schema: 'public',
+          table: 'check_ins',
+          filter: `local_id=eq.${params.id}`,
+        },
+        (payload) => {
+          console.log('[SalaVirtual] ⚡ User checked out:', payload.old);
+          setCheckIns((prev) => prev.filter(ci => ci.id !== payload.old.id));
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
           table: 'sala_virtual_interacciones',
           filter: `local_id=eq.${params.id}`,
         },
@@ -330,7 +355,7 @@ export default function SalaVirtualScreen() {
         channelRef.current = null;
       }
     };
-  }, [params.id]);
+  }, [params.id, user]);
 
   const showFloatingEmoji = (emoji: string) => {
     const id = Date.now().toString();
@@ -452,6 +477,16 @@ export default function SalaVirtualScreen() {
     }
   };
 
+  const handleSelectRecipientForMessage = (recipientId: string) => {
+    setSelectedRecipient(recipientId);
+    setShowQuickMessages(true);
+  };
+
+  const handleSelectRecipientForEmoticon = (recipientId: string) => {
+    setSelectedRecipient(recipientId);
+    setShowEmoticons(true);
+  };
+
   const handleSendQuickMessage = async (mensaje: string) => {
     if (!user) {
       setShowLoginModal(true);
@@ -471,6 +506,7 @@ export default function SalaVirtualScreen() {
           local_id: params.id,
           tipo: 'mensaje',
           contenido: mensaje,
+          recipient_id: selectedRecipient, // Can be null for broadcast
         });
 
       if (error) {
@@ -480,6 +516,7 @@ export default function SalaVirtualScreen() {
       }
 
       setShowQuickMessages(false);
+      setSelectedRecipient(null);
     } catch (error) {
       console.error('[SalaVirtual] Error:', error);
       Alert.alert('Error', 'Ocurrió un error al enviar el mensaje');
@@ -505,6 +542,7 @@ export default function SalaVirtualScreen() {
           local_id: params.id,
           tipo: 'emoticon',
           contenido: emoji,
+          recipient_id: selectedRecipient, // Can be null for broadcast
         });
 
       if (error) {
@@ -514,6 +552,7 @@ export default function SalaVirtualScreen() {
       }
 
       setShowEmoticons(false);
+      setSelectedRecipient(null);
     } catch (error) {
       console.error('[SalaVirtual] Error:', error);
       Alert.alert('Error', 'Ocurrió un error al enviar el emoticono');
@@ -566,7 +605,7 @@ export default function SalaVirtualScreen() {
 
       console.log('[SalaVirtual] 📤 Inserting into sala_virtual_interacciones table...');
 
-      // Insert message into database using sala_virtual_interacciones table
+      // Insert message into database - chat messages are always broadcast (no recipient_id)
       const { data, error: insertError } = await supabase
         .from('sala_virtual_interacciones')
         .insert({
@@ -574,27 +613,19 @@ export default function SalaVirtualScreen() {
           local_id: params.id,
           tipo: 'chat',
           contenido: messageText,
+          recipient_id: null, // Chat messages are always broadcast
         })
         .select('id')
         .single();
 
       if (insertError) {
         console.error('[SalaVirtual] ❌ Error sending chat message:', insertError);
-        console.error('[SalaVirtual] ❌ Error details:', JSON.stringify(insertError, null, 2));
         
         // Remove optimistic message on error
         setChatMessages((prev) => prev.filter(m => m.id !== tempId));
         setNewMessage(messageText);
         
-        // Show detailed error to user
-        if (insertError.code === 'PGRST205') {
-          Alert.alert(
-            'Error de Base de Datos',
-            'La tabla sala_virtual_interacciones no existe en la base de datos. Por favor, contacta al administrador para crear la tabla necesaria.'
-          );
-        } else {
-          Alert.alert('Error', 'No se pudo enviar el mensaje. Por favor, intenta de nuevo.');
-        }
+        Alert.alert('Error', 'No se pudo enviar el mensaje. Por favor, intenta de nuevo.');
         return;
       }
 
@@ -808,6 +839,9 @@ export default function SalaVirtualScreen() {
                       ) : (
                         <Text>: {interaction.contenido}</Text>
                       )}
+                      {interaction.recipient_id && user && interaction.recipient_id === user.id && (
+                        <Text style={styles.directedTag}> (para ti)</Text>
+                      )}
                     </Text>
                     <Text style={styles.interactionTime}>
                       {formatCheckInTime(interaction.created_at)}
@@ -856,13 +890,21 @@ export default function SalaVirtualScreen() {
                     </View>
                   </View>
                 </TouchableOpacity>
-                {user && checkIn.usuario_id !== user.id && (
-                  <TouchableOpacity
-                    style={styles.messageButton}
-                    onPress={() => router.push(`/chat/conversacion?userId=${checkIn.usuario_id}`)}
-                  >
-                    <IconSymbol name="message" size={20} color={colors.primary} />
-                  </TouchableOpacity>
+                {user && checkIn.usuario_id !== user.id && userHasCheckedIn && (
+                  <View style={styles.userActions}>
+                    <TouchableOpacity
+                      style={styles.actionIconButton}
+                      onPress={() => handleSelectRecipientForMessage(checkIn.usuario_id)}
+                    >
+                      <IconSymbol name="message" size={20} color={colors.primary} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.actionIconButton}
+                      onPress={() => handleSelectRecipientForEmoticon(checkIn.usuario_id)}
+                    >
+                      <Text style={styles.actionIconEmoji}>😊</Text>
+                    </TouchableOpacity>
+                  </View>
                 )}
               </View>
             ))}
@@ -885,7 +927,10 @@ export default function SalaVirtualScreen() {
           <View style={styles.actionButtons}>
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={() => setShowQuickMessages(true)}
+              onPress={() => {
+                setSelectedRecipient(null);
+                setShowQuickMessages(true);
+              }}
             >
               <LinearGradient
                 colors={['#FF6B6B', '#FF8E53']}
@@ -898,7 +943,10 @@ export default function SalaVirtualScreen() {
 
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={() => setShowEmoticons(true)}
+              onPress={() => {
+                setSelectedRecipient(null);
+                setShowEmoticons(true);
+              }}
             >
               <LinearGradient
                 colors={['#4ECDC4', '#44A08D']}
@@ -1046,16 +1094,29 @@ export default function SalaVirtualScreen() {
         visible={showQuickMessages}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => setShowQuickMessages(false)}
+        onRequestClose={() => {
+          setShowQuickMessages(false);
+          setSelectedRecipient(null);
+        }}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Mensajes Rápidos</Text>
-              <TouchableOpacity onPress={() => setShowQuickMessages(false)}>
+              <Text style={styles.modalTitle}>
+                {selectedRecipient ? 'Mensaje Directo' : 'Mensajes Rápidos'}
+              </Text>
+              <TouchableOpacity onPress={() => {
+                setShowQuickMessages(false);
+                setSelectedRecipient(null);
+              }}>
                 <IconSymbol name="xmark.circle.fill" size={28} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
+            {selectedRecipient && (
+              <Text style={styles.modalSubtitle}>
+                Este mensaje será enviado solo al usuario seleccionado
+              </Text>
+            )}
             <ScrollView style={styles.modalScroll}>
               {MENSAJES_RAPIDOS.map((mensaje) => (
                 <TouchableOpacity
@@ -1076,16 +1137,29 @@ export default function SalaVirtualScreen() {
         visible={showEmoticons}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => setShowEmoticons(false)}
+        onRequestClose={() => {
+          setShowEmoticons(false);
+          setSelectedRecipient(null);
+        }}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Enviar Emoticono</Text>
-              <TouchableOpacity onPress={() => setShowEmoticons(false)}>
+              <Text style={styles.modalTitle}>
+                {selectedRecipient ? 'Emoticono Directo' : 'Enviar Emoticono'}
+              </Text>
+              <TouchableOpacity onPress={() => {
+                setShowEmoticons(false);
+                setSelectedRecipient(null);
+              }}>
                 <IconSymbol name="xmark.circle.fill" size={28} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
+            {selectedRecipient && (
+              <Text style={styles.modalSubtitle}>
+                Este emoticono será enviado solo al usuario seleccionado
+              </Text>
+            )}
             <View style={styles.emoticonsGrid}>
               {EMOTICONS.map((emoticon) => (
                 <TouchableOpacity
@@ -1256,6 +1330,11 @@ const styles = StyleSheet.create({
   interactionUser: {
     fontWeight: '600',
   },
+  directedTag: {
+    color: colors.primary,
+    fontWeight: '600',
+    fontStyle: 'italic',
+  },
   interactionTime: {
     fontSize: 12,
     color: colors.textSecondary,
@@ -1313,10 +1392,17 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
   },
-  messageButton: {
+  userActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  actionIconButton: {
     padding: 8,
     backgroundColor: colors.primary + '15',
     borderRadius: 20,
+  },
+  actionIconEmoji: {
+    fontSize: 20,
   },
   emptyState: {
     alignItems: 'center',
@@ -1437,6 +1523,13 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    fontStyle: 'italic',
   },
   modalScroll: {
     padding: 16,
