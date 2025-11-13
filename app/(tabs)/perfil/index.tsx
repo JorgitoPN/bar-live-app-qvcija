@@ -31,7 +31,8 @@ import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 const { width, height } = Dimensions.get('window');
-const GRID_ITEM_SIZE = (width - 3) / 3;
+// FIXED: Correct grid calculation for 3 columns with 2px gaps
+const GRID_ITEM_SIZE = (width - 4) / 3;
 
 const PROVINCIAS = [
   'Álava', 'Albacete', 'Alicante', 'Almería', 'Asturias', 'Ávila', 'Badajoz',
@@ -205,7 +206,6 @@ export default function PerfilScreen() {
   const [storyLikes, setStoryLikes] = useState<any[]>([]);
   const [loadingStats, setLoadingStats] = useState(false);
 
-  // FIXED: Animated values for smooth transitions
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
 
@@ -213,7 +213,6 @@ export default function PerfilScreen() {
   const isPropietario = userRole === 'propietario' || (userRole === 'admin' && currentMode === 'propietario');
   const isOwnerMode = currentMode === 'propietario' && isPropietario;
 
-  // FIXED: Animate entrance
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
