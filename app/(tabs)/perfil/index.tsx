@@ -21,7 +21,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter, useFocusEffect, Redirect } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
 import { supabase } from '@/utils/supabase';
@@ -157,6 +157,14 @@ export default function PerfilScreen() {
     activeLocalData,
     ownedLocals,
   } = useMode();
+  
+  // FIXED: Immediate redirect if active profile is local
+  // This prevents the user profile page from loading at all
+  if (activeProfileType === 'local' && activeProfileId) {
+    console.log('[Perfil] ✅ Active profile is local, redirecting immediately to:', activeProfileId);
+    return <Redirect href={`/perfil/local?localId=${activeProfileId}`} />;
+  }
+
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -213,6 +221,15 @@ export default function PerfilScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      console.log('[Perfil] 📍 Screen focused, active profile type:', activeProfileType);
+      
+      // FIXED: If active profile is local when screen is focused, redirect immediately
+      if (activeProfileType === 'local' && activeProfileId) {
+        console.log('[Perfil] ⚠️ Active profile is local on focus, redirecting to:', activeProfileId);
+        router.replace(`/perfil/local?localId=${activeProfileId}`);
+        return;
+      }
+      
       if (user) {
         loadUnreadCounts();
         
@@ -252,21 +269,25 @@ export default function PerfilScreen() {
           supabase.removeChannel(messagesChannel);
         };
       }
-    }, [user])
+    }, [user, activeProfileType, activeProfileId, router])
   );
 
   useEffect(() => {
     if (!authLoading) {
       if (user) {
-        // Always load user profile when on this page
-        // The profile switcher component will handle switching to local profiles
-        console.log('[Perfil] ✅ Loading user profile');
-        cargarDatosPerfil();
+        // FIXED: Only load user profile data if active profile is cliente
+        if (activeProfileType === 'cliente') {
+          console.log('[Perfil] ✅ Loading user profile (active profile is cliente)');
+          cargarDatosPerfil();
+        } else {
+          console.log('[Perfil] ⚠️ Active profile is not cliente, skipping data load');
+          setLoading(false);
+        }
       } else {
         setLoading(false);
       }
     }
-  }, [user, authLoading]);
+  }, [user, authLoading, activeProfileType]);
 
   const loadUnreadCounts = useCallback(async () => {
     if (!user) return;
@@ -707,10 +728,10 @@ export default function PerfilScreen() {
   };
 
   useEffect(() => {
-    if (user) {
+    if (user && activeProfileType === 'cliente') {
       cargarContenido();
     }
-  }, [activeTab, user, searchQuery, provinciaFiltro, empleoTab, fechaDesde, fechaHasta]);
+  }, [activeTab, user, searchQuery, provinciaFiltro, empleoTab, fechaDesde, fechaHasta, activeProfileType]);
 
   const onRefresh = () => {
     setRefreshing(true);
