@@ -40,7 +40,7 @@ const PROVINCIAS = [
   'Huesca', 'Islas Baleares', 'Jaén', 'La Coruña', 'La Rioja', 'Las Palmas', 'León',
   'Lleida', 'Lugo', 'Madrid', 'Málaga', 'Murcia', 'Navarra', 'Ourense', 'Palencia',
   'Pontevedra', 'Salamanca', 'Santa Cruz de Tenerife', 'Segovia', 'Sevilla', 'Soria',
-  'Tarragona', 'Teruel', 'Toledo', 'Valencia', 'Valladolid', 'Vizcaya', 'Zamora', 'Zaragoza'
+  'Tarragoza', 'Teruel', 'Toledo', 'Valencia', 'Valladolid', 'Vizcaya', 'Zamora', 'Zaragoza'
 ];
 
 interface Post {
@@ -209,17 +209,6 @@ export default function PerfilScreen() {
   const isPropietario = userRole === 'propietario' || (userRole === 'admin' && currentMode === 'propietario');
   const isOwnerMode = currentMode === 'propietario' && isPropietario;
 
-  // FIXED: Check if we should redirect to local profile page
-  // If the active profile is a local, redirect to the local profile page
-  if (user && activeProfileType === 'local' && activeProfileId) {
-    console.log('[Perfil] 🔀 Redirecting to local profile page:', activeProfileId);
-    return <Redirect href={`/perfil/local?localId=${activeProfileId}`} />;
-  }
-
-  // Always show the user's own profile on this page
-  const displayName = user?.nombre || 'Usuario';
-  const displayAvatar = user?.avatar;
-
   const loadUnreadCounts = useCallback(async () => {
     if (!user) return;
 
@@ -255,139 +244,6 @@ export default function PerfilScreen() {
       console.error('[Perfil] Error loading unread counts:', error);
     }
   }, [user]);
-
-  const cargarDatosPerfil = useCallback(async () => {
-    if (!user) return;
-
-    try {
-      setLoading(true);
-
-      await loadUnreadCounts();
-
-      // Always load user profile data
-      console.log('[Perfil] ✅ Loading user profile');
-      
-      const { count: seguidoresCount } = await supabase
-        .from('seguidores')
-        .select('*', { count: 'exact', head: true })
-        .eq('seguido_id', user.id);
-
-      const { count: seguidosCount } = await supabase
-        .from('seguidores')
-        .select('*', { count: 'exact', head: true })
-        .eq('seguidor_id', user.id);
-
-      const { count: publicacionesCount } = await supabase
-        .from('posts')
-        .select('*', { count: 'exact', head: true })
-        .eq('autor_id', user.id)
-        .eq('tipo', 'usuario');
-
-      setSeguidores(seguidoresCount || 0);
-      setSeguidos(seguidosCount || 0);
-      setPublicaciones(publicacionesCount || 0);
-
-      const { data: storiesData } = await supabase
-        .from('historias')
-        .select('id')
-        .eq('autor_id', user.id)
-        .eq('tipo', 'usuario')
-        .gt('expires_at', new Date().toISOString())
-        .limit(1);
-
-      setHasActiveStory((storiesData?.length || 0) > 0);
-
-      const { data: userStoriesData } = await supabase
-        .from('historias')
-        .select(`
-          id,
-          autor_id,
-          tipo,
-          imagen,
-          created_at,
-          expires_at,
-          visto
-        `)
-        .eq('autor_id', user.id)
-        .eq('tipo', 'usuario')
-        .gt('expires_at', new Date().toISOString())
-        .order('created_at', { ascending: true });
-
-      if (userStoriesData) {
-        const storyIds = userStoriesData.map(s => s.id);
-        
-        const [viewedData, viewsCountData, likesCountData] = await Promise.all([
-          supabase
-            .from('historia_views')
-            .select('historia_id')
-            .eq('usuario_id', user.id)
-            .in('historia_id', storyIds),
-          supabase
-            .from('historia_views')
-            .select('historia_id')
-            .in('historia_id', storyIds),
-          supabase
-            .from('historia_likes')
-            .select('historia_id')
-            .in('historia_id', storyIds),
-        ]);
-
-        const viewedStoryIds = new Set(viewedData.data?.map(v => v.historia_id) || []);
-        
-        const viewsCounts = viewsCountData.data?.reduce((acc, v) => {
-          acc[v.historia_id] = (acc[v.historia_id] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>) || {};
-        
-        const likesCounts = likesCountData.data?.reduce((acc, l) => {
-          acc[l.historia_id] = (acc[l.historia_id] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>) || {};
-
-        const storiesWithStatus = userStoriesData.map(story => ({
-          ...story,
-          visto_por_usuario: viewedStoryIds.has(story.id),
-          views_count: viewsCounts[story.id] || 0,
-          likes_count: likesCounts[story.id] || 0,
-          autor: {
-            nombre: user.nombre,
-            avatar: user.avatar,
-            username: user.username,
-          },
-        }));
-
-        setUserStories(storiesWithStatus);
-      }
-
-      await cargarContenido();
-    } catch (error) {
-      console.error('[Perfil] Error cargando datos:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [user, loadUnreadCounts]);
-
-  const cargarContenido = useCallback(async () => {
-    if (!user) return;
-
-    setLoadingPosts(true);
-    try {
-      if (activeTab === 'posts') {
-        await cargarPosts();
-      } else if (activeTab === 'favoritos') {
-        await cargarFavoritos();
-      } else if (activeTab === 'etiquetados') {
-        await cargarEtiquetados();
-      } else if (activeTab === 'empleo') {
-        await cargarDatosEmpleo();
-      }
-    } catch (error) {
-      console.error('[Perfil] Error cargando contenido:', error);
-    } finally {
-      setLoadingPosts(false);
-    }
-  }, [user, activeTab, searchQuery, provinciaFiltro, empleoTab, fechaDesde, fechaHasta, isPropietario]);
 
   const cargarPosts = useCallback(async () => {
     if (!user) return;
@@ -658,6 +514,139 @@ export default function PerfilScreen() {
     }
   }, [user, isPropietario, searchQuery, provinciaFiltro, fechaDesde, fechaHasta]);
 
+  const cargarContenido = useCallback(async () => {
+    if (!user) return;
+
+    setLoadingPosts(true);
+    try {
+      if (activeTab === 'posts') {
+        await cargarPosts();
+      } else if (activeTab === 'favoritos') {
+        await cargarFavoritos();
+      } else if (activeTab === 'etiquetados') {
+        await cargarEtiquetados();
+      } else if (activeTab === 'empleo') {
+        await cargarDatosEmpleo();
+      }
+    } catch (error) {
+      console.error('[Perfil] Error cargando contenido:', error);
+    } finally {
+      setLoadingPosts(false);
+    }
+  }, [user, activeTab, cargarPosts, cargarFavoritos, cargarEtiquetados, cargarDatosEmpleo]);
+
+  const cargarDatosPerfil = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      setLoading(true);
+
+      await loadUnreadCounts();
+
+      // Always load user profile data
+      console.log('[Perfil] ✅ Loading user profile');
+      
+      const { count: seguidoresCount } = await supabase
+        .from('seguidores')
+        .select('*', { count: 'exact', head: true })
+        .eq('seguido_id', user.id);
+
+      const { count: seguidosCount } = await supabase
+        .from('seguidores')
+        .select('*', { count: 'exact', head: true })
+        .eq('seguidor_id', user.id);
+
+      const { count: publicacionesCount } = await supabase
+        .from('posts')
+        .select('*', { count: 'exact', head: true })
+        .eq('autor_id', user.id)
+        .eq('tipo', 'usuario');
+
+      setSeguidores(seguidoresCount || 0);
+      setSeguidos(seguidosCount || 0);
+      setPublicaciones(publicacionesCount || 0);
+
+      const { data: storiesData } = await supabase
+        .from('historias')
+        .select('id')
+        .eq('autor_id', user.id)
+        .eq('tipo', 'usuario')
+        .gt('expires_at', new Date().toISOString())
+        .limit(1);
+
+      setHasActiveStory((storiesData?.length || 0) > 0);
+
+      const { data: userStoriesData } = await supabase
+        .from('historias')
+        .select(`
+          id,
+          autor_id,
+          tipo,
+          imagen,
+          created_at,
+          expires_at,
+          visto
+        `)
+        .eq('autor_id', user.id)
+        .eq('tipo', 'usuario')
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: true });
+
+      if (userStoriesData) {
+        const storyIds = userStoriesData.map(s => s.id);
+        
+        const [viewedData, viewsCountData, likesCountData] = await Promise.all([
+          supabase
+            .from('historia_views')
+            .select('historia_id')
+            .eq('usuario_id', user.id)
+            .in('historia_id', storyIds),
+          supabase
+            .from('historia_views')
+            .select('historia_id')
+            .in('historia_id', storyIds),
+          supabase
+            .from('historia_likes')
+            .select('historia_id')
+            .in('historia_id', storyIds),
+        ]);
+
+        const viewedStoryIds = new Set(viewedData.data?.map(v => v.historia_id) || []);
+        
+        const viewsCounts = viewsCountData.data?.reduce((acc, v) => {
+          acc[v.historia_id] = (acc[v.historia_id] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>) || {};
+        
+        const likesCounts = likesCountData.data?.reduce((acc, l) => {
+          acc[l.historia_id] = (acc[l.historia_id] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>) || {};
+
+        const storiesWithStatus = userStoriesData.map(story => ({
+          ...story,
+          visto_por_usuario: viewedStoryIds.has(story.id),
+          views_count: viewsCounts[story.id] || 0,
+          likes_count: likesCounts[story.id] || 0,
+          autor: {
+            nombre: user.nombre,
+            avatar: user.avatar,
+            username: user.username,
+          },
+        }));
+
+        setUserStories(storiesWithStatus);
+      }
+
+      await cargarContenido();
+    } catch (error) {
+      console.error('[Perfil] Error cargando datos:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [user, loadUnreadCounts, cargarContenido]);
+
   const stopStoryTimer = useCallback(() => {
     if (storyTimerRef.current) {
       clearTimeout(storyTimerRef.current);
@@ -926,6 +915,17 @@ export default function PerfilScreen() {
       stopStoryTimer();
     };
   }, [showStoryViewer, currentStoryIndex, isPaused, startStoryTimer, stopStoryTimer]);
+
+  // FIXED: Check if we should redirect to local profile page
+  // If the active profile is a local, redirect to the local profile page
+  if (user && activeProfileType === 'local' && activeProfileId) {
+    console.log('[Perfil] 🔀 Redirecting to local profile page:', activeProfileId);
+    return <Redirect href={`/perfil/local?localId=${activeProfileId}`} />;
+  }
+
+  // Always show the user's own profile on this page
+  const displayName = user?.nombre || 'Usuario';
+  const displayAvatar = user?.avatar;
 
   const onRefresh = () => {
     setRefreshing(true);
