@@ -22,7 +22,7 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // FIXED: Get images array - prioritize imagenes array, fallback to imagen field
+  // Get images array - prioritize imagenes array, fallback to imagen field
   const images = post.imagenes && post.imagenes.length > 0 
     ? post.imagenes 
     : post.imagen 
@@ -63,9 +63,9 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
         style={styles.header}
         onPress={() => {
           if (post.tipo === 'local' && post.localId) {
-            router.push(`/detalle/local?id=${post.localId}`);
+            router.push(`/perfil/local?localId=${post.localId}`);
           } else {
-            router.push(`/perfil?id=${post.autorId}`);
+            router.push(`/perfil/usuario?userId=${post.autorId}`);
           }
         }}
       >
@@ -88,7 +88,7 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
       {/* Contenido */}
       {post.contenido && <Text style={styles.contenido}>{post.contenido}</Text>}
 
-      {/* FIXED: Images Carousel - Always show first image */}
+      {/* Images Carousel with Swipe Support */}
       {images.length > 0 && (
         <View style={styles.imageCarouselContainer}>
           <ScrollView
@@ -101,12 +101,17 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
             style={styles.imageCarousel}
           >
             {images.map((imageUrl, index) => (
-              <Image 
-                key={index} 
-                source={{ uri: imageUrl }} 
-                style={styles.imagen} 
-                resizeMode="cover" 
-              />
+              <TouchableOpacity
+                key={index}
+                activeOpacity={0.95}
+                onPress={() => router.push(`/social/post?id=${post.id}`)}
+              >
+                <Image 
+                  source={{ uri: imageUrl }} 
+                  style={styles.imagen} 
+                  resizeMode="cover" 
+                />
+              </TouchableOpacity>
             ))}
           </ScrollView>
           
@@ -136,7 +141,7 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
         </View>
       )}
 
-      {/* NEW: Location Display */}
+      {/* Location Display */}
       {post.ubicacion && (
         <View style={styles.locationContainer}>
           <IconSymbol name="mappin.circle.fill" size={16} color={colors.primary} />
