@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -36,6 +36,25 @@ export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherPro
     loadOwnedLocals,
   } = useMode();
   const [switching, setSwitching] = useState(false);
+
+  // 🆕 FEATURE: Reload owned locals when modal opens
+  useEffect(() => {
+    if (visible && user) {
+      console.log('[ProfileSwitcher] 🔄 Modal opened, reloading owned locals');
+      loadOwnedLocals();
+    }
+  }, [visible, user, loadOwnedLocals]);
+
+  // 🆕 FEATURE: Log current active profile when modal opens
+  useEffect(() => {
+    if (visible) {
+      console.log('[ProfileSwitcher] 📊 Current active profile:', {
+        activeProfileType,
+        activeProfileId,
+        activeLocalName: activeLocalData?.nombre,
+      });
+    }
+  }, [visible, activeProfileType, activeProfileId, activeLocalData]);
 
   const handleSwitchToClient = async () => {
     setSwitching(true);
