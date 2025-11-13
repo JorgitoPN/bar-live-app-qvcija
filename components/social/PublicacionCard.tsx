@@ -22,7 +22,7 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // Get images array - prioritize imagenes array, fallback to imagen field
+  // FIXED: Get images array - prioritize imagenes array, fallback to imagen field
   const images = post.imagenes && post.imagenes.length > 0 
     ? post.imagenes 
     : post.imagen 
@@ -88,7 +88,7 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
       {/* Contenido */}
       {post.contenido && <Text style={styles.contenido}>{post.contenido}</Text>}
 
-      {/* Images Carousel */}
+      {/* FIXED: Images Carousel - Always show first image */}
       {images.length > 0 && (
         <View style={styles.imageCarouselContainer}>
           <ScrollView
@@ -133,6 +133,14 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
               </Text>
             </View>
           )}
+        </View>
+      )}
+
+      {/* NEW: Location Display */}
+      {post.ubicacion && (
+        <View style={styles.locationContainer}>
+          <IconSymbol name="mappin.circle.fill" size={16} color={colors.primary} />
+          <Text style={styles.locationText}>{post.ubicacion}</Text>
         </View>
       )}
 
@@ -262,6 +270,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: colors.headerText,
+  },
+  locationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 6,
+  },
+  locationText: {
+    fontSize: 13,
+    color: colors.text,
+    fontWeight: '500',
   },
   acciones: {
     flexDirection: 'row',

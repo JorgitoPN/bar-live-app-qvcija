@@ -48,6 +48,7 @@ interface Post {
   autor_id: string;
   contenido: string;
   imagen?: string;
+  imagenes?: string[];
   likes: number;
   created_at: string;
   tipo: string;
@@ -368,6 +369,7 @@ export default function PerfilScreen() {
     if (!user) return;
 
     try {
+      // NEW: Only load accepted tags
       const { data, error } = await supabase
         .from('post_tags')
         .select(`
@@ -383,6 +385,7 @@ export default function PerfilScreen() {
           )
         `)
         .eq('usuario_id', user.id)
+        .eq('estado', 'aceptado')
         .order('created_at', { ascending: false })
         .limit(20);
 
@@ -916,10 +919,6 @@ export default function PerfilScreen() {
     };
   }, [showStoryViewer, currentStoryIndex, isPaused, startStoryTimer, stopStoryTimer]);
 
-  // REMOVED: The redirect logic that was causing the issue
-  // This page should ALWAYS show the user's personal profile
-  // If the user wants to see a local profile, they should navigate to /perfil/local
-
   // Always show the user's own profile on this page
   const displayName = user?.nombre || 'Usuario';
   const displayAvatar = user?.avatar;
@@ -1068,22 +1067,35 @@ export default function PerfilScreen() {
     return `Hace ${Math.floor(diffDias / 30)} meses`;
   };
 
-  const renderGridPost = (post: Post) => (
-    <TouchableOpacity
-      key={post.id}
-      style={styles.gridItem}
-      onPress={() => router.push(`/social/post?id=${post.id}`)}
-      activeOpacity={0.9}
-    >
-      {post.imagen ? (
-        <Image source={{ uri: post.imagen }} style={styles.gridImage} />
-      ) : (
-        <View style={[styles.gridImage, styles.gridImagePlaceholder]}>
-          <IconSymbol name="photo" size={32} color={colors.textSecondary} />
-        </View>
-      )}
-    </TouchableOpacity>
-  );
+  const renderGridPost = (post: Post) => {
+    // FIXED: Get first image from imagenes array or imagen field
+    const firstImage = post.imagenes && post.imagenes.length > 0 
+      ? post.imagenes[0] 
+      : post.imagen;
+
+    return (
+      <TouchableOpacity
+        key={post.id}
+        style={styles.gridItem}
+        onPress={() => router.push(`/social/post?id=${post.id}`)}
+        activeOpacity={0.9}
+      >
+        {firstImage ? (
+          <Image source={{ uri: firstImage }} style={styles.gridImage} />
+        ) : (
+          <View style={[styles.gridImage, styles.gridImagePlaceholder]}>
+            <IconSymbol name="photo" size={32} color={colors.textSecondary} />
+          </View>
+        )}
+        {/* Show indicator if post has multiple images */}
+        {post.imagenes && post.imagenes.length > 1 && (
+          <View style={styles.multipleImagesIndicator}>
+            <IconSymbol name="square.stack.fill" size={16} color={colors.headerText} />
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  };
 
   const renderOferta = (oferta: OfertaTrabajo) => (
     <TouchableOpacity
@@ -1232,6 +1244,99 @@ export default function PerfilScreen() {
     );
   };
 
+  const renderProfileHeader = () => {
+    return (
+      <View style={styles.profileSection}>
+        <View style={styles.profileHeader}>
+          <TouchableOpacity 
+            style={styles.avatarContainer}
+            onPress={handleAvatarPress}
+            activeOpacity={0.7}
+          >
+            {hasActiveStory && (
+              <LinearGradient
+                colors={[colors.primary, colors.secondary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.storyRing}
+              />
+            )}
+            {displayAvatar ? (
+              <Image source={{ uri: displayAvatar }} style={styles.avatar} />
+            ) : (
+              <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                <IconSymbol name="person.fill" size={40} color={colors.textSecondary} />
+              </View>
+            )}
+            {!hasActiveStory && (
+              <View style={styles.addStoryIcon}>
+                <IconSymbol name="plus" size={18} color={colors.white} />
+              </View>
+            )}
+          </TouchableOpacity>
+          <View style={styles.profileInfo}>
+            <Text style={styles.profileName}>{displayName}</Text>
+            {user?.username && (
+              <Text style={styles.profileUsername}>@{user.username}</Text>
+            )}
+          </View>
+          {/* Profile Switcher Button */}
+          {(isPropietario || ownedLocals.length > 0) && (
+            <TouchableOpacity 
+              style={styles.switchProfileButton}
+              onPress={() => setShowProfileSwitcher(true)}
+              activeOpacity={0.7}
+            >
+              <IconSymbol name="arrow.triangle.2.circlepath" size={24} color={colors.primary} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {user?.bio && (
+          <Text style={styles.profileBio}>{user.bio}</Text>
+        )}
+
+        {user?.sitio_web && (
+          <TouchableOpacity style={styles.websiteContainer} onPress={handleWebsite} activeOpacity={0.7}>
+            <IconSymbol name="link" size={16} color={colors.primary} />
+            <Text style={styles.websiteText}>{user.sitio_web}</Text>
+          </TouchableOpacity>
+        )}
+
+        <View style={styles.statsContainer}>
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>{publicaciones}</Text>
+            <Text style={styles.statLabel}>Publicaciones</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <TouchableOpacity style={styles.statItem} onPress={handleSeguidores}>
+            <Text style={styles.statNumber}>{seguidores}</Text>
+            <Text style={styles.statLabel}>Seguidores</Text>
+          </TouchableOpacity>
+          <View style={styles.statDivider} />
+          <TouchableOpacity style={styles.statItem} onPress={handleSeguidos}>
+            <Text style={styles.statNumber}>{seguidos}</Text>
+            <Text style={styles.statLabel}>Seguidos</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.actionButtons}>
+          <TouchableOpacity style={styles.actionButton} onPress={handleEditProfile}>
+            <IconSymbol name="pencil" size={18} color={colors.text} />
+            <Text style={styles.actionButtonText}>Editar Perfil</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.actionButton, styles.createButton]} 
+            onPress={() => setShowCreateOptions(true)}
+          >
+            <IconSymbol name="plus.circle.fill" size={18} color={colors.white} />
+            <Text style={[styles.actionButtonText, { color: colors.white }]}>Crear</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
   if (authLoading || loading) {
     return (
       <View style={[commonStyles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -1288,99 +1393,6 @@ export default function PerfilScreen() {
     inputRange: [0, 1],
     outputRange: ['0%', '100%'],
   });
-
-  const renderProfileHeader = () => {
-    return (
-      <View style={styles.profileSection}>
-        <View style={styles.profileHeader}>
-          <TouchableOpacity 
-            style={styles.avatarContainer}
-            onPress={handleAvatarPress}
-            activeOpacity={0.7}
-          >
-            {hasActiveStory && hasUnviewedUserStories && (
-              <LinearGradient
-                colors={[colors.primary, colors.secondary]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.storyRing}
-              />
-            )}
-            {displayAvatar ? (
-              <Image source={{ uri: displayAvatar }} style={styles.avatar} />
-            ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <IconSymbol name="person.fill" size={40} color={colors.textSecondary} />
-              </View>
-            )}
-            {!hasActiveStory && (
-              <View style={styles.addStoryIcon}>
-                <IconSymbol name="plus" size={18} color={colors.white} />
-              </View>
-            )}
-          </TouchableOpacity>
-          <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>{displayName}</Text>
-            {user.username && (
-              <Text style={styles.profileUsername}>@{user.username}</Text>
-            )}
-          </View>
-          {/* Profile Switcher Button */}
-          {(isPropietario || ownedLocals.length > 0) && (
-            <TouchableOpacity 
-              style={styles.switchProfileButton}
-              onPress={() => setShowProfileSwitcher(true)}
-              activeOpacity={0.7}
-            >
-              <IconSymbol name="arrow.triangle.2.circlepath" size={24} color={colors.primary} />
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {user.bio && (
-          <Text style={styles.profileBio}>{user.bio}</Text>
-        )}
-
-        {user.sitio_web && (
-          <TouchableOpacity style={styles.websiteContainer} onPress={handleWebsite} activeOpacity={0.7}>
-            <IconSymbol name="link" size={16} color={colors.primary} />
-            <Text style={styles.websiteText}>{user.sitio_web}</Text>
-          </TouchableOpacity>
-        )}
-
-        <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{publicaciones}</Text>
-            <Text style={styles.statLabel}>Publicaciones</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <TouchableOpacity style={styles.statItem} onPress={handleSeguidores}>
-            <Text style={styles.statNumber}>{seguidores}</Text>
-            <Text style={styles.statLabel}>Seguidores</Text>
-          </TouchableOpacity>
-          <View style={styles.statDivider} />
-          <TouchableOpacity style={styles.statItem} onPress={handleSeguidos}>
-            <Text style={styles.statNumber}>{seguidos}</Text>
-            <Text style={styles.statLabel}>Seguidos</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.actionButtons}>
-          <TouchableOpacity style={styles.actionButton} onPress={handleEditProfile}>
-            <IconSymbol name="pencil" size={18} color={colors.text} />
-            <Text style={styles.actionButtonText}>Editar Perfil</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.createButton]} 
-            onPress={() => setShowCreateOptions(true)}
-          >
-            <IconSymbol name="plus.circle.fill" size={18} color={colors.white} />
-            <Text style={[styles.actionButtonText, { color: colors.white }]}>Crear</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  };
 
   return (
     <View style={commonStyles.container}>
@@ -1624,6 +1636,7 @@ export default function PerfilScreen() {
         )}
       </ScrollView>
 
+      {/* Filters Modal */}
       <Modal
         visible={showFilters}
         animationType="slide"
@@ -1755,6 +1768,7 @@ export default function PerfilScreen() {
         </Pressable>
       </Modal>
 
+      {/* Create Options Modal */}
       <Modal
         visible={showCreateOptions}
         animationType="slide"
@@ -1814,6 +1828,7 @@ export default function PerfilScreen() {
         </Pressable>
       </Modal>
 
+      {/* Story Viewer Modal */}
       <Modal
         visible={showStoryViewer}
         animationType="fade"
@@ -2238,6 +2253,7 @@ const styles = StyleSheet.create({
   gridItem: {
     width: GRID_ITEM_SIZE,
     height: GRID_ITEM_SIZE,
+    position: 'relative',
   },
   gridImage: {
     width: '100%',
@@ -2247,6 +2263,14 @@ const styles = StyleSheet.create({
   gridImagePlaceholder: {
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  multipleImagesIndicator: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 12,
+    padding: 4,
   },
   loadingContainer: {
     paddingVertical: 40,
