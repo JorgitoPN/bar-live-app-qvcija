@@ -159,12 +159,6 @@ export default function PerfilScreen() {
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
   
-  // FIXED: Determine if we should show local profile or user profile
-  const [localProfile, setLocalProfile] = useState<LocalProfile | null>(null);
-  const [userLocales, setUserLocales] = useState<LocalProfile[]>([]);
-  const [showLocalSelector, setShowLocalSelector] = useState(false);
-  const [shouldRedirect, setShouldRedirect] = useState(false);
-  
   const [seguidores, setSeguidores] = useState(0);
   const [seguidos, setSeguidos] = useState(0);
   const [publicaciones, setPublicaciones] = useState(0);
@@ -204,7 +198,8 @@ export default function PerfilScreen() {
   const isPropietario = userRole === 'propietario' || (userRole === 'admin' && currentMode === 'propietario');
   const isOwnerMode = currentMode === 'propietario' && isPropietario;
 
-  // FIXED: Determine if we should show local profile
+  // FIXED: Only redirect when explicitly viewing a local profile (not just being in owner mode)
+  // This prevents the bottom menu from always redirecting to local profile
   const shouldShowLocalProfile = isOwnerMode && activeLocalProfileId && publicationMode === 'local';
 
   useFocusEffect(
@@ -254,21 +249,21 @@ export default function PerfilScreen() {
   useEffect(() => {
     if (!authLoading) {
       if (user) {
-        // FIXED: Redirect to dedicated local profile page when viewing local profile
+        // FIXED: Only redirect when explicitly viewing a local profile
+        // Don't redirect just because we're in owner mode
         if (shouldShowLocalProfile && activeLocalProfileId) {
           console.log('[Perfil] ✅ Redirecting to dedicated local profile page');
-          setShouldRedirect(true);
           router.replace(`/perfil/local?localId=${activeLocalProfileId}`);
         } else {
+          // Always load user profile when on this page
+          console.log('[Perfil] ✅ Loading user profile (not redirecting)');
           cargarDatosPerfil();
         }
       } else {
         setLoading(false);
       }
     }
-  }, [user, authLoading, currentMode, activeLocalProfileId, publicationMode]);
-
-  // REMOVED: Local profile loading functions - now handled by dedicated local profile page
+  }, [user, authLoading, shouldShowLocalProfile, activeLocalProfileId]);
 
   const loadUnreadCounts = useCallback(async () => {
     if (!user) return;
@@ -314,10 +309,9 @@ export default function PerfilScreen() {
 
       await loadUnreadCounts();
 
-      // FIXED: Only load user profile - local profiles are handled by dedicated page
+      // Always load user profile data
       console.log('[Perfil] ✅ Loading user profile');
       
-      // Load client profile data
       const { count: seguidoresCount } = await supabase
         .from('seguidores')
         .select('*', { count: 'exact', head: true })
@@ -348,7 +342,6 @@ export default function PerfilScreen() {
 
       setHasActiveStory((storiesData?.length || 0) > 0);
 
-      // FIXED: Only load user stories (tipo='usuario'), not local stories
       const { data: userStoriesData } = await supabase
         .from('historias')
         .select(`
@@ -445,7 +438,6 @@ export default function PerfilScreen() {
     if (!user) return;
 
     try {
-      // FIXED: Only load user posts - local posts are handled by dedicated page
       const { data, error } = await supabase
         .from('posts')
         .select(`
@@ -728,7 +720,6 @@ export default function PerfilScreen() {
       return;
     }
     
-    // FIXED: Always edit user profile - local profile editing is handled by dedicated page
     router.push('/editar/perfil');
   };
 
@@ -762,7 +753,6 @@ export default function PerfilScreen() {
       return;
     }
     
-    // FIXED: Always show user followers - local followers are handled by dedicated page
     router.push(`/perfil/seguidores?userId=${user.id}`);
   };
 
@@ -833,9 +823,7 @@ export default function PerfilScreen() {
   };
 
   const handleWebsite = () => {
-    if (shouldShowLocalProfile && localProfile?.website) {
-      Linking.openURL(localProfile.website);
-    } else if (user?.sitio_web) {
+    if (user?.sitio_web) {
       Linking.openURL(user.sitio_web);
     }
   };
@@ -947,7 +935,6 @@ export default function PerfilScreen() {
       setIsPaused(false);
       startStoryTimer();
     } else {
-      // FIXED: Always create user story - local stories are handled by dedicated page
       router.push('/crear/historia');
     }
   }, [user, userStories, startStoryTimer, router]);
@@ -959,7 +946,6 @@ export default function PerfilScreen() {
       return;
     }
 
-    // FIXED: Only allow deleting user stories - local stories are handled by dedicated page
     const isOwner = currentStory.tipo === 'usuario' && currentStory.autor_id === user.id;
 
     if (!isOwner) {
@@ -1012,9 +998,7 @@ export default function PerfilScreen() {
       return;
     }
 
-    // FIXED: Check ownership
-    const isOwner = (currentStory.tipo === 'usuario' && currentStory.autor_id === user.id) ||
-                    (currentStory.tipo === 'local' && currentStory.local_id === activeLocalProfileId);
+    const isOwner = currentStory.tipo === 'usuario' && currentStory.autor_id === user.id;
 
     if (!isOwner) {
       return;
@@ -1236,13 +1220,11 @@ export default function PerfilScreen() {
     );
   };
 
-  if (authLoading || loading || shouldRedirect) {
+  if (authLoading || loading) {
     return (
       <View style={[commonStyles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={{ color: colors.text, marginTop: 16 }}>
-          {shouldRedirect ? 'Redirigiendo...' : 'Cargando perfil...'}
-        </Text>
+        <Text style={{ color: colors.text, marginTop: 16 }}>Cargando perfil...</Text>
       </View>
     );
   }
@@ -1295,7 +1277,6 @@ export default function PerfilScreen() {
     outputRange: ['0%', '100%'],
   });
 
-  // FIXED: Only render user profile - local profiles are handled by dedicated page
   const renderProfileHeader = () => {
     return (
       <View style={styles.profileSection}>
@@ -1381,7 +1362,6 @@ export default function PerfilScreen() {
 
   return (
     <View style={commonStyles.container}>
-      {/* Header */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         start={{ x: 0, y: 0 }}
@@ -1622,7 +1602,6 @@ export default function PerfilScreen() {
         )}
       </ScrollView>
 
-      {/* Filters Modal */}
       <Modal
         visible={showFilters}
         animationType="slide"
@@ -1813,7 +1792,6 @@ export default function PerfilScreen() {
         </Pressable>
       </Modal>
 
-      {/* Story Viewer Modal */}
       <Modal
         visible={showStoryViewer}
         animationType="fade"
