@@ -259,19 +259,10 @@ export default function LocalPerfilScreen() {
   useEffect(() => {
     loadLocalData();
 
-    // FIXED: Clean up interaction state when unmounting
-    // This ensures navigation works correctly after leaving the local profile
-    return () => {
-      console.log('[LocalPerfil] Component unmounting, clearing interaction state if needed');
-      // Only clear if we're currently interacting as this specific local
-      if (isInteractingAsLocal && activeLocalProfileId === localId) {
-        console.log('[LocalPerfil] Clearing interaction state for local:', localId);
-        setIsInteractingAsLocal(false);
-        setActiveLocalProfileId(null);
-        setPublicationMode('usuario');
-      }
-    };
-  }, [loadLocalData, localId, isInteractingAsLocal, activeLocalProfileId, setIsInteractingAsLocal, setActiveLocalProfileId, setPublicationMode]);
+    // REMOVED: Cleanup that was clearing interaction state
+    // This was causing the context to revert when navigating
+    // The interaction state should persist across navigation
+  }, [loadLocalData, localId]);
 
   const onRefresh = async () => {
     setRefreshing(true);

@@ -198,9 +198,10 @@ export default function PerfilScreen() {
   const isPropietario = userRole === 'propietario' || (userRole === 'admin' && currentMode === 'propietario');
   const isOwnerMode = currentMode === 'propietario' && isPropietario;
 
-  // FIXED: Only redirect when explicitly viewing a local profile (not just being in owner mode)
-  // This prevents the bottom menu from always redirecting to local profile
-  const shouldShowLocalProfile = isOwnerMode && activeLocalProfileId && publicationMode === 'local';
+  // FIXED: Never auto-redirect from the user profile page
+  // The user profile page should always show the user's own profile
+  // Local profiles should only be accessed via direct navigation
+  const shouldShowLocalProfile = false;
 
   useFocusEffect(
     useCallback(() => {

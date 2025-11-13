@@ -840,9 +840,13 @@ export default function SocialScreen() {
 
     try {
       console.log('[Social] ⚡ Loading user-specific data...');
+      console.log('[Social] 📍 Current mode:', currentMode);
+      console.log('[Social] 📍 Is owner mode:', isOwnerMode);
       console.log('[Social] 📍 Active local profile ID:', activeLocalProfileId);
+      console.log('[Social] 📍 Selected local ID:', selectedLocalId);
       console.log('[Social] 📍 Is interacting as local:', isInteractingAsLocal);
       console.log('[Social] 📍 Publication mode:', publicationMode);
+      console.log('[Social] 📍 User role:', user?.rol_app);
 
       // Load locales in owner mode
       if (isOwnerMode) {
@@ -854,21 +858,20 @@ export default function SocialScreen() {
 
       if (globalPosts.length > 0) {
         console.log('[Social] ⚡ INSTANT posts from global data:', globalPosts.length);
+        console.log('[Social] 📍 Current context - Mode:', currentMode, 'Publication:', publicationMode, 'Interacting:', isInteractingAsLocal, 'Active Local:', activeLocalProfileId);
         
-        // FIXED: Filter posts based on active local profile and publication mode
+        // FIXED: Filter posts based on owner mode and active local profile
         let filteredPosts = globalPosts;
-        if (publicationMode === 'local' && activeLocalProfileId) {
-          // When in local mode, show ONLY posts from this local
+        
+        // Check if we're in owner mode with an active local
+        if (isOwnerMode && activeLocalProfileId) {
+          // When in owner mode with active local, show ONLY posts from this local
           filteredPosts = globalPosts.filter(p => p.tipo === 'local' && p.local_id === activeLocalProfileId);
-          console.log('[Social] 📍 Filtered posts for local (publication mode):', activeLocalProfileId, 'Count:', filteredPosts.length);
-        } else if (isInteractingAsLocal && activeLocalProfileId) {
-          // When interacting as local, show ONLY posts from this local
-          filteredPosts = globalPosts.filter(p => p.tipo === 'local' && p.local_id === activeLocalProfileId);
-          console.log('[Social] 📍 Filtered posts for local (interacting):', activeLocalProfileId, 'Count:', filteredPosts.length);
+          console.log('[Social] 🏢 Owner mode - Filtered posts for local:', activeLocalProfileId, 'Count:', filteredPosts.length);
         } else {
           // Normal user mode - show user posts only
           filteredPosts = globalPosts.filter(p => p.tipo === 'usuario');
-          console.log('[Social] 👤 Filtered user posts, Count:', filteredPosts.length);
+          console.log('[Social] 👤 User mode - Filtered user posts, Count:', filteredPosts.length);
         }
         
         if (user && filteredPosts.length > 0) {
@@ -914,30 +917,28 @@ export default function SocialScreen() {
 
       if (globalStories.length > 0) {
         console.log('[Social] ⚡ INSTANT stories from global data:', globalStories.length);
+        console.log('[Social] 📍 Current context - Mode:', currentMode, 'Owner Mode:', isOwnerMode, 'Active Local:', activeLocalProfileId);
         
-        // FIXED: Filter stories based on active local profile and publication mode
+        // FIXED: Filter stories based on owner mode and active local profile
         let userOwnStories: typeof globalStories = [];
         let otherStories: typeof globalStories = [];
 
-        if (publicationMode === 'local' && activeLocalProfileId) {
-          // When in local mode, show local's stories as "own stories"
+        // Check if we're in owner mode with an active local
+        if (isOwnerMode && activeLocalProfileId) {
+          // When in owner mode with active local, show local's stories as "own stories"
           userOwnStories = globalStories.filter(s => s.tipo === 'local' && s.local_id === activeLocalProfileId);
           // Show ONLY user stories (not other local stories) in the feed
           otherStories = globalStories.filter(s => s.tipo === 'usuario');
-          console.log('[Social] 📍 Filtered stories for local (publication mode):', activeLocalProfileId, 'Own:', userOwnStories.length, 'Others:', otherStories.length);
-        } else if (isInteractingAsLocal && activeLocalProfileId) {
-          // When interacting as local, show local's stories as "own stories"
-          userOwnStories = globalStories.filter(s => s.tipo === 'local' && s.local_id === activeLocalProfileId);
-          // Show ONLY user stories (not other local stories) in the feed
-          otherStories = globalStories.filter(s => s.tipo === 'usuario');
-          console.log('[Social] 📍 Filtered stories for local (interacting):', activeLocalProfileId, 'Own:', userOwnStories.length, 'Others:', otherStories.length);
+          console.log('[Social] 🏢 Owner mode - Filtered stories for local:', activeLocalProfileId, 'Own:', userOwnStories.length, 'Others:', otherStories.length);
         } else if (user) {
           // Normal user mode - show user's own stories and other user stories
           userOwnStories = globalStories.filter(s => s.tipo === 'usuario' && s.autor_id === user.id);
           otherStories = globalStories.filter(s => s.tipo === 'usuario' && s.autor_id !== user.id);
+          console.log('[Social] 👤 User mode - Own stories:', userOwnStories.length, 'Others:', otherStories.length);
         } else {
           // Not logged in - show all user stories
           otherStories = globalStories.filter(s => s.tipo === 'usuario');
+          console.log('[Social] 🔓 Not logged in - Showing all user stories:', otherStories.length);
         }
         
         if (user) {
@@ -1642,11 +1643,16 @@ export default function SocialScreen() {
   const handleSwitchToClientMode = useCallback(async () => {
     try {
       console.log('[Social] 🔄 Switching to client mode...');
+      
+      // Clear all local-related state
       await setCurrentMode('cliente');
       await setPublicationMode('cliente');
       await setIsInteractingAsLocal(false);
       await setActiveLocalProfileId(null);
       await setSelectedLocalId(null);
+      
+      // Clear active local data
+      setActiveLocalData(null);
       
       // Reload data to show user content
       await loadData();
@@ -1702,9 +1708,9 @@ export default function SocialScreen() {
 
   const selectedLocal = userLocales.find(l => l.id === selectedLocalId);
 
-  // FIXED: Determine which avatar and name to show
-  const displayAvatar = activeLocalData?.imagen_url || user?.avatar;
-  const displayName = activeLocalData?.nombre || user?.nombre || 'Usuario';
+  // FIXED: Determine which avatar and name to show based on owner mode
+  const displayAvatar = (isOwnerMode && activeLocalData) ? activeLocalData.imagen_url : user?.avatar;
+  const displayName = (isOwnerMode && activeLocalData) ? activeLocalData.nombre : (user?.nombre || 'Usuario');
   const displayInitial = displayName.charAt(0).toUpperCase();
 
   if (isInitialLoading) {
@@ -1828,8 +1834,8 @@ export default function SocialScreen() {
                   if (hasUserStories) {
                     handleStoryPress(0, true);
                   } else {
-                    // FIXED: Pass localId if creating story for local
-                    if (publicationMode === 'local' && activeLocalProfileId) {
+                    // FIXED: Pass localId if creating story for local in owner mode
+                    if (isOwnerMode && activeLocalProfileId) {
                       router.push(`/crear/historia?localId=${activeLocalProfileId}`);
                     } else {
                       router.push('/crear/historia');
@@ -2117,7 +2123,20 @@ export default function SocialScreen() {
                   key={local.id}
                   style={[styles.localSelectorItem, selectedLocalId === local.id && styles.localSelectorItemActive]}
                   onPress={async () => {
+                    console.log('[Social] 🏢 Selecting local:', local.id, local.nombre);
+                    
+                    // Set all the necessary context states
                     await setSelectedLocalId(local.id);
+                    await setActiveLocalProfileId(local.id);
+                    await setIsInteractingAsLocal(true);
+                    await setPublicationMode('local');
+                    
+                    // Update active local data
+                    setActiveLocalData(local);
+                    
+                    // Reload data to show local's content
+                    await loadData();
+                    
                     setShowLocalSelector(false);
                   }}
                 >
@@ -2232,8 +2251,8 @@ export default function SocialScreen() {
                 style={styles.createOptionButton}
                 onPress={() => {
                   setShowCreateOptions(false);
-                  // FIXED: Pass localId if creating for local
-                  if (publicationMode === 'local' && activeLocalProfileId) {
+                  // FIXED: Pass localId if creating for local in owner mode
+                  if (isOwnerMode && activeLocalProfileId) {
                     router.push(`/crear/historia?localId=${activeLocalProfileId}`);
                   } else {
                     router.push('/crear/historia');
@@ -2255,8 +2274,8 @@ export default function SocialScreen() {
                 style={styles.createOptionButton}
                 onPress={() => {
                   setShowCreateOptions(false);
-                  // FIXED: Pass localId if creating for local
-                  if (publicationMode === 'local' && activeLocalProfileId) {
+                  // FIXED: Pass localId if creating for local in owner mode
+                  if (isOwnerMode && activeLocalProfileId) {
                     router.push(`/crear/publicacion?localId=${activeLocalProfileId}`);
                   } else {
                     router.push('/crear/publicacion');

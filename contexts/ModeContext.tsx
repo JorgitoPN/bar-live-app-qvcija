@@ -135,20 +135,9 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     }
   }, [user, isInitialized]);
 
-  // Auto-reset when switching to cliente mode - but only if user manually switches
-  useEffect(() => {
-    if (currentMode === 'cliente' && isInitialized) {
-      console.log('[ModeContext] 🔄 Switching to cliente mode, resetting local context');
-      setPublicationModeState('cliente');
-      setSelectedLocalIdState(null);
-      setIsInteractingAsLocalState(false);
-      setActiveLocalProfileIdState(null);
-      AsyncStorage.removeItem(SELECTED_LOCAL_STORAGE_KEY);
-      AsyncStorage.removeItem(INTERACTING_AS_LOCAL_KEY);
-      AsyncStorage.removeItem(ACTIVE_LOCAL_PROFILE_KEY);
-      AsyncStorage.setItem(PUBLICATION_MODE_KEY, 'cliente');
-    }
-  }, [currentMode, isInitialized]);
+  // REMOVED: Auto-reset when switching to cliente mode
+  // This was causing issues with owner mode interaction
+  // The reset should only happen when explicitly requested by the user
 
   const setCurrentMode = async (mode: UserMode) => {
     try {

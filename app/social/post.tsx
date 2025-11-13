@@ -1045,19 +1045,30 @@ export default function PostDetailScreen() {
       console.log('[PostDetail] Inserting comment:', comentarioTexto);
       console.log('[PostDetail] Active local profile:', activeLocalProfileId);
       console.log('[PostDetail] Is interacting as local:', isInteractingAsLocal);
+      console.log('[PostDetail] User:', user?.id, user?.nombre);
       
       // FIXED: Create comment with correct profile context
+      // If activeLocalProfileId is set, we're commenting as the local
+      const commentData: any = {
+        post_id: params.id,
+        autor_id: user.id, // Always the logged-in user
+        texto: comentarioTexto,
+        parent_comment_id: replyingTo?.id || null,
+      };
+      
+      // Add tipo and local_id if we have an active local profile
+      if (activeLocalProfileId) {
+        commentData.tipo = 'local';
+        commentData.local_id = activeLocalProfileId;
+        console.log('[PostDetail] 🏢 Creating comment as local:', activeLocalProfileId);
+      } else {
+        commentData.tipo = 'usuario';
+        console.log('[PostDetail] 👤 Creating comment as user');
+      }
+      
       const { data, error } = await supabase
         .from('comentarios')
-        .insert({
-          post_id: params.id,
-          autor_id: user.id, // Always the logged-in user
-          texto: comentarioTexto,
-          parent_comment_id: replyingTo?.id || null,
-          // FIXED: Add tipo and local_id if commenting as local
-          tipo: isInteractingAsLocal && activeLocalProfileId ? 'local' : 'usuario',
-          local_id: isInteractingAsLocal && activeLocalProfileId ? activeLocalProfileId : null,
-        })
+        .insert(commentData)
         .select(`
           *,
           autor:usuarios!comentarios_autor_id_fkey(nombre, avatar, username),
