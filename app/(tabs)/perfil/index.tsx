@@ -845,13 +845,17 @@ export default function PerfilScreen() {
     }
   }, [userStories, currentStoryIndex, user, stopStoryTimer]);
 
+  // FIXED: Check if we should redirect to local profile page
   useFocusEffect(
     useCallback(() => {
       console.log('[Perfil] 📍 Screen focused, active profile type:', activeProfileType);
       
-      // REMOVED: Do not redirect based on activeProfileType
-      // The user profile page should always show the user's profile
-      // The ProfileSwitcher component handles navigation to local profiles
+      // FIXED: If the active profile is a local, redirect to the local profile page
+      if (activeProfileType === 'local' && activeProfileId) {
+        console.log('[Perfil] 🔄 Redirecting to local profile:', activeProfileId);
+        router.replace(`/perfil/local?localId=${activeProfileId}`);
+        return;
+      }
       
       if (user) {
         loadUnreadCounts();
@@ -892,7 +896,7 @@ export default function PerfilScreen() {
           supabase.removeChannel(messagesChannel);
         };
       }
-    }, [user, loadUnreadCounts])
+    }, [user, loadUnreadCounts, activeProfileType, activeProfileId, router])
   );
 
   useEffect(() => {
@@ -922,10 +926,6 @@ export default function PerfilScreen() {
       stopStoryTimer();
     };
   }, [showStoryViewer, currentStoryIndex, isPaused, startStoryTimer, stopStoryTimer]);
-
-  // REMOVED: Do not redirect based on activeProfileType
-  // The user profile page should always show the user's profile
-  // The ProfileSwitcher component handles navigation to local profiles
 
   const onRefresh = () => {
     setRefreshing(true);
