@@ -34,6 +34,7 @@ import StoryStatsModal from '@/components/social/StoryStatsModal';
 
 const { width, height } = Dimensions.get('window');
 const HEADER_HEIGHT = 120;
+const SCREEN_WIDTH = width;
 
 interface Comentario {
   id: string;
@@ -431,10 +432,56 @@ const styles = StyleSheet.create({
   postOptionsButton: {
     padding: 8,
   },
+  imageCarouselContainer: {
+    position: 'relative',
+  },
+  imageCarousel: {
+    width: SCREEN_WIDTH,
+  },
+  imageContainer: {
+    width: SCREEN_WIDTH,
+    height: SCREEN_WIDTH,
+  },
   postImagen: {
-    width: width,
-    height: width,
+    width: '100%',
+    height: '100%',
     backgroundColor: colors.cardBorder,
+  },
+  imageIndicatorContainer: {
+    position: 'absolute',
+    bottom: 12,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+  },
+  imageIndicatorDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  imageIndicatorDotActive: {
+    backgroundColor: 'rgba(255, 255, 255, 1)',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  imageCountBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  imageCountText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.headerText,
   },
   multipleImagesIndicator: {
     position: 'absolute',
@@ -736,6 +783,205 @@ function formatearFecha(fecha: string): string {
   return fechaPost.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
 }
 
+// ENHANCED: Post card component with horizontal swipe for multi-image posts
+function PostCardWithSwipe({ post, user, activeLocalProfileId, router, toggleLike, toggleSave, handleDeletePost }: any) {
+  const [currentImageIndex, setCurrentImageIndex] = React.useState(0);
+
+  // FIXED: Check if current user can delete this post
+  const canDelete = user && (
+    (post.tipo === 'usuario' && post.autor_id === user.id) ||
+    (post.tipo === 'local' && activeLocalProfileId === post.local_id)
+  );
+
+  // Get images array - prioritize imagenes array, fallback to imagen field
+  const images = post.imagenes && post.imagenes.length > 0 
+    ? post.imagenes 
+    : post.imagen 
+      ? [post.imagen] 
+      : [];
+
+  const handleScroll = (event: any) => {
+    const contentOffsetX = event.nativeEvent.contentOffset.x;
+    const index = Math.round(contentOffsetX / SCREEN_WIDTH);
+    setCurrentImageIndex(index);
+  };
+
+  return (
+    <View style={styles.postCard}>
+      <View style={styles.postHeader}>
+        <TouchableOpacity
+          style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
+          onPress={() => {
+            if (post.tipo === 'local' && post.local_id) {
+              router.push(`/perfil/local?localId=${post.local_id}`);
+            } else if (user && post.autor_id === user.id) {
+              router.push('/(tabs)/perfil');
+            } else {
+              router.push(`/perfil/usuario?userId=${post.autor_id}`);
+            }
+          }}
+          activeOpacity={0.7}
+        >
+          {post.autor?.avatar ? (
+            <Image source={{ uri: post.autor.avatar }} style={styles.postAvatar} />
+          ) : (
+            <View style={[styles.postAvatar, styles.avatarPlaceholder]}>
+              <Text style={styles.avatarText}>
+                {post.autor?.nombre?.charAt(0).toUpperCase() || 'U'}
+              </Text>
+            </View>
+          )}
+          <View style={styles.postAutorInfo}>
+            <Text style={styles.postAutorNombre}>{post.autor?.nombre || 'Usuario'}</Text>
+            <Text style={styles.postFecha}>{formatearFecha(post.created_at)}</Text>
+          </View>
+        </TouchableOpacity>
+        {canDelete && (
+          <TouchableOpacity 
+            style={styles.postOptionsButton}
+            onPress={() => handleDeletePost(post.id)}
+            activeOpacity={0.7}
+          >
+            <IconSymbol name="trash" size={22} color={colors.text} />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* ENHANCED: Horizontal swipeable image carousel for multi-image posts */}
+      {images.length > 0 && (
+        <View style={styles.imageCarouselContainer}>
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+            style={styles.imageCarousel}
+            scrollEnabled={true}
+            bounces={false}
+            decelerationRate="fast"
+            snapToInterval={SCREEN_WIDTH}
+            snapToAlignment="center"
+          >
+            {images.map((imageUrl: string, index: number) => (
+              <TouchableOpacity
+                key={index}
+                activeOpacity={0.95}
+                onPress={() => router.push(`/social/post?id=${post.id}`)}
+                style={styles.imageContainer}
+              >
+                <Image 
+                  source={{ uri: imageUrl }} 
+                  style={styles.postImagen} 
+                  resizeMode="cover" 
+                />
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          
+          {/* Image indicator dots */}
+          {images.length > 1 && (
+            <View style={styles.imageIndicatorContainer}>
+              {images.map((_: any, index: number) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.imageIndicatorDot,
+                    currentImageIndex === index && styles.imageIndicatorDotActive,
+                  ]}
+                />
+              ))}
+            </View>
+          )}
+
+          {/* Image counter badge */}
+          {images.length > 1 && (
+            <View style={styles.imageCountBadge}>
+              <Text style={styles.imageCountText}>
+                {currentImageIndex + 1}/{images.length}
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* Location Display */}
+      {post.ubicacion && (
+        <View style={styles.locationContainer}>
+          <IconSymbol name="mappin.circle.fill" size={16} color={colors.primary} />
+          <Text style={styles.locationText}>{post.ubicacion}</Text>
+        </View>
+      )}
+
+      <View style={styles.postActions}>
+        <TouchableOpacity 
+          style={styles.postActionButton}
+          onPress={() => toggleLike(post.id)}
+          activeOpacity={0.7}
+        >
+          <IconSymbol 
+            name={post.liked ? 'heart.fill' : 'heart'} 
+            size={26} 
+            color={post.liked ? '#EF4444' : colors.text} 
+          />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.postActionButton}
+          onPress={() => router.push(`/social/post?id=${post.id}`)}
+          activeOpacity={0.7}
+        >
+          <IconSymbol name="message" size={26} color={colors.text} />
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.postActionButton}
+          onPress={() => router.push(`/social/post?id=${post.id}&share=true`)}
+          activeOpacity={0.7}
+        >
+          <IconSymbol name="paperplane" size={26} color={colors.text} />
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.postActionButtonRight}
+          onPress={() => toggleSave(post.id)}
+          activeOpacity={0.7}
+        >
+          <IconSymbol 
+            name={post.saved ? 'bookmark.fill' : 'bookmark'} 
+            size={26} 
+            color={post.saved ? colors.primary : colors.text} 
+          />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.postLikes}>
+        <Text style={styles.postLikesText}>{post.likes || 0} me gusta</Text>
+      </View>
+
+      {post.contenido && (
+        <View style={styles.postDescripcion}>
+          <Text style={styles.postDescripcionText}>
+            <Text style={{ fontWeight: '600' }}>{post.autor?.nombre || 'Usuario'}</Text>{' '}
+            {post.contenido}
+          </Text>
+        </View>
+      )}
+
+      {post.comentarios > 0 && (
+        <TouchableOpacity
+          style={styles.postComentarios}
+          onPress={() => router.push(`/social/post?id=${post.id}`)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.postComentariosText}>
+            Ver {post.comentarios === 1 ? 'el comentario' : `los ${post.comentarios} comentarios`}
+          </Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+}
+
+export default function SocialScreen() {
+
 export default function SocialScreen() {
   const router = useRouter();
   const { user } = useAuth();
@@ -1032,13 +1278,14 @@ export default function SocialScreen() {
     }
 
     try {
-      // Search both users and local profiles
+      // FIXED: Search both users and local profiles
       // For locals, only show those with active 'estandar' or 'premium' plans
       const [usersResult, localsResult] = await Promise.all([
         supabase
           .from('usuarios')
           .select('id, nombre, username, avatar')
           .or(`nombre.ilike.%${query}%,username.ilike.%${query}%`)
+          .eq('activo', true)
           .limit(10),
         supabase
           .from('locales')
@@ -1953,149 +2200,20 @@ export default function SocialScreen() {
           </ScrollView>
         </View>
 
-        {/* Posts Feed */}
+        {/* Posts Feed - ENHANCED: Now with horizontal swipe for multi-image posts */}
         <View style={styles.feedContainer}>
           {posts.length > 0 ? (
             posts.map((post) => {
-              // FIXED: Check if current user can delete this post
-              const canDelete = user && (
-                (post.tipo === 'usuario' && post.autor_id === user.id) ||
-                (post.tipo === 'local' && activeLocalProfileId === post.local_id)
-              );
-
-              return (
-                <View key={post.id} style={styles.postCard}>
-                  <View style={styles.postHeader}>
-                    <TouchableOpacity
-                      style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
-                      onPress={() => {
-                        if (post.tipo === 'local' && post.local_id) {
-                          router.push(`/perfil/local?localId=${post.local_id}`);
-                        } else if (user && post.autor_id === user.id) {
-                          router.push('/(tabs)/perfil');
-                        } else {
-                          router.push(`/perfil/usuario?userId=${post.autor_id}`);
-                        }
-                      }}
-                      activeOpacity={0.7}
-                    >
-                      {post.autor?.avatar ? (
-                        <Image source={{ uri: post.autor.avatar }} style={styles.postAvatar} />
-                      ) : (
-                        <View style={[styles.postAvatar, styles.avatarPlaceholder]}>
-                          <Text style={styles.avatarText}>
-                            {post.autor?.nombre?.charAt(0).toUpperCase() || 'U'}
-                          </Text>
-                        </View>
-                      )}
-                      <View style={styles.postAutorInfo}>
-                        <Text style={styles.postAutorNombre}>{post.autor?.nombre || 'Usuario'}</Text>
-                        <Text style={styles.postFecha}>{formatearFecha(post.created_at)}</Text>
-                      </View>
-                    </TouchableOpacity>
-                    {canDelete && (
-                      <TouchableOpacity 
-                        style={styles.postOptionsButton}
-                        onPress={() => handleDeletePost(post.id)}
-                        activeOpacity={0.7}
-                      >
-                        <IconSymbol name="trash" size={22} color={colors.text} />
-                      </TouchableOpacity>
-                    )}
-                  </View>
-
-                  {/* FIXED: Display first image from imagenes array or imagen field */}
-                  {((post.imagenes && post.imagenes.length > 0) || post.imagen) && (
-                    <TouchableOpacity 
-                      onPress={() => router.push(`/social/post?id=${post.id}`)}
-                      activeOpacity={0.9}
-                    >
-                      <Image 
-                        source={{ uri: post.imagenes && post.imagenes.length > 0 ? post.imagenes[0] : post.imagen }} 
-                        style={styles.postImagen} 
-                      />
-                      {/* Show indicator if post has multiple images */}
-                      {post.imagenes && post.imagenes.length > 1 && (
-                        <View style={styles.multipleImagesIndicator}>
-                          <IconSymbol name="square.stack.fill" size={16} color={colors.headerText} />
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                  )}
-
-                  {/* NEW: Location Display */}
-                  {post.ubicacion && (
-                    <View style={styles.locationContainer}>
-                      <IconSymbol name="mappin.circle.fill" size={16} color={colors.primary} />
-                      <Text style={styles.locationText}>{post.ubicacion}</Text>
-                    </View>
-                  )}
-
-                  <View style={styles.postActions}>
-                    <TouchableOpacity 
-                      style={styles.postActionButton}
-                      onPress={() => toggleLike(post.id)}
-                      activeOpacity={0.7}
-                    >
-                      <IconSymbol 
-                        name={post.liked ? 'heart.fill' : 'heart'} 
-                        size={26} 
-                        color={post.liked ? '#EF4444' : colors.text} 
-                      />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.postActionButton}
-                      onPress={() => router.push(`/social/post?id=${post.id}`)}
-                      activeOpacity={0.7}
-                    >
-                      <IconSymbol name="message" size={26} color={colors.text} />
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={styles.postActionButton}
-                      onPress={() => router.push(`/social/post?id=${post.id}&share=true`)}
-                      activeOpacity={0.7}
-                    >
-                      <IconSymbol name="paperplane" size={26} color={colors.text} />
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                      style={styles.postActionButtonRight}
-                      onPress={() => toggleSave(post.id)}
-                      activeOpacity={0.7}
-                    >
-                      <IconSymbol 
-                        name={post.saved ? 'bookmark.fill' : 'bookmark'} 
-                        size={26} 
-                        color={post.saved ? colors.primary : colors.text} 
-                      />
-                    </TouchableOpacity>
-                  </View>
-
-                  <View style={styles.postLikes}>
-                    <Text style={styles.postLikesText}>{post.likes || 0} me gusta</Text>
-                  </View>
-
-                  {post.contenido && (
-                    <View style={styles.postDescripcion}>
-                      <Text style={styles.postDescripcionText}>
-                        <Text style={{ fontWeight: '600' }}>{post.autor?.nombre || 'Usuario'}</Text>{' '}
-                        {post.contenido}
-                      </Text>
-                    </View>
-                  )}
-
-                  {post.comentarios > 0 && (
-                    <TouchableOpacity
-                      style={styles.postComentarios}
-                      onPress={() => router.push(`/social/post?id=${post.id}`)}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={styles.postComentariosText}>
-                        Ver {post.comentarios === 1 ? 'el comentario' : `los ${post.comentarios} comentarios`}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              );
+              return <PostCardWithSwipe 
+                key={post.id} 
+                post={post} 
+                user={user}
+                activeLocalProfileId={activeLocalProfileId}
+                router={router}
+                toggleLike={toggleLike}
+                toggleSave={toggleSave}
+                handleDeletePost={handleDeletePost}
+              />;
             })
           ) : (
             <View style={styles.emptyContainer}>
@@ -2108,6 +2226,7 @@ export default function SocialScreen() {
             </View>
           )}
         </View>
+
       </ScrollView>
 
       {/* Local Selector Modal */}

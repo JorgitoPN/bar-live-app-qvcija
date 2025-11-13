@@ -239,6 +239,8 @@ export default function CrearPublicacionScreen() {
 
     setSearchingTags(true);
     try {
+      console.log('[CrearPublicacion] 🔍 Searching for users and locals with query:', cleanTexto);
+      
       // ENHANCED: Fuzzy search with multiple strategies
       // 1. Exact match (highest priority)
       // 2. Starts with (high priority)
@@ -257,13 +259,45 @@ export default function CrearPublicacionScreen() {
         .eq('activo', true)
         .limit(10);
 
-      // Search locals with enhanced fuzzy matching
+      if (usersError) {
+        console.error('[CrearPublicacion] ❌ Error searching users:', usersError);
+      } else {
+        console.log('[CrearPublicacion] ✅ Found users:', usersData?.length || 0);
+      }
+
+      // FIXED: Search locals with enhanced fuzzy matching AND filter by active subscription
+      // Only show locals with active 'estandar' or 'premium' plans
+      console.log('[CrearPublicacion] 🏢 Searching locals with active subscriptions...');
+      
       const { data: localsData, error: localsError } = await supabase
         .from('locales')
-        .select('id, nombre, imagen_url')
+        .select(`
+          id, 
+          nombre, 
+          imagen_url,
+          suscripciones_locales!inner(
+            estado,
+            planes_suscripcion!inner(nombre)
+          )
+        `)
         .or(`nombre.ilike.%${cleanTexto}%,nombre.ilike.%${fuzzyPattern}%`)
         .eq('activo', true)
+        .eq('suscripciones_locales.estado', 'activa')
+        .in('suscripciones_locales.planes_suscripcion.nombre', ['estandar', 'premium'])
         .limit(10);
+
+      if (localsError) {
+        console.error('[CrearPublicacion] ❌ Error searching locals:', localsError);
+      } else {
+        console.log('[CrearPublicacion] ✅ Found locals with active subscriptions:', localsData?.length || 0);
+        if (localsData && localsData.length > 0) {
+          console.log('[CrearPublicacion] 📋 Locals found:', localsData.map(l => ({
+            nombre: l.nombre,
+            plan: l.suscripciones_locales?.[0]?.planes_suscripcion?.nombre,
+            estado: l.suscripciones_locales?.[0]?.estado
+          })));
+        }
+      }
 
       const suggestions: UserSuggestion[] = [];
 
@@ -304,7 +338,7 @@ export default function CrearPublicacionScreen() {
         })));
       }
 
-      // Add locals with relevance scoring
+      // Add locals with relevance scoring (only those with active estandar or premium plans)
       if (!localsError && localsData) {
         const filteredLocals = localsData.filter(
           (l) => !usuariosEtiquetados.find((ue) => ue.id === l.id && ue.tipo === 'local')
@@ -340,9 +374,10 @@ export default function CrearPublicacionScreen() {
         })));
       }
 
+      console.log('[CrearPublicacion] 📊 Total suggestions:', suggestions.length, '(Users:', suggestions.filter(s => s.tipo === 'usuario').length, ', Locals:', suggestions.filter(s => s.tipo === 'local').length, ')');
       setTagSuggestions(suggestions);
     } catch (error) {
-      console.error('Error buscando usuarios y locales:', error);
+      console.error('[CrearPublicacion] ❌ Error buscando usuarios y locales:', error);
     } finally {
       setSearchingTags(false);
     }
