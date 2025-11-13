@@ -97,7 +97,6 @@ export default function SalaVirtualScreen() {
   const [showQuickMessages, setShowQuickMessages] = useState(false);
   const [showEmoticons, setShowEmoticons] = useState(false);
   const [selectedRecipient, setSelectedRecipient] = useState<string | null>(null);
-  const [interactions, setInteractions] = useState<InteractionMessage[]>([]);
   const [floatingEmojis, setFloatingEmojis] = useState<Array<{ id: string; emoji: string; x: number; y: Animated.Value; opacity: Animated.Value }>>([]);
   
   const [showPublicChat, setShowPublicChat] = useState(false);
@@ -162,10 +161,12 @@ export default function SalaVirtualScreen() {
       if (checkInsError) {
         console.error('[SalaVirtual] Error loading check-ins:', checkInsError);
       } else {
+        console.log('[SalaVirtual] ✅ Loaded', checkInsData?.length || 0, 'check-ins');
         setCheckIns(checkInsData || []);
         
         if (user) {
           const hasCheckedIn = checkInsData?.some(ci => ci.usuario_id === user.id) || false;
+          console.log('[SalaVirtual] User has checked in:', hasCheckedIn);
           setUserHasCheckedIn(hasCheckedIn);
         }
       }
@@ -173,9 +174,8 @@ export default function SalaVirtualScreen() {
       const thirtyMinutesAgo = new Date();
       thirtyMinutesAgo.setMinutes(thirtyMinutesAgo.getMinutes() - 30);
 
-      console.log('[SalaVirtual] 📥 Loading interactions from sala_virtual_interacciones...');
+      console.log('[SalaVirtual] 📥 Loading chat messages from sala_virtual_interacciones...');
 
-      // Use explicit foreign key hint to avoid ambiguity
       const { data: interactionsData, error: interactionsError } = await supabase
         .from('sala_virtual_interacciones')
         .select(`
@@ -189,31 +189,17 @@ export default function SalaVirtualScreen() {
           usuario:usuarios!sala_virtual_interacciones_usuario_id_fkey(id, nombre, username, avatar)
         `)
         .eq('local_id', params.id)
+        .eq('tipo', 'chat')
         .gte('created_at', thirtyMinutesAgo.toISOString())
-        .order('created_at', { ascending: false })
+        .order('created_at', { ascending: true })
         .limit(100);
 
       if (interactionsError) {
-        console.error('[SalaVirtual] ⚠️ Error loading interactions:', interactionsError);
-        setInteractions([]);
+        console.error('[SalaVirtual] ⚠️ Error loading chat messages:', interactionsError);
         setChatMessages([]);
       } else {
-        console.log('[SalaVirtual] ✅ Loaded', interactionsData?.length || 0, 'interactions');
-        const allInteractions = interactionsData || [];
-        
-        // Filter interactions: show broadcast messages OR messages directed to/from current user
-        const visibleInteractions = allInteractions.filter(i => {
-          if (i.tipo === 'chat') return false; // Chat messages go to separate list
-          if (!i.recipient_id) return true; // Broadcast message
-          if (!user) return false;
-          return i.recipient_id === user.id || i.usuario_id === user.id; // Directed to or from me
-        });
-        
-        // Separate chat messages
-        const chatMsgs = allInteractions.filter(i => i.tipo === 'chat');
-        
-        setInteractions(visibleInteractions);
-        setChatMessages(chatMsgs.reverse()); // Reverse to show oldest first in chat
+        console.log('[SalaVirtual] ✅ Loaded', interactionsData?.length || 0, 'chat messages');
+        setChatMessages(interactionsData || []);
       }
 
       console.log('[SalaVirtual] ⚡ Data loaded successfully');
@@ -227,6 +213,7 @@ export default function SalaVirtualScreen() {
 
   useEffect(() => {
     if (params.id) {
+      setLoading(true);
       loadData();
     }
   }, [params.id, loadData]);
@@ -235,14 +222,20 @@ export default function SalaVirtualScreen() {
   useEffect(() => {
     if (!params.id) return;
 
-    console.log('[SalaVirtual] ⚡ Setting up real-time subscriptions');
+    console.log('[SalaVirtual] ⚡ Setting up real-time subscriptions for local:', params.id);
 
+    // Clean up existing channel
     if (channelRef.current) {
+      console.log('[SalaVirtual] 🧹 Cleaning up existing channel');
       supabase.removeChannel(channelRef.current);
     }
 
     const channel = supabase
-      .channel(`sala_virtual:${params.id}`)
+      .channel(`sala_virtual:${params.id}`, {
+        config: {
+          broadcast: { self: true },
+        },
+      })
       .on(
         'postgres_changes',
         {
@@ -252,8 +245,9 @@ export default function SalaVirtualScreen() {
           filter: `local_id=eq.${params.id}`,
         },
         async (payload) => {
-          console.log('[SalaVirtual] ⚡ INSTANT new interaction:', payload.new);
+          console.log('[SalaVirtual] ⚡ REALTIME: New interaction received:', payload.new);
           
+          // Fetch user data for the new interaction
           const { data: userData } = await supabase
             .from('usuarios')
             .select('id, nombre, username, avatar')
@@ -267,23 +261,22 @@ export default function SalaVirtualScreen() {
 
           // If it's a chat message, add to chat
           if (payload.new.tipo === 'chat') {
-            setChatMessages((prev) => [...prev, newInteraction]);
+            console.log('[SalaVirtual] 💬 Adding new chat message to UI');
+            setChatMessages((prev) => {
+              // Avoid duplicates
+              if (prev.some(m => m.id === newInteraction.id)) {
+                return prev;
+              }
+              return [...prev, newInteraction];
+            });
             
+            // Auto-scroll to bottom
             setTimeout(() => {
               flatListRef.current?.scrollToEnd({ animated: true });
-            }, 50);
-          } else {
-            // Check if this interaction should be visible to current user
-            const isVisible = !newInteraction.recipient_id || 
-                             (user && (newInteraction.recipient_id === user.id || newInteraction.usuario_id === user.id));
-            
-            if (isVisible) {
-              setInteractions((prev) => [newInteraction, ...prev].slice(0, 50));
-
-              if (payload.new.tipo === 'emoticon') {
-                showFloatingEmoji(payload.new.contenido);
-              }
-            }
+            }, 100);
+          } else if (payload.new.tipo === 'emoticon') {
+            // Show floating emoji animation
+            showFloatingEmoji(payload.new.contenido);
           }
         }
       )
@@ -296,8 +289,9 @@ export default function SalaVirtualScreen() {
           filter: `local_id=eq.${params.id}`,
         },
         async (payload) => {
-          console.log('[SalaVirtual] ⚡ INSTANT new check-in:', payload.new);
+          console.log('[SalaVirtual] ⚡ REALTIME: New check-in received:', payload.new);
           
+          // Fetch user data for the new check-in
           const { data: userData } = await supabase
             .from('usuarios')
             .select('id, nombre, username, avatar')
@@ -305,10 +299,26 @@ export default function SalaVirtualScreen() {
             .single();
 
           if (userData) {
-            setCheckIns((prev) => [{
+            const newCheckIn = {
               ...payload.new,
               usuario: userData,
-            } as CheckIn, ...prev]);
+            } as CheckIn;
+
+            console.log('[SalaVirtual] 👤 Adding new check-in to UI:', userData.nombre);
+            
+            setCheckIns((prev) => {
+              // Avoid duplicates
+              if (prev.some(ci => ci.id === newCheckIn.id)) {
+                return prev;
+              }
+              return [newCheckIn, ...prev];
+            });
+
+            // Update user's check-in status if it's the current user
+            if (user && payload.new.usuario_id === user.id) {
+              console.log('[SalaVirtual] ✅ Current user checked in');
+              setUserHasCheckedIn(true);
+            }
           }
         }
       )
@@ -321,8 +331,15 @@ export default function SalaVirtualScreen() {
           filter: `local_id=eq.${params.id}`,
         },
         (payload) => {
-          console.log('[SalaVirtual] ⚡ User checked out:', payload.old);
+          console.log('[SalaVirtual] ⚡ REALTIME: User checked out:', payload.old);
+          
           setCheckIns((prev) => prev.filter(ci => ci.id !== payload.old.id));
+
+          // Update user's check-in status if it's the current user
+          if (user && payload.old.usuario_id === user.id) {
+            console.log('[SalaVirtual] ❌ Current user checked out');
+            setUserHasCheckedIn(false);
+          }
         }
       )
       .on(
@@ -334,23 +351,27 @@ export default function SalaVirtualScreen() {
           filter: `local_id=eq.${params.id}`,
         },
         (payload) => {
-          console.log('[SalaVirtual] ⚡ Message deleted:', payload.old);
+          console.log('[SalaVirtual] ⚡ REALTIME: Message deleted:', payload.old);
           
           // Remove from chat messages
           setChatMessages((prev) => prev.filter(m => m.id !== payload.old.id));
-          
-          // Remove from interactions
-          setInteractions((prev) => prev.filter(i => i.id !== payload.old.id));
         }
       )
       .subscribe((status) => {
-        console.log('[SalaVirtual] Subscription status:', status);
+        console.log('[SalaVirtual] 📡 Subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('[SalaVirtual] ✅ Successfully subscribed to real-time updates');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('[SalaVirtual] ❌ Channel error - real-time updates may not work');
+        } else if (status === 'TIMED_OUT') {
+          console.error('[SalaVirtual] ⏱️ Subscription timed out');
+        }
       });
 
     channelRef.current = channel;
 
     return () => {
-      console.log('[SalaVirtual] Cleaning up subscriptions');
+      console.log('[SalaVirtual] 🧹 Cleaning up subscriptions');
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
@@ -400,6 +421,8 @@ export default function SalaVirtualScreen() {
     }
 
     try {
+      console.log('[SalaVirtual] 📍 Starting check-in process...');
+
       // Check if user is already checked in to another local
       const { data: existingCheckIns, error: checkError } = await supabase
         .from('check_ins')
@@ -431,24 +454,57 @@ export default function SalaVirtualScreen() {
         console.log('[SalaVirtual] ✅ Previous check-in removed');
       }
 
+      // OPTIMISTIC UI UPDATE - Show user in list immediately
+      const optimisticCheckIn: CheckIn = {
+        id: `temp-${Date.now()}`,
+        usuario_id: user.id,
+        local_id: params.id as string,
+        created_at: new Date().toISOString(),
+        usuario: {
+          id: user.id,
+          nombre: user.nombre,
+          username: user.username || '',
+          avatar: user.avatar,
+        },
+      };
+
+      console.log('[SalaVirtual] ⚡ Optimistic UI update - adding user to list');
+      setCheckIns((prev) => [optimisticCheckIn, ...prev]);
+      setUserHasCheckedIn(true);
+
       // Create new check-in
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('check_ins')
         .insert({
           usuario_id: user.id,
           local_id: params.id,
-        });
+        })
+        .select('id')
+        .single();
 
       if (error) {
-        console.error('[SalaVirtual] Error creating check-in:', error);
+        console.error('[SalaVirtual] ❌ Error creating check-in:', error);
+        
+        // Rollback optimistic update
+        setCheckIns((prev) => prev.filter(ci => ci.id !== optimisticCheckIn.id));
+        setUserHasCheckedIn(false);
+        
         Alert.alert('Error', 'No se pudo hacer check-in');
         return;
       }
 
+      console.log('[SalaVirtual] ✅ Check-in successful with ID:', data?.id);
+      
+      // Replace optimistic check-in with real one
+      if (data?.id) {
+        setCheckIns((prev) => 
+          prev.map(ci => ci.id === optimisticCheckIn.id ? { ...ci, id: data.id } : ci)
+        );
+      }
+
       Alert.alert('¡Check-in exitoso!', 'Ahora apareces en la sala virtual');
-      setUserHasCheckedIn(true);
     } catch (error) {
-      console.error('[SalaVirtual] Error:', error);
+      console.error('[SalaVirtual] ❌ Error:', error);
       Alert.alert('Error', 'Ocurrió un error al hacer check-in');
     }
   };
@@ -457,6 +513,12 @@ export default function SalaVirtualScreen() {
     if (!user) return;
 
     try {
+      console.log('[SalaVirtual] 🚪 Starting check-out process...');
+
+      // OPTIMISTIC UI UPDATE - Remove user from list immediately
+      setCheckIns((prev) => prev.filter((ci) => ci.usuario_id !== user.id));
+      setUserHasCheckedIn(false);
+
       const { error } = await supabase
         .from('check_ins')
         .delete()
@@ -464,16 +526,20 @@ export default function SalaVirtualScreen() {
         .eq('local_id', params.id);
 
       if (error) {
-        console.error('[SalaVirtual] Error deleting check-in:', error);
+        console.error('[SalaVirtual] ❌ Error deleting check-in:', error);
+        
+        // Rollback - reload data
+        loadData();
+        
         Alert.alert('Error', 'No se pudo hacer check-out');
         return;
       }
 
+      console.log('[SalaVirtual] ✅ Check-out successful');
       Alert.alert('Check-out exitoso', 'Ya no apareces en la sala virtual');
-      setUserHasCheckedIn(false);
-      setCheckIns((prev) => prev.filter((ci) => ci.usuario_id !== user.id));
     } catch (error) {
-      console.error('[SalaVirtual] Error:', error);
+      console.error('[SalaVirtual] ❌ Error:', error);
+      loadData();
       Alert.alert('Error', 'Ocurrió un error al hacer check-out');
     }
   };
@@ -507,7 +573,7 @@ export default function SalaVirtualScreen() {
           local_id: params.id,
           tipo: 'mensaje',
           contenido: mensaje,
-          recipient_id: selectedRecipient, // Can be null for broadcast
+          recipient_id: selectedRecipient,
         });
 
       if (error) {
@@ -543,7 +609,7 @@ export default function SalaVirtualScreen() {
           local_id: params.id,
           tipo: 'emoticon',
           contenido: emoji,
-          recipient_id: selectedRecipient, // Can be null for broadcast
+          recipient_id: selectedRecipient,
         });
 
       if (error) {
@@ -606,7 +672,6 @@ export default function SalaVirtualScreen() {
 
       console.log('[SalaVirtual] 📤 Inserting into sala_virtual_interacciones table...');
 
-      // Insert message into database - chat messages are always broadcast (no recipient_id)
       const { data, error: insertError } = await supabase
         .from('sala_virtual_interacciones')
         .insert({
@@ -614,7 +679,7 @@ export default function SalaVirtualScreen() {
           local_id: params.id,
           tipo: 'chat',
           contenido: messageText,
-          recipient_id: null, // Chat messages are always broadcast
+          recipient_id: null,
         })
         .select('id')
         .single();
@@ -807,52 +872,6 @@ export default function SalaVirtualScreen() {
             </View>
           </LinearGradient>
         </View>
-
-        {interactions.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🎉 Actividad Reciente</Text>
-            <View style={styles.interactionsFeed}>
-              {interactions.slice(0, 10).map((interaction, index) => (
-                <Animated.View 
-                  key={interaction.id} 
-                  style={[
-                    styles.interactionItem,
-                    { opacity: 1 - (index * 0.05) }
-                  ]}
-                >
-                  {interaction.usuario.avatar ? (
-                    <Image
-                      source={{ uri: interaction.usuario.avatar }}
-                      style={styles.interactionAvatar}
-                    />
-                  ) : (
-                    <View style={[styles.interactionAvatar, styles.avatarPlaceholder]}>
-                      <Text style={styles.avatarText}>
-                        {interaction.usuario.nombre.charAt(0).toUpperCase()}
-                      </Text>
-                    </View>
-                  )}
-                  <View style={styles.interactionContent}>
-                    <Text style={styles.interactionText}>
-                      <Text style={styles.interactionUser}>{interaction.usuario.nombre}</Text>
-                      {interaction.tipo === 'emoticon' ? (
-                        <Text> envió {interaction.contenido}</Text>
-                      ) : (
-                        <Text>: {interaction.contenido}</Text>
-                      )}
-                      {interaction.recipient_id && user && interaction.recipient_id === user.id && (
-                        <Text style={styles.directedTag}> (para ti)</Text>
-                      )}
-                    </Text>
-                    <Text style={styles.interactionTime}>
-                      {formatCheckInTime(interaction.created_at)}
-                    </Text>
-                  </View>
-                </Animated.View>
-              ))}
-            </View>
-          </View>
-        )}
 
         {checkIns.length > 0 && (
           <View style={styles.section}>
@@ -1299,48 +1318,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 16,
   },
-  interactionsFeed: {
-    gap: 12,
-  },
-  interactionItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: colors.cardBackground,
-    padding: 12,
-    borderRadius: 12,
-    gap: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  interactionAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-  },
-  interactionContent: {
-    flex: 1,
-  },
-  interactionText: {
-    fontSize: 14,
-    color: colors.text,
-    lineHeight: 20,
-  },
-  interactionUser: {
-    fontWeight: '600',
-  },
-  directedTag: {
-    color: colors.primary,
-    fontWeight: '600',
-    fontStyle: 'italic',
-  },
-  interactionTime: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 4,
-  },
   usuarioCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1561,10 +1538,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     padding: 16,
+    justifyContent: 'center',
     gap: 12,
   },
   emoticonButton: {
-    width: (width - 64) / 4,
+    width: (width - 80) / 4,
     aspectRatio: 1,
     backgroundColor: colors.cardBackground,
     borderRadius: 12,
