@@ -206,18 +206,10 @@ export default function PerfilScreen() {
   const isPropietario = userRole === 'propietario' || (userRole === 'admin' && currentMode === 'propietario');
   const isOwnerMode = currentMode === 'propietario' && isPropietario;
 
-  // FIXED: Determine what profile to show based on active profile
-  // If activeProfileType is 'local', redirect to the local profile page
-  // Otherwise, show the user's own profile
-  const shouldShowLocalProfile = activeProfileType === 'local' && activeLocalData;
-  
-  // Display information based on active profile
-  const displayName = activeProfileType === 'local' && activeLocalData 
-    ? activeLocalData.nombre 
-    : user?.nombre || 'Usuario';
-  const displayAvatar = activeProfileType === 'local' && activeLocalData
-    ? activeLocalData.imagen_url
-    : user?.avatar;
+  // FIXED: Always show the user's own profile on this page
+  // The ProfileSwitcher component will handle navigation to local profiles
+  const displayName = user?.nombre || 'Usuario';
+  const displayAvatar = user?.avatar;
 
   useFocusEffect(
     useCallback(() => {
@@ -266,20 +258,15 @@ export default function PerfilScreen() {
   useEffect(() => {
     if (!authLoading) {
       if (user) {
-        // FIXED: Redirect to local profile page when viewing a local profile
-        if (shouldShowLocalProfile && activeLocalData) {
-          console.log('[Perfil] ✅ Redirecting to local profile page:', activeLocalData.id);
-          router.replace(`/perfil/local?localId=${activeLocalData.id}`);
-        } else {
-          // Load user profile when on this page
-          console.log('[Perfil] ✅ Loading user profile');
-          cargarDatosPerfil();
-        }
+        // Always load user profile when on this page
+        // The profile switcher component will handle switching to local profiles
+        console.log('[Perfil] ✅ Loading user profile');
+        cargarDatosPerfil();
       } else {
         setLoading(false);
       }
     }
-  }, [user, authLoading, shouldShowLocalProfile, activeLocalData]);
+  }, [user, authLoading]);
 
   const loadUnreadCounts = useCallback(async () => {
     if (!user) return;

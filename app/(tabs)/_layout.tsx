@@ -115,10 +115,10 @@ export default function TabLayout() {
           label: 'Explorar',
         },
         {
-          name: 'eventos',
-          route: '/(tabs)/eventos',
-          icon: 'calendar',
-          label: 'Eventos',
+          name: 'social',
+          route: '/(tabs)/social',
+          icon: 'person.2.fill',
+          label: 'Social',
         },
         {
           name: 'perfil',
@@ -152,10 +152,10 @@ export default function TabLayout() {
             label: 'Explorar',
           },
           {
-            name: 'eventos',
-            route: '/(tabs)/eventos',
-            icon: 'calendar',
-            label: 'Eventos',
+            name: 'social',
+            route: '/(tabs)/social',
+            icon: 'person.2.fill',
+            label: 'Social',
           },
           {
             name: 'perfil',

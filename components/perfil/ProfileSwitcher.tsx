@@ -16,6 +16,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { useMode } from '@/contexts/ModeContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'expo-router';
 
 interface ProfileSwitcherProps {
   visible: boolean;
@@ -24,6 +25,7 @@ interface ProfileSwitcherProps {
 
 export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherProps) {
   const { user } = useAuth();
+  const router = useRouter();
   const {
     activeProfileId,
     activeProfileType,
@@ -40,6 +42,8 @@ export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherPro
     try {
       await switchToClientProfile();
       onClose();
+      // Navigate to user profile page
+      router.push('/(tabs)/perfil');
     } catch (error) {
       console.error('[ProfileSwitcher] Error switching to client:', error);
     } finally {
@@ -52,6 +56,8 @@ export default function ProfileSwitcher({ visible, onClose }: ProfileSwitcherPro
     try {
       await switchToLocalProfile(localId);
       onClose();
+      // Navigate to local profile page
+      router.push(`/perfil/local?localId=${localId}`);
     } catch (error) {
       console.error('[ProfileSwitcher] Error switching to local:', error);
     } finally {

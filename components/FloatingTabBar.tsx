@@ -6,8 +6,6 @@ import { colors } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, usePathname } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
-import { useMode } from '@/contexts/ModeContext';
-import { useAuth } from '@/contexts/AuthContext';
 
 export interface TabBarItem {
   name: string;
@@ -28,9 +26,6 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
   const { user } = useAuth();
   const navigationInProgress = useRef(false);
   const lastNavigationTime = useRef(0);
-
-  const userRole = user?.rol_app || 'cliente';
-  const isPropietarioMode = currentMode === 'propietario' || (userRole === 'admin' && currentMode === 'propietario');
 
   useEffect(() => {
     console.log('⚡ FloatingTabBar mounted, pathname:', pathname);
@@ -54,43 +49,6 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
     }
   };
 
-  // FIXED: Dynamic tabs based on mode - Remove Events icon in owner mode
-  const getDisplayTabs = () => {
-    if (isPropietarioMode) {
-      // Owner mode: Replace Favoritos with Eventos, add Social before Perfil
-      const baseTabs = tabs
-        .filter(tab => tab.name !== 'eventos') // Remove Events from base tabs
-        .map(tab => {
-          // Replace Favoritos with Eventos in the same position
-          if (tab.name === 'favoritos') {
-            return {
-              name: 'eventos',
-              route: '/(tabs)/eventos',
-              icon: 'calendar',
-              label: 'Eventos',
-            };
-          }
-          return tab;
-        });
-
-      // Add Social tab before Perfil
-      const perfilIndex = baseTabs.findIndex(t => t.name === 'perfil');
-      if (perfilIndex !== -1) {
-        baseTabs.splice(perfilIndex, 0, {
-          name: 'social-propietario', // FIXED: Unique key
-          route: '/(tabs)/social',
-          icon: 'person.2',
-          label: 'Social',
-        });
-      }
-
-      return baseTabs;
-    }
-    return tabs;
-  };
-
-  const finalTabs = getDisplayTabs();
-
   return (
     <View style={styles.container} pointerEvents="box-none">
       <View style={styles.svgContainer} pointerEvents="none">
@@ -109,7 +67,7 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
       </View>
 
       <View style={[styles.tabBar, containerWidth && { width: containerWidth }]} pointerEvents="box-none">
-        {finalTabs.map((tab) => {
+        {tabs.map((tab) => {
           const isCenter = tab.name === 'explorar';
           const active = isActive(tab.route);
 
