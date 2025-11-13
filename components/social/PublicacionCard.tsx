@@ -92,7 +92,7 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
       {/* Contenido */}
       {post.contenido && <Text style={styles.contenido}>{post.contenido}</Text>}
 
-      {/* Images Carousel with Swipe Support - FIXED: Made scrollable */}
+      {/* Images Carousel with Swipe Support - ENHANCED: Fully functional swiping */}
       {images.length > 0 && (
         <View style={styles.imageCarouselContainer}>
           <ScrollView
@@ -106,6 +106,8 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
             scrollEnabled={true}
             bounces={false}
             decelerationRate="fast"
+            snapToInterval={SCREEN_WIDTH}
+            snapToAlignment="center"
           >
             {images.map((imageUrl, index) => (
               <TouchableOpacity

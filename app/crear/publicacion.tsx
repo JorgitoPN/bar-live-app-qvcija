@@ -111,6 +111,15 @@ export default function CrearPublicacionScreen() {
 
   const MAX_IMAGES = 10; // Instagram allows up to 10 images
 
+  // ENHANCED: Real-time predictive search as user types
+  useEffect(() => {
+    if (showTagModal && tagSearchQuery.length > 0) {
+      buscarUsuariosYLocales(tagSearchQuery);
+    } else {
+      setTagSuggestions([]);
+    }
+  }, [tagSearchQuery, showTagModal]);
+
   const seleccionarImagenes = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
@@ -220,7 +229,7 @@ export default function CrearPublicacionScreen() {
   };
 
   const buscarUsuariosYLocales = async (texto: string) => {
-    // FIXED: Allow search with just 1 character and remove @ if present
+    // ENHANCED: Allow search with just 1 character and remove @ if present
     const cleanTexto = texto.replace('@', '').trim();
     
     if (cleanTexto.length < 1) {
@@ -339,15 +348,11 @@ export default function CrearPublicacionScreen() {
     }
   };
 
-  const handleTagSearchChange = (text: string) => {
-    setTagSearchQuery(text);
-    buscarUsuariosYLocales(text);
-  };
-
   const seleccionarEtiqueta = (item: UserSuggestion) => {
     setUsuariosEtiquetados([...usuariosEtiquetados, item]);
     setTagSearchQuery('');
     setTagSuggestions([]);
+    setShowTagModal(false);
   };
 
   const eliminarEtiqueta = (itemId: string, tipo: 'usuario' | 'local') => {
@@ -716,95 +721,129 @@ export default function CrearPublicacionScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Tag Modal */}
+      {/* ENHANCED Tag Modal - Fixed layout with search at top and results below */}
       <Modal
         visible={showTagModal}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => setShowTagModal(false)}
+        onRequestClose={() => {
+          setShowTagModal(false);
+          setTagSearchQuery('');
+          setTagSuggestions([]);
+        }}
       >
         <Pressable 
           style={styles.modalOverlay}
-          onPress={() => setShowTagModal(false)}
+          onPress={() => {
+            setShowTagModal(false);
+            setTagSearchQuery('');
+            setTagSuggestions([]);
+          }}
         >
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            style={{ flex: 1, justifyContent: 'flex-end' }}
+            style={styles.tagModalKeyboardView}
           >
             <Pressable style={styles.tagModal} onPress={(e) => e.stopPropagation()}>
+              {/* Fixed Header */}
               <View style={styles.tagModalHeader}>
-                <Text style={styles.tagModalTitle}>Etiquetar</Text>
-                <TouchableOpacity onPress={() => setShowTagModal(false)} activeOpacity={0.7}>
+                <Text style={styles.tagModalTitle}>Etiquetar Usuarios y Locales</Text>
+                <TouchableOpacity 
+                  onPress={() => {
+                    setShowTagModal(false);
+                    setTagSearchQuery('');
+                    setTagSuggestions([]);
+                  }} 
+                  activeOpacity={0.7}
+                >
                   <IconSymbol name="xmark" size={24} color={colors.text} />
                 </TouchableOpacity>
               </View>
 
+              {/* Fixed Search Bar at Top */}
               <View style={styles.tagSearchContainer}>
                 <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
                 <TextInput
                   style={styles.tagSearchInput}
-                  placeholder="Buscar por nombre (sin @)..."
+                  placeholder="Buscar usuarios o locales..."
                   placeholderTextColor={colors.textSecondary}
                   value={tagSearchQuery}
-                  onChangeText={handleTagSearchChange}
+                  onChangeText={setTagSearchQuery}
                   autoFocus
                   autoCapitalize="none"
                   autoCorrect={false}
                 />
                 {tagSearchQuery.length > 0 && (
-                  <TouchableOpacity onPress={() => setTagSearchQuery('')} activeOpacity={0.7}>
+                  <TouchableOpacity 
+                    onPress={() => {
+                      setTagSearchQuery('');
+                      setTagSuggestions([]);
+                    }} 
+                    activeOpacity={0.7}
+                  >
                     <IconSymbol name="xmark.circle.fill" size={20} color={colors.textSecondary} />
                   </TouchableOpacity>
                 )}
               </View>
 
-              <ScrollView style={styles.tagSuggestionsContainer}>
+              {/* Scrollable Results Below */}
+              <ScrollView 
+                style={styles.tagSuggestionsContainer}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={styles.tagSuggestionsContent}
+              >
                 {searchingTags ? (
                   <View style={styles.tagLoadingContainer}>
-                    <ActivityIndicator size="small" color={colors.primary} />
+                    <ActivityIndicator size="large" color={colors.primary} />
+                    <Text style={styles.tagLoadingText}>Buscando...</Text>
                   </View>
                 ) : tagSuggestions.length > 0 ? (
-                  tagSuggestions.map((item) => (
-                    <TouchableOpacity
-                      key={`${item.id}-${item.tipo}`}
-                      style={styles.tagSuggestionItem}
-                      onPress={() => {
-                        seleccionarEtiqueta(item);
-                        setShowTagModal(false);
-                      }}
-                      activeOpacity={0.7}
-                    >
-                      {item.avatar ? (
-                        <Image source={{ uri: item.avatar }} style={styles.tagSuggestionAvatar} />
-                      ) : (
-                        <View style={[styles.tagSuggestionAvatar, styles.avatarPlaceholder]}>
-                          <IconSymbol 
-                            name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'} 
-                            size={20} 
-                            color={colors.textSecondary} 
-                          />
+                  <React.Fragment>
+                    <Text style={styles.tagResultsHeader}>
+                      {tagSuggestions.length} {tagSuggestions.length === 1 ? 'resultado' : 'resultados'}
+                    </Text>
+                    {tagSuggestions.map((item) => (
+                      <TouchableOpacity
+                        key={`${item.id}-${item.tipo}`}
+                        style={styles.tagSuggestionItem}
+                        onPress={() => seleccionarEtiqueta(item)}
+                        activeOpacity={0.7}
+                      >
+                        {item.avatar ? (
+                          <Image source={{ uri: item.avatar }} style={styles.tagSuggestionAvatar} />
+                        ) : (
+                          <View style={[styles.tagSuggestionAvatar, styles.avatarPlaceholder]}>
+                            <IconSymbol 
+                              name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'} 
+                              size={20} 
+                              color={colors.textSecondary} 
+                            />
+                          </View>
+                        )}
+                        <View style={styles.tagSuggestionInfo}>
+                          <Text style={styles.tagSuggestionName}>{item.nombre}</Text>
+                          <Text style={styles.tagSuggestionType}>
+                            {item.tipo === 'local' ? '🏢 Local' : `👤 @${item.username}`}
+                          </Text>
                         </View>
-                      )}
-                      <View style={styles.tagSuggestionInfo}>
-                        <Text style={styles.tagSuggestionName}>{item.nombre}</Text>
-                        <Text style={styles.tagSuggestionType}>
-                          {item.tipo === 'local' ? 'Local' : `@${item.username}`}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  ))
+                        <IconSymbol name="plus.circle.fill" size={24} color={colors.primary} />
+                      </TouchableOpacity>
+                    ))}
+                  </React.Fragment>
                 ) : tagSearchQuery.length >= 1 ? (
                   <View style={styles.tagEmptyState}>
+                    <IconSymbol name="magnifyingglass" size={48} color={colors.textSecondary} />
                     <Text style={styles.tagEmptyText}>No se encontraron resultados</Text>
-                    <Text style={[styles.tagEmptyText, { fontSize: 12, marginTop: 8 }]}>
+                    <Text style={styles.tagEmptySubtext}>
                       Intenta con otro nombre o verifica la ortografía
                     </Text>
                   </View>
                 ) : (
                   <View style={styles.tagEmptyState}>
-                    <Text style={styles.tagEmptyText}>Busca usuarios o locales para etiquetar</Text>
-                    <Text style={[styles.tagEmptyText, { fontSize: 12, marginTop: 8 }]}>
-                      Escribe el nombre sin necesidad de usar @
+                    <IconSymbol name="person.2.fill" size={48} color={colors.textSecondary} />
+                    <Text style={styles.tagEmptyText}>Busca usuarios o locales</Text>
+                    <Text style={styles.tagEmptySubtext}>
+                      Escribe el nombre para ver resultados en tiempo real
                     </Text>
                   </View>
                 )}
@@ -1001,11 +1040,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
+  tagModalKeyboardView: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
   tagModal: {
     backgroundColor: colors.background,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: '80%',
+    maxHeight: '85%',
+    minHeight: '60%',
   },
   tagModalHeader: {
     flexDirection: 'row',
@@ -1016,7 +1060,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.cardBorder,
   },
   tagModalTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: colors.text,
   },
@@ -1039,11 +1083,26 @@ const styles = StyleSheet.create({
   },
   tagSuggestionsContainer: {
     flex: 1,
+  },
+  tagSuggestionsContent: {
     paddingHorizontal: 16,
+    paddingBottom: 20,
   },
   tagLoadingContainer: {
-    paddingVertical: 40,
+    paddingVertical: 60,
     alignItems: 'center',
+    gap: 12,
+  },
+  tagLoadingText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  tagResultsHeader: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginBottom: 12,
+    paddingHorizontal: 4,
   },
   tagSuggestionItem: {
     flexDirection: 'row',
@@ -1052,6 +1111,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 8,
     backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
   tagSuggestionAvatar: {
     width: 48,
@@ -1080,12 +1141,20 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   tagEmptyState: {
-    paddingVertical: 40,
+    paddingVertical: 60,
     alignItems: 'center',
+    gap: 12,
   },
   tagEmptyText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    textAlign: 'center',
+  },
+  tagEmptySubtext: {
     fontSize: 14,
     color: colors.textSecondary,
     textAlign: 'center',
+    paddingHorizontal: 40,
   },
 });
