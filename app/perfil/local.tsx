@@ -50,20 +50,58 @@ const PUESTOS_LABORALES = [
 
 const PROVINCIAS = [
   'Todas',
-  'Madrid',
-  'Barcelona',
-  'Valencia',
-  'Sevilla',
-  'Málaga',
-  'Bilbao',
+  'A Coruña',
+  'Álava',
+  'Albacete',
   'Alicante',
-  'Zaragoza',
-  'Murcia',
-  'Palma',
-  'Las Palmas',
-  'Granada',
+  'Almería',
+  'Asturias',
+  'Ávila',
+  'Badajoz',
+  'Barcelona',
+  'Burgos',
+  'Cáceres',
+  'Cádiz',
+  'Cantabria',
+  'Castellón',
+  'Ceuta',
+  'Ciudad Real',
   'Córdoba',
+  'Cuenca',
+  'Girona',
+  'Granada',
+  'Guadalajara',
+  'Guipúzcoa',
+  'Huelva',
+  'Huesca',
+  'Islas Baleares',
+  'Jaén',
+  'La Rioja',
+  'Las Palmas',
+  'León',
+  'Lleida',
+  'Lugo',
+  'Madrid',
+  'Málaga',
+  'Melilla',
+  'Murcia',
+  'Navarra',
+  'Ourense',
+  'Palencia',
+  'Pontevedra',
+  'Salamanca',
+  'Santa Cruz de Tenerife',
+  'Segovia',
+  'Sevilla',
+  'Soria',
+  'Tarragona',
+  'Teruel',
+  'Toledo',
+  'Valencia',
   'Valladolid',
+  'Vizcaya',
+  'Zamora',
+  'Zaragoza',
 ];
 
 interface LocalPost {
@@ -166,6 +204,7 @@ export default function LocalPerfilScreen() {
   const [showFilters, setShowFilters] = useState(false);
   const [puestoFiltro, setPuestoFiltro] = useState('Todos');
   const [provinciaFiltro, setProvinciaFiltro] = useState('Todas');
+  const [showProvinciaDropdown, setShowProvinciaDropdown] = useState(false);
 
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [localStories, setLocalStories] = useState<LocalStory[]>([]);
@@ -932,339 +971,503 @@ export default function LocalPerfilScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.header}
-      >
-        <View style={styles.headerTop}>
-          <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
-            <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{local.nombre}</Text>
-          {isOwner && (user?.rol_app === 'propietario' || ownedLocals.length > 0) && (
-            <TouchableOpacity 
-              style={styles.switchProfileButton}
-              onPress={() => setShowProfileSwitcher(true)}
-              activeOpacity={0.8}
-            >
-              <IconSymbol name="arrow.triangle.2.circlepath" size={24} color={colors.headerText} />
-            </TouchableOpacity>
-          )}
-          {!isOwner && <View style={styles.headerButton} />}
-        </View>
-
-        {local.imagen_portada && (
-          <View style={styles.coverPhotoContainer}>
-            <Image 
-              source={{ uri: local.imagen_portada }} 
-              style={styles.coverPhoto}
-              resizeMode="cover"
-            />
-            <LinearGradient
-              colors={['transparent', 'rgba(0,0,0,0.3)']}
-              style={styles.coverGradient}
-            />
-          </View>
-        )}
-
-        <Animated.View 
-          style={[
-            styles.profileSection,
-            {
-              opacity: fadeAnim,
-              transform: [{ scale: scaleAnim }],
-            }
-          ]}
-        >
-          <View style={styles.profileHeader}>
-            <TouchableOpacity 
-              style={styles.avatarContainer}
-              onPress={handleAvatarPress}
-              activeOpacity={0.8}
-            >
-              {hasActiveStory && hasUnviewedStories && (
-                <LinearGradient
-                  colors={[colors.primary, colors.secondary]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.storyRing}
-                />
-              )}
-              {local.imagen_url ? (
-                <Image source={{ uri: local.imagen_url }} style={styles.avatar} />
-              ) : (
-                <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                  <IconSymbol name="building.2" size={40} color={colors.headerText} />
-                </View>
-              )}
-              {!hasActiveStory && isOwner && (
-                <View style={styles.addStoryIcon}>
-                  <IconSymbol name="plus" size={18} color={colors.white} />
-                </View>
-              )}
-            </TouchableOpacity>
-            <View style={styles.profileInfo}>
-              <Text style={styles.profileName}>{local.nombre}</Text>
-              {categoriasLocal.length > 0 && (
-                <View style={styles.categoriesContainer}>
-                  {categoriasLocal.slice(0, 2).map((categoria: string, index: number) => (
-                    <View key={index} style={styles.categoryBadge}>
-                      <Text style={styles.categoryIcon}>{getCategoryIcon(categoria)}</Text>
-                      <Text style={styles.categoryText}>{categoria}</Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-            </View>
-          </View>
-
-          {local.direccion && (
-            <View style={styles.addressContainer}>
-              <IconSymbol name="mappin" size={16} color={colors.headerText} />
-              <Text style={styles.addressText}>{local.direccion}</Text>
-            </View>
-          )}
-
-          <View style={styles.statusBadge}>
-            <View style={[styles.statusDot, { backgroundColor: estado.estaAbierto ? '#22C55E' : '#EF4444' }]} />
-            <Text style={styles.statusText}>{estado.badge}</Text>
-          </View>
-
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{posts.length}</Text>
-              <Text style={styles.statLabel}>Publicaciones</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{local.seguidores || 0}</Text>
-              <Text style={styles.statLabel}>Seguidores</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>{events.length}</Text>
-              <Text style={styles.statLabel}>Eventos</Text>
-            </View>
-          </View>
-
-          <View style={styles.actionsContainer}>
-            {isOwner ? (
-              <>
-                <TouchableOpacity style={styles.actionButton} onPress={handleEditarLocal}>
-                  <IconSymbol name="pencil" size={18} color={colors.headerText} />
-                  <Text style={styles.actionButtonText}>Editar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.actionButton, styles.createButton]} onPress={() => setShowCreateOptions(true)}>
-                  <IconSymbol name="plus.circle.fill" size={18} color={colors.white} />
-                  <Text style={[styles.actionButtonText, { color: colors.white }]}>Publicar</Text>
-                </TouchableOpacity>
-              </>
-            ) : (
-              <>
-                <TouchableOpacity 
-                  style={[styles.actionButton, isFavorito && styles.actionButtonFollowing]} 
-                  onPress={toggleFavorito}
-                >
-                  <IconSymbol 
-                    name={isFavorito ? 'heart.fill' : 'heart'} 
-                    size={18} 
-                    color={colors.headerText} 
-                  />
-                  <Text style={styles.actionButtonText}>
-                    {isFavorito ? 'Siguiendo' : 'Seguir'}
-                  </Text>
-                </TouchableOpacity>
-                {local.telefono && (
-                  <TouchableOpacity style={styles.actionButton} onPress={handleLlamar}>
-                    <IconSymbol name="phone.fill" size={18} color={colors.headerText} />
-                    <Text style={styles.actionButtonText}>Llamar</Text>
-                  </TouchableOpacity>
-                )}
-              </>
-            )}
-          </View>
-        </Animated.View>
-      </LinearGradient>
-
-      <View style={styles.tabsContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'posts' && styles.tabActive]}
-          onPress={() => setActiveTab('posts')}
-        >
-          <IconSymbol 
-            name="square.grid.3x3" 
-            size={24} 
-            color={activeTab === 'posts' ? colors.primary : colors.textSecondary} 
-          />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'eventos' && styles.tabActive]}
-          onPress={() => setActiveTab('eventos')}
-        >
-          <IconSymbol 
-            name="calendar" 
-            size={24} 
-            color={activeTab === 'eventos' ? colors.primary : colors.textSecondary} 
-          />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'empleo' && styles.tabActive]}
-          onPress={() => setActiveTab('empleo')}
-        >
-          <IconSymbol 
-            name="briefcase" 
-            size={24} 
-            color={activeTab === 'empleo' ? colors.primary : colors.textSecondary} 
-          />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'info' && styles.tabActive]}
-          onPress={() => setActiveTab('info')}
-        >
-          <IconSymbol 
-            name="info.circle" 
-            size={24} 
-            color={activeTab === 'info' ? colors.primary : colors.textSecondary} 
-          />
-        </TouchableOpacity>
-      </View>
-
       <ScrollView
-        style={styles.content}
+        style={styles.scrollView}
         contentContainerStyle={{ paddingBottom: 100 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        showsVerticalScrollIndicator={false}
       >
-        {activeTab === 'posts' && (
-          <View style={styles.postsGrid}>
-            {posts.length > 0 ? (
-              posts.map((post) => (
-                <TouchableOpacity
-                  key={post.id}
-                  style={styles.gridItem}
-                  onPress={() => handleVerPost(post.id)}
-                  activeOpacity={0.8}
-                >
-                  {post.imagen ? (
-                    <Image source={{ uri: post.imagen }} style={styles.gridImage} />
-                  ) : (
-                    <View style={[styles.gridImage, styles.gridImagePlaceholder]}>
-                      <IconSymbol name="photo" size={32} color={colors.textSecondary} />
-                    </View>
-                  )}
-                </TouchableOpacity>
-              ))
-            ) : (
-              <View style={styles.emptyState}>
-                <IconSymbol name="photo.on.rectangle" size={48} color={colors.textSecondary} />
-                <Text style={styles.emptyText}>
-                  {isOwner ? 'Crea tu primera publicación' : 'No hay publicaciones'}
-                </Text>
-                {isOwner && (
-                  <TouchableOpacity style={styles.emptyButton} onPress={handleCrearPost}>
-                    <Text style={styles.emptyButtonText}>Crear Publicación</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            )}
-          </View>
-        )}
-
-        {activeTab === 'eventos' && (
-          <View style={styles.eventsContainer}>
-            {events.length > 0 ? (
-              events.map((event) => (
-                <TouchableOpacity
-                  key={event.id}
-                  style={styles.eventCard}
-                  onPress={() => handleVerEvento(event.id)}
-                  activeOpacity={0.8}
-                >
-                  {event.imagen_url && (
-                    <Image source={{ uri: event.imagen_url }} style={styles.eventImage} />
-                  )}
-                  <View style={styles.eventContent}>
-                    <Text style={styles.eventTitle}>{event.titulo}</Text>
-                    <View style={styles.eventMeta}>
-                      <IconSymbol name="calendar" size={14} color={colors.textSecondary} />
-                      <Text style={styles.eventMetaText}>
-                        {new Date(event.fecha).toLocaleDateString('es-ES', { 
-                          day: 'numeric', 
-                          month: 'short' 
-                        })}
-                      </Text>
-                      <IconSymbol name="clock" size={14} color={colors.textSecondary} />
-                      <Text style={styles.eventMetaText}>{event.hora}</Text>
-                    </View>
-                    {event.precio !== null && event.precio !== undefined && (
-                      <Text style={styles.eventPrice}>
-                        {event.precio === 0 ? 'Gratis' : `${event.precio}€`}
-                      </Text>
-                    )}
-                  </View>
-                </TouchableOpacity>
-              ))
-            ) : (
-              <View style={styles.emptyState}>
-                <IconSymbol name="calendar" size={48} color={colors.textSecondary} />
-                <Text style={styles.emptyText}>
-                  {isOwner ? 'Crea tu primer evento' : 'No hay eventos próximos'}
-                </Text>
-                {isOwner && (
-                  <TouchableOpacity style={styles.emptyButton} onPress={handleCrearEvento}>
-                    <Text style={styles.emptyButtonText}>Crear Evento</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            )}
-          </View>
-        )}
-
-        {activeTab === 'empleo' && (
-          <View style={styles.empleoContainer}>
-            {/* Sub-tabs for Empleo */}
-            <View style={styles.empleoSubTabs}>
-              <TouchableOpacity
-                style={[styles.empleoSubTab, empleoSubTab === 'ofertas' && styles.empleoSubTabActive]}
-                onPress={() => setEmpleoSubTab('ofertas')}
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.header}
+        >
+          <View style={styles.headerTop}>
+            <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
+              <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>{local.nombre}</Text>
+            {isOwner && (user?.rol_app === 'propietario' || ownedLocals.length > 0) && (
+              <TouchableOpacity 
+                style={styles.switchProfileButton}
+                onPress={() => setShowProfileSwitcher(true)}
+                activeOpacity={0.8}
               >
-                <Text style={[styles.empleoSubTabText, empleoSubTab === 'ofertas' && styles.empleoSubTabTextActive]}>
-                  Mis Ofertas ({ofertas.length})
-                </Text>
+                <IconSymbol name="arrow.triangle.2.circlepath" size={24} color={colors.headerText} />
               </TouchableOpacity>
-              {isOwner && (
-                <TouchableOpacity
-                  style={[styles.empleoSubTab, empleoSubTab === 'demandantes' && styles.empleoSubTabActive]}
-                  onPress={() => setEmpleoSubTab('demandantes')}
-                >
-                  <Text style={[styles.empleoSubTabText, empleoSubTab === 'demandantes' && styles.empleoSubTabTextActive]}>
-                    Demandantes ({demandantesFiltrados.length})
-                  </Text>
-                </TouchableOpacity>
-              )}
+            )}
+            {!isOwner && <View style={styles.headerButton} />}
+          </View>
+
+          {local.imagen_portada && (
+            <View style={styles.coverPhotoContainer}>
+              <Image 
+                source={{ uri: local.imagen_portada }} 
+                style={styles.coverPhoto}
+                resizeMode="cover"
+              />
+              <LinearGradient
+                colors={['transparent', 'rgba(0,0,0,0.3)']}
+                style={styles.coverGradient}
+              />
+            </View>
+          )}
+
+          <Animated.View 
+            style={[
+              styles.profileSection,
+              {
+                opacity: fadeAnim,
+                transform: [{ scale: scaleAnim }],
+              }
+            ]}
+          >
+            <View style={styles.profileHeader}>
+              <TouchableOpacity 
+                style={styles.avatarContainer}
+                onPress={handleAvatarPress}
+                activeOpacity={0.8}
+              >
+                {hasActiveStory && hasUnviewedStories && (
+                  <LinearGradient
+                    colors={[colors.primary, colors.secondary]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.storyRing}
+                  />
+                )}
+                {local.imagen_url ? (
+                  <Image source={{ uri: local.imagen_url }} style={styles.avatar} />
+                ) : (
+                  <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                    <IconSymbol name="building.2" size={40} color={colors.headerText} />
+                  </View>
+                )}
+                {!hasActiveStory && isOwner && (
+                  <View style={styles.addStoryIcon}>
+                    <IconSymbol name="plus" size={18} color={colors.white} />
+                  </View>
+                )}
+              </TouchableOpacity>
+              <View style={styles.profileInfo}>
+                <Text style={styles.profileName}>{local.nombre}</Text>
+                {categoriasLocal.length > 0 && (
+                  <View style={styles.categoriesContainer}>
+                    {categoriasLocal.slice(0, 2).map((categoria: string, index: number) => (
+                      <View key={index} style={styles.categoryBadge}>
+                        <Text style={styles.categoryIcon}>{getCategoryIcon(categoria)}</Text>
+                        <Text style={styles.categoryText}>{categoria}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
             </View>
 
-            {empleoSubTab === 'ofertas' ? (
-              <>
-                {ofertas.length > 0 ? (
-                  ofertas.map((oferta) => {
-                    const diasPublicado = calcularDiasPublicado(oferta.created_at);
-                    return (
-                      <View key={oferta.id} style={styles.ofertaCard}>
-                        {oferta.imagen_url && (
-                          <Image 
-                            source={{ uri: oferta.imagen_url }} 
-                            style={styles.ofertaImagen}
-                            resizeMode="cover"
-                          />
-                        )}
-                        <View style={styles.ofertaContent}>
-                          <View style={styles.ofertaHeader}>
-                            <View style={{ flex: 1 }}>
-                              <Text style={styles.ofertaTitulo}>{oferta.titulo}</Text>
-                              <Text style={styles.ofertaTipo}>{oferta.tipo}</Text>
+            {local.direccion && (
+              <View style={styles.addressContainer}>
+                <IconSymbol name="mappin" size={16} color={colors.headerText} />
+                <Text style={styles.addressText}>{local.direccion}</Text>
+              </View>
+            )}
+
+            <View style={styles.statusBadge}>
+              <View style={[styles.statusDot, { backgroundColor: estado.estaAbierto ? '#22C55E' : '#EF4444' }]} />
+              <Text style={styles.statusText}>{estado.badge}</Text>
+            </View>
+
+            <View style={styles.statsContainer}>
+              <View style={styles.statItem}>
+                <Text style={styles.statNumber}>{posts.length}</Text>
+                <Text style={styles.statLabel}>Publicaciones</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <Text style={styles.statNumber}>{local.seguidores || 0}</Text>
+                <Text style={styles.statLabel}>Seguidores</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <Text style={styles.statNumber}>{events.length}</Text>
+                <Text style={styles.statLabel}>Eventos</Text>
+              </View>
+            </View>
+
+            <View style={styles.actionsContainer}>
+              {isOwner ? (
+                <>
+                  <TouchableOpacity style={styles.actionButton} onPress={handleEditarLocal}>
+                    <IconSymbol name="pencil" size={18} color={colors.headerText} />
+                    <Text style={styles.actionButtonText}>Editar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.actionButton, styles.createButton]} onPress={() => setShowCreateOptions(true)}>
+                    <IconSymbol name="plus.circle.fill" size={18} color={colors.white} />
+                    <Text style={[styles.actionButtonText, { color: colors.white }]}>Publicar</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  <TouchableOpacity 
+                    style={[styles.actionButton, isFavorito && styles.actionButtonFollowing]} 
+                    onPress={toggleFavorito}
+                  >
+                    <IconSymbol 
+                      name={isFavorito ? 'heart.fill' : 'heart'} 
+                      size={18} 
+                      color={colors.headerText} 
+                    />
+                    <Text style={styles.actionButtonText}>
+                      {isFavorito ? 'Siguiendo' : 'Seguir'}
+                    </Text>
+                  </TouchableOpacity>
+                  {local.telefono && (
+                    <TouchableOpacity style={styles.actionButton} onPress={handleLlamar}>
+                      <IconSymbol name="phone.fill" size={18} color={colors.headerText} />
+                      <Text style={styles.actionButtonText}>Llamar</Text>
+                    </TouchableOpacity>
+                  )}
+                </>
+              )}
+            </View>
+          </Animated.View>
+        </LinearGradient>
+
+        <View style={styles.tabsContainer}>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'posts' && styles.tabActive]}
+            onPress={() => setActiveTab('posts')}
+          >
+            <IconSymbol 
+              name="square.grid.3x3" 
+              size={24} 
+              color={activeTab === 'posts' ? colors.primary : colors.textSecondary} 
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'eventos' && styles.tabActive]}
+            onPress={() => setActiveTab('eventos')}
+          >
+            <IconSymbol 
+              name="calendar" 
+              size={24} 
+              color={activeTab === 'eventos' ? colors.primary : colors.textSecondary} 
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'empleo' && styles.tabActive]}
+            onPress={() => setActiveTab('empleo')}
+          >
+            <IconSymbol 
+              name="briefcase" 
+              size={24} 
+              color={activeTab === 'empleo' ? colors.primary : colors.textSecondary} 
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'info' && styles.tabActive]}
+            onPress={() => setActiveTab('info')}
+          >
+            <IconSymbol 
+              name="info.circle" 
+              size={24} 
+              color={activeTab === 'info' ? colors.primary : colors.textSecondary} 
+            />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.content}>
+          {activeTab === 'posts' && (
+            <View style={styles.postsGrid}>
+              {posts.length > 0 ? (
+                posts.map((post) => (
+                  <TouchableOpacity
+                    key={post.id}
+                    style={styles.gridItem}
+                    onPress={() => handleVerPost(post.id)}
+                    activeOpacity={0.8}
+                  >
+                    {post.imagen ? (
+                      <Image source={{ uri: post.imagen }} style={styles.gridImage} />
+                    ) : (
+                      <View style={[styles.gridImage, styles.gridImagePlaceholder]}>
+                        <IconSymbol name="photo" size={32} color={colors.textSecondary} />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <View style={styles.emptyState}>
+                  <IconSymbol name="photo.on.rectangle" size={48} color={colors.textSecondary} />
+                  <Text style={styles.emptyText}>
+                    {isOwner ? 'Crea tu primera publicación' : 'No hay publicaciones'}
+                  </Text>
+                  {isOwner && (
+                    <TouchableOpacity style={styles.emptyButton} onPress={handleCrearPost}>
+                      <Text style={styles.emptyButtonText}>Crear Publicación</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+            </View>
+          )}
+
+          {activeTab === 'eventos' && (
+            <View style={styles.eventsContainer}>
+              {events.length > 0 ? (
+                events.map((event) => (
+                  <TouchableOpacity
+                    key={event.id}
+                    style={styles.eventCard}
+                    onPress={() => handleVerEvento(event.id)}
+                    activeOpacity={0.8}
+                  >
+                    {event.imagen_url && (
+                      <Image source={{ uri: event.imagen_url }} style={styles.eventImage} />
+                    )}
+                    <View style={styles.eventContent}>
+                      <Text style={styles.eventTitle}>{event.titulo}</Text>
+                      <View style={styles.eventMeta}>
+                        <IconSymbol name="calendar" size={14} color={colors.textSecondary} />
+                        <Text style={styles.eventMetaText}>
+                          {new Date(event.fecha).toLocaleDateString('es-ES', { 
+                            day: 'numeric', 
+                            month: 'short' 
+                          })}
+                        </Text>
+                        <IconSymbol name="clock" size={14} color={colors.textSecondary} />
+                        <Text style={styles.eventMetaText}>{event.hora}</Text>
+                      </View>
+                      {event.precio !== null && event.precio !== undefined && (
+                        <Text style={styles.eventPrice}>
+                          {event.precio === 0 ? 'Gratis' : `${event.precio}€`}
+                        </Text>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <View style={styles.emptyState}>
+                  <IconSymbol name="calendar" size={48} color={colors.textSecondary} />
+                  <Text style={styles.emptyText}>
+                    {isOwner ? 'Crea tu primer evento' : 'No hay eventos próximos'}
+                  </Text>
+                  {isOwner && (
+                    <TouchableOpacity style={styles.emptyButton} onPress={handleCrearEvento}>
+                      <Text style={styles.emptyButtonText}>Crear Evento</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+            </View>
+          )}
+
+          {activeTab === 'empleo' && (
+            <View style={styles.empleoContainer}>
+              {/* Sub-tabs for Empleo */}
+              <View style={styles.empleoSubTabs}>
+                <TouchableOpacity
+                  style={[styles.empleoSubTab, empleoSubTab === 'ofertas' && styles.empleoSubTabActive]}
+                  onPress={() => setEmpleoSubTab('ofertas')}
+                >
+                  <Text style={[styles.empleoSubTabText, empleoSubTab === 'ofertas' && styles.empleoSubTabTextActive]}>
+                    Mis Ofertas ({ofertas.length})
+                  </Text>
+                </TouchableOpacity>
+                {isOwner && (
+                  <TouchableOpacity
+                    style={[styles.empleoSubTab, empleoSubTab === 'demandantes' && styles.empleoSubTabActive]}
+                    onPress={() => setEmpleoSubTab('demandantes')}
+                  >
+                    <Text style={[styles.empleoSubTabText, empleoSubTab === 'demandantes' && styles.empleoSubTabTextActive]}>
+                      Demandantes ({demandantesFiltrados.length})
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {empleoSubTab === 'ofertas' ? (
+                <>
+                  {ofertas.length > 0 ? (
+                    ofertas.map((oferta) => {
+                      const diasPublicado = calcularDiasPublicado(oferta.created_at);
+                      return (
+                        <View key={oferta.id} style={styles.ofertaCard}>
+                          {oferta.imagen_url && (
+                            <Image 
+                              source={{ uri: oferta.imagen_url }} 
+                              style={styles.ofertaImagen}
+                              resizeMode="cover"
+                            />
+                          )}
+                          <View style={styles.ofertaContent}>
+                            <View style={styles.ofertaHeader}>
+                              <View style={{ flex: 1 }}>
+                                <Text style={styles.ofertaTitulo}>{oferta.titulo}</Text>
+                                <Text style={styles.ofertaTipo}>{oferta.tipo}</Text>
+                              </View>
+                              {diasPublicado < 7 && (
+                                <View style={styles.badgeNuevo}>
+                                  <Text style={styles.badgeNuevoText}>Nuevo</Text>
+                                </View>
+                              )}
                             </View>
+
+                            <Text style={styles.ofertaDescripcion} numberOfLines={2}>
+                              {oferta.descripcion}
+                            </Text>
+
+                            <View style={styles.ofertaDetalles}>
+                              {oferta.salario && (
+                                <View style={styles.detalleChip}>
+                                  <IconSymbol name="eurosign.circle" size={14} color={colors.primary} />
+                                  <Text style={styles.detalleTexto}>{oferta.salario}</Text>
+                                </View>
+                              )}
+                              {oferta.provincia && (
+                                <View style={styles.detalleChip}>
+                                  <IconSymbol name="mappin" size={14} color={colors.primary} />
+                                  <Text style={styles.detalleTexto}>{oferta.provincia}</Text>
+                                </View>
+                              )}
+                            </View>
+
+                            {oferta.requisitos && oferta.requisitos.length > 0 && (
+                              <View style={styles.requisitosContainer}>
+                                {oferta.requisitos.slice(0, 2).map((requisito, index) => (
+                                  <View key={index} style={styles.requisitoChip}>
+                                    <Text style={styles.requisitoTexto}>{requisito}</Text>
+                                  </View>
+                                ))}
+                              </View>
+                            )}
+
+                            <View style={styles.ofertaFooter}>
+                              <Text style={styles.fechaTexto}>
+                                Publicado hace {diasPublicado} {diasPublicado === 1 ? 'día' : 'días'}
+                              </Text>
+                              <View style={styles.ofertaActions}>
+                                <TouchableOpacity 
+                                  style={styles.verMasButton}
+                                  onPress={() => handleVerOferta(oferta.id)}
+                                >
+                                  <Text style={styles.verMasTexto}>Ver</Text>
+                                </TouchableOpacity>
+                                {isOwner && (
+                                  <>
+                                    <TouchableOpacity 
+                                      style={[styles.verMasButton, styles.editButton]}
+                                      onPress={() => handleEditarOferta(oferta.id)}
+                                    >
+                                      <IconSymbol name="pencil" size={14} color={colors.white} />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity 
+                                      style={[styles.verMasButton, styles.deleteButton]}
+                                      onPress={() => handleEliminarOferta(oferta.id)}
+                                    >
+                                      <IconSymbol name="trash" size={14} color={colors.white} />
+                                    </TouchableOpacity>
+                                  </>
+                                )}
+                              </View>
+                            </View>
+                          </View>
+                        </View>
+                      );
+                    })
+                  ) : (
+                    <View style={styles.emptyState}>
+                      <IconSymbol name="briefcase" size={48} color={colors.textSecondary} />
+                      <Text style={styles.emptyText}>
+                        {isOwner ? 'Crea tu primera oferta de empleo' : 'No hay ofertas de empleo'}
+                      </Text>
+                      {isOwner && (
+                        <TouchableOpacity style={styles.emptyButton} onPress={handleCrearOferta}>
+                          <Text style={styles.emptyButtonText}>Crear Oferta</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  )}
+                </>
+              ) : (
+                <>
+                  {/* Search and filters for demandantes */}
+                  <View style={styles.searchContainer}>
+                    <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
+                    <TextInput
+                      style={styles.searchInput}
+                      placeholder="Buscar por nombre o puesto..."
+                      placeholderTextColor={colors.textSecondary}
+                      value={searchQuery}
+                      onChangeText={setSearchQuery}
+                    />
+                    <TouchableOpacity onPress={() => setShowFilters(true)}>
+                      <IconSymbol name="slider.horizontal.3" size={20} color={colors.primary} />
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Active filters display */}
+                  {(puestoFiltro !== 'Todos' || provinciaFiltro !== 'Todas') && (
+                    <View style={styles.activeFilters}>
+                      {puestoFiltro !== 'Todos' && (
+                        <View style={styles.activeFilterChip}>
+                          <Text style={styles.activeFilterText}>{puestoFiltro}</Text>
+                          <TouchableOpacity onPress={() => setPuestoFiltro('Todos')}>
+                            <IconSymbol name="xmark.circle.fill" size={16} color={colors.primary} />
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                      {provinciaFiltro !== 'Todas' && (
+                        <View style={styles.activeFilterChip}>
+                          <Text style={styles.activeFilterText}>{provinciaFiltro}</Text>
+                          <TouchableOpacity onPress={() => setProvinciaFiltro('Todas')}>
+                            <IconSymbol name="xmark.circle.fill" size={16} color={colors.primary} />
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                      <TouchableOpacity onPress={limpiarFiltros}>
+                        <Text style={styles.clearFiltersText}>Limpiar todo</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+
+                  {/* Demandantes list */}
+                  {demandantesFiltrados.length > 0 ? (
+                    demandantesFiltrados.map((perfil) => {
+                      const diasPublicado = calcularDiasPublicado(perfil.created_at);
+                      const fotoUrl = perfil.foto_url || perfil.usuario?.avatar;
+
+                      return (
+                        <TouchableOpacity
+                          key={perfil.id}
+                          style={styles.demandanteCard}
+                          onPress={() => handleVerPerfil(perfil.id)}
+                          activeOpacity={0.8}
+                        >
+                          <View style={styles.demandanteHeader}>
+                            {fotoUrl ? (
+                              <Image 
+                                source={{ uri: fotoUrl }} 
+                                style={styles.demandanteFoto}
+                                resizeMode="cover"
+                              />
+                            ) : (
+                              <View style={styles.demandanteFotoPlaceholder}>
+                                <IconSymbol name="person.circle" size={40} color={colors.textSecondary} />
+                              </View>
+                            )}
+                            
+                            <View style={{ flex: 1, marginLeft: 12 }}>
+                              <Text style={styles.demandanteNombre}>{perfil.nombre_completo}</Text>
+                              <Text style={styles.demandantePuesto}>{perfil.puesto_deseado}</Text>
+                              {perfil.provincia && (
+                                <View style={styles.demandanteUbicacion}>
+                                  <IconSymbol name="mappin" size={12} color={colors.textSecondary} />
+                                  <Text style={styles.demandanteUbicacionText}>{perfil.provincia}</Text>
+                                </View>
+                              )}
+                            </View>
+
                             {diasPublicado < 7 && (
                               <View style={styles.badgeNuevo}>
                                 <Text style={styles.badgeNuevoText}>Nuevo</Text>
@@ -1272,309 +1475,148 @@ export default function LocalPerfilScreen() {
                             )}
                           </View>
 
-                          <Text style={styles.ofertaDescripcion} numberOfLines={2}>
-                            {oferta.descripcion}
+                          <Text style={styles.demandanteExperiencia} numberOfLines={2}>
+                            {perfil.experiencia}
                           </Text>
 
-                          <View style={styles.ofertaDetalles}>
-                            {oferta.salario && (
-                              <View style={styles.detalleChip}>
-                                <IconSymbol name="eurosign.circle" size={14} color={colors.primary} />
-                                <Text style={styles.detalleTexto}>{oferta.salario}</Text>
-                              </View>
-                            )}
-                            {oferta.provincia && (
-                              <View style={styles.detalleChip}>
-                                <IconSymbol name="mappin" size={14} color={colors.primary} />
-                                <Text style={styles.detalleTexto}>{oferta.provincia}</Text>
-                              </View>
-                            )}
-                          </View>
-
-                          {oferta.requisitos && oferta.requisitos.length > 0 && (
-                            <View style={styles.requisitosContainer}>
-                              {oferta.requisitos.slice(0, 2).map((requisito, index) => (
-                                <View key={index} style={styles.requisitoChip}>
-                                  <Text style={styles.requisitoTexto}>{requisito}</Text>
+                          {perfil.habilidades && (
+                            <View style={styles.demandanteHabilidades}>
+                              {perfil.habilidades.split(',').slice(0, 3).map((habilidad, index) => (
+                                <View key={index} style={styles.habilidadChip}>
+                                  <Text style={styles.habilidadTexto}>{habilidad.trim()}</Text>
                                 </View>
                               ))}
                             </View>
                           )}
 
-                          <View style={styles.ofertaFooter}>
+                          <View style={styles.demandanteFooter}>
                             <Text style={styles.fechaTexto}>
                               Publicado hace {diasPublicado} {diasPublicado === 1 ? 'día' : 'días'}
                             </Text>
-                            <View style={styles.ofertaActions}>
+                            {perfil.usuario_id && (
                               <TouchableOpacity 
-                                style={styles.verMasButton}
-                                onPress={() => handleVerOferta(oferta.id)}
+                                style={styles.contactarButton}
+                                onPress={(e) => {
+                                  e.stopPropagation();
+                                  handleContactarDemandante(perfil.id, perfil.usuario_id!);
+                                }}
                               >
-                                <Text style={styles.verMasTexto}>Ver</Text>
+                                <IconSymbol name="paperplane.fill" size={14} color={colors.white} />
+                                <Text style={styles.contactarTexto}>Contactar</Text>
                               </TouchableOpacity>
-                              {isOwner && (
-                                <>
-                                  <TouchableOpacity 
-                                    style={[styles.verMasButton, styles.editButton]}
-                                    onPress={() => handleEditarOferta(oferta.id)}
-                                  >
-                                    <IconSymbol name="pencil" size={14} color={colors.white} />
-                                  </TouchableOpacity>
-                                  <TouchableOpacity 
-                                    style={[styles.verMasButton, styles.deleteButton]}
-                                    onPress={() => handleEliminarOferta(oferta.id)}
-                                  >
-                                    <IconSymbol name="trash" size={14} color={colors.white} />
-                                  </TouchableOpacity>
-                                </>
-                              )}
-                            </View>
-                          </View>
-                        </View>
-                      </View>
-                    );
-                  })
-                ) : (
-                  <View style={styles.emptyState}>
-                    <IconSymbol name="briefcase" size={48} color={colors.textSecondary} />
-                    <Text style={styles.emptyText}>
-                      {isOwner ? 'Crea tu primera oferta de empleo' : 'No hay ofertas de empleo'}
-                    </Text>
-                    {isOwner && (
-                      <TouchableOpacity style={styles.emptyButton} onPress={handleCrearOferta}>
-                        <Text style={styles.emptyButtonText}>Crear Oferta</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                )}
-              </>
-            ) : (
-              <>
-                {/* Search and filters for demandantes */}
-                <View style={styles.searchContainer}>
-                  <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
-                  <TextInput
-                    style={styles.searchInput}
-                    placeholder="Buscar por nombre o puesto..."
-                    placeholderTextColor={colors.textSecondary}
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                  />
-                  <TouchableOpacity onPress={() => setShowFilters(true)}>
-                    <IconSymbol name="slider.horizontal.3" size={20} color={colors.primary} />
-                  </TouchableOpacity>
-                </View>
-
-                {/* Active filters display */}
-                {(puestoFiltro !== 'Todos' || provinciaFiltro !== 'Todas') && (
-                  <View style={styles.activeFilters}>
-                    {puestoFiltro !== 'Todos' && (
-                      <View style={styles.activeFilterChip}>
-                        <Text style={styles.activeFilterText}>{puestoFiltro}</Text>
-                        <TouchableOpacity onPress={() => setPuestoFiltro('Todos')}>
-                          <IconSymbol name="xmark.circle.fill" size={16} color={colors.primary} />
-                        </TouchableOpacity>
-                      </View>
-                    )}
-                    {provinciaFiltro !== 'Todas' && (
-                      <View style={styles.activeFilterChip}>
-                        <Text style={styles.activeFilterText}>{provinciaFiltro}</Text>
-                        <TouchableOpacity onPress={() => setProvinciaFiltro('Todas')}>
-                          <IconSymbol name="xmark.circle.fill" size={16} color={colors.primary} />
-                        </TouchableOpacity>
-                      </View>
-                    )}
-                    <TouchableOpacity onPress={limpiarFiltros}>
-                      <Text style={styles.clearFiltersText}>Limpiar todo</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-
-                {/* Demandantes list */}
-                {demandantesFiltrados.length > 0 ? (
-                  demandantesFiltrados.map((perfil) => {
-                    const diasPublicado = calcularDiasPublicado(perfil.created_at);
-                    const fotoUrl = perfil.foto_url || perfil.usuario?.avatar;
-
-                    return (
-                      <TouchableOpacity
-                        key={perfil.id}
-                        style={styles.demandanteCard}
-                        onPress={() => handleVerPerfil(perfil.id)}
-                        activeOpacity={0.8}
-                      >
-                        <View style={styles.demandanteHeader}>
-                          {fotoUrl ? (
-                            <Image 
-                              source={{ uri: fotoUrl }} 
-                              style={styles.demandanteFoto}
-                              resizeMode="cover"
-                            />
-                          ) : (
-                            <View style={styles.demandanteFotoPlaceholder}>
-                              <IconSymbol name="person.circle" size={40} color={colors.textSecondary} />
-                            </View>
-                          )}
-                          
-                          <View style={{ flex: 1, marginLeft: 12 }}>
-                            <Text style={styles.demandanteNombre}>{perfil.nombre_completo}</Text>
-                            <Text style={styles.demandantePuesto}>{perfil.puesto_deseado}</Text>
-                            {perfil.provincia && (
-                              <View style={styles.demandanteUbicacion}>
-                                <IconSymbol name="mappin" size={12} color={colors.textSecondary} />
-                                <Text style={styles.demandanteUbicacionText}>{perfil.provincia}</Text>
-                              </View>
                             )}
                           </View>
+                        </TouchableOpacity>
+                      );
+                    })
+                  ) : (
+                    <View style={styles.emptyState}>
+                      <IconSymbol name="person.2" size={48} color={colors.textSecondary} />
+                      <Text style={styles.emptyText}>
+                        No se encontraron demandantes de empleo
+                      </Text>
+                      {(puestoFiltro !== 'Todos' || provinciaFiltro !== 'Todas' || searchQuery) && (
+                        <TouchableOpacity style={styles.emptyButton} onPress={limpiarFiltros}>
+                          <Text style={styles.emptyButtonText}>Limpiar Filtros</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  )}
+                </>
+              )}
+            </View>
+          )}
 
-                          {diasPublicado < 7 && (
-                            <View style={styles.badgeNuevo}>
-                              <Text style={styles.badgeNuevoText}>Nuevo</Text>
-                            </View>
-                          )}
-                        </View>
+          {activeTab === 'info' && (
+            <View style={styles.infoContainer}>
+              {local.descripcion_google && (
+                <View style={styles.infoSection}>
+                  <Text style={styles.infoSectionTitle}>Descripción</Text>
+                  <Text style={styles.infoText}>{local.descripcion_google}</Text>
+                </View>
+              )}
 
-                        <Text style={styles.demandanteExperiencia} numberOfLines={2}>
-                          {perfil.experiencia}
-                        </Text>
-
-                        {perfil.habilidades && (
-                          <View style={styles.demandanteHabilidades}>
-                            {perfil.habilidades.split(',').slice(0, 3).map((habilidad, index) => (
-                              <View key={index} style={styles.habilidadChip}>
-                                <Text style={styles.habilidadTexto}>{habilidad.trim()}</Text>
-                              </View>
-                            ))}
-                          </View>
-                        )}
-
-                        <View style={styles.demandanteFooter}>
-                          <Text style={styles.fechaTexto}>
-                            Publicado hace {diasPublicado} {diasPublicado === 1 ? 'día' : 'días'}
-                          </Text>
-                          {perfil.usuario_id && (
-                            <TouchableOpacity 
-                              style={styles.contactarButton}
-                              onPress={(e) => {
-                                e.stopPropagation();
-                                handleContactarDemandante(perfil.id, perfil.usuario_id!);
-                              }}
-                            >
-                              <IconSymbol name="paperplane.fill" size={14} color={colors.white} />
-                              <Text style={styles.contactarTexto}>Contactar</Text>
-                            </TouchableOpacity>
-                          )}
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })
-                ) : (
-                  <View style={styles.emptyState}>
-                    <IconSymbol name="person.2" size={48} color={colors.textSecondary} />
-                    <Text style={styles.emptyText}>
-                      No se encontraron demandantes de empleo
-                    </Text>
-                    {(puestoFiltro !== 'Todos' || provinciaFiltro !== 'Todas' || searchQuery) && (
-                      <TouchableOpacity style={styles.emptyButton} onPress={limpiarFiltros}>
-                        <Text style={styles.emptyButtonText}>Limpiar Filtros</Text>
-                      </TouchableOpacity>
-                    )}
+              <View style={styles.infoSection}>
+                <Text style={styles.infoSectionTitle}>Contacto</Text>
+                {local.telefono && (
+                  <TouchableOpacity style={styles.infoRow} onPress={handleLlamar}>
+                    <IconSymbol name="phone.fill" size={20} color={colors.primary} />
+                    <Text style={styles.infoRowText}>{local.telefono}</Text>
+                  </TouchableOpacity>
+                )}
+                {local.email && (
+                  <View style={styles.infoRow}>
+                    <IconSymbol name="envelope.fill" size={20} color={colors.primary} />
+                    <Text style={styles.infoRowText}>{local.email}</Text>
                   </View>
                 )}
-              </>
-            )}
-          </View>
-        )}
-
-        {activeTab === 'info' && (
-          <View style={styles.infoContainer}>
-            {local.descripcion_google && (
-              <View style={styles.infoSection}>
-                <Text style={styles.infoSectionTitle}>Descripción</Text>
-                <Text style={styles.infoText}>{local.descripcion_google}</Text>
+                {local.website && (
+                  <TouchableOpacity style={styles.infoRow} onPress={handleWeb}>
+                    <IconSymbol name="globe" size={20} color={colors.primary} />
+                    <Text style={styles.infoRowText}>{local.website}</Text>
+                  </TouchableOpacity>
+                )}
               </View>
-            )}
 
-            <View style={styles.infoSection}>
-              <Text style={styles.infoSectionTitle}>Contacto</Text>
-              {local.telefono && (
-                <TouchableOpacity style={styles.infoRow} onPress={handleLlamar}>
-                  <IconSymbol name="phone.fill" size={20} color={colors.primary} />
-                  <Text style={styles.infoRowText}>{local.telefono}</Text>
-                </TouchableOpacity>
-              )}
-              {local.email && (
-                <View style={styles.infoRow}>
-                  <IconSymbol name="envelope.fill" size={20} color={colors.primary} />
-                  <Text style={styles.infoRowText}>{local.email}</Text>
+              {local.horarios_completos && Object.keys(local.horarios_completos).length > 0 && (
+                <View style={styles.infoSection}>
+                  <Text style={styles.infoSectionTitle}>Horarios</Text>
+                  {Object.entries(local.horarios_completos).map(([dia, horas]: [string, any]) => (
+                    <View key={dia} style={styles.horarioRow}>
+                      <Text style={styles.horarioDia}>{dia.charAt(0).toUpperCase() + dia.slice(1)}</Text>
+                      <Text style={styles.horarioHoras}>
+                        {Array.isArray(horas) ? horas.join(', ') : horas}
+                      </Text>
+                    </View>
+                  ))}
                 </View>
               )}
-              {local.website && (
-                <TouchableOpacity style={styles.infoRow} onPress={handleWeb}>
-                  <IconSymbol name="globe" size={20} color={colors.primary} />
-                  <Text style={styles.infoRowText}>{local.website}</Text>
-                </TouchableOpacity>
-              )}
-            </View>
 
-            {local.horarios_completos && Object.keys(local.horarios_completos).length > 0 && (
-              <View style={styles.infoSection}>
-                <Text style={styles.infoSectionTitle}>Horarios</Text>
-                {Object.entries(local.horarios_completos).map(([dia, horas]: [string, any]) => (
-                  <View key={dia} style={styles.horarioRow}>
-                    <Text style={styles.horarioDia}>{dia.charAt(0).toUpperCase() + dia.slice(1)}</Text>
-                    <Text style={styles.horarioHoras}>
-                      {Array.isArray(horas) ? horas.join(', ') : horas}
-                    </Text>
+              {local.servicios_disponibles && Object.keys(local.servicios_disponibles).length > 0 && (
+                <View style={styles.infoSection}>
+                  <Text style={styles.infoSectionTitle}>Servicios</Text>
+                  <View style={styles.servicesGrid}>
+                    {Object.entries(local.servicios_disponibles)
+                      .filter(([_, value]) => value === true)
+                      .map(([key]) => (
+                        <View key={key} style={styles.serviceBadge}>
+                          <Text style={styles.serviceText}>
+                            {key.replace(/_/g, ' ').charAt(0).toUpperCase() + key.replace(/_/g, ' ').slice(1)}
+                          </Text>
+                        </View>
+                      ))}
                   </View>
-                ))}
-              </View>
-            )}
-
-            {local.servicios_disponibles && Object.keys(local.servicios_disponibles).length > 0 && (
-              <View style={styles.infoSection}>
-                <Text style={styles.infoSectionTitle}>Servicios</Text>
-                <View style={styles.servicesGrid}>
-                  {Object.entries(local.servicios_disponibles)
-                    .filter(([_, value]) => value === true)
-                    .map(([key]) => (
-                      <View key={key} style={styles.serviceBadge}>
-                        <Text style={styles.serviceText}>
-                          {key.replace(/_/g, ' ').charAt(0).toUpperCase() + key.replace(/_/g, ' ').slice(1)}
-                        </Text>
-                      </View>
-                    ))}
                 </View>
+              )}
+
+              <View style={styles.infoSection}>
+                <Text style={styles.infoSectionTitle}>Ubicación</Text>
+                <TouchableOpacity style={styles.directionsButton} onPress={handleComoLlegar}>
+                  <IconSymbol name="map.fill" size={20} color={colors.white} />
+                  <Text style={styles.directionsButtonText}>Cómo llegar</Text>
+                </TouchableOpacity>
               </View>
-            )}
 
-            <View style={styles.infoSection}>
-              <Text style={styles.infoSectionTitle}>Ubicación</Text>
-              <TouchableOpacity style={styles.directionsButton} onPress={handleComoLlegar}>
-                <IconSymbol name="map.fill" size={20} color={colors.white} />
-                <Text style={styles.directionsButtonText}>Cómo llegar</Text>
-              </TouchableOpacity>
-            </View>
+              <View style={styles.infoSection}>
+                <Text style={styles.infoSectionTitle}>Sala Virtual</Text>
+                <TouchableOpacity style={styles.virtualRoomButton} onPress={handleSalaVirtual}>
+                  <IconSymbol name="person.3.fill" size={20} color={colors.white} />
+                  <Text style={styles.virtualRoomButtonText}>Entrar a la Sala Virtual</Text>
+                </TouchableOpacity>
+              </View>
 
-            <View style={styles.infoSection}>
-              <Text style={styles.infoSectionTitle}>Sala Virtual</Text>
-              <TouchableOpacity style={styles.virtualRoomButton} onPress={handleSalaVirtual}>
-                <IconSymbol name="person.3.fill" size={20} color={colors.white} />
-                <Text style={styles.virtualRoomButtonText}>Entrar a la Sala Virtual</Text>
-              </TouchableOpacity>
+              <View style={styles.infoSection}>
+                <TouchableOpacity 
+                  style={styles.moreInfoButton} 
+                  onPress={() => router.push(`/detalle/local?id=${localId}`)}
+                >
+                  <IconSymbol name="info.circle.fill" size={20} color={colors.primary} />
+                  <Text style={styles.moreInfoButtonText}>Ver información completa</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-
-            <View style={styles.infoSection}>
-              <TouchableOpacity 
-                style={styles.moreInfoButton} 
-                onPress={() => router.push(`/detalle/local?id=${localId}`)}
-              >
-                <IconSymbol name="info.circle.fill" size={20} color={colors.primary} />
-                <Text style={styles.moreInfoButtonText}>Ver información completa</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
+          )}
+        </View>
       </ScrollView>
 
       {/* Filters Modal */}
@@ -1621,27 +1663,13 @@ export default function LocalPerfilScreen() {
 
               <View style={styles.filterSection}>
                 <Text style={styles.filterTitle}>Provincia</Text>
-                <View style={styles.filterChips}>
-                  {PROVINCIAS.map((provincia) => (
-                    <TouchableOpacity
-                      key={provincia}
-                      style={[
-                        styles.filterChip,
-                        provinciaFiltro === provincia && styles.filterChipActive,
-                      ]}
-                      onPress={() => setProvinciaFiltro(provincia)}
-                    >
-                      <Text
-                        style={[
-                          styles.filterChipText,
-                          provinciaFiltro === provincia && styles.filterChipTextActive,
-                        ]}
-                      >
-                        {provincia}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                <TouchableOpacity
+                  style={styles.provinciaDropdownButton}
+                  onPress={() => setShowProvinciaDropdown(true)}
+                >
+                  <Text style={styles.provinciaDropdownText}>{provinciaFiltro}</Text>
+                  <IconSymbol name="chevron.down" size={20} color={colors.text} />
+                </TouchableOpacity>
               </View>
 
               <View style={{ height: 20 }} />
@@ -1666,6 +1694,53 @@ export default function LocalPerfilScreen() {
                 </LinearGradient>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Provincia Dropdown Modal */}
+      <Modal
+        visible={showProvinciaDropdown}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowProvinciaDropdown(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Seleccionar Provincia</Text>
+              <TouchableOpacity onPress={() => setShowProvinciaDropdown(false)}>
+                <IconSymbol name="xmark" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} style={styles.provinciaList}>
+              {PROVINCIAS.map((provincia) => (
+                <TouchableOpacity
+                  key={provincia}
+                  style={[
+                    styles.provinciaItem,
+                    provinciaFiltro === provincia && styles.provinciaItemActive,
+                  ]}
+                  onPress={() => {
+                    setProvinciaFiltro(provincia);
+                    setShowProvinciaDropdown(false);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.provinciaItemText,
+                      provinciaFiltro === provincia && styles.provinciaItemTextActive,
+                    ]}
+                  >
+                    {provincia}
+                  </Text>
+                  {provinciaFiltro === provincia && (
+                    <IconSymbol name="checkmark" size={20} color={colors.primary} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -1876,6 +1951,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  scrollView: {
+    flex: 1,
   },
   header: {
     paddingTop: 50,
@@ -2642,6 +2720,45 @@ const styles = StyleSheet.create({
   },
   filterChipTextActive: {
     color: colors.white,
+  },
+  provinciaDropdownButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  provinciaDropdownText: {
+    fontSize: 16,
+    color: colors.text,
+    fontWeight: '500',
+  },
+  provinciaList: {
+    maxHeight: 400,
+  },
+  provinciaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  provinciaItemActive: {
+    backgroundColor: colors.primary + '10',
+  },
+  provinciaItemText: {
+    fontSize: 16,
+    color: colors.text,
+  },
+  provinciaItemTextActive: {
+    fontWeight: '600',
+    color: colors.primary,
   },
   modalFooter: {
     flexDirection: 'row',
