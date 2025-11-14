@@ -258,7 +258,7 @@ export default function LocalPerfilScreen() {
   }, []);
 
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-    const R = 6371; // Earth's radius in km
+    const R = 6371;
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
     const a = 
@@ -305,7 +305,6 @@ export default function LocalPerfilScreen() {
         console.log('[LocalPerfil] ✅ User is viewing another local');
       }
 
-      // Load all content in parallel to avoid loading states when switching tabs
       const [postsResult, eventsResult, ofertasResult, demandantesResult, storiesResult, favResult] = await Promise.all([
         supabase
           .from('posts')
@@ -377,15 +376,12 @@ export default function LocalPerfilScreen() {
       if (!demandantesResult.error && demandantesResult.data) {
         console.log('[LocalPerfil] ✅ Loaded', demandantesResult.data.length, 'professional profiles');
         
-        // Sort by proximity if local has coordinates
         let sortedDemandantes = demandantesResult.data;
         if (localData.latitud && localData.longitud) {
           sortedDemandantes = demandantesResult.data.map(d => {
-            // For now, we'll use a placeholder distance calculation
-            // In a real app, you'd need to get user locations or use provincia as proxy
             return {
               ...d,
-              distancia: Math.random() * 100, // Placeholder - replace with actual distance
+              distancia: Math.random() * 100,
             };
           }).sort((a, b) => a.distancia - b.distancia);
         }
@@ -556,7 +552,6 @@ export default function LocalPerfilScreen() {
   };
 
   const handleEditarOferta = (ofertaId: string) => {
-    // Navigate to edit offer screen (to be implemented)
     Alert.alert('Editar Oferta', 'Funcionalidad de edición en desarrollo');
   };
 
@@ -1011,7 +1006,6 @@ export default function LocalPerfilScreen() {
     }
   }, [activeTab, empleoSubTab, loadMoreDemandantes, loadMoreOfertas]);
 
-  // Filter demandantes
   const demandantesFiltrados = demandantes.filter((perfil) => {
     const matchBusqueda = perfil.nombre_completo.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           perfil.puesto_deseado.toLowerCase().includes(searchQuery.toLowerCase());
@@ -1057,7 +1051,6 @@ export default function LocalPerfilScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Fixed Header */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         start={{ x: 0, y: 0 }}
@@ -1083,7 +1076,6 @@ export default function LocalPerfilScreen() {
         </View>
       </LinearGradient>
 
-      {/* Scrollable Content */}
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollViewContent}
@@ -1364,7 +1356,6 @@ export default function LocalPerfilScreen() {
 
           {activeTab === 'empleo' && (
             <View style={styles.empleoContainer}>
-              {/* Sub-tabs for Empleo */}
               <View style={styles.empleoSubTabs}>
                 <TouchableOpacity
                   style={[styles.empleoSubTab, empleoSubTab === 'ofertas' && styles.empleoSubTabActive]}
@@ -1488,10 +1479,20 @@ export default function LocalPerfilScreen() {
                       )}
                     </View>
                   )}
+                  {loadingMore && empleoSubTab === 'ofertas' && (
+                    <View style={styles.loadingMoreContainer}>
+                      <ActivityIndicator size="small" color={colors.primary} />
+                      <Text style={styles.loadingMoreText}>Cargando más ofertas...</Text>
+                    </View>
+                  )}
+                  {!hasMoreOfertas && ofertas.length > 0 && (
+                    <View style={styles.endOfListContainer}>
+                      <Text style={styles.endOfListText}>No hay más ofertas</Text>
+                    </View>
+                  )}
                 </>
               ) : (
                 <>
-                  {/* Search and filters for demandantes */}
                   <View style={styles.searchContainer}>
                     <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
                     <TextInput
@@ -1506,7 +1507,6 @@ export default function LocalPerfilScreen() {
                     </TouchableOpacity>
                   </View>
 
-                  {/* Active filters display */}
                   {(puestoFiltro !== 'Todos' || provinciaFiltro !== 'Todas') && (
                     <View style={styles.activeFilters}>
                       {puestoFiltro !== 'Todos' && (
@@ -1531,7 +1531,6 @@ export default function LocalPerfilScreen() {
                     </View>
                   )}
 
-                  {/* Demandantes list */}
                   {demandantesFiltrados.length > 0 ? (
                     demandantesFiltrados.map((perfil) => {
                       const diasPublicado = calcularDiasPublicado(perfil.created_at);
@@ -1623,23 +1622,16 @@ export default function LocalPerfilScreen() {
                     </View>
                   )}
 
-                  {/* Loading indicator for infinite scroll */}
-                  {loadingMore && (
+                  {loadingMore && empleoSubTab === 'demandantes' && (
                     <View style={styles.loadingMoreContainer}>
                       <ActivityIndicator size="small" color={colors.primary} />
-                      <Text style={styles.loadingMoreText}>Cargando más...</Text>
+                      <Text style={styles.loadingMoreText}>Cargando más demandantes...</Text>
                     </View>
                   )}
 
-                  {/* End of list indicator */}
-                  {!hasMoreDemandantes && demandantesFiltrados.length > 0 && empleoSubTab === 'demandantes' && (
+                  {!hasMoreDemandantes && demandantesFiltrados.length > 0 && (
                     <View style={styles.endOfListContainer}>
                       <Text style={styles.endOfListText}>No hay más demandantes</Text>
-                    </View>
-                  )}
-                  {!hasMoreOfertas && ofertas.length > 0 && empleoSubTab === 'ofertas' && (
-                    <View style={styles.endOfListContainer}>
-                      <Text style={styles.endOfListText}>No hay más ofertas</Text>
                     </View>
                   )}
                 </>
@@ -1739,18 +1731,16 @@ export default function LocalPerfilScreen() {
         </View>
       </ScrollView>
 
-      {/* Filters Modal */}
       <Modal
         visible={showFilters}
         animationType="slide"
         transparent={true}
         onRequestClose={() => setShowFilters(false)}
       >
-        <View style={styles.modalOverlay}>
-          <Pressable 
-            style={styles.modalBackdrop}
-            onPress={() => setShowFilters(false)}
-          />
+        <Pressable 
+          style={styles.modalOverlay}
+          onPress={() => setShowFilters(false)}
+        >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Filtros</Text>
@@ -1789,7 +1779,9 @@ export default function LocalPerfilScreen() {
                 <Text style={styles.filterTitle}>Provincia</Text>
                 <TouchableOpacity
                   style={styles.provinciaDropdownButton}
-                  onPress={() => setShowProvinciaDropdown(true)}
+                  onPress={() => {
+                    setShowProvinciaDropdown(true);
+                  }}
                   activeOpacity={0.7}
                 >
                   <Text style={styles.provinciaDropdownText}>{provinciaFiltro}</Text>
@@ -1820,21 +1812,19 @@ export default function LocalPerfilScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </Pressable>
       </Modal>
 
-      {/* Provincia Dropdown Modal - FIXED STRUCTURE */}
       <Modal
         visible={showProvinciaDropdown}
         animationType="slide"
         transparent={true}
         onRequestClose={() => setShowProvinciaDropdown(false)}
       >
-        <View style={styles.provinciaModalOverlay}>
-          <Pressable 
-            style={styles.provinciaModalBackdrop}
-            onPress={() => setShowProvinciaDropdown(false)}
-          />
+        <Pressable 
+          style={styles.provinciaModalOverlay}
+          onPress={() => setShowProvinciaDropdown(false)}
+        >
           <View style={styles.provinciaModalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Seleccionar Provincia</Text>
@@ -1872,7 +1862,7 @@ export default function LocalPerfilScreen() {
               ))}
             </ScrollView>
           </View>
-        </View>
+        </Pressable>
       </Modal>
 
       <Modal
@@ -2803,15 +2793,8 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    justifyContent: 'flex-end',
-  },
-  modalBackdrop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
   },
   modalContent: {
     backgroundColor: colors.cardBackground,
@@ -2822,15 +2805,8 @@ const styles = StyleSheet.create({
   },
   provinciaModalOverlay: {
     flex: 1,
-    justifyContent: 'flex-end',
-  },
-  provinciaModalBackdrop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
   },
   provinciaModalContent: {
     backgroundColor: colors.cardBackground,
