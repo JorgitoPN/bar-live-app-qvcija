@@ -1854,11 +1854,12 @@ export default function PerfilScreen() {
         transparent={true}
         onRequestClose={() => setShowFilters(false)}
       >
-        <Pressable 
-          style={styles.modalOverlay}
-          onPress={() => setShowFilters(false)}
-        >
-          <Pressable style={styles.filtersModal} onPress={(e) => e.stopPropagation()}>
+        <View style={styles.modalOverlay}>
+          <Pressable 
+            style={styles.modalOverlayTouchable}
+            onPress={() => setShowFilters(false)}
+          />
+          <View style={styles.filtersModal}>
             <View style={styles.filtersHeader}>
               <Text style={styles.filtersTitle}>Filtros</Text>
               <TouchableOpacity onPress={() => setShowFilters(false)}>
@@ -1908,8 +1909,8 @@ export default function PerfilScreen() {
                 <Text style={styles.applyFiltersText}>Aplicar</Text>
               </TouchableOpacity>
             </View>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
 
       <Modal
@@ -2689,6 +2690,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
+  },
+  modalOverlayTouchable: {
+    flex: 1,
   },
   filtersModal: {
     backgroundColor: colors.background,

@@ -815,6 +815,10 @@ export default function EmpleoScreen() {
         onRequestClose={() => setMostrarFiltros(false)}
       >
         <View style={styles.modalOverlay}>
+          <Pressable 
+            style={styles.modalOverlayTouchable}
+            onPress={() => setMostrarFiltros(false)}
+          />
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Filtros</Text>
@@ -1357,6 +1361,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
+  },
+  modalOverlayTouchable: {
+    flex: 1,
   },
   modalContent: {
     backgroundColor: colors.cardBackground,
