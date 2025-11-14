@@ -1731,20 +1731,19 @@ export default function LocalPerfilScreen() {
         </View>
       </ScrollView>
 
+      {/* Filters Modal */}
       <Modal
         visible={showFilters}
         animationType="slide"
         transparent={true}
         onRequestClose={() => setShowFilters(false)}
       >
-        <Pressable 
-          style={styles.modalOverlay}
-          onPress={() => setShowFilters(false)}
-        >
+        <View style={styles.modalOverlay}>
           <Pressable 
-            style={styles.modalContent}
-            onPress={(e) => e.stopPropagation()}
-          >
+            style={styles.modalBackdrop}
+            onPress={() => setShowFilters(false)}
+          />
+          <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Filtros</Text>
               <TouchableOpacity onPress={() => setShowFilters(false)}>
@@ -1782,9 +1781,7 @@ export default function LocalPerfilScreen() {
                 <Text style={styles.filterTitle}>Provincia</Text>
                 <TouchableOpacity
                   style={styles.provinciaDropdownButton}
-                  onPress={() => {
-                    setShowProvinciaDropdown(true);
-                  }}
+                  onPress={() => setShowProvinciaDropdown(true)}
                   activeOpacity={0.7}
                 >
                   <Text style={styles.provinciaDropdownText}>{provinciaFiltro}</Text>
@@ -1814,24 +1811,23 @@ export default function LocalPerfilScreen() {
                 </LinearGradient>
               </TouchableOpacity>
             </View>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
 
+      {/* Province Dropdown Modal */}
       <Modal
         visible={showProvinciaDropdown}
         animationType="slide"
         transparent={true}
         onRequestClose={() => setShowProvinciaDropdown(false)}
       >
-        <Pressable 
-          style={styles.provinciaModalOverlay}
-          onPress={() => setShowProvinciaDropdown(false)}
-        >
+        <View style={styles.provinciaModalOverlay}>
           <Pressable 
-            style={styles.provinciaModalContent}
-            onPress={(e) => e.stopPropagation()}
-          >
+            style={styles.provinciaModalBackdrop}
+            onPress={() => setShowProvinciaDropdown(false)}
+          />
+          <View style={styles.provinciaModalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Seleccionar Provincia</Text>
               <TouchableOpacity onPress={() => setShowProvinciaDropdown(false)}>
@@ -1867,10 +1863,11 @@ export default function LocalPerfilScreen() {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
 
+      {/* Story Viewer Modal */}
       <Modal
         visible={showStoryViewer}
         animationType="fade"
@@ -2000,6 +1997,7 @@ export default function LocalPerfilScreen() {
         </View>
       </Modal>
 
+      {/* Create Options Modal */}
       <Modal
         visible={showCreateOptions}
         animationType="slide"
@@ -2802,6 +2800,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
+  modalBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
   modalContent: {
     backgroundColor: colors.cardBackground,
     borderTopLeftRadius: 20,
@@ -2813,6 +2818,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
+  },
+  provinciaModalBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   provinciaModalContent: {
     backgroundColor: colors.cardBackground,
