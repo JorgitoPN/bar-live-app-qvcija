@@ -1737,12 +1737,14 @@ export default function LocalPerfilScreen() {
         transparent={true}
         onRequestClose={() => setShowFilters(false)}
       >
-        <View style={styles.modalOverlay}>
+        <Pressable 
+          style={styles.modalOverlay}
+          onPress={() => setShowFilters(false)}
+        >
           <Pressable 
-            style={styles.modalOverlayTouchable}
-            onPress={() => setShowFilters(false)}
-          />
-          <View style={styles.modalContent}>
+            style={styles.modalContent}
+            onPress={(e) => e.stopPropagation()}
+          >
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Filtros</Text>
               <TouchableOpacity onPress={() => setShowFilters(false)}>
@@ -1812,8 +1814,8 @@ export default function LocalPerfilScreen() {
                 </LinearGradient>
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
 
       <Modal
@@ -1822,12 +1824,14 @@ export default function LocalPerfilScreen() {
         transparent={true}
         onRequestClose={() => setShowProvinciaDropdown(false)}
       >
-        <View style={styles.provinciaModalOverlay}>
+        <Pressable 
+          style={styles.provinciaModalOverlay}
+          onPress={() => setShowProvinciaDropdown(false)}
+        >
           <Pressable 
-            style={styles.provinciaModalOverlayTouchable}
-            onPress={() => setShowProvinciaDropdown(false)}
-          />
-          <View style={styles.provinciaModalContent}>
+            style={styles.provinciaModalContent}
+            onPress={(e) => e.stopPropagation()}
+          >
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Seleccionar Provincia</Text>
               <TouchableOpacity onPress={() => setShowProvinciaDropdown(false)}>
@@ -1863,8 +1867,8 @@ export default function LocalPerfilScreen() {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
 
       <Modal
@@ -2798,13 +2802,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
-  modalOverlayTouchable: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
   modalContent: {
     backgroundColor: colors.cardBackground,
     borderTopLeftRadius: 20,
@@ -2816,13 +2813,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
-  },
-  provinciaModalOverlayTouchable: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
   },
   provinciaModalContent: {
     backgroundColor: colors.cardBackground,
