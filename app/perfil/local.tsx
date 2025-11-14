@@ -1786,6 +1786,7 @@ export default function LocalPerfilScreen() {
                 <TouchableOpacity
                   style={styles.provinciaDropdownButton}
                   onPress={() => setShowProvinciaDropdown(true)}
+                  activeOpacity={0.7}
                 >
                   <Text style={styles.provinciaDropdownText}>{provinciaFiltro}</Text>
                   <IconSymbol name="chevron.down" size={20} color={colors.text} />
@@ -1825,12 +1826,14 @@ export default function LocalPerfilScreen() {
         transparent={true}
         onRequestClose={() => setShowProvinciaDropdown(false)}
       >
-        <View style={styles.modalOverlay}>
+        <Pressable 
+          style={styles.modalOverlay}
+          onPress={() => setShowProvinciaDropdown(false)}
+        >
           <Pressable 
-            style={styles.modalOverlayTouchable}
-            onPress={() => setShowProvinciaDropdown(false)}
-          />
-          <View style={styles.modalContent}>
+            style={styles.provinciaModalContent}
+            onPress={(e) => e.stopPropagation()}
+          >
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Seleccionar Provincia</Text>
               <TouchableOpacity onPress={() => setShowProvinciaDropdown(false)}>
@@ -1866,8 +1869,8 @@ export default function LocalPerfilScreen() {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
 
       <Modal
@@ -2801,15 +2804,19 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
-  modalOverlayTouchable: {
-    flex: 1,
-  },
   modalContent: {
     backgroundColor: colors.cardBackground,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
     maxHeight: '80%',
+  },
+  provinciaModalContent: {
+    backgroundColor: colors.cardBackground,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: '70%',
   },
   modalHeader: {
     flexDirection: 'row',
