@@ -1575,90 +1575,9 @@ export default function PerfilScreen() {
 
   return (
     <View style={commonStyles.container}>
-      <LinearGradient
-        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.header}
-      >
-        <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Mi Perfil</Text>
-          <View style={styles.headerActions}>
-            <TouchableOpacity style={styles.headerButton} onPress={handleChats}>
-              <IconSymbol name="message.fill" size={24} color={colors.headerText} />
-              {unreadMessages > 0 && (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>
-                    {unreadMessages > 99 ? '99+' : unreadMessages}
-                  </Text>
-                </View>
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.headerButton} onPress={handleNotifications}>
-              <IconSymbol name="bell.fill" size={24} color={colors.headerText} />
-              {unreadNotifications > 0 && (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>
-                    {unreadNotifications > 99 ? '99+' : unreadNotifications}
-                  </Text>
-                </View>
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.headerButton} onPress={handleSettings}>
-              <IconSymbol name="gearshape.fill" size={24} color={colors.headerText} />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {renderProfileHeader()}
-      </LinearGradient>
-
-      <View style={styles.tabsContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'posts' && styles.tabActive]}
-          onPress={() => setActiveTab('posts')}
-        >
-          <IconSymbol 
-            name="square.grid.3x3" 
-            size={24} 
-            color={activeTab === 'posts' ? colors.primary : colors.textSecondary} 
-          />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'favoritos' && styles.tabActive]}
-          onPress={() => setActiveTab('favoritos')}
-        >
-          <IconSymbol 
-            name="bookmark" 
-            size={24} 
-            color={activeTab === 'favoritos' ? colors.primary : colors.textSecondary} 
-          />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'etiquetados' && styles.tabActive]}
-          onPress={() => setActiveTab('etiquetados')}
-        >
-          <IconSymbol 
-            name="person.crop.square" 
-            size={24} 
-            color={activeTab === 'etiquetados' ? colors.primary : colors.textSecondary} 
-          />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'empleo' && styles.tabActive]}
-          onPress={() => setActiveTab('empleo')}
-        >
-          <IconSymbol 
-            name="briefcase" 
-            size={24} 
-            color={activeTab === 'empleo' ? colors.primary : colors.textSecondary} 
-          />
-        </TouchableOpacity>
-      </View>
-
       <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.contentContainer}
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollViewContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -1666,173 +1585,256 @@ export default function PerfilScreen() {
         onScroll={activeTab === 'empleo' ? handleScrollEmpleo : undefined}
         scrollEventThrottle={400}
       >
-        {loadingPosts ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={colors.primary} />
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.header}
+        >
+          <View style={styles.headerContent}>
+            <Text style={styles.headerTitle}>Mi Perfil</Text>
+            <View style={styles.headerActions}>
+              <TouchableOpacity style={styles.headerButton} onPress={handleChats}>
+                <IconSymbol name="message.fill" size={24} color={colors.headerText} />
+                {unreadMessages > 0 && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>
+                      {unreadMessages > 99 ? '99+' : unreadMessages}
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.headerButton} onPress={handleNotifications}>
+                <IconSymbol name="bell.fill" size={24} color={colors.headerText} />
+                {unreadNotifications > 0 && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>
+                      {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.headerButton} onPress={handleSettings}>
+                <IconSymbol name="gearshape.fill" size={24} color={colors.headerText} />
+              </TouchableOpacity>
+            </View>
           </View>
-        ) : (
-          <>
-            {activeTab === 'empleo' ? (
-              <View style={styles.empleoSection}>
-                <View style={styles.searchContainer}>
-                  <View style={styles.searchBar}>
-                    <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
-                    <TextInput
-                      style={styles.searchInput}
-                      placeholder="Buscar..."
-                      value={searchQuery}
-                      onChangeText={setSearchQuery}
-                      placeholderTextColor={colors.textSecondary}
-                    />
-                    {searchQuery.length > 0 && (
-                      <TouchableOpacity onPress={() => setSearchQuery('')}>
-                        <IconSymbol name="xmark.circle.fill" size={20} color={colors.textSecondary} />
+
+          {renderProfileHeader()}
+        </LinearGradient>
+
+        <View style={styles.tabsContainer}>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'posts' && styles.tabActive]}
+            onPress={() => setActiveTab('posts')}
+          >
+            <IconSymbol 
+              name="square.grid.3x3" 
+              size={24} 
+              color={activeTab === 'posts' ? colors.primary : colors.textSecondary} 
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'favoritos' && styles.tabActive]}
+            onPress={() => setActiveTab('favoritos')}
+          >
+            <IconSymbol 
+              name="bookmark" 
+              size={24} 
+              color={activeTab === 'favoritos' ? colors.primary : colors.textSecondary} 
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'etiquetados' && styles.tabActive]}
+            onPress={() => setActiveTab('etiquetados')}
+          >
+            <IconSymbol 
+              name="person.crop.square" 
+              size={24} 
+              color={activeTab === 'etiquetados' ? colors.primary : colors.textSecondary} 
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'empleo' && styles.tabActive]}
+            onPress={() => setActiveTab('empleo')}
+          >
+            <IconSymbol 
+              name="briefcase" 
+              size={24} 
+              color={activeTab === 'empleo' ? colors.primary : colors.textSecondary} 
+            />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.content}>
+          {loadingPosts ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.primary} />
+            </View>
+          ) : (
+            <>
+              {activeTab === 'empleo' ? (
+                <View style={styles.empleoSection}>
+                  <View style={styles.searchContainer}>
+                    <View style={styles.searchBar}>
+                      <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
+                      <TextInput
+                        style={styles.searchInput}
+                        placeholder="Buscar..."
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                        placeholderTextColor={colors.textSecondary}
+                      />
+                      {searchQuery.length > 0 && (
+                        <TouchableOpacity onPress={() => setSearchQuery('')}>
+                          <IconSymbol name="xmark.circle.fill" size={20} color={colors.textSecondary} />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                    <TouchableOpacity 
+                      style={styles.filterButton}
+                      onPress={() => setShowFilters(true)}
+                    >
+                      <IconSymbol 
+                        name="line.3.horizontal.decrease.circle" 
+                        size={24} 
+                        color={provinciaFiltro ? colors.primary : colors.text} 
+                      />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.empleoTabs}>
+                    {isOwnerMode && (
+                      <TouchableOpacity
+                        style={[styles.empleoTab, empleoTab === 'ofertas' && styles.empleoTabActive]}
+                        onPress={() => setEmpleoTab('ofertas')}
+                      >
+                        <Text
+                          style={[
+                            styles.empleoTabText,
+                            empleoTab === 'ofertas' && styles.empleoTabTextActive,
+                          ]}
+                        >
+                          Mis Ofertas
+                        </Text>
                       </TouchableOpacity>
                     )}
-                  </View>
-                  <TouchableOpacity 
-                    style={styles.filterButton}
-                    onPress={() => setShowFilters(true)}
-                  >
-                    <IconSymbol 
-                      name="line.3.horizontal.decrease.circle" 
-                      size={24} 
-                      color={provinciaFiltro ? colors.primary : colors.text} 
-                    />
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.empleoTabs}>
-                  {isOwnerMode && (
                     <TouchableOpacity
-                      style={[styles.empleoTab, empleoTab === 'ofertas' && styles.empleoTabActive]}
-                      onPress={() => setEmpleoTab('ofertas')}
+                      style={[styles.empleoTab, empleoTab === 'perfiles' && styles.empleoTabActive]}
+                      onPress={() => setEmpleoTab('perfiles')}
                     >
                       <Text
                         style={[
                           styles.empleoTabText,
-                          empleoTab === 'ofertas' && styles.empleoTabTextActive,
+                          empleoTab === 'perfiles' && styles.empleoTabTextActive,
                         ]}
                       >
-                        Mis Ofertas
+                        Mi Perfil
                       </Text>
                     </TouchableOpacity>
+                  </View>
+
+                  {loadingEmpleo ? (
+                    <View style={styles.loadingContainer}>
+                      <ActivityIndicator size="small" color={colors.primary} />
+                    </View>
+                  ) : (
+                    <View style={styles.empleoContent}>
+                      {empleoTab === 'ofertas' && isOwnerMode ? (
+                        ofertas.length > 0 ? (
+                          ofertas.map(renderOferta)
+                        ) : (
+                          <View style={styles.emptyState}>
+                            <IconSymbol name="briefcase" size={48} color={colors.textSecondary} />
+                            <Text style={styles.emptyStateText}>
+                              {searchQuery || provinciaFiltro 
+                                ? 'No se encontraron ofertas con los filtros aplicados'
+                                : 'No has creado ofertas de trabajo'}
+                            </Text>
+                            {!searchQuery && !provinciaFiltro && (
+                              <TouchableOpacity style={styles.emptyStateButton} onPress={handleCrearOferta}>
+                                <Text style={styles.emptyStateButtonText}>Crear Oferta</Text>
+                              </TouchableOpacity>
+                            )}
+                          </View>
+                        )
+                      ) : (
+                        perfiles.length > 0 ? (
+                          perfiles.map(renderPerfil)
+                        ) : (
+                          <View style={styles.emptyState}>
+                            <IconSymbol name="person.2" size={48} color={colors.textSecondary} />
+                            <Text style={styles.emptyStateText}>
+                              {searchQuery || provinciaFiltro 
+                                ? 'No se encontraron perfiles con los filtros aplicados'
+                                : 'No has creado tu perfil profesional'}
+                            </Text>
+                            {!searchQuery && !provinciaFiltro && (
+                              <TouchableOpacity style={styles.emptyStateButton} onPress={handleCrearPerfil}>
+                                <Text style={styles.emptyStateButtonText}>Crear Perfil</Text>
+                              </TouchableOpacity>
+                            )}
+                          </View>
+                        )
+                      )}
+
+                      {/* Loading indicator for infinite scroll */}
+                      {loadingMore && (
+                        <View style={styles.loadingMoreContainer}>
+                          <ActivityIndicator size="small" color={colors.primary} />
+                          <Text style={styles.loadingMoreText}>Cargando más...</Text>
+                        </View>
+                      )}
+
+                      {/* End of list indicator */}
+                      {!hasMoreOfertas && ofertas.length > 0 && empleoTab === 'ofertas' && (
+                        <View style={styles.endOfListContainer}>
+                          <Text style={styles.endOfListText}>No hay más ofertas</Text>
+                        </View>
+                      )}
+                      {!hasMorePerfiles && perfiles.length > 0 && empleoTab === 'perfiles' && (
+                        <View style={styles.endOfListContainer}>
+                          <Text style={styles.endOfListText}>No hay más perfiles</Text>
+                        </View>
+                      )}
+                    </View>
                   )}
-                  <TouchableOpacity
-                    style={[styles.empleoTab, empleoTab === 'perfiles' && styles.empleoTabActive]}
-                    onPress={() => setEmpleoTab('perfiles')}
-                  >
-                    <Text
-                      style={[
-                        styles.empleoTabText,
-                        empleoTab === 'perfiles' && styles.empleoTabTextActive,
-                      ]}
-                    >
-                      Mi Perfil
-                    </Text>
-                  </TouchableOpacity>
                 </View>
-
-                {loadingEmpleo ? (
-                  <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="small" color={colors.primary} />
-                  </View>
-                ) : (
-                  <View style={styles.empleoContent}>
-                    {empleoTab === 'ofertas' && isOwnerMode ? (
-                      ofertas.length > 0 ? (
-                        ofertas.map(renderOferta)
-                      ) : (
-                        <View style={styles.emptyState}>
-                          <IconSymbol name="briefcase" size={48} color={colors.textSecondary} />
-                          <Text style={styles.emptyStateText}>
-                            {searchQuery || provinciaFiltro 
-                              ? 'No se encontraron ofertas con los filtros aplicados'
-                              : 'No has creado ofertas de trabajo'}
-                          </Text>
-                          {!searchQuery && !provinciaFiltro && (
-                            <TouchableOpacity style={styles.emptyStateButton} onPress={handleCrearOferta}>
-                              <Text style={styles.emptyStateButtonText}>Crear Oferta</Text>
-                            </TouchableOpacity>
-                          )}
-                        </View>
-                      )
-                    ) : (
-                      perfiles.length > 0 ? (
-                        perfiles.map(renderPerfil)
-                      ) : (
-                        <View style={styles.emptyState}>
-                          <IconSymbol name="person.2" size={48} color={colors.textSecondary} />
-                          <Text style={styles.emptyStateText}>
-                            {searchQuery || provinciaFiltro 
-                              ? 'No se encontraron perfiles con los filtros aplicados'
-                              : 'No has creado tu perfil profesional'}
-                          </Text>
-                          {!searchQuery && !provinciaFiltro && (
-                            <TouchableOpacity style={styles.emptyStateButton} onPress={handleCrearPerfil}>
-                              <Text style={styles.emptyStateButtonText}>Crear Perfil</Text>
-                            </TouchableOpacity>
-                          )}
-                        </View>
-                      )
-                    )}
-
-                    {/* Loading indicator for infinite scroll */}
-                    {loadingMore && (
-                      <View style={styles.loadingMoreContainer}>
-                        <ActivityIndicator size="small" color={colors.primary} />
-                        <Text style={styles.loadingMoreText}>Cargando más...</Text>
-                      </View>
-                    )}
-
-                    {/* End of list indicator */}
-                    {!hasMoreOfertas && ofertas.length > 0 && empleoTab === 'ofertas' && (
-                      <View style={styles.endOfListContainer}>
-                        <Text style={styles.endOfListText}>No hay más ofertas</Text>
-                      </View>
-                    )}
-                    {!hasMorePerfiles && perfiles.length > 0 && empleoTab === 'perfiles' && (
-                      <View style={styles.endOfListContainer}>
-                        <Text style={styles.endOfListText}>No hay más perfiles</Text>
-                      </View>
-                    )}
-                  </View>
-                )}
-              </View>
-            ) : (
-              <View style={styles.postsGrid}>
-                {currentPosts.length > 0 ? (
-                  currentPosts.map(renderGridPost)
-                ) : (
-                  <View style={styles.emptyState}>
-                    <IconSymbol 
-                      name={
-                        activeTab === 'posts' ? 'photo.on.rectangle' : 
-                        activeTab === 'favoritos' ? 'bookmark' : 
-                        'person.crop.square'
-                      } 
-                      size={48} 
-                      color={colors.textSecondary} 
-                    />
-                    <Text style={styles.emptyStateText}>
-                      {activeTab === 'posts' ? 'No hay publicaciones aún' :
-                       activeTab === 'favoritos' ? 'No hay publicaciones guardadas' :
-                       'No hay publicaciones etiquetadas'}
-                    </Text>
-                    {activeTab === 'posts' && (
-                      <TouchableOpacity 
-                        style={styles.emptyStateButton} 
-                        onPress={() => router.push('/crear/publicacion')}
-                      >
-                        <Text style={styles.emptyStateButtonText}>Crear Publicación</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                )}
-              </View>
-            )}
-          </>
-        )}
+              ) : (
+                <View style={styles.postsGrid}>
+                  {currentPosts.length > 0 ? (
+                    currentPosts.map(renderGridPost)
+                  ) : (
+                    <View style={styles.emptyState}>
+                      <IconSymbol 
+                        name={
+                          activeTab === 'posts' ? 'photo.on.rectangle' : 
+                          activeTab === 'favoritos' ? 'bookmark' : 
+                          'person.crop.square'
+                        } 
+                        size={48} 
+                        color={colors.textSecondary} 
+                      />
+                      <Text style={styles.emptyStateText}>
+                        {activeTab === 'posts' ? 'No hay publicaciones aún' :
+                         activeTab === 'favoritos' ? 'No hay publicaciones guardadas' :
+                         'No hay publicaciones etiquetadas'}
+                      </Text>
+                      {activeTab === 'posts' && (
+                        <TouchableOpacity 
+                          style={styles.emptyStateButton} 
+                          onPress={() => router.push('/crear/publicacion')}
+                        >
+                          <Text style={styles.emptyStateButtonText}>Crear Publicación</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  )}
+                </View>
+              )}
+            </>
+          )}
+        </View>
       </ScrollView>
 
       <Modal
@@ -2141,6 +2143,12 @@ export default function PerfilScreen() {
 }
 
 const styles = StyleSheet.create({
+  scrollView: {
+    flex: 1,
+  },
+  scrollViewContent: {
+    paddingBottom: 100,
+  },
   header: {
     paddingTop: 50,
     paddingBottom: 24,
@@ -2187,9 +2195,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-  },
-  contentContainer: {
-    paddingBottom: 100,
   },
   notLoggedInContainer: {
     flex: 1,
