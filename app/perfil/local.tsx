@@ -1747,6 +1747,10 @@ export default function LocalPerfilScreen() {
         onRequestClose={() => setShowFilters(false)}
       >
         <View style={styles.modalOverlay}>
+          <Pressable 
+            style={styles.modalBackdrop}
+            onPress={() => setShowFilters(false)}
+          />
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Filtros</Text>
@@ -2799,8 +2803,15 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
+  },
+  modalBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
     backgroundColor: colors.cardBackground,
