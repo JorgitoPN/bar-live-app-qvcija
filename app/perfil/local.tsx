@@ -224,6 +224,14 @@ export default function LocalPerfilScreen() {
   const isInteractingAsLocal = activeProfileType === 'local';
   const activeLocalProfileId = activeProfileType === 'local' ? activeProfileId : null;
 
+  // Pre-load all tab content to avoid loading states
+  const [contentLoaded, setContentLoaded] = useState({
+    posts: false,
+    eventos: false,
+    empleo: false,
+    info: false,
+  });
+
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -288,63 +296,78 @@ export default function LocalPerfilScreen() {
         console.log('[LocalPerfil] ✅ User is viewing another local');
       }
 
-      const { data: postsData, error: postsError } = await supabase
-        .from('posts')
-        .select('*')
-        .eq('tipo', 'local')
-        .eq('local_id', localId)
-        .order('created_at', { ascending: false });
+      // Load all content in parallel to avoid loading states when switching tabs
+      const [postsResult, eventsResult, ofertasResult, demandantesResult, storiesResult, favResult] = await Promise.all([
+        supabase
+          .from('posts')
+          .select('*')
+          .eq('tipo', 'local')
+          .eq('local_id', localId)
+          .order('created_at', { ascending: false }),
+        
+        supabase
+          .from('eventos')
+          .select('*')
+          .eq('local_id', localId)
+          .eq('activo', true)
+          .gte('fecha', new Date().toISOString().split('T')[0])
+          .order('fecha', { ascending: true })
+          .limit(6),
+        
+        supabase
+          .from('ofertas_trabajo')
+          .select('*')
+          .eq('local_id', localId)
+          .eq('activo', true)
+          .order('created_at', { ascending: false }),
+        
+        supabase
+          .from('perfiles_profesionales')
+          .select(`
+            *,
+            usuario:usuarios(nombre, avatar, username)
+          `)
+          .eq('activo', true)
+          .order('created_at', { ascending: false }),
+        
+        supabase
+          .from('historias')
+          .select('*')
+          .eq('tipo', 'local')
+          .eq('local_id', localId)
+          .gt('expires_at', new Date().toISOString())
+          .order('created_at', { ascending: true }),
+        
+        user ? supabase
+          .from('locales_favoritos')
+          .select('id')
+          .eq('usuario_id', user.id)
+          .eq('local_id', localId)
+          .single() : Promise.resolve({ data: null })
+      ]);
 
-      if (!postsError) {
-        console.log('[LocalPerfil] ✅ Loaded', postsData?.length || 0, 'posts for local');
-        setPosts(postsData || []);
-      } else {
-        console.error('[LocalPerfil] Error loading posts:', postsError);
+      if (!postsResult.error) {
+        console.log('[LocalPerfil] ✅ Loaded', postsResult.data?.length || 0, 'posts for local');
+        setPosts(postsResult.data || []);
+        setContentLoaded(prev => ({ ...prev, posts: true }));
       }
 
-      const { data: eventsData, error: eventsError } = await supabase
-        .from('eventos')
-        .select('*')
-        .eq('local_id', localId)
-        .eq('activo', true)
-        .gte('fecha', new Date().toISOString().split('T')[0])
-        .order('fecha', { ascending: true })
-        .limit(6);
-
-      if (!eventsError) {
-        setEvents(eventsData || []);
+      if (!eventsResult.error) {
+        setEvents(eventsResult.data || []);
+        setContentLoaded(prev => ({ ...prev, eventos: true }));
       }
 
-      const { data: ofertasData, error: ofertasError } = await supabase
-        .from('ofertas_trabajo')
-        .select('*')
-        .eq('local_id', localId)
-        .eq('activo', true)
-        .order('created_at', { ascending: false });
-
-      if (!ofertasError) {
-        console.log('[LocalPerfil] ✅ Loaded', ofertasData?.length || 0, 'job offers for local');
-        setOfertas(ofertasData || []);
-      } else {
-        console.error('[LocalPerfil] Error loading job offers:', ofertasError);
+      if (!ofertasResult.error) {
+        console.log('[LocalPerfil] ✅ Loaded', ofertasResult.data?.length || 0, 'job offers for local');
+        setOfertas(ofertasResult.data || []);
       }
 
-      // Load professional profiles (demandantes)
-      const { data: demandantesData, error: demandantesError } = await supabase
-        .from('perfiles_profesionales')
-        .select(`
-          *,
-          usuario:usuarios(nombre, avatar, username)
-        `)
-        .eq('activo', true)
-        .order('created_at', { ascending: false });
-
-      if (!demandantesError && demandantesData) {
-        console.log('[LocalPerfil] ✅ Loaded', demandantesData.length, 'professional profiles');
+      if (!demandantesResult.error && demandantesResult.data) {
+        console.log('[LocalPerfil] ✅ Loaded', demandantesResult.data.length, 'professional profiles');
         
         // Sort by proximity if local has coordinates
         if (localData.latitud && localData.longitud) {
-          const demandantesConDistancia = demandantesData.map(d => {
+          const demandantesConDistancia = demandantesResult.data.map(d => {
             // For now, we'll use a placeholder distance calculation
             // In a real app, you'd need to get user locations or use provincia as proxy
             return {
@@ -355,23 +378,14 @@ export default function LocalPerfilScreen() {
           
           setDemandantes(demandantesConDistancia);
         } else {
-          setDemandantes(demandantesData);
+          setDemandantes(demandantesResult.data);
         }
-      } else {
-        console.error('[LocalPerfil] Error loading demandantes:', demandantesError);
+        setContentLoaded(prev => ({ ...prev, empleo: true }));
       }
 
-      const { data: storiesData } = await supabase
-        .from('historias')
-        .select('*')
-        .eq('tipo', 'local')
-        .eq('local_id', localId)
-        .gt('expires_at', new Date().toISOString())
-        .order('created_at', { ascending: true });
-
-      if (storiesData && user) {
-        console.log('[LocalPerfil] ✅ Loaded', storiesData.length, 'stories for local');
-        const storyIds = storiesData.map(s => s.id);
+      if (storiesResult.data && user) {
+        console.log('[LocalPerfil] ✅ Loaded', storiesResult.data.length, 'stories for local');
+        const storyIds = storiesResult.data.map(s => s.id);
         
         const [viewedData, viewsCountData, likesCountData, likedData] = await Promise.all([
           supabase
@@ -407,7 +421,7 @@ export default function LocalPerfilScreen() {
           return acc;
         }, {} as Record<string, number>) || {};
 
-        const storiesWithStatus = storiesData.map(story => ({
+        const storiesWithStatus = storiesResult.data.map(story => ({
           ...story,
           visto_por_usuario: viewedStoryIds.has(story.id),
           views_count: viewsCounts[story.id] || 0,
@@ -416,20 +430,12 @@ export default function LocalPerfilScreen() {
         }));
 
         setLocalStories(storiesWithStatus);
-      } else if (storiesData) {
-        setLocalStories(storiesData);
+      } else if (storiesResult.data) {
+        setLocalStories(storiesResult.data);
       }
 
-      if (user) {
-        const { data: favData } = await supabase
-          .from('locales_favoritos')
-          .select('id')
-          .eq('usuario_id', user.id)
-          .eq('local_id', localId)
-          .single();
-
-        setIsFavorito(!!favData);
-      }
+      setIsFavorito(!!favResult.data);
+      setContentLoaded(prev => ({ ...prev, info: true }));
 
       console.log('[LocalPerfil] ✅ Local data loaded successfully');
     } catch (error) {
