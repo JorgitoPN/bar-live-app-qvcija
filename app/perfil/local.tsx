@@ -1057,25 +1057,19 @@ export default function LocalPerfilScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={{ paddingBottom: 100 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        showsVerticalScrollIndicator={false}
-        onScroll={handleScroll}
-        scrollEventThrottle={400}
+      {/* Fixed Header */}
+      <LinearGradient
+        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.fixedHeader}
       >
-        <LinearGradient
-          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.header}
-        >
-          <View style={styles.headerTop}>
-            <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
-              <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>{local.nombre}</Text>
+        <View style={styles.headerContent}>
+          <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
+            <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{local.nombre}</Text>
+          <View style={styles.headerActions}>
             {isOwner && (user?.rol_app === 'propietario' || ownedLocals.length > 0) && (
               <TouchableOpacity 
                 style={styles.switchProfileButton}
@@ -1085,9 +1079,27 @@ export default function LocalPerfilScreen() {
                 <IconSymbol name="arrow.triangle.2.circlepath" size={24} color={colors.headerText} />
               </TouchableOpacity>
             )}
-            {!isOwner && <View style={styles.headerButton} />}
           </View>
+        </View>
+      </LinearGradient>
 
+      {/* Scrollable Content */}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollViewContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+        overScrollMode="never"
+        onScroll={handleScroll}
+        scrollEventThrottle={400}
+      >
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.profileHeaderGradient}
+        >
           {local.imagen_portada && (
             <View style={styles.coverPhotoContainer}>
               <Image 
@@ -2065,19 +2077,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  scrollView: {
-    flex: 1,
-  },
-  header: {
+  fixedHeader: {
     paddingTop: 50,
-    paddingBottom: 24,
+    paddingBottom: 16,
     paddingHorizontal: 20,
   },
-  headerTop: {
+  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
   },
   backButton: {
     padding: 8,
@@ -2089,12 +2097,23 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'center',
   },
-  headerButton: {
-    padding: 8,
-    width: 40,
+  headerActions: {
+    flexDirection: 'row',
+    gap: 8,
   },
   switchProfileButton: {
     padding: 8,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollViewContent: {
+    paddingBottom: 100,
+  },
+  profileHeaderGradient: {
+    paddingTop: 24,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
   },
   coverPhotoContainer: {
     width: '100%',
