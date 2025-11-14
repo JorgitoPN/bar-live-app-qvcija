@@ -205,6 +205,15 @@ export default function LocalPerfilScreen() {
   const [puestoFiltro, setPuestoFiltro] = useState('Todos');
   const [provinciaFiltro, setProvinciaFiltro] = useState('Todas');
   const [showProvinciaDropdown, setShowProvinciaDropdown] = useState(false);
+  
+  // Infinite scroll state
+  const [demandantesPage, setDemandantesPage] = useState(1);
+  const [ofertasPage, setOfertasPage] = useState(1);
+  const [hasMoreDemandantes, setHasMoreDemandantes] = useState(true);
+  const [hasMoreOfertas, setHasMoreOfertas] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  
+  const ITEMS_PER_PAGE = 20;
 
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [localStories, setLocalStories] = useState<LocalStory[]>([]);
@@ -359,15 +368,19 @@ export default function LocalPerfilScreen() {
 
       if (!ofertasResult.error) {
         console.log('[LocalPerfil] ✅ Loaded', ofertasResult.data?.length || 0, 'job offers for local');
-        setOfertas(ofertasResult.data || []);
+        const initialOfertas = (ofertasResult.data || []).slice(0, ITEMS_PER_PAGE);
+        setOfertas(initialOfertas);
+        setHasMoreOfertas((ofertasResult.data || []).length > ITEMS_PER_PAGE);
+        setOfertasPage(1);
       }
 
       if (!demandantesResult.error && demandantesResult.data) {
         console.log('[LocalPerfil] ✅ Loaded', demandantesResult.data.length, 'professional profiles');
         
         // Sort by proximity if local has coordinates
+        let sortedDemandantes = demandantesResult.data;
         if (localData.latitud && localData.longitud) {
-          const demandantesConDistancia = demandantesResult.data.map(d => {
+          sortedDemandantes = demandantesResult.data.map(d => {
             // For now, we'll use a placeholder distance calculation
             // In a real app, you'd need to get user locations or use provincia as proxy
             return {
@@ -375,11 +388,12 @@ export default function LocalPerfilScreen() {
               distancia: Math.random() * 100, // Placeholder - replace with actual distance
             };
           }).sort((a, b) => a.distancia - b.distancia);
-          
-          setDemandantes(demandantesConDistancia);
-        } else {
-          setDemandantes(demandantesResult.data);
         }
+        
+        const initialDemandantes = sortedDemandantes.slice(0, ITEMS_PER_PAGE);
+        setDemandantes(initialDemandantes);
+        setHasMoreDemandantes(sortedDemandantes.length > ITEMS_PER_PAGE);
+        setDemandantesPage(1);
         setContentLoaded(prev => ({ ...prev, empleo: true }));
       }
 
@@ -931,6 +945,72 @@ export default function LocalPerfilScreen() {
     setSearchQuery('');
   };
 
+  const loadMoreDemandantes = useCallback(async () => {
+    if (loadingMore || !hasMoreDemandantes) return;
+
+    setLoadingMore(true);
+    try {
+      const { data, error } = await supabase
+        .from('perfiles_profesionales')
+        .select(`
+          *,
+          usuario:usuarios(nombre, avatar, username)
+        `)
+        .eq('activo', true)
+        .order('created_at', { ascending: false })
+        .range(demandantesPage * ITEMS_PER_PAGE, (demandantesPage + 1) * ITEMS_PER_PAGE - 1);
+
+      if (!error && data) {
+        setDemandantes(prev => [...prev, ...data]);
+        setDemandantesPage(prev => prev + 1);
+        setHasMoreDemandantes(data.length === ITEMS_PER_PAGE);
+      }
+    } catch (error) {
+      console.error('[LocalPerfil] Error loading more demandantes:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMoreDemandantes, demandantesPage]);
+
+  const loadMoreOfertas = useCallback(async () => {
+    if (loadingMore || !hasMoreOfertas) return;
+
+    setLoadingMore(true);
+    try {
+      const { data, error } = await supabase
+        .from('ofertas_trabajo')
+        .select('*')
+        .eq('local_id', localId)
+        .eq('activo', true)
+        .order('created_at', { ascending: false })
+        .range(ofertasPage * ITEMS_PER_PAGE, (ofertasPage + 1) * ITEMS_PER_PAGE - 1);
+
+      if (!error && data) {
+        setOfertas(prev => [...prev, ...data]);
+        setOfertasPage(prev => prev + 1);
+        setHasMoreOfertas(data.length === ITEMS_PER_PAGE);
+      }
+    } catch (error) {
+      console.error('[LocalPerfil] Error loading more ofertas:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMoreOfertas, ofertasPage, localId]);
+
+  const handleScroll = useCallback((event: any) => {
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+    const paddingToBottom = 20;
+    const isCloseToBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom;
+
+    if (isCloseToBottom && activeTab === 'empleo') {
+      if (empleoSubTab === 'demandantes') {
+        loadMoreDemandantes();
+      } else if (empleoSubTab === 'ofertas') {
+        loadMoreOfertas();
+      }
+    }
+  }, [activeTab, empleoSubTab, loadMoreDemandantes, loadMoreOfertas]);
+
   // Filter demandantes
   const demandantesFiltrados = demandantes.filter((perfil) => {
     const matchBusqueda = perfil.nombre_completo.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -982,6 +1062,8 @@ export default function LocalPerfilScreen() {
         contentContainerStyle={{ paddingBottom: 100 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={400}
       >
         <LinearGradient
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
@@ -1528,6 +1610,26 @@ export default function LocalPerfilScreen() {
                       )}
                     </View>
                   )}
+
+                  {/* Loading indicator for infinite scroll */}
+                  {loadingMore && (
+                    <View style={styles.loadingMoreContainer}>
+                      <ActivityIndicator size="small" color={colors.primary} />
+                      <Text style={styles.loadingMoreText}>Cargando más...</Text>
+                    </View>
+                  )}
+
+                  {/* End of list indicator */}
+                  {!hasMoreDemandantes && demandantesFiltrados.length > 0 && empleoSubTab === 'demandantes' && (
+                    <View style={styles.endOfListContainer}>
+                      <Text style={styles.endOfListText}>No hay más demandantes</Text>
+                    </View>
+                  )}
+                  {!hasMoreOfertas && ofertas.length > 0 && empleoSubTab === 'ofertas' && (
+                    <View style={styles.endOfListContainer}>
+                      <Text style={styles.endOfListText}>No hay más ofertas</Text>
+                    </View>
+                  )}
                 </>
               )}
             </View>
@@ -1711,8 +1813,14 @@ export default function LocalPerfilScreen() {
         transparent={true}
         onRequestClose={() => setShowProvinciaDropdown(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <Pressable 
+          style={styles.modalOverlay}
+          onPress={() => setShowProvinciaDropdown(false)}
+        >
+          <Pressable 
+            style={styles.modalContent}
+            onPress={(e) => e.stopPropagation()}
+          >
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Seleccionar Provincia</Text>
               <TouchableOpacity onPress={() => setShowProvinciaDropdown(false)}>
@@ -1732,6 +1840,7 @@ export default function LocalPerfilScreen() {
                     setProvinciaFiltro(provincia);
                     setShowProvinciaDropdown(false);
                   }}
+                  activeOpacity={0.7}
                 >
                   <Text
                     style={[
@@ -1747,8 +1856,8 @@ export default function LocalPerfilScreen() {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
 
       <Modal
@@ -2936,5 +3045,23 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.textSecondary,
     lineHeight: 20,
+  },
+  loadingMoreContainer: {
+    paddingVertical: 20,
+    alignItems: 'center',
+    gap: 8,
+  },
+  loadingMoreText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  endOfListContainer: {
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  endOfListText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
   },
 });

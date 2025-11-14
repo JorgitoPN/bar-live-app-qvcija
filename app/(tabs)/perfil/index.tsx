@@ -189,10 +189,15 @@ export default function PerfilScreen() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [provinciaFiltro, setProvinciaFiltro] = useState<string>('');
-  const [fechaDesde, setFechaDesde] = useState<Date | null>(null);
-  const [fechaHasta, setFechaHasta] = useState<Date | null>(null);
-  const [showDatePickerDesde, setShowDatePickerDesde] = useState(false);
-  const [showDatePickerHasta, setShowDatePickerHasta] = useState(false);
+  
+  // Infinite scroll state
+  const [ofertasPage, setOfertasPage] = useState(1);
+  const [perfilesPage, setPerfilesPage] = useState(1);
+  const [hasMoreOfertas, setHasMoreOfertas] = useState(true);
+  const [hasMorePerfiles, setHasMorePerfiles] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  
+  const ITEMS_PER_PAGE = 20;
 
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [userStories, setUserStories] = useState<HistoriaConAutor[]>([]);
@@ -478,18 +483,9 @@ export default function PerfilScreen() {
           query = query.eq('provincia', provinciaFiltro);
         }
 
-        if (fechaDesde) {
-          query = query.gte('created_at', fechaDesde.toISOString());
-        }
-        if (fechaHasta) {
-          const endOfDay = new Date(fechaHasta);
-          endOfDay.setHours(23, 59, 59, 999);
-          query = query.lte('created_at', endOfDay.toISOString());
-        }
-
         const { data: ofertasData, error: ofertasError } = await query
           .order('created_at', { ascending: false })
-          .limit(20);
+          .range(0, ITEMS_PER_PAGE - 1);
 
         if (ofertasError) {
           console.error('[Perfil] Error cargando ofertas:', ofertasError);
@@ -499,6 +495,8 @@ export default function PerfilScreen() {
             imagen_url: oferta.imagen_url || oferta.local?.imagen_url,
           }));
           setOfertas(ofertasConImagenes);
+          setHasMoreOfertas((ofertasData || []).length === ITEMS_PER_PAGE);
+          setOfertasPage(1);
         }
       }
 
@@ -521,19 +519,21 @@ export default function PerfilScreen() {
 
       const { data: perfilesData, error: perfilesError } = await perfilQuery
         .order('created_at', { ascending: false })
-        .limit(20);
+        .range(0, ITEMS_PER_PAGE - 1);
 
       if (perfilesError) {
         console.error('[Perfil] Error cargando perfiles:', perfilesError);
       } else {
         setPerfiles(perfilesData || []);
+        setHasMorePerfiles((perfilesData || []).length === ITEMS_PER_PAGE);
+        setPerfilesPage(1);
       }
     } catch (error) {
       console.error('[Perfil] Error en cargarDatosEmpleo:', error);
     } finally {
       setLoadingEmpleo(false);
     }
-  }, [user, isPropietario, searchQuery, provinciaFiltro, fechaDesde, fechaHasta]);
+  }, [user, isPropietario, searchQuery, provinciaFiltro]);
 
   const cargarContenido = useCallback(async () => {
     if (!user) return;
@@ -1072,14 +1072,102 @@ export default function PerfilScreen() {
   const limpiarFiltros = () => {
     setSearchQuery('');
     setProvinciaFiltro('');
-    setFechaDesde(null);
-    setFechaHasta(null);
   };
 
-  const formatDate = (date: Date | null) => {
-    if (!date) return 'Seleccionar';
-    return date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  };
+  const loadMoreOfertas = useCallback(async () => {
+    if (loadingMore || !hasMoreOfertas || !user || !isPropietario) return;
+
+    setLoadingMore(true);
+    try {
+      let query = supabase
+        .from('ofertas_trabajo')
+        .select(`
+          *,
+          local:locales(nombre, imagen_url),
+          propietario:usuarios(nombre)
+        `)
+        .eq('propietario_id', user.id)
+        .eq('activo', true);
+
+      if (searchQuery) {
+        query = query.or(`titulo.ilike.%${searchQuery}%,descripcion.ilike.%${searchQuery}%`);
+      }
+
+      if (provinciaFiltro) {
+        query = query.eq('provincia', provinciaFiltro);
+      }
+
+      const { data, error } = await query
+        .order('created_at', { ascending: false })
+        .range(ofertasPage * ITEMS_PER_PAGE, (ofertasPage + 1) * ITEMS_PER_PAGE - 1);
+
+      if (!error && data) {
+        const ofertasConImagenes = data.map(oferta => ({
+          ...oferta,
+          imagen_url: oferta.imagen_url || oferta.local?.imagen_url,
+        }));
+        setOfertas(prev => [...prev, ...ofertasConImagenes]);
+        setOfertasPage(prev => prev + 1);
+        setHasMoreOfertas(data.length === ITEMS_PER_PAGE);
+      }
+    } catch (error) {
+      console.error('[Perfil] Error loading more ofertas:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMoreOfertas, ofertasPage, user, isPropietario, searchQuery, provinciaFiltro]);
+
+  const loadMorePerfiles = useCallback(async () => {
+    if (loadingMore || !hasMorePerfiles || !user) return;
+
+    setLoadingMore(true);
+    try {
+      let perfilQuery = supabase
+        .from('perfiles_profesionales')
+        .select(`
+          *,
+          usuario:usuarios(nombre, avatar, username)
+        `)
+        .eq('usuario_id', user.id)
+        .eq('activo', true);
+
+      if (searchQuery) {
+        perfilQuery = perfilQuery.or(`nombre_completo.ilike.%${searchQuery}%,puesto_deseado.ilike.%${searchQuery}%,experiencia.ilike.%${searchQuery}%`);
+      }
+
+      if (provinciaFiltro) {
+        perfilQuery = perfilQuery.eq('provincia', provinciaFiltro);
+      }
+
+      const { data, error } = await perfilQuery
+        .order('created_at', { ascending: false })
+        .range(perfilesPage * ITEMS_PER_PAGE, (perfilesPage + 1) * ITEMS_PER_PAGE - 1);
+
+      if (!error && data) {
+        setPerfiles(prev => [...prev, ...data]);
+        setPerfilesPage(prev => prev + 1);
+        setHasMorePerfiles(data.length === ITEMS_PER_PAGE);
+      }
+    } catch (error) {
+      console.error('[Perfil] Error loading more perfiles:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMorePerfiles, perfilesPage, user, searchQuery, provinciaFiltro]);
+
+  const handleScrollEmpleo = useCallback((event: any) => {
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+    const paddingToBottom = 20;
+    const isCloseToBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom;
+
+    if (isCloseToBottom) {
+      if (empleoTab === 'ofertas') {
+        loadMoreOfertas();
+      } else if (empleoTab === 'perfiles') {
+        loadMorePerfiles();
+      }
+    }
+  }, [empleoTab, loadMoreOfertas, loadMorePerfiles]);
 
   const calcularDiasPublicado = (fecha: string): string => {
     const ahora = new Date();
@@ -1516,6 +1604,8 @@ export default function PerfilScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
+        onScroll={activeTab === 'empleo' ? handleScrollEmpleo : undefined}
+        scrollEventThrottle={400}
       >
         {loadingPosts ? (
           <View style={styles.loadingContainer}>
@@ -1627,6 +1717,26 @@ export default function PerfilScreen() {
                         </View>
                       )
                     )}
+
+                    {/* Loading indicator for infinite scroll */}
+                    {loadingMore && (
+                      <View style={styles.loadingMoreContainer}>
+                        <ActivityIndicator size="small" color={colors.primary} />
+                        <Text style={styles.loadingMoreText}>Cargando más...</Text>
+                      </View>
+                    )}
+
+                    {/* End of list indicator */}
+                    {!hasMoreOfertas && ofertas.length > 0 && empleoTab === 'ofertas' && (
+                      <View style={styles.endOfListContainer}>
+                        <Text style={styles.endOfListText}>No hay más ofertas</Text>
+                      </View>
+                    )}
+                    {!hasMorePerfiles && perfiles.length > 0 && empleoTab === 'perfiles' && (
+                      <View style={styles.endOfListContainer}>
+                        <Text style={styles.endOfListText}>No hay más perfiles</Text>
+                      </View>
+                    )}
                   </View>
                 )}
               </View>
@@ -1685,47 +1795,7 @@ export default function PerfilScreen() {
             </View>
 
             <ScrollView style={styles.filtersContent}>
-              <Text style={styles.filterLabel}>Rango de Fechas</Text>
-              <View style={styles.dateFilters}>
-                <View style={styles.dateFilterItem}>
-                  <Text style={styles.dateFilterLabel}>Desde:</Text>
-                  <TouchableOpacity
-                    style={styles.datePickerButton}
-                    onPress={() => setShowDatePickerDesde(true)}
-                  >
-                    <IconSymbol name="calendar" size={18} color={colors.primary} />
-                    <Text style={styles.datePickerText}>{formatDate(fechaDesde)}</Text>
-                  </TouchableOpacity>
-                  {fechaDesde && (
-                    <TouchableOpacity
-                      style={styles.clearDateButton}
-                      onPress={() => setFechaDesde(null)}
-                    >
-                      <IconSymbol name="xmark.circle.fill" size={20} color={colors.textSecondary} />
-                    </TouchableOpacity>
-                  )}
-                </View>
-                <View style={styles.dateFilterItem}>
-                  <Text style={styles.dateFilterLabel}>Hasta:</Text>
-                  <TouchableOpacity
-                    style={styles.datePickerButton}
-                    onPress={() => setShowDatePickerHasta(true)}
-                  >
-                    <IconSymbol name="calendar" size={18} color={colors.primary} />
-                    <Text style={styles.datePickerText}>{formatDate(fechaHasta)}</Text>
-                  </TouchableOpacity>
-                  {fechaHasta && (
-                    <TouchableOpacity
-                      style={styles.clearDateButton}
-                      onPress={() => setFechaHasta(null)}
-                    >
-                      <IconSymbol name="xmark.circle.fill" size={20} color={colors.textSecondary} />
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </View>
-
-              <Text style={[styles.filterLabel, { marginTop: 20 }]}>Provincia</Text>
+              <Text style={styles.filterLabel}>Provincia</Text>
               <ScrollView style={styles.provinciasList} nestedScrollEnabled>
                 <TouchableOpacity
                   style={[styles.provinciaItem, !provinciaFiltro && styles.provinciaItemActive]}
@@ -1748,33 +1818,6 @@ export default function PerfilScreen() {
                 ))}
               </ScrollView>
             </ScrollView>
-
-            {showDatePickerDesde && (
-              <DateTimePicker
-                value={fechaDesde || new Date()}
-                mode="date"
-                display="default"
-                onChange={(event, selectedDate) => {
-                  setShowDatePickerDesde(false);
-                  if (selectedDate) {
-                    setFechaDesde(selectedDate);
-                  }
-                }}
-              />
-            )}
-            {showDatePickerHasta && (
-              <DateTimePicker
-                value={fechaHasta || new Date()}
-                mode="date"
-                display="default"
-                onChange={(event, selectedDate) => {
-                  setShowDatePickerHasta(false);
-                  if (selectedDate) {
-                    setFechaHasta(selectedDate);
-                  }
-                }}
-              />
-            )}
 
             <View style={styles.filtersFooter}>
               <TouchableOpacity 
@@ -2856,5 +2899,23 @@ const styles = StyleSheet.create({
   },
   storyTouchZone: {
     flex: 1,
+  },
+  loadingMoreContainer: {
+    paddingVertical: 20,
+    alignItems: 'center',
+    gap: 8,
+  },
+  loadingMoreText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  endOfListContainer: {
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  endOfListText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
   },
 });

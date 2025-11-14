@@ -126,6 +126,15 @@ export default function EmpleoScreen() {
   const [showProfileDetail, setShowProfileDetail] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<OfertaTrabajo | null>(null);
   const [showOfferDetail, setShowOfferDetail] = useState(false);
+  
+  // Infinite scroll state
+  const [ofertasPage, setOfertasPage] = useState(1);
+  const [perfilesPage, setPerfilesPage] = useState(1);
+  const [hasMoreOfertas, setHasMoreOfertas] = useState(true);
+  const [hasMorePerfiles, setHasMorePerfiles] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  
+  const ITEMS_PER_PAGE = 20;
 
   const userRole = user?.rol_app || 'cliente';
   const isPropietarioMode = currentMode === 'propietario';
@@ -142,7 +151,8 @@ export default function EmpleoScreen() {
           propietario:usuarios(nombre)
         `)
         .eq('activo', true)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(0, ITEMS_PER_PAGE - 1);
 
       if (error) throw error;
       console.log('[Empleo] Ofertas cargadas:', data?.length);
@@ -153,6 +163,8 @@ export default function EmpleoScreen() {
       }));
       
       setOfertas(ofertasConImagenes);
+      setHasMoreOfertas((data || []).length === ITEMS_PER_PAGE);
+      setOfertasPage(1);
     } catch (error) {
       console.error('[Empleo] Error cargando ofertas:', error);
       Alert.alert('Error', 'No se pudieron cargar las ofertas de trabajo');
@@ -170,11 +182,14 @@ export default function EmpleoScreen() {
           usuario:usuarios(nombre, avatar, username)
         `)
         .eq('activo', true)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(0, ITEMS_PER_PAGE - 1);
 
       if (error) throw error;
       console.log('[Empleo] Perfiles cargados:', data?.length);
       setPerfiles(data || []);
+      setHasMorePerfiles((data || []).length === ITEMS_PER_PAGE);
+      setPerfilesPage(1);
     } catch (error) {
       console.error('[Empleo] Error cargando perfiles:', error);
       Alert.alert('Error', 'No se pudieron cargar los perfiles profesionales');
@@ -227,6 +242,79 @@ export default function EmpleoScreen() {
     setPuestoSeleccionado('Todos');
     setTipoContratoSeleccionado('Todos');
   };
+
+  const loadMoreOfertas = useCallback(async () => {
+    if (loadingMore || !hasMoreOfertas) return;
+
+    setLoadingMore(true);
+    try {
+      const { data, error } = await supabase
+        .from('ofertas_trabajo')
+        .select(`
+          *,
+          local:locales(nombre, imagen_url, latitud, longitud),
+          propietario:usuarios(nombre)
+        `)
+        .eq('activo', true)
+        .order('created_at', { ascending: false })
+        .range(ofertasPage * ITEMS_PER_PAGE, (ofertasPage + 1) * ITEMS_PER_PAGE - 1);
+
+      if (!error && data) {
+        const ofertasConImagenes = data.map(oferta => ({
+          ...oferta,
+          imagen_url: oferta.imagen_url || oferta.local?.imagen_url,
+        }));
+        setOfertas(prev => [...prev, ...ofertasConImagenes]);
+        setOfertasPage(prev => prev + 1);
+        setHasMoreOfertas(data.length === ITEMS_PER_PAGE);
+      }
+    } catch (error) {
+      console.error('[Empleo] Error loading more ofertas:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMoreOfertas, ofertasPage]);
+
+  const loadMorePerfiles = useCallback(async () => {
+    if (loadingMore || !hasMorePerfiles) return;
+
+    setLoadingMore(true);
+    try {
+      const { data, error } = await supabase
+        .from('perfiles_profesionales')
+        .select(`
+          *,
+          usuario:usuarios(nombre, avatar, username)
+        `)
+        .eq('activo', true)
+        .order('created_at', { ascending: false })
+        .range(perfilesPage * ITEMS_PER_PAGE, (perfilesPage + 1) * ITEMS_PER_PAGE - 1);
+
+      if (!error && data) {
+        setPerfiles(prev => [...prev, ...data]);
+        setPerfilesPage(prev => prev + 1);
+        setHasMorePerfiles(data.length === ITEMS_PER_PAGE);
+      }
+    } catch (error) {
+      console.error('[Empleo] Error loading more perfiles:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMorePerfiles, perfilesPage]);
+
+  const handleScroll = useCallback((event: any) => {
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+    const paddingToBottom = 20;
+    const isCloseToBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom;
+
+    if (isCloseToBottom) {
+      if (tabActual === 'ofertas') {
+        loadMoreOfertas();
+      } else if (tabActual === 'profesionales') {
+        loadMorePerfiles();
+      }
+    }
+  }, [tabActual, loadMoreOfertas, loadMorePerfiles]);
 
   const handleCrearOferta = () => {
     if (!user) {
@@ -657,6 +745,8 @@ export default function EmpleoScreen() {
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
+          onScroll={handleScroll}
+          scrollEventThrottle={400}
         >
           {tabActual === 'ofertas' ? (
             ofertasFiltradas.length > 0 ? (
@@ -680,6 +770,26 @@ export default function EmpleoScreen() {
                 </Text>
               </View>
             )
+          )}
+
+          {/* Loading indicator for infinite scroll */}
+          {loadingMore && (
+            <View style={styles.loadingMoreContainer}>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={styles.loadingMoreText}>Cargando más...</Text>
+            </View>
+          )}
+
+          {/* End of list indicator */}
+          {!hasMoreOfertas && ofertasFiltradas.length > 0 && tabActual === 'ofertas' && (
+            <View style={styles.endOfListContainer}>
+              <Text style={styles.endOfListText}>No hay más ofertas</Text>
+            </View>
+          )}
+          {!hasMorePerfiles && perfilesFiltrados.length > 0 && tabActual === 'profesionales' && (
+            <View style={styles.endOfListContainer}>
+              <Text style={styles.endOfListText}>No hay más perfiles</Text>
+            </View>
           )}
         </ScrollView>
       )}
@@ -1442,5 +1552,23 @@ const styles = StyleSheet.create({
   detailOfferLocal: {
     fontSize: 16,
     color: colors.textSecondary,
+  },
+  loadingMoreContainer: {
+    paddingVertical: 20,
+    alignItems: 'center',
+    gap: 8,
+  },
+  loadingMoreText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  endOfListContainer: {
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  endOfListText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
   },
 });
