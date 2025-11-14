@@ -936,7 +936,7 @@ export default function PerfilScreen() {
     if (user) {
       cargarContenido();
     }
-  }, [activeTab, user, searchQuery, provinciaFiltro, empleoTab, fechaDesde, fechaHasta, cargarContenido]);
+  }, [activeTab, user, searchQuery, provinciaFiltro, empleoTab, cargarContenido]);
 
   useEffect(() => {
     if (showStoryViewer && !isPaused) {
