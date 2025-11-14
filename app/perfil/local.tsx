@@ -1737,10 +1737,11 @@ export default function LocalPerfilScreen() {
         transparent={true}
         onRequestClose={() => setShowFilters(false)}
       >
-        <Pressable 
-          style={styles.modalOverlay}
-          onPress={() => setShowFilters(false)}
-        >
+        <View style={styles.modalOverlay}>
+          <Pressable 
+            style={styles.modalOverlayTouchable}
+            onPress={() => setShowFilters(false)}
+          />
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Filtros</Text>
@@ -1812,7 +1813,7 @@ export default function LocalPerfilScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </Pressable>
+        </View>
       </Modal>
 
       <Modal
@@ -1821,10 +1822,11 @@ export default function LocalPerfilScreen() {
         transparent={true}
         onRequestClose={() => setShowProvinciaDropdown(false)}
       >
-        <Pressable 
-          style={styles.provinciaModalOverlay}
-          onPress={() => setShowProvinciaDropdown(false)}
-        >
+        <View style={styles.provinciaModalOverlay}>
+          <Pressable 
+            style={styles.provinciaModalOverlayTouchable}
+            onPress={() => setShowProvinciaDropdown(false)}
+          />
           <View style={styles.provinciaModalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Seleccionar Provincia</Text>
@@ -1862,7 +1864,7 @@ export default function LocalPerfilScreen() {
               ))}
             </ScrollView>
           </View>
-        </Pressable>
+        </View>
       </Modal>
 
       <Modal
@@ -2796,6 +2798,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
+  modalOverlayTouchable: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
   modalContent: {
     backgroundColor: colors.cardBackground,
     borderTopLeftRadius: 20,
@@ -2807,6 +2816,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
+  },
+  provinciaModalOverlayTouchable: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   provinciaModalContent: {
     backgroundColor: colors.cardBackground,
