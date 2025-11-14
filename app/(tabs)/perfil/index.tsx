@@ -182,6 +182,14 @@ export default function PerfilScreen() {
   const [taggedPosts, setTaggedPosts] = useState<Post[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
   
+  // Track which tabs have been loaded
+  const [tabsLoaded, setTabsLoaded] = useState({
+    posts: false,
+    favoritos: false,
+    etiquetados: false,
+    empleo: false,
+  });
+  
   const [empleoTab, setEmpleoTab] = useState<'ofertas' | 'perfiles'>('ofertas');
   const [ofertas, setOfertas] = useState<OfertaTrabajo[]>([]);
   const [perfiles, setPerfiles] = useState<PerfilProfesional[]>([]);
@@ -538,6 +546,11 @@ export default function PerfilScreen() {
   const cargarContenido = useCallback(async () => {
     if (!user) return;
 
+    // Only load if this tab hasn't been loaded yet
+    if (tabsLoaded[activeTab]) {
+      return;
+    }
+
     setLoadingPosts(true);
     try {
       if (activeTab === 'posts') {
@@ -549,12 +562,15 @@ export default function PerfilScreen() {
       } else if (activeTab === 'empleo') {
         await cargarDatosEmpleo();
       }
+      
+      // Mark this tab as loaded
+      setTabsLoaded(prev => ({ ...prev, [activeTab]: true }));
     } catch (error) {
       console.error('[Perfil] Error cargando contenido:', error);
     } finally {
       setLoadingPosts(false);
     }
-  }, [user, activeTab, cargarPosts, cargarFavoritos, cargarEtiquetados, cargarDatosEmpleo]);
+  }, [user, activeTab, tabsLoaded, cargarPosts, cargarFavoritos, cargarEtiquetados, cargarDatosEmpleo]);
 
   const cargarDatosPerfil = useCallback(async () => {
     if (!user) return;
@@ -672,14 +688,31 @@ export default function PerfilScreen() {
         setUserStories(storiesWithStatus);
       }
 
-      await cargarContenido();
+      // Pre-load all tab content in parallel for instant switching
+      console.log('[Perfil] 🚀 Pre-loading all tab content...');
+      await Promise.all([
+        cargarPosts(),
+        cargarFavoritos(),
+        cargarEtiquetados(),
+        cargarDatosEmpleo(),
+      ]);
+      
+      // Mark all tabs as loaded
+      setTabsLoaded({
+        posts: true,
+        favoritos: true,
+        etiquetados: true,
+        empleo: true,
+      });
+      
+      console.log('[Perfil] ✅ All tabs pre-loaded');
     } catch (error) {
       console.error('[Perfil] Error cargando datos:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user, loadUnreadCounts, cargarContenido]);
+  }, [user, loadUnreadCounts, cargarPosts, cargarFavoritos, cargarEtiquetados, cargarDatosEmpleo]);
 
   const stopStoryTimer = useCallback(() => {
     if (storyTimerRef.current) {
@@ -932,11 +965,23 @@ export default function PerfilScreen() {
     }
   }, [user, authLoading, cargarDatosPerfil]);
 
+  // Only reload content when filters change, not when switching tabs
   useEffect(() => {
-    if (user) {
+    if (user && (searchQuery || provinciaFiltro)) {
+      // Reset the loaded state for empleo tab when filters change
+      if (activeTab === 'empleo') {
+        setTabsLoaded(prev => ({ ...prev, empleo: false }));
+        cargarContenido();
+      }
+    }
+  }, [user, searchQuery, provinciaFiltro]);
+
+  // Load content when switching to a tab that hasn't been loaded yet
+  useEffect(() => {
+    if (user && !tabsLoaded[activeTab]) {
       cargarContenido();
     }
-  }, [activeTab, user, searchQuery, provinciaFiltro, empleoTab, cargarContenido]);
+  }, [activeTab, user, tabsLoaded, cargarContenido]);
 
   useEffect(() => {
     if (showStoryViewer && !isPaused) {
@@ -952,6 +997,13 @@ export default function PerfilScreen() {
 
   const onRefresh = () => {
     setRefreshing(true);
+    // Reset all tabs loaded state to force reload
+    setTabsLoaded({
+      posts: false,
+      favoritos: false,
+      etiquetados: false,
+      empleo: false,
+    });
     cargarDatosPerfil();
   };
 
@@ -1044,7 +1096,10 @@ export default function PerfilScreen() {
               if (error) throw error;
 
               Alert.alert('Éxito', 'Perfil eliminado correctamente');
+              // Reset empleo tab to reload data
+              setTabsLoaded(prev => ({ ...prev, empleo: false }));
               await cargarDatosEmpleo();
+              setTabsLoaded(prev => ({ ...prev, empleo: true }));
             } catch (error) {
               console.error('[Perfil] Error eliminando perfil:', error);
               Alert.alert('Error', 'No se pudo eliminar el perfil');
@@ -1072,6 +1127,10 @@ export default function PerfilScreen() {
   const limpiarFiltros = () => {
     setSearchQuery('');
     setProvinciaFiltro('');
+    // Reset empleo tab to reload without filters
+    if (activeTab === 'empleo') {
+      setTabsLoaded(prev => ({ ...prev, empleo: false }));
+    }
   };
 
   const loadMoreOfertas = useCallback(async () => {
