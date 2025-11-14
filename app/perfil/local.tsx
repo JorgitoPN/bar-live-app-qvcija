@@ -1826,14 +1826,12 @@ export default function LocalPerfilScreen() {
         transparent={true}
         onRequestClose={() => setShowProvinciaDropdown(false)}
       >
-        <Pressable 
-          style={styles.modalOverlay}
-          onPress={() => setShowProvinciaDropdown(false)}
-        >
+        <View style={styles.provinciaModalOverlay}>
           <Pressable 
-            style={styles.provinciaModalContent}
-            onPress={(e) => e.stopPropagation()}
-          >
+            style={styles.provinciaModalBackdrop}
+            onPress={() => setShowProvinciaDropdown(false)}
+          />
+          <View style={styles.provinciaModalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Seleccionar Provincia</Text>
               <TouchableOpacity onPress={() => setShowProvinciaDropdown(false)}>
@@ -1869,8 +1867,8 @@ export default function LocalPerfilScreen() {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
 
       <Modal
@@ -2810,6 +2808,18 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     padding: 20,
     maxHeight: '80%',
+  },
+  provinciaModalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  provinciaModalBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   provinciaModalContent: {
     backgroundColor: colors.cardBackground,
