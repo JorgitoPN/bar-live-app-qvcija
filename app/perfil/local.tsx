@@ -16,6 +16,7 @@ import {
   Pressable,
   Animated,
   Linking,
+  TextInput,
 } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -31,6 +32,39 @@ import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
 
 const { width, height } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
+
+const PUESTOS_LABORALES = [
+  'Todos',
+  'Camarero/a',
+  'Cocinero/a',
+  'Ayudante de cocina',
+  'Barman/Coctelero/a',
+  'DJ',
+  'Bailarín/a',
+  'Go-go',
+  'Metre/Jefe de sala',
+  'Relaciones Públicas',
+  'Seguridad',
+  'Personal de Limpieza',
+];
+
+const PROVINCIAS = [
+  'Todas',
+  'Madrid',
+  'Barcelona',
+  'Valencia',
+  'Sevilla',
+  'Málaga',
+  'Bilbao',
+  'Alicante',
+  'Zaragoza',
+  'Murcia',
+  'Palma',
+  'Las Palmas',
+  'Granada',
+  'Córdoba',
+  'Valladolid',
+];
 
 interface LocalPost {
   id: string;
@@ -83,6 +117,24 @@ interface OfertaTrabajo {
   local_id: string;
 }
 
+interface PerfilProfesional {
+  id: string;
+  usuario_id?: string;
+  nombre_completo: string;
+  puesto_deseado: string;
+  experiencia: string;
+  habilidades?: string;
+  disponibilidad?: string;
+  foto_url?: string;
+  provincia?: string;
+  created_at: string;
+  usuario?: {
+    nombre: string;
+    avatar?: string;
+    username?: string;
+  };
+}
+
 export default function LocalPerfilScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -103,9 +155,17 @@ export default function LocalPerfilScreen() {
   const [posts, setPosts] = useState<LocalPost[]>([]);
   const [events, setEvents] = useState<LocalEvent[]>([]);
   const [ofertas, setOfertas] = useState<OfertaTrabajo[]>([]);
+  const [demandantes, setDemandantes] = useState<PerfilProfesional[]>([]);
   const [isFavorito, setIsFavorito] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
   const [activeTab, setActiveTab] = useState<'posts' | 'eventos' | 'empleo' | 'info'>('posts');
+  const [empleoSubTab, setEmpleoSubTab] = useState<'ofertas' | 'demandantes'>('ofertas');
+
+  // Filters for demandantes
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [puestoFiltro, setPuestoFiltro] = useState('Todos');
+  const [provinciaFiltro, setProvinciaFiltro] = useState('Todas');
 
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [localStories, setLocalStories] = useState<LocalStory[]>([]);
@@ -140,6 +200,18 @@ export default function LocalPerfilScreen() {
       }),
     ]).start();
   }, []);
+
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
 
   const loadLocalData = useCallback(async () => {
     if (!localId) {
@@ -216,6 +288,38 @@ export default function LocalPerfilScreen() {
         setOfertas(ofertasData || []);
       } else {
         console.error('[LocalPerfil] Error loading job offers:', ofertasError);
+      }
+
+      // Load professional profiles (demandantes)
+      const { data: demandantesData, error: demandantesError } = await supabase
+        .from('perfiles_profesionales')
+        .select(`
+          *,
+          usuario:usuarios(nombre, avatar, username)
+        `)
+        .eq('activo', true)
+        .order('created_at', { ascending: false });
+
+      if (!demandantesError && demandantesData) {
+        console.log('[LocalPerfil] ✅ Loaded', demandantesData.length, 'professional profiles');
+        
+        // Sort by proximity if local has coordinates
+        if (localData.latitud && localData.longitud) {
+          const demandantesConDistancia = demandantesData.map(d => {
+            // For now, we'll use a placeholder distance calculation
+            // In a real app, you'd need to get user locations or use provincia as proxy
+            return {
+              ...d,
+              distancia: Math.random() * 100, // Placeholder - replace with actual distance
+            };
+          }).sort((a, b) => a.distancia - b.distancia);
+          
+          setDemandantes(demandantesConDistancia);
+        } else {
+          setDemandantes(demandantesData);
+        }
+      } else {
+        console.error('[LocalPerfil] Error loading demandantes:', demandantesError);
       }
 
       const { data: storiesData } = await supabase
@@ -386,6 +490,137 @@ export default function LocalPerfilScreen() {
 
   const handleVerOferta = (ofertaId: string) => {
     router.push(`/empleo/oferta-detalle?id=${ofertaId}`);
+  };
+
+  const handleVerPerfil = (perfilId: string) => {
+    router.push(`/empleo/perfil-detalle?id=${perfilId}`);
+  };
+
+  const handleEditarOferta = (ofertaId: string) => {
+    // Navigate to edit offer screen (to be implemented)
+    Alert.alert('Editar Oferta', 'Funcionalidad de edición en desarrollo');
+  };
+
+  const handleEliminarOferta = async (ofertaId: string) => {
+    Alert.alert(
+      'Eliminar Oferta',
+      '¿Estás seguro de que quieres eliminar esta oferta de trabajo?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('ofertas_trabajo')
+                .update({ activo: false })
+                .eq('id', ofertaId);
+
+              if (error) throw error;
+
+              Alert.alert('Éxito', 'Oferta eliminada correctamente');
+              await loadLocalData();
+            } catch (error) {
+              console.error('[LocalPerfil] Error deleting offer:', error);
+              Alert.alert('Error', 'No se pudo eliminar la oferta');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleContactarDemandante = async (perfilId: string, usuarioId: string) => {
+    if (!user) {
+      Alert.alert('Error', 'Debes iniciar sesión');
+      return;
+    }
+
+    if (!usuarioId) {
+      Alert.alert('Error', 'No se pudo obtener la información del usuario');
+      return;
+    }
+
+    try {
+      console.log('[LocalPerfil] Contacting applicant:', perfilId, 'User:', usuarioId);
+
+      const { data: chatExistente, error: chatError } = await supabase
+        .from('chats')
+        .select('id')
+        .or(`and(usuario1_id.eq.${user.id},usuario2_id.eq.${usuarioId}),and(usuario1_id.eq.${usuarioId},usuario2_id.eq.${user.id})`)
+        .maybeSingle();
+
+      if (chatError && chatError.code !== 'PGRST116') {
+        console.error('[LocalPerfil] Error checking chat:', chatError);
+        throw chatError;
+      }
+
+      let chatId = chatExistente?.id;
+
+      if (!chatId) {
+        console.log('[LocalPerfil] Creating new chat...');
+        const { data: nuevoChat, error: nuevoChatError } = await supabase
+          .from('chats')
+          .insert({
+            usuario1_id: user.id,
+            usuario2_id: usuarioId,
+          })
+          .select()
+          .single();
+
+        if (nuevoChatError) {
+          console.error('[LocalPerfil] Error creating chat:', nuevoChatError);
+          throw nuevoChatError;
+        }
+        chatId = nuevoChat.id;
+        console.log('[LocalPerfil] Chat created:', chatId);
+      } else {
+        console.log('[LocalPerfil] Existing chat found:', chatId);
+      }
+
+      const { error: interesError } = await supabase
+        .from('intereses_empleo')
+        .insert({
+          perfil_id: perfilId,
+          propietario_id: user.id,
+          estado: 'pendiente',
+        });
+
+      if (interesError && !interesError.message.includes('duplicate')) {
+        console.error('[LocalPerfil] Error registering interest:', interesError);
+      } else {
+        console.log('[LocalPerfil] Interest registered successfully');
+      }
+
+      const { error: notifError } = await supabase
+        .from('notificaciones')
+        .insert({
+          usuario_id: usuarioId,
+          tipo: 'sistema',
+          titulo: 'Interés en tu perfil profesional',
+          mensaje: `${local.nombre} está interesado en tu perfil. Revisa tus mensajes.`,
+          usuario_origen_id: user.id,
+        });
+
+      if (notifError) {
+        console.error('[LocalPerfil] Error creating notification:', notifError);
+      } else {
+        console.log('[LocalPerfil] Notification created successfully');
+      }
+
+      Alert.alert(
+        'Mensaje Enviado',
+        'Se ha enviado una notificación al profesional. Puedes continuar la conversación en tus chats.',
+        [
+          { text: 'Ver Chats', onPress: () => router.push('/(tabs)/perfil/chats') },
+          { text: 'OK' }
+        ]
+      );
+    } catch (error) {
+      console.error('[LocalPerfil] Error contacting applicant:', error);
+      Alert.alert('Error', 'No se pudo enviar el mensaje. Intenta de nuevo.');
+    }
   };
 
   const handleCrearPost = async () => {
@@ -644,6 +879,22 @@ export default function LocalPerfilScreen() {
     const diff = hoy.getTime() - fechaPublicacion.getTime();
     return Math.floor(diff / (1000 * 60 * 60 * 24));
   };
+
+  const limpiarFiltros = () => {
+    setPuestoFiltro('Todos');
+    setProvinciaFiltro('Todas');
+    setSearchQuery('');
+  };
+
+  // Filter demandantes
+  const demandantesFiltrados = demandantes.filter((perfil) => {
+    const matchBusqueda = perfil.nombre_completo.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          perfil.puesto_deseado.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchProvincia = provinciaFiltro === 'Todas' || perfil.provincia === provinciaFiltro;
+    const matchPuesto = puestoFiltro === 'Todos' || perfil.puesto_deseado.includes(puestoFiltro);
+    
+    return matchBusqueda && matchProvincia && matchPuesto;
+  });
 
   if (loading) {
     return (
@@ -972,92 +1223,265 @@ export default function LocalPerfilScreen() {
 
         {activeTab === 'empleo' && (
           <View style={styles.empleoContainer}>
-            {ofertas.length > 0 ? (
-              ofertas.map((oferta) => {
-                const diasPublicado = calcularDiasPublicado(oferta.created_at);
-                return (
-                  <TouchableOpacity
-                    key={oferta.id}
-                    style={styles.ofertaCard}
-                    onPress={() => handleVerOferta(oferta.id)}
-                    activeOpacity={0.8}
-                  >
-                    {oferta.imagen_url && (
-                      <Image 
-                        source={{ uri: oferta.imagen_url }} 
-                        style={styles.ofertaImagen}
-                        resizeMode="cover"
-                      />
-                    )}
-                    <View style={styles.ofertaContent}>
-                      <View style={styles.ofertaHeader}>
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.ofertaTitulo}>{oferta.titulo}</Text>
-                          <Text style={styles.ofertaTipo}>{oferta.tipo}</Text>
-                        </View>
-                        {diasPublicado < 7 && (
-                          <View style={styles.badgeNuevo}>
-                            <Text style={styles.badgeNuevoText}>Nuevo</Text>
-                          </View>
-                        )}
-                      </View>
+            {/* Sub-tabs for Empleo */}
+            <View style={styles.empleoSubTabs}>
+              <TouchableOpacity
+                style={[styles.empleoSubTab, empleoSubTab === 'ofertas' && styles.empleoSubTabActive]}
+                onPress={() => setEmpleoSubTab('ofertas')}
+              >
+                <Text style={[styles.empleoSubTabText, empleoSubTab === 'ofertas' && styles.empleoSubTabTextActive]}>
+                  Mis Ofertas ({ofertas.length})
+                </Text>
+              </TouchableOpacity>
+              {isOwner && (
+                <TouchableOpacity
+                  style={[styles.empleoSubTab, empleoSubTab === 'demandantes' && styles.empleoSubTabActive]}
+                  onPress={() => setEmpleoSubTab('demandantes')}
+                >
+                  <Text style={[styles.empleoSubTabText, empleoSubTab === 'demandantes' && styles.empleoSubTabTextActive]}>
+                    Demandantes ({demandantesFiltrados.length})
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
 
-                      <Text style={styles.ofertaDescripcion} numberOfLines={2}>
-                        {oferta.descripcion}
-                      </Text>
-
-                      <View style={styles.ofertaDetalles}>
-                        {oferta.salario && (
-                          <View style={styles.detalleChip}>
-                            <IconSymbol name="eurosign.circle" size={14} color={colors.primary} />
-                            <Text style={styles.detalleTexto}>{oferta.salario}</Text>
-                          </View>
+            {empleoSubTab === 'ofertas' ? (
+              <>
+                {ofertas.length > 0 ? (
+                  ofertas.map((oferta) => {
+                    const diasPublicado = calcularDiasPublicado(oferta.created_at);
+                    return (
+                      <View key={oferta.id} style={styles.ofertaCard}>
+                        {oferta.imagen_url && (
+                          <Image 
+                            source={{ uri: oferta.imagen_url }} 
+                            style={styles.ofertaImagen}
+                            resizeMode="cover"
+                          />
                         )}
-                        {oferta.provincia && (
-                          <View style={styles.detalleChip}>
-                            <IconSymbol name="mappin" size={14} color={colors.primary} />
-                            <Text style={styles.detalleTexto}>{oferta.provincia}</Text>
-                          </View>
-                        )}
-                      </View>
-
-                      {oferta.requisitos && oferta.requisitos.length > 0 && (
-                        <View style={styles.requisitosContainer}>
-                          {oferta.requisitos.slice(0, 2).map((requisito, index) => (
-                            <View key={index} style={styles.requisitoChip}>
-                              <Text style={styles.requisitoTexto}>{requisito}</Text>
+                        <View style={styles.ofertaContent}>
+                          <View style={styles.ofertaHeader}>
+                            <View style={{ flex: 1 }}>
+                              <Text style={styles.ofertaTitulo}>{oferta.titulo}</Text>
+                              <Text style={styles.ofertaTipo}>{oferta.tipo}</Text>
                             </View>
-                          ))}
-                        </View>
-                      )}
+                            {diasPublicado < 7 && (
+                              <View style={styles.badgeNuevo}>
+                                <Text style={styles.badgeNuevoText}>Nuevo</Text>
+                              </View>
+                            )}
+                          </View>
 
-                      <View style={styles.ofertaFooter}>
-                        <Text style={styles.fechaTexto}>
-                          Publicado hace {diasPublicado} {diasPublicado === 1 ? 'día' : 'días'}
-                        </Text>
-                        <TouchableOpacity 
-                          style={styles.verMasButton}
-                          onPress={() => handleVerOferta(oferta.id)}
-                        >
-                          <Text style={styles.verMasTexto}>Ver más</Text>
+                          <Text style={styles.ofertaDescripcion} numberOfLines={2}>
+                            {oferta.descripcion}
+                          </Text>
+
+                          <View style={styles.ofertaDetalles}>
+                            {oferta.salario && (
+                              <View style={styles.detalleChip}>
+                                <IconSymbol name="eurosign.circle" size={14} color={colors.primary} />
+                                <Text style={styles.detalleTexto}>{oferta.salario}</Text>
+                              </View>
+                            )}
+                            {oferta.provincia && (
+                              <View style={styles.detalleChip}>
+                                <IconSymbol name="mappin" size={14} color={colors.primary} />
+                                <Text style={styles.detalleTexto}>{oferta.provincia}</Text>
+                              </View>
+                            )}
+                          </View>
+
+                          {oferta.requisitos && oferta.requisitos.length > 0 && (
+                            <View style={styles.requisitosContainer}>
+                              {oferta.requisitos.slice(0, 2).map((requisito, index) => (
+                                <View key={index} style={styles.requisitoChip}>
+                                  <Text style={styles.requisitoTexto}>{requisito}</Text>
+                                </View>
+                              ))}
+                            </View>
+                          )}
+
+                          <View style={styles.ofertaFooter}>
+                            <Text style={styles.fechaTexto}>
+                              Publicado hace {diasPublicado} {diasPublicado === 1 ? 'día' : 'días'}
+                            </Text>
+                            <View style={styles.ofertaActions}>
+                              <TouchableOpacity 
+                                style={styles.verMasButton}
+                                onPress={() => handleVerOferta(oferta.id)}
+                              >
+                                <Text style={styles.verMasTexto}>Ver</Text>
+                              </TouchableOpacity>
+                              {isOwner && (
+                                <>
+                                  <TouchableOpacity 
+                                    style={[styles.verMasButton, styles.editButton]}
+                                    onPress={() => handleEditarOferta(oferta.id)}
+                                  >
+                                    <IconSymbol name="pencil" size={14} color={colors.white} />
+                                  </TouchableOpacity>
+                                  <TouchableOpacity 
+                                    style={[styles.verMasButton, styles.deleteButton]}
+                                    onPress={() => handleEliminarOferta(oferta.id)}
+                                  >
+                                    <IconSymbol name="trash" size={14} color={colors.white} />
+                                  </TouchableOpacity>
+                                </>
+                              )}
+                            </View>
+                          </View>
+                        </View>
+                      </View>
+                    );
+                  })
+                ) : (
+                  <View style={styles.emptyState}>
+                    <IconSymbol name="briefcase" size={48} color={colors.textSecondary} />
+                    <Text style={styles.emptyText}>
+                      {isOwner ? 'Crea tu primera oferta de empleo' : 'No hay ofertas de empleo'}
+                    </Text>
+                    {isOwner && (
+                      <TouchableOpacity style={styles.emptyButton} onPress={handleCrearOferta}>
+                        <Text style={styles.emptyButtonText}>Crear Oferta</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
+              </>
+            ) : (
+              <>
+                {/* Search and filters for demandantes */}
+                <View style={styles.searchContainer}>
+                  <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
+                  <TextInput
+                    style={styles.searchInput}
+                    placeholder="Buscar por nombre o puesto..."
+                    placeholderTextColor={colors.textSecondary}
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                  />
+                  <TouchableOpacity onPress={() => setShowFilters(true)}>
+                    <IconSymbol name="slider.horizontal.3" size={20} color={colors.primary} />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Active filters display */}
+                {(puestoFiltro !== 'Todos' || provinciaFiltro !== 'Todas') && (
+                  <View style={styles.activeFilters}>
+                    {puestoFiltro !== 'Todos' && (
+                      <View style={styles.activeFilterChip}>
+                        <Text style={styles.activeFilterText}>{puestoFiltro}</Text>
+                        <TouchableOpacity onPress={() => setPuestoFiltro('Todos')}>
+                          <IconSymbol name="xmark.circle.fill" size={16} color={colors.primary} />
                         </TouchableOpacity>
                       </View>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })
-            ) : (
-              <View style={styles.emptyState}>
-                <IconSymbol name="briefcase" size={48} color={colors.textSecondary} />
-                <Text style={styles.emptyText}>
-                  {isOwner ? 'Crea tu primera oferta de empleo' : 'No hay ofertas de empleo'}
-                </Text>
-                {isOwner && (
-                  <TouchableOpacity style={styles.emptyButton} onPress={handleCrearOferta}>
-                    <Text style={styles.emptyButtonText}>Crear Oferta</Text>
-                  </TouchableOpacity>
+                    )}
+                    {provinciaFiltro !== 'Todas' && (
+                      <View style={styles.activeFilterChip}>
+                        <Text style={styles.activeFilterText}>{provinciaFiltro}</Text>
+                        <TouchableOpacity onPress={() => setProvinciaFiltro('Todas')}>
+                          <IconSymbol name="xmark.circle.fill" size={16} color={colors.primary} />
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                    <TouchableOpacity onPress={limpiarFiltros}>
+                      <Text style={styles.clearFiltersText}>Limpiar todo</Text>
+                    </TouchableOpacity>
+                  </View>
                 )}
-              </View>
+
+                {/* Demandantes list */}
+                {demandantesFiltrados.length > 0 ? (
+                  demandantesFiltrados.map((perfil) => {
+                    const diasPublicado = calcularDiasPublicado(perfil.created_at);
+                    const fotoUrl = perfil.foto_url || perfil.usuario?.avatar;
+
+                    return (
+                      <TouchableOpacity
+                        key={perfil.id}
+                        style={styles.demandanteCard}
+                        onPress={() => handleVerPerfil(perfil.id)}
+                        activeOpacity={0.8}
+                      >
+                        <View style={styles.demandanteHeader}>
+                          {fotoUrl ? (
+                            <Image 
+                              source={{ uri: fotoUrl }} 
+                              style={styles.demandanteFoto}
+                              resizeMode="cover"
+                            />
+                          ) : (
+                            <View style={styles.demandanteFotoPlaceholder}>
+                              <IconSymbol name="person.circle" size={40} color={colors.textSecondary} />
+                            </View>
+                          )}
+                          
+                          <View style={{ flex: 1, marginLeft: 12 }}>
+                            <Text style={styles.demandanteNombre}>{perfil.nombre_completo}</Text>
+                            <Text style={styles.demandantePuesto}>{perfil.puesto_deseado}</Text>
+                            {perfil.provincia && (
+                              <View style={styles.demandanteUbicacion}>
+                                <IconSymbol name="mappin" size={12} color={colors.textSecondary} />
+                                <Text style={styles.demandanteUbicacionText}>{perfil.provincia}</Text>
+                              </View>
+                            )}
+                          </View>
+
+                          {diasPublicado < 7 && (
+                            <View style={styles.badgeNuevo}>
+                              <Text style={styles.badgeNuevoText}>Nuevo</Text>
+                            </View>
+                          )}
+                        </View>
+
+                        <Text style={styles.demandanteExperiencia} numberOfLines={2}>
+                          {perfil.experiencia}
+                        </Text>
+
+                        {perfil.habilidades && (
+                          <View style={styles.demandanteHabilidades}>
+                            {perfil.habilidades.split(',').slice(0, 3).map((habilidad, index) => (
+                              <View key={index} style={styles.habilidadChip}>
+                                <Text style={styles.habilidadTexto}>{habilidad.trim()}</Text>
+                              </View>
+                            ))}
+                          </View>
+                        )}
+
+                        <View style={styles.demandanteFooter}>
+                          <Text style={styles.fechaTexto}>
+                            Publicado hace {diasPublicado} {diasPublicado === 1 ? 'día' : 'días'}
+                          </Text>
+                          {perfil.usuario_id && (
+                            <TouchableOpacity 
+                              style={styles.contactarButton}
+                              onPress={(e) => {
+                                e.stopPropagation();
+                                handleContactarDemandante(perfil.id, perfil.usuario_id!);
+                              }}
+                            >
+                              <IconSymbol name="paperplane.fill" size={14} color={colors.white} />
+                              <Text style={styles.contactarTexto}>Contactar</Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })
+                ) : (
+                  <View style={styles.emptyState}>
+                    <IconSymbol name="person.2" size={48} color={colors.textSecondary} />
+                    <Text style={styles.emptyText}>
+                      No se encontraron demandantes de empleo
+                    </Text>
+                    {(puestoFiltro !== 'Todos' || provinciaFiltro !== 'Todas' || searchQuery) && (
+                      <TouchableOpacity style={styles.emptyButton} onPress={limpiarFiltros}>
+                        <Text style={styles.emptyButtonText}>Limpiar Filtros</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
+              </>
             )}
           </View>
         )}
@@ -1152,6 +1576,99 @@ export default function LocalPerfilScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Filters Modal */}
+      <Modal
+        visible={showFilters}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowFilters(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Filtros</Text>
+              <TouchableOpacity onPress={() => setShowFilters(false)}>
+                <IconSymbol name="xmark" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View style={styles.filterSection}>
+                <Text style={styles.filterTitle}>Puesto Laboral</Text>
+                <View style={styles.filterChips}>
+                  {PUESTOS_LABORALES.map((puesto) => (
+                    <TouchableOpacity
+                      key={puesto}
+                      style={[
+                        styles.filterChip,
+                        puestoFiltro === puesto && styles.filterChipActive,
+                      ]}
+                      onPress={() => setPuestoFiltro(puesto)}
+                    >
+                      <Text
+                        style={[
+                          styles.filterChipText,
+                          puestoFiltro === puesto && styles.filterChipTextActive,
+                        ]}
+                      >
+                        {puesto}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.filterSection}>
+                <Text style={styles.filterTitle}>Provincia</Text>
+                <View style={styles.filterChips}>
+                  {PROVINCIAS.map((provincia) => (
+                    <TouchableOpacity
+                      key={provincia}
+                      style={[
+                        styles.filterChip,
+                        provinciaFiltro === provincia && styles.filterChipActive,
+                      ]}
+                      onPress={() => setProvinciaFiltro(provincia)}
+                    >
+                      <Text
+                        style={[
+                          styles.filterChipText,
+                          provinciaFiltro === provincia && styles.filterChipTextActive,
+                        ]}
+                      >
+                        {provincia}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={{ height: 20 }} />
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.limpiarButton}
+                onPress={limpiarFiltros}
+              >
+                <Text style={styles.limpiarButtonText}>Limpiar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.aplicarButtonModal}
+                onPress={() => setShowFilters(false)}
+              >
+                <LinearGradient
+                  colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+                  style={styles.aplicarButtonGradient}
+                >
+                  <Text style={styles.aplicarButtonText}>Aplicar</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         visible={showStoryViewer}
@@ -1676,12 +2193,84 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 16,
   },
+  empleoSubTabs: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
+  },
+  empleoSubTab: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: colors.cardBackground,
+    borderWidth: 2,
+    borderColor: colors.cardBorder,
+    alignItems: 'center',
+  },
+  empleoSubTabActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  empleoSubTabText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  empleoSubTabTextActive: {
+    color: colors.white,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 12,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  searchInput: {
+    flex: 1,
+    color: colors.text,
+    fontSize: 16,
+  },
+  activeFilters: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  activeFilterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.primary + '20',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  activeFilterText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  clearFiltersText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.primary,
+    textDecorationLine: 'underline',
+  },
   ofertaCard: {
     backgroundColor: colors.cardBackground,
     borderRadius: 16,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: colors.cardBorder,
+    marginBottom: 16,
   },
   ofertaImagen: {
     width: '100%',
@@ -1775,13 +2364,119 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
   },
+  ofertaActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
   verMasButton: {
     backgroundColor: colors.primary,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
   },
   verMasTexto: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.white,
+  },
+  editButton: {
+    backgroundColor: colors.secondary,
+    paddingHorizontal: 12,
+  },
+  deleteButton: {
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 12,
+  },
+  demandanteCard: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    marginBottom: 16,
+  },
+  demandanteHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  demandanteFoto: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: colors.cardBorder,
+  },
+  demandanteFotoPlaceholder: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: colors.cardBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  demandanteNombre: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  demandantePuesto: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  demandanteUbicacion: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  demandanteUbicacionText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  demandanteExperiencia: {
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  demandanteHabilidades: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  habilidadChip: {
+    backgroundColor: colors.primary + '20',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  habilidadTexto: {
+    fontSize: 12,
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  demandanteFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+  },
+  contactarButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  contactarTexto: {
     fontSize: 14,
     fontWeight: '600',
     color: colors.white,
@@ -1890,6 +2585,98 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: colors.primary,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colors.cardBackground,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  filterSection: {
+    marginBottom: 24,
+  },
+  filterTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  filterChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  filterChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  filterChipText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  filterChipTextActive: {
+    color: colors.white,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+  },
+  limpiarButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  limpiarButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  aplicarButtonModal: {
+    flex: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  aplicarButtonGradient: {
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  aplicarButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.white,
   },
   storyViewerModal: {
     flex: 1,
