@@ -1575,6 +1575,44 @@ export default function PerfilScreen() {
 
   return (
     <View style={commonStyles.container}>
+      {/* Fixed Header */}
+      <LinearGradient
+        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.fixedHeader}
+      >
+        <View style={styles.headerContent}>
+          <Text style={styles.headerTitle}>Mi Perfil</Text>
+          <View style={styles.headerActions}>
+            <TouchableOpacity style={styles.headerButton} onPress={handleChats}>
+              <IconSymbol name="message.fill" size={24} color={colors.headerText} />
+              {unreadMessages > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>
+                    {unreadMessages > 99 ? '99+' : unreadMessages}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.headerButton} onPress={handleNotifications}>
+              <IconSymbol name="bell.fill" size={24} color={colors.headerText} />
+              {unreadNotifications > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>
+                    {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.headerButton} onPress={handleSettings}>
+              <IconSymbol name="gearshape.fill" size={24} color={colors.headerText} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </LinearGradient>
+
+      {/* Scrollable Content */}
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollViewContent}
@@ -1589,37 +1627,8 @@ export default function PerfilScreen() {
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
-          style={styles.header}
+          style={styles.profileHeaderGradient}
         >
-          <View style={styles.headerContent}>
-            <Text style={styles.headerTitle}>Mi Perfil</Text>
-            <View style={styles.headerActions}>
-              <TouchableOpacity style={styles.headerButton} onPress={handleChats}>
-                <IconSymbol name="message.fill" size={24} color={colors.headerText} />
-                {unreadMessages > 0 && (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>
-                      {unreadMessages > 99 ? '99+' : unreadMessages}
-                    </Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.headerButton} onPress={handleNotifications}>
-                <IconSymbol name="bell.fill" size={24} color={colors.headerText} />
-                {unreadNotifications > 0 && (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>
-                      {unreadNotifications > 99 ? '99+' : unreadNotifications}
-                    </Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.headerButton} onPress={handleSettings}>
-                <IconSymbol name="gearshape.fill" size={24} color={colors.headerText} />
-              </TouchableOpacity>
-            </View>
-          </View>
-
           {renderProfileHeader()}
         </LinearGradient>
 
@@ -2149,8 +2158,13 @@ const styles = StyleSheet.create({
   scrollViewContent: {
     paddingBottom: 100,
   },
-  header: {
+  fixedHeader: {
     paddingTop: 50,
+    paddingBottom: 16,
+    paddingHorizontal: 20,
+  },
+  profileHeaderGradient: {
+    paddingTop: 24,
     paddingBottom: 24,
     paddingHorizontal: 20,
   },
@@ -2158,7 +2172,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 28,
   },
   headerTitle: {
     fontSize: 28,
