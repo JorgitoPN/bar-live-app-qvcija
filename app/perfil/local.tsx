@@ -70,6 +70,19 @@ interface LocalEvent {
   destacado: boolean;
 }
 
+interface OfertaTrabajo {
+  id: string;
+  titulo: string;
+  descripcion: string;
+  tipo: string;
+  salario?: string;
+  requisitos?: string[];
+  provincia?: string;
+  imagen_url?: string;
+  created_at: string;
+  local_id: string;
+}
+
 export default function LocalPerfilScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -89,9 +102,10 @@ export default function LocalPerfilScreen() {
   const [local, setLocal] = useState<any>(null);
   const [posts, setPosts] = useState<LocalPost[]>([]);
   const [events, setEvents] = useState<LocalEvent[]>([]);
+  const [ofertas, setOfertas] = useState<OfertaTrabajo[]>([]);
   const [isFavorito, setIsFavorito] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
-  const [activeTab, setActiveTab] = useState<'posts' | 'eventos' | 'info'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'eventos' | 'empleo' | 'info'>('posts');
 
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [localStories, setLocalStories] = useState<LocalStory[]>([]);
@@ -188,6 +202,20 @@ export default function LocalPerfilScreen() {
 
       if (!eventsError) {
         setEvents(eventsData || []);
+      }
+
+      const { data: ofertasData, error: ofertasError } = await supabase
+        .from('ofertas_trabajo')
+        .select('*')
+        .eq('local_id', localId)
+        .eq('activo', true)
+        .order('created_at', { ascending: false });
+
+      if (!ofertasError) {
+        console.log('[LocalPerfil] ✅ Loaded', ofertasData?.length || 0, 'job offers for local');
+        setOfertas(ofertasData || []);
+      } else {
+        console.error('[LocalPerfil] Error loading job offers:', ofertasError);
       }
 
       const { data: storiesData } = await supabase
@@ -356,6 +384,10 @@ export default function LocalPerfilScreen() {
     router.push(`/detalle/evento?id=${eventoId}`);
   };
 
+  const handleVerOferta = (ofertaId: string) => {
+    router.push(`/empleo/oferta-detalle?id=${ofertaId}`);
+  };
+
   const handleCrearPost = async () => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión');
@@ -405,6 +437,23 @@ export default function LocalPerfilScreen() {
     await setCurrentMode('propietario');
     
     router.push(`/crear/evento?localId=${localId}`);
+  };
+
+  const handleCrearOferta = async () => {
+    if (!user) {
+      Alert.alert('Error', 'Debes iniciar sesión');
+      return;
+    }
+    if (!isOwner) {
+      Alert.alert('Error', 'Solo el propietario puede crear ofertas de empleo');
+      return;
+    }
+    
+    console.log('[LocalPerfil] Setting interaction state for creating job offer');
+    await switchToLocalProfile(localId);
+    await setCurrentMode('propietario');
+    
+    router.push('/crear/oferta-trabajo');
   };
 
   const handleEditarLocal = async () => {
@@ -589,6 +638,13 @@ export default function LocalPerfilScreen() {
     ];
   };
 
+  const calcularDiasPublicado = (fecha: string): number => {
+    const fechaPublicacion = new Date(fecha);
+    const hoy = new Date();
+    const diff = hoy.getTime() - fechaPublicacion.getTime();
+    return Math.floor(diff / (1000 * 60 * 60 * 24));
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -648,7 +704,6 @@ export default function LocalPerfilScreen() {
           {!isOwner && <View style={styles.headerButton} />}
         </View>
 
-        {/* Cover Photo - UNIQUE TO LOCAL PROFILES */}
         {local.imagen_portada && (
           <View style={styles.coverPhotoContainer}>
             <Image 
@@ -804,6 +859,16 @@ export default function LocalPerfilScreen() {
           />
         </TouchableOpacity>
         <TouchableOpacity
+          style={[styles.tab, activeTab === 'empleo' && styles.tabActive]}
+          onPress={() => setActiveTab('empleo')}
+        >
+          <IconSymbol 
+            name="briefcase" 
+            size={24} 
+            color={activeTab === 'empleo' ? colors.primary : colors.textSecondary} 
+          />
+        </TouchableOpacity>
+        <TouchableOpacity
           style={[styles.tab, activeTab === 'info' && styles.tabActive]}
           onPress={() => setActiveTab('info')}
         >
@@ -898,6 +963,98 @@ export default function LocalPerfilScreen() {
                 {isOwner && (
                   <TouchableOpacity style={styles.emptyButton} onPress={handleCrearEvento}>
                     <Text style={styles.emptyButtonText}>Crear Evento</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+          </View>
+        )}
+
+        {activeTab === 'empleo' && (
+          <View style={styles.empleoContainer}>
+            {ofertas.length > 0 ? (
+              ofertas.map((oferta) => {
+                const diasPublicado = calcularDiasPublicado(oferta.created_at);
+                return (
+                  <TouchableOpacity
+                    key={oferta.id}
+                    style={styles.ofertaCard}
+                    onPress={() => handleVerOferta(oferta.id)}
+                    activeOpacity={0.8}
+                  >
+                    {oferta.imagen_url && (
+                      <Image 
+                        source={{ uri: oferta.imagen_url }} 
+                        style={styles.ofertaImagen}
+                        resizeMode="cover"
+                      />
+                    )}
+                    <View style={styles.ofertaContent}>
+                      <View style={styles.ofertaHeader}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.ofertaTitulo}>{oferta.titulo}</Text>
+                          <Text style={styles.ofertaTipo}>{oferta.tipo}</Text>
+                        </View>
+                        {diasPublicado < 7 && (
+                          <View style={styles.badgeNuevo}>
+                            <Text style={styles.badgeNuevoText}>Nuevo</Text>
+                          </View>
+                        )}
+                      </View>
+
+                      <Text style={styles.ofertaDescripcion} numberOfLines={2}>
+                        {oferta.descripcion}
+                      </Text>
+
+                      <View style={styles.ofertaDetalles}>
+                        {oferta.salario && (
+                          <View style={styles.detalleChip}>
+                            <IconSymbol name="eurosign.circle" size={14} color={colors.primary} />
+                            <Text style={styles.detalleTexto}>{oferta.salario}</Text>
+                          </View>
+                        )}
+                        {oferta.provincia && (
+                          <View style={styles.detalleChip}>
+                            <IconSymbol name="mappin" size={14} color={colors.primary} />
+                            <Text style={styles.detalleTexto}>{oferta.provincia}</Text>
+                          </View>
+                        )}
+                      </View>
+
+                      {oferta.requisitos && oferta.requisitos.length > 0 && (
+                        <View style={styles.requisitosContainer}>
+                          {oferta.requisitos.slice(0, 2).map((requisito, index) => (
+                            <View key={index} style={styles.requisitoChip}>
+                              <Text style={styles.requisitoTexto}>{requisito}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+
+                      <View style={styles.ofertaFooter}>
+                        <Text style={styles.fechaTexto}>
+                          Publicado hace {diasPublicado} {diasPublicado === 1 ? 'día' : 'días'}
+                        </Text>
+                        <TouchableOpacity 
+                          style={styles.verMasButton}
+                          onPress={() => handleVerOferta(oferta.id)}
+                        >
+                          <Text style={styles.verMasTexto}>Ver más</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })
+            ) : (
+              <View style={styles.emptyState}>
+                <IconSymbol name="briefcase" size={48} color={colors.textSecondary} />
+                <Text style={styles.emptyText}>
+                  {isOwner ? 'Crea tu primera oferta de empleo' : 'No hay ofertas de empleo'}
+                </Text>
+                {isOwner && (
+                  <TouchableOpacity style={styles.emptyButton} onPress={handleCrearOferta}>
+                    <Text style={styles.emptyButtonText}>Crear Oferta</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -1514,6 +1671,120 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: colors.primary,
+  },
+  empleoContainer: {
+    padding: 16,
+    gap: 16,
+  },
+  ofertaCard: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  ofertaImagen: {
+    width: '100%',
+    height: 160,
+    backgroundColor: colors.cardBorder,
+  },
+  ofertaContent: {
+    padding: 16,
+  },
+  ofertaHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  ofertaTitulo: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  ofertaTipo: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  badgeNuevo: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  badgeNuevoText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.white,
+  },
+  ofertaDescripcion: {
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  ofertaDetalles: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  detalleChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.background,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  detalleTexto: {
+    fontSize: 13,
+    color: colors.text,
+    fontWeight: '500',
+  },
+  requisitosContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  requisitoChip: {
+    backgroundColor: colors.primary + '20',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  requisitoTexto: {
+    fontSize: 12,
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  ofertaFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+  },
+  fechaTexto: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  verMasButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  verMasTexto: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.white,
   },
   infoContainer: {
     padding: 16,
