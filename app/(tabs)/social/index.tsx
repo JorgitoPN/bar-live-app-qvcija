@@ -321,6 +321,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
   },
+  searchResultBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    gap: 4,
+  },
+  searchResultBadgeText: {
+    fontSize: 12,
+    color: colors.primary,
+    fontWeight: '500',
+  },
   historiasContainer: {
     paddingVertical: 12,
     paddingHorizontal: 8,
@@ -1278,31 +1289,75 @@ export default function SocialScreen() {
     try {
       console.log('[Social] 🔍 Searching for:', query);
       
-      // FIXED: Search both users and local profiles with active subscriptions
-      const [usersResult, localsResult] = await Promise.all([
-        supabase
-          .from('usuarios')
-          .select('id, nombre, username, avatar')
-          .or(`nombre.ilike.%${query}%,username.ilike.%${query}%`)
-          .eq('activo', true)
-          .limit(10),
-        // Search for locals by name
-        supabase
+      // FIXED: Improved search - search both users and locals with active subscriptions
+      const searchTerm = query.trim();
+      
+      // Search users
+      const { data: usersData, error: usersError } = await supabase
+        .from('usuarios')
+        .select('id, nombre, username, avatar')
+        .or(`nombre.ilike.%${searchTerm}%,username.ilike.%${searchTerm}%`)
+        .eq('activo', true)
+        .limit(10);
+
+      if (usersError) {
+        console.error('[Social] ❌ Error searching users:', usersError);
+      }
+
+      console.log('[Social] 📊 Users found:', usersData?.length || 0);
+
+      // FIXED: Search locals with active estandar or premium subscriptions
+      // Step 1: Get all active subscriptions with estandar or premium plans
+      const { data: activeSubscriptions, error: subsError } = await supabase
+        .from('suscripciones_locales')
+        .select(`
+          local_id,
+          estado,
+          planes_suscripcion!inner(
+            nombre
+          )
+        `)
+        .eq('estado', 'activa')
+        .or('planes_suscripcion.nombre.eq.estandar,planes_suscripcion.nombre.eq.premium');
+
+      if (subsError) {
+        console.error('[Social] ❌ Error fetching subscriptions:', subsError);
+      }
+
+      console.log('[Social] 📊 Active subscriptions found:', activeSubscriptions?.length || 0);
+
+      // Extract local IDs with valid subscriptions
+      const validLocalIds = activeSubscriptions?.map(sub => sub.local_id) || [];
+      
+      console.log('[Social] ✅ Valid local IDs with estandar/premium:', validLocalIds.length);
+
+      let localsData: any[] = [];
+
+      // Step 2: Search locals by name that have valid subscriptions
+      if (validLocalIds.length > 0) {
+        const { data: localsSearchData, error: localsError } = await supabase
           .from('locales')
           .select('id, nombre, imagen_url, tipo, provincia')
-          .ilike('nombre', `%${query}%`)
+          .ilike('nombre', `%${searchTerm}%`)
           .eq('activo', true)
-          .limit(50) // Get more initially to filter by subscription
-      ]);
+          .in('id', validLocalIds)
+          .limit(10);
 
-      console.log('[Social] 📊 Users found:', usersResult.data?.length || 0);
-      console.log('[Social] 📊 Locals found (before subscription filter):', localsResult.data?.length || 0);
+        if (localsError) {
+          console.error('[Social] ❌ Error searching locals:', localsError);
+        } else {
+          localsData = localsSearchData || [];
+        }
+      }
 
+      console.log('[Social] 📊 Locals found with active plans:', localsData.length);
+
+      // Combine results
       const results: SearchResult[] = [];
 
       // Add user results
-      if (usersResult.data) {
-        results.push(...usersResult.data.map(u => ({
+      if (usersData) {
+        results.push(...usersData.map(u => ({
           id: u.id,
           nombre: u.nombre,
           username: u.username,
@@ -1311,61 +1366,15 @@ export default function SocialScreen() {
         })));
       }
 
-      // FIXED: Filter locals by active subscriptions with estandar or premium plans
-      if (localsResult.data && localsResult.data.length > 0) {
-        const localIds = localsResult.data.map(l => l.id);
-        
-        console.log('[Social] 🔍 Checking subscriptions for', localIds.length, 'locals...');
-        
-        // Get active subscriptions with plan details
-        const { data: subscriptionsData, error: subsError } = await supabase
-          .from('suscripciones_locales')
-          .select(`
-            local_id,
-            estado,
-            plan_id,
-            planes_suscripcion!inner(
-              nombre
-            )
-          `)
-          .in('local_id', localIds)
-          .eq('estado', 'activa');
-
-        if (subsError) {
-          console.error('[Social] ❌ Error fetching subscriptions:', subsError);
-        } else {
-          console.log('[Social] 📊 Active subscriptions found:', subscriptionsData?.length || 0);
-          
-          // Create a set of local IDs with active estandar or premium plans
-          const validLocalIds = new Set<string>();
-          
-          if (subscriptionsData) {
-            for (const sub of subscriptionsData) {
-              const planName = (sub.planes_suscripcion as any)?.nombre?.toLowerCase();
-              console.log('[Social] 📋 Local:', sub.local_id, 'Plan:', planName);
-              
-              if (planName === 'estandar' || planName === 'premium') {
-                validLocalIds.add(sub.local_id);
-              }
-            }
-          }
-
-          console.log('[Social] ✅ Locals with estandar/premium plans:', validLocalIds.size);
-
-          // Filter and add local results
-          const filteredLocals = localsResult.data.filter(l => validLocalIds.has(l.id));
-          
-          console.log('[Social] 📊 Locals after subscription filter:', filteredLocals.length);
-
-          // Add up to 10 local results
-          results.push(...filteredLocals.slice(0, 10).map(l => ({
-            id: l.id,
-            nombre: l.nombre,
-            avatar: l.imagen_url,
-            tipo: 'local' as const,
-            bio: `${l.tipo} • ${l.provincia}`,
-          })));
-        }
+      // Add local results
+      if (localsData) {
+        results.push(...localsData.map(l => ({
+          id: l.id,
+          nombre: l.nombre,
+          avatar: l.imagen_url,
+          tipo: 'local' as const,
+          bio: `${l.tipo} • ${l.provincia}`,
+        })));
       }
 
       console.log('[Social] ✅ Total search results:', results.length);
@@ -2405,9 +2414,9 @@ export default function SocialScreen() {
                     <Text style={styles.searchResultUsername}>{result.bio}</Text>
                   )}
                   {result.tipo === 'local' && (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 4 }}>
+                    <View style={styles.searchResultBadge}>
                       <IconSymbol name="building.2" size={14} color={colors.primary} />
-                      <Text style={[styles.searchResultUsername, { color: colors.primary }]}>Local con plan activo</Text>
+                      <Text style={styles.searchResultBadgeText}>Local con plan activo</Text>
                     </View>
                   )}
                 </View>
