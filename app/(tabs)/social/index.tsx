@@ -1286,23 +1286,17 @@ export default function SocialScreen() {
           .or(`nombre.ilike.%${query}%,username.ilike.%${query}%`)
           .eq('activo', true)
           .limit(10),
-        // FIXED: Use proper join to filter locals with active estandar or premium plans
+        // Search for locals by name
         supabase
           .from('locales')
-          .select(`
-            id, 
-            nombre, 
-            imagen_url, 
-            tipo, 
-            provincia
-          `)
+          .select('id, nombre, imagen_url, tipo, provincia')
           .ilike('nombre', `%${query}%`)
           .eq('activo', true)
-          .limit(20) // Get more initially to filter
+          .limit(50) // Get more initially to filter by subscription
       ]);
 
       console.log('[Social] 📊 Users found:', usersResult.data?.length || 0);
-      console.log('[Social] 📊 Locals found (before filter):', localsResult.data?.length || 0);
+      console.log('[Social] 📊 Locals found (before subscription filter):', localsResult.data?.length || 0);
 
       const results: SearchResult[] = [];
 
@@ -1317,54 +1311,68 @@ export default function SocialScreen() {
         })));
       }
 
-      // FIXED: Filter locals by checking their subscriptions
+      // FIXED: Filter locals by active subscriptions with estandar or premium plans
       if (localsResult.data && localsResult.data.length > 0) {
         const localIds = localsResult.data.map(l => l.id);
         
-        // Get active subscriptions for these locals
-        const { data: subscriptionsData } = await supabase
+        console.log('[Social] 🔍 Checking subscriptions for', localIds.length, 'locals...');
+        
+        // Get active subscriptions with plan details
+        const { data: subscriptionsData, error: subsError } = await supabase
           .from('suscripciones_locales')
           .select(`
             local_id,
             estado,
             plan_id,
-            planes_suscripcion!inner(nombre)
+            planes_suscripcion!inner(
+              nombre
+            )
           `)
           .in('local_id', localIds)
           .eq('estado', 'activa');
 
-        console.log('[Social] 📊 Active subscriptions found:', subscriptionsData?.length || 0);
+        if (subsError) {
+          console.error('[Social] ❌ Error fetching subscriptions:', subsError);
+        } else {
+          console.log('[Social] 📊 Active subscriptions found:', subscriptionsData?.length || 0);
+          
+          // Create a set of local IDs with active estandar or premium plans
+          const validLocalIds = new Set<string>();
+          
+          if (subscriptionsData) {
+            for (const sub of subscriptionsData) {
+              const planName = (sub.planes_suscripcion as any)?.nombre?.toLowerCase();
+              console.log('[Social] 📋 Local:', sub.local_id, 'Plan:', planName);
+              
+              if (planName === 'estandar' || planName === 'premium') {
+                validLocalIds.add(sub.local_id);
+              }
+            }
+          }
 
-        // Create a set of local IDs with active estandar or premium plans
-        const validLocalIds = new Set(
-          subscriptionsData
-            ?.filter(s => {
-              const planName = (s.planes_suscripcion as any)?.nombre;
-              return planName === 'estandar' || planName === 'premium';
-            })
-            .map(s => s.local_id) || []
-        );
+          console.log('[Social] ✅ Locals with estandar/premium plans:', validLocalIds.size);
 
-        console.log('[Social] 📊 Locals with estandar/premium plans:', validLocalIds.size);
+          // Filter and add local results
+          const filteredLocals = localsResult.data.filter(l => validLocalIds.has(l.id));
+          
+          console.log('[Social] 📊 Locals after subscription filter:', filteredLocals.length);
 
-        // Filter and add local results
-        const filteredLocals = localsResult.data.filter(l => validLocalIds.has(l.id));
-        
-        console.log('[Social] 📊 Locals after filter:', filteredLocals.length);
-
-        results.push(...filteredLocals.slice(0, 10).map(l => ({
-          id: l.id,
-          nombre: l.nombre,
-          avatar: l.imagen_url,
-          tipo: 'local' as const,
-          bio: `${l.tipo} • ${l.provincia}`,
-        })));
+          // Add up to 10 local results
+          results.push(...filteredLocals.slice(0, 10).map(l => ({
+            id: l.id,
+            nombre: l.nombre,
+            avatar: l.imagen_url,
+            tipo: 'local' as const,
+            bio: `${l.tipo} • ${l.provincia}`,
+          })));
+        }
       }
 
       console.log('[Social] ✅ Total search results:', results.length);
       setSearchResults(results);
     } catch (error) {
       console.error('[Social] ❌ Error searching:', error);
+      setSearchResults([]);
     }
   }, []);
 
