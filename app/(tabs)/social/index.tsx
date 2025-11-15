@@ -1318,7 +1318,7 @@ export default function SocialScreen() {
           )
         `)
         .eq('estado', 'activa')
-        .or('planes_suscripcion.nombre.eq.estandar,planes_suscripcion.nombre.eq.premium');
+        .in('planes_suscripcion.nombre', ['estandar', 'premium']);
 
       if (subsError) {
         console.error('[Social] ❌ Error fetching subscriptions:', subsError);
