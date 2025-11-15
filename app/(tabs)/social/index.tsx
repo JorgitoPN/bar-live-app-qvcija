@@ -794,17 +794,14 @@ function formatearFecha(fecha: string): string {
   return fechaPost.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
 }
 
-// ENHANCED: Post card component with horizontal swipe for multi-image posts
 function PostCardWithSwipe({ post, user, activeLocalProfileId, router, toggleLike, toggleSave, handleDeletePost }: any) {
   const [currentImageIndex, setCurrentImageIndex] = React.useState(0);
 
-  // FIXED: Check if current user can delete this post
   const canDelete = user && (
     (post.tipo === 'usuario' && post.autor_id === user.id) ||
     (post.tipo === 'local' && activeLocalProfileId === post.local_id)
   );
 
-  // Get images array - prioritize imagenes array, fallback to imagen field
   const images = post.imagenes && post.imagenes.length > 0 
     ? post.imagenes 
     : post.imagen 
@@ -858,7 +855,6 @@ function PostCardWithSwipe({ post, user, activeLocalProfileId, router, toggleLik
         )}
       </View>
 
-      {/* ENHANCED: Horizontal swipeable image carousel for multi-image posts */}
       {images.length > 0 && (
         <View style={styles.imageCarouselContainer}>
           <ScrollView
@@ -890,7 +886,6 @@ function PostCardWithSwipe({ post, user, activeLocalProfileId, router, toggleLik
             ))}
           </ScrollView>
           
-          {/* Image indicator dots */}
           {images.length > 1 && (
             <View style={styles.imageIndicatorContainer}>
               {images.map((_: any, index: number) => (
@@ -905,7 +900,6 @@ function PostCardWithSwipe({ post, user, activeLocalProfileId, router, toggleLik
             </View>
           )}
 
-          {/* Image counter badge */}
           {images.length > 1 && (
             <View style={styles.imageCountBadge}>
               <Text style={styles.imageCountText}>
@@ -916,7 +910,6 @@ function PostCardWithSwipe({ post, user, activeLocalProfileId, router, toggleLik
         </View>
       )}
 
-      {/* Location Display */}
       {post.ubicacion && (
         <View style={styles.locationContainer}>
           <IconSymbol name="mappin.circle.fill" size={16} color={colors.primary} />
@@ -995,7 +988,6 @@ export default function SocialScreen() {
   const router = useRouter();
   const { user } = useAuth();
   
-  // FIXED: Use correct context values and functions
   const { 
     currentMode,
     activeProfileId,
@@ -1023,10 +1015,8 @@ export default function SocialScreen() {
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
   
-  // Local selector for owner mode
   const [showLocalSelector, setShowLocalSelector] = useState(false);
   
-  // Story viewer states
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -1052,7 +1042,6 @@ export default function SocialScreen() {
   const isPropietario = userRole === 'propietario' || (userRole === 'admin' && currentMode === 'propietario');
   const isOwnerMode = currentMode === 'propietario' && isPropietario;
 
-  // FIXED: Computed values from context
   const isInteractingAsLocal = activeProfileType === 'local';
   const activeLocalProfileId = activeProfileType === 'local' ? activeProfileId : null;
 
@@ -1078,16 +1067,12 @@ export default function SocialScreen() {
         console.log('[Social] ⚡ INSTANT posts from global data:', globalPosts.length);
         console.log('[Social] 📍 Current context - Mode:', currentMode, 'Type:', activeProfileType, 'Interacting:', isInteractingAsLocal, 'Active Local:', activeLocalProfileId);
         
-        // FIXED: Filter posts based on owner mode and active local profile
         let filteredPosts = globalPosts;
         
-        // Check if we're in owner mode with an active local
         if (isOwnerMode && activeLocalProfileId) {
-          // When in owner mode with active local, show ONLY posts from this local
           filteredPosts = globalPosts.filter(p => p.tipo === 'local' && p.local_id === activeLocalProfileId);
           console.log('[Social] 🏢 Owner mode - Filtered posts for local:', activeLocalProfileId, 'Count:', filteredPosts.length);
         } else {
-          // Normal user mode - show user posts only
           filteredPosts = globalPosts.filter(p => p.tipo === 'usuario');
           console.log('[Social] 👤 User mode - Filtered user posts, Count:', filteredPosts.length);
         }
@@ -1137,24 +1122,18 @@ export default function SocialScreen() {
         console.log('[Social] ⚡ INSTANT stories from global data:', globalStories.length);
         console.log('[Social] 📍 Current context - Mode:', currentMode, 'Owner Mode:', isOwnerMode, 'Active Local:', activeLocalProfileId);
         
-        // FIXED: Filter stories based on owner mode and active local profile
         let userOwnStories: typeof globalStories = [];
         let otherStories: typeof globalStories = [];
 
-        // Check if we're in owner mode with an active local
         if (isOwnerMode && activeLocalProfileId) {
-          // When in owner mode with active local, show local's stories as "own stories"
           userOwnStories = globalStories.filter(s => s.tipo === 'local' && s.local_id === activeLocalProfileId);
-          // Show ONLY user stories (not other local stories) in the feed
           otherStories = globalStories.filter(s => s.tipo === 'usuario');
           console.log('[Social] 🏢 Owner mode - Filtered stories for local:', activeLocalProfileId, 'Own:', userOwnStories.length, 'Others:', otherStories.length);
         } else if (user) {
-          // Normal user mode - show user's own stories and other user stories
           userOwnStories = globalStories.filter(s => s.tipo === 'usuario' && s.autor_id === user.id);
           otherStories = globalStories.filter(s => s.tipo === 'usuario' && s.autor_id !== user.id);
           console.log('[Social] 👤 User mode - Own stories:', userOwnStories.length, 'Others:', otherStories.length);
         } else {
-          // Not logged in - show all user stories
           otherStories = globalStories.filter(s => s.tipo === 'usuario');
           console.log('[Social] 🔓 Not logged in - Showing all user stories:', otherStories.length);
         }
@@ -1289,7 +1268,6 @@ export default function SocialScreen() {
     try {
       console.log('[Social] 🔍 Searching for:', query);
       
-      // FIXED: Improved search - search both users and locals with active subscriptions
       const searchTerm = query.trim();
       
       // Search users
@@ -1306,63 +1284,40 @@ export default function SocialScreen() {
 
       console.log('[Social] 📊 Users found:', usersData?.length || 0);
 
-      // FIXED: Search locals with active estandar or premium subscriptions
-      // Step 1: Search locals by name first
-      const { data: localsSearchData, error: localsSearchError } = await supabase
+      // FIXED: Improved local search - get locals with active subscriptions directly
+      const { data: localsWithSubs, error: localsError } = await supabase
         .from('locales')
-        .select('id, nombre, imagen_url, tipo, provincia')
-        .ilike('nombre', `%${searchTerm}%`)
-        .eq('activo', true)
-        .limit(20);
-
-      if (localsSearchError) {
-        console.error('[Social] ❌ Error searching locals:', localsSearchError);
-      }
-
-      console.log('[Social] 📊 Locals found by name:', localsSearchData?.length || 0);
-
-      let localsData: any[] = [];
-
-      // Step 2: Filter locals that have active estandar or premium subscriptions
-      if (localsSearchData && localsSearchData.length > 0) {
-        const localIds = localsSearchData.map(l => l.id);
-
-        // Get active subscriptions for these locals
-        const { data: activeSubscriptions, error: subsError } = await supabase
-          .from('suscripciones_locales')
-          .select(`
-            local_id,
+        .select(`
+          id,
+          nombre,
+          imagen_url,
+          tipo,
+          provincia,
+          suscripciones_locales!inner(
             estado,
             planes_suscripcion!inner(
               nombre
             )
-          `)
-          .eq('estado', 'activa')
-          .in('local_id', localIds);
+          )
+        `)
+        .ilike('nombre', `%${searchTerm}%`)
+        .eq('activo', true)
+        .eq('suscripciones_locales.estado', 'activa')
+        .limit(20);
 
-        if (subsError) {
-          console.error('[Social] ❌ Error fetching subscriptions:', subsError);
-        }
-
-        console.log('[Social] 📊 Active subscriptions found:', activeSubscriptions?.length || 0);
-
-        // Filter to only include estandar and premium plans
-        const validLocalIds = new Set(
-          activeSubscriptions
-            ?.filter((sub: any) => {
-              const planName = sub.planes_suscripcion?.nombre;
-              return planName === 'estandar' || planName === 'premium';
-            })
-            .map((sub: any) => sub.local_id) || []
-        );
-
-        console.log('[Social] ✅ Valid local IDs with estandar/premium:', validLocalIds.size);
-
-        // Filter the original search results to only include locals with valid subscriptions
-        localsData = localsSearchData.filter(local => validLocalIds.has(local.id));
+      if (localsError) {
+        console.error('[Social] ❌ Error searching locals:', localsError);
       }
 
-      console.log('[Social] 📊 Locals found with active plans:', localsData.length);
+      console.log('[Social] 📊 Locals with subscriptions found:', localsWithSubs?.length || 0);
+
+      // Filter to only include estandar and premium plans
+      const localsData = localsWithSubs?.filter((local: any) => {
+        const planName = local.suscripciones_locales?.planes_suscripcion?.nombre;
+        return planName === 'estandar' || planName === 'premium';
+      }) || [];
+
+      console.log('[Social] 📊 Locals with estandar/premium plans:', localsData.length);
 
       // Combine results
       const results: SearchResult[] = [];
@@ -1380,7 +1335,7 @@ export default function SocialScreen() {
 
       // Add local results
       if (localsData) {
-        results.push(...localsData.map(l => ({
+        results.push(...localsData.map((l: any) => ({
           id: l.id,
           nombre: l.nombre,
           avatar: l.imagen_url,
@@ -1541,7 +1496,6 @@ export default function SocialScreen() {
       return;
     }
 
-    // FIXED: Check if user owns this story (either as user or as local owner)
     const isOwner = currentStory.tipo === 'usuario' 
       ? currentStory.autor_id === user.id
       : currentStory.tipo === 'local' && activeLocalProfileId === currentStory.local_id;
@@ -1644,7 +1598,6 @@ export default function SocialScreen() {
       return;
     }
 
-    // FIXED: Check if user owns this story
     const isOwner = currentStory.tipo === 'usuario' 
       ? currentStory.autor_id === user.id
       : currentStory.tipo === 'local' && activeLocalProfileId === currentStory.local_id;
@@ -1904,7 +1857,6 @@ export default function SocialScreen() {
       return;
     }
 
-    // FIXED: Check if user owns this post (either as user or as local owner)
     const isOwner = post.tipo === 'usuario' 
       ? post.autor_id === user.id
       : post.tipo === 'local' && activeLocalProfileId === post.local_id;
@@ -1953,16 +1905,13 @@ export default function SocialScreen() {
     }
   }, [user]);
 
-  // FIXED: Handle switching back to client mode
   const handleSwitchToClientMode = useCallback(async () => {
     try {
       console.log('[Social] 🔄 Switching to client mode...');
       
-      // Use the correct context function
       await switchToClientProfile();
       await setCurrentMode('cliente');
       
-      // Reload data to show user content
       await loadData();
       
       Alert.alert('Modo Cliente', 'Has cambiado al modo cliente');
@@ -2014,8 +1963,6 @@ export default function SocialScreen() {
     outputRange: ['0%', '100%'],
   });
 
-  // FIXED: Always show user avatar in stories section, regardless of mode
-  // The local selector above already indicates which profile is active
   const displayAvatar = user?.avatar;
   const displayName = user?.nombre || 'Usuario';
   const displayInitial = displayName.charAt(0).toUpperCase();
@@ -2087,7 +2034,6 @@ export default function SocialScreen() {
           </View>
         </LinearGradient>
 
-        {/* FIXED: Local selector for owner mode */}
         {isOwnerMode && ownedLocals.length > 0 && (
           <View style={styles.localSelectorContainer}>
             <TouchableOpacity
@@ -2127,7 +2073,6 @@ export default function SocialScreen() {
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-        {/* Stories */}
         <View style={styles.historiasContainer}>
           <ScrollView
             horizontal
@@ -2141,7 +2086,6 @@ export default function SocialScreen() {
                   if (hasUserStories) {
                     handleStoryPress(0, true);
                   } else {
-                    // FIXED: Pass localId if creating story for local in owner mode
                     if (isOwnerMode && activeLocalProfileId) {
                       router.push(`/crear/historia?localId=${activeLocalProfileId}`);
                     } else {
@@ -2160,7 +2104,6 @@ export default function SocialScreen() {
                         end={{ x: 1, y: 0 }}
                         style={styles.historiaGradientBorder}
                       >
-                        {/* FIXED: Always show user avatar in client mode, local avatar in owner mode */}
                         {(isOwnerMode && activeLocalData?.imagen_url) ? (
                           <Image source={{ uri: activeLocalData.imagen_url }} style={styles.historiaAvatar} />
                         ) : displayAvatar ? (
@@ -2260,7 +2203,6 @@ export default function SocialScreen() {
           </ScrollView>
         </View>
 
-        {/* Posts Feed - ENHANCED: Now with horizontal swipe for multi-image posts */}
         <View style={styles.feedContainer}>
           {posts.length > 0 ? (
             posts.map((post) => {
@@ -2289,7 +2231,6 @@ export default function SocialScreen() {
 
       </ScrollView>
 
-      {/* Local Selector Modal */}
       <Modal
         visible={showLocalSelector}
         animationType="slide"
@@ -2309,7 +2250,6 @@ export default function SocialScreen() {
             </View>
 
             <ScrollView style={styles.localSelectorModalContent}>
-              {/* FIXED: Add option to switch back to client mode */}
               <TouchableOpacity
                 style={styles.switchToClientButton}
                 onPress={() => {
@@ -2330,10 +2270,8 @@ export default function SocialScreen() {
                   onPress={async () => {
                     console.log('[Social] 🏢 Selecting local:', local.id, local.nombre);
                     
-                    // FIXED: Use the correct context function
                     await switchToLocalProfile(local.id);
                     
-                    // Reload data to show local's content
                     await loadData();
                     
                     setShowLocalSelector(false);
@@ -2362,7 +2300,6 @@ export default function SocialScreen() {
         </Pressable>
       </Modal>
 
-      {/* Search Modal */}
       <Modal
         visible={showSearchModal}
         animationType="slide"
@@ -2438,7 +2375,6 @@ export default function SocialScreen() {
         </View>
       </Modal>
 
-      {/* Create Options Modal */}
       <Modal
         visible={showCreateOptions}
         animationType="slide"
@@ -2461,7 +2397,6 @@ export default function SocialScreen() {
                 style={styles.createOptionButton}
                 onPress={() => {
                   setShowCreateOptions(false);
-                  // FIXED: Pass localId if creating for local in owner mode
                   if (isOwnerMode && activeLocalProfileId) {
                     router.push(`/crear/historia?localId=${activeLocalProfileId}`);
                   } else {
@@ -2484,7 +2419,6 @@ export default function SocialScreen() {
                 style={styles.createOptionButton}
                 onPress={() => {
                   setShowCreateOptions(false);
-                  // FIXED: Pass localId if creating for local in owner mode
                   if (isOwnerMode && activeLocalProfileId) {
                     router.push(`/crear/publicacion?localId=${activeLocalProfileId}`);
                   } else {
@@ -2507,8 +2441,6 @@ export default function SocialScreen() {
           </Pressable>
         </Pressable>
       </Modal>
-
-      {/* Story Viewer Modal - Omitted for brevity, same as before */}
 
       <StoryStatsModal
         visible={showStoryStats}
