@@ -1307,47 +1307,59 @@ export default function SocialScreen() {
       console.log('[Social] 📊 Users found:', usersData?.length || 0);
 
       // FIXED: Search locals with active estandar or premium subscriptions
-      // Step 1: Get all active subscriptions with estandar or premium plans
-      const { data: activeSubscriptions, error: subsError } = await supabase
-        .from('suscripciones_locales')
-        .select(`
-          local_id,
-          estado,
-          planes_suscripcion!inner(
-            nombre
-          )
-        `)
-        .eq('estado', 'activa')
-        .in('planes_suscripcion.nombre', ['estandar', 'premium']);
+      // Step 1: Search locals by name first
+      const { data: localsSearchData, error: localsSearchError } = await supabase
+        .from('locales')
+        .select('id, nombre, imagen_url, tipo, provincia')
+        .ilike('nombre', `%${searchTerm}%`)
+        .eq('activo', true)
+        .limit(20);
 
-      if (subsError) {
-        console.error('[Social] ❌ Error fetching subscriptions:', subsError);
+      if (localsSearchError) {
+        console.error('[Social] ❌ Error searching locals:', localsSearchError);
       }
 
-      console.log('[Social] 📊 Active subscriptions found:', activeSubscriptions?.length || 0);
-
-      // Extract local IDs with valid subscriptions
-      const validLocalIds = activeSubscriptions?.map(sub => sub.local_id) || [];
-      
-      console.log('[Social] ✅ Valid local IDs with estandar/premium:', validLocalIds.length);
+      console.log('[Social] 📊 Locals found by name:', localsSearchData?.length || 0);
 
       let localsData: any[] = [];
 
-      // Step 2: Search locals by name that have valid subscriptions
-      if (validLocalIds.length > 0) {
-        const { data: localsSearchData, error: localsError } = await supabase
-          .from('locales')
-          .select('id, nombre, imagen_url, tipo, provincia')
-          .ilike('nombre', `%${searchTerm}%`)
-          .eq('activo', true)
-          .in('id', validLocalIds)
-          .limit(10);
+      // Step 2: Filter locals that have active estandar or premium subscriptions
+      if (localsSearchData && localsSearchData.length > 0) {
+        const localIds = localsSearchData.map(l => l.id);
 
-        if (localsError) {
-          console.error('[Social] ❌ Error searching locals:', localsError);
-        } else {
-          localsData = localsSearchData || [];
+        // Get active subscriptions for these locals
+        const { data: activeSubscriptions, error: subsError } = await supabase
+          .from('suscripciones_locales')
+          .select(`
+            local_id,
+            estado,
+            planes_suscripcion!inner(
+              nombre
+            )
+          `)
+          .eq('estado', 'activa')
+          .in('local_id', localIds);
+
+        if (subsError) {
+          console.error('[Social] ❌ Error fetching subscriptions:', subsError);
         }
+
+        console.log('[Social] 📊 Active subscriptions found:', activeSubscriptions?.length || 0);
+
+        // Filter to only include estandar and premium plans
+        const validLocalIds = new Set(
+          activeSubscriptions
+            ?.filter((sub: any) => {
+              const planName = sub.planes_suscripcion?.nombre;
+              return planName === 'estandar' || planName === 'premium';
+            })
+            .map((sub: any) => sub.local_id) || []
+        );
+
+        console.log('[Social] ✅ Valid local IDs with estandar/premium:', validLocalIds.size);
+
+        // Filter the original search results to only include locals with valid subscriptions
+        localsData = localsSearchData.filter(local => validLocalIds.has(local.id));
       }
 
       console.log('[Social] 📊 Locals found with active plans:', localsData.length);
