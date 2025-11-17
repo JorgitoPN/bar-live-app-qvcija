@@ -1,9 +1,9 @@
 
 /**
- * TAB NAVIGATION BAR - v2.2.0
+ * TAB NAVIGATION BAR - v2.0.0
  * 
  * Modern, clean tab navigation bar with ENHANCED active state visibility.
- * Central "Explorar" button now has solid background without transparency.
+ * Built from scratch with no legacy code.
  */
 
 import React, { useEffect } from 'react';
@@ -90,7 +90,7 @@ export function TabNavigationBar({
     const isActive = isTabActive(tab, pathname);
     const isCenter = tab.id === 'explorar';
 
-    // Center button (Explorar) with SOLID background - NO transparency
+    // Center button (Explorar) with special styling
     if (isCenter) {
       return (
         <TouchableOpacity
@@ -103,10 +103,10 @@ export function TabNavigationBar({
           accessibilityState={{ selected: isActive }}
         >
           <LinearGradient
-            colors={['#FF6B9D', '#C44569']}
+            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={styles.centerButtonGradient}
+            style={styles.centerGradient}
           >
             <TabIcon
               iosIcon={tab.iosIcon}
@@ -250,20 +250,20 @@ const styles = StyleSheet.create({
     height: 64,
     marginTop: -32,
     borderRadius: 32,
-    shadowColor: '#FF6B9D',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 12,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
-  centerButtonGradient: {
+  centerGradient: {
     width: '100%',
     height: '100%',
     borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderWidth: 4,
+    borderColor: colors.white,
   },
   avatarContainer: {
     width: 36,

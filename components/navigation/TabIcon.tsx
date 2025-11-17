@@ -1,6 +1,6 @@
 
 /**
- * TAB ICON COMPONENT - v3.2.0
+ * TAB ICON COMPONENT - v3.0.0
  * 
  * Platform-specific icon rendering with MAXIMUM visibility and distinction.
  * Handles iOS SF Symbols and Android Material Icons.
@@ -18,9 +18,9 @@ interface TabIconProps {
 }
 
 // ✅ MAXIMUM VISIBILITY: Strong distinction between active and inactive states
-const ACTIVE_COLOR = '#FFFFFF';           // Pure white for active - 100% opacity
-const INACTIVE_COLOR = 'rgba(255, 255, 255, 0.35)'; // More transparent inactive state for better contrast
-const ACTIVE_SCALE = 1.15;                // Slightly larger when active
+const ACTIVE_COLOR = '#FFFFFF';           // Pure white for active
+const INACTIVE_COLOR = 'rgba(255, 255, 255, 0.55)'; // More visible inactive state
+const ACTIVE_SCALE = 1.2;                 // Larger when active for better visibility
 
 export function TabIcon({ iosIcon, androidIcon, isActive, size = 28 }: TabIconProps) {
   const iconName = Platform.OS === 'ios' ? iosIcon : androidIcon;
@@ -62,11 +62,11 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     shadowColor: '#FFFFFF',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
+    shadowOpacity: 0.6,
     shadowRadius: 16,
-    elevation: 10,
+    elevation: 8,
   },
 });
