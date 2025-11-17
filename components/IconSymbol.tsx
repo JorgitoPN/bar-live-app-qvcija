@@ -104,6 +104,7 @@ const MAPPING = {
   "star": "star-border",
   "bookmark.fill": "bookmark",
   "bookmark": "bookmark-border",
+  "square.stack.fill": "collections",
 
   // Technology & Code
   "chevron.left.forwardslash.chevron.right": "code",
@@ -124,6 +125,7 @@ const MAPPING = {
   "bag.fill": "shopping-bag",
   "bag": "shopping-bag",
   "eurosign.circle": "euro",
+  "eurosign.circle.fill": "euro",
 
   // Location & Maps
   "location.fill": "location-on",
@@ -152,6 +154,7 @@ const MAPPING = {
   "person.circle": "account-circle",
   "person.crop.circle.fill": "account-circle",
   "person.crop.circle": "account-circle",
+  "person.crop.square": "person",
   "person.badge.key": "admin-panel-settings",
 
   // Work & Business
@@ -167,9 +170,11 @@ const MAPPING = {
   // Search & Discovery
   "magnifyingglass": "search",
   "line.3.horizontal.decrease": "filter-list",
+  "line.3.horizontal.decrease.circle": "filter-list",
   "arrow.up.arrow.down": "sort",
 
   // Visibility & Display
+  "eye": "visibility",
   "eye.fill": "visibility",
   "eye.slash.fill": "visibility-off",
   "lightbulb.fill": "lightbulb",
@@ -196,7 +201,7 @@ export type IconSymbolName = keyof typeof MAPPING;
  *
  * Icon `name`s are based on SFSymbols and require manual mapping to MaterialIcons.
  * 
- * ✅ INSTAGRAM-STYLE v13.0.0: Outlined icons for inactive, filled for active
+ * ✅ INSTAGRAM-STYLE v14.0.0: Outlined icons for inactive, filled for active
  * - Active icons: Filled, pure white (#FFFFFF) at 100% opacity
  * - Inactive icons: Outlined (hollow), pure white (#FFFFFF) at 100% opacity
  * - NO transparency, NO filters - icons are fully opaque and bright
@@ -224,7 +229,7 @@ export function IconSymbol({
   // Ensure color is applied directly without any modifications
   const finalColor = typeof color === 'string' ? color : color.toString();
   
-  console.log(`🎨 [IconSymbol Android/Web v13.0] Rendering ${MAPPING[name]} with color: ${finalColor}, weight: ${fontWeight}, fill: ${fill || 'none'}`);
+  console.log(`🎨 [IconSymbol Android/Web v14.0] Rendering ${MAPPING[name]} with color: ${finalColor}, weight: ${fontWeight}, fill: ${fill || 'none'}`);
   
   return (
     <MaterialIcons

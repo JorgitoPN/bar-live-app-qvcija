@@ -1,14 +1,14 @@
 
 /**
- * TAB NAVIGATION BAR - v13.0.0 INSTAGRAM-STYLE WITH FILL PROPERTY
+ * TAB NAVIGATION BAR - v14.0.0 INSTAGRAM-STYLE WITH SMALLER ICONS
  * 
  * Modern, clean tab navigation bar with Instagram-style outlined/filled icon distinction.
  * Built from scratch with no legacy code.
  * 
- * 🔥 INSTAGRAM-STYLE v13.0.0:
+ * 🔥 INSTAGRAM-STYLE v14.0.0:
  * - Inactive icons: Outlined (hollow), pure white, 100% opacity, NO transparency
  * - Active icons: Filled, pure white, 100% opacity, NO transparency
- * - Icons are now 36px (same size as miniavatar)
+ * - Icons are now 32px (slightly smaller for better spacing)
  * - Central "Explorar" button remains the same with gradient
  * - Visual distinction comes from outline vs filled using fill property
  * - Icons positioned slightly higher (reduced paddingTop and paddingVertical)
@@ -48,11 +48,11 @@ export function TabNavigationBar({
   const pathname = usePathname();
 
   useEffect(() => {
-    console.log('🎯 [TabNavigationBar v13.0 INSTAGRAM-STYLE] Rendered with', tabs.length, 'tabs');
+    console.log('🎯 [TabNavigationBar v14.0 INSTAGRAM-STYLE] Rendered with', tabs.length, 'tabs');
     console.log('📍 [TabNavigationBar] Current pathname:', pathname);
     tabs.forEach(tab => {
       const active = isTabActive(tab, pathname);
-      console.log(`   ${active ? '✅ FILLED (active)' : '⚪ OUTLINED (inactive)'} ${tab.label} (${tab.id}) - 36px size`);
+      console.log(`   ${active ? '✅ FILLED (active)' : '⚪ OUTLINED (inactive)'} ${tab.label} (${tab.id}) - 32px size`);
     });
   }, [pathname, tabs]);
 
@@ -122,7 +122,7 @@ export function TabNavigationBar({
               androidIconFilled={tab.androidIconFilled}
               androidIconOutlined={tab.androidIconOutlined}
               isActive={true} // Always show as active for center button
-              size={32}
+              size={30}
             />
           </LinearGradient>
         </TouchableOpacity>
@@ -156,7 +156,7 @@ export function TabNavigationBar({
                   androidIconFilled="person"
                   androidIconOutlined="person-outline"
                   isActive={isActive}
-                  size={22}
+                  size={20}
                 />
               </View>
             )}
@@ -182,7 +182,7 @@ export function TabNavigationBar({
           androidIconFilled={tab.androidIconFilled}
           androidIconOutlined={tab.androidIconOutlined}
           isActive={isActive}
-          size={36}
+          size={32}
         />
       </TouchableOpacity>
     );
@@ -206,7 +206,7 @@ export function TabNavigationBar({
         </Svg>
       </View>
 
-      {/* Tab buttons - positioned higher with larger icons (36px) */}
+      {/* Tab buttons - positioned higher with smaller icons (32px) */}
       <View style={[styles.tabBar, { opacity: 1 }]} pointerEvents="box-none">
         {tabs.map(tab => renderTab(tab))}
       </View>
@@ -285,9 +285,9 @@ const styles = StyleSheet.create({
     opacity: 1,
   },
   avatarContainer: {
-    width: 36, // Updated to match icon size
-    height: 36,
-    borderRadius: 18,
+    width: 32, // Updated to match icon size
+    height: 32,
+    borderRadius: 16,
     overflow: 'hidden',
     position: 'relative',
     opacity: 1,

@@ -1,15 +1,16 @@
 
 /**
- * TAB NAVIGATION CONFIGURATION - v2.0.0 INSTAGRAM-STYLE
+ * TAB NAVIGATION CONFIGURATION - v2.1.0 INSTAGRAM-STYLE
  * 
  * Centralized configuration for all tab navigation in the app.
  * This file defines all available tabs, their icons (filled and outlined), routes, and visibility rules.
  * 
- * 🔥 INSTAGRAM-STYLE v2.0.0:
+ * 🔥 INSTAGRAM-STYLE v2.1.0:
  * - Each tab now has both filled and outlined icon variants
  * - Inactive tabs show outlined (hollow) icons
  * - Active tabs show filled icons
  * - All icons are pure white, fully opaque, NO transparency
+ * - Icons are now 32px (slightly smaller than before)
  */
 
 export interface TabDefinition {
@@ -117,7 +118,7 @@ export const ALL_TABS: TabDefinition[] = [
     modes: ['propietario'],
     requiresOwnership: true,
     order: {
-      propietario: 0,
+      propietario: 0, // 🔥 FIRST POSITION in owner profile menu
     },
   },
   {
@@ -131,7 +132,7 @@ export const ALL_TABS: TabDefinition[] = [
     roles: ['cliente', 'propietario', 'admin'],
     modes: ['propietario'],
     order: {
-      propietario: 1,
+      propietario: 1, // 🔥 SECOND POSITION in owner profile menu (to the right of Gestión)
     },
   },
   {

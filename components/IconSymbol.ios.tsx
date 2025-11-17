@@ -5,7 +5,7 @@ import { StyleProp, ViewStyle } from "react-native";
 /**
  * iOS-specific icon component using native SF Symbols.
  * 
- * ✅ INSTAGRAM-STYLE v13.0.0: Outlined icons for inactive, filled for active
+ * ✅ INSTAGRAM-STYLE v14.0.0: Outlined icons for inactive, filled for active
  * - Active icons: Filled, pure white (#FFFFFF) at 100% opacity
  * - Inactive icons: Outlined (hollow), pure white (#FFFFFF) at 100% opacity
  * - NO transparency, NO filters - icons are fully opaque and bright
@@ -27,7 +27,7 @@ export function IconSymbol({
   weight?: SymbolWeight;
   fill?: string;
 }) {
-  console.log(`🎨 [IconSymbol iOS v13.0] Rendering ${name} with color: ${color}, weight: ${weight}, fill: ${fill || 'none'}`);
+  console.log(`🎨 [IconSymbol iOS v14.0] Rendering ${name} with color: ${color}, weight: ${weight}, fill: ${fill || 'none'}`);
   
   return (
     <SymbolView
@@ -35,7 +35,7 @@ export function IconSymbol({
       tintColor={color}
       resizeMode="scaleAspectFit"
       name={name}
-      renderingMode={fill ? "hierarchical" : "monochrome"}
+      renderingMode={fill && fill !== 'none' ? "hierarchical" : "monochrome"}
       style={[
         {
           width: size,
