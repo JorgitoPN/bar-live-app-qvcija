@@ -84,6 +84,9 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
     console.log('[FloatingTabBar] 🖼️ Active avatar updated:', activeAvatar);
   }, [activeAvatar]);
 
+  // Check if profile tab is active
+  const isProfileActive = isActive('(tabs)/perfil');
+
   return (
     <View style={styles.container} pointerEvents="box-none">
       <View style={styles.svgContainer} pointerEvents="none">
@@ -162,7 +165,7 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
           }
 
           // 🆕 FEATURE 2: For profile tab, show the active profile avatar (user or local)
-          // 🔧 FIX: Avatar contour now ONLY shows when the profile tab is active, and is thinner (1.5px)
+          // 🔧 FIX: Avatar contour now shows on ALL tabs when profile is active (not just on profile tab)
           if (tab.name === 'perfil') {
             return (
               <TouchableOpacity
@@ -177,14 +180,14 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                       source={{ uri: activeAvatar }} 
                       style={[
                         styles.profileAvatar,
-                        active && styles.profileAvatarWithContour
+                        isProfileActive && styles.profileAvatarWithContour
                       ]} 
                     />
                   ) : (
                     <View style={[
                       styles.profileAvatar,
                       styles.profileAvatarPlaceholder,
-                      active && styles.profileAvatarWithContour
+                      isProfileActive && styles.profileAvatarWithContour
                     ]}>
                       <IconSymbol
                         name={activeProfileType === 'local' ? 'building.2' : 'person.fill'}
@@ -299,7 +302,8 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
   },
-  // 🔧 FIXED: Thinner contour (1.5px) that ONLY shows when profile tab is active
+  // 🔧 FIXED: Contour now shows on ALL tabs when profile is active
+  // Using the exact same white color (#FFFFFF) as active icons for consistency
   profileAvatarWithContour: {
     borderWidth: 1.5,
     borderColor: '#FFFFFF',
