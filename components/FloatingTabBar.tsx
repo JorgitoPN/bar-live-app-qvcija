@@ -48,15 +48,23 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
       const cleanRoute = route.startsWith('/') ? route.substring(1) : route;
       const cleanPathname = pathname.startsWith('/') ? pathname.substring(1) : pathname;
       
+      console.log('[FloatingTabBar] 🔍 Checking if active:', {
+        route: cleanRoute,
+        pathname: cleanPathname,
+        currentMode,
+        activeProfileType
+      });
+      
       // Special handling for perfil routes - match ALL profile screens
       if (cleanRoute === '(tabs)/perfil') {
         const isProfileActive = cleanPathname === '(tabs)/perfil' || 
                cleanPathname === '(tabs)/perfil/' || 
                cleanPathname === '(tabs)/perfil/index' ||
                cleanPathname.startsWith('perfil/usuario') ||
-               cleanPathname.startsWith('perfil/local') ||
-               cleanPathname.startsWith('perfil/') ||
-               cleanPathname === 'perfil';
+               // ✅ CRITICAL FIX: Don't match perfil/local when in propietario mode
+               (cleanPathname.startsWith('perfil/local') && currentMode !== 'propietario') ||
+               (cleanPathname.startsWith('perfil/') && !cleanPathname.startsWith('perfil/local')) ||
+               (cleanPathname === 'perfil' && currentMode !== 'propietario');
         
         if (isProfileActive) {
           console.log('[FloatingTabBar] ✅ Profile tab is ACTIVE - pathname:', cleanPathname);
@@ -65,24 +73,32 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
         return isProfileActive;
       }
 
-      // ✅ FIX: Special handling for gestion routes - match when viewing local profile as owner
+      // ✅ CRITICAL FIX: Special handling for gestion routes
+      // When viewing perfil/local in propietario mode, the gestion tab should be active
       if (cleanRoute === '(tabs)/gestion') {
         const isGestionActive = cleanPathname === '(tabs)/gestion' || 
                cleanPathname === '(tabs)/gestion/' || 
                cleanPathname === '(tabs)/gestion/index' ||
                cleanPathname.startsWith('gestion/') ||
                cleanPathname === 'gestion' ||
-               // ✅ CRITICAL FIX: Also match perfil/local when in propietario mode viewing own local
+               // ✅ CRITICAL FIX: Match perfil/local when in propietario mode viewing own local
                (cleanPathname.startsWith('perfil/local') && currentMode === 'propietario' && activeProfileType === 'local');
         
         if (isGestionActive) {
-          console.log('[FloatingTabBar] ✅ Gestion tab is ACTIVE - pathname:', cleanPathname, 'mode:', currentMode);
+          console.log('[FloatingTabBar] ✅ Gestion tab is ACTIVE - pathname:', cleanPathname, 'mode:', currentMode, 'profileType:', activeProfileType);
         }
         
         return isGestionActive;
       }
       
-      return cleanPathname.startsWith(cleanRoute);
+      // Default: match by route prefix
+      const isDefaultActive = cleanPathname.startsWith(cleanRoute);
+      
+      if (isDefaultActive) {
+        console.log('[FloatingTabBar] ✅ Tab is ACTIVE (default match) - route:', cleanRoute);
+      }
+      
+      return isDefaultActive;
     } catch (error) {
       console.error('Error checking active route:', error);
       return false;
