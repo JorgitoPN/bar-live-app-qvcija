@@ -1,11 +1,11 @@
 
 /**
- * TAB NAVIGATION BAR - v9.0.0 INSTAGRAM-EXACT
+ * TAB NAVIGATION BAR - v10.0.0 INSTAGRAM-EXACT
  * 
  * Modern, clean tab navigation bar with EXACT Instagram-style active state visibility.
  * Built from scratch with no legacy code.
  * 
- * 🔥 INSTAGRAM-EXACT v9.0.0:
+ * 🔥 INSTAGRAM-EXACT v10.0.0:
  * - Central "Explorar" button: NO transparency, fully opaque
  * - Icons and mini-avatar: 36px
  * - Inactive icons: 40% opacity (rgba(255,255,255,0.4)) - clearly visible, just softened
@@ -47,11 +47,11 @@ export function TabNavigationBar({
   const pathname = usePathname();
 
   useEffect(() => {
-    console.log('🎯 [TabNavigationBar v9.0 INSTAGRAM-EXACT] Rendered with', tabs.length, 'tabs');
+    console.log('🎯 [TabNavigationBar v10.0 INSTAGRAM-EXACT] Rendered with', tabs.length, 'tabs');
     console.log('📍 [TabNavigationBar] Current pathname:', pathname);
     tabs.forEach(tab => {
       const active = isTabActive(tab, pathname);
-      console.log(`   ${active ? '✅ ACTIVE (white 100%)' : '⚪ inactive (white 40%)'} ${tab.label} (${tab.id})`);
+      console.log(`   ${active ? '✅ ACTIVE (#FFFFFF 100%)' : '⚪ INACTIVE (rgba(255,255,255,0.4))'} ${tab.label} (${tab.id})`);
     });
   }, [pathname, tabs]);
 
@@ -103,7 +103,7 @@ export function TabNavigationBar({
         <TouchableOpacity
           key={tab.id}
           onPress={() => handleTabPress(tab)}
-          style={styles.centerButton}
+          style={[styles.centerButton, { opacity: 1 }]}
           activeOpacity={0.7}
           accessibilityRole="button"
           accessibilityLabel={tab.label}
@@ -113,12 +113,12 @@ export function TabNavigationBar({
             colors={['#2DD4BF', '#06B6D4']} // Fully opaque colors, no transparency
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={styles.centerGradient}
+            style={[styles.centerGradient, { opacity: 1 }]}
           >
             <TabIcon
               iosIcon={tab.iosIcon}
               androidIcon={tab.androidIcon}
-              isActive={false} // Don't use active state for center button
+              isActive={true} // Always show as active for center button
               size={28}
             />
           </LinearGradient>
@@ -132,21 +132,21 @@ export function TabNavigationBar({
         <TouchableOpacity
           key={tab.id}
           onPress={() => handleTabPress(tab)}
-          style={styles.tab}
+          style={[styles.tab, { opacity: 1 }]}
           activeOpacity={0.7}
           accessibilityRole="button"
           accessibilityLabel={tab.label}
           accessibilityState={{ selected: isActive }}
         >
-          <View style={[styles.avatarContainer, isActive && styles.avatarContainerActive]}>
+          <View style={[styles.avatarContainer, isActive && styles.avatarContainerActive, { opacity: 1 }]}>
             {activeProfileAvatar ? (
               <Image
                 source={{ uri: activeProfileAvatar }}
-                style={styles.avatar}
+                style={[styles.avatar, { opacity: 1 }]}
                 resizeMode="cover"
               />
             ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]}>
+              <View style={[styles.avatar, styles.avatarPlaceholder, { opacity: 1 }]}>
                 <TabIcon
                   iosIcon="person.fill"
                   androidIcon="person"
@@ -165,7 +165,7 @@ export function TabNavigationBar({
       <TouchableOpacity
         key={tab.id}
         onPress={() => handleTabPress(tab)}
-        style={styles.tab}
+        style={[styles.tab, { opacity: 1 }]}
         activeOpacity={0.7}
         accessibilityRole="button"
         accessibilityLabel={tab.label}
@@ -181,15 +181,15 @@ export function TabNavigationBar({
   };
 
   return (
-    <View style={styles.container} pointerEvents="box-none">
+    <View style={[styles.container, { opacity: 1 }]} pointerEvents="box-none">
       {/* Background with shadow - NO opacity applied */}
-      <View style={styles.backgroundContainer} pointerEvents="none">
+      <View style={[styles.backgroundContainer, { opacity: 1 }]} pointerEvents="none">
         <Svg
           width="100%"
           height="80"
           viewBox="0 0 375 80"
           preserveAspectRatio="none"
-          style={styles.svg}
+          style={[styles.svg, { opacity: 1 }]}
         >
           <Path
             d="M0,0 H375 V80 H0 Z"
@@ -199,7 +199,7 @@ export function TabNavigationBar({
       </View>
 
       {/* Tab buttons - NO opacity applied */}
-      <View style={styles.tabBar} pointerEvents="box-none">
+      <View style={[styles.tabBar, { opacity: 1 }]} pointerEvents="box-none">
         {tabs.map(tab => renderTab(tab))}
       </View>
     </View>

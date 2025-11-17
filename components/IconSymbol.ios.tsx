@@ -5,7 +5,7 @@ import { StyleProp, ViewStyle } from "react-native";
 /**
  * iOS-specific icon component using native SF Symbols.
  * 
- * ✅ INSTAGRAM-EXACT v9.0.0: Maximum contrast for active/inactive distinction
+ * ✅ INSTAGRAM-EXACT v10.0.0: Maximum contrast for active/inactive distinction
  * - Active icons: Pure white (#FFFFFF) at 100% opacity with semibold weight - NO transparency
  * - Inactive icons: 40% opacity (rgba(255,255,255,0.4)) with regular weight - clearly visible but softened
  * - Weight parameter properly applied for better distinction
@@ -24,6 +24,8 @@ export function IconSymbol({
   style?: StyleProp<ViewStyle>;
   weight?: SymbolWeight;
 }) {
+  console.log(`🎨 [IconSymbol iOS] Rendering ${name} with color: ${color}, weight: ${weight}`);
+  
   return (
     <SymbolView
       weight={weight}

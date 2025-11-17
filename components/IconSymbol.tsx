@@ -194,7 +194,7 @@ export type IconSymbolName = keyof typeof MAPPING;
  *
  * Icon `name`s are based on SFSymbols and require manual mapping to MaterialIcons.
  * 
- * ✅ INSTAGRAM-EXACT v9.0.0: Maximum contrast for active/inactive distinction
+ * ✅ INSTAGRAM-EXACT v10.0.0: Maximum contrast for active/inactive distinction
  * - Active icons: Pure white (#FFFFFF) at 100% opacity - NO transparency
  * - Inactive icons: 40% opacity (rgba(255,255,255,0.4)) - clearly visible but softened
  * - NO filters applied, direct color control
@@ -216,17 +216,22 @@ export function IconSymbol({
   // Material Icons don't have weight variants, but we can simulate with font weight
   const fontWeight = weight === 'semibold' || weight === 'bold' ? '700' : '400';
   
+  // Ensure color is applied directly without any modifications
+  const finalColor = typeof color === 'string' ? color : color.toString();
+  
+  console.log(`🎨 [IconSymbol Android/Web] Rendering ${MAPPING[name]} with color: ${finalColor}, weight: ${fontWeight}`);
+  
   return (
     <MaterialIcons
-      color={color}
+      color={finalColor}
       size={size}
       name={MAPPING[name]}
       style={[
-        style as StyleProp<TextStyle>, 
         { 
           fontWeight,
           opacity: 1, // Force 100% opacity to prevent inheritance issues
-        }
+        },
+        style as StyleProp<TextStyle>,
       ]}
     />
   );
