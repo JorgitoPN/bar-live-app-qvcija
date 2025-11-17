@@ -1,16 +1,16 @@
 
 /**
- * FLOATING TAB BAR - v10.0.0 INSTAGRAM-EXACT
+ * FLOATING TAB BAR - v11.0.0 INSTAGRAM-STYLE
  * 
  * Wrapper component for backward compatibility.
  * Uses the new TabNavigationBar internally.
  * 
- * 🔥 INSTAGRAM-EXACT v10.0.0:
- * - Central "Explorar" button: NO transparency, fully opaque
- * - Icons and mini-avatar: 36px
- * - Inactive icons: 40% opacity (rgba(255,255,255,0.4)) - clearly visible, just softened
- * - Active icons: 100% opacity (#FFFFFF) - pure white, NO transparency
- * - NO filters, NO parent opacity, maximum contrast
+ * 🔥 INSTAGRAM-STYLE v11.0.0:
+ * - Inactive icons: Outlined (hollow), pure white, 100% opacity, NO transparency
+ * - Active icons: Filled, pure white, 100% opacity, NO transparency
+ * - Icons are smaller (24px) and positioned higher in the tab bar
+ * - Central "Explorar" button remains the same with gradient
+ * - Visual distinction comes from outline vs filled, not opacity changes
  */
 
 import React from 'react';
@@ -36,13 +36,13 @@ export default function FloatingTabBar({ tabs: legacyTabs, containerWidth }: Flo
   const { currentMode, activeProfileType, activeProfileId, switchToLocalProfile } = useMode();
   const { tabs, activeProfileAvatar } = useTabNavigation();
 
-  console.log('🎯 [FloatingTabBar v10.0 INSTAGRAM-EXACT] Rendering with maximum contrast');
+  console.log('🎯 [FloatingTabBar v11.0 INSTAGRAM-STYLE] Rendering with outlined/filled distinction');
   console.log('   Mode:', currentMode);
   console.log('   Profile Type:', activeProfileType);
   console.log('   Profile ID:', activeProfileId);
   console.log('   Tabs:', tabs.map(t => t.id).join(', '));
-  console.log('   🎨 Active icons: #FFFFFF (100% opacity)');
-  console.log('   🎨 Inactive icons: rgba(255,255,255,0.4) (40% opacity)');
+  console.log('   🎨 Active icons: FILLED, pure white (#FFFFFF)');
+  console.log('   🎨 Inactive icons: OUTLINED, pure white (#FFFFFF)');
 
   const handleProfilePress = async () => {
     console.log('👤 [FloatingTabBar] Profile pressed');

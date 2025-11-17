@@ -1,17 +1,25 @@
 
 /**
- * TAB NAVIGATION CONFIGURATION - v1.1.0
+ * TAB NAVIGATION CONFIGURATION - v2.0.0 INSTAGRAM-STYLE
  * 
  * Centralized configuration for all tab navigation in the app.
- * This file defines all available tabs, their icons, routes, and visibility rules.
+ * This file defines all available tabs, their icons (filled and outlined), routes, and visibility rules.
+ * 
+ * 🔥 INSTAGRAM-STYLE v2.0.0:
+ * - Each tab now has both filled and outlined icon variants
+ * - Inactive tabs show outlined (hollow) icons
+ * - Active tabs show filled icons
+ * - All icons are pure white, fully opaque, NO transparency
  */
 
 export interface TabDefinition {
   id: string;
   route: string;
   label: string;
-  iosIcon: string;
-  androidIcon: string;
+  iosIconFilled: string;
+  iosIconOutlined: string;
+  androidIconFilled: string;
+  androidIconOutlined: string;
   roles: ('cliente' | 'propietario' | 'admin')[];
   modes: ('cliente' | 'propietario' | 'admin')[];
   requiresOwnership?: boolean; // Only show if user owns the current local
@@ -30,8 +38,10 @@ export const ALL_TABS: TabDefinition[] = [
     id: 'home',
     route: '/(tabs)/(home)',
     label: 'Inicio',
-    iosIcon: 'house.fill',
-    androidIcon: 'home',
+    iosIconFilled: 'house.fill',
+    iosIconOutlined: 'house',
+    androidIconFilled: 'home',
+    androidIconOutlined: 'home-outlined',
     roles: ['cliente', 'propietario', 'admin'],
     modes: [], // Removed from all modes - not used in any menu
     order: {},
@@ -40,8 +50,10 @@ export const ALL_TABS: TabDefinition[] = [
     id: 'eventos',
     route: '/(tabs)/eventos',
     label: 'Eventos',
-    iosIcon: 'calendar',
-    androidIcon: 'event',
+    iosIconFilled: 'calendar.badge.clock',
+    iosIconOutlined: 'calendar',
+    androidIconFilled: 'event',
+    androidIconOutlined: 'event',
     roles: ['cliente', 'propietario', 'admin'],
     modes: ['cliente'],
     order: {
@@ -52,8 +64,10 @@ export const ALL_TABS: TabDefinition[] = [
     id: 'favoritos',
     route: '/(tabs)/favoritos',
     label: 'Favoritos',
-    iosIcon: 'heart.fill',
-    androidIcon: 'favorite',
+    iosIconFilled: 'heart.fill',
+    iosIconOutlined: 'heart',
+    androidIconFilled: 'favorite',
+    androidIconOutlined: 'favorite-border',
     roles: ['cliente', 'propietario', 'admin'],
     modes: ['cliente'],
     order: {
@@ -64,8 +78,10 @@ export const ALL_TABS: TabDefinition[] = [
     id: 'explorar',
     route: '/(tabs)/explorar',
     label: 'Explorar',
-    iosIcon: 'sparkles',
-    androidIcon: 'auto-awesome',
+    iosIconFilled: 'sparkles',
+    iosIconOutlined: 'sparkles',
+    androidIconFilled: 'auto-awesome',
+    androidIconOutlined: 'auto-awesome',
     roles: ['cliente', 'propietario', 'admin'],
     modes: ['cliente', 'propietario', 'admin'],
     order: {
@@ -78,8 +94,10 @@ export const ALL_TABS: TabDefinition[] = [
     id: 'social',
     route: '/(tabs)/social',
     label: 'Social',
-    iosIcon: 'person.2.fill',
-    androidIcon: 'group',
+    iosIconFilled: 'person.2.fill',
+    iosIconOutlined: 'person.2',
+    androidIconFilled: 'group',
+    androidIconOutlined: 'group',
     roles: ['cliente', 'propietario', 'admin'],
     modes: ['cliente', 'propietario'],
     order: {
@@ -91,8 +109,10 @@ export const ALL_TABS: TabDefinition[] = [
     id: 'gestion',
     route: '/(tabs)/gestion',
     label: 'Gestión',
-    iosIcon: 'building.2',
-    androidIcon: 'business',
+    iosIconFilled: 'building.2.fill',
+    iosIconOutlined: 'building.2',
+    androidIconFilled: 'business',
+    androidIconOutlined: 'business',
     roles: ['propietario', 'admin'],
     modes: ['propietario'],
     requiresOwnership: true,
@@ -104,8 +124,10 @@ export const ALL_TABS: TabDefinition[] = [
     id: 'empleo',
     route: '/(tabs)/empleo',
     label: 'Empleo',
-    iosIcon: 'briefcase.fill',
-    androidIcon: 'work',
+    iosIconFilled: 'briefcase.fill',
+    iosIconOutlined: 'briefcase',
+    androidIconFilled: 'work',
+    androidIconOutlined: 'work-outline',
     roles: ['cliente', 'propietario', 'admin'],
     modes: ['propietario'],
     order: {
@@ -116,8 +138,10 @@ export const ALL_TABS: TabDefinition[] = [
     id: 'admin',
     route: '/(tabs)/admin',
     label: 'Admin',
-    iosIcon: 'gear',
-    androidIcon: 'settings',
+    iosIconFilled: 'gearshape.fill',
+    iosIconOutlined: 'gear',
+    androidIconFilled: 'settings',
+    androidIconOutlined: 'settings',
     roles: ['admin'],
     modes: ['admin'],
     order: {
@@ -128,8 +152,10 @@ export const ALL_TABS: TabDefinition[] = [
     id: 'perfil',
     route: '/(tabs)/perfil',
     label: 'Perfil',
-    iosIcon: 'person.fill',
-    androidIcon: 'person',
+    iosIconFilled: 'person.fill',
+    iosIconOutlined: 'person',
+    androidIconFilled: 'person',
+    androidIconOutlined: 'person-outline',
     roles: ['cliente', 'propietario', 'admin'],
     modes: ['cliente', 'propietario', 'admin'],
     order: {

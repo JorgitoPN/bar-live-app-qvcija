@@ -5,11 +5,11 @@ import { StyleProp, ViewStyle } from "react-native";
 /**
  * iOS-specific icon component using native SF Symbols.
  * 
- * ✅ INSTAGRAM-EXACT v10.0.0: Maximum contrast for active/inactive distinction
- * - Active icons: Pure white (#FFFFFF) at 100% opacity with semibold weight - NO transparency
- * - Inactive icons: 40% opacity (rgba(255,255,255,0.4)) with regular weight - clearly visible but softened
- * - Weight parameter properly applied for better distinction
- * - Forced opacity: 1 to prevent any parent opacity inheritance
+ * ✅ INSTAGRAM-STYLE v11.0.0: Outlined icons for inactive, filled for active
+ * - Active icons: Filled, pure white (#FFFFFF) at 100% opacity
+ * - Inactive icons: Outlined (hollow), pure white (#FFFFFF) at 100% opacity
+ * - NO transparency, NO filters - icons are fully opaque and bright
+ * - Visual distinction comes from outline vs filled, not opacity
  */
 export function IconSymbol({
   name,

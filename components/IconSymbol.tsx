@@ -134,15 +134,17 @@ const MAPPING = {
   "mappin": "place",
   "mappin.circle.fill": "place",
   "building.2": "business",
+  "building.2.fill": "business",
 
   // Time & Calendar
   "clock.fill": "access-time",
   "clock": "access-time",
   "calendar": "event",
+  "calendar.badge.clock": "event",
   "timer": "timer",
 
   // User & Profile
-  "person": "person",
+  "person": "person-outline",
   "person.fill": "person",
   "person.2.fill": "group",
   "person.2": "group",
@@ -153,7 +155,7 @@ const MAPPING = {
   "person.badge.key": "admin-panel-settings",
 
   // Work & Business
-  "briefcase": "work",
+  "briefcase": "work-outline",
   "briefcase.fill": "work",
 
   // Sharing & Export
@@ -194,11 +196,11 @@ export type IconSymbolName = keyof typeof MAPPING;
  *
  * Icon `name`s are based on SFSymbols and require manual mapping to MaterialIcons.
  * 
- * ✅ INSTAGRAM-EXACT v10.0.0: Maximum contrast for active/inactive distinction
- * - Active icons: Pure white (#FFFFFF) at 100% opacity - NO transparency
- * - Inactive icons: 40% opacity (rgba(255,255,255,0.4)) - clearly visible but softened
- * - NO filters applied, direct color control
- * - Forced opacity: 1 on icon to prevent any parent opacity inheritance
+ * ✅ INSTAGRAM-STYLE v11.0.0: Outlined icons for inactive, filled for active
+ * - Active icons: Filled, pure white (#FFFFFF) at 100% opacity
+ * - Inactive icons: Outlined (hollow), pure white (#FFFFFF) at 100% opacity
+ * - NO transparency, NO filters - icons are fully opaque and bright
+ * - Visual distinction comes from outline vs filled, not opacity
  */
 export function IconSymbol({
   name,
