@@ -1,16 +1,17 @@
 
 /**
- * TAB NAVIGATION BAR - v12.0.0 INSTAGRAM-STYLE
+ * TAB NAVIGATION BAR - v13.0.0 INSTAGRAM-STYLE WITH FILL PROPERTY
  * 
  * Modern, clean tab navigation bar with Instagram-style outlined/filled icon distinction.
  * Built from scratch with no legacy code.
  * 
- * 🔥 INSTAGRAM-STYLE v12.0.0:
+ * 🔥 INSTAGRAM-STYLE v13.0.0:
  * - Inactive icons: Outlined (hollow), pure white, 100% opacity, NO transparency
  * - Active icons: Filled, pure white, 100% opacity, NO transparency
  * - Icons are now 36px (same size as miniavatar)
  * - Central "Explorar" button remains the same with gradient
- * - Visual distinction comes from outline vs filled, not opacity changes
+ * - Visual distinction comes from outline vs filled using fill property
+ * - Icons positioned slightly higher (reduced paddingTop and paddingVertical)
  */
 
 import React, { useEffect } from 'react';
@@ -47,7 +48,7 @@ export function TabNavigationBar({
   const pathname = usePathname();
 
   useEffect(() => {
-    console.log('🎯 [TabNavigationBar v12.0 INSTAGRAM-STYLE] Rendered with', tabs.length, 'tabs');
+    console.log('🎯 [TabNavigationBar v13.0 INSTAGRAM-STYLE] Rendered with', tabs.length, 'tabs');
     console.log('📍 [TabNavigationBar] Current pathname:', pathname);
     tabs.forEach(tab => {
       const active = isTabActive(tab, pathname);
@@ -245,7 +246,7 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: 'row',
-    paddingTop: 4, // Reduced to position icons higher
+    paddingTop: 2, // Reduced from 4 to position icons higher
     paddingBottom: Platform.OS === 'ios' ? 20 : 8,
     paddingHorizontal: 16,
     alignItems: 'center',
@@ -258,7 +259,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 6, // Reduced to position icons higher
+    paddingVertical: 4, // Reduced from 6 to position icons higher
     opacity: 1,
   },
   centerButton: {

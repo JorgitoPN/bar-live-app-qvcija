@@ -196,11 +196,12 @@ export type IconSymbolName = keyof typeof MAPPING;
  *
  * Icon `name`s are based on SFSymbols and require manual mapping to MaterialIcons.
  * 
- * ✅ INSTAGRAM-STYLE v11.0.0: Outlined icons for inactive, filled for active
+ * ✅ INSTAGRAM-STYLE v13.0.0: Outlined icons for inactive, filled for active
  * - Active icons: Filled, pure white (#FFFFFF) at 100% opacity
  * - Inactive icons: Outlined (hollow), pure white (#FFFFFF) at 100% opacity
  * - NO transparency, NO filters - icons are fully opaque and bright
  * - Visual distinction comes from outline vs filled, not opacity
+ * - Uses fill property to control icon rendering (none for outlined, white for filled)
  */
 export function IconSymbol({
   name,
@@ -208,12 +209,14 @@ export function IconSymbol({
   color,
   style,
   weight = "regular",
+  fill,
 }: {
   name: IconSymbolName;
   size?: number;
   color: string | OpaqueColorValue;
   style?: StyleProp<ViewStyle>;
   weight?: SymbolWeight;
+  fill?: string;
 }) {
   // Material Icons don't have weight variants, but we can simulate with font weight
   const fontWeight = weight === 'semibold' || weight === 'bold' ? '700' : '400';
@@ -221,7 +224,7 @@ export function IconSymbol({
   // Ensure color is applied directly without any modifications
   const finalColor = typeof color === 'string' ? color : color.toString();
   
-  console.log(`🎨 [IconSymbol Android/Web] Rendering ${MAPPING[name]} with color: ${finalColor}, weight: ${fontWeight}`);
+  console.log(`🎨 [IconSymbol Android/Web v13.0] Rendering ${MAPPING[name]} with color: ${finalColor}, weight: ${fontWeight}, fill: ${fill || 'none'}`);
   
   return (
     <MaterialIcons
