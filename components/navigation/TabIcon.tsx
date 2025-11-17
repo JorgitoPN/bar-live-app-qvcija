@@ -1,16 +1,18 @@
 
 /**
- * TAB ICON COMPONENT - v15.0.0 INSTAGRAM-STYLE WITH PROPER WEIGHT DISTINCTION
+ * TAB ICON COMPONENT - v15.1.0 INSTAGRAM-STYLE WITH PROPER WEIGHT DISTINCTION
  * 
  * Platform-specific icon rendering with Instagram-style outlined/filled distinction.
  * Handles iOS SF Symbols and Android Material Icons.
  * 
- * 🔥 INSTAGRAM-STYLE v15.0.0:
+ * 🔥 INSTAGRAM-STYLE v15.1.0:
  * - Inactive icons: Outlined (hollow), pure white, 100% opacity, regular weight
  * - Active icons: Filled, pure white, 100% opacity, semibold weight
  * - Icons match miniavatar size (32px by default)
  * - Visual distinction comes from icon variant AND weight
  * - Uses different icon names for filled/outlined variants
+ * 
+ * 🔧 FIX v15.1.0: Enhanced logging for debugging
  */
 
 import React from 'react';
@@ -51,7 +53,7 @@ export function TabIcon({
   const fillValue = isActive ? '#FFFFFF' : 'none';
 
   // 🎨 DEBUG LOG - Verify icons are being applied
-  console.log(`🎨 [TabIcon v15.0 INSTAGRAM-STYLE] ${iconName}: ${isActive ? 'FILLED (active)' : 'OUTLINED (inactive)'}, size: ${size}px, weight: ${weight}, fill: ${fillValue}`);
+  console.log(`🎨 [TabIcon v15.1.0] ${iconName}: ${isActive ? 'FILLED (active)' : 'OUTLINED (inactive)'}, size: ${size}px, weight: ${weight}, fill: ${fillValue}`);
 
   return (
     <View style={[styles.container, { width: size, height: size, opacity: 1 }]}>

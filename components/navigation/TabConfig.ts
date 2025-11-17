@@ -1,17 +1,19 @@
 
 /**
- * TAB NAVIGATION CONFIGURATION - v2.2.0 INSTAGRAM-STYLE
+ * TAB NAVIGATION CONFIGURATION - v2.3.0 INSTAGRAM-STYLE
  * 
  * Centralized configuration for all tab navigation in the app.
  * This file defines all available tabs, their icons (filled and outlined), routes, and visibility rules.
  * 
- * 🔥 INSTAGRAM-STYLE v2.2.0:
+ * 🔥 INSTAGRAM-STYLE v2.3.0:
  * - Each tab now has both filled and outlined icon variants
  * - Inactive tabs show outlined (hollow) icons with regular weight
  * - Active tabs show filled icons with semibold weight
  * - All icons are pure white, fully opaque, NO transparency
  * - Icons are 32px (matching miniavatar size)
  * - "Gestión de Locales" icon is properly configured for owner mode
+ * 
+ * 🔧 FIX v2.3.0: Enhanced logging for debugging tab visibility
  */
 
 export interface TabDefinition {
@@ -170,37 +172,49 @@ export const ALL_TABS: TabDefinition[] = [
 
 /**
  * Get tabs for a specific user role and mode
+ * 
+ * 🔧 v2.3.0: Enhanced logging for debugging
  */
 export function getTabsForContext(
   userRole: 'cliente' | 'propietario' | 'admin',
   currentMode: 'cliente' | 'propietario' | 'admin',
   isOwner: boolean = false
 ): TabDefinition[] {
+  console.log('🔍 [TabConfig v2.3.0] getTabsForContext called with:', { userRole, currentMode, isOwner });
+  
   const filteredTabs = ALL_TABS.filter(tab => {
     // Check if tab is available for this role
     if (!tab.roles.includes(userRole)) {
+      console.log(`   ❌ ${tab.id}: Not available for role ${userRole}`);
       return false;
     }
 
     // Check if tab is available for this mode
     if (!tab.modes.includes(currentMode)) {
+      console.log(`   ❌ ${tab.id}: Not available for mode ${currentMode}`);
       return false;
     }
 
     // Check ownership requirement
     if (tab.requiresOwnership && !isOwner) {
+      console.log(`   ❌ ${tab.id}: Requires ownership but isOwner=${isOwner}`);
       return false;
     }
 
+    console.log(`   ✅ ${tab.id}: Available (order: ${tab.order[currentMode]})`);
     return true;
   });
 
   // Sort tabs by their order for the current mode
-  return filteredTabs.sort((a, b) => {
+  const sortedTabs = filteredTabs.sort((a, b) => {
     const orderA = a.order[currentMode] ?? 999;
     const orderB = b.order[currentMode] ?? 999;
     return orderA - orderB;
   });
+
+  console.log('🎯 [TabConfig v2.3.0] Final tabs:', sortedTabs.map(t => `${t.id} (${t.order[currentMode]})`).join(', '));
+
+  return sortedTabs;
 }
 
 /**

@@ -1,20 +1,22 @@
 
 /**
- * FLOATING TAB BAR - v15.0.0 INSTAGRAM-STYLE
+ * FLOATING TAB BAR - v15.1.0 INSTAGRAM-STYLE
  * 
  * Wrapper component for backward compatibility.
  * Uses the new TabNavigationBar internally.
  * 
- * 🔥 INSTAGRAM-STYLE v15.0.0:
+ * 🔥 INSTAGRAM-STYLE v15.1.0:
  * - Inactive icons: Outlined (hollow), pure white, 100% opacity, regular weight
  * - Active icons: Filled, pure white, 100% opacity, semibold weight
  * - Icons are 32px (matching miniavatar size)
  * - Central "Explorar" button remains the same with gradient
  * - Visual distinction comes from icon variant AND weight
  * - "Gestión de Locales" icon is properly configured for owner mode
+ * 
+ * 🔧 FIX v15.1.0: Enhanced logging for debugging
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { TabNavigationBar } from './navigation/TabNavigationBar';
 import { useTabNavigation } from './navigation/useTabNavigation';
 import { useRouter } from 'expo-router';
@@ -34,16 +36,29 @@ interface FloatingTabBarProps {
 
 export default function FloatingTabBar({ tabs: legacyTabs, containerWidth }: FloatingTabBarProps) {
   const router = useRouter();
-  const { currentMode, activeProfileType, activeProfileId, switchToLocalProfile } = useMode();
-  const { tabs, activeProfileAvatar } = useTabNavigation();
+  const { currentMode, activeProfileType, activeProfileId, ownedLocals } = useMode();
+  const { tabs, activeProfileAvatar, isOwner } = useTabNavigation();
 
-  console.log('🎯 [FloatingTabBar v15.0 INSTAGRAM-STYLE] Rendering with outlined/filled distinction');
-  console.log('   Mode:', currentMode);
-  console.log('   Profile Type:', activeProfileType);
-  console.log('   Profile ID:', activeProfileId);
-  console.log('   Tabs:', tabs.map(t => `${t.id} (${t.label})`).join(', '));
-  console.log('   🎨 Active icons: FILLED, pure white (#FFFFFF), 32px, semibold weight');
-  console.log('   🎨 Inactive icons: OUTLINED, pure white (#FFFFFF), 32px, regular weight');
+  // Log whenever tabs change
+  useEffect(() => {
+    console.log('═══════════════════════════════════════════════════════════');
+    console.log('🎯 [FloatingTabBar v15.1.0] RENDERING');
+    console.log('═══════════════════════════════════════════════════════════');
+    console.log('📊 Context State:');
+    console.log('   Mode:', currentMode);
+    console.log('   Profile Type:', activeProfileType);
+    console.log('   Profile ID:', activeProfileId);
+    console.log('   Is Owner:', isOwner);
+    console.log('   Owned Locals:', ownedLocals?.length || 0);
+    console.log('📋 Tabs (' + tabs.length + '):');
+    tabs.forEach((tab, index) => {
+      console.log(`   ${index + 1}. ${tab.label} (${tab.id}) - order: ${tab.order[currentMode]}`);
+    });
+    console.log('🎨 Icon Style:');
+    console.log('   Active: FILLED, pure white (#FFFFFF), 32px, semibold weight');
+    console.log('   Inactive: OUTLINED, pure white (#FFFFFF), 32px, regular weight');
+    console.log('═══════════════════════════════════════════════════════════');
+  }, [tabs, currentMode, activeProfileType, activeProfileId, isOwner, ownedLocals]);
 
   const handleProfilePress = async () => {
     console.log('👤 [FloatingTabBar] Profile pressed');
