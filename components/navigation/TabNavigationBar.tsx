@@ -1,15 +1,15 @@
 
 /**
- * TAB NAVIGATION BAR - v6.0.0
+ * TAB NAVIGATION BAR - v7.0.0
  * 
- * Modern, clean tab navigation bar with clear active state visibility.
+ * Modern, clean tab navigation bar with Instagram-style active state visibility.
  * Built from scratch with no legacy code.
  * 
- * ✅ ENHANCED v6.0.0:
+ * ✅ INSTAGRAM-STYLE v7.0.0:
  * - Central "Explorar" button: NO transparency, fully opaque
- * - Icons and mini-avatar reduced to 36px (from 42px)
- * - Inactive icons: 10% opacity (10x less than active)
- * - Active icons: 100% opacity (no transparency)
+ * - Icons and mini-avatar: 36px
+ * - Inactive icons: 40% opacity (clearly visible, just softened)
+ * - Active icons: 100% opacity (pure white, no transparency)
  */
 
 import React, { useEffect } from 'react';
@@ -46,7 +46,7 @@ export function TabNavigationBar({
   const pathname = usePathname();
 
   useEffect(() => {
-    console.log('🎯 [TabNavigationBar v6.0] Rendered with', tabs.length, 'tabs');
+    console.log('🎯 [TabNavigationBar v7.0] Rendered with', tabs.length, 'tabs');
     console.log('📍 [TabNavigationBar] Current pathname:', pathname);
     tabs.forEach(tab => {
       const active = isTabActive(tab, pathname);
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
     borderColor: '#FFFFFF', // Fully opaque white border
   },
   avatarContainer: {
-    width: 36, // Reduced from 42px
+    width: 36,
     height: 36,
     borderRadius: 18,
     overflow: 'hidden',

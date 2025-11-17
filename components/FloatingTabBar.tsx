@@ -1,15 +1,15 @@
 
 /**
- * FLOATING TAB BAR - v6.0.0
+ * FLOATING TAB BAR - v7.0.0
  * 
  * Wrapper component for backward compatibility.
  * Uses the new TabNavigationBar internally.
  * 
- * ✅ ENHANCED v6.0.0:
+ * ✅ INSTAGRAM-STYLE v7.0.0:
  * - Central "Explorar" button: NO transparency, fully opaque
- * - Icons and mini-avatar reduced to 36px (from 42px)
- * - Inactive icons: 10% opacity (10x less than active)
- * - Active icons: 100% opacity (no transparency)
+ * - Icons and mini-avatar: 36px
+ * - Inactive icons: 40% opacity (clearly visible, just softened)
+ * - Active icons: 100% opacity (pure white, no transparency)
  */
 
 import React from 'react';
@@ -35,7 +35,7 @@ export default function FloatingTabBar({ tabs: legacyTabs, containerWidth }: Flo
   const { currentMode, activeProfileType, activeProfileId, switchToLocalProfile } = useMode();
   const { tabs, activeProfileAvatar } = useTabNavigation();
 
-  console.log('🎯 [FloatingTabBar v6.0] Rendering with clear visibility');
+  console.log('🎯 [FloatingTabBar v7.0] Rendering with Instagram-style visibility');
   console.log('   Mode:', currentMode);
   console.log('   Profile Type:', activeProfileType);
   console.log('   Profile ID:', activeProfileId);

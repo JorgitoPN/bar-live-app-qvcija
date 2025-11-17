@@ -1,15 +1,15 @@
 
 /**
- * TAB ICON COMPONENT - v7.0.0
+ * TAB ICON COMPONENT - v8.0.0
  * 
- * Platform-specific icon rendering with clear active/inactive distinction.
+ * Platform-specific icon rendering with Instagram-style active/inactive distinction.
  * Handles iOS SF Symbols and Android Material Icons.
  * 
- * ✅ ENHANCED VISIBILITY v7.0.0:
- * - Icons same size as mini-avatar (36px - reduced from 42px)
+ * ✅ INSTAGRAM-STYLE VISIBILITY v8.0.0:
+ * - Icons same size as mini-avatar (36px)
  * - Active icons: Pure white (#FFFFFF) at 100% opacity (NO transparency)
- * - Inactive icons: White at 10% opacity (10x difference for clear distinction)
- * - Clear visual distinction between active and inactive states
+ * - Inactive icons: White at 40% opacity (clearly visible, just softened)
+ * - Clear visual distinction like Instagram's bottom menu
  */
 
 import React from 'react';
@@ -23,9 +23,9 @@ interface TabIconProps {
   size?: number;
 }
 
-// Clear distinction: Active = 100% opacity, Inactive = 10% opacity (10x difference)
+// Instagram-style distinction: Active = 100% opacity, Inactive = 40% opacity
 const ACTIVE_COLOR = '#FFFFFF';                     // Pure white at 100% opacity (NO transparency)
-const INACTIVE_COLOR = 'rgba(255, 255, 255, 0.1)';  // 10% opacity (10x less than active)
+const INACTIVE_COLOR = 'rgba(255, 255, 255, 0.4)';  // 40% opacity (clearly visible, just softened)
 
 export function TabIcon({ iosIcon, androidIcon, isActive, size = 36 }: TabIconProps) {
   const iconName = Platform.OS === 'ios' ? iosIcon : androidIcon;
@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 36, // Reduced from 42px
+    width: 36,
     height: 36,
   },
 });
