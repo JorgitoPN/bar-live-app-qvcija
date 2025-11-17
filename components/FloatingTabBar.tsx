@@ -64,6 +64,23 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
         
         return isProfileActive;
       }
+
+      // ✅ FIX: Special handling for gestion routes - match when viewing local profile as owner
+      if (cleanRoute === '(tabs)/gestion') {
+        const isGestionActive = cleanPathname === '(tabs)/gestion' || 
+               cleanPathname === '(tabs)/gestion/' || 
+               cleanPathname === '(tabs)/gestion/index' ||
+               cleanPathname.startsWith('gestion/') ||
+               cleanPathname === 'gestion' ||
+               // ✅ CRITICAL FIX: Also match perfil/local when in propietario mode viewing own local
+               (cleanPathname.startsWith('perfil/local') && currentMode === 'propietario' && activeProfileType === 'local');
+        
+        if (isGestionActive) {
+          console.log('[FloatingTabBar] ✅ Gestion tab is ACTIVE - pathname:', cleanPathname, 'mode:', currentMode);
+        }
+        
+        return isGestionActive;
+      }
       
       return cleanPathname.startsWith(cleanRoute);
     } catch (error) {
@@ -223,9 +240,9 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
             );
           }
 
-          // ✅ CRITICAL FIX: Render regular icons with ENHANCED active state visibility
-          // Active icons: Pure white (#FFFFFF) with 100% opacity + subtle glow effect
-          // Inactive icons: Semi-transparent white (rgba(255, 255, 255, 0.5)) for better contrast
+          // ✅ CRITICAL FIX: Render regular icons with PURE WHITE when active
+          // Active icons: Pure white (#FFFFFF) with 100% opacity + strong glow effect
+          // Inactive icons: Semi-transparent white (rgba(255, 255, 255, 0.4)) for maximum contrast
           return (
             <TouchableOpacity
               key={tab.name}
@@ -240,11 +257,11 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
               aria-current={active ? 'page' : undefined}
             >
               <View style={[styles.tabContent, active && styles.tabContentActive]}>
-                <View style={active ? styles.activeIconContainer : undefined}>
+                <View style={active ? styles.activeIconContainer : styles.inactiveIconContainer}>
                   <IconSymbol
                     name={tab.icon as any}
                     size={32}
-                    color={active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.5)'}
+                    color={active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.4)'}
                     style={styles.iconBase}
                   />
                 </View>
@@ -310,13 +327,21 @@ const styles = StyleSheet.create({
   tabContentActive: {
     backgroundColor: 'transparent',
   },
-  // ✅ ENHANCED: Active icon container with subtle glow effect for better visibility
+  // ✅ ENHANCED: Active icon container with STRONG white glow effect for maximum visibility
   activeIconContainer: {
     shadowColor: '#FFFFFF',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowOpacity: 1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  // ✅ NEW: Inactive icon container with no effects
+  inactiveIconContainer: {
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
   // ✅ CRITICAL FIX: Base icon style with 100% opacity
   // This ensures icons are always fully opaque, with transparency handled by color value
@@ -349,16 +374,16 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
-  // ✅ ENHANCED: Profile avatar contour with stronger white border and glow
+  // ✅ ENHANCED: Profile avatar contour with MAXIMUM white border and glow
   // Increased border width and shadow for maximum visibility
   profileAvatarWithContour: {
-    borderWidth: 3,
+    borderWidth: 4,
     borderColor: '#FFFFFF',
     shadowColor: '#FFFFFF',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 1,
-    shadowRadius: 8,
-    elevation: 10,
+    shadowRadius: 12,
+    elevation: 12,
   },
   profileAvatarPlaceholder: {
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
