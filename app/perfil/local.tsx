@@ -1643,7 +1643,6 @@ export default function LocalPerfilScreen() {
               style={styles.provinciaList}
               contentContainerStyle={styles.provinciaListContent}
               showsVerticalScrollIndicator={true}
-              nestedScrollEnabled={true}
             >
               {PROVINCIAS.map((provincia, index) => (
                 <TouchableOpacity
@@ -2367,7 +2366,8 @@ const styles = StyleSheet.create({
   },
   provinciaModalOverlay: {
     flex: 1,
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   provinciaModalBackdrop: {
@@ -2379,10 +2379,10 @@ const styles = StyleSheet.create({
   },
   provinciaModalContent: {
     backgroundColor: colors.background,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    maxHeight: height * 0.75,
-    paddingBottom: 34,
+    borderRadius: 20,
+    width: width * 0.85,
+    maxHeight: height * 0.7,
+    overflow: 'hidden',
   },
   provinciaModalHeader: {
     paddingTop: 24,
@@ -2395,7 +2395,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.cardBorder,
   },
   provinciaModalTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
   },
