@@ -1,18 +1,19 @@
 
 /**
- * TAB ICON COMPONENT - v15.1.0 INSTAGRAM-STYLE WITH PROPER WEIGHT DISTINCTION
+ * TAB ICON COMPONENT - v16.0.0 INSTAGRAM-STYLE FIXED
  * 
  * Platform-specific icon rendering with Instagram-style outlined/filled distinction.
  * Handles iOS SF Symbols and Android Material Icons.
  * 
- * 🔥 INSTAGRAM-STYLE v15.1.0:
- * - Inactive icons: Outlined (hollow), pure white, 100% opacity, regular weight
- * - Active icons: Filled, pure white, 100% opacity, semibold weight
+ * 🔥 INSTAGRAM-STYLE v16.0.0 FIX:
+ * - Inactive icons: Uses outlined icon name, pure white, 100% opacity
+ * - Active icons: Uses filled icon name, pure white, 100% opacity
  * - Icons match miniavatar size (32px by default)
- * - Visual distinction comes from icon variant AND weight
- * - Uses different icon names for filled/outlined variants
+ * - Visual distinction comes from DIFFERENT ICON NAMES (not weight or fill props)
+ * - iOS: Uses SF Symbol names with/without .fill suffix
+ * - Android: Uses Material Icon names (e.g., favorite vs favorite-border)
  * 
- * 🔧 FIX v15.1.0: Enhanced logging for debugging
+ * 🔧 FIX v16.0.0: Pass the correct icon name based on active state
  */
 
 import React from 'react';
@@ -39,21 +40,14 @@ export function TabIcon({
   isActive, 
   size = 32 // Match miniavatar size
 }: TabIconProps) {
-  // Use filled icon when active, outlined when inactive
+  // 🔥 KEY FIX: Use the correct icon name based on active state
+  // Active = filled icon name, Inactive = outlined icon name
   const iosIcon = isActive ? iosIconFilled : iosIconOutlined;
   const androidIcon = isActive ? androidIconFilled : androidIconOutlined;
   const iconName = Platform.OS === 'ios' ? iosIcon : androidIcon;
-  
-  // Use weight to control icon rendering
-  // semibold for active (filled appearance), regular for inactive (outlined appearance)
-  const weight = isActive ? 'semibold' : 'regular';
-  
-  // Use fill property to control icon rendering
-  // fill="#FFFFFF" for active (filled), fill="none" for inactive (outlined)
-  const fillValue = isActive ? '#FFFFFF' : 'none';
 
-  // 🎨 DEBUG LOG - Verify icons are being applied
-  console.log(`🎨 [TabIcon v15.1.0] ${iconName}: ${isActive ? 'FILLED (active)' : 'OUTLINED (inactive)'}, size: ${size}px, weight: ${weight}, fill: ${fillValue}`);
+  // 🎨 DEBUG LOG - Verify correct icon names are being used
+  console.log(`🎨 [TabIcon v16.0.0] ${iconName}: ${isActive ? 'FILLED (active)' : 'OUTLINED (inactive)'}, size: ${size}px`);
 
   return (
     <View style={[styles.container, { width: size, height: size, opacity: 1 }]}>
@@ -61,8 +55,6 @@ export function TabIcon({
         name={iconName as any}
         size={size}
         color={ICON_COLOR}
-        weight={weight}
-        fill={fillValue}
         style={{ opacity: 1 }}
       />
     </View>

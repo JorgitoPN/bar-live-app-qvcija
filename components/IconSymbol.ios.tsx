@@ -5,12 +5,13 @@ import { StyleProp, ViewStyle } from "react-native";
 /**
  * iOS-specific icon component using native SF Symbols.
  * 
- * ✅ INSTAGRAM-STYLE v15.0.0: Outlined icons for inactive, filled for active
- * - Active icons: Filled variant with semibold weight, pure white (#FFFFFF) at 100% opacity
- * - Inactive icons: Outlined variant with regular weight, pure white (#FFFFFF) at 100% opacity
+ * ✅ INSTAGRAM-STYLE v16.0.0: FIXED - Uses icon name directly from TabIcon
+ * - Active icons: Uses filled icon name (with .fill suffix) passed from TabIcon
+ * - Inactive icons: Uses outlined icon name (without .fill suffix) passed from TabIcon
+ * - Pure white (#FFFFFF) at 100% opacity for both states
  * - NO transparency, NO filters - icons are fully opaque and bright
- * - Visual distinction comes from different SF Symbol variants (.fill suffix) and weight
- * - Uses hierarchical rendering mode for filled icons to show depth
+ * - Visual distinction comes from different SF Symbol names (.fill suffix)
+ * - Uses monochrome rendering mode for consistent appearance
  */
 export function IconSymbol({
   name,
@@ -27,13 +28,13 @@ export function IconSymbol({
   weight?: SymbolWeight;
   fill?: string;
 }) {
-  // Determine if icon should be rendered as filled based on weight or fill property
-  const isFilled = weight === 'semibold' || weight === 'bold' || fill === '#FFFFFF';
+  // Determine if this is a filled or outlined icon based on the icon name
+  const isFilled = name.includes('.fill');
   
-  // Use hierarchical mode for filled icons to show depth, monochrome for outlined
-  const renderingMode = isFilled ? "hierarchical" : "monochrome";
+  // Use monochrome rendering mode for consistent appearance
+  const renderingMode = "monochrome";
   
-  console.log(`🎨 [IconSymbol iOS v15.0] ${name}, ${isFilled ? 'FILLED' : 'OUTLINED'}, weight: ${weight}, mode: ${renderingMode}, color: ${color}`);
+  console.log(`🎨 [IconSymbol iOS v16.0] ${name}, ${isFilled ? 'FILLED' : 'OUTLINED'}, mode: ${renderingMode}, color: ${color}`);
   
   return (
     <SymbolView

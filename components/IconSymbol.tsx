@@ -201,12 +201,12 @@ export type IconSymbolName = keyof typeof MAPPING;
  *
  * Icon `name`s are based on SFSymbols and require manual mapping to MaterialIcons.
  * 
- * ✅ INSTAGRAM-STYLE v15.0.0: Outlined icons for inactive, filled for active
- * - Active icons: Filled variant, pure white (#FFFFFF) at 100% opacity
- * - Inactive icons: Outlined variant, pure white (#FFFFFF) at 100% opacity
+ * ✅ INSTAGRAM-STYLE v16.0.0: FIXED - Uses icon name directly from TabIcon
+ * - Active icons: Uses filled icon name passed from TabIcon
+ * - Inactive icons: Uses outlined icon name passed from TabIcon
+ * - Pure white (#FFFFFF) at 100% opacity for both states
  * - NO transparency, NO filters - icons are fully opaque and bright
- * - Visual distinction comes from different icon variants (filled vs outlined)
- * - Material Icons use weight to simulate filled/outlined effect
+ * - Visual distinction comes from different icon names (filled vs outlined)
  */
 export function IconSymbol({
   name,
@@ -223,24 +223,24 @@ export function IconSymbol({
   weight?: SymbolWeight;
   fill?: string;
 }) {
-  // For Material Icons, use weight to simulate filled/outlined effect
-  // Bold/Semibold = filled appearance, Regular = outlined appearance
-  const isFilled = weight === 'semibold' || weight === 'bold' || fill === '#FFFFFF';
-  const fontWeight = isFilled ? '700' : '400';
+  // Get the Material Icon name from the mapping
+  const materialIconName = MAPPING[name];
   
   // Ensure color is applied directly without any modifications
   const finalColor = typeof color === 'string' ? color : color.toString();
   
-  console.log(`🎨 [IconSymbol Android/Web v15.0] ${name} → ${MAPPING[name]}, ${isFilled ? 'FILLED' : 'OUTLINED'}, weight: ${fontWeight}, color: ${finalColor}`);
+  // Determine if this is a filled or outlined icon based on the icon name
+  const isFilled = name.includes('.fill');
+  
+  console.log(`🎨 [IconSymbol Android/Web v16.0] ${name} → ${materialIconName}, ${isFilled ? 'FILLED' : 'OUTLINED'}, color: ${finalColor}`);
   
   return (
     <MaterialIcons
       color={finalColor}
       size={size}
-      name={MAPPING[name]}
+      name={materialIconName}
       style={[
         { 
-          fontWeight,
           opacity: 1, // Force 100% opacity to prevent inheritance issues
         },
         style as StyleProp<TextStyle>,

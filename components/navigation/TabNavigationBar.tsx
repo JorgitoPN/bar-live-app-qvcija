@@ -1,17 +1,18 @@
 
 /**
- * TAB NAVIGATION BAR - v15.0.0 INSTAGRAM-STYLE WITH PROPER WEIGHT DISTINCTION
+ * TAB NAVIGATION BAR - v16.0.0 INSTAGRAM-STYLE FIXED
  * 
  * Modern, clean tab navigation bar with Instagram-style outlined/filled icon distinction.
  * Built from scratch with no legacy code.
  * 
- * 🔥 INSTAGRAM-STYLE v15.0.0:
- * - Inactive icons: Outlined (hollow), pure white, 100% opacity, regular weight
- * - Active icons: Filled, pure white, 100% opacity, semibold weight
+ * 🔥 INSTAGRAM-STYLE v16.0.0 FIX:
+ * - Inactive icons: Outlined (hollow), pure white, 100% opacity
+ * - Active icons: Filled, pure white, 100% opacity
  * - Icons are 32px (matching miniavatar size)
  * - Central "Explorar" button remains the same with gradient
- * - Visual distinction comes from icon variant AND weight
+ * - Visual distinction comes from different icon names (filled vs outlined)
  * - Icons positioned slightly higher (reduced paddingTop and paddingVertical)
+ * - NO weight or fill props - distinction comes from icon name only
  */
 
 import React, { useEffect } from 'react';
@@ -48,11 +49,11 @@ export function TabNavigationBar({
   const pathname = usePathname();
 
   useEffect(() => {
-    console.log('🎯 [TabNavigationBar v15.0 INSTAGRAM-STYLE] Rendered with', tabs.length, 'tabs');
+    console.log('🎯 [TabNavigationBar v16.0 INSTAGRAM-STYLE FIXED] Rendered with', tabs.length, 'tabs');
     console.log('📍 [TabNavigationBar] Current pathname:', pathname);
     tabs.forEach(tab => {
       const active = isTabActive(tab, pathname);
-      console.log(`   ${active ? '✅ FILLED (active, semibold)' : '⚪ OUTLINED (inactive, regular)'} ${tab.label} (${tab.id}) - 32px size`);
+      console.log(`   ${active ? '✅ FILLED (active)' : '⚪ OUTLINED (inactive)'} ${tab.label} (${tab.id}) - 32px size`);
     });
   }, [pathname, tabs]);
 
@@ -246,7 +247,7 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: 'row',
-    paddingTop: 2, // Reduced to position icons higher
+    paddingTop: 8, // Slightly higher positioning
     paddingBottom: Platform.OS === 'ios' ? 20 : 8,
     paddingHorizontal: 16,
     alignItems: 'center',
@@ -259,7 +260,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 4, // Reduced to position icons higher
+    paddingVertical: 8, // Slightly higher positioning
     opacity: 1,
   },
   centerButton: {
