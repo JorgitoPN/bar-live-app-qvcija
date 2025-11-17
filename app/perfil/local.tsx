@@ -854,6 +854,8 @@ export default function LocalPerfilScreen() {
 
   const tabs = getTabsForRole();
 
+  console.log('[LocalPerfil] Rendering with PROVINCIAS count:', PROVINCIAS.length);
+
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -1603,7 +1605,7 @@ export default function LocalPerfilScreen() {
         </Pressable>
       </Modal>
 
-      {/* Provincia Filter Modal */}
+      {/* Provincia Filter Modal - FIXED VERSION */}
       <Modal
         visible={showProvinciaModal}
         animationType="slide"
@@ -1643,32 +1645,39 @@ export default function LocalPerfilScreen() {
               style={styles.provinciaList}
               contentContainerStyle={styles.provinciaListContent}
               showsVerticalScrollIndicator={true}
+              nestedScrollEnabled={true}
             >
-              {PROVINCIAS.map((provincia, index) => (
-                <TouchableOpacity
-                  key={`provincia-${index}-${provincia}`}
-                  style={[
-                    styles.provinciaItem,
-                    selectedProvincia === provincia && styles.provinciaItemSelected
-                  ]}
-                  onPress={() => {
-                    console.log('[LocalPerfil] Selected provincia:', provincia);
-                    setSelectedProvincia(provincia);
-                    setShowProvinciaModal(false);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[
-                    styles.provinciaItemText,
-                    selectedProvincia === provincia && styles.provinciaItemTextSelected
-                  ]}>
-                    {provincia}
-                  </Text>
-                  {selectedProvincia === provincia && (
-                    <IconSymbol name="checkmark" size={20} color={colors.primary} />
-                  )}
-                </TouchableOpacity>
-              ))}
+              {PROVINCIAS.length > 0 ? (
+                PROVINCIAS.map((provincia, index) => (
+                  <TouchableOpacity
+                    key={`provincia-${index}-${provincia}`}
+                    style={[
+                      styles.provinciaItem,
+                      selectedProvincia === provincia && styles.provinciaItemSelected
+                    ]}
+                    onPress={() => {
+                      console.log('[LocalPerfil] Selected provincia:', provincia);
+                      setSelectedProvincia(provincia);
+                      setShowProvinciaModal(false);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[
+                      styles.provinciaItemText,
+                      selectedProvincia === provincia && styles.provinciaItemTextSelected
+                    ]}>
+                      {provincia}
+                    </Text>
+                    {selectedProvincia === provincia && (
+                      <IconSymbol name="checkmark" size={20} color={colors.primary} />
+                    )}
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <View style={styles.emptyProvinciaState}>
+                  <Text style={styles.emptyProvinciaText}>No hay provincias disponibles</Text>
+                </View>
+              )}
             </ScrollView>
           </View>
         </View>
@@ -2366,8 +2375,7 @@ const styles = StyleSheet.create({
   },
   provinciaModalOverlay: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'flex-end',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   provinciaModalBackdrop: {
@@ -2379,10 +2387,10 @@ const styles = StyleSheet.create({
   },
   provinciaModalContent: {
     backgroundColor: colors.background,
-    borderRadius: 20,
-    width: width * 0.85,
-    maxHeight: height * 0.7,
-    overflow: 'hidden',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    maxHeight: height * 0.75,
+    paddingBottom: 34,
   },
   provinciaModalHeader: {
     paddingTop: 24,
@@ -2436,5 +2444,13 @@ const styles = StyleSheet.create({
   provinciaItemTextSelected: {
     fontWeight: '600',
     color: colors.primary,
+  },
+  emptyProvinciaState: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyProvinciaText: {
+    fontSize: 14,
+    color: colors.textSecondary,
   },
 });
