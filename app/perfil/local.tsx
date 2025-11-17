@@ -1645,39 +1645,32 @@ export default function LocalPerfilScreen() {
               style={styles.provinciaList}
               contentContainerStyle={styles.provinciaListContent}
               showsVerticalScrollIndicator={true}
-              nestedScrollEnabled={true}
             >
-              {PROVINCIAS.length > 0 ? (
-                PROVINCIAS.map((provincia, index) => (
-                  <TouchableOpacity
-                    key={`provincia-${index}-${provincia}`}
-                    style={[
-                      styles.provinciaItem,
-                      selectedProvincia === provincia && styles.provinciaItemSelected
-                    ]}
-                    onPress={() => {
-                      console.log('[LocalPerfil] Selected provincia:', provincia);
-                      setSelectedProvincia(provincia);
-                      setShowProvinciaModal(false);
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[
-                      styles.provinciaItemText,
-                      selectedProvincia === provincia && styles.provinciaItemTextSelected
-                    ]}>
-                      {provincia}
-                    </Text>
-                    {selectedProvincia === provincia && (
-                      <IconSymbol name="checkmark" size={20} color={colors.primary} />
-                    )}
-                  </TouchableOpacity>
-                ))
-              ) : (
-                <View style={styles.emptyProvinciaState}>
-                  <Text style={styles.emptyProvinciaText}>No hay provincias disponibles</Text>
-                </View>
-              )}
+              {PROVINCIAS.map((provincia, index) => (
+                <TouchableOpacity
+                  key={`provincia-${index}-${provincia}`}
+                  style={[
+                    styles.provinciaItem,
+                    selectedProvincia === provincia && styles.provinciaItemSelected
+                  ]}
+                  onPress={() => {
+                    console.log('[LocalPerfil] Selected provincia:', provincia);
+                    setSelectedProvincia(provincia);
+                    setShowProvinciaModal(false);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[
+                    styles.provinciaItemText,
+                    selectedProvincia === provincia && styles.provinciaItemTextSelected
+                  ]}>
+                    {provincia}
+                  </Text>
+                  {selectedProvincia === provincia && (
+                    <IconSymbol name="checkmark" size={20} color={colors.primary} />
+                  )}
+                </TouchableOpacity>
+              ))}
             </ScrollView>
           </View>
         </View>
