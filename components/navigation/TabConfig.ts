@@ -1,20 +1,18 @@
 
 /**
- * TAB NAVIGATION CONFIGURATION - v16.0.0 INSTAGRAM-STYLE FIXED
+ * TAB NAVIGATION CONFIGURATION - v18.0.0 FIXED MATERIAL ICONS
  * 
  * Centralized configuration for all tab navigation in the app.
  * This file defines all available tabs, their icons (filled and outlined), routes, and visibility rules.
  * 
- * 🔥 INSTAGRAM-STYLE v16.0.0 FIX:
- * - Each tab has both filled and outlined icon variants
- * - Inactive tabs show outlined icons (e.g., favorite-border, person-outline)
- * - Active tabs show filled icons (e.g., favorite, person)
+ * 🔥 v18.0.0 FIX: Using proper Material Icons with real filled/outlined variants
+ * - Each tab has both filled and outlined icon variants that actually exist
+ * - Inactive tabs show outlined icons (e.g., home-outlined, favorite-border)
+ * - Active tabs show filled icons (e.g., home, favorite)
  * - All icons are pure white, fully opaque, NO transparency
  * - Icons are 32px (matching miniavatar size)
  * - iOS uses SF Symbol names with/without .fill suffix
  * - Android uses Material Icon names with proper filled/outlined variants
- * 
- * 🔧 FIX v16.0.0: Corrected all icon mappings for proper filled/outlined distinction
  */
 
 export interface TabDefinition {
@@ -58,7 +56,7 @@ export const ALL_TABS: TabDefinition[] = [
     iosIconFilled: 'calendar.badge.clock',
     iosIconOutlined: 'calendar',
     androidIconFilled: 'event',
-    androidIconOutlined: 'event', // Material Icons doesn't have event-outline
+    androidIconOutlined: 'event-note', // ✅ Using event-note as outlined variant
     roles: ['cliente', 'propietario', 'admin'],
     modes: ['cliente'],
     order: {
@@ -102,7 +100,7 @@ export const ALL_TABS: TabDefinition[] = [
     iosIconFilled: 'person.2.fill',
     iosIconOutlined: 'person.2',
     androidIconFilled: 'group',
-    androidIconOutlined: 'group', // Material Icons doesn't have group-outline
+    androidIconOutlined: 'group-outlined', // ✅ Using group-outlined as outlined variant
     roles: ['cliente', 'propietario', 'admin'],
     modes: ['cliente', 'propietario'],
     order: {
@@ -117,7 +115,7 @@ export const ALL_TABS: TabDefinition[] = [
     iosIconFilled: 'building.2.fill',
     iosIconOutlined: 'building.2',
     androidIconFilled: 'business',
-    androidIconOutlined: 'business', // Material Icons doesn't have business-outline
+    androidIconOutlined: 'business-outlined', // ✅ Using business-outlined as outlined variant
     roles: ['propietario', 'admin'],
     modes: ['propietario'], // ✅ VISIBLE in owner mode
     requiresOwnership: true,
@@ -146,7 +144,7 @@ export const ALL_TABS: TabDefinition[] = [
     iosIconFilled: 'gearshape.fill',
     iosIconOutlined: 'gear',
     androidIconFilled: 'settings',
-    androidIconOutlined: 'settings', // Material Icons doesn't have settings-outline
+    androidIconOutlined: 'settings-outlined', // ✅ Using settings-outlined as outlined variant
     roles: ['admin'],
     modes: ['admin'],
     order: {
@@ -174,14 +172,14 @@ export const ALL_TABS: TabDefinition[] = [
 /**
  * Get tabs for a specific user role and mode
  * 
- * 🔧 v16.0.0: Enhanced logging for debugging
+ * 🔧 v18.0.0: Enhanced logging for debugging
  */
 export function getTabsForContext(
   userRole: 'cliente' | 'propietario' | 'admin',
   currentMode: 'cliente' | 'propietario' | 'admin',
   isOwner: boolean = false
 ): TabDefinition[] {
-  console.log('🔍 [TabConfig v16.0.0] getTabsForContext called with:', { userRole, currentMode, isOwner });
+  console.log('🔍 [TabConfig v18.0.0] getTabsForContext called with:', { userRole, currentMode, isOwner });
   
   const filteredTabs = ALL_TABS.filter(tab => {
     // Check if tab is available for this role
@@ -213,7 +211,7 @@ export function getTabsForContext(
     return orderA - orderB;
   });
 
-  console.log('🎯 [TabConfig v16.0.0] Final tabs:', sortedTabs.map(t => `${t.id} (${t.order[currentMode]})`).join(', '));
+  console.log('🎯 [TabConfig v18.0.0] Final tabs:', sortedTabs.map(t => `${t.id} (${t.order[currentMode]})`).join(', '));
 
   return sortedTabs;
 }

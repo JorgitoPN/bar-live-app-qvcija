@@ -1124,14 +1124,6 @@ export default function PerfilScreen() {
     }
   };
 
-  const handleManageLocations = () => {
-    if (!user) {
-      setShowLoginModal(true);
-      return;
-    }
-    router.push('/(tabs)/gestion');
-  };
-
   const limpiarFiltros = () => {
     setSearchQuery('');
     setProvinciaFiltro('');
@@ -1508,16 +1500,6 @@ export default function PerfilScreen() {
         </View>
 
         <View style={styles.actionButtons}>
-          {/* 🔥 NEW: Manage Locations button as first item for owner profile */}
-          {isOwnerMode && (
-            <TouchableOpacity 
-              style={[styles.actionButton, styles.manageLocationsButton]} 
-              onPress={handleManageLocations}
-            >
-              <IconSymbol name="building.2.fill" size={18} color={colors.white} />
-              <Text style={[styles.actionButtonText, { color: colors.white }]}>Gestión</Text>
-            </TouchableOpacity>
-          )}
           <TouchableOpacity style={styles.actionButton} onPress={handleEditProfile}>
             <IconSymbol name="pencil" size={18} color={colors.headerText} />
             <Text style={styles.actionButtonText}>Editar Perfil</Text>
@@ -2389,9 +2371,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 14,
     gap: 8,
-  },
-  manageLocationsButton: {
-    backgroundColor: colors.primary,
   },
   createButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.4)',

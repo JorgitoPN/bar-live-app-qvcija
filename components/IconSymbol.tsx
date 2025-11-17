@@ -136,21 +136,21 @@ const MAPPING = {
   "compass.drawing": "explore",
   "mappin": "place",
   "mappin.circle.fill": "place",
-  "building.2": "business",
+  "building.2": "business_center",
   "building.2.fill": "business",
 
   // Time & Calendar
   "clock.fill": "access-time",
   "clock": "access-time",
-  "calendar": "event",
+  "calendar": "event_note",
   "calendar.badge.clock": "event",
   "timer": "timer",
 
   // User & Profile
-  "person": "person-outline",
+  "person": "person_outline",
   "person.fill": "person",
-  "person.2.fill": "group",
-  "person.2": "group",
+  "person.2.fill": "groups",
+  "person.2": "groups",
   "person.circle.fill": "account-circle",
   "person.circle": "account-circle",
   "person.crop.circle.fill": "account-circle",
@@ -159,7 +159,7 @@ const MAPPING = {
   "person.badge.key": "admin-panel-settings",
 
   // Work & Business
-  "briefcase": "work-outline",
+  "briefcase": "work_outline",
   "briefcase.fill": "work",
 
   // Sharing & Export
@@ -183,12 +183,13 @@ const MAPPING = {
   "sun.max.fill": "light-mode",
   
   // Special icons
-  "sparkles": "auto-awesome",
+  "sparkles": "auto_awesome",
   "photo.on.rectangle": "photo-library",
   "globe": "language",
   "arrow.triangle.2.circlepath": "sync",
   "plus.circle.fill": "add-circle",
   "trash.circle.fill": "cancel",
+  "settings_applications": "settings-applications",
 } as Partial<
   Record<
     import("expo-symbols").SymbolViewProps["name"],
@@ -204,7 +205,7 @@ export type IconSymbolName = keyof typeof MAPPING;
  *
  * Icon `name`s are based on SFSymbols and require manual mapping to MaterialIcons.
  * 
- * ✅ INSTAGRAM-STYLE v17.0.0: FIXED - Uses icon name directly from TabIcon
+ * ✅ v18.0.0: FIXED - Uses proper Material Icons with real filled/outlined variants
  * - Active icons: Uses filled icon name passed from TabIcon
  * - Inactive icons: Uses outlined icon name passed from TabIcon
  * - Pure white (#FFFFFF) at 100% opacity for both states
@@ -235,7 +236,7 @@ export function IconSymbol({
   // Determine if this is a filled or outlined icon based on the icon name
   const isFilled = name.includes('.fill');
   
-  console.log(`🎨 [IconSymbol Android/Web v17.0] ${name} → ${materialIconName}, ${isFilled ? 'FILLED' : 'OUTLINED'}, color: ${finalColor}`);
+  console.log(`🎨 [IconSymbol Android/Web v18.0] ${name} → ${materialIconName}, ${isFilled ? 'FILLED' : 'OUTLINED'}, color: ${finalColor}`);
   
   return (
     <MaterialIcons
