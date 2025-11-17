@@ -1600,18 +1600,19 @@ export default function LocalPerfilScreen() {
         </Pressable>
       </Modal>
 
-      {/* Provincia Filter Modal */}
+      {/* Provincia Filter Modal - FIXED VERSION */}
       <Modal
         visible={showProvinciaModal}
         animationType="slide"
         transparent={true}
         onRequestClose={() => setShowProvinciaModal(false)}
       >
-        <Pressable 
-          style={styles.provinciaModal}
-          onPress={() => setShowProvinciaModal(false)}
-        >
-          <Pressable style={styles.provinciaModalContent} onPress={(e) => e.stopPropagation()}>
+        <View style={styles.provinciaModalOverlay}>
+          <Pressable 
+            style={styles.provinciaModalBackdrop}
+            onPress={() => setShowProvinciaModal(false)}
+          />
+          <View style={styles.provinciaModalContent}>
             <View style={styles.provinciaModalHeader}>
               <Text style={styles.provinciaModalTitle}>Seleccionar Provincia</Text>
               <TouchableOpacity onPress={() => setShowProvinciaModal(false)} activeOpacity={0.8}>
@@ -1631,7 +1632,11 @@ export default function LocalPerfilScreen() {
               </TouchableOpacity>
             )}
 
-            <ScrollView style={styles.provinciaList} showsVerticalScrollIndicator={false}>
+            <ScrollView 
+              style={styles.provinciaList} 
+              showsVerticalScrollIndicator={true}
+              contentContainerStyle={styles.provinciaListContent}
+            >
               {PROVINCIAS.map((provincia) => (
                 <TouchableOpacity
                   key={provincia}
@@ -1657,8 +1662,8 @@ export default function LocalPerfilScreen() {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
 
       <ProfileSwitcher
@@ -2351,17 +2356,25 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     lineHeight: 20,
   },
-  provinciaModal: {
+  provinciaModalOverlay: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  provinciaModalBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
   },
   provinciaModalContent: {
     backgroundColor: colors.background,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    maxHeight: height * 0.7,
-    paddingBottom: 34,
+    borderRadius: 28,
+    width: width * 0.9,
+    maxHeight: height * 0.8,
+    overflow: 'hidden',
   },
   provinciaModalHeader: {
     paddingTop: 24,
@@ -2392,6 +2405,9 @@ const styles = StyleSheet.create({
   },
   provinciaList: {
     flex: 1,
+  },
+  provinciaListContent: {
+    paddingBottom: 20,
   },
   provinciaItem: {
     flexDirection: 'row',
