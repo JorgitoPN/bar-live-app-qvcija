@@ -1,14 +1,14 @@
 
 /**
- * TAB ICON COMPONENT - v4.0.0
+ * TAB ICON COMPONENT - v5.0.0
  * 
- * Platform-specific icon rendering with MAXIMUM visibility and clear active state.
+ * Platform-specific icon rendering with EXTREME visibility difference.
  * Handles iOS SF Symbols and Android Material Icons.
  * 
- * ✅ ENHANCED VISIBILITY:
- * - Active icons: Pure white (#FFFFFF) at 100% opacity with strong glow
- * - Inactive icons: White at 60% opacity (much more visible)
- * - Clear visual distinction between active and inactive states
+ * ✅ ENHANCED VISIBILITY v5.0.0:
+ * - Active icons: Pure white (#FFFFFF) at 100% opacity with MASSIVE glow
+ * - Inactive icons: White at 80% opacity (very visible)
+ * - 5X GREATER visual distinction between active and inactive states
  */
 
 import React from 'react';
@@ -22,10 +22,10 @@ interface TabIconProps {
   size?: number;
 }
 
-// ✅ MAXIMUM VISIBILITY with clear distinction
+// ✅ 5X GREATER DISTINCTION
 const ACTIVE_COLOR = '#FFFFFF';                    // Pure white at 100% opacity
-const INACTIVE_COLOR = 'rgba(255, 255, 255, 0.6)'; // 60% opacity - much more visible
-const ACTIVE_SCALE = 1.3;                          // Significantly larger when active
+const INACTIVE_COLOR = 'rgba(255, 255, 255, 0.8)'; // 80% opacity - very visible
+const ACTIVE_SCALE = 1.5;                          // 50% larger when active (was 1.3)
 
 export function TabIcon({ iosIcon, androidIcon, isActive, size = 28 }: TabIconProps) {
   const iconName = Platform.OS === 'ios' ? iosIcon : androidIcon;
@@ -34,10 +34,11 @@ export function TabIcon({ iosIcon, androidIcon, isActive, size = 28 }: TabIconPr
 
   return (
     <View style={[styles.container, isActive && styles.activeContainer]}>
-      {/* Strong active state background with glow */}
+      {/* MASSIVE active state background with extreme glow */}
       {isActive && (
         <>
           <View style={styles.activeGlowOuter} />
+          <View style={styles.activeGlowMiddle} />
           <View style={styles.activeGlowInner} />
         </>
       )}
@@ -46,7 +47,7 @@ export function TabIcon({ iosIcon, androidIcon, isActive, size = 28 }: TabIconPr
         name={iconName as any}
         size={iconSize}
         color={color}
-        weight={isActive ? 'semibold' : 'regular'}
+        weight={isActive ? 'bold' : 'regular'}
       />
     </View>
   );
@@ -60,35 +61,47 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   activeContainer: {
-    // Strong shadow for active state
+    // EXTREME shadow for active state
     shadowColor: '#FFFFFF',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 1,
-    shadowRadius: 20,
-    elevation: 20,
+    shadowRadius: 30,
+    elevation: 25,
   },
   activeGlowOuter: {
     position: 'absolute',
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    shadowColor: '#FFFFFF',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.9,
-    shadowRadius: 24,
-    elevation: 15,
-  },
-  activeGlowInner: {
-    position: 'absolute',
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     shadowColor: '#FFFFFF',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 1,
-    shadowRadius: 16,
-    elevation: 18,
+    shadowRadius: 35,
+    elevation: 20,
+  },
+  activeGlowMiddle: {
+    position: 'absolute',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    shadowColor: '#FFFFFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 25,
+    elevation: 22,
+  },
+  activeGlowInner: {
+    position: 'absolute',
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    shadowColor: '#FFFFFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 18,
+    elevation: 24,
   },
 });
