@@ -1,16 +1,16 @@
 
 /**
- * TAB NAVIGATION BAR - v14.0.0 INSTAGRAM-STYLE WITH SMALLER ICONS
+ * TAB NAVIGATION BAR - v15.0.0 INSTAGRAM-STYLE WITH PROPER WEIGHT DISTINCTION
  * 
  * Modern, clean tab navigation bar with Instagram-style outlined/filled icon distinction.
  * Built from scratch with no legacy code.
  * 
- * 🔥 INSTAGRAM-STYLE v14.0.0:
- * - Inactive icons: Outlined (hollow), pure white, 100% opacity, NO transparency
- * - Active icons: Filled, pure white, 100% opacity, NO transparency
- * - Icons are now 32px (slightly smaller for better spacing)
+ * 🔥 INSTAGRAM-STYLE v15.0.0:
+ * - Inactive icons: Outlined (hollow), pure white, 100% opacity, regular weight
+ * - Active icons: Filled, pure white, 100% opacity, semibold weight
+ * - Icons are 32px (matching miniavatar size)
  * - Central "Explorar" button remains the same with gradient
- * - Visual distinction comes from outline vs filled using fill property
+ * - Visual distinction comes from icon variant AND weight
  * - Icons positioned slightly higher (reduced paddingTop and paddingVertical)
  */
 
@@ -48,11 +48,11 @@ export function TabNavigationBar({
   const pathname = usePathname();
 
   useEffect(() => {
-    console.log('🎯 [TabNavigationBar v14.0 INSTAGRAM-STYLE] Rendered with', tabs.length, 'tabs');
+    console.log('🎯 [TabNavigationBar v15.0 INSTAGRAM-STYLE] Rendered with', tabs.length, 'tabs');
     console.log('📍 [TabNavigationBar] Current pathname:', pathname);
     tabs.forEach(tab => {
       const active = isTabActive(tab, pathname);
-      console.log(`   ${active ? '✅ FILLED (active)' : '⚪ OUTLINED (inactive)'} ${tab.label} (${tab.id}) - 32px size`);
+      console.log(`   ${active ? '✅ FILLED (active, semibold)' : '⚪ OUTLINED (inactive, regular)'} ${tab.label} (${tab.id}) - 32px size`);
     });
   }, [pathname, tabs]);
 
@@ -206,7 +206,7 @@ export function TabNavigationBar({
         </Svg>
       </View>
 
-      {/* Tab buttons - positioned higher with smaller icons (32px) */}
+      {/* Tab buttons - positioned higher with 32px icons */}
       <View style={[styles.tabBar, { opacity: 1 }]} pointerEvents="box-none">
         {tabs.map(tab => renderTab(tab))}
       </View>
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: 'row',
-    paddingTop: 2, // Reduced from 4 to position icons higher
+    paddingTop: 2, // Reduced to position icons higher
     paddingBottom: Platform.OS === 'ios' ? 20 : 8,
     paddingHorizontal: 16,
     alignItems: 'center',
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 4, // Reduced from 6 to position icons higher
+    paddingVertical: 4, // Reduced to position icons higher
     opacity: 1,
   },
   centerButton: {
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
     opacity: 1,
   },
   avatarContainer: {
-    width: 32, // Updated to match icon size
+    width: 32, // Match icon size
     height: 32,
     borderRadius: 16,
     overflow: 'hidden',

@@ -1,16 +1,17 @@
 
 /**
- * FLOATING TAB BAR - v12.0.0 INSTAGRAM-STYLE
+ * FLOATING TAB BAR - v15.0.0 INSTAGRAM-STYLE
  * 
  * Wrapper component for backward compatibility.
  * Uses the new TabNavigationBar internally.
  * 
- * 🔥 INSTAGRAM-STYLE v12.0.0:
- * - Inactive icons: Outlined (hollow), pure white, 100% opacity, NO transparency
- * - Active icons: Filled, pure white, 100% opacity, NO transparency
- * - Icons are now 36px (same size as miniavatar)
+ * 🔥 INSTAGRAM-STYLE v15.0.0:
+ * - Inactive icons: Outlined (hollow), pure white, 100% opacity, regular weight
+ * - Active icons: Filled, pure white, 100% opacity, semibold weight
+ * - Icons are 32px (matching miniavatar size)
  * - Central "Explorar" button remains the same with gradient
- * - Visual distinction comes from outline vs filled, not opacity changes
+ * - Visual distinction comes from icon variant AND weight
+ * - "Gestión de Locales" icon is properly configured for owner mode
  */
 
 import React from 'react';
@@ -36,13 +37,13 @@ export default function FloatingTabBar({ tabs: legacyTabs, containerWidth }: Flo
   const { currentMode, activeProfileType, activeProfileId, switchToLocalProfile } = useMode();
   const { tabs, activeProfileAvatar } = useTabNavigation();
 
-  console.log('🎯 [FloatingTabBar v12.0 INSTAGRAM-STYLE] Rendering with outlined/filled distinction');
+  console.log('🎯 [FloatingTabBar v15.0 INSTAGRAM-STYLE] Rendering with outlined/filled distinction');
   console.log('   Mode:', currentMode);
   console.log('   Profile Type:', activeProfileType);
   console.log('   Profile ID:', activeProfileId);
-  console.log('   Tabs:', tabs.map(t => t.id).join(', '));
-  console.log('   🎨 Active icons: FILLED, pure white (#FFFFFF), 36px');
-  console.log('   🎨 Inactive icons: OUTLINED, pure white (#FFFFFF), 36px');
+  console.log('   Tabs:', tabs.map(t => `${t.id} (${t.label})`).join(', '));
+  console.log('   🎨 Active icons: FILLED, pure white (#FFFFFF), 32px, semibold weight');
+  console.log('   🎨 Inactive icons: OUTLINED, pure white (#FFFFFF), 32px, regular weight');
 
   const handleProfilePress = async () => {
     console.log('👤 [FloatingTabBar] Profile pressed');

@@ -1,16 +1,17 @@
 
 /**
- * TAB NAVIGATION CONFIGURATION - v2.1.0 INSTAGRAM-STYLE
+ * TAB NAVIGATION CONFIGURATION - v2.2.0 INSTAGRAM-STYLE
  * 
  * Centralized configuration for all tab navigation in the app.
  * This file defines all available tabs, their icons (filled and outlined), routes, and visibility rules.
  * 
- * 🔥 INSTAGRAM-STYLE v2.1.0:
+ * 🔥 INSTAGRAM-STYLE v2.2.0:
  * - Each tab now has both filled and outlined icon variants
- * - Inactive tabs show outlined (hollow) icons
- * - Active tabs show filled icons
+ * - Inactive tabs show outlined (hollow) icons with regular weight
+ * - Active tabs show filled icons with semibold weight
  * - All icons are pure white, fully opaque, NO transparency
- * - Icons are now 32px (slightly smaller than before)
+ * - Icons are 32px (matching miniavatar size)
+ * - "Gestión de Locales" icon is properly configured for owner mode
  */
 
 export interface TabDefinition {
@@ -42,7 +43,7 @@ export const ALL_TABS: TabDefinition[] = [
     iosIconFilled: 'house.fill',
     iosIconOutlined: 'house',
     androidIconFilled: 'home',
-    androidIconOutlined: 'home-outlined',
+    androidIconOutlined: 'home',
     roles: ['cliente', 'propietario', 'admin'],
     modes: [], // Removed from all modes - not used in any menu
     order: {},
@@ -115,7 +116,7 @@ export const ALL_TABS: TabDefinition[] = [
     androidIconFilled: 'business',
     androidIconOutlined: 'business',
     roles: ['propietario', 'admin'],
-    modes: ['propietario'],
+    modes: ['propietario'], // ✅ VISIBLE in owner mode
     requiresOwnership: true,
     order: {
       propietario: 0, // 🔥 FIRST POSITION in owner profile menu
@@ -130,7 +131,7 @@ export const ALL_TABS: TabDefinition[] = [
     androidIconFilled: 'work',
     androidIconOutlined: 'work-outline',
     roles: ['cliente', 'propietario', 'admin'],
-    modes: ['propietario'],
+    modes: ['propietario'], // ✅ VISIBLE in owner mode
     order: {
       propietario: 1, // 🔥 SECOND POSITION in owner profile menu (to the right of Gestión)
     },
@@ -211,6 +212,7 @@ export const TAB_SETS = {
   cliente: ['eventos', 'favoritos', 'explorar', 'social', 'perfil'],
   
   // Modo Propietario: Gestión de Locales, Empleo, Explorar, Social, Perfil del Local
+  // ✅ "Gestión de Locales" is FIRST, "Empleo" is SECOND
   propietario: ['gestion', 'empleo', 'explorar', 'social', 'perfil'],
   
   // Modo Admin: Panel Admin, Explorar, Mi Perfil

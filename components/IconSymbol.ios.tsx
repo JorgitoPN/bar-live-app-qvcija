@@ -5,12 +5,12 @@ import { StyleProp, ViewStyle } from "react-native";
 /**
  * iOS-specific icon component using native SF Symbols.
  * 
- * ✅ INSTAGRAM-STYLE v14.0.0: Outlined icons for inactive, filled for active
- * - Active icons: Filled, pure white (#FFFFFF) at 100% opacity
- * - Inactive icons: Outlined (hollow), pure white (#FFFFFF) at 100% opacity
+ * ✅ INSTAGRAM-STYLE v15.0.0: Outlined icons for inactive, filled for active
+ * - Active icons: Filled variant with semibold weight, pure white (#FFFFFF) at 100% opacity
+ * - Inactive icons: Outlined variant with regular weight, pure white (#FFFFFF) at 100% opacity
  * - NO transparency, NO filters - icons are fully opaque and bright
- * - Visual distinction comes from outline vs filled, not opacity
- * - Uses fill property to control icon rendering (none for outlined, white for filled)
+ * - Visual distinction comes from different SF Symbol variants (.fill suffix) and weight
+ * - Uses hierarchical rendering mode for filled icons to show depth
  */
 export function IconSymbol({
   name,
@@ -27,7 +27,13 @@ export function IconSymbol({
   weight?: SymbolWeight;
   fill?: string;
 }) {
-  console.log(`🎨 [IconSymbol iOS v14.0] Rendering ${name} with color: ${color}, weight: ${weight}, fill: ${fill || 'none'}`);
+  // Determine if icon should be rendered as filled based on weight or fill property
+  const isFilled = weight === 'semibold' || weight === 'bold' || fill === '#FFFFFF';
+  
+  // Use hierarchical mode for filled icons to show depth, monochrome for outlined
+  const renderingMode = isFilled ? "hierarchical" : "monochrome";
+  
+  console.log(`🎨 [IconSymbol iOS v15.0] ${name}, ${isFilled ? 'FILLED' : 'OUTLINED'}, weight: ${weight}, mode: ${renderingMode}, color: ${color}`);
   
   return (
     <SymbolView
@@ -35,7 +41,7 @@ export function IconSymbol({
       tintColor={color}
       resizeMode="scaleAspectFit"
       name={name}
-      renderingMode={fill && fill !== 'none' ? "hierarchical" : "monochrome"}
+      renderingMode={renderingMode}
       style={[
         {
           width: size,

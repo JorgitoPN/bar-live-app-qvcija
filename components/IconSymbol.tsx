@@ -18,7 +18,7 @@ const MAPPING = {
 
   // Navigation & Home
   "house.fill": "home",
-  "house": "home-outlined",
+  "house": "home",
   "arrow.left": "arrow-back",
   "arrow.right": "arrow-forward",
   "arrow.up": "arrow-upward",
@@ -32,11 +32,11 @@ const MAPPING = {
 
   // Communication & Social
   "paperplane.fill": "send",
-  "paperplane": "send-outlined",
+  "paperplane": "send",
   "envelope.fill": "mail",
   "envelope": "mail-outline",
   "phone.fill": "phone",
-  "phone": "phone-outlined",
+  "phone": "phone",
   "message.fill": "chat",
   "message": "chat-bubble-outline",
   "bell.fill": "notifications",
@@ -89,7 +89,7 @@ const MAPPING = {
   "gearshape.fill": "settings",
   "slider.horizontal.3": "tune",
   "info.circle.fill": "info",
-  "info.circle": "info-outlined",
+  "info.circle": "info",
   "exclamationmark.triangle.fill": "warning",
   "exclamationmark.triangle": "warning-amber",
   "questionmark.circle.fill": "help",
@@ -118,7 +118,7 @@ const MAPPING = {
 
   // Shopping & Commerce
   "cart.fill": "shopping-cart",
-  "cart": "shopping-cart-outlined",
+  "cart": "shopping-cart",
   "creditcard.fill": "credit-card",
   "creditcard": "credit-card",
   "dollarsign.circle.fill": "monetization-on",
@@ -201,12 +201,12 @@ export type IconSymbolName = keyof typeof MAPPING;
  *
  * Icon `name`s are based on SFSymbols and require manual mapping to MaterialIcons.
  * 
- * ✅ INSTAGRAM-STYLE v14.0.0: Outlined icons for inactive, filled for active
- * - Active icons: Filled, pure white (#FFFFFF) at 100% opacity
- * - Inactive icons: Outlined (hollow), pure white (#FFFFFF) at 100% opacity
+ * ✅ INSTAGRAM-STYLE v15.0.0: Outlined icons for inactive, filled for active
+ * - Active icons: Filled variant, pure white (#FFFFFF) at 100% opacity
+ * - Inactive icons: Outlined variant, pure white (#FFFFFF) at 100% opacity
  * - NO transparency, NO filters - icons are fully opaque and bright
- * - Visual distinction comes from outline vs filled, not opacity
- * - Uses fill property to control icon rendering (none for outlined, white for filled)
+ * - Visual distinction comes from different icon variants (filled vs outlined)
+ * - Material Icons use weight to simulate filled/outlined effect
  */
 export function IconSymbol({
   name,
@@ -223,13 +223,15 @@ export function IconSymbol({
   weight?: SymbolWeight;
   fill?: string;
 }) {
-  // Material Icons don't have weight variants, but we can simulate with font weight
-  const fontWeight = weight === 'semibold' || weight === 'bold' ? '700' : '400';
+  // For Material Icons, use weight to simulate filled/outlined effect
+  // Bold/Semibold = filled appearance, Regular = outlined appearance
+  const isFilled = weight === 'semibold' || weight === 'bold' || fill === '#FFFFFF';
+  const fontWeight = isFilled ? '700' : '400';
   
   // Ensure color is applied directly without any modifications
   const finalColor = typeof color === 'string' ? color : color.toString();
   
-  console.log(`🎨 [IconSymbol Android/Web v14.0] Rendering ${MAPPING[name]} with color: ${finalColor}, weight: ${fontWeight}, fill: ${fill || 'none'}`);
+  console.log(`🎨 [IconSymbol Android/Web v15.0] ${name} → ${MAPPING[name]}, ${isFilled ? 'FILLED' : 'OUTLINED'}, weight: ${fontWeight}, color: ${finalColor}`);
   
   return (
     <MaterialIcons
