@@ -1600,7 +1600,7 @@ export default function LocalPerfilScreen() {
         </Pressable>
       </Modal>
 
-      {/* Provincia Filter Modal - FIXED VERSION */}
+      {/* Provincia Filter Modal - FIXED VERSION WITH ALL 52 PROVINCES */}
       <Modal
         visible={showProvinciaModal}
         animationType="slide"
@@ -1637,9 +1637,9 @@ export default function LocalPerfilScreen() {
               showsVerticalScrollIndicator={true}
               contentContainerStyle={styles.provinciaListContent}
             >
-              {PROVINCIAS.map((provincia) => (
+              {PROVINCIAS.map((provincia, index) => (
                 <TouchableOpacity
-                  key={provincia}
+                  key={`${provincia}-${index}`}
                   style={[
                     styles.provinciaItem,
                     selectedProvincia === provincia && styles.provinciaItemSelected
@@ -2360,6 +2360,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   provinciaModalBackdrop: {
     position: 'absolute',
@@ -2367,13 +2368,12 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   provinciaModalContent: {
     backgroundColor: colors.background,
     borderRadius: 28,
     width: width * 0.9,
-    maxHeight: height * 0.8,
+    maxHeight: height * 0.7,
     overflow: 'hidden',
   },
   provinciaModalHeader: {
