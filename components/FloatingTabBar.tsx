@@ -34,7 +34,6 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
     console.log('⚡ FloatingTabBar tabs:', tabs.map(t => ({ name: t.name, icon: t.icon })));
   }, [pathname, tabs]);
 
-  // 🆕 FIX: Log when active profile changes to ensure reactivity
   useEffect(() => {
     console.log('[FloatingTabBar] 📊 Active profile changed:', {
       activeProfileType,
@@ -56,24 +55,6 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
         activeProfileType
       });
       
-      // Special handling for perfil routes - match ALL profile screens
-      if (cleanRoute === '(tabs)/perfil') {
-        const isProfileActive = cleanPathname === '(tabs)/perfil' || 
-               cleanPathname === '(tabs)/perfil/' || 
-               cleanPathname === '(tabs)/perfil/index' ||
-               cleanPathname.startsWith('perfil/usuario') ||
-               // ✅ CRITICAL FIX: Don't match perfil/local when in propietario mode
-               (cleanPathname.startsWith('perfil/local') && currentMode !== 'propietario') ||
-               (cleanPathname.startsWith('perfil/') && !cleanPathname.startsWith('perfil/local')) ||
-               (cleanPathname === 'perfil' && currentMode !== 'propietario');
-        
-        if (isProfileActive) {
-          console.log('[FloatingTabBar] ✅ Profile tab is ACTIVE - pathname:', cleanPathname);
-        }
-        
-        return isProfileActive;
-      }
-
       // ✅ CRITICAL FIX: Special handling for gestion routes
       // When viewing perfil/local in propietario mode, the gestion tab should be active
       if (cleanRoute === '(tabs)/gestion') {
@@ -92,6 +73,24 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
         return isGestionActive;
       }
       
+      // Special handling for perfil routes - match ALL profile screens EXCEPT when in propietario mode on perfil/local
+      if (cleanRoute === '(tabs)/perfil') {
+        const isProfileActive = (cleanPathname === '(tabs)/perfil' || 
+               cleanPathname === '(tabs)/perfil/' || 
+               cleanPathname === '(tabs)/perfil/index' ||
+               cleanPathname.startsWith('perfil/usuario') ||
+               (cleanPathname.startsWith('perfil/') && !cleanPathname.startsWith('perfil/local')) ||
+               (cleanPathname === 'perfil' && currentMode !== 'propietario')) &&
+               // ✅ CRITICAL FIX: Don't match perfil/local when in propietario mode
+               !(cleanPathname.startsWith('perfil/local') && currentMode === 'propietario' && activeProfileType === 'local');
+        
+        if (isProfileActive) {
+          console.log('[FloatingTabBar] ✅ Profile tab is ACTIVE - pathname:', cleanPathname);
+        }
+        
+        return isProfileActive;
+      }
+      
       // Default: match by route prefix
       const isDefaultActive = cleanPathname.startsWith(cleanRoute);
       
@@ -106,8 +105,6 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
     }
   };
 
-  // 🆕 FEATURE 2: Get the avatar for the currently active profile
-  // This function now properly returns the correct avatar based on activeProfileType
   const getActiveAvatar = () => {
     if (activeProfileType === 'local' && activeLocalData) {
       console.log('[FloatingTabBar] 🏢 Using local avatar:', activeLocalData.nombre, activeLocalData.imagen_url);
@@ -120,10 +117,8 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
     return null;
   };
 
-  // 🆕 FIX: Recalculate avatar whenever dependencies change
   const activeAvatar = getActiveAvatar();
 
-  // 🆕 FIX: Log avatar changes for debugging
   useEffect(() => {
     console.log('[FloatingTabBar] 🖼️ Active avatar updated:', activeAvatar);
   }, [activeAvatar]);
@@ -158,12 +153,9 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
               return;
             }
 
-            if (active) {
-              console.log('✅ Already on route:', tab.name);
-              return;
-            }
-
-            console.log('⚡ INSTANT NAV to:', tab.name, tab.route);
+            // ✅ CRITICAL FIX: Remove the "already on route" check that was preventing navigation
+            // This was causing the gestion icon to be unclickable when on perfil/local
+            console.log('⚡ NAVIGATING to:', tab.name, tab.route, 'from:', pathname);
             lastNavigationTime.current = now;
 
             try {
@@ -208,9 +200,6 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
             );
           }
 
-          // ✅ UNIFIED BEHAVIOR: Profile tab now uses the SAME active state styling as other icons
-          // When active: Pure white border + white glow effect (matching other active icons)
-          // When inactive: Semi-transparent appearance (matching other inactive icons)
           if (tab.name === 'perfil') {
             if (active) {
               console.log('[FloatingTabBar] 🎨 Rendering profile avatar WITH active state - active:', active, 'avatar:', activeAvatar);
@@ -225,19 +214,14 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
                 accessibilityLabel={tab.label}
-                // @ts-expect-error - aria attributes for web accessibility
-                aria-pressed={active}
-                aria-current={active ? 'page' : undefined}
               >
                 <View style={styles.tabContent}>
-                  {/* ✅ CRITICAL FIX: Wrap avatar in active/inactive container for consistent glow effect */}
                   <View style={active ? styles.activeIconContainer : styles.inactiveIconContainer}>
                     {activeAvatar ? (
                       <Image 
                         source={{ uri: activeAvatar }} 
                         style={[
                           styles.profileAvatar,
-                          // ✅ FIX: Reduced border width from 4 to 2 for thinner border when active
                           active && styles.profileAvatarActive
                         ]} 
                         resizeMode="cover"
@@ -246,13 +230,11 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                       <View style={[
                         styles.profileAvatar,
                         styles.profileAvatarPlaceholder,
-                        // ✅ FIX: Reduced border width from 4 to 2 for thinner border when active
                         active && styles.profileAvatarActive
                       ]}>
                         <IconSymbol
                           name={activeProfileType === 'local' ? 'building.2' : 'person.fill'}
                           size={18}
-                          // ✅ UNIFIED: Icon inside avatar uses same color logic as other icons
                           color={active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.4)'}
                         />
                       </View>
@@ -264,8 +246,6 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
           }
 
           // ✅ CRITICAL FIX: Regular icons with PURE WHITE when active
-          // Active icons: Pure white (#FFFFFF) with 100% opacity + strong glow effect
-          // Inactive icons: Semi-transparent white (rgba(255, 255, 255, 0.4)) for maximum contrast
           return (
             <TouchableOpacity
               key={tab.name}
@@ -275,16 +255,12 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
               accessibilityRole="button"
               accessibilityState={{ selected: active }}
               accessibilityLabel={tab.label}
-              // @ts-expect-error - aria attributes for web accessibility
-              aria-pressed={active}
-              aria-current={active ? 'page' : undefined}
             >
               <View style={[styles.tabContent, active && styles.tabContentActive]}>
                 <View style={active ? styles.activeIconContainer : styles.inactiveIconContainer}>
                   <IconSymbol
                     name={tab.icon as any}
                     size={32}
-                    // ✅ CRITICAL FIX: Pure white (#FFFFFF) when active, semi-transparent when inactive
                     color={active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.4)'}
                   />
                 </View>
@@ -350,17 +326,14 @@ const styles = StyleSheet.create({
   tabContentActive: {
     backgroundColor: 'transparent',
   },
-  // ✅ UNIFIED: Active icon container with STRONG white glow effect
-  // Applied to BOTH regular icons AND profile avatar for consistent behavior
+  // ✅ CRITICAL FIX: Enhanced active icon container with STRONG white glow effect
   activeIconContainer: {
     shadowColor: '#FFFFFF',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 1,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowRadius: 16,
+    elevation: 12,
   },
-  // ✅ UNIFIED: Inactive icon container with no effects
-  // Applied to BOTH regular icons AND profile avatar for consistent behavior
   inactiveIconContainer: {
     shadowColor: 'transparent',
     shadowOffset: { width: 0, height: 0 },
@@ -394,13 +367,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
-  // ✅ FIX: Reduced border width from 4 to 2 for thinner border when active
-  // Profile avatar active state with PURE WHITE border and NO opacity interference
-  // Matches the behavior of regular active icons (pure white #FFFFFF)
   profileAvatarActive: {
     borderWidth: 2,
     borderColor: '#FFFFFF',
-    // Note: Shadow/glow is applied by the parent activeIconContainer
   },
   profileAvatarPlaceholder: {
     backgroundColor: 'rgba(255, 255, 255, 0.15)',

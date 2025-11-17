@@ -222,6 +222,7 @@ export default function LocalPerfilScreen() {
 
       setLocal(localData);
 
+      // ✅ CRITICAL FIX: Determine ownership based on propietario_id
       if (user && localData.propietario_id === user.id) {
         setIsOwner(true);
         console.log('[LocalPerfil] ✅ User is owner of this local');
@@ -736,7 +737,9 @@ export default function LocalPerfilScreen() {
       isOwner,
       localId,
       activeProfileId,
-      activeProfileType
+      activeProfileType,
+      localPropietarioId: local?.propietario_id,
+      userId: user?.id
     });
 
     // Admin mode
@@ -764,7 +767,7 @@ export default function LocalPerfilScreen() {
       ];
     }
 
-    // ✅ FIX: If user is owner of this local AND in propietario mode, show owner tabs with GESTION icon
+    // ✅ CRITICAL FIX: If user is owner of this local AND in propietario mode, show owner tabs with GESTION icon
     if (isOwner && currentMode === 'propietario') {
       console.log('[LocalPerfil] 🏢 Showing OWNER tabs (gestion, favoritos, social) - User owns this local');
       return [
@@ -1702,7 +1705,7 @@ export default function LocalPerfilScreen() {
       <FloatingTabBar 
         tabs={tabs} 
         containerWidth={width}
-        key={`${user?.rol_app || 'cliente'}-${currentMode}-${isOwner}-${activeProfileType}-${activeProfileId}`}
+        key={`${user?.rol_app || 'cliente'}-${currentMode}-${isOwner}-${activeProfileType}-${activeProfileId}-${localId}`}
       />
     </View>
   );
