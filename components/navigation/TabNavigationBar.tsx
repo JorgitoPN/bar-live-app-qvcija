@@ -1,9 +1,9 @@
 
 /**
- * TAB NAVIGATION BAR - v2.1.0
+ * TAB NAVIGATION BAR - v2.2.0
  * 
  * Modern, clean tab navigation bar with ENHANCED active state visibility.
- * Built from scratch with no legacy code.
+ * Central "Explorar" button now has solid background without transparency.
  */
 
 import React, { useEffect } from 'react';
@@ -90,7 +90,7 @@ export function TabNavigationBar({
     const isActive = isTabActive(tab, pathname);
     const isCenter = tab.id === 'explorar';
 
-    // Center button (Explorar) with subtle styling
+    // Center button (Explorar) with SOLID background - NO transparency
     if (isCenter) {
       return (
         <TouchableOpacity
@@ -102,14 +102,19 @@ export function TabNavigationBar({
           accessibilityLabel={tab.label}
           accessibilityState={{ selected: isActive }}
         >
-          <View style={styles.centerButtonBackground}>
+          <LinearGradient
+            colors={['#FF6B9D', '#C44569']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.centerButtonGradient}
+          >
             <TabIcon
               iosIcon={tab.iosIcon}
               androidIcon={tab.androidIcon}
-              isActive={isActive}
+              isActive={true}
               size={32}
             />
-          </View>
+          </LinearGradient>
         </TouchableOpacity>
       );
     }
@@ -245,19 +250,18 @@ const styles = StyleSheet.create({
     height: 64,
     marginTop: -32,
     borderRadius: 32,
-    shadowColor: '#000',
+    shadowColor: '#FF6B9D',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 12,
   },
-  centerButtonBackground: {
+  centerButtonGradient: {
     width: '100%',
     height: '100%',
     borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderWidth: 3,
     borderColor: 'rgba(255, 255, 255, 0.3)',
   },
