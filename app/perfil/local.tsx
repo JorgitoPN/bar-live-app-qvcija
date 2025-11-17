@@ -31,65 +31,10 @@ import FloatingTabBar, { TabBarItem } from '@/components/FloatingTabBar';
 import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
 import OfertaTrabajoCard from '@/components/empleo/OfertaTrabajoCard';
 import PerfilProfesionalCard from '@/components/empleo/PerfilProfesionalCard';
+import { PROVINCIAS, getProvinceVariations, filterByProvincia } from '@/utils/provinceNormalizer';
 
 const { width, height } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
-
-// Complete list of all 52 Spanish provinces including Ceuta and Melilla
-const PROVINCIAS = [
-  'Álava',
-  'Albacete',
-  'Alicante',
-  'Almería',
-  'Asturias',
-  'Ávila',
-  'Badajoz',
-  'Barcelona',
-  'Burgos',
-  'Cáceres',
-  'Cádiz',
-  'Cantabria',
-  'Castellón',
-  'Ceuta',
-  'Ciudad Real',
-  'Córdoba',
-  'Cuenca',
-  'Gerona',
-  'Granada',
-  'Guadalajara',
-  'Guipúzcoa',
-  'Huelva',
-  'Huesca',
-  'Islas Baleares',
-  'Jaén',
-  'La Coruña',
-  'La Rioja',
-  'Las Palmas',
-  'León',
-  'Lérida',
-  'Lugo',
-  'Madrid',
-  'Málaga',
-  'Melilla',
-  'Murcia',
-  'Navarra',
-  'Orense',
-  'Palencia',
-  'Pontevedra',
-  'Salamanca',
-  'Santa Cruz de Tenerife',
-  'Segovia',
-  'Sevilla',
-  'Soria',
-  'Tarragona',
-  'Teruel',
-  'Toledo',
-  'Valencia',
-  'Valladolid',
-  'Vizcaya',
-  'Zamora',
-  'Zaragoza',
-];
 
 interface LocalPost {
   id: string;
@@ -391,15 +336,18 @@ export default function LocalPerfilScreen() {
     }
   }, [localId, user, router]);
 
-  // Load employment data
+  // Load employment data with province normalization
   const loadEmpleoData = useCallback(async () => {
     if (!localId) return;
     
     setLoadingEmpleo(true);
     try {
-      console.log('[LocalPerfil] Loading employment data...');
+      console.log('[LocalPerfil] Loading employment data with filters:', {
+        searchQuery,
+        selectedProvincia
+      });
 
-      // Load job offers
+      // Load ALL job offers first (we'll filter by province in memory)
       let ofertasQuery = supabase
         .from('ofertas_trabajo')
         .select(`
@@ -412,41 +360,57 @@ export default function LocalPerfilScreen() {
         .eq('activo', true)
         .order('created_at', { ascending: false });
 
-      // Apply filters
+      // Apply search filter at database level
       if (searchQuery) {
         ofertasQuery = ofertasQuery.or(`titulo.ilike.%${searchQuery}%,descripcion.ilike.%${searchQuery}%`);
-      }
-      if (selectedProvincia) {
-        ofertasQuery = ofertasQuery.eq('provincia', selectedProvincia);
       }
 
       const { data: ofertasData, error: ofertasError } = await ofertasQuery;
 
       if (!ofertasError && ofertasData) {
-        console.log('[LocalPerfil] ✅ Loaded', ofertasData.length, 'job offers');
-        setOfertasTrabajo(ofertasData);
+        // Filter by province in memory using the normalizer
+        let filteredOfertas = ofertasData;
+        if (selectedProvincia) {
+          filteredOfertas = filterByProvincia(ofertasData, selectedProvincia);
+          console.log('[LocalPerfil] ✅ Filtered job offers by province:', {
+            selectedProvincia,
+            totalOffers: ofertasData.length,
+            filteredOffers: filteredOfertas.length
+          });
+        }
+        
+        console.log('[LocalPerfil] ✅ Loaded', filteredOfertas.length, 'job offers');
+        setOfertasTrabajo(filteredOfertas);
       }
 
-      // Load professional profiles
+      // Load ALL professional profiles first (we'll filter by province in memory)
       let perfilesQuery = supabase
         .from('perfiles_profesionales')
         .select('*')
         .eq('activo', true)
         .order('created_at', { ascending: false });
 
-      // Apply filters
+      // Apply search filter at database level
       if (searchQuery) {
         perfilesQuery = perfilesQuery.or(`nombre_completo.ilike.%${searchQuery}%,puesto_deseado.ilike.%${searchQuery}%`);
-      }
-      if (selectedProvincia) {
-        perfilesQuery = perfilesQuery.eq('provincia', selectedProvincia);
       }
 
       const { data: perfilesData, error: perfilesError } = await perfilesQuery;
 
       if (!perfilesError && perfilesData) {
-        console.log('[LocalPerfil] ✅ Loaded', perfilesData.length, 'professional profiles');
-        setPerfilesProfesionales(perfilesData);
+        // Filter by province in memory using the normalizer
+        let filteredPerfiles = perfilesData;
+        if (selectedProvincia) {
+          filteredPerfiles = filterByProvincia(perfilesData, selectedProvincia);
+          console.log('[LocalPerfil] ✅ Filtered professional profiles by province:', {
+            selectedProvincia,
+            totalProfiles: perfilesData.length,
+            filteredProfiles: filteredPerfiles.length
+          });
+        }
+        
+        console.log('[LocalPerfil] ✅ Loaded', filteredPerfiles.length, 'professional profiles');
+        setPerfilesProfesionales(filteredPerfiles);
       }
 
       setContentLoaded(prev => ({ ...prev, empleo: true }));
