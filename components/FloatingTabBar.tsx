@@ -1,14 +1,14 @@
 
 /**
- * FLOATING TAB BAR - v11.0.0 INSTAGRAM-STYLE
+ * FLOATING TAB BAR - v12.0.0 INSTAGRAM-STYLE
  * 
  * Wrapper component for backward compatibility.
  * Uses the new TabNavigationBar internally.
  * 
- * 🔥 INSTAGRAM-STYLE v11.0.0:
+ * 🔥 INSTAGRAM-STYLE v12.0.0:
  * - Inactive icons: Outlined (hollow), pure white, 100% opacity, NO transparency
  * - Active icons: Filled, pure white, 100% opacity, NO transparency
- * - Icons are smaller (24px) and positioned higher in the tab bar
+ * - Icons are now 36px (same size as miniavatar)
  * - Central "Explorar" button remains the same with gradient
  * - Visual distinction comes from outline vs filled, not opacity changes
  */
@@ -36,13 +36,13 @@ export default function FloatingTabBar({ tabs: legacyTabs, containerWidth }: Flo
   const { currentMode, activeProfileType, activeProfileId, switchToLocalProfile } = useMode();
   const { tabs, activeProfileAvatar } = useTabNavigation();
 
-  console.log('🎯 [FloatingTabBar v11.0 INSTAGRAM-STYLE] Rendering with outlined/filled distinction');
+  console.log('🎯 [FloatingTabBar v12.0 INSTAGRAM-STYLE] Rendering with outlined/filled distinction');
   console.log('   Mode:', currentMode);
   console.log('   Profile Type:', activeProfileType);
   console.log('   Profile ID:', activeProfileId);
   console.log('   Tabs:', tabs.map(t => t.id).join(', '));
-  console.log('   🎨 Active icons: FILLED, pure white (#FFFFFF)');
-  console.log('   🎨 Inactive icons: OUTLINED, pure white (#FFFFFF)');
+  console.log('   🎨 Active icons: FILLED, pure white (#FFFFFF), 36px');
+  console.log('   🎨 Inactive icons: OUTLINED, pure white (#FFFFFF), 36px');
 
   const handleProfilePress = async () => {
     console.log('👤 [FloatingTabBar] Profile pressed');

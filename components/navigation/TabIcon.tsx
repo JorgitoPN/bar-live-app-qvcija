@@ -1,14 +1,14 @@
 
 /**
- * TAB ICON COMPONENT - v11.0.0 INSTAGRAM-STYLE
+ * TAB ICON COMPONENT - v12.0.0 INSTAGRAM-STYLE
  * 
  * Platform-specific icon rendering with Instagram-style outlined/filled distinction.
  * Handles iOS SF Symbols and Android Material Icons.
  * 
- * 🔥 INSTAGRAM-STYLE v11.0.0:
+ * 🔥 INSTAGRAM-STYLE v12.0.0:
  * - Inactive icons: Outlined (hollow), pure white, 100% opacity, NO transparency
  * - Active icons: Filled, pure white, 100% opacity, NO transparency
- * - Icons are smaller (24px) and positioned higher in the tab bar
+ * - Icons are now 36px (same size as miniavatar)
  * - Visual distinction comes from outline vs filled, not opacity changes
  */
 
@@ -34,7 +34,7 @@ export function TabIcon({
   androidIconFilled,
   androidIconOutlined,
   isActive, 
-  size = 24 
+  size = 36 // Updated to match miniavatar size
 }: TabIconProps) {
   // Use filled icon when active, outlined when inactive
   const iosIcon = isActive ? iosIconFilled : iosIconOutlined;
@@ -42,10 +42,10 @@ export function TabIcon({
   const iconName = Platform.OS === 'ios' ? iosIcon : androidIcon;
 
   // 🎨 DEBUG LOG - Verify icons are being applied
-  console.log(`🎨 [TabIcon v11.0 INSTAGRAM-STYLE] Rendering ${iconName}: ${isActive ? 'FILLED (active)' : 'OUTLINED (inactive)'}`);
+  console.log(`🎨 [TabIcon v12.0 INSTAGRAM-STYLE] Rendering ${iconName}: ${isActive ? 'FILLED (active)' : 'OUTLINED (inactive)'}, size: ${size}px`);
 
   return (
-    <View style={[styles.container, { opacity: 1 }]}>
+    <View style={[styles.container, { width: size, height: size, opacity: 1 }]}>
       <IconSymbol
         name={iconName as any}
         size={size}
@@ -61,8 +61,6 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 24,
-    height: 24,
     opacity: 1, // Force 100% opacity on container - NO INHERITANCE
   },
 });
