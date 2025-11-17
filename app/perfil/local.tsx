@@ -1200,7 +1200,10 @@ export default function LocalPerfilScreen() {
 
                 <TouchableOpacity
                   style={styles.provinciaFilter}
-                  onPress={() => setShowProvinciaModal(true)}
+                  onPress={() => {
+                    console.log('[LocalPerfil] Opening provincia modal, PROVINCIAS count:', PROVINCIAS.length);
+                    setShowProvinciaModal(true);
+                  }}
                   activeOpacity={0.7}
                 >
                   <IconSymbol name="location.fill" size={18} color={selectedProvincia ? colors.primary : colors.textSecondary} />
@@ -1600,22 +1603,27 @@ export default function LocalPerfilScreen() {
         </Pressable>
       </Modal>
 
-      {/* Provincia Filter Modal - FIXED VERSION WITH ALL 52 PROVINCES */}
+      {/* Provincia Filter Modal - FIXED VERSION */}
       <Modal
         visible={showProvinciaModal}
         animationType="slide"
         transparent={true}
         onRequestClose={() => setShowProvinciaModal(false)}
       >
-        <View style={styles.provinciaModalOverlay}>
+        <Pressable 
+          style={styles.provinciaModalOverlay}
+          onPress={() => setShowProvinciaModal(false)}
+        >
           <Pressable 
-            style={styles.provinciaModalBackdrop}
-            onPress={() => setShowProvinciaModal(false)}
-          />
-          <View style={styles.provinciaModalContent}>
+            style={styles.provinciaModalContent}
+            onPress={(e) => e.stopPropagation()}
+          >
             <View style={styles.provinciaModalHeader}>
               <Text style={styles.provinciaModalTitle}>Seleccionar Provincia</Text>
-              <TouchableOpacity onPress={() => setShowProvinciaModal(false)} activeOpacity={0.8}>
+              <TouchableOpacity 
+                onPress={() => setShowProvinciaModal(false)} 
+                activeOpacity={0.8}
+              >
                 <IconSymbol name="xmark" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
@@ -1627,24 +1635,26 @@ export default function LocalPerfilScreen() {
                   setSelectedProvincia(null);
                   setShowProvinciaModal(false);
                 }}
+                activeOpacity={0.7}
               >
                 <Text style={styles.clearProvinciaText}>Limpiar filtro</Text>
               </TouchableOpacity>
             )}
 
             <ScrollView 
-              style={styles.provinciaList} 
-              showsVerticalScrollIndicator={true}
+              style={styles.provinciaList}
               contentContainerStyle={styles.provinciaListContent}
+              showsVerticalScrollIndicator={true}
             >
               {PROVINCIAS.map((provincia, index) => (
                 <TouchableOpacity
-                  key={`${provincia}-${index}`}
+                  key={`provincia-${index}-${provincia}`}
                   style={[
                     styles.provinciaItem,
                     selectedProvincia === provincia && styles.provinciaItemSelected
                   ]}
                   onPress={() => {
+                    console.log('[LocalPerfil] Selected provincia:', provincia);
                     setSelectedProvincia(provincia);
                     setShowProvinciaModal(false);
                   }}
@@ -1662,8 +1672,8 @@ export default function LocalPerfilScreen() {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
 
       <ProfileSwitcher
@@ -2358,8 +2368,7 @@ const styles = StyleSheet.create({
   },
   provinciaModalOverlay: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'flex-end',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   provinciaModalBackdrop: {
@@ -2371,10 +2380,10 @@ const styles = StyleSheet.create({
   },
   provinciaModalContent: {
     backgroundColor: colors.background,
-    borderRadius: 28,
-    width: width * 0.9,
-    maxHeight: height * 0.7,
-    overflow: 'hidden',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    maxHeight: height * 0.75,
+    paddingBottom: 34,
   },
   provinciaModalHeader: {
     paddingTop: 24,
@@ -2393,7 +2402,7 @@ const styles = StyleSheet.create({
   },
   clearProvinciaButton: {
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
   },
