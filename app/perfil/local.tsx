@@ -1610,14 +1610,12 @@ export default function LocalPerfilScreen() {
         transparent={true}
         onRequestClose={() => setShowProvinciaModal(false)}
       >
-        <Pressable 
-          style={styles.provinciaModalOverlay}
-          onPress={() => setShowProvinciaModal(false)}
-        >
+        <View style={styles.provinciaModalOverlay}>
           <Pressable 
-            style={styles.provinciaModalContent}
-            onPress={(e) => e.stopPropagation()}
-          >
+            style={styles.provinciaModalBackdrop}
+            onPress={() => setShowProvinciaModal(false)}
+          />
+          <View style={styles.provinciaModalContent}>
             <View style={styles.provinciaModalHeader}>
               <Text style={styles.provinciaModalTitle}>Seleccionar Provincia</Text>
               <TouchableOpacity 
@@ -1672,8 +1670,8 @@ export default function LocalPerfilScreen() {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </Modal>
 
       <ProfileSwitcher
