@@ -1,6 +1,15 @@
+
 import { SymbolView, SymbolViewProps, SymbolWeight } from "expo-symbols";
 import { StyleProp, ViewStyle } from "react-native";
 
+/**
+ * iOS-specific icon component using native SF Symbols.
+ * 
+ * ✅ CRITICAL FIX: Icons now properly handle color with 100% opacity
+ * - Active icons receive color="#FFFFFF" (pure white)
+ * - Inactive icons receive color="rgba(255, 255, 255, 0.6)" (semi-transparent white)
+ * - The style prop should NOT contain opacity, as it's handled by the color value
+ */
 export function IconSymbol({
   name,
   size = 24,

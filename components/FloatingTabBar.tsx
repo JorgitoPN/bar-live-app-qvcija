@@ -224,7 +224,8 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
 
           // ✅ CRITICAL FIX: Render regular icons with proper active state
           // Active icons MUST be pure white (#FFFFFF) with 100% opacity
-          // Inactive icons use rgba(255, 255, 255, 0.6) for subtle appearance
+          // Inactive icons use rgba(255, 255, 255, 0.6) as the COLOR VALUE (not opacity)
+          // This ensures the icon itself is always at 100% opacity, but the color contains transparency
           return (
             <TouchableOpacity
               key={tab.name}
@@ -242,9 +243,9 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                 <IconSymbol
                   name={tab.icon as any}
                   size={32}
-                  color="#FFFFFF"
+                  color={active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.6)'}
                   weight={active ? 'fill' : 'regular'}
-                  style={active ? styles.iconActive : styles.iconInactive}
+                  style={styles.iconBase}
                 />
               </View>
             </TouchableOpacity>
@@ -308,17 +309,11 @@ const styles = StyleSheet.create({
   tabContentActive: {
     backgroundColor: 'transparent',
   },
-  // ✅ CRITICAL FIX: Active icons - pure white (#FFFFFF) with 100% opacity
-  // NO filters, NO transparency, NO rgba - just solid white
-  // This ensures maximum visibility and proper contrast on the colored background
-  iconActive: {
+  // ✅ CRITICAL FIX: Base icon style - ALWAYS 100% opacity
+  // The color prop handles the transparency, not the opacity style
+  // This ensures active icons are pure white and inactive icons are semi-transparent white
+  iconBase: {
     opacity: 1,
-    // Note: color is passed as prop to IconSymbol, not in style
-  },
-  // ✅ CRITICAL FIX: Inactive icons - 60% opacity for subtle appearance
-  // This creates clear visual distinction between active and inactive states
-  iconInactive: {
-    opacity: 0.6,
   },
   centerButton: {
     width: 64,

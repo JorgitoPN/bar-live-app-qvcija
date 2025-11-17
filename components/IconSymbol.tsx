@@ -172,6 +172,9 @@ const MAPPING = {
   "lightbulb.fill": "lightbulb",
   "moon.fill": "dark-mode",
   "sun.max.fill": "light-mode",
+  
+  // ✅ ADDED: Missing icon mapping for sparkles (explorar/center button)
+  "sparkles": "auto-awesome",
 } as Partial<
   Record<
     import("expo-symbols").SymbolViewProps["name"],
@@ -182,9 +185,15 @@ const MAPPING = {
 export type IconSymbolName = keyof typeof MAPPING;
 
 /**
- * An icon component that uses native SFSymbols on iOS, and MaterialIcons on Android and web. This ensures a consistent look across platforms, and optimal resource usage.
+ * An icon component that uses native SFSymbols on iOS, and MaterialIcons on Android and web. 
+ * This ensures a consistent look across platforms, and optimal resource usage.
  *
  * Icon `name`s are based on SFSymbols and require manual mapping to MaterialIcons.
+ * 
+ * ✅ CRITICAL FIX: Icons now properly handle color with 100% opacity
+ * - Active icons receive color="#FFFFFF" (pure white)
+ * - Inactive icons receive color="rgba(255, 255, 255, 0.6)" (semi-transparent white)
+ * - The style prop should NOT contain opacity, as it's handled by the color value
  */
 export function IconSymbol({
   name,
