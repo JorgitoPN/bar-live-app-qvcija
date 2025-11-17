@@ -1,9 +1,14 @@
 
 /**
- * FLOATING TAB BAR - v2.0.0
+ * FLOATING TAB BAR - v3.0.0
  * 
  * Wrapper component for backward compatibility.
  * Uses the new TabNavigationBar internally.
+ * 
+ * ✅ ENHANCED v3.0.0:
+ * - Much clearer active state indication
+ * - More visible inactive icons (60% opacity)
+ * - Stronger visual feedback for active tabs
  */
 
 import React from 'react';
@@ -29,7 +34,7 @@ export default function FloatingTabBar({ tabs: legacyTabs, containerWidth }: Flo
   const { currentMode, activeProfileType, activeProfileId, switchToLocalProfile } = useMode();
   const { tabs, activeProfileAvatar } = useTabNavigation();
 
-  console.log('🎯 [FloatingTabBar] Rendering with new navigation system');
+  console.log('🎯 [FloatingTabBar v3.0] Rendering with enhanced visibility');
   console.log('   Mode:', currentMode);
   console.log('   Profile Type:', activeProfileType);
   console.log('   Profile ID:', activeProfileId);

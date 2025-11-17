@@ -1,11 +1,14 @@
 
 /**
- * TAB ICON COMPONENT - v3.1.0
+ * TAB ICON COMPONENT - v4.0.0
  * 
- * Platform-specific icon rendering with MAXIMUM visibility and distinction.
+ * Platform-specific icon rendering with MAXIMUM visibility and clear active state.
  * Handles iOS SF Symbols and Android Material Icons.
  * 
- * ✅ ACTIVE ICONS: Pure white (#FFFFFF) at 100% opacity with maximum intensity
+ * ✅ ENHANCED VISIBILITY:
+ * - Active icons: Pure white (#FFFFFF) at 100% opacity with strong glow
+ * - Inactive icons: White at 60% opacity (much more visible)
+ * - Clear visual distinction between active and inactive states
  */
 
 import React from 'react';
@@ -19,10 +22,10 @@ interface TabIconProps {
   size?: number;
 }
 
-// ✅ MAXIMUM VISIBILITY: Pure white at 100% opacity for active icons
-const ACTIVE_COLOR = '#FFFFFF';           // Pure white at 100% opacity - maximum intensity
-const INACTIVE_COLOR = 'rgba(255, 255, 255, 0.35)'; // Lower opacity for better contrast
-const ACTIVE_SCALE = 1.25;                // Larger when active for better visibility
+// ✅ MAXIMUM VISIBILITY with clear distinction
+const ACTIVE_COLOR = '#FFFFFF';                    // Pure white at 100% opacity
+const INACTIVE_COLOR = 'rgba(255, 255, 255, 0.6)'; // 60% opacity - much more visible
+const ACTIVE_SCALE = 1.3;                          // Significantly larger when active
 
 export function TabIcon({ iosIcon, androidIcon, isActive, size = 28 }: TabIconProps) {
   const iconName = Platform.OS === 'ios' ? iosIcon : androidIcon;
@@ -31,8 +34,13 @@ export function TabIcon({ iosIcon, androidIcon, isActive, size = 28 }: TabIconPr
 
   return (
     <View style={[styles.container, isActive && styles.activeContainer]}>
-      {/* Active state background glow - enhanced for maximum visibility */}
-      {isActive && <View style={styles.activeGlow} />}
+      {/* Strong active state background with glow */}
+      {isActive && (
+        <>
+          <View style={styles.activeGlowOuter} />
+          <View style={styles.activeGlowInner} />
+        </>
+      )}
       
       <IconSymbol
         name={iconName as any}
@@ -52,23 +60,35 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   activeContainer: {
-    // Strong glow effect for active state - maximum visibility
+    // Strong shadow for active state
+    shadowColor: '#FFFFFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 20,
+    elevation: 20,
+  },
+  activeGlowOuter: {
+    position: 'absolute',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    shadowColor: '#FFFFFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.9,
+    shadowRadius: 24,
+    elevation: 15,
+  },
+  activeGlowInner: {
+    position: 'absolute',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
     shadowColor: '#FFFFFF',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 1,
     shadowRadius: 16,
-    elevation: 16,
-  },
-  activeGlow: {
-    position: 'absolute',
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    shadowColor: '#FFFFFF',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 20,
-    elevation: 12,
+    elevation: 18,
   },
 });

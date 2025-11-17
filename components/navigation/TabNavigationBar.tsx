@@ -1,9 +1,15 @@
 
 /**
- * TAB NAVIGATION BAR - v2.0.0
+ * TAB NAVIGATION BAR - v3.0.0
  * 
- * Modern, clean tab navigation bar with ENHANCED active state visibility.
+ * Modern, clean tab navigation bar with CRYSTAL CLEAR active state visibility.
  * Built from scratch with no legacy code.
+ * 
+ * ✅ ENHANCED v3.0.0:
+ * - Much more visible inactive icons (60% opacity instead of 35%)
+ * - Stronger active state indication with double glow effect
+ * - Central "Explorar" button stands out with solid gradient
+ * - Profile avatar has clear active state with thick border
  */
 
 import React, { useEffect } from 'react';
@@ -40,11 +46,11 @@ export function TabNavigationBar({
   const pathname = usePathname();
 
   useEffect(() => {
-    console.log('🎯 [TabNavigationBar] Rendered with', tabs.length, 'tabs');
+    console.log('🎯 [TabNavigationBar v3.0] Rendered with', tabs.length, 'tabs');
     console.log('📍 [TabNavigationBar] Current pathname:', pathname);
     tabs.forEach(tab => {
       const active = isTabActive(tab, pathname);
-      console.log(`   ${active ? '✅' : '❌'} ${tab.label} (${tab.id})`);
+      console.log(`   ${active ? '✅ ACTIVE' : '⚪ inactive'} ${tab.label} (${tab.id})`);
     });
   }, [pathname, tabs]);
 
@@ -90,7 +96,7 @@ export function TabNavigationBar({
     const isActive = isTabActive(tab, pathname);
     const isCenter = tab.id === 'explorar';
 
-    // Center button (Explorar) with special styling
+    // Center button (Explorar) with special styling - NO transparency, stands out
     if (isCenter) {
       return (
         <TouchableOpacity
@@ -112,7 +118,7 @@ export function TabNavigationBar({
               iosIcon={tab.iosIcon}
               androidIcon={tab.androidIcon}
               isActive={true}
-              size={32}
+              size={34}
             />
           </LinearGradient>
         </TouchableOpacity>
@@ -132,8 +138,13 @@ export function TabNavigationBar({
           accessibilityState={{ selected: isActive }}
         >
           <View style={[styles.avatarContainer, isActive && styles.avatarContainerActive]}>
-            {/* Active state glow background */}
-            {isActive && <View style={styles.avatarGlow} />}
+            {/* Strong active state glow */}
+            {isActive && (
+              <>
+                <View style={styles.avatarGlowOuter} />
+                <View style={styles.avatarGlowInner} />
+              </>
+            )}
             
             {activeProfileAvatar ? (
               <Image
@@ -246,54 +257,69 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   centerButton: {
-    width: 64,
-    height: 64,
-    marginTop: -32,
-    borderRadius: 32,
+    width: 68,
+    height: 68,
+    marginTop: -34,
+    borderRadius: 34,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 12,
   },
   centerGradient: {
     width: '100%',
     height: '100%',
-    borderRadius: 32,
+    borderRadius: 34,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 4,
+    borderWidth: 5,
     borderColor: colors.white,
   },
   avatarContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     overflow: 'hidden',
     position: 'relative',
   },
   avatarContainerActive: {
-    borderWidth: 3,
+    borderWidth: 4,
     borderColor: '#FFFFFF',
     shadowColor: '#FFFFFF',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 1,
-    shadowRadius: 16,
-    elevation: 16,
+    shadowRadius: 20,
+    elevation: 20,
   },
-  avatarGlow: {
+  avatarGlowOuter: {
+    position: 'absolute',
+    top: -12,
+    left: -12,
+    right: -12,
+    bottom: -12,
+    borderRadius: 31,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    shadowColor: '#FFFFFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.9,
+    shadowRadius: 24,
+    elevation: 15,
+    zIndex: -1,
+  },
+  avatarGlowInner: {
     position: 'absolute',
     top: -8,
     left: -8,
     right: -8,
     bottom: -8,
-    borderRadius: 26,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 27,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
     shadowColor: '#FFFFFF',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 20,
-    elevation: 12,
+    shadowOpacity: 1,
+    shadowRadius: 16,
+    elevation: 18,
     zIndex: -1,
   },
   avatar: {
