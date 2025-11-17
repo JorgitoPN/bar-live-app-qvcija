@@ -5,7 +5,7 @@ import { StyleProp, ViewStyle } from "react-native";
 /**
  * iOS-specific icon component using native SF Symbols.
  * 
- * ✅ INSTAGRAM-STYLE v16.0.0: FIXED - Uses icon name directly from TabIcon
+ * ✅ INSTAGRAM-STYLE v17.0.0: FIXED - Uses icon name directly from TabIcon
  * - Active icons: Uses filled icon name (with .fill suffix) passed from TabIcon
  * - Inactive icons: Uses outlined icon name (without .fill suffix) passed from TabIcon
  * - Pure white (#FFFFFF) at 100% opacity for both states
@@ -34,7 +34,7 @@ export function IconSymbol({
   // Use monochrome rendering mode for consistent appearance
   const renderingMode = "monochrome";
   
-  console.log(`🎨 [IconSymbol iOS v16.0] ${name}, ${isFilled ? 'FILLED' : 'OUTLINED'}, mode: ${renderingMode}, color: ${color}`);
+  console.log(`🎨 [IconSymbol iOS v17.0] ${name}, ${isFilled ? 'FILLED' : 'OUTLINED'}, mode: ${renderingMode}, color: ${color}`);
   
   return (
     <SymbolView

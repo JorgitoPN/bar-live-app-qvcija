@@ -58,6 +58,7 @@ const MAPPING = {
   "trash": "delete-outline",
   "pause.circle": "pause-circle-outline",
   "play.circle": "play-circle-outline",
+  "pencil.circle.fill": "edit",
 
   // Editing & Creation
   "pencil": "edit",
@@ -83,6 +84,7 @@ const MAPPING = {
   "play.fill": "play-arrow",
   "pause.fill": "pause",
   "stop.fill": "stop",
+  "square.stack.fill": "collections",
 
   // System & Settings
   "gear": "settings",
@@ -104,7 +106,6 @@ const MAPPING = {
   "star": "star-border",
   "bookmark.fill": "bookmark",
   "bookmark": "bookmark-border",
-  "square.stack.fill": "collections",
 
   // Technology & Code
   "chevron.left.forwardslash.chevron.right": "code",
@@ -186,6 +187,8 @@ const MAPPING = {
   "photo.on.rectangle": "photo-library",
   "globe": "language",
   "arrow.triangle.2.circlepath": "sync",
+  "plus.circle.fill": "add-circle",
+  "trash.circle.fill": "cancel",
 } as Partial<
   Record<
     import("expo-symbols").SymbolViewProps["name"],
@@ -201,7 +204,7 @@ export type IconSymbolName = keyof typeof MAPPING;
  *
  * Icon `name`s are based on SFSymbols and require manual mapping to MaterialIcons.
  * 
- * ✅ INSTAGRAM-STYLE v16.0.0: FIXED - Uses icon name directly from TabIcon
+ * ✅ INSTAGRAM-STYLE v17.0.0: FIXED - Uses icon name directly from TabIcon
  * - Active icons: Uses filled icon name passed from TabIcon
  * - Inactive icons: Uses outlined icon name passed from TabIcon
  * - Pure white (#FFFFFF) at 100% opacity for both states
@@ -232,7 +235,7 @@ export function IconSymbol({
   // Determine if this is a filled or outlined icon based on the icon name
   const isFilled = name.includes('.fill');
   
-  console.log(`🎨 [IconSymbol Android/Web v16.0] ${name} → ${materialIconName}, ${isFilled ? 'FILLED' : 'OUTLINED'}, color: ${finalColor}`);
+  console.log(`🎨 [IconSymbol Android/Web v17.0] ${name} → ${materialIconName}, ${isFilled ? 'FILLED' : 'OUTLINED'}, color: ${finalColor}`);
   
   return (
     <MaterialIcons

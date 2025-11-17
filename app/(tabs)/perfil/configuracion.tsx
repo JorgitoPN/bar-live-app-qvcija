@@ -185,22 +185,6 @@ export default function ConfiguracionScreen() {
     );
   };
 
-  const handleDescargarDatos = async () => {
-    Alert.alert(
-      'Descargar Datos',
-      'Se enviará un correo con todos tus datos en formato JSON',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Descargar',
-          onPress: () => {
-            Alert.alert('Solicitud enviada', 'Recibirás un correo con tus datos en 24-48 horas');
-          },
-        },
-      ]
-    );
-  };
-
   const handleLimpiarCache = async () => {
     Alert.alert(
       'Limpiar Caché',
@@ -256,12 +240,15 @@ export default function ConfiguracionScreen() {
     setTamanoTexto(tamano);
     updateUserSetting('tamano_texto', tamano);
     setShowTamanoModal(false);
+    Alert.alert('Tamaño de texto actualizado', `El tamaño de texto se ha cambiado a ${tamano === 'pequeno' ? 'pequeño' : tamano === 'medio' ? 'medio' : 'grande'}`);
   };
 
-  const handleIdiomaChange = (idioma: string) => {
-    setIdioma(idioma);
-    updateUserSetting('idioma', idioma);
+  const handleIdiomaChange = (nuevoIdioma: string) => {
+    setIdioma(nuevoIdioma);
+    updateUserSetting('idioma', nuevoIdioma);
     setShowIdiomaModal(false);
+    const nombreIdioma = nuevoIdioma === 'es' ? 'Español' : nuevoIdioma === 'en' ? 'English' : 'Català';
+    Alert.alert('Idioma actualizado', `El idioma se ha cambiado a ${nombreIdioma}`);
   };
 
   return (
@@ -277,7 +264,11 @@ export default function ConfiguracionScreen() {
         <View style={{ width: 40 }} />
       </LinearGradient>
 
-      <ScrollView style={styles.content}>
+      <ScrollView 
+        style={styles.content}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Notificaciones</Text>
           
@@ -370,16 +361,6 @@ export default function ConfiguracionScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Datos</Text>
           
-          <TouchableOpacity style={styles.settingRow} onPress={handleDescargarDatos}>
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Descargar mis datos</Text>
-              <Text style={styles.settingDescription}>
-                Solicita una copia de tu información
-              </Text>
-            </View>
-            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
-          </TouchableOpacity>
-
           <TouchableOpacity style={styles.settingRow} onPress={handleLimpiarCache}>
             <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>Limpiar caché</Text>
@@ -444,6 +425,9 @@ export default function ConfiguracionScreen() {
             <Text style={styles.dangerButtonText}>Eliminar Cuenta</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Extra padding at bottom to ensure buttons are accessible */}
+        <View style={{ height: 120 }} />
       </ScrollView>
 
       <Modal
@@ -536,10 +520,13 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
+  scrollContent: {
+    paddingBottom: 120,
+  },
   section: {
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.cardBorder,
   },
   sectionTitle: {
     fontSize: 14,
@@ -609,7 +596,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.cardBorder,
   },
   modalOptionText: {
     fontSize: 16,
