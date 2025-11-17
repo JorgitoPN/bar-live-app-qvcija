@@ -1815,7 +1815,7 @@ export default function LocalPerfilScreen() {
         </View>
       </Modal>
 
-      {/* Province Dropdown Modal */}
+      {/* Province Dropdown Modal - FIXED STRUCTURE */}
       <Modal
         visible={showProvinciaDropdown}
         animationType="slide"
@@ -1827,7 +1827,10 @@ export default function LocalPerfilScreen() {
             style={styles.provinciaModalBackdrop}
             onPress={() => setShowProvinciaDropdown(false)}
           />
-          <View style={styles.provinciaModalContent}>
+          <Pressable 
+            style={styles.provinciaModalContent}
+            onPress={(e) => e.stopPropagation()}
+          >
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Seleccionar Provincia</Text>
               <TouchableOpacity onPress={() => setShowProvinciaDropdown(false)}>
@@ -1863,7 +1866,7 @@ export default function LocalPerfilScreen() {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          </View>
+          </Pressable>
         </View>
       </Modal>
 
