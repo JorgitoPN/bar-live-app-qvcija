@@ -871,7 +871,7 @@ export default function LocalPerfilScreen() {
 
   const tabs = getTabsForRole();
 
-  console.log('[LocalPerfil] Rendering with tabs:', tabs.map(t => t.name).join(', '));
+  console.log('[LocalPerfil] 🎯 Rendering with tabs:', tabs.map(t => `${t.name}(${t.icon})`).join(', '));
 
   return (
     <View style={styles.container}>
@@ -1702,7 +1702,7 @@ export default function LocalPerfilScreen() {
       <FloatingTabBar 
         tabs={tabs} 
         containerWidth={width}
-        key={`${user?.rol_app || 'cliente'}-${currentMode}-${isOwner}`}
+        key={`${user?.rol_app || 'cliente'}-${currentMode}-${isOwner}-${activeProfileType}-${activeProfileId}`}
       />
     </View>
   );

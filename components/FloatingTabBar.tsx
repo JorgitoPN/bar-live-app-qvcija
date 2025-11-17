@@ -31,7 +31,8 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
 
   useEffect(() => {
     console.log('⚡ FloatingTabBar mounted, pathname:', pathname);
-  }, [pathname]);
+    console.log('⚡ FloatingTabBar tabs:', tabs.map(t => ({ name: t.name, icon: t.icon })));
+  }, [pathname, tabs]);
 
   // 🆕 FIX: Log when active profile changes to ensure reactivity
   useEffect(() => {
@@ -201,7 +202,7 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                   end={{ x: 1, y: 1 }}
                   style={styles.centerGradient}
                 >
-                  <IconSymbol name={tab.icon as any} size={32} color="#FFFFFF" style={styles.iconBase} />
+                  <IconSymbol name={tab.icon as any} size={32} color="#FFFFFF" />
                 </LinearGradient>
               </TouchableOpacity>
             );
@@ -253,7 +254,6 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                           size={18}
                           // ✅ UNIFIED: Icon inside avatar uses same color logic as other icons
                           color={active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.4)'}
-                          style={styles.iconBase}
                         />
                       </View>
                     )}
@@ -286,7 +286,6 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                     size={32}
                     // ✅ CRITICAL FIX: Pure white (#FFFFFF) when active, semi-transparent when inactive
                     color={active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.4)'}
-                    style={styles.iconBase}
                   />
                 </View>
               </View>
@@ -368,11 +367,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0,
     shadowRadius: 0,
     elevation: 0,
-  },
-  // ✅ CRITICAL FIX: Base icon style with 100% opacity
-  // This ensures icons are always fully opaque, with transparency handled by color value
-  iconBase: {
-    opacity: 1,
   },
   centerButton: {
     width: 64,
