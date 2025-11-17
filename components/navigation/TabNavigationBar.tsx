@@ -1,6 +1,6 @@
 
 /**
- * TAB NAVIGATION BAR - v2.0.0
+ * TAB NAVIGATION BAR - v2.1.0
  * 
  * Modern, clean tab navigation bar with ENHANCED active state visibility.
  * Built from scratch with no legacy code.
@@ -90,7 +90,7 @@ export function TabNavigationBar({
     const isActive = isTabActive(tab, pathname);
     const isCenter = tab.id === 'explorar';
 
-    // Center button (Explorar) with special styling
+    // Center button (Explorar) with subtle styling
     if (isCenter) {
       return (
         <TouchableOpacity
@@ -102,19 +102,14 @@ export function TabNavigationBar({
           accessibilityLabel={tab.label}
           accessibilityState={{ selected: isActive }}
         >
-          <LinearGradient
-            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.centerGradient}
-          >
+          <View style={styles.centerButtonBackground}>
             <TabIcon
               iosIcon={tab.iosIcon}
               androidIcon={tab.androidIcon}
-              isActive={true}
+              isActive={isActive}
               size={32}
             />
-          </LinearGradient>
+          </View>
         </TouchableOpacity>
       );
     }
@@ -256,14 +251,15 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
-  centerGradient: {
+  centerButtonBackground: {
     width: '100%',
     height: '100%',
     borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 4,
-    borderColor: colors.white,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderWidth: 3,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   avatarContainer: {
     width: 36,
