@@ -5,10 +5,11 @@ import { StyleProp, ViewStyle } from "react-native";
 /**
  * iOS-specific icon component using native SF Symbols.
  * 
- * ✅ ENHANCED VISIBILITY v6.0.0: Clear active/inactive distinction
- * - Active icons: 100% opacity (no transparency) with semibold weight
- * - Inactive icons: 50% opacity (transparent) with regular weight
+ * ✅ INSTAGRAM-EXACT v9.0.0: Maximum contrast for active/inactive distinction
+ * - Active icons: Pure white (#FFFFFF) at 100% opacity with semibold weight - NO transparency
+ * - Inactive icons: 40% opacity (rgba(255,255,255,0.4)) with regular weight - clearly visible but softened
  * - Weight parameter properly applied for better distinction
+ * - Forced opacity: 1 to prevent any parent opacity inheritance
  */
 export function IconSymbol({
   name,
@@ -33,6 +34,7 @@ export function IconSymbol({
         {
           width: size,
           height: size,
+          opacity: 1, // Force 100% opacity to prevent inheritance issues
         },
         style,
       ]}

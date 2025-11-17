@@ -1,15 +1,16 @@
 
 /**
- * TAB NAVIGATION BAR - v7.0.0
+ * TAB NAVIGATION BAR - v9.0.0 INSTAGRAM-EXACT
  * 
- * Modern, clean tab navigation bar with Instagram-style active state visibility.
+ * Modern, clean tab navigation bar with EXACT Instagram-style active state visibility.
  * Built from scratch with no legacy code.
  * 
- * ✅ INSTAGRAM-STYLE v7.0.0:
+ * 🔥 INSTAGRAM-EXACT v9.0.0:
  * - Central "Explorar" button: NO transparency, fully opaque
  * - Icons and mini-avatar: 36px
- * - Inactive icons: 40% opacity (clearly visible, just softened)
- * - Active icons: 100% opacity (pure white, no transparency)
+ * - Inactive icons: 40% opacity (rgba(255,255,255,0.4)) - clearly visible, just softened
+ * - Active icons: 100% opacity (#FFFFFF) - pure white, NO transparency
+ * - NO filters, NO parent opacity, maximum contrast
  */
 
 import React, { useEffect } from 'react';
@@ -46,11 +47,11 @@ export function TabNavigationBar({
   const pathname = usePathname();
 
   useEffect(() => {
-    console.log('🎯 [TabNavigationBar v7.0] Rendered with', tabs.length, 'tabs');
+    console.log('🎯 [TabNavigationBar v9.0 INSTAGRAM-EXACT] Rendered with', tabs.length, 'tabs');
     console.log('📍 [TabNavigationBar] Current pathname:', pathname);
     tabs.forEach(tab => {
       const active = isTabActive(tab, pathname);
-      console.log(`   ${active ? '✅ ACTIVE' : '⚪ inactive'} ${tab.label} (${tab.id})`);
+      console.log(`   ${active ? '✅ ACTIVE (white 100%)' : '⚪ inactive (white 40%)'} ${tab.label} (${tab.id})`);
     });
   }, [pathname, tabs]);
 
@@ -181,7 +182,7 @@ export function TabNavigationBar({
 
   return (
     <View style={styles.container} pointerEvents="box-none">
-      {/* Background with shadow */}
+      {/* Background with shadow - NO opacity applied */}
       <View style={styles.backgroundContainer} pointerEvents="none">
         <Svg
           width="100%"
@@ -197,7 +198,7 @@ export function TabNavigationBar({
         </Svg>
       </View>
 
-      {/* Tab buttons */}
+      {/* Tab buttons - NO opacity applied */}
       <View style={styles.tabBar} pointerEvents="box-none">
         {tabs.map(tab => renderTab(tab))}
       </View>
@@ -213,6 +214,7 @@ const styles = StyleSheet.create({
     right: 0,
     height: 80,
     backgroundColor: 'transparent',
+    opacity: 1, // Force 100% opacity - NO transparency on container
   },
   backgroundContainer: {
     position: 'absolute',
@@ -225,12 +227,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 15,
     elevation: 10,
+    opacity: 1, // Force 100% opacity - NO transparency
   },
   svg: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
+    opacity: 1, // Force 100% opacity - NO transparency
   },
   tabBar: {
     flexDirection: 'row',
@@ -241,12 +245,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-evenly',
     width: '100%',
     zIndex: 1,
+    opacity: 1, // Force 100% opacity - NO transparency
   },
   tab: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 8,
+    opacity: 1, // Force 100% opacity - NO transparency
   },
   centerButton: {
     width: 60,
@@ -258,6 +264,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 10,
+    opacity: 1, // Force 100% opacity - NO transparency
   },
   centerGradient: {
     width: '100%',
@@ -267,6 +274,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 4,
     borderColor: '#FFFFFF', // Fully opaque white border
+    opacity: 1, // Force 100% opacity - NO transparency
   },
   avatarContainer: {
     width: 36,
@@ -274,6 +282,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     overflow: 'hidden',
     position: 'relative',
+    opacity: 1, // Force 100% opacity - NO transparency
   },
   avatarContainerActive: {
     borderWidth: 3,
@@ -288,6 +297,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    opacity: 1, // Force 100% opacity - NO transparency
   },
   avatarPlaceholder: {
     justifyContent: 'center',

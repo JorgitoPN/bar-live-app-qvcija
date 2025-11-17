@@ -194,10 +194,11 @@ export type IconSymbolName = keyof typeof MAPPING;
  *
  * Icon `name`s are based on SFSymbols and require manual mapping to MaterialIcons.
  * 
- * ✅ ENHANCED v6.0.0: Clear active/inactive distinction
- * - Active icons: 100% opacity (no transparency)
- * - Inactive icons: 50% opacity (transparent)
- * - Weight parameter for better visual distinction
+ * ✅ INSTAGRAM-EXACT v9.0.0: Maximum contrast for active/inactive distinction
+ * - Active icons: Pure white (#FFFFFF) at 100% opacity - NO transparency
+ * - Inactive icons: 40% opacity (rgba(255,255,255,0.4)) - clearly visible but softened
+ * - NO filters applied, direct color control
+ * - Forced opacity: 1 on icon to prevent any parent opacity inheritance
  */
 export function IconSymbol({
   name,
@@ -220,7 +221,13 @@ export function IconSymbol({
       color={color}
       size={size}
       name={MAPPING[name]}
-      style={[style as StyleProp<TextStyle>, { fontWeight }]}
+      style={[
+        style as StyleProp<TextStyle>, 
+        { 
+          fontWeight,
+          opacity: 1, // Force 100% opacity to prevent inheritance issues
+        }
+      ]}
     />
   );
 }
