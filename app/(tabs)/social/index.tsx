@@ -7,6 +7,8 @@ import { socialCache } from '@/utils/socialCache';
 import InitialLoadingScreen from '@/components/common/InitialLoadingScreen';
 import { LinearGradient } from 'expo-linear-gradient';
 import StoryStatsModal from '@/components/social/StoryStatsModal';
+import FoodPlateAvatar from '@/components/common/FoodPlateAvatar';
+import MiniFoodPlateAvatar from '@/components/common/MiniFoodPlateAvatar';
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
@@ -165,19 +167,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
-  localSelectorImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 12,
-  },
-  localSelectorImagePlaceholder: {
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   localSelectorText: {
     flex: 1,
+    marginLeft: 12,
   },
   localSelectorLabel: {
     fontSize: 12,
@@ -225,14 +217,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary + '20',
     borderColor: colors.primary,
   },
-  localSelectorItemImage: {
-    width: 56,
-    height: 56,
-    borderRadius: 12,
-    marginRight: 16,
-  },
   localSelectorItemInfo: {
     flex: 1,
+    marginLeft: 16,
   },
   localSelectorItemName: {
     fontSize: 16,
@@ -303,14 +290,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0.5,
     borderBottomColor: colors.cardBorder,
   },
-  searchResultAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    marginRight: 12,
-  },
   searchResultInfo: {
     flex: 1,
+    marginLeft: 12,
   },
   searchResultName: {
     fontSize: 16,
@@ -347,51 +329,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginHorizontal: 8,
   },
-  historiaAvatarContainer: {
-    position: 'relative',
-  },
-  historiaGradientBorder: {
-    padding: 3,
-    borderRadius: 48,
-    width: 96,
-    height: 96,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  historiaAvatar: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    borderWidth: 3,
-    borderColor: colors.background,
-  },
-  historiaAvatarVisto: {
-    borderColor: colors.cardBorder,
-  },
-  historiaAddButton: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    position: 'relative',
-  },
-  historiaUserAvatar: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-  },
-  historiaAddIcon: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: colors.background,
-  },
   historiaNombre: {
     fontSize: 12,
     color: colors.text,
@@ -411,24 +348,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 12,
   },
-  postAvatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    marginRight: 12,
-  },
-  avatarPlaceholder: {
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.headerText,
-  },
   postAutorInfo: {
     flex: 1,
+    marginLeft: 12,
   },
   postAutorNombre: {
     fontSize: 15,
@@ -602,17 +524,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  storyAutorAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    marginRight: 12,
-  },
   storyAutorNombre: {
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
     flex: 1,
+    marginLeft: 12,
   },
   storyCloseButton: {
     width: 36,
@@ -705,11 +622,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  userAvatarInStory: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
   },
   createOptionsModal: {
     flex: 1,
@@ -830,15 +742,11 @@ function PostCardWithSwipe({ post, user, activeLocalProfileId, router, toggleLik
           }}
           activeOpacity={0.7}
         >
-          {post.autor?.avatar ? (
-            <Image source={{ uri: post.autor.avatar }} style={styles.postAvatar} />
-          ) : (
-            <View style={[styles.postAvatar, styles.avatarPlaceholder]}>
-              <Text style={styles.avatarText}>
-                {post.autor?.nombre?.charAt(0).toUpperCase() || 'U'}
-              </Text>
-            </View>
-          )}
+          <MiniFoodPlateAvatar
+            imageUrl={post.autor?.avatar}
+            size={42}
+            placeholderText={post.autor?.nombre || 'U'}
+          />
           <View style={styles.postAutorInfo}>
             <Text style={styles.postAutorNombre}>{post.autor?.nombre || 'Usuario'}</Text>
             <Text style={styles.postFecha}>{formatearFecha(post.created_at)}</Text>
@@ -2042,13 +1950,11 @@ export default function SocialScreen() {
               activeOpacity={ownedLocals.length > 1 ? 0.7 : 1}
             >
               <View style={styles.localSelectorContent}>
-                {activeLocalData?.imagen_url ? (
-                  <Image source={{ uri: activeLocalData.imagen_url }} style={styles.localSelectorImage} />
-                ) : (
-                  <View style={[styles.localSelectorImage, styles.localSelectorImagePlaceholder]}>
-                    <IconSymbol name="building.2" size={20} color={colors.headerText} />
-                  </View>
-                )}
+                <MiniFoodPlateAvatar
+                  imageUrl={activeLocalData?.imagen_url}
+                  size={40}
+                  placeholderIcon="building.2"
+                />
                 <View style={styles.localSelectorText}>
                   <Text style={styles.localSelectorLabel}>Interactuando como:</Text>
                   <Text style={styles.localSelectorName} numberOfLines={1}>
@@ -2095,55 +2001,22 @@ export default function SocialScreen() {
                 }}
                 activeOpacity={0.7}
               >
-                <View style={styles.historiaAddButton}>
-                  {hasUserStories ? (
-                    hasUnviewedUserStories ? (
-                      <LinearGradient
-                        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={styles.historiaGradientBorder}
-                      >
-                        {(isOwnerMode && activeLocalData?.imagen_url) ? (
-                          <Image source={{ uri: activeLocalData.imagen_url }} style={styles.historiaAvatar} />
-                        ) : displayAvatar ? (
-                          <Image source={{ uri: displayAvatar }} style={styles.historiaAvatar} />
-                        ) : (
-                          <View style={[styles.historiaAvatar, styles.avatarPlaceholder]}>
-                            <Text style={styles.avatarText}>{isOwnerMode && activeLocalData ? activeLocalData.nombre.charAt(0).toUpperCase() : displayInitial}</Text>
-                          </View>
-                        )}
-                      </LinearGradient>
-                    ) : (
-                      <>
-                        {(isOwnerMode && activeLocalData?.imagen_url) ? (
-                          <Image source={{ uri: activeLocalData.imagen_url }} style={[styles.historiaAvatar, { borderWidth: 2, borderColor: colors.cardBorder }]} />
-                        ) : displayAvatar ? (
-                          <Image source={{ uri: displayAvatar }} style={[styles.historiaAvatar, { borderWidth: 2, borderColor: colors.cardBorder }]} />
-                        ) : (
-                          <View style={[styles.historiaAvatar, styles.avatarPlaceholder, { borderWidth: 2, borderColor: colors.cardBorder }]}>
-                            <Text style={styles.avatarText}>{isOwnerMode && activeLocalData ? activeLocalData.nombre.charAt(0).toUpperCase() : displayInitial}</Text>
-                          </View>
-                        )}
-                      </>
-                    )
-                  ) : (
-                    <>
-                      {(isOwnerMode && activeLocalData?.imagen_url) ? (
-                        <Image source={{ uri: activeLocalData.imagen_url }} style={styles.historiaUserAvatar} />
-                      ) : displayAvatar ? (
-                        <Image source={{ uri: displayAvatar }} style={styles.historiaUserAvatar} />
-                      ) : (
-                        <View style={[styles.historiaUserAvatar, styles.avatarPlaceholder]}>
-                          <Text style={styles.avatarText}>{isOwnerMode && activeLocalData ? activeLocalData.nombre.charAt(0).toUpperCase() : displayInitial}</Text>
-                        </View>
-                      )}
-                      <View style={styles.historiaAddIcon}>
-                        <IconSymbol name="plus" size={18} color={colors.headerText} />
-                      </View>
-                    </>
-                  )}
-                </View>
+                <FoodPlateAvatar
+                  imageUrl={
+                    isOwnerMode && activeLocalData?.imagen_url
+                      ? activeLocalData.imagen_url
+                      : displayAvatar
+                  }
+                  size={90}
+                  hasStory={hasUserStories}
+                  isViewed={!hasUnviewedUserStories}
+                  showAddButton={!hasUserStories}
+                  placeholderText={
+                    isOwnerMode && activeLocalData
+                      ? activeLocalData.nombre
+                      : displayName
+                  }
+                />
                 <Text style={styles.historiaNombre}>
                   {isOwnerMode && activeLocalData ? activeLocalData.nombre : 'Tu historia'}
                 </Text>
@@ -2157,44 +2030,13 @@ export default function SocialScreen() {
                 onPress={() => handleStoryPress(firstStoryIndex, false)}
                 activeOpacity={0.7}
               >
-                <View style={styles.historiaAvatarContainer}>
-                  {!allViewed ? (
-                    <LinearGradient
-                      colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={styles.historiaGradientBorder}
-                    >
-                      {firstStory.autor?.avatar ? (
-                        <Image
-                          source={{ uri: firstStory.autor.avatar }}
-                          style={styles.historiaAvatar}
-                        />
-                      ) : (
-                        <View style={[styles.historiaAvatar, styles.avatarPlaceholder]}>
-                          <Text style={styles.avatarText}>
-                            {firstStory.autor?.nombre?.charAt(0).toUpperCase() || 'U'}
-                          </Text>
-                        </View>
-                      )}
-                    </LinearGradient>
-                  ) : (
-                    <>
-                      {firstStory.autor?.avatar ? (
-                        <Image
-                          source={{ uri: firstStory.autor.avatar }}
-                          style={[styles.historiaAvatar, { borderWidth: 2, borderColor: colors.cardBorder }]}
-                        />
-                      ) : (
-                        <View style={[styles.historiaAvatar, styles.avatarPlaceholder, { borderWidth: 2, borderColor: colors.cardBorder }]}>
-                          <Text style={styles.avatarText}>
-                            {firstStory.autor?.nombre?.charAt(0).toUpperCase() || 'U'}
-                          </Text>
-                        </View>
-                      )}
-                    </>
-                  )}
-                </View>
+                <FoodPlateAvatar
+                  imageUrl={firstStory.autor?.avatar}
+                  size={90}
+                  hasStory={true}
+                  isViewed={allViewed}
+                  placeholderText={firstStory.autor?.nombre || 'U'}
+                />
                 <Text style={styles.historiaNombre} numberOfLines={1}>
                   {firstStory.autor?.nombre || 'Usuario'}
                 </Text>
@@ -2277,13 +2119,11 @@ export default function SocialScreen() {
                     setShowLocalSelector(false);
                   }}
                 >
-                  {local.imagen_url ? (
-                    <Image source={{ uri: local.imagen_url }} style={styles.localSelectorItemImage} />
-                  ) : (
-                    <View style={[styles.localSelectorItemImage, styles.localSelectorImagePlaceholder]}>
-                      <IconSymbol name="building.2" size={24} color={colors.headerText} />
-                    </View>
-                  )}
+                  <MiniFoodPlateAvatar
+                    imageUrl={local.imagen_url}
+                    size={56}
+                    placeholderIcon="building.2"
+                  />
                   <View style={styles.localSelectorItemInfo}>
                     <Text style={[styles.localSelectorItemName, activeLocalProfileId === local.id && styles.localSelectorItemNameActive]}>
                       {local.nombre}
@@ -2345,15 +2185,11 @@ export default function SocialScreen() {
                 }}
                 activeOpacity={0.7}
               >
-                {result.avatar ? (
-                  <Image source={{ uri: result.avatar }} style={styles.searchResultAvatar} />
-                ) : (
-                  <View style={[styles.searchResultAvatar, styles.avatarPlaceholder]}>
-                    <Text style={styles.avatarText}>
-                      {result.nombre.charAt(0).toUpperCase()}
-                    </Text>
-                  </View>
-                )}
+                <MiniFoodPlateAvatar
+                  imageUrl={result.avatar}
+                  size={48}
+                  placeholderText={result.nombre}
+                />
                 <View style={styles.searchResultInfo}>
                   <Text style={styles.searchResultName}>{result.nombre}</Text>
                   {result.username && (
