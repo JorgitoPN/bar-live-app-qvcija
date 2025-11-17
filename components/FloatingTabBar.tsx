@@ -158,6 +158,9 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                 onPress={onPress}
                 style={styles.centerButton}
                 activeOpacity={0.6}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                accessibilityLabel={tab.label}
               >
                 <LinearGradient
                   colors={[colors.headerGradientStart, colors.headerGradientEnd]}
@@ -184,6 +187,12 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                 onPress={onPress}
                 style={styles.tab}
                 activeOpacity={0.5}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                accessibilityLabel={tab.label}
+                // @ts-ignore - aria attributes for web accessibility
+                aria-pressed={active}
+                aria-current={active ? 'page' : undefined}
               >
                 <View style={styles.tabContent}>
                   {activeAvatar ? (
@@ -204,7 +213,11 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                       <IconSymbol
                         name={activeProfileType === 'local' ? 'building.2' : 'person.fill'}
                         size={18}
-                        color={active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.6)'}
+                        color="#FFFFFF"
+                        style={[
+                          styles.iconBase,
+                          active && styles.iconActive
+                        ]}
                       />
                     </View>
                   )}
@@ -219,13 +232,23 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
               onPress={onPress}
               style={styles.tab}
               activeOpacity={0.5}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+              accessibilityLabel={tab.label}
+              // @ts-ignore - aria attributes for web accessibility
+              aria-pressed={active}
+              aria-current={active ? 'page' : undefined}
             >
               <View style={[styles.tabContent, active && styles.tabContentActive]}>
                 <IconSymbol
                   name={tab.icon as any}
                   size={32}
-                  color={active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.6)'}
+                  color="#FFFFFF"
                   weight={active ? 'fill' : 'regular'}
+                  style={[
+                    styles.iconBase,
+                    active ? styles.iconActive : styles.iconInactive
+                  ]}
                 />
               </View>
             </TouchableOpacity>
@@ -288,6 +311,18 @@ const styles = StyleSheet.create({
   },
   tabContentActive: {
     backgroundColor: 'transparent',
+  },
+  // 🔧 FIX: Base icon styles - ensure no opacity or filters are applied
+  iconBase: {
+    opacity: 1,
+  },
+  // 🔧 FIX: Active icon - pure white (#FFFFFF) with 100% opacity, no filters
+  iconActive: {
+    opacity: 1,
+  },
+  // 🔧 FIX: Inactive icon - reduced opacity for visual hierarchy
+  iconInactive: {
+    opacity: 0.6,
   },
   centerButton: {
     width: 64,
