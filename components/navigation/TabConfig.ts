@@ -33,10 +33,8 @@ export const ALL_TABS: TabDefinition[] = [
     iosIcon: 'house.fill',
     androidIcon: 'home',
     roles: ['cliente', 'propietario', 'admin'],
-    modes: ['cliente'],
-    order: {
-      cliente: 0,
-    },
+    modes: [], // Removed from all modes - not used in any menu
+    order: {},
   },
   {
     id: 'eventos',
@@ -47,7 +45,7 @@ export const ALL_TABS: TabDefinition[] = [
     roles: ['cliente', 'propietario', 'admin'],
     modes: ['cliente'],
     order: {
-      cliente: 1,
+      cliente: 0,
     },
   },
   {
@@ -59,7 +57,7 @@ export const ALL_TABS: TabDefinition[] = [
     roles: ['cliente', 'propietario', 'admin'],
     modes: ['cliente'],
     order: {
-      cliente: 2,
+      cliente: 1,
     },
   },
   {
@@ -71,7 +69,7 @@ export const ALL_TABS: TabDefinition[] = [
     roles: ['cliente', 'propietario', 'admin'],
     modes: ['cliente', 'propietario', 'admin'],
     order: {
-      cliente: 3,
+      cliente: 2,
       propietario: 2,
       admin: 1,
     },
@@ -85,7 +83,7 @@ export const ALL_TABS: TabDefinition[] = [
     roles: ['cliente', 'propietario', 'admin'],
     modes: ['cliente', 'propietario'],
     order: {
-      cliente: 4,
+      cliente: 3,
       propietario: 3,
     },
   },
@@ -135,7 +133,7 @@ export const ALL_TABS: TabDefinition[] = [
     roles: ['cliente', 'propietario', 'admin'],
     modes: ['cliente', 'propietario', 'admin'],
     order: {
-      cliente: 5,
+      cliente: 4,
       propietario: 4,
       admin: 2,
     },
