@@ -194,7 +194,10 @@ export type IconSymbolName = keyof typeof MAPPING;
  *
  * Icon `name`s are based on SFSymbols and require manual mapping to MaterialIcons.
  * 
- * ✅ ENHANCED: Now supports weight parameter for better visual distinction
+ * ✅ ENHANCED v3.1.0: Maximum intensity for active icons
+ * - Active icons receive pure white (#FFFFFF) at 100% opacity
+ * - Weight parameter for better visual distinction
+ * - No transparency on active state - maximum visibility
  */
 export function IconSymbol({
   name,
@@ -210,7 +213,7 @@ export function IconSymbol({
   weight?: SymbolWeight;
 }) {
   // Material Icons don't have weight variants, but we can simulate with font weight
-  const fontWeight = weight === 'semibold' || weight === 'bold' ? '600' : '400';
+  const fontWeight = weight === 'semibold' || weight === 'bold' ? '700' : '400';
   
   return (
     <MaterialIcons

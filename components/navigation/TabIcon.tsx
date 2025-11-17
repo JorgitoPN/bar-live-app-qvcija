@@ -1,9 +1,11 @@
 
 /**
- * TAB ICON COMPONENT - v3.0.0
+ * TAB ICON COMPONENT - v3.1.0
  * 
  * Platform-specific icon rendering with MAXIMUM visibility and distinction.
  * Handles iOS SF Symbols and Android Material Icons.
+ * 
+ * ✅ ACTIVE ICONS: Pure white (#FFFFFF) at 100% opacity with maximum intensity
  */
 
 import React from 'react';
@@ -17,10 +19,10 @@ interface TabIconProps {
   size?: number;
 }
 
-// ✅ MAXIMUM VISIBILITY: Strong distinction between active and inactive states
-const ACTIVE_COLOR = '#FFFFFF';           // Pure white for active
-const INACTIVE_COLOR = 'rgba(255, 255, 255, 0.55)'; // More visible inactive state
-const ACTIVE_SCALE = 1.2;                 // Larger when active for better visibility
+// ✅ MAXIMUM VISIBILITY: Pure white at 100% opacity for active icons
+const ACTIVE_COLOR = '#FFFFFF';           // Pure white at 100% opacity - maximum intensity
+const INACTIVE_COLOR = 'rgba(255, 255, 255, 0.35)'; // Lower opacity for better contrast
+const ACTIVE_SCALE = 1.25;                // Larger when active for better visibility
 
 export function TabIcon({ iosIcon, androidIcon, isActive, size = 28 }: TabIconProps) {
   const iconName = Platform.OS === 'ios' ? iosIcon : androidIcon;
@@ -29,7 +31,7 @@ export function TabIcon({ iosIcon, androidIcon, isActive, size = 28 }: TabIconPr
 
   return (
     <View style={[styles.container, isActive && styles.activeContainer]}>
-      {/* Active state background glow */}
+      {/* Active state background glow - enhanced for maximum visibility */}
       {isActive && <View style={styles.activeGlow} />}
       
       <IconSymbol
@@ -50,23 +52,23 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   activeContainer: {
-    // Strong glow effect for active state
+    // Strong glow effect for active state - maximum visibility
     shadowColor: '#FFFFFF',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 1,
-    shadowRadius: 12,
-    elevation: 12,
+    shadowRadius: 16,
+    elevation: 16,
   },
   activeGlow: {
     position: 'absolute',
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     shadowColor: '#FFFFFF',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowOpacity: 0.8,
+    shadowRadius: 20,
+    elevation: 12,
   },
 });
