@@ -1,8 +1,8 @@
 
 /**
- * TAB NAVIGATION BAR - v1.0.0
+ * TAB NAVIGATION BAR - v2.0.0
  * 
- * Modern, clean tab navigation bar with proper active state handling.
+ * Modern, clean tab navigation bar with ENHANCED active state visibility.
  * Built from scratch with no legacy code.
  */
 
@@ -132,6 +132,9 @@ export function TabNavigationBar({
           accessibilityState={{ selected: isActive }}
         >
           <View style={[styles.avatarContainer, isActive && styles.avatarContainerActive]}>
+            {/* Active state glow background */}
+            {isActive && <View style={styles.avatarGlow} />}
+            
             {activeProfileAvatar ? (
               <Image
                 source={{ uri: activeProfileAvatar }}
@@ -267,15 +270,31 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 18,
     overflow: 'hidden',
+    position: 'relative',
   },
   avatarContainerActive: {
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: '#FFFFFF',
     shadowColor: '#FFFFFF',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 1,
-    shadowRadius: 12,
+    shadowRadius: 16,
+    elevation: 16,
+  },
+  avatarGlow: {
+    position: 'absolute',
+    top: -8,
+    left: -8,
+    right: -8,
+    bottom: -8,
+    borderRadius: 26,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    shadowColor: '#FFFFFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 20,
     elevation: 12,
+    zIndex: -1,
   },
   avatar: {
     width: '100%',

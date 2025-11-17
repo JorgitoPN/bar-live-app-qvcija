@@ -5,10 +5,10 @@ import { StyleProp, ViewStyle } from "react-native";
 /**
  * iOS-specific icon component using native SF Symbols.
  * 
- * ✅ CRITICAL FIX: Icons now properly handle color with 100% opacity
- * - Active icons receive color="#FFFFFF" (pure white)
- * - Inactive icons receive color="rgba(255, 255, 255, 0.6)" (semi-transparent white)
- * - NO opacity style is applied - transparency is handled by the color value itself
+ * ✅ ENHANCED VISIBILITY: Icons now have stronger visual presence
+ * - Active icons receive color="#FFFFFF" (pure white) with semibold weight
+ * - Inactive icons receive color="rgba(255, 255, 255, 0.55)" with regular weight
+ * - Weight parameter properly applied for better distinction
  */
 export function IconSymbol({
   name,

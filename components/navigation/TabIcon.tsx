@@ -1,8 +1,8 @@
 
 /**
- * TAB ICON COMPONENT - v2.0.0
+ * TAB ICON COMPONENT - v3.0.0
  * 
- * Platform-specific icon rendering with ENHANCED active/inactive states.
+ * Platform-specific icon rendering with MAXIMUM visibility and distinction.
  * Handles iOS SF Symbols and Android Material Icons.
  */
 
@@ -17,10 +17,10 @@ interface TabIconProps {
   size?: number;
 }
 
-// ✅ ENHANCED: Much more visible distinction between active and inactive states
-const ACTIVE_COLOR = '#FFFFFF';
-const INACTIVE_COLOR = 'rgba(255, 255, 255, 0.35)'; // More transparent for better distinction
-const ACTIVE_SCALE = 1.15; // Slightly larger when active
+// ✅ MAXIMUM VISIBILITY: Strong distinction between active and inactive states
+const ACTIVE_COLOR = '#FFFFFF';           // Pure white for active
+const INACTIVE_COLOR = 'rgba(255, 255, 255, 0.55)'; // More visible inactive state
+const ACTIVE_SCALE = 1.2;                 // Larger when active for better visibility
 
 export function TabIcon({ iosIcon, androidIcon, isActive, size = 28 }: TabIconProps) {
   const iconName = Platform.OS === 'ios' ? iosIcon : androidIcon;
@@ -29,10 +29,14 @@ export function TabIcon({ iosIcon, androidIcon, isActive, size = 28 }: TabIconPr
 
   return (
     <View style={[styles.container, isActive && styles.activeContainer]}>
+      {/* Active state background glow */}
+      {isActive && <View style={styles.activeGlow} />}
+      
       <IconSymbol
         name={iconName as any}
         size={iconSize}
         color={color}
+        weight={isActive ? 'semibold' : 'regular'}
       />
     </View>
   );
@@ -43,13 +47,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 8,
+    position: 'relative',
   },
   activeContainer: {
-    // Enhanced glow effect for active state
+    // Strong glow effect for active state
     shadowColor: '#FFFFFF',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 8,
+    shadowOpacity: 1,
+    shadowRadius: 12,
+    elevation: 12,
+  },
+  activeGlow: {
+    position: 'absolute',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    shadowColor: '#FFFFFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 16,
     elevation: 8,
   },
 });

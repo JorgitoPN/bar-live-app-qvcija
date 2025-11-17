@@ -193,12 +193,15 @@ export type IconSymbolName = keyof typeof MAPPING;
  * This ensures a consistent look across platforms, and optimal resource usage.
  *
  * Icon `name`s are based on SFSymbols and require manual mapping to MaterialIcons.
+ * 
+ * ✅ ENHANCED: Now supports weight parameter for better visual distinction
  */
 export function IconSymbol({
   name,
   size = 24,
   color,
   style,
+  weight = "regular",
 }: {
   name: IconSymbolName;
   size?: number;
@@ -206,12 +209,15 @@ export function IconSymbol({
   style?: StyleProp<ViewStyle>;
   weight?: SymbolWeight;
 }) {
+  // Material Icons don't have weight variants, but we can simulate with font weight
+  const fontWeight = weight === 'semibold' || weight === 'bold' ? '600' : '400';
+  
   return (
     <MaterialIcons
       color={color}
       size={size}
       name={MAPPING[name]}
-      style={style as StyleProp<TextStyle>}
+      style={[style as StyleProp<TextStyle>, { fontWeight }]}
     />
   );
 }
