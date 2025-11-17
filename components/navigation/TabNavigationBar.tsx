@@ -1,14 +1,14 @@
 
 /**
- * TAB NAVIGATION BAR - v5.0.0
+ * TAB NAVIGATION BAR - v6.0.0
  * 
  * Modern, clean tab navigation bar with clear active state visibility.
  * Built from scratch with no legacy code.
  * 
- * ✅ ENHANCED v5.0.0:
+ * ✅ ENHANCED v6.0.0:
  * - Central "Explorar" button: NO transparency, fully opaque
- * - Icons same size as mini-avatar (42px)
- * - Inactive icons: 50% opacity (transparent)
+ * - Icons and mini-avatar reduced to 36px (from 42px)
+ * - Inactive icons: 10% opacity (10x less than active)
  * - Active icons: 100% opacity (no transparency)
  */
 
@@ -46,7 +46,7 @@ export function TabNavigationBar({
   const pathname = usePathname();
 
   useEffect(() => {
-    console.log('🎯 [TabNavigationBar v5.0] Rendered with', tabs.length, 'tabs');
+    console.log('🎯 [TabNavigationBar v6.0] Rendered with', tabs.length, 'tabs');
     console.log('📍 [TabNavigationBar] Current pathname:', pathname);
     tabs.forEach(tab => {
       const active = isTabActive(tab, pathname);
@@ -118,7 +118,7 @@ export function TabNavigationBar({
               iosIcon={tab.iosIcon}
               androidIcon={tab.androidIcon}
               isActive={false} // Don't use active state for center button
-              size={30}
+              size={28}
             />
           </LinearGradient>
         </TouchableOpacity>
@@ -150,7 +150,7 @@ export function TabNavigationBar({
                   iosIcon="person.fill"
                   androidIcon="person"
                   isActive={isActive}
-                  size={20}
+                  size={18}
                 />
               </View>
             )}
@@ -269,9 +269,9 @@ const styles = StyleSheet.create({
     borderColor: '#FFFFFF', // Fully opaque white border
   },
   avatarContainer: {
-    width: 42, // Same size as mini-avatar
-    height: 42,
-    borderRadius: 21,
+    width: 36, // Reduced from 42px
+    height: 36,
+    borderRadius: 18,
     overflow: 'hidden',
     position: 'relative',
   },

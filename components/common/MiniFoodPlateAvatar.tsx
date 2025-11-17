@@ -16,7 +16,7 @@ interface MiniFoodPlateAvatarProps {
 
 export default function MiniFoodPlateAvatar({
   imageUrl,
-  size = 42,
+  size = 36, // Reduced from 42px
   hasStory = false,
   isViewed = false,
   placeholderIcon = 'person.fill',
