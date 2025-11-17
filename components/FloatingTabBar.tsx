@@ -168,7 +168,7 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                   end={{ x: 1, y: 1 }}
                   style={styles.centerGradient}
                 >
-                  <IconSymbol name={tab.icon as any} size={32} color="#FFFFFF" />
+                  <IconSymbol name={tab.icon as any} size={32} color="#FFFFFF" style={styles.iconBase} />
                 </LinearGradient>
               </TouchableOpacity>
             );
@@ -214,6 +214,7 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                         name={activeProfileType === 'local' ? 'building.2' : 'person.fill'}
                         size={18}
                         color="#FFFFFF"
+                        style={styles.iconBase}
                       />
                     </View>
                   )}
@@ -226,7 +227,6 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
           // Active icons MUST be pure white (#FFFFFF) with 100% opacity
           // Inactive icons use rgba(255, 255, 255, 0.6) as the COLOR VALUE (not opacity)
           // This ensures the icon itself is always at 100% opacity, but the color contains transparency
-          // REMOVED weight prop as it doesn't work consistently across platforms
           return (
             <TouchableOpacity
               key={tab.name}
@@ -245,6 +245,7 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                   name={tab.icon as any}
                   size={32}
                   color={active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.6)'}
+                  style={styles.iconBase}
                 />
               </View>
             </TouchableOpacity>
@@ -307,6 +308,11 @@ const styles = StyleSheet.create({
   },
   tabContentActive: {
     backgroundColor: 'transparent',
+  },
+  // ✅ CRITICAL FIX: Base icon style with 100% opacity
+  // This ensures icons are always fully opaque, with transparency handled by color value
+  iconBase: {
+    opacity: 1,
   },
   centerButton: {
     width: 64,

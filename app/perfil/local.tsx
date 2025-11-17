@@ -724,9 +724,13 @@ export default function LocalPerfilScreen() {
     };
   }, [showStoryViewer, currentStoryIndex, isPaused, startStoryTimer, stopStoryTimer]);
 
+  // ✅ CRITICAL FIX: Determine tabs based on whether user is owner viewing their own local
+  // When viewing own local profile, show owner tabs (gestion, favoritos, social)
+  // When viewing other's local or as client, show client tabs (eventos, favoritos, social)
   const getTabsForRole = (): TabBarItem[] => {
     const userRole = user?.rol_app || 'cliente';
 
+    // Admin mode
     if (userRole === 'admin' && currentMode === 'admin') {
       return [
         {
@@ -750,6 +754,45 @@ export default function LocalPerfilScreen() {
       ];
     }
 
+    // ✅ FIX: If user is owner of this local AND in propietario mode, show owner tabs
+    if (isOwner && currentMode === 'propietario') {
+      console.log('[LocalPerfil] 🏢 Showing OWNER tabs (gestion, favoritos, social)');
+      return [
+        {
+          name: 'gestion',
+          route: '/(tabs)/gestion',
+          icon: 'building.2',
+          label: 'Gestión',
+        },
+        {
+          name: 'favoritos',
+          route: '/(tabs)/favoritos',
+          icon: 'heart.fill',
+          label: 'Favoritos',
+        },
+        {
+          name: 'explorar',
+          route: '/(tabs)/explorar',
+          icon: 'sparkles',
+          label: 'Explorar',
+        },
+        {
+          name: 'social',
+          route: '/(tabs)/social',
+          icon: 'person.2.fill',
+          label: 'Social',
+        },
+        {
+          name: 'perfil',
+          route: '/(tabs)/perfil',
+          icon: 'person.fill',
+          label: 'Perfil',
+        },
+      ];
+    }
+
+    // Default: client tabs (eventos, favoritos, social)
+    console.log('[LocalPerfil] 👤 Showing CLIENT tabs (eventos, favoritos, social)');
     return [
       {
         name: 'eventos',
@@ -818,7 +861,7 @@ export default function LocalPerfilScreen() {
 
   const tabs = getTabsForRole();
 
-  console.log('[LocalPerfil] Rendering with PROVINCIAS count:', PROVINCIAS.length);
+  console.log('[LocalPerfil] Rendering with tabs:', tabs.map(t => t.name).join(', '));
 
   return (
     <View style={styles.container}>
@@ -1649,7 +1692,7 @@ export default function LocalPerfilScreen() {
       <FloatingTabBar 
         tabs={tabs} 
         containerWidth={width}
-        key={`${user?.rol_app || 'cliente'}-${currentMode}`}
+        key={`${user?.rol_app || 'cliente'}-${currentMode}-${isOwner}`}
       />
     </View>
   );
