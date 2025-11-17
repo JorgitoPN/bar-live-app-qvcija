@@ -48,10 +48,12 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
       const cleanRoute = route.startsWith('/') ? route.substring(1) : route;
       const cleanPathname = pathname.startsWith('/') ? pathname.substring(1) : pathname;
       
+      // Special handling for perfil routes
       if (cleanRoute === '(tabs)/perfil') {
         return cleanPathname === '(tabs)/perfil' || 
                cleanPathname === '(tabs)/perfil/' || 
                cleanPathname === '(tabs)/perfil/index' ||
+               cleanPathname.startsWith('perfil/usuario') ||
                cleanPathname.startsWith('perfil/local');
       }
       
@@ -189,7 +191,7 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                       <IconSymbol
                         name={activeProfileType === 'local' ? 'building.2' : 'person.fill'}
                         size={18}
-                        color="#FFFFFF"
+                        color={active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.4)'}
                       />
                     </View>
                   )}
@@ -300,15 +302,15 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   // 🔧 FIXED: Contour now shows when the profile tab itself is active
-  // Using the exact same white color (#FFFFFF) as active icons for consistency
+  // Using solid white color (#FFFFFF) with no transparency for maximum visibility
   profileAvatarWithContour: {
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderColor: '#FFFFFF',
     shadowColor: '#FFFFFF',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 3,
-    elevation: 4,
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
+    elevation: 6,
   },
   profileAvatarPlaceholder: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
