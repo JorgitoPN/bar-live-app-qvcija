@@ -191,11 +191,12 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
             );
           }
 
-          // 🆕 FEATURE 2: For profile tab, show the active profile avatar (user or local)
-          // 🔧 FIX: Avatar contour now shows when THIS tab is active (not when profile tab is active)
+          // ✅ UNIFIED BEHAVIOR: Profile tab now uses the SAME active state styling as other icons
+          // When active: Pure white border + white glow effect (matching other active icons)
+          // When inactive: Semi-transparent appearance (matching other inactive icons)
           if (tab.name === 'perfil') {
             if (active) {
-              console.log('[FloatingTabBar] 🎨 Rendering profile avatar WITH contour - active:', active, 'avatar:', activeAvatar);
+              console.log('[FloatingTabBar] 🎨 Rendering profile avatar WITH active state - active:', active, 'avatar:', activeAvatar);
             }
             
             return (
@@ -212,35 +213,41 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                 aria-current={active ? 'page' : undefined}
               >
                 <View style={styles.tabContent}>
-                  {activeAvatar ? (
-                    <Image 
-                      source={{ uri: activeAvatar }} 
-                      style={[
-                        styles.profileAvatar,
-                        active && styles.profileAvatarWithContour
-                      ]} 
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <View style={[
-                      styles.profileAvatar,
-                      styles.profileAvatarPlaceholder,
-                      active && styles.profileAvatarWithContour
-                    ]}>
-                      <IconSymbol
-                        name={activeProfileType === 'local' ? 'building.2' : 'person.fill'}
-                        size={18}
-                        color="#FFFFFF"
-                        style={styles.iconBase}
+                  {/* ✅ CRITICAL FIX: Wrap avatar in active/inactive container for consistent glow effect */}
+                  <View style={active ? styles.activeIconContainer : styles.inactiveIconContainer}>
+                    {activeAvatar ? (
+                      <Image 
+                        source={{ uri: activeAvatar }} 
+                        style={[
+                          styles.profileAvatar,
+                          // ✅ UNIFIED: Active state now uses pure white border (matching icon behavior)
+                          active && styles.profileAvatarActive
+                        ]} 
+                        resizeMode="cover"
                       />
-                    </View>
-                  )}
+                    ) : (
+                      <View style={[
+                        styles.profileAvatar,
+                        styles.profileAvatarPlaceholder,
+                        // ✅ UNIFIED: Active state now uses pure white border (matching icon behavior)
+                        active && styles.profileAvatarActive
+                      ]}>
+                        <IconSymbol
+                          name={activeProfileType === 'local' ? 'building.2' : 'person.fill'}
+                          size={18}
+                          // ✅ UNIFIED: Icon inside avatar uses same color logic as other icons
+                          color={active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.4)'}
+                          style={styles.iconBase}
+                        />
+                      </View>
+                    )}
+                  </View>
                 </View>
               </TouchableOpacity>
             );
           }
 
-          // ✅ CRITICAL FIX: Render regular icons with PURE WHITE when active
+          // ✅ CRITICAL FIX: Regular icons with PURE WHITE when active
           // Active icons: Pure white (#FFFFFF) with 100% opacity + strong glow effect
           // Inactive icons: Semi-transparent white (rgba(255, 255, 255, 0.4)) for maximum contrast
           return (
@@ -327,7 +334,8 @@ const styles = StyleSheet.create({
   tabContentActive: {
     backgroundColor: 'transparent',
   },
-  // ✅ ENHANCED: Active icon container with STRONG white glow effect for maximum visibility
+  // ✅ UNIFIED: Active icon container with STRONG white glow effect
+  // Applied to BOTH regular icons AND profile avatar for consistent behavior
   activeIconContainer: {
     shadowColor: '#FFFFFF',
     shadowOffset: { width: 0, height: 0 },
@@ -335,7 +343,8 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
-  // ✅ NEW: Inactive icon container with no effects
+  // ✅ UNIFIED: Inactive icon container with no effects
+  // Applied to BOTH regular icons AND profile avatar for consistent behavior
   inactiveIconContainer: {
     shadowColor: 'transparent',
     shadowOffset: { width: 0, height: 0 },
@@ -374,16 +383,12 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
-  // ✅ ENHANCED: Profile avatar contour with MAXIMUM white border and glow
-  // Increased border width and shadow for maximum visibility
-  profileAvatarWithContour: {
+  // ✅ UNIFIED: Profile avatar active state with PURE WHITE border and NO opacity interference
+  // Matches the behavior of regular active icons (pure white #FFFFFF)
+  profileAvatarActive: {
     borderWidth: 4,
     borderColor: '#FFFFFF',
-    shadowColor: '#FFFFFF',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 12,
-    elevation: 12,
+    // Note: Shadow/glow is applied by the parent activeIconContainer
   },
   profileAvatarPlaceholder: {
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
