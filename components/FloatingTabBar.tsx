@@ -9,8 +9,8 @@ import { useMode } from '@/contexts/ModeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import Svg, { Path } from 'react-native-svg';
 
-// ✅ VERSION MARKER - Force cache bust: v2.0.1
-const COMPONENT_VERSION = '2.0.1';
+// ✅ VERSION MARKER - Force cache bust: v3.0.0 - MAJOR UPDATE
+const COMPONENT_VERSION = '3.0.0';
 
 export interface TabBarItem {
   name: string;
@@ -33,25 +33,20 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
   const lastNavigationTime = useRef(0);
 
   useEffect(() => {
-    console.log(`⚡ FloatingTabBar v${COMPONENT_VERSION} mounted, pathname:`, pathname);
-    console.log('⚡ FloatingTabBar tabs:', tabs.map(t => ({ name: t.name, icon: t.icon })));
-  }, [pathname, tabs]);
-
-  useEffect(() => {
-    console.log('[FloatingTabBar] 📊 Active profile changed:', {
-      activeProfileType,
-      activeProfileId,
-      activeLocalName: activeLocalData?.nombre,
-      userAvatar: user?.avatar,
-    });
-  }, [activeProfileType, activeProfileId, activeLocalData, user]);
+    console.log(`⚡⚡⚡ FloatingTabBar v${COMPONENT_VERSION} MOUNTED ⚡⚡⚡`);
+    console.log('📍 Current pathname:', pathname);
+    console.log('🎯 Current mode:', currentMode);
+    console.log('👤 Active profile type:', activeProfileType);
+    console.log('🆔 Active profile ID:', activeProfileId);
+    console.log('📋 Tabs:', tabs.map(t => `${t.name}(${t.icon})`).join(', '));
+  }, [pathname, tabs, currentMode, activeProfileType, activeProfileId]);
 
   const isActive = (route: string) => {
     try {
       const cleanRoute = route.startsWith('/') ? route.substring(1) : route;
       const cleanPathname = pathname.startsWith('/') ? pathname.substring(1) : pathname;
       
-      console.log('[FloatingTabBar] 🔍 Checking if active:', {
+      console.log('🔍 [isActive] Checking:', {
         route: cleanRoute,
         pathname: cleanPathname,
         currentMode,
@@ -69,10 +64,7 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                // ✅ CRITICAL FIX: Match perfil/local when in propietario mode viewing own local
                (cleanPathname.startsWith('perfil/local') && currentMode === 'propietario' && activeProfileType === 'local');
         
-        if (isGestionActive) {
-          console.log('[FloatingTabBar] ✅ Gestion tab is ACTIVE - pathname:', cleanPathname, 'mode:', currentMode, 'profileType:', activeProfileType);
-        }
-        
+        console.log('🏢 [isActive] Gestion check:', isGestionActive ? '✅ ACTIVE' : '❌ INACTIVE');
         return isGestionActive;
       }
       
@@ -87,44 +79,34 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                // ✅ CRITICAL FIX: Don't match perfil/local when in propietario mode
                !(cleanPathname.startsWith('perfil/local') && currentMode === 'propietario' && activeProfileType === 'local');
         
-        if (isProfileActive) {
-          console.log('[FloatingTabBar] ✅ Profile tab is ACTIVE - pathname:', cleanPathname);
-        }
-        
+        console.log('👤 [isActive] Profile check:', isProfileActive ? '✅ ACTIVE' : '❌ INACTIVE');
         return isProfileActive;
       }
       
       // Default: match by route prefix
       const isDefaultActive = cleanPathname.startsWith(cleanRoute);
-      
-      if (isDefaultActive) {
-        console.log('[FloatingTabBar] ✅ Tab is ACTIVE (default match) - route:', cleanRoute);
-      }
+      console.log('📍 [isActive] Default check:', isDefaultActive ? '✅ ACTIVE' : '❌ INACTIVE');
       
       return isDefaultActive;
     } catch (error) {
-      console.error('Error checking active route:', error);
+      console.error('❌ Error checking active route:', error);
       return false;
     }
   };
 
   const getActiveAvatar = () => {
     if (activeProfileType === 'local' && activeLocalData) {
-      console.log('[FloatingTabBar] 🏢 Using local avatar:', activeLocalData.nombre, activeLocalData.imagen_url);
+      console.log('🏢 Using local avatar:', activeLocalData.nombre);
       return activeLocalData.imagen_url;
     } else if (user) {
-      console.log('[FloatingTabBar] 👤 Using user avatar:', user.nombre, user.avatar);
+      console.log('👤 Using user avatar:', user.nombre);
       return user.avatar;
     }
-    console.log('[FloatingTabBar] ⚠️ No avatar available');
+    console.log('⚠️ No avatar available');
     return null;
   };
 
   const activeAvatar = getActiveAvatar();
-
-  useEffect(() => {
-    console.log('[FloatingTabBar] 🖼️ Active avatar updated:', activeAvatar);
-  }, [activeAvatar]);
 
   return (
     <View style={styles.container} pointerEvents="box-none">
@@ -148,6 +130,9 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
           const isCenter = tab.name === 'explorar';
           const active = isActive(tab.route);
 
+          // ✅ CRITICAL: Log active state for each tab
+          console.log(`🎯 Tab "${tab.name}" (${tab.icon}):`, active ? '✅ ACTIVE' : '❌ INACTIVE');
+
           const onPress = () => {
             const now = Date.now();
             
@@ -156,20 +141,18 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
               return;
             }
 
-            // ✅ CRITICAL FIX: Remove the "already on route" check that was preventing navigation
-            // This was causing the gestion icon to be unclickable when on perfil/local
             console.log('⚡ NAVIGATING to:', tab.name, tab.route, 'from:', pathname);
             lastNavigationTime.current = now;
 
             try {
               if (tab.name === 'perfil') {
-                console.log('[FloatingTabBar] 🔍 Perfil tab pressed, currentMode:', currentMode, 'activeProfileType:', activeProfileType, 'activeProfileId:', activeProfileId);
+                console.log('🔍 Perfil tab pressed, currentMode:', currentMode, 'activeProfileType:', activeProfileType);
                 
                 if (currentMode === 'propietario' && activeProfileType === 'local' && activeProfileId) {
-                  console.log('[FloatingTabBar] ✅ Navigating to local profile:', activeProfileId);
+                  console.log('✅ Navigating to local profile:', activeProfileId);
                   router.push(`/perfil/local?localId=${activeProfileId}` as any);
                 } else {
-                  console.log('[FloatingTabBar] ✅ Navigating to user profile');
+                  console.log('✅ Navigating to user profile');
                   router.push(tab.route as any);
                 }
               } else {
@@ -204,10 +187,6 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
           }
 
           if (tab.name === 'perfil') {
-            if (active) {
-              console.log('[FloatingTabBar] 🎨 Rendering profile avatar WITH active state - active:', active, 'avatar:', activeAvatar);
-            }
-            
             return (
               <TouchableOpacity
                 key={tab.name}
@@ -248,7 +227,12 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
             );
           }
 
-          // ✅ CRITICAL FIX: Regular icons with PURE WHITE when active
+          // ✅ CRITICAL FIX: Regular icons with PURE WHITE (#FFFFFF) when active
+          // The color is passed directly to IconSymbol with NO opacity style applied
+          const iconColor = active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.6)';
+          
+          console.log(`🎨 Rendering icon "${tab.icon}" with color:`, iconColor, active ? '(ACTIVE - PURE WHITE)' : '(INACTIVE)');
+
           return (
             <TouchableOpacity
               key={tab.name}
@@ -264,7 +248,7 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                   <IconSymbol
                     name={tab.icon as any}
                     size={32}
-                    color={active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.6)'}
+                    color={iconColor}
                   />
                 </View>
               </View>

@@ -33,8 +33,8 @@ import OfertaTrabajoCard from '@/components/empleo/OfertaTrabajoCard';
 import PerfilProfesionalCard from '@/components/empleo/PerfilProfesionalCard';
 import { PROVINCIAS, getProvinceVariations, filterByProvincia } from '@/utils/provinceNormalizer';
 
-// ✅ VERSION MARKER - Force cache bust: v2.0.1
-const SCREEN_VERSION = '2.0.1';
+// ✅ VERSION MARKER - Force cache bust: v3.0.0 - MAJOR UPDATE
+const SCREEN_VERSION = '3.0.0';
 
 const { width, height } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -170,7 +170,7 @@ export default function LocalPerfilScreen() {
   });
 
   useEffect(() => {
-    console.log(`⚡ LocalPerfilScreen v${SCREEN_VERSION} mounted`);
+    console.log(`⚡⚡⚡ LocalPerfilScreen v${SCREEN_VERSION} MOUNTED ⚡⚡⚡`);
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -229,10 +229,10 @@ export default function LocalPerfilScreen() {
       // ✅ CRITICAL FIX: Determine ownership based on propietario_id
       if (user && localData.propietario_id === user.id) {
         setIsOwner(true);
-        console.log('[LocalPerfil] ✅ User is owner of this local');
+        console.log('[LocalPerfil] ✅ User IS OWNER of this local');
       } else {
         setIsOwner(false);
-        console.log('[LocalPerfil] ✅ User is viewing another local');
+        console.log('[LocalPerfil] ✅ User is NOT owner of this local');
       }
 
       const [postsResult, eventsResult, storiesResult, favResult] = await Promise.all([
@@ -735,7 +735,7 @@ export default function LocalPerfilScreen() {
   const getTabsForRole = (): TabBarItem[] => {
     const userRole = user?.rol_app || 'cliente';
 
-    console.log('[LocalPerfil] 🔍 Determining tabs:', {
+    console.log('🔍🔍🔍 [getTabsForRole] Determining tabs:', {
       userRole,
       currentMode,
       isOwner,
@@ -748,7 +748,7 @@ export default function LocalPerfilScreen() {
 
     // Admin mode
     if (userRole === 'admin' && currentMode === 'admin') {
-      console.log('[LocalPerfil] 📋 Showing ADMIN tabs');
+      console.log('📋 [getTabsForRole] Showing ADMIN tabs');
       return [
         {
           name: 'admin',
@@ -773,7 +773,7 @@ export default function LocalPerfilScreen() {
 
     // ✅ CRITICAL FIX: If user is owner of this local AND in propietario mode, show owner tabs with GESTION icon
     if (isOwner && currentMode === 'propietario') {
-      console.log('[LocalPerfil] 🏢 Showing OWNER tabs (gestion, favoritos, social) - User owns this local');
+      console.log('🏢🏢🏢 [getTabsForRole] Showing OWNER tabs with GESTION icon (building.2) - User owns this local');
       return [
         {
           name: 'gestion',
@@ -809,7 +809,7 @@ export default function LocalPerfilScreen() {
     }
 
     // Default: client tabs (eventos, favoritos, social)
-    console.log('[LocalPerfil] 👤 Showing CLIENT tabs (eventos, favoritos, social) - Not owner or not in propietario mode');
+    console.log('👤 [getTabsForRole] Showing CLIENT tabs (eventos, favoritos, social) - Not owner or not in propietario mode');
     return [
       {
         name: 'eventos',
@@ -878,7 +878,7 @@ export default function LocalPerfilScreen() {
 
   const tabs = getTabsForRole();
 
-  console.log('[LocalPerfil] 🎯 Rendering with tabs:', tabs.map(t => `${t.name}(${t.icon})`).join(', '));
+  console.log('🎯🎯🎯 [LocalPerfil] Rendering with tabs:', tabs.map(t => `${t.name}(${t.icon})`).join(', '));
 
   return (
     <View style={styles.container}>
