@@ -1603,7 +1603,7 @@ export default function LocalPerfilScreen() {
         </Pressable>
       </Modal>
 
-      {/* Provincia Filter Modal - SIMPLIFIED VERSION MATCHING CLIENT PROFILE */}
+      {/* Provincia Filter Modal */}
       <Modal
         visible={showProvinciaModal}
         animationType="slide"
