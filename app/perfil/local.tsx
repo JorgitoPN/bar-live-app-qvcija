@@ -1603,7 +1603,7 @@ export default function LocalPerfilScreen() {
         </Pressable>
       </Modal>
 
-      {/* Provincia Filter Modal - FIXED VERSION */}
+      {/* Provincia Filter Modal - SIMPLIFIED VERSION MATCHING CLIENT PROFILE */}
       <Modal
         visible={showProvinciaModal}
         animationType="slide"
@@ -1643,6 +1643,7 @@ export default function LocalPerfilScreen() {
               style={styles.provinciaList}
               contentContainerStyle={styles.provinciaListContent}
               showsVerticalScrollIndicator={true}
+              nestedScrollEnabled={true}
             >
               {PROVINCIAS.map((provincia, index) => (
                 <TouchableOpacity
