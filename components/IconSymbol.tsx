@@ -194,11 +194,10 @@ export type IconSymbolName = keyof typeof MAPPING;
  *
  * Icon `name`s are based on SFSymbols and require manual mapping to MaterialIcons.
  * 
- * ✅ ENHANCED v4.0.0: Crystal clear visibility
- * - Active icons: Pure white (#FFFFFF) at 100% opacity
- * - Inactive icons: White at 60% opacity (much more visible than before)
+ * ✅ ENHANCED v6.0.0: Clear active/inactive distinction
+ * - Active icons: 100% opacity (no transparency)
+ * - Inactive icons: 50% opacity (transparent)
  * - Weight parameter for better visual distinction
- * - No transparency on active state - maximum visibility
  */
 export function IconSymbol({
   name,

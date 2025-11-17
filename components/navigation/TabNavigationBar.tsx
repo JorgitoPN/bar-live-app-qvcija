@@ -1,16 +1,15 @@
 
 /**
- * TAB NAVIGATION BAR - v4.0.0
+ * TAB NAVIGATION BAR - v5.0.0
  * 
- * Modern, clean tab navigation bar with EXTREME active state visibility.
+ * Modern, clean tab navigation bar with clear active state visibility.
  * Built from scratch with no legacy code.
  * 
- * ✅ ENHANCED v4.0.0:
- * - Much more visible inactive icons (80% opacity)
- * - EXTREME active state indication with triple glow effect
- * - Central "Explorar" button: LESS prominent, more subtle gradient
- * - Profile avatar has EXTREME active state with massive glow
- * - 5X greater distinction between active and inactive states
+ * ✅ ENHANCED v5.0.0:
+ * - Central "Explorar" button: NO transparency, fully opaque
+ * - Icons same size as mini-avatar (42px)
+ * - Inactive icons: 50% opacity (transparent)
+ * - Active icons: 100% opacity (no transparency)
  */
 
 import React, { useEffect } from 'react';
@@ -47,7 +46,7 @@ export function TabNavigationBar({
   const pathname = usePathname();
 
   useEffect(() => {
-    console.log('🎯 [TabNavigationBar v4.0] Rendered with', tabs.length, 'tabs');
+    console.log('🎯 [TabNavigationBar v5.0] Rendered with', tabs.length, 'tabs');
     console.log('📍 [TabNavigationBar] Current pathname:', pathname);
     tabs.forEach(tab => {
       const active = isTabActive(tab, pathname);
@@ -97,7 +96,7 @@ export function TabNavigationBar({
     const isActive = isTabActive(tab, pathname);
     const isCenter = tab.id === 'explorar';
 
-    // Center button (Explorar) - LESS prominent, more subtle
+    // Center button (Explorar) - NO transparency, fully opaque
     if (isCenter) {
       return (
         <TouchableOpacity
@@ -110,7 +109,7 @@ export function TabNavigationBar({
           accessibilityState={{ selected: isActive }}
         >
           <LinearGradient
-            colors={['rgba(45, 212, 191, 0.85)', 'rgba(6, 182, 212, 0.85)']} // More subtle, less bright
+            colors={['#2DD4BF', '#06B6D4']} // Fully opaque colors, no transparency
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.centerGradient}
@@ -119,7 +118,7 @@ export function TabNavigationBar({
               iosIcon={tab.iosIcon}
               androidIcon={tab.androidIcon}
               isActive={false} // Don't use active state for center button
-              size={30} // Slightly smaller
+              size={30}
             />
           </LinearGradient>
         </TouchableOpacity>
@@ -139,15 +138,6 @@ export function TabNavigationBar({
           accessibilityState={{ selected: isActive }}
         >
           <View style={[styles.avatarContainer, isActive && styles.avatarContainerActive]}>
-            {/* EXTREME active state glow */}
-            {isActive && (
-              <>
-                <View style={styles.avatarGlowOuter} />
-                <View style={styles.avatarGlowMiddle} />
-                <View style={styles.avatarGlowInner} />
-              </>
-            )}
-            
             {activeProfileAvatar ? (
               <Image
                 source={{ uri: activeProfileAvatar }}
@@ -259,15 +249,15 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   centerButton: {
-    width: 60, // Smaller (was 68)
-    height: 60, // Smaller (was 68)
-    marginTop: -30, // Adjusted for smaller size
+    width: 60,
+    height: 60,
+    marginTop: -30,
     borderRadius: 30,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 }, // Less shadow
-    shadowOpacity: 0.25, // Less shadow
-    shadowRadius: 8, // Less shadow
-    elevation: 10, // Less elevation
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 10,
   },
   centerGradient: {
     width: '100%',
@@ -275,69 +265,24 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 3, // Thinner border (was 5)
-    borderColor: 'rgba(255, 255, 255, 0.9)', // Slightly transparent border
+    borderWidth: 4,
+    borderColor: '#FFFFFF', // Fully opaque white border
   },
   avatarContainer: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 42, // Same size as mini-avatar
+    height: 42,
+    borderRadius: 21,
     overflow: 'hidden',
     position: 'relative',
   },
   avatarContainerActive: {
-    borderWidth: 5, // Thicker border for extreme visibility
+    borderWidth: 3,
     borderColor: '#FFFFFF',
     shadowColor: '#FFFFFF',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 30,
-    elevation: 25,
-  },
-  avatarGlowOuter: {
-    position: 'absolute',
-    top: -18,
-    left: -18,
-    right: -18,
-    bottom: -18,
-    borderRadius: 38,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    shadowColor: '#FFFFFF',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 35,
-    elevation: 20,
-    zIndex: -1,
-  },
-  avatarGlowMiddle: {
-    position: 'absolute',
-    top: -14,
-    left: -14,
-    right: -14,
-    bottom: -14,
-    borderRadius: 33,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    shadowColor: '#FFFFFF',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 25,
-    elevation: 22,
-    zIndex: -1,
-  },
-  avatarGlowInner: {
-    position: 'absolute',
-    top: -10,
-    left: -10,
-    right: -10,
-    bottom: -10,
-    borderRadius: 29,
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
-    shadowColor: '#FFFFFF',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 18,
-    elevation: 24,
-    zIndex: -1,
+    shadowOpacity: 0.8,
+    shadowRadius: 12,
+    elevation: 15,
   },
   avatar: {
     width: '100%',
