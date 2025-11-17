@@ -1,6 +1,6 @@
 
 /**
- * TAB NAVIGATION CONFIGURATION - v1.0.0
+ * TAB NAVIGATION CONFIGURATION - v1.1.0
  * 
  * Centralized configuration for all tab navigation in the app.
  * This file defines all available tabs, their icons, routes, and visibility rules.
@@ -15,6 +15,11 @@ export interface TabDefinition {
   roles: ('cliente' | 'propietario' | 'admin')[];
   modes: ('cliente' | 'propietario' | 'admin')[];
   requiresOwnership?: boolean; // Only show if user owns the current local
+  order: {
+    cliente?: number;
+    propietario?: number;
+    admin?: number;
+  };
 }
 
 /**
@@ -29,6 +34,9 @@ export const ALL_TABS: TabDefinition[] = [
     androidIcon: 'home',
     roles: ['cliente', 'propietario', 'admin'],
     modes: ['cliente'],
+    order: {
+      cliente: 0,
+    },
   },
   {
     id: 'eventos',
@@ -38,6 +46,9 @@ export const ALL_TABS: TabDefinition[] = [
     androidIcon: 'event',
     roles: ['cliente', 'propietario', 'admin'],
     modes: ['cliente'],
+    order: {
+      cliente: 1,
+    },
   },
   {
     id: 'favoritos',
@@ -46,7 +57,10 @@ export const ALL_TABS: TabDefinition[] = [
     iosIcon: 'heart.fill',
     androidIcon: 'favorite',
     roles: ['cliente', 'propietario', 'admin'],
-    modes: ['cliente', 'propietario'],
+    modes: ['cliente'],
+    order: {
+      cliente: 2,
+    },
   },
   {
     id: 'explorar',
@@ -56,6 +70,11 @@ export const ALL_TABS: TabDefinition[] = [
     androidIcon: 'auto-awesome',
     roles: ['cliente', 'propietario', 'admin'],
     modes: ['cliente', 'propietario', 'admin'],
+    order: {
+      cliente: 3,
+      propietario: 2,
+      admin: 1,
+    },
   },
   {
     id: 'social',
@@ -65,6 +84,10 @@ export const ALL_TABS: TabDefinition[] = [
     androidIcon: 'group',
     roles: ['cliente', 'propietario', 'admin'],
     modes: ['cliente', 'propietario'],
+    order: {
+      cliente: 4,
+      propietario: 3,
+    },
   },
   {
     id: 'gestion',
@@ -75,6 +98,9 @@ export const ALL_TABS: TabDefinition[] = [
     roles: ['propietario', 'admin'],
     modes: ['propietario'],
     requiresOwnership: true,
+    order: {
+      propietario: 0,
+    },
   },
   {
     id: 'empleo',
@@ -83,7 +109,10 @@ export const ALL_TABS: TabDefinition[] = [
     iosIcon: 'briefcase.fill',
     androidIcon: 'work',
     roles: ['cliente', 'propietario', 'admin'],
-    modes: ['cliente'],
+    modes: ['propietario'],
+    order: {
+      propietario: 1,
+    },
   },
   {
     id: 'admin',
@@ -93,6 +122,9 @@ export const ALL_TABS: TabDefinition[] = [
     androidIcon: 'settings',
     roles: ['admin'],
     modes: ['admin'],
+    order: {
+      admin: 0,
+    },
   },
   {
     id: 'perfil',
@@ -102,6 +134,11 @@ export const ALL_TABS: TabDefinition[] = [
     androidIcon: 'person',
     roles: ['cliente', 'propietario', 'admin'],
     modes: ['cliente', 'propietario', 'admin'],
+    order: {
+      cliente: 5,
+      propietario: 4,
+      admin: 2,
+    },
   },
 ];
 
@@ -113,7 +150,7 @@ export function getTabsForContext(
   currentMode: 'cliente' | 'propietario' | 'admin',
   isOwner: boolean = false
 ): TabDefinition[] {
-  return ALL_TABS.filter(tab => {
+  const filteredTabs = ALL_TABS.filter(tab => {
     // Check if tab is available for this role
     if (!tab.roles.includes(userRole)) {
       return false;
@@ -131,13 +168,26 @@ export function getTabsForContext(
 
     return true;
   });
+
+  // Sort tabs by their order for the current mode
+  return filteredTabs.sort((a, b) => {
+    const orderA = a.order[currentMode] ?? 999;
+    const orderB = b.order[currentMode] ?? 999;
+    return orderA - orderB;
+  });
 }
 
 /**
- * Predefined tab sets for common scenarios
+ * Predefined tab sets for common scenarios (for reference only)
+ * Actual order is determined by the order property in each tab definition
  */
 export const TAB_SETS = {
-  cliente: ['home', 'eventos', 'favoritos', 'explorar', 'social', 'perfil'],
-  propietario: ['gestion', 'favoritos', 'explorar', 'social', 'perfil'],
+  // Modo Cliente: Eventos, Locales Favoritos, Explorar, Social, Mi Perfil
+  cliente: ['eventos', 'favoritos', 'explorar', 'social', 'perfil'],
+  
+  // Modo Propietario: Gestión de Locales, Empleo, Explorar, Social, Perfil del Local
+  propietario: ['gestion', 'empleo', 'explorar', 'social', 'perfil'],
+  
+  // Modo Admin: Panel Admin, Explorar, Mi Perfil
   admin: ['admin', 'explorar', 'perfil'],
 };

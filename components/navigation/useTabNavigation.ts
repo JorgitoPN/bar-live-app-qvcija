@@ -1,6 +1,6 @@
 
 /**
- * TAB NAVIGATION HOOK - v1.0.0
+ * TAB NAVIGATION HOOK - v1.1.0
  * 
  * Custom hook to manage tab navigation state and logic.
  */
@@ -36,12 +36,12 @@ export function useTabNavigation() {
       isOwner
     );
 
-    console.log('🎯 [useTabNavigation] Computed tabs:', {
+    console.log('🎯 [useTabNavigation v1.1.0] Computed tabs:', {
       userRole,
       currentMode,
       isOwner,
       tabCount: contextTabs.length,
-      tabs: contextTabs.map(t => t.id).join(', ')
+      tabs: contextTabs.map(t => `${t.id} (order: ${t.order[currentMode]})`).join(', ')
     });
 
     return contextTabs;
