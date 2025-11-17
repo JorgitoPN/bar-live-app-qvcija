@@ -208,7 +208,7 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                 <IconSymbol
                   name={tab.icon as any}
                   size={32}
-                  color={active ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.6)'}
+                  color={active ? 'rgb(255, 255, 255)' : 'rgba(255, 255, 255, 0.6)'}
                   weight={active ? 'fill' : 'regular'}
                 />
               </View>
@@ -301,7 +301,8 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   profileAvatarActive: {
-    borderColor: 'rgba(255, 255, 255, 0.9)',
+    borderColor: 'rgb(255, 255, 255)',
+    borderWidth: 3,
   },
   profileAvatarPlaceholder: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
