@@ -226,6 +226,7 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
           // Active icons MUST be pure white (#FFFFFF) with 100% opacity
           // Inactive icons use rgba(255, 255, 255, 0.6) as the COLOR VALUE (not opacity)
           // This ensures the icon itself is always at 100% opacity, but the color contains transparency
+          // REMOVED weight prop as it doesn't work consistently across platforms
           return (
             <TouchableOpacity
               key={tab.name}
@@ -244,8 +245,6 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                   name={tab.icon as any}
                   size={32}
                   color={active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.6)'}
-                  weight={active ? 'fill' : 'regular'}
-                  style={styles.iconBase}
                 />
               </View>
             </TouchableOpacity>
@@ -308,12 +307,6 @@ const styles = StyleSheet.create({
   },
   tabContentActive: {
     backgroundColor: 'transparent',
-  },
-  // ✅ CRITICAL FIX: Base icon style - ALWAYS 100% opacity
-  // The color prop handles the transparency, not the opacity style
-  // This ensures active icons are pure white and inactive icons are semi-transparent white
-  iconBase: {
-    opacity: 1,
   },
   centerButton: {
     width: 64,

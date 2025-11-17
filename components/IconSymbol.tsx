@@ -132,6 +132,7 @@ const MAPPING = {
   "map": "map",
   "compass.drawing": "explore",
   "mappin": "place",
+  "mappin.circle.fill": "place",
   "building.2": "business",
 
   // Time & Calendar
@@ -175,6 +176,9 @@ const MAPPING = {
   
   // ✅ ADDED: Missing icon mapping for sparkles (explorar/center button)
   "sparkles": "auto-awesome",
+  
+  // ✅ ADDED: Missing icon mapping for photo.on.rectangle (empty state)
+  "photo.on.rectangle": "photo-library",
 } as Partial<
   Record<
     import("expo-symbols").SymbolViewProps["name"],
@@ -193,7 +197,7 @@ export type IconSymbolName = keyof typeof MAPPING;
  * ✅ CRITICAL FIX: Icons now properly handle color with 100% opacity
  * - Active icons receive color="#FFFFFF" (pure white)
  * - Inactive icons receive color="rgba(255, 255, 255, 0.6)" (semi-transparent white)
- * - The style prop should NOT contain opacity, as it's handled by the color value
+ * - NO opacity style is applied - transparency is handled by the color value itself
  */
 export function IconSymbol({
   name,
