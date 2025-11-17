@@ -1645,6 +1645,7 @@ export default function LocalPerfilScreen() {
               style={styles.provinciaList}
               contentContainerStyle={styles.provinciaListContent}
               showsVerticalScrollIndicator={true}
+              nestedScrollEnabled={true}
             >
               {PROVINCIAS.map((provincia, index) => (
                 <TouchableOpacity
@@ -2382,7 +2383,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    maxHeight: height * 0.75,
+    height: height * 0.75,
     paddingBottom: 34,
   },
   provinciaModalHeader: {
@@ -2437,13 +2438,5 @@ const styles = StyleSheet.create({
   provinciaItemTextSelected: {
     fontWeight: '600',
     color: colors.primary,
-  },
-  emptyProvinciaState: {
-    padding: 40,
-    alignItems: 'center',
-  },
-  emptyProvinciaText: {
-    fontSize: 14,
-    color: colors.textSecondary,
   },
 });
