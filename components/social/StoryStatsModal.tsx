@@ -10,10 +10,14 @@ import {
   Image,
   TouchableOpacity,
   ActivityIndicator,
+  Animated,
+  Dimensions,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const MAX_MODAL_HEIGHT = SCREEN_HEIGHT * 0.7;
 
 interface StoryStatsModalProps {
   visible: boolean;
@@ -55,6 +59,26 @@ export default function StoryStatsModal({
   loading = false,
 }: StoryStatsModalProps) {
   const [activeTab, setActiveTab] = React.useState<'views' | 'likes'>('views');
+  const slideAnim = React.useRef(new Animated.Value(MAX_MODAL_HEIGHT)).current;
+
+  React.useEffect(() => {
+    if (visible) {
+      // Slide up animation
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 65,
+        friction: 11,
+      }).start();
+    } else {
+      // Slide down animation
+      Animated.timing(slideAnim, {
+        toValue: MAX_MODAL_HEIGHT,
+        duration: 250,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [visible, slideAnim]);
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -71,131 +95,153 @@ export default function StoryStatsModal({
     return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
   };
 
+  if (!visible) return null;
+
   return (
     <Modal
       visible={visible}
-      animationType="slide"
+      animationType="none"
       transparent={true}
       onRequestClose={onClose}
+      statusBarTranslucent
     >
+      {/* Dimmed background - tapping closes the modal */}
       <Pressable style={styles.modalOverlay} onPress={onClose}>
-        <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Estadísticas de Historia</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <IconSymbol name="xmark" size={24} color={colors.text} />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.tabsContainer}>
-            <TouchableOpacity
-              style={[styles.tab, activeTab === 'views' && styles.tabActive]}
-              onPress={() => setActiveTab('views')}
-            >
-              <IconSymbol
-                name="eye"
-                size={20}
-                color={activeTab === 'views' ? colors.primary : colors.textSecondary}
-              />
-              <Text style={[styles.tabText, activeTab === 'views' && styles.tabTextActive]}>
-                Vistas ({viewsCount})
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.tab, activeTab === 'likes' && styles.tabActive]}
-              onPress={() => setActiveTab('likes')}
-            >
-              <IconSymbol
-                name="heart"
-                size={20}
-                color={activeTab === 'likes' ? colors.primary : colors.textSecondary}
-              />
-              <Text style={[styles.tabText, activeTab === 'likes' && styles.tabTextActive]}>
-                Me gusta ({likesCount})
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {loading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.primary} />
+        {/* Bottom sheet - prevent close when tapping inside */}
+        <Animated.View
+          style={[
+            styles.modalContent,
+            {
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
+          <Pressable onPress={(e) => e.stopPropagation()}>
+            {/* Drag handle */}
+            <View style={styles.dragHandleContainer}>
+              <View style={styles.dragHandle} />
             </View>
-          ) : (
-            <ScrollView style={styles.listContainer}>
-              {activeTab === 'views' ? (
-                views.length > 0 ? (
-                  views.map((view) => (
-                    <View key={view.id} style={styles.userItem}>
-                      {view.usuario?.avatar ? (
-                        <Image
-                          source={{ uri: view.usuario.avatar }}
-                          style={styles.userAvatar}
-                        />
-                      ) : (
-                        <View style={[styles.userAvatar, styles.avatarPlaceholder]}>
-                          <Text style={styles.avatarText}>
-                            {view.usuario?.nombre?.charAt(0).toUpperCase() || 'U'}
-                          </Text>
-                        </View>
-                      )}
-                      <View style={styles.userInfo}>
-                        <Text style={styles.userName}>
-                          {view.usuario?.nombre || 'Usuario'}
-                        </Text>
-                        {view.usuario?.username && (
-                          <Text style={styles.userUsername}>
-                            @{view.usuario.username}
-                          </Text>
+
+            {/* Header */}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Estadísticas</Text>
+              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                <IconSymbol name="xmark" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Tabs */}
+            <View style={styles.tabsContainer}>
+              <TouchableOpacity
+                style={[styles.tab, activeTab === 'views' && styles.tabActive]}
+                onPress={() => setActiveTab('views')}
+              >
+                <IconSymbol
+                  name="eye"
+                  size={20}
+                  color={activeTab === 'views' ? colors.primary : colors.textSecondary}
+                />
+                <Text style={[styles.tabText, activeTab === 'views' && styles.tabTextActive]}>
+                  Vistas ({viewsCount})
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.tab, activeTab === 'likes' && styles.tabActive]}
+                onPress={() => setActiveTab('likes')}
+              >
+                <IconSymbol
+                  name="heart"
+                  size={20}
+                  color={activeTab === 'likes' ? colors.primary : colors.textSecondary}
+                />
+                <Text style={[styles.tabText, activeTab === 'likes' && styles.tabTextActive]}>
+                  Me gusta ({likesCount})
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Content */}
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={colors.primary} />
+              </View>
+            ) : (
+              <ScrollView style={styles.listContainer} showsVerticalScrollIndicator={false}>
+                {activeTab === 'views' ? (
+                  views.length > 0 ? (
+                    views.map((view) => (
+                      <View key={view.id} style={styles.userItem}>
+                        {view.usuario?.avatar ? (
+                          <Image
+                            source={{ uri: view.usuario.avatar }}
+                            style={styles.userAvatar}
+                          />
+                        ) : (
+                          <View style={[styles.userAvatar, styles.avatarPlaceholder]}>
+                            <Text style={styles.avatarText}>
+                              {view.usuario?.nombre?.charAt(0).toUpperCase() || 'U'}
+                            </Text>
+                          </View>
                         )}
-                      </View>
-                      <Text style={styles.timeText}>{formatTime(view.viewed_at)}</Text>
-                    </View>
-                  ))
-                ) : (
-                  <View style={styles.emptyState}>
-                    <IconSymbol name="eye" size={48} color={colors.textSecondary} />
-                    <Text style={styles.emptyText}>Aún no hay vistas</Text>
-                  </View>
-                )
-              ) : (
-                likes.length > 0 ? (
-                  likes.map((like) => (
-                    <View key={like.id} style={styles.userItem}>
-                      {like.usuario?.avatar ? (
-                        <Image
-                          source={{ uri: like.usuario.avatar }}
-                          style={styles.userAvatar}
-                        />
-                      ) : (
-                        <View style={[styles.userAvatar, styles.avatarPlaceholder]}>
-                          <Text style={styles.avatarText}>
-                            {like.usuario?.nombre?.charAt(0).toUpperCase() || 'U'}
+                        <View style={styles.userInfo}>
+                          <Text style={styles.userName}>
+                            {view.usuario?.nombre || 'Usuario'}
                           </Text>
+                          {view.usuario?.username && (
+                            <Text style={styles.userUsername}>
+                              @{view.usuario.username}
+                            </Text>
+                          )}
                         </View>
-                      )}
-                      <View style={styles.userInfo}>
-                        <Text style={styles.userName}>
-                          {like.usuario?.nombre || 'Usuario'}
-                        </Text>
-                        {like.usuario?.username && (
-                          <Text style={styles.userUsername}>
-                            @{like.usuario.username}
-                          </Text>
-                        )}
+                        <Text style={styles.timeText}>{formatTime(view.viewed_at)}</Text>
                       </View>
-                      <Text style={styles.timeText}>{formatTime(like.created_at)}</Text>
+                    ))
+                  ) : (
+                    <View style={styles.emptyState}>
+                      <IconSymbol name="eye" size={48} color={colors.textSecondary} />
+                      <Text style={styles.emptyText}>Aún no hay vistas</Text>
                     </View>
-                  ))
+                  )
                 ) : (
-                  <View style={styles.emptyState}>
-                    <IconSymbol name="heart" size={48} color={colors.textSecondary} />
-                    <Text style={styles.emptyText}>Aún no hay me gusta</Text>
-                  </View>
-                )
-              )}
-            </ScrollView>
-          )}
-        </Pressable>
+                  likes.length > 0 ? (
+                    likes.map((like) => (
+                      <View key={like.id} style={styles.userItem}>
+                        {like.usuario?.avatar ? (
+                          <Image
+                            source={{ uri: like.usuario.avatar }}
+                            style={styles.userAvatar}
+                          />
+                        ) : (
+                          <View style={[styles.userAvatar, styles.avatarPlaceholder]}>
+                            <Text style={styles.avatarText}>
+                              {like.usuario?.nombre?.charAt(0).toUpperCase() || 'U'}
+                            </Text>
+                          </View>
+                        )}
+                        <View style={styles.userInfo}>
+                          <Text style={styles.userName}>
+                            {like.usuario?.nombre || 'Usuario'}
+                          </Text>
+                          {like.usuario?.username && (
+                            <Text style={styles.userUsername}>
+                              @{like.usuario.username}
+                            </Text>
+                          )}
+                        </View>
+                        <Text style={styles.timeText}>{formatTime(like.created_at)}</Text>
+                      </View>
+                    ))
+                  ) : (
+                    <View style={styles.emptyState}>
+                      <IconSymbol name="heart" size={48} color={colors.textSecondary} />
+                      <Text style={styles.emptyText}>Aún no hay me gusta</Text>
+                    </View>
+                  )
+                )}
+              </ScrollView>
+            )}
+          </Pressable>
+        </Animated.View>
       </Pressable>
     </Modal>
   );
@@ -204,20 +250,39 @@ export default function StoryStatsModal({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'flex-end',
   },
   modalContent: {
     backgroundColor: colors.background,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: '80%',
+    maxHeight: MAX_MODAL_HEIGHT,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: -4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 10,
+  },
+  dragHandleContainer: {
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  dragHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: colors.cardBorder,
+    borderRadius: 2,
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
   },
@@ -264,13 +329,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   listContainer: {
-    maxHeight: 500,
+    maxHeight: MAX_MODAL_HEIGHT - 200,
   },
   userItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 0.5,
     borderBottomColor: colors.cardBorder,
   },
   userAvatar: {

@@ -632,6 +632,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginLeft: 8,
   },
+  storyStatsButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
   storyDeleteButtonBottom: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1611,6 +1620,7 @@ export default function SocialScreen() {
       return;
     }
 
+    // Pause the story timer
     setIsPaused(true);
     stopStoryTimer();
 
@@ -2242,7 +2252,7 @@ export default function SocialScreen() {
 
       </ScrollView>
 
-      {/* ✅ FIXED: Story Viewer Modal - Now properly rendered */}
+      {/* ✅ Story Viewer Modal with embedded Stats Modal */}
       <Modal
         visible={showStoryViewer}
         animationType="fade"
@@ -2250,6 +2260,7 @@ export default function SocialScreen() {
           setShowStoryViewer(false);
           stopStoryTimer();
         }}
+        statusBarTranslucent
       >
         <View style={styles.storyViewerModal}>
           {currentStory && (
@@ -2288,7 +2299,7 @@ export default function SocialScreen() {
                   {/* Stats button for own stories */}
                   {isCurrentStoryOwner && (
                     <TouchableOpacity
-                      style={styles.storyDeleteButton}
+                      style={styles.storyStatsButton}
                       onPress={handleViewStoryStats}
                       activeOpacity={0.7}
                     >
@@ -2376,6 +2387,22 @@ export default function SocialScreen() {
                   )}
                 </View>
               )}
+
+              {/* ✅ Stats Modal - Rendered INSIDE the story viewer */}
+              <StoryStatsModal
+                visible={showStoryStats}
+                onClose={() => {
+                  setShowStoryStats(false);
+                  setIsPaused(false);
+                  startStoryTimer();
+                }}
+                storyId={currentStory.id}
+                viewsCount={currentStory.views_count || 0}
+                likesCount={storyLikes.length}
+                views={storyViews}
+                likes={storyLikes}
+                loading={loadingStats}
+              />
             </>
           )}
         </View>
@@ -2591,21 +2618,6 @@ export default function SocialScreen() {
           </Pressable>
         </Pressable>
       </Modal>
-
-      <StoryStatsModal
-        visible={showStoryStats}
-        onClose={() => {
-          setShowStoryStats(false);
-          setIsPaused(false);
-          startStoryTimer();
-        }}
-        storyId={currentStory?.id || ''}
-        viewsCount={currentStory?.views_count || 0}
-        likesCount={currentStory?.likes_count || 0}
-        views={storyViews}
-        likes={storyLikes}
-        loading={loadingStats}
-      />
 
       <LoginRequiredModal
         visible={showLoginModal}
