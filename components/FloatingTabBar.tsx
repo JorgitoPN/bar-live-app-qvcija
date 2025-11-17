@@ -168,7 +168,7 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                   end={{ x: 1, y: 1 }}
                   style={styles.centerGradient}
                 >
-                  <IconSymbol name={tab.icon as any} size={32} color={colors.white} />
+                  <IconSymbol name={tab.icon as any} size={32} color="#FFFFFF" />
                 </LinearGradient>
               </TouchableOpacity>
             );
@@ -214,10 +214,6 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                         name={activeProfileType === 'local' ? 'building.2' : 'person.fill'}
                         size={18}
                         color="#FFFFFF"
-                        style={[
-                          styles.iconBase,
-                          active && styles.iconActive
-                        ]}
                       />
                     </View>
                   )}
@@ -226,6 +222,9 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
             );
           }
 
+          // ✅ CRITICAL FIX: Render regular icons with proper active state
+          // Active icons MUST be pure white (#FFFFFF) with 100% opacity
+          // Inactive icons use rgba(255, 255, 255, 0.6) for subtle appearance
           return (
             <TouchableOpacity
               key={tab.name}
@@ -243,12 +242,9 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                 <IconSymbol
                   name={tab.icon as any}
                   size={32}
-                  color={active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.6)'}
+                  color="#FFFFFF"
                   weight={active ? 'fill' : 'regular'}
-                  style={[
-                    styles.iconBase,
-                    active && styles.iconActive
-                  ]}
+                  style={active ? styles.iconActive : styles.iconInactive}
                 />
               </View>
             </TouchableOpacity>
@@ -312,15 +308,17 @@ const styles = StyleSheet.create({
   tabContentActive: {
     backgroundColor: 'transparent',
   },
-  // ✅ FIXED: Base icon styles - pure white with 100% opacity, no filters
-  iconBase: {
-    opacity: 1,
-  },
-  // ✅ FIXED: Active icon - pure white (#FFFFFF) with 100% opacity, no filters
-  // This ensures active icons are always visible and meet accessibility standards
+  // ✅ CRITICAL FIX: Active icons - pure white (#FFFFFF) with 100% opacity
+  // NO filters, NO transparency, NO rgba - just solid white
+  // This ensures maximum visibility and proper contrast on the colored background
   iconActive: {
-    color: '#FFFFFF',
     opacity: 1,
+    // Note: color is passed as prop to IconSymbol, not in style
+  },
+  // ✅ CRITICAL FIX: Inactive icons - 60% opacity for subtle appearance
+  // This creates clear visual distinction between active and inactive states
+  iconInactive: {
+    opacity: 0.6,
   },
   centerButton: {
     width: 64,
@@ -348,8 +346,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
-  // ✅ FIXED: Contour now shows when the profile tab itself is active
-  // Using solid white color (#FFFFFF) with no transparency for maximum visibility
+  // ✅ CRITICAL FIX: Profile avatar contour - pure white with strong visibility
+  // Solid white border (#FFFFFF) with enhanced shadow for maximum contrast
+  // This matches the active icon styling for consistency
   profileAvatarWithContour: {
     borderWidth: 2.5,
     borderColor: '#FFFFFF',
