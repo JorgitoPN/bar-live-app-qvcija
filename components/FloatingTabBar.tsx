@@ -220,7 +220,7 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                         source={{ uri: activeAvatar }} 
                         style={[
                           styles.profileAvatar,
-                          // ✅ UNIFIED: Active state now uses pure white border (matching icon behavior)
+                          // ✅ FIX: Reduced border width from 4 to 2 for thinner border when active
                           active && styles.profileAvatarActive
                         ]} 
                         resizeMode="cover"
@@ -229,7 +229,7 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                       <View style={[
                         styles.profileAvatar,
                         styles.profileAvatarPlaceholder,
-                        // ✅ UNIFIED: Active state now uses pure white border (matching icon behavior)
+                        // ✅ FIX: Reduced border width from 4 to 2 for thinner border when active
                         active && styles.profileAvatarActive
                       ]}>
                         <IconSymbol
@@ -268,6 +268,7 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                   <IconSymbol
                     name={tab.icon as any}
                     size={32}
+                    // ✅ CRITICAL FIX: Pure white (#FFFFFF) when active, semi-transparent when inactive
                     color={active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.4)'}
                     style={styles.iconBase}
                   />
@@ -383,10 +384,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
-  // ✅ UNIFIED: Profile avatar active state with PURE WHITE border and NO opacity interference
+  // ✅ FIX: Reduced border width from 4 to 2 for thinner border when active
+  // Profile avatar active state with PURE WHITE border and NO opacity interference
   // Matches the behavior of regular active icons (pure white #FFFFFF)
   profileAvatarActive: {
-    borderWidth: 4,
+    borderWidth: 2,
     borderColor: '#FFFFFF',
     // Note: Shadow/glow is applied by the parent activeIconContainer
   },
