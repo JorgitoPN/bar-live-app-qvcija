@@ -162,7 +162,7 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
           }
 
           // 🆕 FEATURE 2: For profile tab, show the active profile avatar (user or local)
-          // 🔧 FIX: Avatar contour now shows on ALL tabs, not just when active
+          // 🔧 FIX: Avatar contour now ONLY shows when the profile tab is active, and is thinner (1.5px)
           if (tab.name === 'perfil') {
             return (
               <TouchableOpacity
@@ -177,19 +177,19 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                       source={{ uri: activeAvatar }} 
                       style={[
                         styles.profileAvatar,
-                        styles.profileAvatarWithContour
+                        active && styles.profileAvatarWithContour
                       ]} 
                     />
                   ) : (
                     <View style={[
                       styles.profileAvatar,
                       styles.profileAvatarPlaceholder,
-                      styles.profileAvatarWithContour
+                      active && styles.profileAvatarWithContour
                     ]}>
                       <IconSymbol
                         name={activeProfileType === 'local' ? 'building.2' : 'person.fill'}
                         size={18}
-                        color={active ? 'rgb(255, 255, 255)' : 'rgba(255, 255, 255, 0.6)'}
+                        color="#FFFFFF"
                       />
                     </View>
                   )}
@@ -209,7 +209,7 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                 <IconSymbol
                   name={tab.icon as any}
                   size={32}
-                  color={active ? 'rgb(255, 255, 255)' : 'rgba(255, 255, 255, 0.6)'}
+                  color={active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.4)'}
                   weight={active ? 'fill' : 'regular'}
                 />
               </View>
@@ -299,15 +299,15 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
   },
-  // 🔧 NEW: Avatar contour that shows on ALL tabs
+  // 🔧 FIXED: Thinner contour (1.5px) that ONLY shows when profile tab is active
   profileAvatarWithContour: {
-    borderWidth: 3,
-    borderColor: 'rgb(255, 255, 255)',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
     shadowColor: '#FFFFFF',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowOpacity: 0.6,
+    shadowRadius: 3,
+    elevation: 4,
   },
   profileAvatarPlaceholder: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
