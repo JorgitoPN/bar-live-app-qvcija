@@ -223,10 +223,9 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
             );
           }
 
-          // ✅ CRITICAL FIX: Render regular icons with proper active state
-          // Active icons MUST be pure white (#FFFFFF) with 100% opacity
-          // Inactive icons use rgba(255, 255, 255, 0.6) as the COLOR VALUE (not opacity)
-          // This ensures the icon itself is always at 100% opacity, but the color contains transparency
+          // ✅ CRITICAL FIX: Render regular icons with ENHANCED active state visibility
+          // Active icons: Pure white (#FFFFFF) with 100% opacity + subtle glow effect
+          // Inactive icons: Semi-transparent white (rgba(255, 255, 255, 0.5)) for better contrast
           return (
             <TouchableOpacity
               key={tab.name}
@@ -241,12 +240,14 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
               aria-current={active ? 'page' : undefined}
             >
               <View style={[styles.tabContent, active && styles.tabContentActive]}>
-                <IconSymbol
-                  name={tab.icon as any}
-                  size={32}
-                  color={active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.6)'}
-                  style={styles.iconBase}
-                />
+                <View style={active ? styles.activeIconContainer : undefined}>
+                  <IconSymbol
+                    name={tab.icon as any}
+                    size={32}
+                    color={active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.5)'}
+                    style={styles.iconBase}
+                  />
+                </View>
               </View>
             </TouchableOpacity>
           );
@@ -309,6 +310,14 @@ const styles = StyleSheet.create({
   tabContentActive: {
     backgroundColor: 'transparent',
   },
+  // ✅ ENHANCED: Active icon container with subtle glow effect for better visibility
+  activeIconContainer: {
+    shadowColor: '#FFFFFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
+    elevation: 5,
+  },
   // ✅ CRITICAL FIX: Base icon style with 100% opacity
   // This ensures icons are always fully opaque, with transparency handled by color value
   iconBase: {
@@ -340,17 +349,16 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
-  // ✅ CRITICAL FIX: Profile avatar contour - pure white with strong visibility
-  // Solid white border (#FFFFFF) with enhanced shadow for maximum contrast
-  // This matches the active icon styling for consistency
+  // ✅ ENHANCED: Profile avatar contour with stronger white border and glow
+  // Increased border width and shadow for maximum visibility
   profileAvatarWithContour: {
-    borderWidth: 2.5,
+    borderWidth: 3,
     borderColor: '#FFFFFF',
     shadowColor: '#FFFFFF',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 1,
-    shadowRadius: 6,
-    elevation: 8,
+    shadowRadius: 8,
+    elevation: 10,
   },
   profileAvatarPlaceholder: {
     backgroundColor: 'rgba(255, 255, 255, 0.15)',

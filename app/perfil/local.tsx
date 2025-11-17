@@ -730,8 +730,18 @@ export default function LocalPerfilScreen() {
   const getTabsForRole = (): TabBarItem[] => {
     const userRole = user?.rol_app || 'cliente';
 
+    console.log('[LocalPerfil] 🔍 Determining tabs:', {
+      userRole,
+      currentMode,
+      isOwner,
+      localId,
+      activeProfileId,
+      activeProfileType
+    });
+
     // Admin mode
     if (userRole === 'admin' && currentMode === 'admin') {
+      console.log('[LocalPerfil] 📋 Showing ADMIN tabs');
       return [
         {
           name: 'admin',
@@ -754,9 +764,9 @@ export default function LocalPerfilScreen() {
       ];
     }
 
-    // ✅ FIX: If user is owner of this local AND in propietario mode, show owner tabs
+    // ✅ FIX: If user is owner of this local AND in propietario mode, show owner tabs with GESTION icon
     if (isOwner && currentMode === 'propietario') {
-      console.log('[LocalPerfil] 🏢 Showing OWNER tabs (gestion, favoritos, social)');
+      console.log('[LocalPerfil] 🏢 Showing OWNER tabs (gestion, favoritos, social) - User owns this local');
       return [
         {
           name: 'gestion',
@@ -792,7 +802,7 @@ export default function LocalPerfilScreen() {
     }
 
     // Default: client tabs (eventos, favoritos, social)
-    console.log('[LocalPerfil] 👤 Showing CLIENT tabs (eventos, favoritos, social)');
+    console.log('[LocalPerfil] 👤 Showing CLIENT tabs (eventos, favoritos, social) - Not owner or not in propietario mode');
     return [
       {
         name: 'eventos',
