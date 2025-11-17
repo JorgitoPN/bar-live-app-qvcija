@@ -190,7 +190,7 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
                 accessibilityLabel={tab.label}
-                // @ts-ignore - aria attributes for web accessibility
+                // @ts-expect-error - aria attributes for web accessibility
                 aria-pressed={active}
                 aria-current={active ? 'page' : undefined}
               >
@@ -235,7 +235,7 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
               accessibilityRole="button"
               accessibilityState={{ selected: active }}
               accessibilityLabel={tab.label}
-              // @ts-ignore - aria attributes for web accessibility
+              // @ts-expect-error - aria attributes for web accessibility
               aria-pressed={active}
               aria-current={active ? 'page' : undefined}
             >
@@ -243,11 +243,11 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                 <IconSymbol
                   name={tab.icon as any}
                   size={32}
-                  color="#FFFFFF"
+                  color={active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.6)'}
                   weight={active ? 'fill' : 'regular'}
                   style={[
                     styles.iconBase,
-                    active ? styles.iconActive : styles.iconInactive
+                    active && styles.iconActive
                   ]}
                 />
               </View>
@@ -312,17 +312,15 @@ const styles = StyleSheet.create({
   tabContentActive: {
     backgroundColor: 'transparent',
   },
-  // 🔧 FIX: Base icon styles - ensure no opacity or filters are applied
+  // ✅ FIXED: Base icon styles - pure white with 100% opacity, no filters
   iconBase: {
     opacity: 1,
   },
-  // 🔧 FIX: Active icon - pure white (#FFFFFF) with 100% opacity, no filters
+  // ✅ FIXED: Active icon - pure white (#FFFFFF) with 100% opacity, no filters
+  // This ensures active icons are always visible and meet accessibility standards
   iconActive: {
+    color: '#FFFFFF',
     opacity: 1,
-  },
-  // 🔧 FIX: Inactive icon - reduced opacity for visual hierarchy
-  iconInactive: {
-    opacity: 0.6,
   },
   centerButton: {
     width: 64,
@@ -350,7 +348,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
-  // 🔧 FIXED: Contour now shows when the profile tab itself is active
+  // ✅ FIXED: Contour now shows when the profile tab itself is active
   // Using solid white color (#FFFFFF) with no transparency for maximum visibility
   profileAvatarWithContour: {
     borderWidth: 2.5,
