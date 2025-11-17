@@ -33,6 +33,9 @@ import OfertaTrabajoCard from '@/components/empleo/OfertaTrabajoCard';
 import PerfilProfesionalCard from '@/components/empleo/PerfilProfesionalCard';
 import { PROVINCIAS, getProvinceVariations, filterByProvincia } from '@/utils/provinceNormalizer';
 
+// ✅ VERSION MARKER - Force cache bust: v2.0.1
+const SCREEN_VERSION = '2.0.1';
+
 const { width, height } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
 
@@ -167,6 +170,7 @@ export default function LocalPerfilScreen() {
   });
 
   useEffect(() => {
+    console.log(`⚡ LocalPerfilScreen v${SCREEN_VERSION} mounted`);
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -1705,7 +1709,7 @@ export default function LocalPerfilScreen() {
       <FloatingTabBar 
         tabs={tabs} 
         containerWidth={width}
-        key={`${user?.rol_app || 'cliente'}-${currentMode}-${isOwner}-${activeProfileType}-${activeProfileId}-${localId}`}
+        key={`${user?.rol_app || 'cliente'}-${currentMode}-${isOwner}-${activeProfileType}-${activeProfileId}-${localId}-v${SCREEN_VERSION}`}
       />
     </View>
   );

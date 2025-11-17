@@ -9,6 +9,9 @@ import { useMode } from '@/contexts/ModeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import Svg, { Path } from 'react-native-svg';
 
+// ✅ VERSION MARKER - Force cache bust: v2.0.1
+const COMPONENT_VERSION = '2.0.1';
+
 export interface TabBarItem {
   name: string;
   route: string;
@@ -30,7 +33,7 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
   const lastNavigationTime = useRef(0);
 
   useEffect(() => {
-    console.log('⚡ FloatingTabBar mounted, pathname:', pathname);
+    console.log(`⚡ FloatingTabBar v${COMPONENT_VERSION} mounted, pathname:`, pathname);
     console.log('⚡ FloatingTabBar tabs:', tabs.map(t => ({ name: t.name, icon: t.icon })));
   }, [pathname, tabs]);
 
@@ -261,7 +264,7 @@ export default function FloatingTabBar({ tabs, containerWidth }: FloatingTabBarP
                   <IconSymbol
                     name={tab.icon as any}
                     size={32}
-                    color={active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.4)'}
+                    color={active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.6)'}
                   />
                 </View>
               </View>
@@ -331,8 +334,8 @@ const styles = StyleSheet.create({
     shadowColor: '#FFFFFF',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 1,
-    shadowRadius: 16,
-    elevation: 12,
+    shadowRadius: 20,
+    elevation: 16,
   },
   inactiveIconContainer: {
     shadowColor: 'transparent',
