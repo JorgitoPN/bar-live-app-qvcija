@@ -131,6 +131,23 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
       return;
     }
 
+    // If already active, show confirmation to deactivate
+    if (local.destacado && suscripcion.destacado_activo) {
+      Alert.alert(
+        '⚠️ Desactivar Destacado',
+        'Si desactivas el destacado ahora, perderás el crédito utilizado y el tiempo restante de promoción.\n\n¿Estás seguro de que deseas continuar?',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Sí, Desactivar',
+            style: 'destructive',
+            onPress: () => processDeactivateDestacado(),
+          },
+        ]
+      );
+      return;
+    }
+
     // Check if can activate destacado
     if (!local.destacado && suscripcion.creditos_destacados_restantes <= 0) {
       Alert.alert(
@@ -149,55 +166,93 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
       return;
     }
 
+    // Activate destacado
+    processActivateDestacado();
+  };
+
+  const processActivateDestacado = async () => {
+    const { suscripcion } = local;
+    if (!suscripcion) return;
+
     try {
       setUpdatingDestacado(true);
-
-      const newDestacadoValue = !local.destacado;
 
       // Update local destacado status
       const { error: localError } = await supabase
         .from('locales')
-        .update({ destacado: newDestacadoValue })
+        .update({ destacado: true })
         .eq('id', local.id);
 
       if (localError) throw localError;
 
       // Update subscription credits and destacado status
-      const updates: any = {
-        destacado_activo: newDestacadoValue,
-      };
-
-      if (newDestacadoValue) {
-        // Activating destacado - consume credit and set dates
-        updates.creditos_destacados_restantes = Math.max(0, suscripcion.creditos_destacados_restantes - 1);
-        updates.destacado_fecha_inicio = new Date().toISOString();
-        // Destacado lasts 30 days
-        const fechaFin = new Date();
-        fechaFin.setDate(fechaFin.getDate() + 30);
-        updates.destacado_fecha_fin = fechaFin.toISOString();
-      } else {
-        // Deactivating destacado
-        updates.destacado_fecha_fin = new Date().toISOString();
-      }
+      const fechaInicio = new Date();
+      const fechaFin = new Date();
+      fechaFin.setDate(fechaFin.getDate() + 30);
 
       const { error: subError } = await supabase
         .from('suscripciones_locales')
-        .update(updates)
+        .update({
+          destacado_activo: true,
+          creditos_destacados_restantes: Math.max(0, suscripcion.creditos_destacados_restantes - 1),
+          destacado_fecha_inicio: fechaInicio.toISOString(),
+          destacado_fecha_fin: fechaFin.toISOString(),
+          updated_at: new Date().toISOString(),
+        })
         .eq('id', suscripcion.id);
 
       if (subError) throw subError;
 
       Alert.alert(
-        'Éxito',
-        newDestacadoValue
-          ? 'Local destacado activado correctamente. Durará 30 días.'
-          : 'Local destacado desactivado correctamente.'
+        '✅ Destacado Activado',
+        'Tu local ahora está destacado y aparecerá en las primeras posiciones durante 30 días.\n\nCrédito consumido: 1'
       );
 
       onRefresh();
     } catch (error: any) {
-      console.error('[LocalSubscriptionCard] Error toggling destacado:', error);
-      Alert.alert('Error', 'No se pudo actualizar el estado destacado del local.');
+      console.error('[LocalSubscriptionCard] Error activating destacado:', error);
+      Alert.alert('Error', 'No se pudo activar el estado destacado del local.');
+    } finally {
+      setUpdatingDestacado(false);
+    }
+  };
+
+  const processDeactivateDestacado = async () => {
+    const { suscripcion } = local;
+    if (!suscripcion) return;
+
+    try {
+      setUpdatingDestacado(true);
+
+      // Update local destacado status
+      const { error: localError } = await supabase
+        .from('locales')
+        .update({ destacado: false })
+        .eq('id', local.id);
+
+      if (localError) throw localError;
+
+      // Update subscription destacado status
+      const { error: subError } = await supabase
+        .from('suscripciones_locales')
+        .update({
+          destacado_activo: false,
+          destacado_fecha_fin: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', suscripcion.id);
+
+      if (subError) throw subError;
+
+      Alert.alert(
+        'Destacado Desactivado',
+        'El estado destacado ha sido desactivado. El crédito utilizado no se recupera.'
+      );
+
+      onRefresh();
+    } catch (error: any) {
+      console.error('[LocalSubscriptionCard] Error deactivating destacado:', error);
+      Alert.alert('Error', 'No se pudo desactivar el estado destacado del local.');
     } finally {
       setUpdatingDestacado(false);
     }
@@ -260,9 +315,8 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
     router.push(`/gestion/planes-suscripcion?localId=${local.id}`);
   };
 
-  const renderProgressBar = (current: number, total: number, color: string, label: string) => {
-    const progress = total === 0 ? 0 : Math.min((current / total) * 100, 100);
-    const remaining = Math.max(0, total - current);
+  const renderProgressBar = (remaining: number, total: number, color: string, label: string) => {
+    const progress = total === 0 ? 0 : Math.min((remaining / total) * 100, 100);
 
     return (
       <View style={styles.progressContainer}>
@@ -487,7 +541,7 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
               {/* Featured Credits */}
               {renderProgressBar(
                 local.suscripcion.creditos_destacados_restantes,
-                local.suscripcion.creditos_destacados_restantes,
+                local.suscripcion.creditos_destacados_restantes + (local.suscripcion.destacado_activo ? 1 : 0),
                 colors.badgeDestacado,
                 'Destacados'
               )}
@@ -522,7 +576,9 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
                   <Text style={styles.destacadoTitle}>Local Destacado</Text>
                 </View>
                 <Text style={styles.destacadoSubtitle}>
-                  {local.suscripcion.creditos_destacados_restantes > 0
+                  {local.destacado && local.suscripcion.destacado_activo
+                    ? `Activo • ${calculateTimeRemaining(local.suscripcion.destacado_fecha_fin)} restantes`
+                    : local.suscripcion.creditos_destacados_restantes > 0
                     ? `${local.suscripcion.creditos_destacados_restantes} créditos disponibles`
                     : 'Sin créditos disponibles'}
                 </Text>
@@ -534,7 +590,7 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
                   updatingDestacado && styles.destacadoButtonDisabled,
                 ]}
                 onPress={handleToggleDestacado}
-                disabled={updatingDestacado}
+                disabled={updatingDestacado || (local.destacado && local.suscripcion.destacado_activo)}
               >
                 {updatingDestacado ? (
                   <ActivityIndicator size="small" color={colors.headerText} />

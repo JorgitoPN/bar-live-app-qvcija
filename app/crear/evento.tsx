@@ -32,9 +32,11 @@ interface LocalConPlan {
   direccion: string;
   ciudad: string | null;
   suscripcion?: {
+    id: string;
     plan_nombre: string;
     eventos_usados_mes: number;
     eventos_disponibles: number;
+    creditos_eventos_restantes: number;
     puede_crear_eventos: boolean;
   };
 }
@@ -88,7 +90,9 @@ export default function CrearEventoScreen() {
       const { data: suscripcion } = await supabase
         .from('suscripciones_locales')
         .select(`
+          id,
           eventos_usados_mes,
+          creditos_eventos_restantes,
           planes_suscripcion (
             nombre,
             eventos_mes
@@ -101,13 +105,18 @@ export default function CrearEventoScreen() {
       const planNombre = (suscripcion?.planes_suscripcion as any)?.nombre || 'basico';
       const eventosDisponibles = (suscripcion?.planes_suscripcion as any)?.eventos_mes || 0;
       const eventosUsados = suscripcion?.eventos_usados_mes || 0;
+      const creditosEventosRestantes = suscripcion?.creditos_eventos_restantes || 0;
+      
+      // Check if can create events based on credits
       const puedeCrearEventos =
-        planNombre !== 'basico' && (eventosDisponibles === 0 || eventosUsados < eventosDisponibles);
+        planNombre !== 'basico' && creditosEventosRestantes > 0;
 
       if (!puedeCrearEventos) {
         Alert.alert(
-          'Plan Requerido',
-          'El local seleccionado necesita un plan de pago activo para crear eventos. Activa un plan Estándar o Premium para desbloquear esta funcionalidad.',
+          'Sin Créditos de Eventos',
+          planNombre === 'basico'
+            ? 'El local seleccionado necesita un plan de pago activo para crear eventos. Activa un plan Estándar o Premium para desbloquear esta funcionalidad.'
+            : `No tienes créditos de eventos disponibles.\n\nCréditos restantes: ${creditosEventosRestantes}\n\nActualiza a un plan superior o espera a la renovación mensual.`,
           [
             { text: 'Cancelar', style: 'cancel', onPress: () => router.back() },
             {
@@ -125,9 +134,11 @@ export default function CrearEventoScreen() {
       setLocalData({
         ...localInfo,
         suscripcion: {
+          id: suscripcion?.id || '',
           plan_nombre: planNombre,
           eventos_usados_mes: eventosUsados,
           eventos_disponibles: eventosDisponibles,
+          creditos_eventos_restantes: creditosEventosRestantes,
           puede_crear_eventos: puedeCrearEventos,
         },
       });
@@ -238,6 +249,11 @@ export default function CrearEventoScreen() {
       return;
     }
 
+    if (!localData.suscripcion || localData.suscripcion.creditos_eventos_restantes <= 0) {
+      Alert.alert('Error', 'No tienes créditos de eventos disponibles');
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -273,22 +289,26 @@ export default function CrearEventoScreen() {
         return;
       }
 
+      // Update subscription: increment eventos_usados_mes AND decrement creditos_eventos_restantes
       const { error: updateError } = await supabase
         .from('suscripciones_locales')
         .update({
-          eventos_usados_mes: (localData.suscripcion?.eventos_usados_mes || 0) + 1,
+          eventos_usados_mes: (localData.suscripcion.eventos_usados_mes || 0) + 1,
+          creditos_eventos_restantes: Math.max(0, (localData.suscripcion.creditos_eventos_restantes || 0) - 1),
+          updated_at: new Date().toISOString(),
         })
-        .eq('local_id', selectedLocalId)
-        .eq('estado', 'activa');
+        .eq('id', localData.suscripcion.id);
 
       if (updateError) {
-        console.error('[CrearEvento] Error updating counter:', updateError);
+        console.error('[CrearEvento] Error updating credits:', updateError);
       }
 
       console.log('[CrearEvento] Evento creado:', data);
-      Alert.alert('¡Éxito!', 'Evento publicado correctamente', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      Alert.alert(
+        '✅ ¡Éxito!',
+        `Evento publicado correctamente.\n\nCrédito consumido: 1\nCréditos restantes: ${Math.max(0, localData.suscripcion.creditos_eventos_restantes - 1)}`,
+        [{ text: 'OK', onPress: () => router.back() }]
+      );
     } catch (error) {
       console.error('[CrearEvento] Error:', error);
       Alert.alert('Error', 'Ocurrió un error al crear el evento');
@@ -346,7 +366,7 @@ export default function CrearEventoScreen() {
 
       <ScrollView style={styles.content}>
         <View style={styles.form}>
-          {localData && (
+          {localData && localData.suscripcion && (
             <View style={styles.planInfoBanner}>
               <IconSymbol name="info.circle.fill" size={20} color={colors.primary} />
               <View style={styles.planInfoText}>
@@ -354,8 +374,8 @@ export default function CrearEventoScreen() {
                   Local: {localData.nombre}
                 </Text>
                 <Text style={styles.planInfoSubtitle}>
-                  Plan: {localData.suscripcion?.plan_nombre.toUpperCase()} • Eventos: {' '}
-                  {localData.suscripcion?.eventos_usados_mes || 0} / {localData.suscripcion?.eventos_disponibles || 0}
+                  Plan: {localData.suscripcion.plan_nombre.toUpperCase()} • Créditos eventos: {' '}
+                  {localData.suscripcion.creditos_eventos_restantes} restantes
                 </Text>
               </View>
             </View>
