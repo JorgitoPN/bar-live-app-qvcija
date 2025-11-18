@@ -17,6 +17,7 @@ import {
   Animated,
   Linking,
   TextInput,
+  FlatList,
 } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -34,8 +35,8 @@ import PerfilProfesionalCard from '@/components/empleo/PerfilProfesionalCard';
 import StoryStatsModal from '@/components/social/StoryStatsModal';
 import { PROVINCIAS, getProvinceVariations, filterByProvincia } from '@/utils/provinceNormalizer';
 
-// ✅ VERSION MARKER - Force cache bust: v3.0.0 - MAJOR UPDATE
-const SCREEN_VERSION = '3.0.0';
+// ✅ VERSION MARKER - Force cache bust: v3.1.0 - Followers/Following Modals
+const SCREEN_VERSION = '3.1.0';
 
 const { width, height } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -110,6 +111,14 @@ interface PerfilProfesional {
   created_at: string;
 }
 
+interface Seguidor {
+  id: string;
+  nombre: string;
+  username?: string;
+  avatar?: string;
+  bio?: string;
+}
+
 export default function LocalPerfilScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -159,6 +168,16 @@ export default function LocalPerfilScreen() {
   const [storyLikes, setStoryLikes] = useState<any[]>([]);
   const [loadingStats, setLoadingStats] = useState(false);
 
+  // ✅ NEW: Followers/Following modals state
+  const [showSeguidoresModal, setShowSeguidoresModal] = useState(false);
+  const [showSeguidosModal, setShowSeguidosModal] = useState(false);
+  const [seguidores, setSeguidores] = useState<Seguidor[]>([]);
+  const [seguidos, setSeguidos] = useState<Seguidor[]>([]);
+  const [loadingSeguidores, setLoadingSeguidores] = useState(false);
+  const [loadingSeguidos, setLoadingSeguidos] = useState(false);
+  const [seguidoresCount, setSeguidoresCount] = useState(0);
+  const [seguidosCount, setSeguidosCount] = useState(0);
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
 
@@ -204,6 +223,105 @@ export default function LocalPerfilScreen() {
     return R * c;
   };
 
+  // ✅ NEW: Load followers for local
+  const loadSeguidoresLocal = useCallback(async () => {
+    if (!localId) return;
+    
+    setLoadingSeguidores(true);
+    try {
+      console.log('[LocalPerfil] Loading followers for local:', localId);
+
+      const { data, error } = await supabase
+        .from('locales_favoritos')
+        .select(`
+          usuario_id,
+          usuarios!locales_favoritos_usuario_id_fkey(
+            id,
+            nombre,
+            username,
+            avatar,
+            bio
+          )
+        `)
+        .eq('local_id', localId);
+
+      if (error) {
+        console.error('[LocalPerfil] Error loading followers:', error);
+        return;
+      }
+
+      if (data) {
+        const formattedSeguidores = data
+          .filter(s => s.usuarios)
+          .map((s: any) => ({
+            id: s.usuarios.id,
+            nombre: s.usuarios.nombre,
+            username: s.usuarios.username,
+            avatar: s.usuarios.avatar,
+            bio: s.usuarios.bio,
+          }));
+
+        setSeguidores(formattedSeguidores);
+        setSeguidoresCount(formattedSeguidores.length);
+        console.log('[LocalPerfil] ✅ Loaded followers:', formattedSeguidores.length);
+      }
+    } catch (error) {
+      console.error('[LocalPerfil] Error loading followers:', error);
+    } finally {
+      setLoadingSeguidores(false);
+    }
+  }, [localId]);
+
+  // ✅ NEW: Load following for local (locales that this local follows)
+  const loadSeguidosLocal = useCallback(async () => {
+    if (!localId || !local?.propietario_id) return;
+    
+    setLoadingSeguidos(true);
+    try {
+      console.log('[LocalPerfil] Loading following for local:', localId);
+
+      // Get users that the local owner follows
+      const { data, error } = await supabase
+        .from('seguidores')
+        .select(`
+          seguido_id,
+          usuarios!seguidores_seguido_id_fkey(
+            id,
+            nombre,
+            username,
+            avatar,
+            bio
+          )
+        `)
+        .eq('seguidor_id', local.propietario_id);
+
+      if (error) {
+        console.error('[LocalPerfil] Error loading following:', error);
+        return;
+      }
+
+      if (data) {
+        const formattedSeguidos = data
+          .filter(s => s.usuarios)
+          .map((s: any) => ({
+            id: s.usuarios.id,
+            nombre: s.usuarios.nombre,
+            username: s.usuarios.username,
+            avatar: s.usuarios.avatar,
+            bio: s.usuarios.bio,
+          }));
+
+        setSeguidos(formattedSeguidos);
+        setSeguidosCount(formattedSeguidos.length);
+        console.log('[LocalPerfil] ✅ Loaded following:', formattedSeguidos.length);
+      }
+    } catch (error) {
+      console.error('[LocalPerfil] Error loading following:', error);
+    } finally {
+      setLoadingSeguidos(false);
+    }
+  }, [localId, local?.propietario_id]);
+
   const loadLocalData = useCallback(async () => {
     if (!localId) {
       console.error('[LocalPerfil] ❌ No localId provided');
@@ -239,6 +357,24 @@ export default function LocalPerfilScreen() {
       } else {
         setIsOwner(false);
         console.log('[LocalPerfil] ✅ User is NOT owner of this local');
+      }
+
+      // ✅ Load followers count
+      const { count: followersCount } = await supabase
+        .from('locales_favoritos')
+        .select('*', { count: 'exact', head: true })
+        .eq('local_id', localId);
+
+      setSeguidoresCount(followersCount || 0);
+
+      // ✅ Load following count (users that the local owner follows)
+      if (localData.propietario_id) {
+        const { count: followingCount } = await supabase
+          .from('seguidores')
+          .select('*', { count: 'exact', head: true })
+          .eq('seguidor_id', localData.propietario_id);
+
+        setSeguidosCount(followingCount || 0);
       }
 
       const [postsResult, eventsResult, storiesResult, favResult] = await Promise.all([
@@ -473,13 +609,7 @@ export default function LocalPerfilScreen() {
           .eq('usuario_id', user.id)
           .eq('local_id', localId);
         setIsFavorito(false);
-        
-        if (local) {
-          setLocal({
-            ...local,
-            seguidores: Math.max(0, (local.seguidores || 0) - 1),
-          });
-        }
+        setSeguidoresCount(prev => Math.max(0, prev - 1));
       } else {
         await supabase
           .from('locales_favoritos')
@@ -488,13 +618,7 @@ export default function LocalPerfilScreen() {
             local_id: localId,
           });
         setIsFavorito(true);
-        
-        if (local) {
-          setLocal({
-            ...local,
-            seguidores: (local.seguidores || 0) + 1,
-          });
-        }
+        setSeguidoresCount(prev => prev + 1);
       }
     } catch (error) {
       console.error('[LocalPerfil] Error toggling favorito:', error);
@@ -642,6 +766,32 @@ export default function LocalPerfilScreen() {
     } catch (error) {
       console.error('[LocalPerfil] ❌ Error navigating back:', error);
       router.replace('/(tabs)/explorar');
+    }
+  };
+
+  // ✅ NEW: Handle opening followers modal
+  const handleSeguidores = async () => {
+    setShowSeguidoresModal(true);
+    await loadSeguidoresLocal();
+  };
+
+  // ✅ NEW: Handle opening following modal
+  const handleSeguidos = async () => {
+    setShowSeguidosModal(true);
+    await loadSeguidosLocal();
+  };
+
+  // ✅ NEW: Handle user press in followers/following modals
+  const handleUserPressInModal = (userId: string) => {
+    // Close the modal first
+    setShowSeguidoresModal(false);
+    setShowSeguidosModal(false);
+    
+    // Navigate to profile
+    if (user && userId === user.id) {
+      router.push('/(tabs)/perfil');
+    } else {
+      router.push(`/perfil/usuario?userId=${userId}`);
     }
   };
 
@@ -1100,21 +1250,22 @@ export default function LocalPerfilScreen() {
               <Text style={styles.statusText}>{estado.badge}</Text>
             </View>
 
+            {/* ✅ UPDATED: Stats container with clickable followers/following */}
             <View style={styles.statsContainer}>
               <View style={styles.statItem}>
                 <Text style={styles.statNumber}>{posts.length}</Text>
                 <Text style={styles.statLabel}>Publicaciones</Text>
               </View>
               <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <Text style={styles.statNumber}>{local.seguidores || 0}</Text>
+              <TouchableOpacity style={styles.statItem} onPress={handleSeguidores}>
+                <Text style={styles.statNumber}>{seguidoresCount}</Text>
                 <Text style={styles.statLabel}>Seguidores</Text>
-              </View>
+              </TouchableOpacity>
               <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <Text style={styles.statNumber}>{events.length}</Text>
-                <Text style={styles.statLabel}>Eventos</Text>
-              </View>
+              <TouchableOpacity style={styles.statItem} onPress={handleSeguidos}>
+                <Text style={styles.statNumber}>{seguidosCount}</Text>
+                <Text style={styles.statLabel}>Seguidos</Text>
+              </TouchableOpacity>
             </View>
 
             <View style={styles.actionsContainer}>
@@ -1686,13 +1837,18 @@ export default function LocalPerfilScreen() {
                 />
               </View>
 
-              {/* Stats Modal - Rendered INSIDE the story viewer */}
+              {/* ✅ UPDATED: Pass onNavigateToProfile callback to close story viewer */}
               <StoryStatsModal
                 visible={showStoryStats}
                 onClose={() => {
                   setShowStoryStats(false);
                   setIsPaused(false);
                   startStoryTimer();
+                }}
+                onNavigateToProfile={() => {
+                  // Close story viewer when navigating to profile from stats
+                  setShowStoryViewer(false);
+                  stopStoryTimer();
                 }}
                 storyId={currentStory.id}
                 viewsCount={currentStory.views_count || 0}
@@ -1766,7 +1922,7 @@ export default function LocalPerfilScreen() {
         </Pressable>
       </Modal>
 
-      {/* Provincia Filter Modal - FIXED VERSION */}
+      {/* Provincia Filter Modal */}
       <Modal
         visible={showProvinciaModal}
         animationType="slide"
@@ -1834,6 +1990,150 @@ export default function LocalPerfilScreen() {
                 </TouchableOpacity>
               ))}
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ✅ NEW: Seguidores Modal */}
+      <Modal
+        visible={showSeguidoresModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowSeguidoresModal(false)}
+      >
+        <View style={styles.followModalOverlay}>
+          <Pressable 
+            style={styles.followModalBackdrop}
+            onPress={() => setShowSeguidoresModal(false)}
+          />
+          <View style={styles.followModalContent}>
+            <View style={styles.followModalHeader}>
+              <Text style={styles.followModalTitle}>Seguidores</Text>
+              <TouchableOpacity 
+                onPress={() => setShowSeguidoresModal(false)} 
+                activeOpacity={0.8}
+              >
+                <IconSymbol name="xmark" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            
+            {loadingSeguidores ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={colors.primary} />
+              </View>
+            ) : (
+              <FlatList
+                data={seguidores}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.userItem}
+                    onPress={() => handleUserPressInModal(item.id)}
+                    activeOpacity={0.7}
+                  >
+                    {item.avatar ? (
+                      <Image source={{ uri: item.avatar }} style={styles.userAvatar} />
+                    ) : (
+                      <View style={[styles.userAvatar, styles.avatarPlaceholder]}>
+                        <Text style={styles.avatarText}>
+                          {item.nombre.charAt(0).toUpperCase()}
+                        </Text>
+                      </View>
+                    )}
+                    <View style={styles.userInfo}>
+                      <Text style={styles.userName}>{item.nombre}</Text>
+                      {item.username && (
+                        <Text style={styles.userUsername}>@{item.username}</Text>
+                      )}
+                      {item.bio && (
+                        <Text style={styles.userBio} numberOfLines={2}>
+                          {item.bio}
+                        </Text>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                )}
+                ListEmptyComponent={
+                  <View style={styles.emptyState}>
+                    <IconSymbol name="person.2" size={64} color={colors.textSecondary} />
+                    <Text style={styles.emptyText}>No hay seguidores aún</Text>
+                  </View>
+                }
+                contentContainerStyle={styles.followListContent}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* ✅ NEW: Seguidos Modal */}
+      <Modal
+        visible={showSeguidosModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowSeguidosModal(false)}
+      >
+        <View style={styles.followModalOverlay}>
+          <Pressable 
+            style={styles.followModalBackdrop}
+            onPress={() => setShowSeguidosModal(false)}
+          />
+          <View style={styles.followModalContent}>
+            <View style={styles.followModalHeader}>
+              <Text style={styles.followModalTitle}>Siguiendo</Text>
+              <TouchableOpacity 
+                onPress={() => setShowSeguidosModal(false)} 
+                activeOpacity={0.8}
+              >
+                <IconSymbol name="xmark" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            
+            {loadingSeguidos ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={colors.primary} />
+              </View>
+            ) : (
+              <FlatList
+                data={seguidos}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.userItem}
+                    onPress={() => handleUserPressInModal(item.id)}
+                    activeOpacity={0.7}
+                  >
+                    {item.avatar ? (
+                      <Image source={{ uri: item.avatar }} style={styles.userAvatar} />
+                    ) : (
+                      <View style={[styles.userAvatar, styles.avatarPlaceholder]}>
+                        <Text style={styles.avatarText}>
+                          {item.nombre.charAt(0).toUpperCase()}
+                        </Text>
+                      </View>
+                    )}
+                    <View style={styles.userInfo}>
+                      <Text style={styles.userName}>{item.nombre}</Text>
+                      {item.username && (
+                        <Text style={styles.userUsername}>@{item.username}</Text>
+                      )}
+                      {item.bio && (
+                        <Text style={styles.userBio} numberOfLines={2}>
+                          {item.bio}
+                        </Text>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                )}
+                ListEmptyComponent={
+                  <View style={styles.emptyState}>
+                    <IconSymbol name="person.2" size={64} color={colors.textSecondary} />
+                    <Text style={styles.emptyText}>No sigue a nadie aún</Text>
+                  </View>
+                }
+                contentContainerStyle={styles.followListContent}
+              />
+            )}
           </View>
         </View>
       </Modal>
@@ -2623,5 +2923,81 @@ const styles = StyleSheet.create({
   provinciaItemTextSelected: {
     fontWeight: '600',
     color: colors.primary,
+  },
+  // ✅ NEW: Followers/Following modal styles
+  followModalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  followModalBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  followModalContent: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    height: height * 0.75,
+    paddingBottom: 34,
+  },
+  followModalHeader: {
+    paddingTop: 24,
+    paddingBottom: 16,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  followModalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  followListContent: {
+    paddingBottom: 20,
+  },
+  userItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 0.5,
+    borderBottomColor: colors.cardBorder,
+  },
+  userAvatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    marginRight: 12,
+  },
+  avatarText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.headerText,
+  },
+  userInfo: {
+    flex: 1,
+  },
+  userName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 2,
+  },
+  userUsername: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: 4,
+  },
+  userBio: {
+    fontSize: 13,
+    color: colors.text,
+    lineHeight: 18,
   },
 });

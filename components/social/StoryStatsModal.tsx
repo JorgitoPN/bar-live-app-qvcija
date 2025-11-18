@@ -25,6 +25,7 @@ const MAX_MODAL_HEIGHT = SCREEN_HEIGHT * 0.7;
 interface StoryStatsModalProps {
   visible: boolean;
   onClose: () => void;
+  onNavigateToProfile?: () => void; // NEW: Callback to close parent story viewer
   storyId: string;
   viewsCount: number;
   likesCount: number;
@@ -54,6 +55,7 @@ interface StoryStatsModalProps {
 export default function StoryStatsModal({
   visible,
   onClose,
+  onNavigateToProfile,
   storyId,
   viewsCount,
   likesCount,
@@ -104,11 +106,18 @@ export default function StoryStatsModal({
     try {
       console.log('[StoryStatsModal] 🔍 Navigating to profile for user ID:', userId);
       
+      // ✅ CRITICAL: Close the stats modal first
+      onClose();
+      
+      // ✅ CRITICAL: Close the parent story viewer if callback provided
+      if (onNavigateToProfile) {
+        onNavigateToProfile();
+      }
+      
       // Check if this is the current user
       if (user && userId === user.id) {
         console.log('[StoryStatsModal] ✅ Navigating to own profile');
         router.push('/(tabs)/perfil');
-        onClose();
         return;
       }
 
@@ -122,7 +131,6 @@ export default function StoryStatsModal({
       if (userData) {
         console.log('[StoryStatsModal] ✅ Found user, navigating to user profile');
         router.push(`/perfil/usuario?userId=${userId}`);
-        onClose();
         return;
       }
 
@@ -139,7 +147,6 @@ export default function StoryStatsModal({
       if (localData) {
         console.log('[StoryStatsModal] ✅ Found local, navigating to local profile:', localData.nombre);
         router.push(`/perfil/local?localId=${localData.id}`);
-        onClose();
         return;
       }
 
