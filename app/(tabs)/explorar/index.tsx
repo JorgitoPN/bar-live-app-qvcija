@@ -183,22 +183,61 @@ export default function ExplorarScreen() {
 
   const cargarPromocionesActivas = async () => {
     try {
-      const { data, error } = await supabase
+      console.log('[ExplorarScreen] 🔄 Loading active promotions...');
+      
+      // FIXED: Use a simpler query approach - first get active subscriptions
+      const { data: suscripciones, error: subsError } = await supabase
         .from('suscripciones_locales')
-        .select('local_id, plan_id, planes_suscripcion(promos_destacadas)')
-        .eq('estado', 'activa')
-        .gt('planes_suscripcion.promos_destacadas', 0);
+        .select('local_id, plan_id')
+        .eq('estado', 'activa');
 
-      if (error) {
-        console.error('[ExplorarScreen] Error loading promotions:', error);
+      if (subsError) {
+        console.error('[ExplorarScreen] Error loading subscriptions:', subsError);
         return;
       }
 
-      const promotedLocalIds = new Set(data?.map((s: any) => s.local_id) || []);
+      if (!suscripciones || suscripciones.length === 0) {
+        console.log('[ExplorarScreen] No active subscriptions found');
+        setActivePromotions(new Set());
+        return;
+      }
+
+      // Get the plan IDs
+      const planIds = [...new Set(suscripciones.map(s => s.plan_id))];
+      
+      // FIXED: Now get the plans with promotions
+      const { data: planes, error: planesError } = await supabase
+        .from('planes_suscripcion')
+        .select('id, promos_destacadas')
+        .in('id', planIds)
+        .gt('promos_destacadas', 0);
+
+      if (planesError) {
+        console.error('[ExplorarScreen] Error loading plans:', planesError);
+        return;
+      }
+
+      if (!planes || planes.length === 0) {
+        console.log('[ExplorarScreen] No plans with promotions found');
+        setActivePromotions(new Set());
+        return;
+      }
+
+      // Create a set of plan IDs that have promotions
+      const planIdsWithPromos = new Set(planes.map(p => p.id));
+
+      // Filter subscriptions to only those with promotional plans
+      const promotedLocalIds = new Set(
+        suscripciones
+          .filter(s => planIdsWithPromos.has(s.plan_id))
+          .map(s => s.local_id)
+      );
+
       setActivePromotions(promotedLocalIds);
       console.log('[ExplorarScreen] 💰 Active promotions loaded:', promotedLocalIds.size);
     } catch (error) {
       console.error('[ExplorarScreen] Error in cargarPromocionesActivas:', error);
+      setActivePromotions(new Set());
     }
   };
 
