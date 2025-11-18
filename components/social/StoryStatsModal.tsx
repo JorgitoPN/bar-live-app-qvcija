@@ -102,7 +102,17 @@ export default function StoryStatsModal({
 
   const handleUserPress = async (userId: string) => {
     try {
-      // Check if it's a user or a local
+      console.log('[StoryStatsModal] 🔍 Navigating to profile for user ID:', userId);
+      
+      // Check if this is the current user
+      if (user && userId === user.id) {
+        console.log('[StoryStatsModal] ✅ Navigating to own profile');
+        router.push('/(tabs)/perfil');
+        onClose();
+        return;
+      }
+
+      // Check if it's a regular user
       const { data: userData, error: userError } = await supabase
         .from('usuarios')
         .select('id, rol_app')
@@ -110,32 +120,32 @@ export default function StoryStatsModal({
         .single();
 
       if (userData) {
-        // It's a user - navigate to user profile
-        if (user && userId === user.id) {
-          // Navigate to own profile
-          router.push('/(tabs)/perfil');
-        } else {
-          // Navigate to other user's profile
-          router.push(`/perfil/usuario?userId=${userId}`);
-        }
-      } else {
-        // Check if it's a local
-        const { data: localData, error: localError } = await supabase
-          .from('locales')
-          .select('id')
-          .eq('propietario_id', userId)
-          .single();
-
-        if (localData) {
-          // Navigate to local profile
-          router.push(`/perfil/local?localId=${localData.id}`);
-        }
+        console.log('[StoryStatsModal] ✅ Found user, navigating to user profile');
+        router.push(`/perfil/usuario?userId=${userId}`);
+        onClose();
+        return;
       }
+
+      console.log('[StoryStatsModal] ⚠️ User not found, might be a local profile');
       
-      // Close the modal after navigation
-      onClose();
+      // If not found as user, it might be a local viewing the story
+      // In this case, we need to find the local by propietario_id
+      const { data: localData, error: localError } = await supabase
+        .from('locales')
+        .select('id, nombre')
+        .eq('propietario_id', userId)
+        .single();
+
+      if (localData) {
+        console.log('[StoryStatsModal] ✅ Found local, navigating to local profile:', localData.nombre);
+        router.push(`/perfil/local?localId=${localData.id}`);
+        onClose();
+        return;
+      }
+
+      console.log('[StoryStatsModal] ❌ Profile not found for user ID:', userId);
     } catch (error) {
-      console.error('[StoryStatsModal] Error navigating to profile:', error);
+      console.error('[StoryStatsModal] ❌ Error navigating to profile:', error);
     }
   };
 
