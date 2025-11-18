@@ -623,38 +623,31 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  storyDeleteButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(239, 68, 68, 0.8)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
+  storyBottomLeftControls: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 40 : 20,
+    left: 16,
+    flexDirection: 'row',
+    gap: 16,
+    zIndex: 10,
   },
-  storyStatsButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  storyStatsButtonBottom: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 8,
   },
   storyDeleteButtonBottom: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(239, 68, 68, 0.9)',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    width: 48,
+    height: 48,
     borderRadius: 24,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  storyDeleteText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '600',
-  },
+
   storyContent: {
     flex: 1,
     justifyContent: 'center',
@@ -2120,7 +2113,7 @@ export default function SocialScreen() {
                   {hasUserStories ? (
                     hasUnviewedUserStories ? (
                       <LinearGradient
-                        colors={['#FFD700', '#CDDC39']}
+                        colors={['#FFD700', '#00FF00']}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
                         style={styles.historiaGradientBorder}
@@ -2181,7 +2174,7 @@ export default function SocialScreen() {
                 <View style={styles.historiaAvatarContainer}>
                   {!allViewed ? (
                     <LinearGradient
-                      colors={['#FFD700', '#CDDC39']}
+                      colors={['#FFD700', '#00FF00']}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 1 }}
                       style={styles.historiaGradientBorder}
@@ -2298,28 +2291,6 @@ export default function SocialScreen() {
                     {currentStory.autor?.nombre || 'Usuario'}
                   </Text>
 
-                  {/* Stats button for own stories */}
-                  {isCurrentStoryOwner && (
-                    <TouchableOpacity
-                      style={styles.storyStatsButton}
-                      onPress={handleViewStoryStats}
-                      activeOpacity={0.7}
-                    >
-                      <IconSymbol name="eye.fill" size={20} color="#fff" />
-                    </TouchableOpacity>
-                  )}
-
-                  {/* Delete button for own stories */}
-                  {isCurrentStoryOwner && (
-                    <TouchableOpacity
-                      style={styles.storyDeleteButton}
-                      onPress={handleDeleteStory}
-                      activeOpacity={0.7}
-                    >
-                      <IconSymbol name="trash.fill" size={20} color="#fff" />
-                    </TouchableOpacity>
-                  )}
-
                   {/* Close button */}
                   <TouchableOpacity
                     style={styles.storyCloseButton}
@@ -2354,6 +2325,26 @@ export default function SocialScreen() {
                   activeOpacity={1}
                 />
               </View>
+
+              {/* Bottom-left controls for own stories */}
+              {isCurrentStoryOwner && (
+                <View style={styles.storyBottomLeftControls}>
+                  <TouchableOpacity
+                    style={styles.storyStatsButtonBottom}
+                    onPress={handleViewStoryStats}
+                    activeOpacity={0.7}
+                  >
+                    <IconSymbol name="eye.fill" size={24} color="#fff" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.storyDeleteButtonBottom}
+                    onPress={handleDeleteStory}
+                    activeOpacity={0.7}
+                  >
+                    <IconSymbol name="trash.fill" size={24} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              )}
 
               {/* Interaction bar (only for other people's stories) */}
               {!isCurrentStoryOwner && (

@@ -51,7 +51,7 @@ export default function BarraHistorias({
               onPress={() => onHistoriaPress(historia)}
             >
               <LinearGradient
-                colors={hasBeenViewed ? ['#E5E7EB', '#E5E7EB'] : ['#FFD700', '#CDDC39']}
+                colors={hasBeenViewed ? ['#E5E7EB', '#E5E7EB'] : ['#FFD700', '#00FF00']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.historiaGradient}

@@ -1435,7 +1435,7 @@ export default function PerfilScreen() {
           >
             {hasActiveStory && (
               <LinearGradient
-                colors={['#FFD700', '#FF6B6B', '#FF1744']}
+                colors={['#FFD700', '#00FF00']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.storyRing}
@@ -2087,18 +2087,25 @@ export default function PerfilScreen() {
                 />
               </View>
 
-              <View style={styles.storyInteractionBar}>
-                {user && currentStory.tipo === 'usuario' && currentStory.autor_id === user.id && (
+              {/* Bottom-left controls for own stories */}
+              {user && currentStory.tipo === 'usuario' && currentStory.autor_id === user.id && (
+                <View style={styles.storyBottomLeftControls}>
+                  <TouchableOpacity
+                    style={styles.storyStatsButtonBottom}
+                    onPress={handleViewStoryStats}
+                    activeOpacity={0.8}
+                  >
+                    <IconSymbol name="eye.fill" size={24} color="#fff" />
+                  </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.storyDeleteButtonBottom}
                     onPress={handleDeleteStory}
                     activeOpacity={0.8}
                   >
-                    <IconSymbol name="trash.fill" size={22} color="#fff" />
-                    <Text style={styles.storyDeleteText}>Eliminar</Text>
+                    <IconSymbol name="trash.fill" size={24} color="#fff" />
                   </TouchableOpacity>
-                )}
-              </View>
+                </View>
+              )}
 
               <View style={styles.storyTouchZones}>
                 <Pressable
@@ -2916,44 +2923,29 @@ const styles = StyleSheet.create({
     color: '#fff',
     flex: 1,
   },
-  storyViewsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginRight: 8,
-  },
-  storyViewsText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  storyInteractionBar: {
+  storyBottomLeftControls: {
     position: 'absolute',
     bottom: Platform.OS === 'ios' ? 40 : 20,
     left: 16,
-    right: 16,
     flexDirection: 'row',
-    alignItems: 'center',
     gap: 16,
     zIndex: 10,
   },
-  storyDeleteButtonBottom: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(239, 68, 68, 0.9)',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+  storyStatsButtonBottom: {
+    width: 48,
+    height: 48,
     borderRadius: 24,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  storyDeleteText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '600',
+  storyDeleteButtonBottom: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   storyCloseButton: {
     width: 36,

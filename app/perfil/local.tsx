@@ -31,6 +31,7 @@ import FloatingTabBar, { TabBarItem } from '@/components/FloatingTabBar';
 import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
 import OfertaTrabajoCard from '@/components/empleo/OfertaTrabajoCard';
 import PerfilProfesionalCard from '@/components/empleo/PerfilProfesionalCard';
+import StoryStatsModal from '@/components/social/StoryStatsModal';
 import { PROVINCIAS, getProvinceVariations, filterByProvincia } from '@/utils/provinceNormalizer';
 
 // ✅ VERSION MARKER - Force cache bust: v3.0.0 - MAJOR UPDATE
@@ -152,6 +153,11 @@ export default function LocalPerfilScreen() {
 
   const [showCreateOptions, setShowCreateOptions] = useState(false);
   const [showProfileSwitcher, setShowProfileSwitcher] = useState(false);
+
+  const [showStoryStats, setShowStoryStats] = useState(false);
+  const [storyViews, setStoryViews] = useState<any[]>([]);
+  const [storyLikes, setStoryLikes] = useState<any[]>([]);
+  const [loadingStats, setLoadingStats] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
@@ -720,6 +726,101 @@ export default function LocalPerfilScreen() {
     }
   }, [localStories, startStoryTimer, isOwner]);
 
+  const handleViewStoryStats = useCallback(async () => {
+    const currentStory = localStories[currentStoryIndex];
+    
+    if (!currentStory || !user || !isOwner) {
+      return;
+    }
+
+    setIsPaused(true);
+    stopStoryTimer();
+
+    setLoadingStats(true);
+    setShowStoryStats(true);
+
+    try {
+      const { data: viewsData, error: viewsError } = await supabase
+        .from('historia_views')
+        .select(`
+          id,
+          usuario_id,
+          viewed_at,
+          usuario:usuarios(nombre, avatar, username)
+        `)
+        .eq('historia_id', currentStory.id)
+        .order('viewed_at', { ascending: false });
+
+      if (viewsError) throw viewsError;
+
+      const { data: likesData, error: likesError } = await supabase
+        .from('historia_likes')
+        .select(`
+          id,
+          usuario_id,
+          created_at,
+          usuario:usuarios(nombre, avatar, username)
+        `)
+        .eq('historia_id', currentStory.id)
+        .order('created_at', { ascending: false });
+
+      if (likesError) throw likesError;
+
+      setStoryViews(viewsData || []);
+      setStoryLikes(likesData || []);
+    } catch (error) {
+      console.error('[LocalPerfil] Error loading story stats:', error);
+      Alert.alert('Error', 'No se pudieron cargar las estadísticas');
+    } finally {
+      setLoadingStats(false);
+    }
+  }, [localStories, currentStoryIndex, user, isOwner, stopStoryTimer]);
+
+  const handleDeleteStory = useCallback(async () => {
+    const currentStory = localStories[currentStoryIndex];
+    
+    if (!currentStory || !user || !isOwner) {
+      return;
+    }
+
+    Alert.alert(
+      'Eliminar historia',
+      '¿Estás seguro de que quieres eliminar esta historia?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('historias')
+                .delete()
+                .eq('id', currentStory.id);
+
+              if (error) throw error;
+
+              const newStories = localStories.filter((_, i) => i !== currentStoryIndex);
+              setLocalStories(newStories);
+
+              if (newStories.length === 0) {
+                setShowStoryViewer(false);
+                stopStoryTimer();
+              } else if (currentStoryIndex >= newStories.length) {
+                setCurrentStoryIndex(newStories.length - 1);
+              }
+
+              Alert.alert('Éxito', 'Historia eliminada correctamente');
+            } catch (error) {
+              console.error('[LocalPerfil] Error deleting story:', error);
+              Alert.alert('Error', 'No se pudo eliminar la historia');
+            }
+          },
+        },
+      ]
+    );
+  }, [localStories, currentStoryIndex, user, isOwner, stopStoryTimer]);
+
   useEffect(() => {
     if (showStoryViewer && !isPaused) {
       startStoryTimer();
@@ -953,7 +1054,7 @@ export default function LocalPerfilScreen() {
               >
                 {hasActiveStory && hasUnviewedStories && (
                   <LinearGradient
-                    colors={[colors.primary, colors.secondary]}
+                    colors={['#FFD700', '#00FF00']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.storyRing}
@@ -1543,6 +1644,26 @@ export default function LocalPerfilScreen() {
                 />
               </View>
 
+              {/* Bottom-left controls for owner stories */}
+              {isOwner && (
+                <View style={styles.storyBottomLeftControls}>
+                  <TouchableOpacity
+                    style={styles.storyStatsButtonBottom}
+                    onPress={handleViewStoryStats}
+                    activeOpacity={0.8}
+                  >
+                    <IconSymbol name="eye.fill" size={24} color="#fff" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.storyDeleteButtonBottom}
+                    onPress={handleDeleteStory}
+                    activeOpacity={0.8}
+                  >
+                    <IconSymbol name="trash.fill" size={24} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              )}
+
               <View style={styles.storyTouchZones}>
                 <Pressable
                   style={styles.storyTouchZone}
@@ -1564,6 +1685,22 @@ export default function LocalPerfilScreen() {
                   onPress={handleNextStory}
                 />
               </View>
+
+              {/* Stats Modal - Rendered INSIDE the story viewer */}
+              <StoryStatsModal
+                visible={showStoryStats}
+                onClose={() => {
+                  setShowStoryStats(false);
+                  setIsPaused(false);
+                  startStoryTimer();
+                }}
+                storyId={currentStory.id}
+                viewsCount={currentStory.views_count || 0}
+                likesCount={currentStory.likes_count || 0}
+                views={storyViews}
+                likes={storyLikes}
+                loading={loadingStats}
+              />
             </>
           )}
         </View>
@@ -2328,6 +2465,30 @@ const styles = StyleSheet.create({
   },
   storyTouchZone: {
     flex: 1,
+  },
+  storyBottomLeftControls: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 40 : 20,
+    left: 16,
+    flexDirection: 'row',
+    gap: 16,
+    zIndex: 10,
+  },
+  storyStatsButtonBottom: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  storyDeleteButtonBottom: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   createOptionsModal: {
     flex: 1,
