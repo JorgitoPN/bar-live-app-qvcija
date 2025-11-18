@@ -616,12 +616,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   storyCloseButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 50 : 40,
+    right: 16,
     width: 36,
     height: 36,
     borderRadius: 18,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 20,
   },
   storyBottomLeftControls: {
     position: 'absolute',
@@ -817,7 +821,6 @@ function PostCardWithSwipe({ post, user, activeLocalProfileId, router, toggleLik
     setCurrentImageIndex(index);
   };
 
-  // ✅ NEW: Handle navigation to profile when tapping on avatar or name
   const handleNavigateToProfile = () => {
     if (post.tipo === 'local' && post.local_id) {
       router.push(`/perfil/local?localId=${post.local_id}`);
@@ -1051,14 +1054,12 @@ export default function SocialScreen() {
   const isInteractingAsLocal = activeProfileType === 'local';
   const activeLocalProfileId = activeProfileType === 'local' ? activeProfileId : null;
 
-  // ✅ NEW: Function to mark story as viewed immediately
   const markStoryAsViewed = useCallback(async (storyId: string) => {
     if (!user) return;
 
     try {
       console.log('[Social] ⚡ INSTANT - Marking story as viewed:', storyId);
       
-      // Check if already viewed
       const { data: existingView } = await supabase
         .from('historia_views')
         .select('id')
@@ -1067,7 +1068,6 @@ export default function SocialScreen() {
         .single();
 
       if (!existingView) {
-        // Insert view record
         await supabase.from('historia_views').insert({
           historia_id: storyId,
           usuario_id: user.id,
@@ -1078,7 +1078,6 @@ export default function SocialScreen() {
         console.log('[Social] ℹ️ Story already viewed');
       }
 
-      // ✅ INSTANT UI UPDATE: Update local state immediately to remove border
       if (viewingOwnStories) {
         setUserStories(prev => prev.map(s => 
           s.id === storyId ? { ...s, visto_por_usuario: true } : s
@@ -1320,7 +1319,6 @@ export default function SocialScreen() {
       
       const searchTerm = query.trim();
       
-      // Search users
       const { data: usersData, error: usersError } = await supabase
         .from('usuarios')
         .select('id, nombre, username, avatar')
@@ -1334,7 +1332,6 @@ export default function SocialScreen() {
 
       console.log('[Social] 📊 Users found:', usersData?.length || 0);
 
-      // FIXED: Improved local search - get locals with active subscriptions directly
       const { data: localsWithSubs, error: localsError } = await supabase
         .from('locales')
         .select(`
@@ -1361,7 +1358,6 @@ export default function SocialScreen() {
 
       console.log('[Social] 📊 Locals with subscriptions found:', localsWithSubs?.length || 0);
 
-      // Filter to only include estandar and premium plans
       const localsData = localsWithSubs?.filter((local: any) => {
         const planName = local.suscripciones_locales?.planes_suscripcion?.nombre;
         return planName === 'estandar' || planName === 'premium';
@@ -1369,10 +1365,8 @@ export default function SocialScreen() {
 
       console.log('[Social] 📊 Locals with estandar/premium plans:', localsData.length);
 
-      // Combine results
       const results: SearchResult[] = [];
 
-      // Add user results
       if (usersData) {
         results.push(...usersData.map(u => ({
           id: u.id,
@@ -1383,7 +1377,6 @@ export default function SocialScreen() {
         })));
       }
 
-      // Add local results
       if (localsData) {
         results.push(...localsData.map((l: any) => ({
           id: l.id,
@@ -1441,7 +1434,6 @@ export default function SocialScreen() {
     const currentStories = viewingOwnStories ? userStories : historias;
     const currentStory = currentStories[currentStoryIndex];
     
-    // Mark current story as viewed before moving to next
     if (currentStory && user && !viewingOwnStories) {
       await markStoryAsViewed(currentStory.id);
     }
@@ -1498,7 +1490,6 @@ export default function SocialScreen() {
     setShowStoryViewer(true);
     setIsPaused(false);
     
-    // ✅ NEW: Mark the first story as viewed IMMEDIATELY when opening viewer
     const firstStory = stories[firstUnviewedIndex];
     if (firstStory && user) {
       await markStoryAsViewed(firstStory.id);
@@ -1636,7 +1627,6 @@ export default function SocialScreen() {
       return;
     }
 
-    // Pause the story timer
     setIsPaused(true);
     stopStoryTimer();
 
@@ -1952,18 +1942,15 @@ export default function SocialScreen() {
     }
   }, [switchToClientProfile, setCurrentMode, loadData]);
 
-  // ✅ NEW: Handle navigation to profile from story viewer
   const handleNavigateToStoryAuthorProfile = useCallback(() => {
     const currentStories = viewingOwnStories ? userStories : historias;
     const currentStory = currentStories[currentStoryIndex];
     
     if (!currentStory) return;
 
-    // Close story viewer first
     setShowStoryViewer(false);
     stopStoryTimer();
 
-    // Navigate to appropriate profile
     if (currentStory.tipo === 'local' && currentStory.local_id) {
       router.push(`/perfil/local?localId=${currentStory.local_id}`);
     } else if (user && currentStory.autor_id === user.id) {
@@ -2019,7 +2006,6 @@ export default function SocialScreen() {
   const displayName = user?.nombre || 'Usuario';
   const displayInitial = displayName.charAt(0).toUpperCase();
 
-  // Check if current user is the owner of the current story
   const isCurrentStoryOwner = currentStory && user && (
     (currentStory.tipo === 'usuario' && currentStory.autor_id === user.id) ||
     (currentStory.tipo === 'local' && activeLocalProfileId === currentStory.local_id)
@@ -2289,12 +2275,10 @@ export default function SocialScreen() {
 
       </ScrollView>
 
-      {/* ✅ Story Viewer Modal - FIXED: Stats modal closes immediately when viewer closes */}
       <Modal
         visible={showStoryViewer}
         animationType="fade"
         onRequestClose={() => {
-          // ✅ FIXED: Close stats modal immediately when story viewer closes
           setShowStoryStats(false);
           setShowStoryViewer(false);
           stopStoryTimer();
@@ -2304,9 +2288,7 @@ export default function SocialScreen() {
         <View style={styles.storyViewerModal}>
           {currentStory && (
             <>
-              {/* Story Header */}
               <View style={styles.storyViewerHeader}>
-                {/* Progress bars */}
                 <View style={styles.storyProgressContainer}>
                   {currentStories.map((_, index) => (
                     <View key={index} style={styles.storyProgressBar}>
@@ -2320,7 +2302,6 @@ export default function SocialScreen() {
                   ))}
                 </View>
 
-                {/* Author info - ✅ NEW: Make it tappable to navigate to profile */}
                 <TouchableOpacity 
                   style={styles.storyAutorInfo}
                   onPress={handleNavigateToStoryAuthorProfile}
@@ -2339,28 +2320,24 @@ export default function SocialScreen() {
                     {currentStory.autor?.nombre || 'Usuario'}
                   </Text>
                 </TouchableOpacity>
-
-                {/* Close button */}
-                <TouchableOpacity
-                  style={styles.storyCloseButton}
-                  onPress={() => {
-                    // ✅ FIXED: Close stats modal immediately when story viewer closes
-                    setShowStoryStats(false);
-                    setShowStoryViewer(false);
-                    stopStoryTimer();
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <IconSymbol name="xmark" size={20} color="#fff" />
-                </TouchableOpacity>
               </View>
 
-              {/* Story Image */}
+              <TouchableOpacity
+                style={styles.storyCloseButton}
+                onPress={() => {
+                  setShowStoryStats(false);
+                  setShowStoryViewer(false);
+                  stopStoryTimer();
+                }}
+                activeOpacity={0.7}
+              >
+                <IconSymbol name="xmark" size={20} color="#fff" />
+              </TouchableOpacity>
+
               <View style={styles.storyContent}>
                 <Image source={{ uri: currentStory.imagen }} style={styles.storyImage} resizeMode="contain" />
               </View>
 
-              {/* Touch zones for navigation */}
               <View style={styles.storyTouchZones}>
                 <TouchableOpacity
                   style={styles.storyTouchZone}
@@ -2374,7 +2351,6 @@ export default function SocialScreen() {
                 />
               </View>
 
-              {/* Bottom-left controls for own stories */}
               {isCurrentStoryOwner && (
                 <View style={styles.storyBottomLeftControls}>
                   <TouchableOpacity
@@ -2394,7 +2370,6 @@ export default function SocialScreen() {
                 </View>
               )}
 
-              {/* Interaction bar (only for other people's stories) */}
               {!isCurrentStoryOwner && (
                 <View style={styles.storyInteractionBar}>
                   <TouchableOpacity
@@ -2431,7 +2406,6 @@ export default function SocialScreen() {
                 </View>
               )}
 
-              {/* ✅ Stats Modal - Rendered INSIDE the story viewer */}
               <StoryStatsModal
                 visible={showStoryStats}
                 onClose={() => {
