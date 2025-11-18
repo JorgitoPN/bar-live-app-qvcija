@@ -1,9 +1,11 @@
 
 /**
- * TAB NAVIGATION BAR - SIMPLIFIED VERSION
+ * TAB NAVIGATION BAR - FIXED VERSION v20.0
  * 
  * Clean tab navigation bar with Instagram-style filled/outlined icons.
- * Active icons are filled, inactive icons are outlined.
+ * Active icons are filled with white, inactive icons are outlined with white.
+ * 
+ * FIX: Improved route matching logic to correctly detect active tabs
  */
 
 import React from 'react';
@@ -37,29 +39,57 @@ export function TabNavigationBar({
   const pathname = usePathname();
 
   const isTabActive = (tab: TabDefinition, currentPath: string): boolean => {
+    // Clean up paths for comparison
     const cleanRoute = tab.route.replace(/^\//, '').replace(/\/$/, '');
     const cleanPath = currentPath.replace(/^\//, '').replace(/\/$/, '');
 
+    console.log(`🔍 [TabNav v20.0] Checking tab "${tab.id}": route="${cleanRoute}", path="${cleanPath}"`);
+
+    // Special case: gestion tab is active when viewing local profiles
     if (tab.id === 'gestion' && cleanPath.startsWith('perfil/local')) {
+      console.log(`✅ [TabNav v20.0] Tab "${tab.id}" is ACTIVE (special case: perfil/local)`);
       return true;
     }
 
+    // Special case: perfil tab is NOT active when viewing local profiles
     if (tab.id === 'perfil' && cleanPath.startsWith('perfil/local')) {
+      console.log(`❌ [TabNav v20.0] Tab "${tab.id}" is INACTIVE (special case: perfil/local)`);
       return false;
     }
 
+    // Extract the main route segment (e.g., "(tabs)/favoritos" -> "favoritos")
+    const routeSegments = cleanRoute.split('/').filter(s => !s.startsWith('(') && !s.endsWith(')'));
+    const pathSegments = cleanPath.split('/').filter(s => !s.startsWith('(') && !s.endsWith(')'));
+
+    // Check if the main route segment matches
+    if (routeSegments.length > 0 && pathSegments.length > 0) {
+      const mainRouteSegment = routeSegments[routeSegments.length - 1];
+      const mainPathSegment = pathSegments[0];
+
+      if (mainRouteSegment === mainPathSegment) {
+        console.log(`✅ [TabNav v20.0] Tab "${tab.id}" is ACTIVE (segment match: "${mainRouteSegment}")`);
+        return true;
+      }
+    }
+
+    // Fallback: check if path starts with route
     if (cleanPath.startsWith(cleanRoute)) {
+      console.log(`✅ [TabNav v20.0] Tab "${tab.id}" is ACTIVE (prefix match)`);
       return true;
     }
 
+    // Check exact match
     if (cleanPath === cleanRoute || cleanPath === `${cleanRoute}/index`) {
+      console.log(`✅ [TabNav v20.0] Tab "${tab.id}" is ACTIVE (exact match)`);
       return true;
     }
 
+    console.log(`❌ [TabNav v20.0] Tab "${tab.id}" is INACTIVE`);
     return false;
   };
 
   const handleTabPress = (tab: TabDefinition) => {
+    console.log(`🔘 [TabNav v20.0] Tab pressed: "${tab.id}" -> ${tab.route}`);
     if (tab.id === 'perfil' && onProfilePress) {
       onProfilePress();
     } else {
@@ -70,6 +100,8 @@ export function TabNavigationBar({
   const renderTab = (tab: TabDefinition) => {
     const isActive = isTabActive(tab, pathname);
     const isCenter = tab.id === 'explorar';
+
+    console.log(`🎨 [TabNav v20.0] Rendering tab "${tab.id}": isActive=${isActive}, isCenter=${isCenter}`);
 
     // Center button (Explorar)
     if (isCenter) {

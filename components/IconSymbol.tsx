@@ -224,6 +224,8 @@ export type IconSymbolName = keyof typeof MAPPING;
  * This ensures a consistent look across platforms, and optimal resource usage.
  *
  * Icon `name`s are based on SFSymbols and require manual mapping to Ionicons.
+ * 
+ * VERSION v20.0: Added extensive logging to debug icon rendering
  */
 export function IconSymbol({
   name,
@@ -243,9 +245,11 @@ export function IconSymbol({
   const ioniconName = MAPPING[name];
   
   if (!ioniconName) {
-    console.warn(`⚠️ IconSymbol: No mapping found for "${name}"`);
+    console.warn(`⚠️ [IconSymbol v20.0] No mapping found for "${name}"`);
     return null;
   }
+  
+  console.log(`🎨 [IconSymbol v20.0 Android/Web] Rendering "${name}" -> "${ioniconName}", size: ${size}, color: ${color}`);
   
   return (
     <Ionicons

@@ -1,9 +1,11 @@
 
 /**
- * TAB ICON COMPONENT - SIMPLIFIED VERSION
+ * TAB ICON COMPONENT - FIXED VERSION v20.0
  * 
  * Renders tab icons with clear filled/outlined distinction.
- * Active tabs show filled icons, inactive tabs show outlined icons.
+ * Active tabs show filled icons in white, inactive tabs show outlined icons in white.
+ * 
+ * FIX: Added extensive logging to debug icon rendering
  */
 
 import React from 'react';
@@ -33,6 +35,8 @@ export function TabIcon({
   const iconName = Platform.OS === 'ios' 
     ? (isActive ? iosIconFilled : iosIconOutlined)
     : (isActive ? androidIconFilled : androidIconOutlined);
+
+  console.log(`🎨 [TabIcon v20.0] Platform: ${Platform.OS}, isActive: ${isActive}, icon: "${iconName}", color: ${ICON_COLOR}`);
 
   return (
     <View style={[styles.container, { width: size, height: size }]}>
