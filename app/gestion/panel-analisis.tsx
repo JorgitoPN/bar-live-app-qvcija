@@ -429,10 +429,15 @@ export default function PanelAnalisisScreen() {
     try {
       setGeneratingRecommendations(true);
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('No session');
+      // Get a fresh session to ensure the token is valid
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        console.error('[PanelAnalisis] Session error:', sessionError);
+        throw new Error('No se pudo obtener la sesión. Por favor, inicia sesión de nuevo.');
       }
+
+      console.log('[PanelAnalisis] Making request with fresh token');
 
       const response = await fetch(
         `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/generate-analytics-recommendations`,
@@ -449,8 +454,11 @@ export default function PanelAnalisisScreen() {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Error generating recommendations');
+        console.error('[PanelAnalisis] Edge Function error:', result);
+        throw new Error(result.error || 'Error al generar recomendaciones');
       }
+
+      console.log('[PanelAnalisis] Recommendations generated:', result);
 
       Alert.alert(
         '✅ Recomendaciones Generadas',
@@ -460,7 +468,10 @@ export default function PanelAnalisisScreen() {
       await loadRecommendations();
     } catch (error: any) {
       console.error('[PanelAnalisis] Error generating recommendations:', error);
-      Alert.alert('Error', 'No se pudieron generar las recomendaciones. Intenta de nuevo.');
+      Alert.alert(
+        'Error',
+        error.message || 'No se pudieron generar las recomendaciones. Intenta de nuevo.'
+      );
     } finally {
       setGeneratingRecommendations(false);
     }
