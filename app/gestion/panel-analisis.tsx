@@ -428,8 +428,9 @@ export default function PanelAnalisisScreen() {
 
     try {
       setGeneratingRecommendations(true);
+      console.log('[PanelAnalisis] Starting recommendation generation...');
 
-      // Get a fresh session to ensure the token is valid
+      // Get the current session
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError || !session) {
@@ -437,28 +438,36 @@ export default function PanelAnalisisScreen() {
         throw new Error('No se pudo obtener la sesión. Por favor, inicia sesión de nuevo.');
       }
 
-      console.log('[PanelAnalisis] Making request with fresh token');
+      console.log('[PanelAnalisis] Session obtained successfully');
+      console.log('[PanelAnalisis] User ID:', session.user.id);
 
-      const response = await fetch(
-        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/generate-analytics-recommendations`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({ localId }),
-        }
-      );
+      // Make the request with the session token
+      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+      const functionUrl = `${supabaseUrl}/functions/v1/generate-analytics-recommendations`;
+      
+      console.log('[PanelAnalisis] Making request to:', functionUrl);
+      console.log('[PanelAnalisis] Request body:', { localId });
+
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ localId }),
+      });
+
+      console.log('[PanelAnalisis] Response status:', response.status);
 
       const result = await response.json();
+      console.log('[PanelAnalisis] Response body:', result);
 
       if (!response.ok) {
         console.error('[PanelAnalisis] Edge Function error:', result);
         throw new Error(result.error || 'Error al generar recomendaciones');
       }
 
-      console.log('[PanelAnalisis] Recommendations generated:', result);
+      console.log('[PanelAnalisis] Recommendations generated successfully:', result.count);
 
       Alert.alert(
         '✅ Recomendaciones Generadas',
@@ -468,10 +477,19 @@ export default function PanelAnalisisScreen() {
       await loadRecommendations();
     } catch (error: any) {
       console.error('[PanelAnalisis] Error generating recommendations:', error);
-      Alert.alert(
-        'Error',
-        error.message || 'No se pudieron generar las recomendaciones. Intenta de nuevo.'
-      );
+      
+      // Provide more specific error messages
+      let errorMessage = 'No se pudieron generar las recomendaciones. Intenta de nuevo.';
+      
+      if (error.message.includes('sesión') || error.message.includes('session')) {
+        errorMessage = 'Tu sesión ha expirado. Por favor, cierra sesión y vuelve a iniciar.';
+      } else if (error.message.includes('Authentication') || error.message.includes('Auth')) {
+        errorMessage = 'Error de autenticación. Por favor, verifica que has iniciado sesión correctamente.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      Alert.alert('Error', errorMessage);
     } finally {
       setGeneratingRecommendations(false);
     }
