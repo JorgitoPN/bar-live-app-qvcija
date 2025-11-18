@@ -220,7 +220,12 @@ export default function MisEventosScreen() {
         >
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
+              <IconSymbol 
+                ios_icon_name="chevron.left" 
+                android_material_icon_name="chevron-back" 
+                size={24} 
+                color={colors.headerText} 
+              />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Mis Eventos</Text>
             <View style={{ width: 40 }} />
@@ -250,7 +255,12 @@ export default function MisEventosScreen() {
         >
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
+              <IconSymbol 
+                ios_icon_name="chevron.left" 
+                android_material_icon_name="chevron-back" 
+                size={24} 
+                color={colors.headerText} 
+              />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Mis Eventos</Text>
             <View style={{ width: 40 }} />
@@ -275,14 +285,24 @@ export default function MisEventosScreen() {
       >
         <View style={styles.headerTop}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
+            <IconSymbol 
+              ios_icon_name="chevron.left" 
+              android_material_icon_name="chevron-back" 
+              size={24} 
+              color={colors.headerText} 
+            />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Mis Eventos</Text>
           <TouchableOpacity
             style={styles.addButton}
             onPress={() => router.push('/crear/evento')}
           >
-            <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={24} color={colors.headerText} />
+            <IconSymbol 
+              ios_icon_name="plus" 
+              android_material_icon_name="add" 
+              size={24} 
+              color={colors.headerText} 
+            />
           </TouchableOpacity>
         </View>
       </LinearGradient>
@@ -295,7 +315,12 @@ export default function MisEventosScreen() {
       >
         {eventos.length === 0 ? (
           <View style={styles.emptyState}>
-            <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={64} color={colors.textSecondary} />
+            <IconSymbol 
+              ios_icon_name="calendar" 
+              android_material_icon_name="calendar-outline" 
+              size={64} 
+              color={colors.textSecondary} 
+            />
             <Text style={styles.emptyText}>No tienes eventos creados</Text>
             <Text style={styles.emptySubtext}>
               Crea tu primer evento para promocionar tu local
@@ -308,7 +333,12 @@ export default function MisEventosScreen() {
                 colors={[colors.primary, colors.secondary]}
                 style={styles.createButtonGradient}
               >
-                <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={20} color={colors.white} />
+                <IconSymbol 
+                  ios_icon_name="plus" 
+                  android_material_icon_name="add" 
+                  size={20} 
+                  color={colors.white} 
+                />
                 <Text style={styles.createButtonText}>Crear Evento</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -347,16 +377,31 @@ export default function MisEventosScreen() {
 
                   <View style={styles.eventoDetalles}>
                     <View style={styles.detalleItem}>
-                      <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={16} color={colors.primary} />
+                      <IconSymbol 
+                        ios_icon_name="calendar" 
+                        android_material_icon_name="calendar-outline" 
+                        size={16} 
+                        color={colors.primary} 
+                      />
                       <Text style={styles.detalleTexto}>{formatDate(evento.fecha)}</Text>
                     </View>
                     <View style={styles.detalleItem}>
-                      <IconSymbol ios_icon_name="clock" android_material_icon_name="schedule" size={16} color={colors.primary} />
+                      <IconSymbol 
+                        ios_icon_name="clock" 
+                        android_material_icon_name="time-outline" 
+                        size={16} 
+                        color={colors.primary} 
+                      />
                       <Text style={styles.detalleTexto}>{evento.hora}</Text>
                     </View>
                     {evento.precio !== null && evento.precio !== undefined && (
                       <View style={styles.detalleItem}>
-                        <IconSymbol ios_icon_name="eurosign.circle" android_material_icon_name="euro" size={16} color={colors.primary} />
+                        <IconSymbol 
+                          ios_icon_name="eurosign.circle" 
+                          android_material_icon_name="cash-outline" 
+                          size={16} 
+                          color={colors.primary} 
+                        />
                         <Text style={styles.detalleTexto}>
                           {evento.precio === 0 ? 'Gratis' : `${evento.precio}€`}
                         </Text>
@@ -381,7 +426,12 @@ export default function MisEventosScreen() {
                       style={styles.actionButton}
                       onPress={() => handleEditEvento(evento.id)}
                     >
-                      <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={18} color={colors.primary} />
+                      <IconSymbol 
+                        ios_icon_name="pencil" 
+                        android_material_icon_name="pencil" 
+                        size={18} 
+                        color={colors.primary} 
+                      />
                       <Text style={styles.actionButtonText}>Editar</Text>
                     </TouchableOpacity>
 
@@ -389,7 +439,12 @@ export default function MisEventosScreen() {
                       style={[styles.actionButton, styles.deleteActionButton]}
                       onPress={() => confirmDeleteEvento(evento)}
                     >
-                      <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={18} color="#EF4444" />
+                      <IconSymbol 
+                        ios_icon_name="trash" 
+                        android_material_icon_name="trash-outline" 
+                        size={18} 
+                        color="#EF4444" 
+                      />
                       <Text style={[styles.actionButtonText, styles.deleteActionButtonText]}>
                         Eliminar
                       </Text>
@@ -415,12 +470,17 @@ export default function MisEventosScreen() {
         >
           <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
-              <IconSymbol ios_icon_name="exclamationmark.triangle.fill" android_material_icon_name="warning" size={48} color="#EF4444" />
+              <IconSymbol 
+                ios_icon_name="exclamationmark.triangle.fill" 
+                android_material_icon_name="warning" 
+                size={48} 
+                color="#EF4444" 
+              />
             </View>
 
             <Text style={styles.modalTitle}>Eliminar Evento</Text>
             <Text style={styles.modalMessage}>
-              ¿Estás seguro de que quieres eliminar "{eventoToDelete?.titulo}"? Esta acción no se puede deshacer.
+              ¿Estás seguro de que quieres eliminar &quot;{eventoToDelete?.titulo}&quot;? Esta acción no se puede deshacer.
             </Text>
 
             <View style={styles.modalButtons}>
