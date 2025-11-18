@@ -1435,7 +1435,7 @@ export default function PerfilScreen() {
           >
             {hasActiveStory && (
               <LinearGradient
-                colors={[colors.primary, colors.secondary]}
+                colors={['#FFD700', '#FF6B6B', '#FF1744']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.storyRing}

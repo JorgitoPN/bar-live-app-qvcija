@@ -2120,9 +2120,9 @@ export default function SocialScreen() {
                   {hasUserStories ? (
                     hasUnviewedUserStories ? (
                       <LinearGradient
-                        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+                        colors={['#FFD700', '#FF6B6B', '#FF1744']}
                         start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
+                        end={{ x: 1, y: 1 }}
                         style={styles.historiaGradientBorder}
                       >
                         {(isOwnerMode && activeLocalData?.imagen_url) ? (
@@ -2181,9 +2181,9 @@ export default function SocialScreen() {
                 <View style={styles.historiaAvatarContainer}>
                   {!allViewed ? (
                     <LinearGradient
-                      colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+                      colors={['#FFD700', '#FF6B6B', '#FF1744']}
                       start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
+                      end={{ x: 1, y: 1 }}
                       style={styles.historiaGradientBorder}
                     >
                       {firstStory.autor?.avatar ? (

@@ -303,22 +303,52 @@ export default function CrearHistoriaScreen() {
 
       if (storyError) throw storyError;
 
-      console.log('[CrearHistoria] ✅ Story created successfully');
+      console.log('[CrearHistoria] ✅ Story created successfully:', storyData.id);
 
       setUploadProgress(95);
 
-      // Refresh global data to show new story immediately
+      // FIXED: Force refresh global data to show new story immediately
       console.log('[CrearHistoria] 🔄 Refreshing global data...');
-      await refreshData(true);
+      await refreshData(false); // Use false to ensure a full refresh
 
       setUploadProgress(100);
 
       // Small delay to show 100% before closing
       setTimeout(() => {
         setShowUploadProgress(false);
-        Alert.alert('Éxito', 'Historia publicada correctamente', [
-          { text: 'OK', onPress: () => router.back() },
-        ]);
+        
+        // FIXED: Navigate to the appropriate screen based on story type
+        if (storyTipo === 'local' && effectiveLocalId) {
+          Alert.alert('Éxito', 'Historia publicada correctamente', [
+            { 
+              text: 'Ver perfil del local', 
+              onPress: () => {
+                router.replace(`/perfil/local?localId=${effectiveLocalId}`);
+              }
+            },
+            {
+              text: 'Ir a Social',
+              onPress: () => {
+                router.replace('/(tabs)/social');
+              }
+            }
+          ]);
+        } else {
+          Alert.alert('Éxito', 'Historia publicada correctamente', [
+            { 
+              text: 'Ver mi perfil', 
+              onPress: () => {
+                router.replace('/(tabs)/perfil');
+              }
+            },
+            {
+              text: 'Ir a Social',
+              onPress: () => {
+                router.replace('/(tabs)/social');
+              }
+            }
+          ]);
+        }
       }, 500);
     } catch (error) {
       console.error('[CrearHistoria] Error publicando:', error);
