@@ -132,14 +132,16 @@ export default function PanelAnalisisScreen() {
         return;
       }
 
-      // 2. Verify Premium subscription
+      // 2. Verify Premium subscription - FIXED QUERY
+      console.log('[PanelAnalisis] Checking subscription for local:', localId);
+      
       const { data: subscriptionData, error: subError } = await supabase
         .from('suscripciones_locales')
         .select(`
           id,
           plan_id,
           estado,
-          planes_suscripcion (
+          planes_suscripcion!inner (
             nombre,
             precio_mensual,
             panel_analisis
@@ -147,9 +149,22 @@ export default function PanelAnalisisScreen() {
         `)
         .eq('local_id', localId)
         .eq('estado', 'activa')
-        .single();
+        .maybeSingle();
 
-      if (subError || !subscriptionData) {
+      console.log('[PanelAnalisis] Subscription query result:', { subscriptionData, subError });
+
+      if (subError) {
+        console.error('[PanelAnalisis] Subscription query error:', subError);
+        Alert.alert(
+          'Error',
+          'No se pudo verificar tu plan de suscripción. Intenta de nuevo.',
+          [{ text: 'OK', onPress: () => router.back() }]
+        );
+        return;
+      }
+
+      if (!subscriptionData) {
+        console.log('[PanelAnalisis] No active subscription found');
         Alert.alert(
           'Plan Requerido',
           'Necesitas un plan activo para acceder al panel de análisis.',
@@ -164,12 +179,32 @@ export default function PanelAnalisisScreen() {
         return;
       }
 
-      const planData = subscriptionData.planes_suscripcion as any;
+      // Extract plan data - handle both array and object formats
+      let planData: any = subscriptionData.planes_suscripcion;
+      
+      // If it's an array, get the first element
+      if (Array.isArray(planData)) {
+        planData = planData[0];
+      }
 
-      if (!planData || !planData.panel_analisis) {
+      console.log('[PanelAnalisis] Plan data:', planData);
+
+      // Check if plan has analytics access
+      if (!planData) {
+        console.error('[PanelAnalisis] No plan data found in subscription');
+        Alert.alert(
+          'Error de Configuración',
+          'Tu suscripción no tiene un plan asociado. Contacta con soporte.',
+          [{ text: 'OK', onPress: () => router.back() }]
+        );
+        return;
+      }
+
+      if (!planData.panel_analisis) {
+        console.log('[PanelAnalisis] Plan does not have analytics access:', planData.nombre);
         Alert.alert(
           'Plan Premium Requerido',
-          'El panel de análisis solo está disponible para usuarios con plan Premium.\n\nActualiza tu plan para acceder a estadísticas detalladas.',
+          `Tu plan actual (${planData.nombre.toUpperCase()}) no incluye acceso al panel de análisis.\n\nActualiza a Premium para acceder a estadísticas detalladas y recomendaciones de IA.`,
           [
             { text: 'Cancelar', style: 'cancel', onPress: () => router.back() },
             {
@@ -180,6 +215,8 @@ export default function PanelAnalisisScreen() {
         );
         return;
       }
+
+      console.log('[PanelAnalisis] Access granted! Loading analytics data...');
 
       // 3. Load analytics data
       const daysAgo = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : 90;
