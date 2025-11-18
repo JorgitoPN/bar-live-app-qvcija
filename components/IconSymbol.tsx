@@ -16,7 +16,7 @@ const MAPPING = {
   // See Ionicons here: https://ionic.io/ionicons
   // See SF Symbols in the SF Symbols app on Mac.
 
-  // Navigation & Home - CLEAR VISUAL DIFFERENCES
+  // Navigation & Home
   "house.fill": "home",
   "house": "home-outline",
   "arrow.left": "arrow-back",
@@ -30,7 +30,7 @@ const MAPPING = {
   "arrow.clockwise": "refresh",
   "arrow.counterclockwise": "refresh",
 
-  // Communication & Social - CLEAR VISUAL DIFFERENCES
+  // Communication & Social
   "paperplane.fill": "send",
   "paperplane": "send-outline",
   "envelope.fill": "mail",
@@ -44,7 +44,7 @@ const MAPPING = {
   "heart.fill": "heart",
   "heart": "heart-outline",
 
-  // Actions & Controls - CLEAR VISUAL DIFFERENCES
+  // Actions & Controls
   "plus": "add",
   "minus": "remove",
   "xmark": "close",
@@ -60,7 +60,7 @@ const MAPPING = {
   "play.circle": "play-circle-outline",
   "pencil.circle.fill": "create",
 
-  // Editing & Creation - CLEAR VISUAL DIFFERENCES
+  // Editing & Creation
   "pencil": "pencil",
   "pencil.and.list.clipboard": "clipboard",
   "square.and.pencil": "create",
@@ -71,7 +71,7 @@ const MAPPING = {
   "doc.fill": "document",
   "doc": "document-outline",
 
-  // Media & Content - CLEAR VISUAL DIFFERENCES
+  // Media & Content
   "photo.fill": "image",
   "photo": "image-outline",
   "camera.fill": "camera",
@@ -86,7 +86,7 @@ const MAPPING = {
   "stop.fill": "stop",
   "square.stack.fill": "albums",
 
-  // System & Settings - CLEAR VISUAL DIFFERENCES
+  // System & Settings
   "gear": "settings-outline",
   "gearshape.fill": "settings",
   "slider.horizontal.3": "options",
@@ -97,7 +97,7 @@ const MAPPING = {
   "questionmark.circle.fill": "help-circle",
   "questionmark.circle": "help-circle-outline",
 
-  // Shapes & Symbols - CLEAR VISUAL DIFFERENCES
+  // Shapes & Symbols
   "square": "square-outline",
   "square.grid.3x3": "grid",
   "circle": "ellipse-outline",
@@ -117,7 +117,7 @@ const MAPPING = {
   "lock.fill": "lock-closed",
   "lock.open.fill": "lock-open",
 
-  // Shopping & Commerce - CLEAR VISUAL DIFFERENCES
+  // Shopping & Commerce
   "cart.fill": "cart",
   "cart": "cart-outline",
   "creditcard.fill": "card",
@@ -128,7 +128,7 @@ const MAPPING = {
   "eurosign.circle": "cash-outline",
   "eurosign.circle.fill": "cash",
 
-  // Location & Maps - CLEAR VISUAL DIFFERENCES
+  // Location & Maps
   "location.fill": "location",
   "location": "location-outline",
   "map.fill": "map",
@@ -136,17 +136,17 @@ const MAPPING = {
   "compass.drawing": "compass",
   "mappin": "pin",
   "mappin.circle.fill": "location",
-  "building.2": "business",
+  "building.2": "business-outline",
   "building.2.fill": "business",
 
-  // Time & Calendar - CLEAR VISUAL DIFFERENCES
+  // Time & Calendar
   "clock.fill": "time",
   "clock": "time-outline",
   "calendar": "calendar-outline",
   "calendar.badge.clock": "calendar",
   "timer": "timer-outline",
 
-  // User & Profile - CLEAR VISUAL DIFFERENCES
+  // User & Profile
   "person": "person-outline",
   "person.fill": "person",
   "person.2.fill": "people",
@@ -158,23 +158,23 @@ const MAPPING = {
   "person.crop.square": "person",
   "person.badge.key": "key",
 
-  // Work & Business - CLEAR VISUAL DIFFERENCES
+  // Work & Business
   "briefcase": "briefcase-outline",
   "briefcase.fill": "briefcase",
 
-  // Sharing & Export - CLEAR VISUAL DIFFERENCES
+  // Sharing & Export
   "square.and.arrow.up": "share-social",
   "square.and.arrow.down": "download",
   "arrow.up.doc.fill": "cloud-upload",
   "link": "link",
 
-  // Search & Discovery - CLEAR VISUAL DIFFERENCES
+  // Search & Discovery
   "magnifyingglass": "search",
   "line.3.horizontal.decrease": "filter",
   "line.3.horizontal.decrease.circle": "filter-circle",
   "arrow.up.arrow.down": "swap-vertical",
 
-  // Visibility & Display - CLEAR VISUAL DIFFERENCES
+  // Visibility & Display
   "eye": "eye-outline",
   "eye.fill": "eye",
   "eye.slash.fill": "eye-off",
@@ -182,7 +182,7 @@ const MAPPING = {
   "moon.fill": "moon",
   "sun.max.fill": "sunny",
   
-  // Special icons - CLEAR VISUAL DIFFERENCES
+  // Special icons
   "sparkles": "sparkles",
   "photo.on.rectangle": "images",
   "globe": "globe",
@@ -190,7 +190,7 @@ const MAPPING = {
   "plus.circle.fill": "add-circle",
   "trash.circle.fill": "close-circle",
   
-  // Tab navigation icons - v23.0.0 IONICONS WITH CLEAR VISUAL DIFFERENCES
+  // Direct Ionicons mappings for tab navigation
   "home": "home",
   "home-outline": "home-outline",
   "calendar": "calendar",
@@ -224,14 +224,6 @@ export type IconSymbolName = keyof typeof MAPPING;
  * This ensures a consistent look across platforms, and optimal resource usage.
  *
  * Icon `name`s are based on SFSymbols and require manual mapping to Ionicons.
- * 
- * ✅ v23.0.0: FIXED - Uses Ionicons with CLEAR filled/outlined variants
- * - Active icons: Uses filled icon name (e.g., "home", "heart", "person")
- * - Inactive icons: Uses outlined icon name (e.g., "home-outline", "heart-outline", "person-outline")
- * - Pure white (#FFFFFF) at 100% opacity for both states
- * - NO transparency, NO filters - icons are fully opaque and bright
- * - Visual distinction comes from different icon names (filled vs outlined)
- * - Ionicons have MUCH clearer visual differences than Material Icons
  */
 export function IconSymbol({
   name,
@@ -248,39 +240,19 @@ export function IconSymbol({
   weight?: SymbolWeight;
   fill?: string;
 }) {
-  // Get the Ionicon name from the mapping
   const ioniconName = MAPPING[name];
   
-  // Ensure color is applied directly without any modifications
-  const finalColor = typeof color === 'string' ? color : color.toString();
-  
-  // Determine if this is a filled or outlined icon based on the icon name
-  const isFilled = !name.includes('-outline') && 
-                   !name.includes('.circle') &&
-                   (name.includes('.fill') || 
-                    name === 'home' || 
-                    name === 'heart' || 
-                    name === 'person' || 
-                    name === 'people' || 
-                    name === 'briefcase' || 
-                    name === 'business' || 
-                    name === 'calendar' ||
-                    name === 'compass' ||
-                    name === 'settings');
-  
-  console.log(`🎨 [IconSymbol Android/Web v23.0 IONICONS] ${name} → ${ioniconName}, ${isFilled ? 'FILLED' : 'OUTLINED'}, color: ${finalColor}`);
+  if (!ioniconName) {
+    console.warn(`⚠️ IconSymbol: No mapping found for "${name}"`);
+    return null;
+  }
   
   return (
     <Ionicons
-      color={finalColor}
+      color={color}
       size={size}
       name={ioniconName}
-      style={[
-        { 
-          opacity: 1, // Force 100% opacity to prevent inheritance issues
-        },
-        style as StyleProp<TextStyle>,
-      ]}
+      style={style as StyleProp<TextStyle>}
     />
   );
 }

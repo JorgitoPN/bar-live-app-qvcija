@@ -1,22 +1,12 @@
 
 /**
- * TAB NAVIGATION BAR - v22.0.0 INSTAGRAM-STYLE FIXED WITH CLEAR VISUAL DISTINCTIONS
+ * TAB NAVIGATION BAR - SIMPLIFIED VERSION
  * 
- * Modern, clean tab navigation bar with Instagram-style outlined/filled icon distinction.
- * Built from scratch with no legacy code.
- * 
- * 🔥 INSTAGRAM-STYLE v22.0.0 FIX:
- * - Inactive icons: Outlined (hollow), pure white, 100% opacity
- * - Active icons: Filled, pure white, 100% opacity
- * - Icons are 32px (matching miniavatar size)
- * - Central "Explorar" button remains the same with gradient
- * - Visual distinction comes from different icon names (filled vs outlined)
- * - Icons positioned slightly higher (reduced paddingTop and paddingVertical)
- * - NO weight or fill props - distinction comes from icon name only
- * - Uses icons with CLEAR visual differences
+ * Clean tab navigation bar with Instagram-style filled/outlined icons.
+ * Active icons are filled, inactive icons are outlined.
  */
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -24,7 +14,6 @@ import {
   StyleSheet,
   Platform,
   Image,
-  Dimensions,
 } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -32,8 +21,6 @@ import Svg, { Path } from 'react-native-svg';
 import { colors } from '@/styles/commonStyles';
 import { TabIcon } from './TabIcon';
 import { TabDefinition } from './TabConfig';
-
-const { width } = Dimensions.get('window');
 
 interface TabNavigationBarProps {
   tabs: TabDefinition[];
@@ -49,36 +36,22 @@ export function TabNavigationBar({
   const router = useRouter();
   const pathname = usePathname();
 
-  useEffect(() => {
-    console.log('🎯 [TabNavigationBar v22.0 INSTAGRAM-STYLE FIXED] Rendered with', tabs.length, 'tabs');
-    console.log('📍 [TabNavigationBar] Current pathname:', pathname);
-    tabs.forEach(tab => {
-      const active = isTabActive(tab, pathname);
-      console.log(`   ${active ? '✅ FILLED (active)' : '⚪ OUTLINED (inactive)'} ${tab.label} (${tab.id}) - 32px size`);
-    });
-  }, [pathname, tabs]);
-
   const isTabActive = (tab: TabDefinition, currentPath: string): boolean => {
-    // Normalize paths
     const cleanRoute = tab.route.replace(/^\//, '').replace(/\/$/, '');
     const cleanPath = currentPath.replace(/^\//, '').replace(/\/$/, '');
 
-    // Special handling for perfil/local when in gestion tab
     if (tab.id === 'gestion' && cleanPath.startsWith('perfil/local')) {
       return true;
     }
 
-    // Special handling for perfil tab - don't match perfil/local
     if (tab.id === 'perfil' && cleanPath.startsWith('perfil/local')) {
       return false;
     }
 
-    // Check if current path starts with tab route
     if (cleanPath.startsWith(cleanRoute)) {
       return true;
     }
 
-    // Check if we're on the index of this tab
     if (cleanPath === cleanRoute || cleanPath === `${cleanRoute}/index`) {
       return true;
     }
@@ -87,8 +60,6 @@ export function TabNavigationBar({
   };
 
   const handleTabPress = (tab: TabDefinition) => {
-    console.log('🔄 [TabNavigationBar] Tab pressed:', tab.label, '→', tab.route);
-    
     if (tab.id === 'perfil' && onProfilePress) {
       onProfilePress();
     } else {
@@ -100,30 +71,27 @@ export function TabNavigationBar({
     const isActive = isTabActive(tab, pathname);
     const isCenter = tab.id === 'explorar';
 
-    // Center button (Explorar) - remains the same with gradient
+    // Center button (Explorar)
     if (isCenter) {
       return (
         <TouchableOpacity
           key={tab.id}
           onPress={() => handleTabPress(tab)}
-          style={[styles.centerButton, { opacity: 1 }]}
+          style={styles.centerButton}
           activeOpacity={0.7}
-          accessibilityRole="button"
-          accessibilityLabel={tab.label}
-          accessibilityState={{ selected: isActive }}
         >
           <LinearGradient
             colors={['#2DD4BF', '#06B6D4']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={[styles.centerGradient, { opacity: 1 }]}
+            style={styles.centerGradient}
           >
             <TabIcon
               iosIconFilled={tab.iosIconFilled}
               iosIconOutlined={tab.iosIconOutlined}
               androidIconFilled={tab.androidIconFilled}
               androidIconOutlined={tab.androidIconOutlined}
-              isActive={true} // Always show as active for center button
+              isActive={true}
               size={30}
             />
           </LinearGradient>
@@ -137,26 +105,23 @@ export function TabNavigationBar({
         <TouchableOpacity
           key={tab.id}
           onPress={() => handleTabPress(tab)}
-          style={[styles.tab, { opacity: 1 }]}
+          style={styles.tab}
           activeOpacity={0.7}
-          accessibilityRole="button"
-          accessibilityLabel={tab.label}
-          accessibilityState={{ selected: isActive }}
         >
-          <View style={[styles.avatarContainer, isActive && styles.avatarContainerActive, { opacity: 1 }]}>
+          <View style={[styles.avatarContainer, isActive && styles.avatarContainerActive]}>
             {activeProfileAvatar ? (
               <Image
                 source={{ uri: activeProfileAvatar }}
-                style={[styles.avatar, { opacity: 1 }]}
+                style={styles.avatar}
                 resizeMode="cover"
               />
             ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder, { opacity: 1 }]}>
+              <View style={[styles.avatar, styles.avatarPlaceholder]}>
                 <TabIcon
                   iosIconFilled="person.fill"
                   iosIconOutlined="person"
-                  androidIconFilled="account-circle"
-                  androidIconOutlined="account-circle"
+                  androidIconFilled="person"
+                  androidIconOutlined="person-outline"
                   isActive={isActive}
                   size={20}
                 />
@@ -167,16 +132,13 @@ export function TabNavigationBar({
       );
     }
 
-    // Regular tab with outlined/filled icon distinction
+    // Regular tab
     return (
       <TouchableOpacity
         key={tab.id}
         onPress={() => handleTabPress(tab)}
-        style={[styles.tab, { opacity: 1 }]}
+        style={styles.tab}
         activeOpacity={0.7}
-        accessibilityRole="button"
-        accessibilityLabel={tab.label}
-        accessibilityState={{ selected: isActive }}
       >
         <TabIcon
           iosIconFilled={tab.iosIconFilled}
@@ -184,22 +146,21 @@ export function TabNavigationBar({
           androidIconFilled={tab.androidIconFilled}
           androidIconOutlined={tab.androidIconOutlined}
           isActive={isActive}
-          size={32}
+          size={28}
         />
       </TouchableOpacity>
     );
   };
 
   return (
-    <View style={[styles.container, { opacity: 1 }]} pointerEvents="box-none">
-      {/* Background with shadow - NO opacity applied */}
-      <View style={[styles.backgroundContainer, { opacity: 1 }]} pointerEvents="none">
+    <View style={styles.container} pointerEvents="box-none">
+      <View style={styles.backgroundContainer} pointerEvents="none">
         <Svg
           width="100%"
           height="80"
           viewBox="0 0 375 80"
           preserveAspectRatio="none"
-          style={[styles.svg, { opacity: 1 }]}
+          style={styles.svg}
         >
           <Path
             d="M0,0 H375 V80 H0 Z"
@@ -208,8 +169,7 @@ export function TabNavigationBar({
         </Svg>
       </View>
 
-      {/* Tab buttons - positioned higher with 32px icons */}
-      <View style={[styles.tabBar, { opacity: 1 }]} pointerEvents="box-none">
+      <View style={styles.tabBar} pointerEvents="box-none">
         {tabs.map(tab => renderTab(tab))}
       </View>
     </View>
@@ -224,7 +184,6 @@ const styles = StyleSheet.create({
     right: 0,
     height: 80,
     backgroundColor: 'transparent',
-    opacity: 1,
   },
   backgroundContainer: {
     position: 'absolute',
@@ -237,32 +196,28 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 15,
     elevation: 10,
-    opacity: 1,
   },
   svg: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    opacity: 1,
   },
   tabBar: {
     flexDirection: 'row',
-    paddingTop: 8, // Slightly higher positioning
-    paddingBottom: Platform.OS === 'ios' ? 20 : 8,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 12,
     paddingHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'space-evenly',
     width: '100%',
     zIndex: 1,
-    opacity: 1,
   },
   tab: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8, // Slightly higher positioning
-    opacity: 1,
+    paddingVertical: 8,
   },
   centerButton: {
     width: 60,
@@ -274,7 +229,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 10,
-    opacity: 1,
   },
   centerGradient: {
     width: '100%',
@@ -284,15 +238,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 4,
     borderColor: '#FFFFFF',
-    opacity: 1,
   },
   avatarContainer: {
-    width: 32, // Match icon size
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     overflow: 'hidden',
-    position: 'relative',
-    opacity: 1,
   },
   avatarContainerActive: {
     borderWidth: 2.5,
@@ -307,7 +258,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    opacity: 1,
   },
   avatarPlaceholder: {
     justifyContent: 'center',
