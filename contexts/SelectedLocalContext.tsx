@@ -127,7 +127,7 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     loadUserLocales();
-  }, [user, selectedLocalId]);
+  }, [user]);
 
   const setSelectedLocalId = async (localId: string | null) => {
     try {

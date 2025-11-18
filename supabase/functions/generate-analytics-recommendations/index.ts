@@ -1,7 +1,7 @@
 
-// @ts-ignore - Deno edge runtime types
+// @ts-expect-error - Deno edge runtime types
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-// @ts-ignore - Deno JSR import
+// @ts-expect-error - Deno JSR import
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const corsHeaders = {

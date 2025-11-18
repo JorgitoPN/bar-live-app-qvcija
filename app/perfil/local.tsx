@@ -209,7 +209,7 @@ export default function LocalPerfilScreen() {
         useNativeDriver: true,
       }),
     ]).start();
-  }, [fadeAnim, scaleAnim]);
+  }, []);
 
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
     const R = 6371;
@@ -703,16 +703,64 @@ export default function LocalPerfilScreen() {
     router.push(`/crear/historia?localId=${localId}`);
   }, [user, isOwner, localId, switchToLocalProfile, setCurrentMode, router]);
 
-  const handleAvatarPress = useCallback(async () => {
-    if (localStories.length > 0) {
-      setCurrentStoryIndex(0);
-      setShowStoryViewer(true);
-      setIsPaused(false);
-      startStoryTimer();
-    } else if (isOwner) {
-      handleCrearHistoria();
+  const stopStoryTimer = useCallback(() => {
+    if (storyTimerRef.current) {
+      clearTimeout(storyTimerRef.current);
+      storyTimerRef.current = null;
     }
-  }, [localStories, startStoryTimer, isOwner, handleCrearHistoria]);
+    progressAnim.stopAnimation();
+  }, [progressAnim]);
+
+  const handleNextStory = useCallback(async () => {
+    const currentStory = localStories[currentStoryIndex];
+    
+    if (currentStory && user) {
+      try {
+        const { data: existingView } = await supabase
+          .from('historia_views')
+          .select('id')
+          .eq('historia_id', currentStory.id)
+          .eq('usuario_id', user.id)
+          .single();
+
+        if (!existingView) {
+          await supabase.from('historia_views').insert({
+            historia_id: currentStory.id,
+            usuario_id: user.id,
+          });
+        }
+      } catch (error) {
+        console.error('[LocalPerfil] Error marking story as viewed:', error);
+      }
+    }
+    
+    if (currentStoryIndex < localStories.length - 1) {
+      setCurrentStoryIndex(currentStoryIndex + 1);
+      progressAnim.setValue(0);
+    } else {
+      await loadLocalData();
+      setShowStoryViewer(false);
+      stopStoryTimer();
+    }
+  }, [currentStoryIndex, localStories, stopStoryTimer, user, loadLocalData, progressAnim]);
+
+  const startStoryTimer = useCallback(() => {
+    if (storyTimerRef.current) {
+      clearTimeout(storyTimerRef.current);
+    }
+
+    progressAnim.setValue(0);
+
+    Animated.timing(progressAnim, {
+      toValue: 1,
+      duration: 5000,
+      useNativeDriver: false,
+    }).start();
+
+    storyTimerRef.current = setTimeout(() => {
+      handleNextStory();
+    }, 5000);
+  }, [handleNextStory, progressAnim]);
 
   const handleAvatarPress = useCallback(async () => {
     if (localStories.length > 0) {
@@ -816,65 +864,6 @@ export default function LocalPerfilScreen() {
       router.push(`/perfil/usuario?userId=${userId}`);
     }
   };
-
-  const stopStoryTimer = useCallback(() => {
-    if (storyTimerRef.current) {
-      clearTimeout(storyTimerRef.current);
-      storyTimerRef.current = null;
-    }
-    progressAnim.stopAnimation();
-  }, [progressAnim]);
-
-  const handleNextStory = useCallback(async () => {
-    const currentStory = localStories[currentStoryIndex];
-    
-    if (currentStory && user) {
-      try {
-        const { data: existingView } = await supabase
-          .from('historia_views')
-          .select('id')
-          .eq('historia_id', currentStory.id)
-          .eq('usuario_id', user.id)
-          .single();
-
-        if (!existingView) {
-          await supabase.from('historia_views').insert({
-            historia_id: currentStory.id,
-            usuario_id: user.id,
-          });
-        }
-      } catch (error) {
-        console.error('[LocalPerfil] Error marking story as viewed:', error);
-      }
-    }
-    
-    if (currentStoryIndex < localStories.length - 1) {
-      setCurrentStoryIndex(currentStoryIndex + 1);
-      progressAnim.setValue(0);
-    } else {
-      await loadLocalData();
-      setShowStoryViewer(false);
-      stopStoryTimer();
-    }
-  }, [currentStoryIndex, localStories, stopStoryTimer, user, loadLocalData, progressAnim]);
-
-  const startStoryTimer = useCallback(() => {
-    if (storyTimerRef.current) {
-      clearTimeout(storyTimerRef.current);
-    }
-
-    progressAnim.setValue(0);
-
-    Animated.timing(progressAnim, {
-      toValue: 1,
-      duration: 5000,
-      useNativeDriver: false,
-    }).start();
-
-    storyTimerRef.current = setTimeout(() => {
-      handleNextStory();
-    }, 5000);
-  }, [handleNextStory, progressAnim]);
 
   const handlePreviousStory = useCallback(() => {
     if (currentStoryIndex > 0) {
