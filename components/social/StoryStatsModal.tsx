@@ -15,6 +15,9 @@ import {
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
+import { useRouter } from 'expo-router';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/utils/supabase';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MAX_MODAL_HEIGHT = SCREEN_HEIGHT * 0.7;
@@ -58,6 +61,8 @@ export default function StoryStatsModal({
   likes,
   loading = false,
 }: StoryStatsModalProps) {
+  const router = useRouter();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = React.useState<'views' | 'likes'>('views');
   const slideAnim = React.useRef(new Animated.Value(MAX_MODAL_HEIGHT)).current;
 
@@ -93,6 +98,45 @@ export default function StoryStatsModal({
     if (diffHours < 24) return `Hace ${diffHours}h`;
     if (diffDays < 7) return `Hace ${diffDays}d`;
     return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+  };
+
+  const handleUserPress = async (userId: string) => {
+    try {
+      // Check if it's a user or a local
+      const { data: userData, error: userError } = await supabase
+        .from('usuarios')
+        .select('id, rol_app')
+        .eq('id', userId)
+        .single();
+
+      if (userData) {
+        // It's a user - navigate to user profile
+        if (user && userId === user.id) {
+          // Navigate to own profile
+          router.push('/(tabs)/perfil');
+        } else {
+          // Navigate to other user's profile
+          router.push(`/perfil/usuario?userId=${userId}`);
+        }
+      } else {
+        // Check if it's a local
+        const { data: localData, error: localError } = await supabase
+          .from('locales')
+          .select('id')
+          .eq('propietario_id', userId)
+          .single();
+
+        if (localData) {
+          // Navigate to local profile
+          router.push(`/perfil/local?localId=${localData.id}`);
+        }
+      }
+      
+      // Close the modal after navigation
+      onClose();
+    } catch (error) {
+      console.error('[StoryStatsModal] Error navigating to profile:', error);
+    }
   };
 
   if (!visible) return null;
@@ -170,7 +214,12 @@ export default function StoryStatsModal({
                 {activeTab === 'views' ? (
                   views.length > 0 ? (
                     views.map((view) => (
-                      <View key={view.id} style={styles.userItem}>
+                      <TouchableOpacity 
+                        key={view.id} 
+                        style={styles.userItem}
+                        onPress={() => handleUserPress(view.usuario_id)}
+                        activeOpacity={0.7}
+                      >
                         {view.usuario?.avatar ? (
                           <Image
                             source={{ uri: view.usuario.avatar }}
@@ -194,7 +243,7 @@ export default function StoryStatsModal({
                           )}
                         </View>
                         <Text style={styles.timeText}>{formatTime(view.viewed_at)}</Text>
-                      </View>
+                      </TouchableOpacity>
                     ))
                   ) : (
                     <View style={styles.emptyState}>
@@ -205,7 +254,12 @@ export default function StoryStatsModal({
                 ) : (
                   likes.length > 0 ? (
                     likes.map((like) => (
-                      <View key={like.id} style={styles.userItem}>
+                      <TouchableOpacity 
+                        key={like.id} 
+                        style={styles.userItem}
+                        onPress={() => handleUserPress(like.usuario_id)}
+                        activeOpacity={0.7}
+                      >
                         {like.usuario?.avatar ? (
                           <Image
                             source={{ uri: like.usuario.avatar }}
@@ -229,7 +283,7 @@ export default function StoryStatsModal({
                           )}
                         </View>
                         <Text style={styles.timeText}>{formatTime(like.created_at)}</Text>
-                      </View>
+                      </TouchableOpacity>
                     ))
                   ) : (
                     <View style={styles.emptyState}>
