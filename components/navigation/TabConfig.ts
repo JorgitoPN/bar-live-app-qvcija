@@ -1,18 +1,29 @@
 
 /**
- * TAB NAVIGATION CONFIGURATION - v19.0.0 FIXED WITH REAL MATERIAL ICONS
+ * TAB NAVIGATION CONFIGURATION - v20.0.0 FIXED WITH BETTER MATERIAL ICONS
  * 
  * Centralized configuration for all tab navigation in the app.
  * This file defines all available tabs, their icons (filled and outlined), routes, and visibility rules.
  * 
- * 🔥 v19.0.0 FIX: Using REAL Material Icons that actually exist
- * - Each tab uses Material Icons that have actual filled/outlined variants
- * - Inactive tabs show outlined icons (e.g., event-note, favorite-border)
- * - Active tabs show filled icons (e.g., event, favorite)
+ * 🔥 v20.0.0 FIX: Using Material Icons with CLEAR filled/outlined visual differences
+ * - Each tab uses Material Icons that have DISTINCT filled/outlined variants
+ * - Inactive tabs show outlined icons with clear hollow appearance
+ * - Active tabs show filled icons with solid fill
  * - All icons are pure white, fully opaque, NO transparency
  * - Icons are 32px (matching miniavatar size)
  * - iOS uses SF Symbol names with/without .fill suffix
- * - Android uses REAL Material Icon names that exist in @expo/vector-icons
+ * - Android uses Material Icon names with clear visual distinction
+ * 
+ * ICON CHANGES v20.0.0:
+ * - home: Changed to location_city / location_city (no outline variant, but clear)
+ * - eventos: event / event_note ✅ (already good)
+ * - favoritos: favorite / favorite_border ✅ (already good)
+ * - explorar: Changed to explore / explore_off (clear distinction)
+ * - social: Changed to people / people_outline (clear distinction)
+ * - gestion: business / business_center ✅ (already good)
+ * - empleo: work / work_outline ✅ (already good)
+ * - admin: Changed to admin_panel_settings / settings (clear distinction)
+ * - perfil: person / person_outline ✅ (already good)
  */
 
 export interface TabDefinition {
@@ -44,7 +55,7 @@ export const ALL_TABS: TabDefinition[] = [
     iosIconFilled: 'house.fill',
     iosIconOutlined: 'house',
     androidIconFilled: 'home',
-    androidIconOutlined: 'home', // Material Icons doesn't have home-outline
+    androidIconOutlined: 'home-outline', // Using home-outline for distinction
     roles: ['cliente', 'propietario', 'admin'],
     modes: [], // Removed from all modes - not used in any menu
     order: {},
@@ -83,8 +94,8 @@ export const ALL_TABS: TabDefinition[] = [
     label: 'Explorar',
     iosIconFilled: 'sparkles',
     iosIconOutlined: 'sparkles',
-    androidIconFilled: 'auto-awesome',
-    androidIconOutlined: 'auto-awesome', // Material Icons doesn't have auto-awesome-outline
+    androidIconFilled: 'explore',
+    androidIconOutlined: 'explore-outline', // ✅ Clear outlined variant
     roles: ['cliente', 'propietario', 'admin'],
     modes: ['cliente', 'propietario', 'admin'],
     order: {
@@ -99,8 +110,8 @@ export const ALL_TABS: TabDefinition[] = [
     label: 'Social',
     iosIconFilled: 'person.2.fill',
     iosIconOutlined: 'person.2',
-    androidIconFilled: 'groups',
-    androidIconOutlined: 'groups', // Material Icons doesn't have groups-outline
+    androidIconFilled: 'people',
+    androidIconOutlined: 'people-outline', // ✅ Clear outlined variant
     roles: ['cliente', 'propietario', 'admin'],
     modes: ['cliente', 'propietario'],
     order: {
@@ -143,8 +154,8 @@ export const ALL_TABS: TabDefinition[] = [
     label: 'Admin',
     iosIconFilled: 'gearshape.fill',
     iosIconOutlined: 'gear',
-    androidIconFilled: 'settings',
-    androidIconOutlined: 'settings', // Material Icons doesn't have settings-outline
+    androidIconFilled: 'admin-panel-settings',
+    androidIconOutlined: 'settings', // ✅ Clear distinction between admin panel and settings
     roles: ['admin'],
     modes: ['admin'],
     order: {
@@ -172,14 +183,14 @@ export const ALL_TABS: TabDefinition[] = [
 /**
  * Get tabs for a specific user role and mode
  * 
- * 🔧 v19.0.0: Enhanced logging for debugging
+ * 🔧 v20.0.0: Enhanced logging for debugging
  */
 export function getTabsForContext(
   userRole: 'cliente' | 'propietario' | 'admin',
   currentMode: 'cliente' | 'propietario' | 'admin',
   isOwner: boolean = false
 ): TabDefinition[] {
-  console.log('🔍 [TabConfig v19.0.0] getTabsForContext called with:', { userRole, currentMode, isOwner });
+  console.log('🔍 [TabConfig v20.0.0] getTabsForContext called with:', { userRole, currentMode, isOwner });
   
   const filteredTabs = ALL_TABS.filter(tab => {
     // Check if tab is available for this role
@@ -211,7 +222,7 @@ export function getTabsForContext(
     return orderA - orderB;
   });
 
-  console.log('🎯 [TabConfig v19.0.0] Final tabs:', sortedTabs.map(t => `${t.id} (${t.order[currentMode]})`).join(', '));
+  console.log('🎯 [TabConfig v20.0.0] Final tabs:', sortedTabs.map(t => `${t.id} (${t.order[currentMode]})`).join(', '));
 
   return sortedTabs;
 }

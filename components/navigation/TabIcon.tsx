@@ -1,19 +1,20 @@
 
 /**
- * TAB ICON COMPONENT - v19.0.0 INSTAGRAM-STYLE FIXED
+ * TAB ICON COMPONENT - v20.0.0 INSTAGRAM-STYLE FIXED
  * 
  * Platform-specific icon rendering with Instagram-style outlined/filled distinction.
  * Handles iOS SF Symbols and Android Material Icons.
  * 
- * 🔥 INSTAGRAM-STYLE v19.0.0 FIX:
- * - Inactive icons: Uses outlined icon name, pure white, 100% opacity
- * - Active icons: Uses filled icon name, pure white, 100% opacity
+ * 🔥 INSTAGRAM-STYLE v20.0.0 FIX:
+ * - Inactive icons: Uses outlined icon name with CLEAR hollow appearance
+ * - Active icons: Uses filled icon name with solid fill
+ * - Icons are pure white at 100% opacity for both states
  * - Icons match miniavatar size (32px by default)
  * - Visual distinction comes from DIFFERENT ICON NAMES (not weight or fill props)
  * - iOS: Uses SF Symbol names with/without .fill suffix
- * - Android: Uses REAL Material Icon names that exist (e.g., favorite vs favorite-border)
+ * - Android: Uses Material Icon names with CLEAR visual differences
  * 
- * 🔧 FIX v19.0.0: Pass the correct icon name based on active state
+ * 🔧 FIX v20.0.0: Updated to use better Material Icons with clear distinctions
  */
 
 import React from 'react';
@@ -47,7 +48,7 @@ export function TabIcon({
   const iconName = Platform.OS === 'ios' ? iosIcon : androidIcon;
 
   // 🎨 DEBUG LOG - Verify correct icon names are being used
-  console.log(`🎨 [TabIcon v19.0.0] ${iconName}: ${isActive ? 'FILLED (active)' : 'OUTLINED (inactive)'}, size: ${size}px`);
+  console.log(`🎨 [TabIcon v20.0.0] ${iconName}: ${isActive ? 'FILLED (active)' : 'OUTLINED (inactive)'}, size: ${size}px`);
 
   return (
     <View style={[styles.container, { width: size, height: size, opacity: 1 }]}>

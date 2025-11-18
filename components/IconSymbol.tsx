@@ -18,7 +18,7 @@ const MAPPING = {
 
   // Navigation & Home
   "house.fill": "home",
-  "house": "home",
+  "house": "home-outline",
   "arrow.left": "arrow-back",
   "arrow.right": "arrow-forward",
   "arrow.up": "arrow-upward",
@@ -88,7 +88,7 @@ const MAPPING = {
 
   // System & Settings
   "gear": "settings",
-  "gearshape.fill": "settings",
+  "gearshape.fill": "admin-panel-settings",
   "slider.horizontal.3": "tune",
   "info.circle.fill": "info",
   "info.circle": "info",
@@ -149,8 +149,8 @@ const MAPPING = {
   // User & Profile
   "person": "person-outline",
   "person.fill": "person",
-  "person.2.fill": "groups",
-  "person.2": "groups",
+  "person.2.fill": "people",
+  "person.2": "people-outline",
   "person.circle.fill": "account-circle",
   "person.circle": "account-circle",
   "person.crop.circle.fill": "account-circle",
@@ -182,8 +182,8 @@ const MAPPING = {
   "moon.fill": "dark-mode",
   "sun.max.fill": "light-mode",
   
-  // Special icons
-  "sparkles": "auto-awesome",
+  // Special icons - v20.0.0 UPDATED
+  "sparkles": "explore",
   "photo.on.rectangle": "photo-library",
   "globe": "language",
   "arrow.triangle.2.circlepath": "sync",
@@ -205,12 +205,13 @@ export type IconSymbolName = keyof typeof MAPPING;
  *
  * Icon `name`s are based on SFSymbols and require manual mapping to MaterialIcons.
  * 
- * ✅ v19.0.0: FIXED - Uses proper Material Icons with real filled/outlined variants
+ * ✅ v20.0.0: FIXED - Uses proper Material Icons with CLEAR filled/outlined variants
  * - Active icons: Uses filled icon name passed from TabIcon
  * - Inactive icons: Uses outlined icon name passed from TabIcon
  * - Pure white (#FFFFFF) at 100% opacity for both states
  * - NO transparency, NO filters - icons are fully opaque and bright
  * - Visual distinction comes from different icon names (filled vs outlined)
+ * - All icons now have CLEAR visual differences between states
  */
 export function IconSymbol({
   name,
@@ -236,7 +237,7 @@ export function IconSymbol({
   // Determine if this is a filled or outlined icon based on the icon name
   const isFilled = name.includes('.fill');
   
-  console.log(`🎨 [IconSymbol Android/Web v19.0] ${name} → ${materialIconName}, ${isFilled ? 'FILLED' : 'OUTLINED'}, color: ${finalColor}`);
+  console.log(`🎨 [IconSymbol Android/Web v20.0] ${name} → ${materialIconName}, ${isFilled ? 'FILLED' : 'OUTLINED'}, color: ${finalColor}`);
   
   return (
     <MaterialIcons
