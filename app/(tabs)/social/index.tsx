@@ -1965,6 +1965,14 @@ export default function SocialScreen() {
     }
   }, [currentStoryIndex, viewingOwnStories, userStories, historias, user, router, stopStoryTimer]);
 
+  // ✅ CRITICAL FIX: Callback to close story viewer when navigating from stats modal
+  const handleCloseStoryViewerAndNavigate = useCallback(() => {
+    console.log('[Social] ✅ Closing story viewer before navigation from stats modal');
+    setShowStoryStats(false);
+    setShowStoryViewer(false);
+    stopStoryTimer();
+  }, [stopStoryTimer]);
+
   useEffect(() => {
     if (showStoryViewer && !isPaused) {
       startStoryTimer();
@@ -2423,6 +2431,7 @@ export default function SocialScreen() {
                     setIsPaused(false);
                     startStoryTimer();
                   }}
+                  onNavigateToProfile={handleCloseStoryViewerAndNavigate}
                   storyId={currentStory.id}
                   viewsCount={currentStory.views_count || 0}
                   likesCount={storyLikes.length}
