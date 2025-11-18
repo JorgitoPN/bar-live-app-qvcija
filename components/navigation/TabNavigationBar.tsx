@@ -1,11 +1,11 @@
 
 /**
- * TAB NAVIGATION BAR - v16.0.0 INSTAGRAM-STYLE FIXED
+ * TAB NAVIGATION BAR - v19.0.0 INSTAGRAM-STYLE FIXED
  * 
  * Modern, clean tab navigation bar with Instagram-style outlined/filled icon distinction.
  * Built from scratch with no legacy code.
  * 
- * 🔥 INSTAGRAM-STYLE v16.0.0 FIX:
+ * 🔥 INSTAGRAM-STYLE v19.0.0 FIX:
  * - Inactive icons: Outlined (hollow), pure white, 100% opacity
  * - Active icons: Filled, pure white, 100% opacity
  * - Icons are 32px (matching miniavatar size)
@@ -49,7 +49,7 @@ export function TabNavigationBar({
   const pathname = usePathname();
 
   useEffect(() => {
-    console.log('🎯 [TabNavigationBar v16.0 INSTAGRAM-STYLE FIXED] Rendered with', tabs.length, 'tabs');
+    console.log('🎯 [TabNavigationBar v19.0 INSTAGRAM-STYLE FIXED] Rendered with', tabs.length, 'tabs');
     console.log('📍 [TabNavigationBar] Current pathname:', pathname);
     tabs.forEach(tab => {
       const active = isTabActive(tab, pathname);

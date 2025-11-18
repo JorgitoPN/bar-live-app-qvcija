@@ -136,18 +136,18 @@ const MAPPING = {
   "compass.drawing": "explore",
   "mappin": "place",
   "mappin.circle.fill": "place",
-  "building.2": "business_center",
+  "building.2": "business-center",
   "building.2.fill": "business",
 
   // Time & Calendar
   "clock.fill": "access-time",
   "clock": "access-time",
-  "calendar": "event_note",
+  "calendar": "event-note",
   "calendar.badge.clock": "event",
   "timer": "timer",
 
   // User & Profile
-  "person": "person_outline",
+  "person": "person-outline",
   "person.fill": "person",
   "person.2.fill": "groups",
   "person.2": "groups",
@@ -159,7 +159,7 @@ const MAPPING = {
   "person.badge.key": "admin-panel-settings",
 
   // Work & Business
-  "briefcase": "work_outline",
+  "briefcase": "work-outline",
   "briefcase.fill": "work",
 
   // Sharing & Export
@@ -183,7 +183,7 @@ const MAPPING = {
   "sun.max.fill": "light-mode",
   
   // Special icons
-  "sparkles": "auto_awesome",
+  "sparkles": "auto-awesome",
   "photo.on.rectangle": "photo-library",
   "globe": "language",
   "arrow.triangle.2.circlepath": "sync",
@@ -205,7 +205,7 @@ export type IconSymbolName = keyof typeof MAPPING;
  *
  * Icon `name`s are based on SFSymbols and require manual mapping to MaterialIcons.
  * 
- * ✅ v18.0.0: FIXED - Uses proper Material Icons with real filled/outlined variants
+ * ✅ v19.0.0: FIXED - Uses proper Material Icons with real filled/outlined variants
  * - Active icons: Uses filled icon name passed from TabIcon
  * - Inactive icons: Uses outlined icon name passed from TabIcon
  * - Pure white (#FFFFFF) at 100% opacity for both states
@@ -236,7 +236,7 @@ export function IconSymbol({
   // Determine if this is a filled or outlined icon based on the icon name
   const isFilled = name.includes('.fill');
   
-  console.log(`🎨 [IconSymbol Android/Web v18.0] ${name} → ${materialIconName}, ${isFilled ? 'FILLED' : 'OUTLINED'}, color: ${finalColor}`);
+  console.log(`🎨 [IconSymbol Android/Web v19.0] ${name} → ${materialIconName}, ${isFilled ? 'FILLED' : 'OUTLINED'}, color: ${finalColor}`);
   
   return (
     <MaterialIcons
