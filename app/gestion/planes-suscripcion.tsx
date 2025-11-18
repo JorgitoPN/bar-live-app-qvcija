@@ -101,17 +101,7 @@ export default function PlanesSuscripcionScreen() {
       // Verificar si el local tiene una suscripción activa
       const { data: suscripcionData, error: suscripcionError } = await supabase
         .from('suscripciones_locales')
-        .select(`
-          id,
-          plan_id,
-          creditos_destacados_restantes,
-          creditos_eventos_restantes,
-          fecha_proximo_pago,
-          planes_suscripcion (
-            nombre,
-            precio_mensual
-          )
-        `)
+        .select('id, plan_id, creditos_destacados_restantes, creditos_eventos_restantes, fecha_proximo_pago')
         .eq('local_id', localId)
         .eq('estado', 'activa')
         .maybeSingle();
@@ -120,19 +110,34 @@ export default function PlanesSuscripcionScreen() {
         console.error('[PlanesSuscripcion] Error cargando suscripción:', suscripcionError);
       }
 
+      let suscripcionActual = undefined;
+
+      if (suscripcionData) {
+        // Get plan details separately
+        const { data: planData, error: planError } = await supabase
+          .from('planes_suscripcion')
+          .select('nombre, precio_mensual')
+          .eq('id', suscripcionData.plan_id)
+          .single();
+
+        if (planError) {
+          console.error('[PlanesSuscripcion] Error cargando plan:', planError);
+        } else {
+          suscripcionActual = {
+            id: suscripcionData.id,
+            plan_id: suscripcionData.plan_id,
+            plan_nombre: planData?.nombre || 'basico',
+            plan_precio: planData?.precio_mensual || 0,
+            creditos_destacados_restantes: suscripcionData.creditos_destacados_restantes || 0,
+            creditos_eventos_restantes: suscripcionData.creditos_eventos_restantes || 0,
+            fecha_proximo_pago: suscripcionData.fecha_proximo_pago,
+          };
+        }
+      }
+
       setLocal({
         ...localData,
-        suscripcion_actual: suscripcionData
-          ? {
-              id: suscripcionData.id,
-              plan_id: suscripcionData.plan_id,
-              plan_nombre: (suscripcionData.planes_suscripcion as any)?.nombre || 'basico',
-              plan_precio: (suscripcionData.planes_suscripcion as any)?.precio_mensual || 0,
-              creditos_destacados_restantes: suscripcionData.creditos_destacados_restantes || 0,
-              creditos_eventos_restantes: suscripcionData.creditos_eventos_restantes || 0,
-              fecha_proximo_pago: suscripcionData.fecha_proximo_pago,
-            }
-          : undefined,
+        suscripcion_actual: suscripcionActual,
       });
 
       console.log('[PlanesSuscripcion] Datos cargados exitosamente');

@@ -110,19 +110,54 @@ export default function GestionScreen() {
               destacado_fecha_fin,
               plan_pendiente_id,
               fecha_cambio_plan,
-              cancelar_al_final_periodo,
-              planes_suscripcion!plan_id (
-                nombre,
-                precio_mensual,
-                eventos_mes
-              ),
-              plan_pendiente:planes_suscripcion!plan_pendiente_id (
-                nombre
-              )
+              cancelar_al_final_periodo
             `)
             .eq('local_id', local.id)
             .eq('estado', 'activa')
             .single();
+
+          let suscripcionData = undefined;
+
+          if (suscripcion) {
+            // Get plan details
+            const { data: planData } = await supabase
+              .from('planes_suscripcion')
+              .select('nombre, precio_mensual, eventos_mes')
+              .eq('id', suscripcion.plan_id)
+              .single();
+
+            // Get pending plan details if exists
+            let planPendienteNombre = undefined;
+            if (suscripcion.plan_pendiente_id) {
+              const { data: planPendienteData } = await supabase
+                .from('planes_suscripcion')
+                .select('nombre')
+                .eq('id', suscripcion.plan_pendiente_id)
+                .single();
+              
+              planPendienteNombre = planPendienteData?.nombre;
+            }
+
+            suscripcionData = {
+              id: suscripcion.id,
+              plan_id: suscripcion.plan_id,
+              plan_nombre: planData?.nombre || 'basico',
+              plan_precio: planData?.precio_mensual || 0,
+              estado: suscripcion.estado,
+              eventos_usados_mes: suscripcion.eventos_usados_mes,
+              eventos_disponibles: planData?.eventos_mes || 0,
+              creditos_destacados_restantes: suscripcion.creditos_destacados_restantes || 0,
+              creditos_eventos_restantes: suscripcion.creditos_eventos_restantes || 0,
+              fecha_renovacion_creditos: suscripcion.fecha_renovacion_creditos,
+              fecha_proximo_pago: suscripcion.fecha_proximo_pago,
+              destacado_activo: suscripcion.destacado_activo || false,
+              destacado_fecha_fin: suscripcion.destacado_fecha_fin,
+              plan_pendiente_id: suscripcion.plan_pendiente_id,
+              plan_pendiente_nombre: planPendienteNombre,
+              fecha_cambio_plan: suscripcion.fecha_cambio_plan,
+              cancelar_al_final_periodo: suscripcion.cancelar_al_final_periodo || false,
+            };
+          }
 
           // Get active event (next upcoming event)
           const { data: eventoActivo } = await supabase
@@ -138,27 +173,7 @@ export default function GestionScreen() {
 
           return {
             ...local,
-            suscripcion: suscripcion
-              ? {
-                  id: suscripcion.id,
-                  plan_id: suscripcion.plan_id,
-                  plan_nombre: (suscripcion.planes_suscripcion as any)?.nombre || 'basico',
-                  plan_precio: (suscripcion.planes_suscripcion as any)?.precio_mensual || 0,
-                  estado: suscripcion.estado,
-                  eventos_usados_mes: suscripcion.eventos_usados_mes,
-                  eventos_disponibles: (suscripcion.planes_suscripcion as any)?.eventos_mes || 0,
-                  creditos_destacados_restantes: suscripcion.creditos_destacados_restantes || 0,
-                  creditos_eventos_restantes: suscripcion.creditos_eventos_restantes || 0,
-                  fecha_renovacion_creditos: suscripcion.fecha_renovacion_creditos,
-                  fecha_proximo_pago: suscripcion.fecha_proximo_pago,
-                  destacado_activo: suscripcion.destacado_activo || false,
-                  destacado_fecha_fin: suscripcion.destacado_fecha_fin,
-                  plan_pendiente_id: suscripcion.plan_pendiente_id,
-                  plan_pendiente_nombre: (suscripcion.plan_pendiente as any)?.nombre,
-                  fecha_cambio_plan: suscripcion.fecha_cambio_plan,
-                  cancelar_al_final_periodo: suscripcion.cancelar_al_final_periodo || false,
-                }
-              : undefined,
+            suscripcion: suscripcionData,
             evento_activo: eventoActivo || undefined,
           };
         })

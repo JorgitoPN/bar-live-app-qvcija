@@ -329,6 +329,48 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
 
         {local.suscripcion && (
           <>
+            {/* Plan Renewal Time */}
+            {local.suscripcion.fecha_proximo_pago && local.suscripcion.plan_nombre !== 'basico' && (
+              <View style={styles.timeSection}>
+                <View style={styles.timeSectionHeader}>
+                  <IconSymbol name="clock.fill" size={18} color={colors.primary} />
+                  <Text style={styles.timeSectionTitle}>Renovación del Plan</Text>
+                </View>
+                <View style={styles.timeInfo}>
+                  <Text style={styles.timeLabel}>Tiempo restante:</Text>
+                  <Text style={styles.timeValue}>
+                    {calculateTimeRemaining(local.suscripcion.fecha_proximo_pago)}
+                  </Text>
+                </View>
+                <View style={styles.timeInfo}>
+                  <Text style={styles.timeLabel}>Fecha de renovación:</Text>
+                  <Text style={styles.timeValue}>
+                    {new Date(local.suscripcion.fecha_proximo_pago).toLocaleDateString('es-ES')}
+                  </Text>
+                </View>
+                <View style={styles.progressBarBackground}>
+                  <View
+                    style={[
+                      styles.progressBarFill,
+                      {
+                        width: `${Math.max(
+                          0,
+                          Math.min(
+                            100,
+                            ((new Date(local.suscripcion.fecha_proximo_pago).getTime() -
+                              new Date().getTime()) /
+                              (30 * 24 * 60 * 60 * 1000)) *
+                              100
+                          )
+                        )}%`,
+                        backgroundColor: colors.primary,
+                      },
+                    ]}
+                  />
+                </View>
+              </View>
+            )}
+
             {/* Active Promotion Time */}
             {local.suscripcion.destacado_activo && local.suscripcion.destacado_fecha_fin && (
               <View style={styles.timeSection}>
@@ -411,7 +453,7 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
                 <View style={styles.renewalInfo}>
                   <IconSymbol name="arrow.clockwise" size={16} color={colors.textSecondary} />
                   <Text style={styles.renewalText}>
-                    Renovación:{' '}
+                    Renovación de créditos:{' '}
                     {new Date(local.suscripcion.fecha_renovacion_creditos).toLocaleDateString(
                       'es-ES'
                     )}
