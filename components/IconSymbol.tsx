@@ -18,7 +18,7 @@ const MAPPING = {
 
   // Navigation & Home
   "house.fill": "home",
-  "house": "home-outline",
+  "house": "home",
   "arrow.left": "arrow-back",
   "arrow.right": "arrow-forward",
   "arrow.up": "arrow-upward",
@@ -88,7 +88,7 @@ const MAPPING = {
 
   // System & Settings
   "gear": "settings",
-  "gearshape.fill": "admin-panel-settings",
+  "gearshape.fill": "settings",
   "slider.horizontal.3": "tune",
   "info.circle.fill": "info",
   "info.circle": "info",
@@ -136,13 +136,13 @@ const MAPPING = {
   "compass.drawing": "explore",
   "mappin": "place",
   "mappin.circle.fill": "place",
-  "building.2": "business-center",
+  "building.2": "business",
   "building.2.fill": "business",
 
   // Time & Calendar
   "clock.fill": "access-time",
   "clock": "access-time",
-  "calendar": "event-note",
+  "calendar": "event",
   "calendar.badge.clock": "event",
   "timer": "timer",
 
@@ -182,7 +182,7 @@ const MAPPING = {
   "moon.fill": "dark-mode",
   "sun.max.fill": "light-mode",
   
-  // Special icons - v20.0.0 UPDATED
+  // Special icons - v21.0.0 FIXED
   "sparkles": "explore",
   "photo.on.rectangle": "photo-library",
   "globe": "language",
@@ -190,6 +190,26 @@ const MAPPING = {
   "plus.circle.fill": "add-circle",
   "trash.circle.fill": "cancel",
   "settings_applications": "settings-applications",
+  
+  // Tab navigation icons - v21.0.0 FIXED with proper Material Icons
+  "home": "home",
+  "home-outline": "home",
+  "event": "event",
+  "event-note": "event",
+  "favorite": "favorite",
+  "favorite-border": "favorite-border",
+  "explore": "explore",
+  "explore-outline": "explore",
+  "people": "people",
+  "people-outline": "people-outline",
+  "business": "business",
+  "business-center": "business",
+  "work": "work",
+  "work-outline": "work-outline",
+  "admin-panel-settings": "admin-panel-settings",
+  "settings": "settings",
+  "person": "person",
+  "person-outline": "person-outline",
 } as Partial<
   Record<
     import("expo-symbols").SymbolViewProps["name"],
@@ -205,7 +225,7 @@ export type IconSymbolName = keyof typeof MAPPING;
  *
  * Icon `name`s are based on SFSymbols and require manual mapping to MaterialIcons.
  * 
- * ✅ v20.0.0: FIXED - Uses proper Material Icons with CLEAR filled/outlined variants
+ * ✅ v21.0.0: FIXED - Uses proper Material Icons with CLEAR filled/outlined variants
  * - Active icons: Uses filled icon name passed from TabIcon
  * - Inactive icons: Uses outlined icon name passed from TabIcon
  * - Pure white (#FFFFFF) at 100% opacity for both states
@@ -235,9 +255,9 @@ export function IconSymbol({
   const finalColor = typeof color === 'string' ? color : color.toString();
   
   // Determine if this is a filled or outlined icon based on the icon name
-  const isFilled = name.includes('.fill');
+  const isFilled = name.includes('.fill') || name.includes('favorite') || name.includes('person') || name.includes('people') || name.includes('work') || name.includes('business') || name.includes('event');
   
-  console.log(`🎨 [IconSymbol Android/Web v20.0] ${name} → ${materialIconName}, ${isFilled ? 'FILLED' : 'OUTLINED'}, color: ${finalColor}`);
+  console.log(`🎨 [IconSymbol Android/Web v21.0] ${name} → ${materialIconName}, ${isFilled ? 'FILLED' : 'OUTLINED'}, color: ${finalColor}`);
   
   return (
     <MaterialIcons
