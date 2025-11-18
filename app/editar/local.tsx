@@ -709,7 +709,7 @@ export default function EditarLocalScreen() {
             <View style={styles.infoBox}>
               <IconSymbol name="info.circle.fill" size={20} color={colors.primary} />
               <Text style={styles.infoText}>
-                La opción de local destacado se gestiona desde la página de Mis Locales, donde puedes ver cuántos destacados te quedan según tu plan.
+                La opción de local destacado se gestiona desde la página de Gestión de Locales, donde puedes ver cuántos destacados te quedan según tu plan.
               </Text>
             </View>
 
