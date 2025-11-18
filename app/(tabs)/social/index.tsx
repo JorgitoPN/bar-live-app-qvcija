@@ -26,6 +26,7 @@ import {
   ActivityIndicator,
   Pressable,
   FlatList,
+  Keyboard,
 } from 'react-native';
 import { supabase } from '@/utils/supabase';
 import { useGlobalData } from '@/contexts/GlobalDataContext';
@@ -674,9 +675,13 @@ const styles = StyleSheet.create({
   },
   storyInteractionBar: {
     position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 40 : 20,
-    left: 16,
-    right: 16,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
@@ -686,7 +691,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
@@ -698,7 +703,7 @@ const styles = StyleSheet.create({
   },
   storyMessageInput: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -2285,144 +2290,150 @@ export default function SocialScreen() {
         }}
         statusBarTranslucent
       >
-        <View style={styles.storyViewerModal}>
-          {currentStory && (
-            <>
-              <View style={styles.storyViewerHeader}>
-                <View style={styles.storyProgressContainer}>
-                  {currentStories.map((_, index) => (
-                    <View key={index} style={styles.storyProgressBar}>
-                      {index < currentStoryIndex && (
-                        <View style={[styles.storyProgressFill, { width: '100%' }]} />
-                      )}
-                      {index === currentStoryIndex && (
-                        <Animated.View style={[styles.storyProgressFill, { width: progressWidth }]} />
-                      )}
-                    </View>
-                  ))}
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={0}
+        >
+          <View style={styles.storyViewerModal}>
+            {currentStory && (
+              <>
+                <View style={styles.storyViewerHeader}>
+                  <View style={styles.storyProgressContainer}>
+                    {currentStories.map((_, index) => (
+                      <View key={index} style={styles.storyProgressBar}>
+                        {index < currentStoryIndex && (
+                          <View style={[styles.storyProgressFill, { width: '100%' }]} />
+                        )}
+                        {index === currentStoryIndex && (
+                          <Animated.View style={[styles.storyProgressFill, { width: progressWidth }]} />
+                        )}
+                      </View>
+                    ))}
+                  </View>
+
+                  <TouchableOpacity 
+                    style={styles.storyAutorInfo}
+                    onPress={handleNavigateToStoryAuthorProfile}
+                    activeOpacity={0.7}
+                  >
+                    {currentStory.autor?.avatar ? (
+                      <Image source={{ uri: currentStory.autor.avatar }} style={styles.storyAutorAvatar} />
+                    ) : (
+                      <View style={[styles.storyAutorAvatar, styles.avatarPlaceholder]}>
+                        <Text style={styles.avatarText}>
+                          {currentStory.autor?.nombre?.charAt(0).toUpperCase() || 'U'}
+                        </Text>
+                      </View>
+                    )}
+                    <Text style={styles.storyAutorNombre}>
+                      {currentStory.autor?.nombre || 'Usuario'}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
 
-                <TouchableOpacity 
-                  style={styles.storyAutorInfo}
-                  onPress={handleNavigateToStoryAuthorProfile}
+                <TouchableOpacity
+                  style={styles.storyCloseButton}
+                  onPress={() => {
+                    setShowStoryStats(false);
+                    setShowStoryViewer(false);
+                    stopStoryTimer();
+                  }}
                   activeOpacity={0.7}
                 >
-                  {currentStory.autor?.avatar ? (
-                    <Image source={{ uri: currentStory.autor.avatar }} style={styles.storyAutorAvatar} />
-                  ) : (
-                    <View style={[styles.storyAutorAvatar, styles.avatarPlaceholder]}>
-                      <Text style={styles.avatarText}>
-                        {currentStory.autor?.nombre?.charAt(0).toUpperCase() || 'U'}
-                      </Text>
-                    </View>
-                  )}
-                  <Text style={styles.storyAutorNombre}>
-                    {currentStory.autor?.nombre || 'Usuario'}
-                  </Text>
+                  <IconSymbol name="xmark" size={20} color="#fff" />
                 </TouchableOpacity>
-              </View>
 
-              <TouchableOpacity
-                style={styles.storyCloseButton}
-                onPress={() => {
-                  setShowStoryStats(false);
-                  setShowStoryViewer(false);
-                  stopStoryTimer();
-                }}
-                activeOpacity={0.7}
-              >
-                <IconSymbol name="xmark" size={20} color="#fff" />
-              </TouchableOpacity>
-
-              <View style={styles.storyContent}>
-                <Image source={{ uri: currentStory.imagen }} style={styles.storyImage} resizeMode="contain" />
-              </View>
-
-              <View style={styles.storyTouchZones}>
-                <TouchableOpacity
-                  style={styles.storyTouchZone}
-                  onPress={handlePreviousStory}
-                  activeOpacity={1}
-                />
-                <TouchableOpacity
-                  style={styles.storyTouchZone}
-                  onPress={handleNextStory}
-                  activeOpacity={1}
-                />
-              </View>
-
-              {isCurrentStoryOwner && (
-                <View style={styles.storyBottomLeftControls}>
-                  <TouchableOpacity
-                    style={styles.storyStatsButtonBottom}
-                    onPress={handleViewStoryStats}
-                    activeOpacity={0.7}
-                  >
-                    <IconSymbol name="eye.fill" size={24} color="#fff" />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.storyDeleteButtonBottom}
-                    onPress={handleDeleteStory}
-                    activeOpacity={0.7}
-                  >
-                    <IconSymbol name="trash.fill" size={24} color="#fff" />
-                  </TouchableOpacity>
+                <View style={styles.storyContent}>
+                  <Image source={{ uri: currentStory.imagen }} style={styles.storyImage} resizeMode="contain" />
                 </View>
-              )}
 
-              {!isCurrentStoryOwner && (
-                <View style={styles.storyInteractionBar}>
+                <View style={styles.storyTouchZones}>
                   <TouchableOpacity
-                    style={styles.storyInteractionButton}
-                    onPress={handleStoryLike}
-                    activeOpacity={0.7}
-                  >
-                    <IconSymbol
-                      name={currentStory.liked_by_user ? 'heart.fill' : 'heart'}
-                      size={20}
-                      color={currentStory.liked_by_user ? '#EF4444' : '#fff'}
-                    />
-                  </TouchableOpacity>
-
-                  <TextInput
-                    style={styles.storyMessageInput}
-                    placeholder="Enviar mensaje..."
-                    placeholderTextColor="rgba(255, 255, 255, 0.6)"
-                    value={storyMessage}
-                    onChangeText={setStoryMessage}
-                    onFocus={() => setIsPaused(true)}
-                    onBlur={() => setIsPaused(false)}
+                    style={styles.storyTouchZone}
+                    onPress={handlePreviousStory}
+                    activeOpacity={1}
                   />
+                  <TouchableOpacity
+                    style={styles.storyTouchZone}
+                    onPress={handleNextStory}
+                    activeOpacity={1}
+                  />
+                </View>
 
-                  {storyMessage.trim().length > 0 && (
+                {isCurrentStoryOwner && (
+                  <View style={styles.storyBottomLeftControls}>
                     <TouchableOpacity
-                      style={styles.storySendButton}
-                      onPress={handleSendStoryMessage}
+                      style={styles.storyStatsButtonBottom}
+                      onPress={handleViewStoryStats}
                       activeOpacity={0.7}
                     >
-                      <IconSymbol name="paperplane.fill" size={20} color="#fff" />
+                      <IconSymbol name="eye.fill" size={24} color="#fff" />
                     </TouchableOpacity>
-                  )}
-                </View>
-              )}
+                    <TouchableOpacity
+                      style={styles.storyDeleteButtonBottom}
+                      onPress={handleDeleteStory}
+                      activeOpacity={0.7}
+                    >
+                      <IconSymbol name="trash.fill" size={24} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+                )}
 
-              <StoryStatsModal
-                visible={showStoryStats}
-                onClose={() => {
-                  setShowStoryStats(false);
-                  setIsPaused(false);
-                  startStoryTimer();
-                }}
-                storyId={currentStory.id}
-                viewsCount={currentStory.views_count || 0}
-                likesCount={storyLikes.length}
-                views={storyViews}
-                likes={storyLikes}
-                loading={loadingStats}
-              />
-            </>
-          )}
-        </View>
+                {!isCurrentStoryOwner && (
+                  <View style={styles.storyInteractionBar}>
+                    <TouchableOpacity
+                      style={styles.storyInteractionButton}
+                      onPress={handleStoryLike}
+                      activeOpacity={0.7}
+                    >
+                      <IconSymbol
+                        name={currentStory.liked_by_user ? 'heart.fill' : 'heart'}
+                        size={20}
+                        color={currentStory.liked_by_user ? '#EF4444' : '#fff'}
+                      />
+                    </TouchableOpacity>
+
+                    <TextInput
+                      style={styles.storyMessageInput}
+                      placeholder="Enviar mensaje..."
+                      placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                      value={storyMessage}
+                      onChangeText={setStoryMessage}
+                      onFocus={() => setIsPaused(true)}
+                      onBlur={() => setIsPaused(false)}
+                    />
+
+                    {storyMessage.trim().length > 0 && (
+                      <TouchableOpacity
+                        style={styles.storySendButton}
+                        onPress={handleSendStoryMessage}
+                        activeOpacity={0.7}
+                      >
+                        <IconSymbol name="paperplane.fill" size={20} color="#fff" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
+
+                <StoryStatsModal
+                  visible={showStoryStats}
+                  onClose={() => {
+                    setShowStoryStats(false);
+                    setIsPaused(false);
+                    startStoryTimer();
+                  }}
+                  storyId={currentStory.id}
+                  viewsCount={currentStory.views_count || 0}
+                  likesCount={storyLikes.length}
+                  views={storyViews}
+                  likes={storyLikes}
+                  loading={loadingStats}
+                />
+              </>
+            )}
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Modal

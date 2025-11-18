@@ -20,7 +20,6 @@ import {
   Dimensions,
 } from 'react-native';
 import { supabase } from '@/utils/supabase';
-import * as Location from 'expo-location';
 import { LinearGradient } from 'expo-linear-gradient';
 import UploadProgressModal from '@/components/common/UploadProgressModal';
 
@@ -83,12 +82,6 @@ export default function CrearHistoriaScreen() {
   const localId = params.localId as string | undefined;
   
   const [imagen, setImagen] = useState<string | null>(null);
-  const [ubicacion, setUbicacion] = useState<{
-    nombre: string;
-    lat: number;
-    lng: number;
-  } | null>(null);
-  const [loadingLocation, setLoadingLocation] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showUploadProgress, setShowUploadProgress] = useState(false);
@@ -135,51 +128,6 @@ export default function CrearHistoriaScreen() {
 
     if (!result.canceled && result.assets[0]) {
       setImagen(result.assets[0].uri);
-    }
-  };
-
-  const obtenerUbicacion = async () => {
-    setLoadingLocation(true);
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      
-      if (status !== 'granted') {
-        Alert.alert(
-          'Permiso necesario',
-          'Necesitamos acceso a tu ubicación para añadirla a la historia'
-        );
-        setLoadingLocation(false);
-        return;
-      }
-
-      const location = await Location.getCurrentPositionAsync({});
-      const geocode = await Location.reverseGeocodeAsync({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      });
-
-      if (geocode.length > 0) {
-        const place = geocode[0];
-        const nombreUbicacion = [
-          place.name,
-          place.street,
-          place.city,
-          place.region,
-        ]
-          .filter(Boolean)
-          .join(', ');
-
-        setUbicacion({
-          nombre: nombreUbicacion || 'Ubicación actual',
-          lat: location.coords.latitude,
-          lng: location.coords.longitude,
-        });
-      }
-    } catch (error) {
-      console.error('Error obteniendo ubicación:', error);
-      Alert.alert('Error', 'No se pudo obtener tu ubicación');
-    } finally {
-      setLoadingLocation(false);
     }
   };
 
@@ -294,9 +242,6 @@ export default function CrearHistoriaScreen() {
           tipo: storyTipo,
           local_id: effectiveLocalId,
           imagen: imagenUrl,
-          ubicacion: ubicacion?.nombre,
-          ubicacion_lat: ubicacion?.lat,
-          ubicacion_lng: ubicacion?.lng,
         })
         .select()
         .single();
@@ -428,36 +373,6 @@ export default function CrearHistoriaScreen() {
             </View>
           </View>
         )}
-
-        {imagen && (
-          <View style={styles.optionsContainer}>
-            {ubicacion && (
-              <View style={styles.locationContainer}>
-                <IconSymbol name="mappin.circle.fill" size={20} color={colors.primary} />
-                <Text style={styles.locationText}>{ubicacion.nombre}</Text>
-                <TouchableOpacity onPress={() => setUbicacion(null)} activeOpacity={0.7}>
-                  <IconSymbol name="xmark.circle.fill" size={20} color={colors.textSecondary} />
-                </TouchableOpacity>
-              </View>
-            )}
-
-            <View style={styles.additionalOptions}>
-              <TouchableOpacity
-                style={styles.additionalOptionButton}
-                onPress={obtenerUbicacion}
-                disabled={loadingLocation || publishing}
-                activeOpacity={0.7}
-              >
-                {loadingLocation ? (
-                  <ActivityIndicator size="small" color={colors.badgeDestacado} />
-                ) : (
-                  <IconSymbol name="mappin.and.ellipse" size={24} color={colors.badgeDestacado} />
-                )}
-                <Text style={styles.additionalOptionText}>Añadir ubicación</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
       </ScrollView>
 
       <UploadProgressModal
@@ -569,45 +484,6 @@ const styles = StyleSheet.create({
   },
   placeholderButtonText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  optionsContainer: {
-    width: '100%',
-  },
-  locationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.cardBackground,
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 16,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  locationText: {
-    flex: 1,
-    fontSize: 14,
-    color: colors.text,
-  },
-  additionalOptions: {
-    width: '100%',
-    gap: 12,
-  },
-  additionalOptionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 14,
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    gap: 12,
-  },
-  additionalOptionText: {
-    fontSize: 15,
     fontWeight: '600',
     color: colors.text,
   },
