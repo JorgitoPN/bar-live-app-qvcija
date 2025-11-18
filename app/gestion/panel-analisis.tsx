@@ -132,21 +132,13 @@ export default function PanelAnalisisScreen() {
         return;
       }
 
-      // 2. Verify Premium subscription - FIXED QUERY
+      // 2. Verify Premium subscription - FIXED: Use separate queries to avoid ambiguous relationships
       console.log('[PanelAnalisis] Checking subscription for local:', localId);
       
+      // First, get the active subscription
       const { data: subscriptionData, error: subError } = await supabase
         .from('suscripciones_locales')
-        .select(`
-          id,
-          plan_id,
-          estado,
-          planes_suscripcion!inner (
-            nombre,
-            precio_mensual,
-            panel_analisis
-          )
-        `)
+        .select('id, plan_id, estado')
         .eq('local_id', localId)
         .eq('estado', 'activa')
         .maybeSingle();
@@ -179,19 +171,17 @@ export default function PanelAnalisisScreen() {
         return;
       }
 
-      // Extract plan data - handle both array and object formats
-      let planData: any = subscriptionData.planes_suscripcion;
-      
-      // If it's an array, get the first element
-      if (Array.isArray(planData)) {
-        planData = planData[0];
-      }
+      // Now get the plan details separately
+      const { data: planData, error: planError } = await supabase
+        .from('planes_suscripcion')
+        .select('nombre, precio_mensual, panel_analisis')
+        .eq('id', subscriptionData.plan_id)
+        .single();
 
       console.log('[PanelAnalisis] Plan data:', planData);
 
-      // Check if plan has analytics access
-      if (!planData) {
-        console.error('[PanelAnalisis] No plan data found in subscription');
+      if (planError || !planData) {
+        console.error('[PanelAnalisis] Plan query error:', planError);
         Alert.alert(
           'Error de Configuración',
           'Tu suscripción no tiene un plan asociado. Contacta con soporte.',
