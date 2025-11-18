@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Dimensions,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -42,11 +43,14 @@ interface AnalyticsData {
     total_posts: number;
     total_eventos: number;
     engagement_rate: number;
+    nuevos_seguidores: number;
+    reach: number;
   };
   timeSeriesData: {
     date: string;
     views: number;
     interactions: number;
+    engagement_rate: number;
   }[];
   topContent: {
     id: string;
@@ -57,11 +61,28 @@ interface AnalyticsData {
     comentarios: number;
     created_at: string;
   }[];
-  demographics: {
-    age_groups: { range: string; count: number }[];
-    gender: { type: string; count: number }[];
-    locations: { provincia: string; count: number }[];
-  };
+  bestPostingTimes: {
+    hour: number;
+    avgEngagement: number;
+  }[];
+  bestDays: {
+    day: number;
+    avgEngagement: number;
+  }[];
+}
+
+interface AIRecommendation {
+  id: string;
+  tipo: string;
+  titulo: string;
+  descripcion: string;
+  prioridad: 'baja' | 'media' | 'alta' | 'urgente';
+  datos_soporte: any;
+  acciones_sugeridas: string[];
+  impacto_estimado: string;
+  confianza: number;
+  estado: string;
+  created_at: string;
 }
 
 export default function PanelAnalisisScreen() {
@@ -70,8 +91,11 @@ export default function PanelAnalisisScreen() {
   const { localId } = useLocalSearchParams();
 
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
+  const [recommendations, setRecommendations] = useState<AIRecommendation[]>([]);
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('30d');
+  const [generatingRecommendations, setGeneratingRecommendations] = useState(false);
 
   useEffect(() => {
     if (!localId) {
@@ -81,6 +105,7 @@ export default function PanelAnalisisScreen() {
     }
 
     loadAnalyticsData();
+    loadRecommendations();
   }, [localId, timeRange]);
 
   const loadAnalyticsData = async () => {
@@ -113,7 +138,12 @@ export default function PanelAnalisisScreen() {
         .select(`
           id,
           plan_id,
-          estado
+          estado,
+          planes_suscripcion (
+            nombre,
+            precio_mensual,
+            panel_analisis
+          )
         `)
         .eq('local_id', localId)
         .eq('estado', 'activa')
@@ -134,14 +164,9 @@ export default function PanelAnalisisScreen() {
         return;
       }
 
-      // Get plan details
-      const { data: planData, error: planError } = await supabase
-        .from('planes_suscripcion')
-        .select('nombre, precio_mensual, panel_analisis')
-        .eq('id', subscriptionData.plan_id)
-        .single();
+      const planData = subscriptionData.planes_suscripcion as any;
 
-      if (planError || !planData || !planData.panel_analisis) {
+      if (!planData || !planData.panel_analisis) {
         Alert.alert(
           'Plan Premium Requerido',
           'El panel de análisis solo está disponible para usuarios con plan Premium.\n\nActualiza tu plan para acceder a estadísticas detalladas.',
@@ -167,8 +192,7 @@ export default function PanelAnalisisScreen() {
         .select('id, likes, comentarios, created_at, contenido, imagen')
         .eq('local_id', localId)
         .gte('created_at', startDate.toISOString())
-        .order('likes', { ascending: false })
-        .limit(5);
+        .order('likes', { ascending: false });
 
       // Get stories stats
       const { data: storiesData } = await supabase
@@ -209,6 +233,13 @@ export default function PanelAnalisisScreen() {
         .eq('local_id', localId)
         .gte('created_at', startDate.toISOString());
 
+      // Get new followers
+      const { data: newFollowersData } = await supabase
+        .from('seguidores')
+        .select('created_at')
+        .eq('seguido_id', localId)
+        .gte('created_at', startDate.toISOString());
+
       // Calculate stats
       const totalPosts = postsData?.length || 0;
       const totalStories = storiesData?.length || 0;
@@ -216,11 +247,12 @@ export default function PanelAnalisisScreen() {
       const totalComments = postsData?.reduce((sum, p) => sum + (p.comentarios || 0), 0) || 0;
       const totalViews = (storyViewsData?.length || 0) + (checkInsData?.length || 0);
       const totalEventos = eventosData?.length || 0;
+      const nuevosSeguidores = newFollowersData?.length || 0;
 
       const totalInteractions = totalLikes + totalComments;
-      const engagementRate = totalPosts > 0 ? ((totalInteractions / totalPosts) * 100) : 0;
+      const engagementRate = totalPosts + totalStories > 0 ? ((totalInteractions / (totalPosts + totalStories)) * 100) : 0;
 
-      // Build time series data (simplified - group by day)
+      // Build time series data (group by day)
       const timeSeriesMap = new Map<string, { views: number; interactions: number }>();
       
       // Add check-ins to time series
@@ -248,11 +280,15 @@ export default function PanelAnalisisScreen() {
       });
 
       const timeSeriesData = Array.from(timeSeriesMap.entries())
-        .map(([date, data]) => ({ date, ...data }))
+        .map(([date, data]) => ({
+          date,
+          ...data,
+          engagement_rate: data.views > 0 ? (data.interactions / data.views) * 100 : 0,
+        }))
         .sort((a, b) => a.date.localeCompare(b.date));
 
       // Top content
-      const topContent = postsData?.map((post) => ({
+      const topContent = postsData?.slice(0, 5).map((post) => ({
         id: post.id,
         tipo: 'post',
         contenido: post.contenido || '',
@@ -262,23 +298,45 @@ export default function PanelAnalisisScreen() {
         created_at: post.created_at,
       })) || [];
 
-      // Demographics (simplified - would need more complex queries in production)
-      const demographics = {
-        age_groups: [
-          { range: '18-24', count: Math.floor(Math.random() * 50) + 10 },
-          { range: '25-34', count: Math.floor(Math.random() * 80) + 20 },
-          { range: '35-44', count: Math.floor(Math.random() * 60) + 15 },
-          { range: '45+', count: Math.floor(Math.random() * 40) + 5 },
-        ],
-        gender: [
-          { type: 'Masculino', count: Math.floor(Math.random() * 100) + 50 },
-          { type: 'Femenino', count: Math.floor(Math.random() * 100) + 50 },
-          { type: 'Otro', count: Math.floor(Math.random() * 20) + 5 },
-        ],
-        locations: [
-          { provincia: localData.nombre.split(',')[1]?.trim() || 'Madrid', count: Math.floor(Math.random() * 150) + 50 },
-        ],
-      };
+      // Best posting times
+      const postsByHour = new Map<number, { count: number; engagement: number }>();
+      postsData?.forEach((post) => {
+        const hour = new Date(post.created_at).getHours();
+        const engagement = (post.likes || 0) + (post.comentarios || 0);
+        const existing = postsByHour.get(hour) || { count: 0, engagement: 0 };
+        postsByHour.set(hour, {
+          count: existing.count + 1,
+          engagement: existing.engagement + engagement,
+        });
+      });
+
+      const bestPostingTimes = Array.from(postsByHour.entries())
+        .map(([hour, data]) => ({
+          hour,
+          avgEngagement: data.engagement / data.count,
+        }))
+        .sort((a, b) => b.avgEngagement - a.avgEngagement)
+        .slice(0, 3);
+
+      // Best days
+      const postsByDay = new Map<number, { count: number; engagement: number }>();
+      postsData?.forEach((post) => {
+        const day = new Date(post.created_at).getDay();
+        const engagement = (post.likes || 0) + (post.comentarios || 0);
+        const existing = postsByDay.get(day) || { count: 0, engagement: 0 };
+        postsByDay.set(day, {
+          count: existing.count + 1,
+          engagement: existing.engagement + engagement,
+        });
+      });
+
+      const bestDays = Array.from(postsByDay.entries())
+        .map(([day, data]) => ({
+          day,
+          avgEngagement: data.engagement / data.count,
+        }))
+        .sort((a, b) => b.avgEngagement - a.avgEngagement)
+        .slice(0, 3);
 
       setAnalyticsData({
         local: localData,
@@ -290,15 +348,18 @@ export default function PanelAnalisisScreen() {
           total_views: totalViews,
           total_likes: totalLikes,
           total_comments: totalComments,
-          total_shares: 0, // Not implemented yet
+          total_shares: 0,
           total_stories: totalStories,
           total_posts: totalPosts,
           total_eventos: totalEventos,
           engagement_rate: engagementRate,
+          nuevos_seguidores: nuevosSeguidores,
+          reach: totalViews + totalInteractions,
         },
         timeSeriesData,
         topContent,
-        demographics,
+        bestPostingTimes,
+        bestDays,
       });
 
       console.log('[PanelAnalisis] Analytics loaded successfully');
@@ -308,6 +369,105 @@ export default function PanelAnalisisScreen() {
       router.back();
     } finally {
       setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const loadRecommendations = async () => {
+    if (!localId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('ai_recommendations')
+        .select('*')
+        .eq('local_id', localId)
+        .eq('estado', 'activa')
+        .order('prioridad', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('[PanelAnalisis] Error loading recommendations:', error);
+        return;
+      }
+
+      setRecommendations(data || []);
+    } catch (error) {
+      console.error('[PanelAnalisis] Error:', error);
+    }
+  };
+
+  const generateRecommendations = async () => {
+    if (!localId || generatingRecommendations) return;
+
+    try {
+      setGeneratingRecommendations(true);
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No session');
+      }
+
+      const response = await fetch(
+        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/generate-analytics-recommendations`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ localId }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Error generating recommendations');
+      }
+
+      Alert.alert(
+        '✅ Recomendaciones Generadas',
+        `Se han generado ${result.count} recomendaciones personalizadas para tu local.`
+      );
+
+      await loadRecommendations();
+    } catch (error: any) {
+      console.error('[PanelAnalisis] Error generating recommendations:', error);
+      Alert.alert('Error', 'No se pudieron generar las recomendaciones. Intenta de nuevo.');
+    } finally {
+      setGeneratingRecommendations(false);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadAnalyticsData();
+    await loadRecommendations();
+  };
+
+  const getPriorityColor = (prioridad: string) => {
+    switch (prioridad) {
+      case 'urgente':
+        return '#EF4444';
+      case 'alta':
+        return '#F59E0B';
+      case 'media':
+        return '#3B82F6';
+      default:
+        return '#10B981';
+    }
+  };
+
+  const getPriorityIcon = (prioridad: string) => {
+    switch (prioridad) {
+      case 'urgente':
+        return 'exclamationmark.triangle.fill';
+      case 'alta':
+        return 'exclamationmark.circle.fill';
+      case 'media':
+        return 'info.circle.fill';
+      default:
+        return 'checkmark.circle.fill';
     }
   };
 
@@ -316,14 +476,27 @@ export default function PanelAnalisisScreen() {
     label: string,
     value: string | number,
     color: string,
-    subtitle?: string
+    subtitle?: string,
+    trend?: number
   ) => (
     <View style={[styles.statCard, { borderLeftColor: color, borderLeftWidth: 4 }]}>
       <View style={styles.statHeader}>
         <IconSymbol name={icon as any} size={24} color={color} />
         <Text style={styles.statLabel}>{label}</Text>
       </View>
-      <Text style={styles.statValue}>{value}</Text>
+      <View style={styles.statValueContainer}>
+        <Text style={styles.statValue}>{value}</Text>
+        {trend !== undefined && (
+          <View style={[styles.trendBadge, { backgroundColor: trend >= 0 ? '#10B981' : '#EF4444' }]}>
+            <IconSymbol
+              name={trend >= 0 ? 'arrow.up' : 'arrow.down'}
+              size={12}
+              color="#FFFFFF"
+            />
+            <Text style={styles.trendText}>{Math.abs(trend)}%</Text>
+          </View>
+        )}
+      </View>
       {subtitle && <Text style={styles.statSubtitle}>{subtitle}</Text>}
     </View>
   );
@@ -351,6 +524,8 @@ export default function PanelAnalisisScreen() {
     );
   }
 
+  const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -365,19 +540,32 @@ export default function PanelAnalisisScreen() {
           <Text style={styles.headerTitle}>Panel de Análisis</Text>
           <Text style={styles.headerSubtitle}>{analyticsData.local.nombre}</Text>
         </View>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity
+          style={styles.headerRefreshButton}
+          onPress={generateRecommendations}
+          disabled={generatingRecommendations}
+        >
+          {generatingRecommendations ? (
+            <ActivityIndicator size="small" color={colors.headerText} />
+          ) : (
+            <IconSymbol name="sparkles" size={24} color={colors.headerText} />
+          )}
+        </TouchableOpacity>
       </LinearGradient>
 
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+        }
       >
         {/* Premium Badge */}
         <View style={styles.premiumBanner}>
           <IconSymbol name="star.fill" size={20} color="#F59E0B" />
           <Text style={styles.premiumText}>
-            Plan {analyticsData.subscription.plan_nombre.toUpperCase()} • Analíticas Completas
+            Plan {analyticsData.subscription.plan_nombre.toUpperCase()} • Analíticas Completas + IA
           </Text>
         </View>
 
@@ -424,6 +612,92 @@ export default function PanelAnalisisScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* AI Recommendations Section */}
+        {recommendations.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <IconSymbol name="sparkles" size={24} color="#F59E0B" />
+              <Text style={styles.sectionTitle}>Recomendaciones IA</Text>
+            </View>
+            <Text style={styles.sectionSubtitle}>
+              Sugerencias personalizadas para mejorar el rendimiento de tu local
+            </Text>
+            {recommendations.map((rec) => (
+              <View key={rec.id} style={styles.recommendationCard}>
+                <View style={styles.recommendationHeader}>
+                  <View style={styles.recommendationTitleRow}>
+                    <IconSymbol
+                      name={getPriorityIcon(rec.prioridad) as any}
+                      size={20}
+                      color={getPriorityColor(rec.prioridad)}
+                    />
+                    <Text style={styles.recommendationTitle}>{rec.titulo}</Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.priorityBadge,
+                      { backgroundColor: getPriorityColor(rec.prioridad) },
+                    ]}
+                  >
+                    <Text style={styles.priorityBadgeText}>
+                      {rec.prioridad.toUpperCase()}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={styles.recommendationDescription}>{rec.descripcion}</Text>
+                
+                {rec.acciones_sugeridas && rec.acciones_sugeridas.length > 0 && (
+                  <View style={styles.actionsContainer}>
+                    <Text style={styles.actionsTitle}>Acciones Sugeridas:</Text>
+                    {rec.acciones_sugeridas.map((accion, index) => (
+                      <View key={index} style={styles.actionItem}>
+                        <IconSymbol name="checkmark.circle" size={16} color={colors.primary} />
+                        <Text style={styles.actionText}>{accion}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                <View style={styles.recommendationFooter}>
+                  <View style={styles.impactBadge}>
+                    <IconSymbol name="chart.line.uptrend.xyaxis" size={14} color="#10B981" />
+                    <Text style={styles.impactText}>{rec.impacto_estimado}</Text>
+                  </View>
+                  <View style={styles.confidenceBadge}>
+                    <IconSymbol name="checkmark.seal.fill" size={14} color="#3B82F6" />
+                    <Text style={styles.confidenceText}>
+                      {Math.round(rec.confianza * 100)}% confianza
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Generate Recommendations Button */}
+        {recommendations.length === 0 && (
+          <TouchableOpacity
+            style={styles.generateButton}
+            onPress={generateRecommendations}
+            disabled={generatingRecommendations}
+          >
+            <LinearGradient
+              colors={['#F59E0B', '#D97706']}
+              style={styles.generateGradient}
+            >
+              {generatingRecommendations ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <>
+                  <IconSymbol name="sparkles" size={20} color="#FFFFFF" />
+                  <Text style={styles.generateButtonText}>Generar Recomendaciones IA</Text>
+                </>
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+
         {/* Overview Stats */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Resumen General</Text>
@@ -456,8 +730,76 @@ export default function PanelAnalisisScreen() {
               '#F59E0B',
               'Tasa de interacción'
             )}
+            {renderStatCard(
+              'person.2.badge.plus',
+              'Nuevos Seguidores',
+              analyticsData.stats.nuevos_seguidores.toLocaleString(),
+              '#8B5CF6',
+              `En los últimos ${timeRange === '7d' ? '7' : timeRange === '30d' ? '30' : '90'} días`
+            )}
+            {renderStatCard(
+              'antenna.radiowaves.left.and.right',
+              'Alcance',
+              analyticsData.stats.reach.toLocaleString(),
+              '#06B6D4',
+              'Personas alcanzadas'
+            )}
           </View>
         </View>
+
+        {/* Best Posting Times */}
+        {analyticsData.bestPostingTimes.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <IconSymbol name="clock.fill" size={20} color={colors.primary} />
+              <Text style={styles.sectionTitle}>Mejores Horarios para Publicar</Text>
+            </View>
+            <Text style={styles.sectionSubtitle}>
+              Horarios con mayor engagement basados en tu historial
+            </Text>
+            <View style={styles.timesContainer}>
+              {analyticsData.bestPostingTimes.map((time, index) => (
+                <View key={index} style={styles.timeCard}>
+                  <View style={styles.timeRank}>
+                    <Text style={styles.timeRankText}>#{index + 1}</Text>
+                  </View>
+                  <Text style={styles.timeHour}>
+                    {time.hour}:00 - {time.hour + 1}:00
+                  </Text>
+                  <Text style={styles.timeEngagement}>
+                    {Math.round(time.avgEngagement)} interacciones promedio
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Best Days */}
+        {analyticsData.bestDays.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <IconSymbol name="calendar" size={20} color={colors.primary} />
+              <Text style={styles.sectionTitle}>Mejores Días de la Semana</Text>
+            </View>
+            <Text style={styles.sectionSubtitle}>
+              Días con mayor interacción de tu audiencia
+            </Text>
+            <View style={styles.daysContainer}>
+              {analyticsData.bestDays.map((day, index) => (
+                <View key={index} style={styles.dayCard}>
+                  <View style={styles.dayRank}>
+                    <Text style={styles.dayRankText}>#{index + 1}</Text>
+                  </View>
+                  <Text style={styles.dayName}>{dayNames[day.day]}</Text>
+                  <Text style={styles.dayEngagement}>
+                    {Math.round(day.avgEngagement)} interacciones
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
 
         {/* Content Stats */}
         <View style={styles.section}>
@@ -491,7 +833,7 @@ export default function PanelAnalisisScreen() {
                 <Text style={styles.audienceValue}>
                   {analyticsData.local.seguidores.toLocaleString()}
                 </Text>
-                <Text style={styles.audienceLabel}>Seguidores</Text>
+                <Text style={styles.audienceLabel}>Seguidores Totales</Text>
               </View>
             </View>
             <View style={styles.audienceRow}>
@@ -500,7 +842,7 @@ export default function PanelAnalisisScreen() {
                 <Text style={styles.audienceValue}>
                   {analyticsData.local.check_ins.toLocaleString()}
                 </Text>
-                <Text style={styles.audienceLabel}>Check-ins</Text>
+                <Text style={styles.audienceLabel}>Check-ins Totales</Text>
               </View>
             </View>
             <View style={styles.audienceRow}>
@@ -547,64 +889,56 @@ export default function PanelAnalisisScreen() {
           </View>
         )}
 
-        {/* Demographics */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Demografía</Text>
-          <Text style={styles.sectionSubtitle}>
-            Información sobre tu audiencia
-          </Text>
-
-          {/* Age Groups */}
-          <View style={styles.demographicCard}>
-            <Text style={styles.demographicTitle}>Grupos de Edad</Text>
-            {analyticsData.demographics.age_groups.map((group) => (
-              <View key={group.range} style={styles.demographicRow}>
-                <Text style={styles.demographicLabel}>{group.range}</Text>
-                <View style={styles.demographicBarContainer}>
-                  <View
-                    style={[
-                      styles.demographicBar,
-                      {
-                        width: `${(group.count / Math.max(...analyticsData.demographics.age_groups.map((g) => g.count))) * 100}%`,
-                      },
-                    ]}
-                  />
-                </View>
-                <Text style={styles.demographicValue}>{group.count}</Text>
-              </View>
-            ))}
+        {/* Performance Trend */}
+        {analyticsData.timeSeriesData.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Tendencia de Rendimiento</Text>
+            <Text style={styles.sectionSubtitle}>
+              Evolución de tus métricas en el tiempo
+            </Text>
+            <View style={styles.trendCard}>
+              {analyticsData.timeSeriesData.slice(-7).map((data, index) => {
+                const maxValue = Math.max(
+                  ...analyticsData.timeSeriesData.map((d) => d.views + d.interactions)
+                );
+                const height = ((data.views + data.interactions) / maxValue) * 100;
+                return (
+                  <View key={index} style={styles.trendBar}>
+                    <View
+                      style={[
+                        styles.trendBarFill,
+                        { height: `${height}%`, backgroundColor: colors.primary },
+                      ]}
+                    />
+                    <Text style={styles.trendBarLabel}>
+                      {new Date(data.date).getDate()}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
           </View>
-
-          {/* Gender */}
-          <View style={styles.demographicCard}>
-            <Text style={styles.demographicTitle}>Género</Text>
-            {analyticsData.demographics.gender.map((item) => (
-              <View key={item.type} style={styles.demographicRow}>
-                <Text style={styles.demographicLabel}>{item.type}</Text>
-                <View style={styles.demographicBarContainer}>
-                  <View
-                    style={[
-                      styles.demographicBar,
-                      {
-                        width: `${(item.count / Math.max(...analyticsData.demographics.gender.map((g) => g.count))) * 100}%`,
-                        backgroundColor: item.type === 'Masculino' ? '#3B82F6' : item.type === 'Femenino' ? '#EC4899' : '#8B5CF6',
-                      },
-                    ]}
-                  />
-                </View>
-                <Text style={styles.demographicValue}>{item.count}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
+        )}
 
         {/* Info Banner */}
         <View style={styles.infoBanner}>
           <IconSymbol name="info.circle.fill" size={20} color={colors.primary} />
           <Text style={styles.infoBannerText}>
-            Las analíticas se actualizan cada 24 horas. Los datos demográficos son estimaciones basadas en la actividad de los usuarios.
+            Las analíticas se actualizan en tiempo real. Las recomendaciones de IA se generan basándose en tus datos históricos y patrones de comportamiento de tu audiencia.
           </Text>
         </View>
+
+        {/* Refresh Recommendations Button */}
+        <TouchableOpacity
+          style={styles.refreshRecommendationsButton}
+          onPress={generateRecommendations}
+          disabled={generatingRecommendations}
+        >
+          <IconSymbol name="arrow.clockwise" size={18} color={colors.primary} />
+          <Text style={styles.refreshRecommendationsText}>
+            Actualizar Recomendaciones
+          </Text>
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );
@@ -641,6 +975,9 @@ const styles = StyleSheet.create({
     opacity: 0.9,
     marginTop: 2,
   },
+  headerRefreshButton: {
+    padding: 8,
+  },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
@@ -663,7 +1000,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 100,
   },
   premiumBanner: {
     flexDirection: 'row',
@@ -712,16 +1049,138 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 24,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
-    marginBottom: 4,
   },
   sectionSubtitle: {
     fontSize: 14,
     color: colors.textSecondary,
     marginBottom: 16,
+  },
+  recommendationCard: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  recommendationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  recommendationTitleRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  recommendationTitle: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  priorityBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  priorityBadgeText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  recommendationDescription: {
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  actionsContainer: {
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+  },
+  actionsTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  actionItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginBottom: 6,
+  },
+  actionText: {
+    flex: 1,
+    fontSize: 13,
+    color: colors.text,
+    lineHeight: 18,
+  },
+  recommendationFooter: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  impactBadge: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#D1FAE5',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  impactText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#065F46',
+  },
+  confidenceBadge: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#DBEAFE',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  confidenceText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#1E40AF',
+  },
+  generateButton: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 24,
+  },
+  generateGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+  },
+  generateButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
   },
   statsGrid: {
     gap: 12,
@@ -744,15 +1203,107 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.text,
   },
+  statValueContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   statValue: {
     fontSize: 28,
     fontWeight: 'bold',
     color: colors.text,
-    marginBottom: 4,
+  },
+  trendBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  trendText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
   },
   statSubtitle: {
     fontSize: 12,
     color: colors.textSecondary,
+    marginTop: 4,
+  },
+  timesContainer: {
+    gap: 12,
+  },
+  timeCard: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  timeRank: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  timeRankText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  timeHour: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  timeEngagement: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  daysContainer: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  dayCard: {
+    flex: 1,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    alignItems: 'center',
+  },
+  dayRank: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  dayRankText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  dayName: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  dayEngagement: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    textAlign: 'center',
   },
   contentStatsRow: {
     flexDirection: 'row',
@@ -848,49 +1399,32 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.text,
   },
-  demographicCard: {
+  trendCard: {
     backgroundColor: colors.cardBackground,
     borderRadius: 12,
     padding: 16,
-    marginBottom: 12,
     borderWidth: 1,
     borderColor: colors.cardBorder,
-  },
-  demographicTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 12,
-  },
-  demographicRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 8,
+    alignItems: 'flex-end',
+    gap: 8,
+    height: 150,
   },
-  demographicLabel: {
-    fontSize: 14,
-    color: colors.text,
-    width: 60,
-  },
-  demographicBarContainer: {
+  trendBar: {
     flex: 1,
-    height: 24,
-    backgroundColor: colors.background,
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  demographicBar: {
     height: '100%',
-    backgroundColor: colors.primary,
-    borderRadius: 4,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
   },
-  demographicValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-    width: 40,
-    textAlign: 'right',
+  trendBarFill: {
+    width: '100%',
+    borderRadius: 4,
+    minHeight: 4,
+  },
+  trendBarLabel: {
+    fontSize: 10,
+    color: colors.textSecondary,
+    marginTop: 4,
   },
   infoBanner: {
     flexDirection: 'row',
@@ -901,11 +1435,29 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: colors.primary + '30',
+    marginBottom: 16,
   },
   infoBannerText: {
     flex: 1,
     fontSize: 13,
     color: colors.text,
     lineHeight: 20,
+  },
+  refreshRecommendationsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  refreshRecommendationsText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
   },
 });
