@@ -9,7 +9,7 @@ import 'react-native-reanimated';
 import { useColorScheme, View, ActivityIndicator } from 'react-native';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ModeProvider } from '@/contexts/ModeContext';
-import { GlobalDataProvider } from '@/contexts/GlobalDataProvider';
+import { GlobalDataProvider } from '@/contexts/GlobalDataContext';
 import { SelectedLocalProvider } from '@/contexts/SelectedLocalContext';
 import { colors } from '@/styles/commonStyles';
 

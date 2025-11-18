@@ -111,124 +111,7 @@ export default function CrearPublicacionScreen() {
 
   const MAX_IMAGES = 10; // Instagram allows up to 10 images
 
-  // ENHANCED: Real-time predictive search as user types
-  useEffect(() => {
-    if (showTagModal && tagSearchQuery.length > 0) {
-      buscarUsuariosYLocales(tagSearchQuery);
-    } else {
-      setTagSuggestions([]);
-    }
-  }, [tagSearchQuery, showTagModal]);
-
-  const seleccionarImagenes = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    
-    if (status !== 'granted') {
-      Alert.alert(
-        'Permiso necesario',
-        'Necesitamos acceso a tu galería para seleccionar fotos'
-      );
-      return;
-    }
-
-    const remainingSlots = MAX_IMAGES - imagenes.length;
-    if (remainingSlots <= 0) {
-      Alert.alert('Límite alcanzado', `Solo puedes subir hasta ${MAX_IMAGES} imágenes por publicación`);
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsMultipleSelection: true,
-      quality: 0.8,
-      selectionLimit: remainingSlots,
-    });
-
-    if (!result.canceled && result.assets.length > 0) {
-      const newImages = result.assets.map(asset => asset.uri);
-      setImagenes([...imagenes, ...newImages]);
-    }
-  };
-
-  const tomarFoto = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    
-    if (status !== 'granted') {
-      Alert.alert(
-        'Permiso necesario',
-        'Necesitamos acceso a tu cámara para tomar fotos'
-      );
-      return;
-    }
-
-    if (imagenes.length >= MAX_IMAGES) {
-      Alert.alert('Límite alcanzado', `Solo puedes subir hasta ${MAX_IMAGES} imágenes por publicación`);
-      return;
-    }
-
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.8,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      setImagenes([...imagenes, result.assets[0].uri]);
-    }
-  };
-
-  const eliminarImagen = (index: number) => {
-    const newImagenes = [...imagenes];
-    newImagenes.splice(index, 1);
-    setImagenes(newImagenes);
-  };
-
-  const obtenerUbicacion = async () => {
-    setLoadingLocation(true);
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      
-      if (status !== 'granted') {
-        Alert.alert(
-          'Permiso necesario',
-          'Necesitamos acceso a tu ubicación para añadirla a la publicación'
-        );
-        setLoadingLocation(false);
-        return;
-      }
-
-      const location = await Location.getCurrentPositionAsync({});
-      const geocode = await Location.reverseGeocodeAsync({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      });
-
-      if (geocode.length > 0) {
-        const place = geocode[0];
-        const nombreUbicacion = [
-          place.name,
-          place.street,
-          place.city,
-          place.region,
-        ]
-          .filter(Boolean)
-          .join(', ');
-
-        setUbicacion({
-          nombre: nombreUbicacion || 'Ubicación actual',
-          lat: location.coords.latitude,
-          lng: location.coords.longitude,
-        });
-      }
-    } catch (error) {
-      console.error('Error obteniendo ubicación:', error);
-      Alert.alert('Error', 'No se pudo obtener tu ubicación');
-    } finally {
-      setLoadingLocation(false);
-    }
-  };
-
-  const buscarUsuariosYLocales = async (texto: string) => {
+  const buscarUsuariosYLocales = useCallback(async (texto: string) => {
     // ENHANCED: Allow search with just 1 character and remove @ if present
     const cleanTexto = texto.replace('@', '').trim();
     
@@ -380,6 +263,123 @@ export default function CrearPublicacionScreen() {
       console.error('[CrearPublicacion] ❌ Error buscando usuarios y locales:', error);
     } finally {
       setSearchingTags(false);
+    }
+  }, [usuariosEtiquetados]);
+
+  // ENHANCED: Real-time predictive search as user types
+  useEffect(() => {
+    if (showTagModal && tagSearchQuery.length > 0) {
+      buscarUsuariosYLocales(tagSearchQuery);
+    } else {
+      setTagSuggestions([]);
+    }
+  }, [tagSearchQuery, showTagModal, buscarUsuariosYLocales]);
+
+  const seleccionarImagenes = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    
+    if (status !== 'granted') {
+      Alert.alert(
+        'Permiso necesario',
+        'Necesitamos acceso a tu galería para seleccionar fotos'
+      );
+      return;
+    }
+
+    const remainingSlots = MAX_IMAGES - imagenes.length;
+    if (remainingSlots <= 0) {
+      Alert.alert('Límite alcanzado', `Solo puedes subir hasta ${MAX_IMAGES} imágenes por publicación`);
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      quality: 0.8,
+      selectionLimit: remainingSlots,
+    });
+
+    if (!result.canceled && result.assets.length > 0) {
+      const newImages = result.assets.map(asset => asset.uri);
+      setImagenes([...imagenes, ...newImages]);
+    }
+  };
+
+  const tomarFoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    
+    if (status !== 'granted') {
+      Alert.alert(
+        'Permiso necesario',
+        'Necesitamos acceso a tu cámara para tomar fotos'
+      );
+      return;
+    }
+
+    if (imagenes.length >= MAX_IMAGES) {
+      Alert.alert('Límite alcanzado', `Solo puedes subir hasta ${MAX_IMAGES} imágenes por publicación`);
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setImagenes([...imagenes, result.assets[0].uri]);
+    }
+  };
+
+  const eliminarImagen = (index: number) => {
+    const newImagenes = [...imagenes];
+    newImagenes.splice(index, 1);
+    setImagenes(newImagenes);
+  };
+
+  const obtenerUbicacion = async () => {
+    setLoadingLocation(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permiso necesario',
+          'Necesitamos acceso a tu ubicación para añadirla a la publicación'
+        );
+        setLoadingLocation(false);
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({});
+      const geocode = await Location.reverseGeocodeAsync({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
+
+      if (geocode.length > 0) {
+        const place = geocode[0];
+        const nombreUbicacion = [
+          place.name,
+          place.street,
+          place.city,
+          place.region,
+        ]
+          .filter(Boolean)
+          .join(', ');
+
+        setUbicacion({
+          nombre: nombreUbicacion || 'Ubicación actual',
+          lat: location.coords.latitude,
+          lng: location.coords.longitude,
+        });
+      }
+    } catch (error) {
+      console.error('Error obteniendo ubicación:', error);
+      Alert.alert('Error', 'No se pudo obtener tu ubicación');
+    } finally {
+      setLoadingLocation(false);
     }
   };
 

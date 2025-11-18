@@ -240,7 +240,7 @@ export default function PerfilScreen() {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [fadeAnim, scaleAnim]);
 
   const loadUnreadCounts = useCallback(async () => {
     if (!user) return;
@@ -983,7 +983,7 @@ export default function PerfilScreen() {
         cargarContenido();
       }
     }
-  }, [user, searchQuery, provinciaFiltro]);
+  }, [user, searchQuery, provinciaFiltro, activeTab, cargarContenido]);
 
   // Load content when switching to a tab that hasn't been loaded yet
   useEffect(() => {
