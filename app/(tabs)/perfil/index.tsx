@@ -1972,6 +1972,7 @@ export default function PerfilScreen() {
         </Pressable>
       </Modal>
 
+      {/* ✅ FIXED: Story Viewer Modal with stats modal INSIDE */}
       <Modal
         visible={showStoryViewer}
         animationType="fade"
@@ -1998,6 +1999,8 @@ export default function PerfilScreen() {
             }
           }
           
+          // ✅ FIXED: Close stats modal immediately when story viewer closes
+          setShowStoryStats(false);
           await cargarDatosPerfil();
           setShowStoryViewer(false);
           stopStoryTimer();
@@ -2035,15 +2038,6 @@ export default function PerfilScreen() {
                   <Text style={styles.storyAutorNombre}>{user.nombre}</Text>
                   
                   <TouchableOpacity
-                    style={styles.storyViewsContainer}
-                    onPress={handleViewStoryStats}
-                    activeOpacity={0.8}
-                  >
-                    <IconSymbol name="eye" size={18} color="#fff" />
-                    <Text style={styles.storyViewsText}>{currentStory.views_count || 0}</Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity
                     style={styles.storyCloseButton}
                     onPress={async () => {
                       const currentStory = userStories[currentStoryIndex];
@@ -2068,6 +2062,8 @@ export default function PerfilScreen() {
                         }
                       }
                       
+                      // ✅ FIXED: Close stats modal immediately when story viewer closes
+                      setShowStoryStats(false);
                       await cargarDatosPerfil();
                       setShowStoryViewer(false);
                       stopStoryTimer();
@@ -2087,7 +2083,7 @@ export default function PerfilScreen() {
                 />
               </View>
 
-              {/* Bottom-left controls for own stories */}
+              {/* ✅ FIXED: Bottom-left controls for own stories */}
               {user && currentStory.tipo === 'usuario' && currentStory.autor_id === user.id && (
                 <View style={styles.storyBottomLeftControls}>
                   <TouchableOpacity
@@ -2128,25 +2124,26 @@ export default function PerfilScreen() {
                   onPress={handleNextStory}
                 />
               </View>
+
+              {/* ✅ FIXED: Stats Modal - Rendered INSIDE the story viewer */}
+              <StoryStatsModal
+                visible={showStoryStats}
+                onClose={() => {
+                  setShowStoryStats(false);
+                  setIsPaused(false);
+                  startStoryTimer();
+                }}
+                storyId={currentStory.id}
+                viewsCount={currentStory.views_count || 0}
+                likesCount={currentStory.likes_count || 0}
+                views={storyViews}
+                likes={storyLikes}
+                loading={loadingStats}
+              />
             </>
           )}
         </View>
       </Modal>
-
-      <StoryStatsModal
-        visible={showStoryStats}
-        onClose={() => {
-          setShowStoryStats(false);
-          setIsPaused(false);
-          startStoryTimer();
-        }}
-        storyId={currentStory?.id || ''}
-        viewsCount={currentStory?.views_count || 0}
-        likesCount={currentStory?.likes_count || 0}
-        views={storyViews}
-        likes={storyLikes}
-        loading={loadingStats}
-      />
 
       <LoginRequiredModal
         visible={showLoginModal}
