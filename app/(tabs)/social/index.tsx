@@ -2120,7 +2120,7 @@ export default function SocialScreen() {
                   {hasUserStories ? (
                     hasUnviewedUserStories ? (
                       <LinearGradient
-                        colors={['#FFD700', '#FF6B6B', '#FF1744']}
+                        colors={['#FFD700', '#CDDC39']}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
                         style={styles.historiaGradientBorder}
@@ -2181,7 +2181,7 @@ export default function SocialScreen() {
                 <View style={styles.historiaAvatarContainer}>
                   {!allViewed ? (
                     <LinearGradient
-                      colors={['#FFD700', '#FF6B6B', '#FF1744']}
+                      colors={['#FFD700', '#CDDC39']}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 1 }}
                       style={styles.historiaGradientBorder}
@@ -2252,11 +2252,13 @@ export default function SocialScreen() {
 
       </ScrollView>
 
-      {/* ✅ Story Viewer Modal with embedded Stats Modal */}
+      {/* ✅ Story Viewer Modal - FIXED: Stats modal closes immediately when viewer closes */}
       <Modal
         visible={showStoryViewer}
         animationType="fade"
         onRequestClose={() => {
+          // ✅ FIXED: Close stats modal immediately when story viewer closes
+          setShowStoryStats(false);
           setShowStoryViewer(false);
           stopStoryTimer();
         }}
@@ -2322,6 +2324,8 @@ export default function SocialScreen() {
                   <TouchableOpacity
                     style={styles.storyCloseButton}
                     onPress={() => {
+                      // ✅ FIXED: Close stats modal immediately when story viewer closes
+                      setShowStoryStats(false);
                       setShowStoryViewer(false);
                       stopStoryTimer();
                     }}
