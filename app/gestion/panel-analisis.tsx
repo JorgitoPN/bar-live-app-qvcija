@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -97,18 +97,7 @@ export default function PanelAnalisisScreen() {
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('30d');
   const [generatingRecommendations, setGeneratingRecommendations] = useState(false);
 
-  useEffect(() => {
-    if (!localId) {
-      Alert.alert('Error', 'No se especificó el local');
-      router.back();
-      return;
-    }
-
-    loadAnalyticsData();
-    loadRecommendations();
-  }, [localId, timeRange, loadAnalyticsData, loadRecommendations, router]);
-
-  const loadAnalyticsData = async () => {
+  const loadAnalyticsData = useCallback(async () => {
     if (!localId || !user) return;
 
     try {
@@ -398,9 +387,9 @@ export default function PanelAnalisisScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [localId, timeRange, user, router]);
 
-  const loadRecommendations = async () => {
+  const loadRecommendations = useCallback(async () => {
     if (!localId) return;
 
     try {
@@ -421,7 +410,18 @@ export default function PanelAnalisisScreen() {
     } catch (error) {
       console.error('[PanelAnalisis] Error:', error);
     }
-  };
+  }, [localId]);
+
+  useEffect(() => {
+    if (!localId) {
+      Alert.alert('Error', 'No se especificó el local');
+      router.back();
+      return;
+    }
+
+    loadAnalyticsData();
+    loadRecommendations();
+  }, [localId, timeRange, loadAnalyticsData, loadRecommendations, router]);
 
   const generateRecommendations = async () => {
     if (!localId || generatingRecommendations) return;

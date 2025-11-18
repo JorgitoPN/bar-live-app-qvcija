@@ -703,6 +703,28 @@ export default function LocalPerfilScreen() {
     router.push(`/crear/historia?localId=${localId}`);
   }, [user, isOwner, localId, switchToLocalProfile, setCurrentMode, router]);
 
+  const handleAvatarPress = useCallback(async () => {
+    if (localStories.length > 0) {
+      setCurrentStoryIndex(0);
+      setShowStoryViewer(true);
+      setIsPaused(false);
+      startStoryTimer();
+    } else if (isOwner) {
+      handleCrearHistoria();
+    }
+  }, [localStories, startStoryTimer, isOwner, handleCrearHistoria]);
+
+  const handleAvatarPress = useCallback(async () => {
+    if (localStories.length > 0) {
+      setCurrentStoryIndex(0);
+      setShowStoryViewer(true);
+      setIsPaused(false);
+      startStoryTimer();
+    } else if (isOwner) {
+      handleCrearHistoria();
+    }
+  }, [localStories, startStoryTimer, isOwner, handleCrearHistoria]);
+
   const handleCrearEvento = async () => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión');
@@ -864,17 +886,6 @@ export default function LocalPerfilScreen() {
       stopStoryTimer();
     }
   }, [currentStoryIndex, startStoryTimer, stopStoryTimer, progressAnim]);
-
-  const handleAvatarPress = useCallback(async () => {
-    if (localStories.length > 0) {
-      setCurrentStoryIndex(0);
-      setShowStoryViewer(true);
-      setIsPaused(false);
-      startStoryTimer();
-    } else if (isOwner) {
-      handleCrearHistoria();
-    }
-  }, [localStories, startStoryTimer, isOwner]);
 
   const handleViewStoryStats = useCallback(async () => {
     const currentStory = localStories[currentStoryIndex];

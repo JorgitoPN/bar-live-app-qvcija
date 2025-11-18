@@ -1,6 +1,8 @@
 
-/// <reference types="https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts" />
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+// @ts-ignore - Deno edge runtime types
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+// @ts-ignore - Deno JSR import
+import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
