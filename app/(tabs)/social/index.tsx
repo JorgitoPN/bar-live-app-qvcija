@@ -817,20 +817,23 @@ function PostCardWithSwipe({ post, user, activeLocalProfileId, router, toggleLik
     setCurrentImageIndex(index);
   };
 
+  // ✅ NEW: Handle navigation to profile when tapping on avatar or name
+  const handleNavigateToProfile = () => {
+    if (post.tipo === 'local' && post.local_id) {
+      router.push(`/perfil/local?localId=${post.local_id}`);
+    } else if (user && post.autor_id === user.id) {
+      router.push('/(tabs)/perfil');
+    } else {
+      router.push(`/perfil/usuario?userId=${post.autor_id}`);
+    }
+  };
+
   return (
     <View style={styles.postCard}>
       <View style={styles.postHeader}>
         <TouchableOpacity
           style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
-          onPress={() => {
-            if (post.tipo === 'local' && post.local_id) {
-              router.push(`/perfil/local?localId=${post.local_id}`);
-            } else if (user && post.autor_id === user.id) {
-              router.push('/(tabs)/perfil');
-            } else {
-              router.push(`/perfil/usuario?userId=${post.autor_id}`);
-            }
-          }}
+          onPress={handleNavigateToProfile}
           activeOpacity={0.7}
         >
           {post.autor?.avatar ? (
@@ -1047,6 +1050,50 @@ export default function SocialScreen() {
 
   const isInteractingAsLocal = activeProfileType === 'local';
   const activeLocalProfileId = activeProfileType === 'local' ? activeProfileId : null;
+
+  // ✅ NEW: Function to mark story as viewed immediately
+  const markStoryAsViewed = useCallback(async (storyId: string) => {
+    if (!user) return;
+
+    try {
+      console.log('[Social] ⚡ INSTANT - Marking story as viewed:', storyId);
+      
+      // Check if already viewed
+      const { data: existingView } = await supabase
+        .from('historia_views')
+        .select('id')
+        .eq('historia_id', storyId)
+        .eq('usuario_id', user.id)
+        .single();
+
+      if (!existingView) {
+        // Insert view record
+        await supabase.from('historia_views').insert({
+          historia_id: storyId,
+          usuario_id: user.id,
+        });
+        
+        console.log('[Social] ✅ Story marked as viewed in database');
+      } else {
+        console.log('[Social] ℹ️ Story already viewed');
+      }
+
+      // ✅ INSTANT UI UPDATE: Update local state immediately to remove border
+      if (viewingOwnStories) {
+        setUserStories(prev => prev.map(s => 
+          s.id === storyId ? { ...s, visto_por_usuario: true } : s
+        ));
+      } else {
+        setHistorias(prev => prev.map(s => 
+          s.id === storyId ? { ...s, visto_por_usuario: true } : s
+        ));
+      }
+      
+      console.log('[Social] ✅ INSTANT - UI updated, border removed');
+    } catch (error) {
+      console.error('[Social] Error marking story as viewed:', error);
+    }
+  }, [user, viewingOwnStories]);
 
   const loadData = useCallback(async () => {
     if (isLoadingRef.current) {
@@ -1394,44 +1441,13 @@ export default function SocialScreen() {
     const currentStories = viewingOwnStories ? userStories : historias;
     const currentStory = currentStories[currentStoryIndex];
     
+    // Mark current story as viewed before moving to next
     if (currentStory && user && !viewingOwnStories) {
-      try {
-        const { data: existingView } = await supabase
-          .from('historia_views')
-          .select('id')
-          .eq('historia_id', currentStory.id)
-          .eq('usuario_id', user.id)
-          .single();
-
-        if (!existingView) {
-          await supabase.from('historia_views').insert({
-            historia_id: currentStory.id,
-            usuario_id: user.id,
-          });
-        }
-      } catch (error) {
-        console.error('[Social] Error marking story as viewed:', error);
-      }
+      await markStoryAsViewed(currentStory.id);
     }
     
     if (currentStory && user && viewingOwnStories) {
-      try {
-        const { data: existingView } = await supabase
-          .from('historia_views')
-          .select('id')
-          .eq('historia_id', currentStory.id)
-          .eq('usuario_id', user.id)
-          .single();
-
-        if (!existingView) {
-          await supabase.from('historia_views').insert({
-            historia_id: currentStory.id,
-            usuario_id: user.id,
-          });
-        }
-      } catch (error) {
-        console.error('[Social] Error marking own story as viewed:', error);
-      }
+      await markStoryAsViewed(currentStory.id);
     }
     
     if (currentStoryIndex < currentStories.length - 1) {
@@ -1444,7 +1460,7 @@ export default function SocialScreen() {
       setShowStoryViewer(false);
       stopStoryTimer();
     }
-  }, [currentStoryIndex, historias, userStories, viewingOwnStories, stopStoryTimer, user, loadData, progressAnim]);
+  }, [currentStoryIndex, historias, userStories, viewingOwnStories, stopStoryTimer, user, loadData, progressAnim, markStoryAsViewed]);
 
   const startStoryTimer = useCallback(() => {
     if (storyTimerRef.current) {
@@ -1469,7 +1485,7 @@ export default function SocialScreen() {
     return firstUnviewedIndex === -1 ? 0 : firstUnviewedIndex;
   }, []);
 
-  const handleStoryPress = useCallback((index: number, isOwnStory: boolean = false) => {
+  const handleStoryPress = useCallback(async (index: number, isOwnStory: boolean = false) => {
     console.log('[Social] 📖 Story pressed - index:', index, 'isOwnStory:', isOwnStory);
     const stories = isOwnStory ? userStories : historias;
     console.log('[Social] 📖 Stories available:', stories.length);
@@ -1481,8 +1497,15 @@ export default function SocialScreen() {
     setViewingOwnStories(isOwnStory);
     setShowStoryViewer(true);
     setIsPaused(false);
+    
+    // ✅ NEW: Mark the first story as viewed IMMEDIATELY when opening viewer
+    const firstStory = stories[firstUnviewedIndex];
+    if (firstStory && user) {
+      await markStoryAsViewed(firstStory.id);
+    }
+    
     startStoryTimer();
-  }, [startStoryTimer, userStories, historias, findFirstUnviewedStoryIndex]);
+  }, [startStoryTimer, userStories, historias, findFirstUnviewedStoryIndex, user, markStoryAsViewed]);
 
   const handlePreviousStory = useCallback(() => {
     if (currentStoryIndex > 0) {
@@ -1929,6 +1952,27 @@ export default function SocialScreen() {
     }
   }, [switchToClientProfile, setCurrentMode, loadData]);
 
+  // ✅ NEW: Handle navigation to profile from story viewer
+  const handleNavigateToStoryAuthorProfile = useCallback(() => {
+    const currentStories = viewingOwnStories ? userStories : historias;
+    const currentStory = currentStories[currentStoryIndex];
+    
+    if (!currentStory) return;
+
+    // Close story viewer first
+    setShowStoryViewer(false);
+    stopStoryTimer();
+
+    // Navigate to appropriate profile
+    if (currentStory.tipo === 'local' && currentStory.local_id) {
+      router.push(`/perfil/local?localId=${currentStory.local_id}`);
+    } else if (user && currentStory.autor_id === user.id) {
+      router.push('/(tabs)/perfil');
+    } else {
+      router.push(`/perfil/usuario?userId=${currentStory.autor_id}`);
+    }
+  }, [currentStoryIndex, viewingOwnStories, userStories, historias, user, router, stopStoryTimer]);
+
   useEffect(() => {
     if (showStoryViewer && !isPaused) {
       startStoryTimer();
@@ -2276,8 +2320,12 @@ export default function SocialScreen() {
                   ))}
                 </View>
 
-                {/* Author info */}
-                <View style={styles.storyAutorInfo}>
+                {/* Author info - ✅ NEW: Make it tappable to navigate to profile */}
+                <TouchableOpacity 
+                  style={styles.storyAutorInfo}
+                  onPress={handleNavigateToStoryAuthorProfile}
+                  activeOpacity={0.7}
+                >
                   {currentStory.autor?.avatar ? (
                     <Image source={{ uri: currentStory.autor.avatar }} style={styles.storyAutorAvatar} />
                   ) : (
@@ -2290,21 +2338,21 @@ export default function SocialScreen() {
                   <Text style={styles.storyAutorNombre}>
                     {currentStory.autor?.nombre || 'Usuario'}
                   </Text>
+                </TouchableOpacity>
 
-                  {/* Close button */}
-                  <TouchableOpacity
-                    style={styles.storyCloseButton}
-                    onPress={() => {
-                      // ✅ FIXED: Close stats modal immediately when story viewer closes
-                      setShowStoryStats(false);
-                      setShowStoryViewer(false);
-                      stopStoryTimer();
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <IconSymbol name="xmark" size={20} color="#fff" />
-                  </TouchableOpacity>
-                </View>
+                {/* Close button */}
+                <TouchableOpacity
+                  style={styles.storyCloseButton}
+                  onPress={() => {
+                    // ✅ FIXED: Close stats modal immediately when story viewer closes
+                    setShowStoryStats(false);
+                    setShowStoryViewer(false);
+                    stopStoryTimer();
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <IconSymbol name="xmark" size={20} color="#fff" />
+                </TouchableOpacity>
               </View>
 
               {/* Story Image */}
