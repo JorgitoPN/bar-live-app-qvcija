@@ -908,6 +908,15 @@ export default function PerfilScreen() {
     }
   }, [userStories, currentStoryIndex, user, stopStoryTimer]);
 
+  // ✅ NEW: Handle navigation from story viewer/stats modal
+  const handleNavigateToProfileFromStory = useCallback(() => {
+    console.log('[Perfil] 🔍 Closing story viewer and stats modal for navigation');
+    // Close both modals
+    setShowStoryStats(false);
+    setShowStoryViewer(false);
+    stopStoryTimer();
+  }, [stopStoryTimer]);
+
   useFocusEffect(
     useCallback(() => {
       console.log('[Perfil] 📍 Screen focused, current mode:', currentMode, 'active profile type:', activeProfileType);
@@ -1972,7 +1981,7 @@ export default function PerfilScreen() {
         </Pressable>
       </Modal>
 
-      {/* ✅ FIXED: Story Viewer Modal with stats modal INSIDE */}
+      {/* ✅ FIXED: Story Viewer Modal with stats modal INSIDE and navigation callback */}
       <Modal
         visible={showStoryViewer}
         animationType="fade"
@@ -2125,7 +2134,7 @@ export default function PerfilScreen() {
                 />
               </View>
 
-              {/* ✅ FIXED: Stats Modal - Rendered INSIDE the story viewer */}
+              {/* ✅ FIXED: Stats Modal - Rendered INSIDE the story viewer with navigation callback */}
               <StoryStatsModal
                 visible={showStoryStats}
                 onClose={() => {
@@ -2133,6 +2142,7 @@ export default function PerfilScreen() {
                   setIsPaused(false);
                   startStoryTimer();
                 }}
+                onNavigateToProfile={handleNavigateToProfileFromStory}
                 storyId={currentStory.id}
                 viewsCount={currentStory.views_count || 0}
                 likesCount={currentStory.likes_count || 0}
