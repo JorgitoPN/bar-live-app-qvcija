@@ -79,7 +79,6 @@ export default function EditarLocalScreen() {
   const [imagenUrl, setImagenUrl] = useState('');
   const [galeriaUrls, setGaleriaUrls] = useState<string[]>([]);
   const [activo, setActivo] = useState(true);
-  const [destacado, setDestacado] = useState(false);
   const [enriquecido, setEnriquecido] = useState(false);
   const [latitud, setLatitud] = useState<number | null>(null);
   const [longitud, setLongitud] = useState<number | null>(null);
@@ -136,7 +135,6 @@ export default function EditarLocalScreen() {
         setImagenUrl(data.imagen_url || '');
         setGaleriaUrls(data.galeria_urls || []);
         setActivo(data.activo !== false);
-        setDestacado(data.destacado || false);
         setEnriquecido(data.enriquecido || false);
         setLatitud(data.latitud ? parseFloat(data.latitud) : null);
         setLongitud(data.longitud ? parseFloat(data.longitud) : null);
@@ -351,7 +349,6 @@ export default function EditarLocalScreen() {
         imagen_url: imagenUrl || null,
         galeria_urls: galeriaUrls,
         activo,
-        destacado,
         ambiente,
         musica,
         servicios,
@@ -692,36 +689,30 @@ export default function EditarLocalScreen() {
             </View>
 
             {/* Estado */}
-            <View style={styles.switchContainer}>
-              <View style={styles.switchInfo}>
-                <Text style={styles.switchTitle}>Local activo</Text>
-                <Text style={styles.switchDescription}>
-                  El local será visible en la aplicación
-                </Text>
+            <View style={styles.inputContainer}>
+              <View style={styles.switchContainer}>
+                <View style={styles.switchInfo}>
+                  <Text style={styles.switchTitle}>Local activo</Text>
+                  <Text style={styles.switchDescription}>
+                    El local será visible en la aplicación
+                  </Text>
+                </View>
+                <Switch
+                  value={activo}
+                  onValueChange={setActivo}
+                  trackColor={{ false: colors.cardBorder, true: colors.primary }}
+                  thumbColor={colors.headerText}
+                />
               </View>
-              <Switch
-                value={activo}
-                onValueChange={setActivo}
-                trackColor={{ false: colors.cardBorder, true: colors.primary }}
-                thumbColor={colors.headerText}
-              />
             </View>
 
-            {/* Destacado */}
-            <View style={styles.switchContainer}>
-              <View style={styles.switchInfo}>
-                <Text style={styles.switchTitle}>Local destacado</Text>
-                <Text style={styles.switchDescription}>
-                  Aparecerá en la sección de destacados
-                </Text>
-              </View>
-              <Switch
-                value={destacado}
-                onValueChange={setDestacado}
-                trackColor={{ false: colors.cardBorder, true: colors.badgeDestacado }}
-                thumbColor={colors.headerText}
-              />
+            <View style={styles.infoBox}>
+              <IconSymbol name="info.circle.fill" size={20} color={colors.primary} />
+              <Text style={styles.infoText}>
+                La opción de local destacado se gestiona desde la página de Mis Locales, donde puedes ver cuántos destacados te quedan según tu plan.
+              </Text>
             </View>
+
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -1219,7 +1210,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBackground,
     borderRadius: 12,
     padding: 16,
-    marginBottom: 12,
   },
   switchInfo: {
     flex: 1,
@@ -1234,6 +1224,21 @@ const styles = StyleSheet.create({
   switchDescription: {
     fontSize: 14,
     color: colors.textSecondary,
+  },
+  infoBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    padding: 16,
+    backgroundColor: '#DBEAFE',
+    borderRadius: 12,
+    marginBottom: 20,
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#1E40AF',
+    lineHeight: 20,
   },
   modalOverlay: {
     flex: 1,

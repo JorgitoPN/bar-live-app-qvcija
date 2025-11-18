@@ -13,11 +13,12 @@ import {
   Platform,
   Switch,
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSelectedLocal } from '@/contexts/SelectedLocalContext';
 import { supabase } from '@/utils/supabase';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
@@ -40,8 +41,8 @@ interface LocalConPlan {
 
 export default function CrearEventoScreen() {
   const router = useRouter();
-  const { localId } = useLocalSearchParams();
   const { user } = useAuth();
+  const { selectedLocalId } = useSelectedLocal();
   const [titulo, setTitulo] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [fecha, setFecha] = useState(new Date());
@@ -52,85 +53,68 @@ export default function CrearEventoScreen() {
   const [esGratis, setEsGratis] = useState(false);
   const [imagen, setImagen] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [misLocales, setMisLocales] = useState<LocalConPlan[]>([]);
-  const [localSeleccionado, setLocalSeleccionado] = useState<string>('');
+  const [localData, setLocalData] = useState<LocalConPlan | null>(null);
   const [verificandoAcceso, setVerificandoAcceso] = useState(true);
 
-  const cargarMisLocales = useCallback(async () => {
-    if (!user) return;
+  const cargarLocalSeleccionado = useCallback(async () => {
+    if (!user || !selectedLocalId) {
+      Alert.alert(
+        'Sin Local Seleccionado',
+        'Debes seleccionar un local desde la página de gestión de locales antes de crear un evento.',
+        [{ text: 'OK', onPress: () => router.back() }]
+      );
+      return;
+    }
 
     try {
-      const { data: localesData, error: localesError } = await supabase
+      const { data: localInfo, error: localError } = await supabase
         .from('locales')
         .select('id, nombre, provincia, direccion, ciudad')
+        .eq('id', selectedLocalId)
         .eq('propietario_id', user.id)
-        .eq('activo', true);
+        .eq('activo', true)
+        .single();
 
-      if (localesError) {
-        console.error('[CrearEvento] Error cargando locales:', localesError);
-        return;
-      }
-
-      if (!localesData || localesData.length === 0) {
+      if (localError || !localInfo) {
+        console.error('[CrearEvento] Error cargando local:', localError);
         Alert.alert(
-          'Sin Locales',
-          'Necesitas tener al menos un local registrado para crear eventos.',
+          'Error',
+          'No se pudo cargar la información del local seleccionado.',
           [{ text: 'OK', onPress: () => router.back() }]
         );
         return;
       }
 
-      const localesConPlan: LocalConPlan[] = await Promise.all(
-        localesData.map(async (local) => {
-          const { data: suscripcion } = await supabase
-            .from('suscripciones_locales')
-            .select(`
-              eventos_usados_mes,
-              planes_suscripcion (
-                nombre,
-                eventos_mes
-              )
-            `)
-            .eq('local_id', local.id)
-            .eq('estado', 'activa')
-            .single();
+      const { data: suscripcion } = await supabase
+        .from('suscripciones_locales')
+        .select(`
+          eventos_usados_mes,
+          planes_suscripcion (
+            nombre,
+            eventos_mes
+          )
+        `)
+        .eq('local_id', localInfo.id)
+        .eq('estado', 'activa')
+        .single();
 
-          const planNombre = (suscripcion?.planes_suscripcion as any)?.nombre || 'basico';
-          const eventosDisponibles = (suscripcion?.planes_suscripcion as any)?.eventos_mes || 0;
-          const eventosUsados = suscripcion?.eventos_usados_mes || 0;
-          const puedeCrearEventos =
-            planNombre !== 'basico' && (eventosDisponibles === 0 || eventosUsados < eventosDisponibles);
+      const planNombre = (suscripcion?.planes_suscripcion as any)?.nombre || 'basico';
+      const eventosDisponibles = (suscripcion?.planes_suscripcion as any)?.eventos_mes || 0;
+      const eventosUsados = suscripcion?.eventos_usados_mes || 0;
+      const puedeCrearEventos =
+        planNombre !== 'basico' && (eventosDisponibles === 0 || eventosUsados < eventosDisponibles);
 
-          return {
-            ...local,
-            suscripcion: {
-              plan_nombre: planNombre,
-              eventos_usados_mes: eventosUsados,
-              eventos_disponibles: eventosDisponibles,
-              puede_crear_eventos: puedeCrearEventos,
-            },
-          };
-        })
-      );
-
-      const localesConAcceso = localesConPlan.filter((l) => l.suscripcion?.puede_crear_eventos);
-
-      if (localesConAcceso.length === 0) {
+      if (!puedeCrearEventos) {
         Alert.alert(
           'Plan Requerido',
-          'Necesitas un plan de pago activo para crear eventos. Activa un plan Estándar o Premium para desbloquear esta funcionalidad.',
+          'El local seleccionado necesita un plan de pago activo para crear eventos. Activa un plan Estándar o Premium para desbloquear esta funcionalidad.',
           [
             { text: 'Cancelar', style: 'cancel', onPress: () => router.back() },
             {
               text: 'Ver Planes',
               onPress: () => {
                 router.back();
-                const firstLocalId = localesConPlan[0]?.id;
-                if (firstLocalId) {
-                  router.push(`/gestion/planes-suscripcion?localId=${firstLocalId}`);
-                } else {
-                  router.push('/gestion/planes-suscripcion');
-                }
+                router.push(`/gestion/planes-suscripcion?localId=${selectedLocalId}`);
               },
             },
           ]
@@ -138,28 +122,27 @@ export default function CrearEventoScreen() {
         return;
       }
 
-      setMisLocales(localesConAcceso);
-
-      if (localId) {
-        const localPreseleccionado = localesConAcceso.find((l) => l.id === localId);
-        if (localPreseleccionado) {
-          setLocalSeleccionado(localPreseleccionado.id);
-        } else {
-          setLocalSeleccionado(localesConAcceso[0].id);
-        }
-      } else {
-        setLocalSeleccionado(localesConAcceso[0].id);
-      }
+      setLocalData({
+        ...localInfo,
+        suscripcion: {
+          plan_nombre: planNombre,
+          eventos_usados_mes: eventosUsados,
+          eventos_disponibles: eventosDisponibles,
+          puede_crear_eventos: puedeCrearEventos,
+        },
+      });
     } catch (error) {
       console.error('[CrearEvento] Error:', error);
+      Alert.alert('Error', 'Ocurrió un error al verificar el acceso.');
+      router.back();
     } finally {
       setVerificandoAcceso(false);
     }
-  }, [user, localId, router]);
+  }, [user, selectedLocalId, router]);
 
   useEffect(() => {
-    cargarMisLocales();
-  }, [cargarMisLocales]);
+    cargarLocalSeleccionado();
+  }, [cargarLocalSeleccionado]);
 
   const seleccionarImagen = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -240,7 +223,7 @@ export default function CrearEventoScreen() {
   };
 
   const handlePublicar = async () => {
-    if (!titulo || !descripcion || !localSeleccionado) {
+    if (!titulo || !descripcion || !selectedLocalId || !localData) {
       Alert.alert('Error', 'Por favor completa todos los campos obligatorios');
       return;
     }
@@ -252,21 +235,6 @@ export default function CrearEventoScreen() {
 
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para crear eventos');
-      return;
-    }
-
-    const localActual = misLocales.find((l) => l.id === localSeleccionado);
-    if (!localActual?.suscripcion?.puede_crear_eventos) {
-      Alert.alert(
-        'Error',
-        'Este local no tiene un plan activo que permita crear eventos.',
-        [
-          {
-            text: 'Ver Planes',
-            onPress: () => router.push(`/gestion/planes-suscripcion?localId=${localSeleccionado}`),
-          },
-        ]
-      );
       return;
     }
 
@@ -290,9 +258,9 @@ export default function CrearEventoScreen() {
           fecha: fechaFormateada,
           hora: horaFormateada,
           precio: precioFinal,
-          provincia: localActual.provincia,
+          provincia: localData.provincia,
           imagen_url: imagenUrl,
-          local_id: localSeleccionado,
+          local_id: selectedLocalId,
           propietario_id: user.id,
           activo: true,
         })
@@ -308,9 +276,9 @@ export default function CrearEventoScreen() {
       const { error: updateError } = await supabase
         .from('suscripciones_locales')
         .update({
-          eventos_usados_mes: (localActual.suscripcion.eventos_usados_mes || 0) + 1,
+          eventos_usados_mes: (localData.suscripcion?.eventos_usados_mes || 0) + 1,
         })
-        .eq('local_id', localSeleccionado)
+        .eq('local_id', selectedLocalId)
         .eq('estado', 'activa');
 
       if (updateError) {
@@ -330,15 +298,14 @@ export default function CrearEventoScreen() {
   };
 
   const getLocalAddress = (): string => {
-    const local = misLocales.find((l) => l.id === localSeleccionado);
-    if (!local) return '';
+    if (!localData) return '';
     
-    let address = local.direccion || '';
-    if (local.ciudad) {
-      address += address ? `, ${local.ciudad}` : local.ciudad;
+    let address = localData.direccion || '';
+    if (localData.ciudad) {
+      address += address ? `, ${localData.ciudad}` : localData.ciudad;
     }
-    if (local.provincia) {
-      address += address ? `, ${local.provincia}` : local.provincia;
+    if (localData.provincia) {
+      address += address ? `, ${localData.provincia}` : localData.provincia;
     }
     return address;
   };
@@ -379,23 +346,16 @@ export default function CrearEventoScreen() {
 
       <ScrollView style={styles.content}>
         <View style={styles.form}>
-          {misLocales.length > 0 && localSeleccionado && (
+          {localData && (
             <View style={styles.planInfoBanner}>
               <IconSymbol name="info.circle.fill" size={20} color={colors.primary} />
               <View style={styles.planInfoText}>
                 <Text style={styles.planInfoTitle}>
-                  Plan:{' '}
-                  {misLocales
-                    .find((l) => l.id === localSeleccionado)
-                    ?.suscripcion?.plan_nombre.toUpperCase()}
+                  Local: {localData.nombre}
                 </Text>
                 <Text style={styles.planInfoSubtitle}>
-                  Eventos usados:{' '}
-                  {misLocales.find((l) => l.id === localSeleccionado)?.suscripcion
-                    ?.eventos_usados_mes || 0}{' '}
-                  /{' '}
-                  {misLocales.find((l) => l.id === localSeleccionado)?.suscripcion
-                    ?.eventos_disponibles || 0}
+                  Plan: {localData.suscripcion?.plan_nombre.toUpperCase()} • Eventos: {' '}
+                  {localData.suscripcion?.eventos_usados_mes || 0} / {localData.suscripcion?.eventos_disponibles || 0}
                 </Text>
               </View>
             </View>
@@ -412,45 +372,7 @@ export default function CrearEventoScreen() {
             )}
           </TouchableOpacity>
 
-          {misLocales.length > 0 && (
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Local *</Text>
-              <View style={styles.localesButtons}>
-                {misLocales.map((local) => (
-                  <TouchableOpacity
-                    key={local.id}
-                    style={[
-                      styles.localButton,
-                      localSeleccionado === local.id && styles.localButtonActive,
-                    ]}
-                    onPress={() => {
-                      setLocalSeleccionado(local.id);
-                    }}
-                  >
-                    <Text
-                      style={[
-                        styles.localButtonText,
-                        localSeleccionado === local.id && styles.localButtonTextActive,
-                      ]}
-                    >
-                      {local.nombre}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.localButtonPlan,
-                        localSeleccionado === local.id && styles.localButtonPlanActive,
-                      ]}
-                    >
-                      {local.suscripcion?.eventos_usados_mes || 0}/
-                      {local.suscripcion?.eventos_disponibles || 0}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          )}
-
-          {localSeleccionado && (
+          {localData && (
             <View style={styles.addressContainer}>
               <View style={styles.addressHeader}>
                 <IconSymbol name="location.fill" size={18} color={colors.primary} />
@@ -695,40 +617,6 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     gap: 12,
-  },
-  localesButtons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  localButton: {
-    backgroundColor: colors.cardBackground,
-    borderWidth: 2,
-    borderColor: colors.cardBorder,
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  localButtonActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary,
-  },
-  localButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  localButtonTextActive: {
-    color: colors.headerText,
-  },
-  localButtonPlan: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  localButtonPlanActive: {
-    color: colors.headerText,
-    opacity: 0.9,
   },
   switchContainer: {
     flexDirection: 'row',
