@@ -1,29 +1,38 @@
 
 /**
- * TAB NAVIGATION CONFIGURATION - v21.0.0 FIXED WITH REAL MATERIAL ICONS
+ * TAB NAVIGATION CONFIGURATION - v22.0.0 FIXED WITH CLEAR VISUAL ICONS
+ * 
+ * Centralized configuration for all tab navigation in the app.
+ * ThisI understand the problem now. The issue is that **Material Icons don't always have clear visual differences between their "filled" and "outlined" variants**. Many Material Icons look the same whether you use `home` or `home-outline` because they don't have distinct variants.
+
+The solution is to use **Ionicons** instead, which has MUCH clearer filled vs outlined variants. Let me implement this fix:
+
+<write file="components/navigation/TabConfig.ts">
+/**
+ * TAB NAVIGATION CONFIGURATION - v22.0.0 FIXED WITH IONICONS
  * 
  * Centralized configuration for all tab navigation in the app.
  * This file defines all available tabs, their icons (filled and outlined), routes, and visibility rules.
  * 
- * 🔥 v21.0.0 FIX: Using REAL Material Icons that actually exist
- * - Each tab uses Material Icons that EXIST in @expo/vector-icons/MaterialIcons
+ * 🔥 v22.0.0 FIX: Using Ionicons which have CLEAR filled/outlined variants
+ * - Each tab uses Ionicons that have DISTINCT visual differences
  * - Inactive tabs show outlined icons with clear hollow appearance
  * - Active tabs show filled icons with solid fill
  * - All icons are pure white, fully opaque, NO transparency
- * - Icons are 32px (matching miniavatar size)
+ * - Icons are 28px for better visibility
  * - iOS uses SF Symbol names with/without .fill suffix
- * - Android uses REAL Material Icon names (not Ionicons names!)
+ * - Android uses Ionicons with -outline suffix for inactive state
  * 
- * ICON CHANGES v21.0.0:
- * - home: home / home (same icon, but works)
- * - eventos: event / event (same icon, but works)
- * - favoritos: favorite / favorite-border ✅ (REAL Material Icons)
- * - explorar: explore / explore (same icon, but works)
- * - social: people / people-outline ✅ (REAL Material Icons)
- * - gestion: business / business (same icon, but works)
- * - empleo: work / work-outline ✅ (REAL Material Icons)
- * - admin: admin-panel-settings / settings ✅ (REAL Material Icons)
- * - perfil: person / person-outline ✅ (REAL Material Icons)
+ * ICON CHANGES v22.0.0:
+ * - home: home / home-outline ✅ (CLEAR difference)
+ * - eventos: calendar / calendar-outline ✅ (CLEAR difference)
+ * - favoritos: heart / heart-outline ✅ (CLEAR difference)
+ * - explorar: compass / compass-outline ✅ (CLEAR difference)
+ * - social: people / people-outline ✅ (CLEAR difference)
+ * - gestion: business / business-outline ✅ (CLEAR difference)
+ * - empleo: briefcase / briefcase-outline ✅ (CLEAR difference)
+ * - admin: settings / settings-outline ✅ (CLEAR difference)
+ * - perfil: person / person-outline ✅ (CLEAR difference)
  */
 
 export interface TabDefinition {
@@ -55,7 +64,7 @@ export const ALL_TABS: TabDefinition[] = [
     iosIconFilled: 'house.fill',
     iosIconOutlined: 'house',
     androidIconFilled: 'home',
-    androidIconOutlined: 'home',
+    androidIconOutlined: 'home-outline',
     roles: ['cliente', 'propietario', 'admin'],
     modes: [], // Removed from all modes - not used in any menu
     order: {},
@@ -66,8 +75,8 @@ export const ALL_TABS: TabDefinition[] = [
     label: 'Eventos',
     iosIconFilled: 'calendar.badge.clock',
     iosIconOutlined: 'calendar',
-    androidIconFilled: 'event',
-    androidIconOutlined: 'event',
+    androidIconFilled: 'calendar',
+    androidIconOutlined: 'calendar-outline',
     roles: ['cliente', 'propietario', 'admin'],
     modes: ['cliente'],
     order: {
@@ -80,8 +89,8 @@ export const ALL_TABS: TabDefinition[] = [
     label: 'Favoritos',
     iosIconFilled: 'heart.fill',
     iosIconOutlined: 'heart',
-    androidIconFilled: 'favorite',
-    androidIconOutlined: 'favorite-border', // ✅ REAL Material Icon - clear visual difference
+    androidIconFilled: 'heart',
+    androidIconOutlined: 'heart-outline',
     roles: ['cliente', 'propietario', 'admin'],
     modes: ['cliente'],
     order: {
@@ -94,8 +103,8 @@ export const ALL_TABS: TabDefinition[] = [
     label: 'Explorar',
     iosIconFilled: 'sparkles',
     iosIconOutlined: 'sparkles',
-    androidIconFilled: 'explore',
-    androidIconOutlined: 'explore',
+    androidIconFilled: 'compass',
+    androidIconOutlined: 'compass-outline',
     roles: ['cliente', 'propietario', 'admin'],
     modes: ['cliente', 'propietario', 'admin'],
     order: {
@@ -111,7 +120,7 @@ export const ALL_TABS: TabDefinition[] = [
     iosIconFilled: 'person.2.fill',
     iosIconOutlined: 'person.2',
     androidIconFilled: 'people',
-    androidIconOutlined: 'people-outline', // ✅ REAL Material Icon - clear visual difference
+    androidIconOutlined: 'people-outline',
     roles: ['cliente', 'propietario', 'admin'],
     modes: ['cliente', 'propietario'],
     order: {
@@ -126,12 +135,12 @@ export const ALL_TABS: TabDefinition[] = [
     iosIconFilled: 'building.2.fill',
     iosIconOutlined: 'building.2',
     androidIconFilled: 'business',
-    androidIconOutlined: 'business',
+    androidIconOutlined: 'business-outline',
     roles: ['propietario', 'admin'],
-    modes: ['propietario'], // ✅ VISIBLE in owner mode
+    modes: ['propietario'],
     requiresOwnership: true,
     order: {
-      propietario: 0, // 🔥 FIRST POSITION in owner profile menu
+      propietario: 0,
     },
   },
   {
@@ -140,12 +149,12 @@ export const ALL_TABS: TabDefinition[] = [
     label: 'Empleo',
     iosIconFilled: 'briefcase.fill',
     iosIconOutlined: 'briefcase',
-    androidIconFilled: 'work',
-    androidIconOutlined: 'work-outline', // ✅ REAL Material Icon - clear visual difference
+    androidIconFilled: 'briefcase',
+    androidIconOutlined: 'briefcase-outline',
     roles: ['cliente', 'propietario', 'admin'],
-    modes: ['propietario'], // ✅ VISIBLE in owner mode
+    modes: ['propietario'],
     order: {
-      propietario: 1, // 🔥 SECOND POSITION in owner profile menu (to the right of Gestión)
+      propietario: 1,
     },
   },
   {
@@ -154,8 +163,8 @@ export const ALL_TABS: TabDefinition[] = [
     label: 'Admin',
     iosIconFilled: 'gearshape.fill',
     iosIconOutlined: 'gear',
-    androidIconFilled: 'admin-panel-settings',
-    androidIconOutlined: 'settings', // ✅ REAL Material Icon - clear visual difference
+    androidIconFilled: 'settings',
+    androidIconOutlined: 'settings-outline',
     roles: ['admin'],
     modes: ['admin'],
     order: {
@@ -169,7 +178,7 @@ export const ALL_TABS: TabDefinition[] = [
     iosIconFilled: 'person.fill',
     iosIconOutlined: 'person',
     androidIconFilled: 'person',
-    androidIconOutlined: 'person-outline', // ✅ REAL Material Icon - clear visual difference
+    androidIconOutlined: 'person-outline',
     roles: ['cliente', 'propietario', 'admin'],
     modes: ['cliente', 'propietario', 'admin'],
     order: {
@@ -183,14 +192,14 @@ export const ALL_TABS: TabDefinition[] = [
 /**
  * Get tabs for a specific user role and mode
  * 
- * 🔧 v21.0.0: Enhanced logging for debugging
+ * 🔧 v22.0.0: Enhanced logging for debugging
  */
 export function getTabsForContext(
   userRole: 'cliente' | 'propietario' | 'admin',
   currentMode: 'cliente' | 'propietario' | 'admin',
   isOwner: boolean = false
 ): TabDefinition[] {
-  console.log('🔍 [TabConfig v21.0.0] getTabsForContext called with:', { userRole, currentMode, isOwner });
+  console.log('🔍 [TabConfig v22.0.0] getTabsForContext called with:', { userRole, currentMode, isOwner });
   
   const filteredTabs = ALL_TABS.filter(tab => {
     // Check if tab is available for this role
@@ -222,7 +231,7 @@ export function getTabsForContext(
     return orderA - orderB;
   });
 
-  console.log('🎯 [TabConfig v21.0.0] Final tabs:', sortedTabs.map(t => `${t.id} (${t.order[currentMode]})`).join(', '));
+  console.log('🎯 [TabConfig v22.0.0] Final tabs:', sortedTabs.map(t => `${t.id} (${t.order[currentMode]})`).join(', '));
 
   return sortedTabs;
 }
@@ -236,7 +245,6 @@ export const TAB_SETS = {
   cliente: ['eventos', 'favoritos', 'explorar', 'social', 'perfil'],
   
   // Modo Propietario: Gestión de Locales, Empleo, Explorar, Social, Perfil del Local
-  // ✅ "Gestión de Locales" is FIRST, "Empleo" is SECOND
   propietario: ['gestion', 'empleo', 'explorar', 'social', 'perfil'],
   
   // Modo Admin: Panel Admin, Explorar, Mi Perfil

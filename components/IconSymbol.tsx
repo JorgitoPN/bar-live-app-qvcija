@@ -18,7 +18,7 @@ const MAPPING = {
 
   // Navigation & Home
   "house.fill": "home",
-  "house": "home",
+  "house": "home-outlined",
   "arrow.left": "arrow-back",
   "arrow.right": "arrow-forward",
   "arrow.up": "arrow-upward",
@@ -182,7 +182,7 @@ const MAPPING = {
   "moon.fill": "dark-mode",
   "sun.max.fill": "light-mode",
   
-  // Special icons - v21.0.0 FIXED
+  // Special icons - v22.0.0 FIXED
   "sparkles": "explore",
   "photo.on.rectangle": "photo-library",
   "globe": "language",
@@ -191,25 +191,21 @@ const MAPPING = {
   "trash.circle.fill": "cancel",
   "settings_applications": "settings-applications",
   
-  // Tab navigation icons - v21.0.0 FIXED with proper Material Icons
+  // Tab navigation icons - v22.0.0 FIXED with clear visual differences
   "home": "home",
-  "home-outline": "home",
+  "home-outlined": "home-outlined",
   "event": "event",
-  "event-note": "event",
+  "event-available": "event-available",
   "favorite": "favorite",
   "favorite-border": "favorite-border",
   "explore": "explore",
-  "explore-outline": "explore",
   "people": "people",
   "people-outline": "people-outline",
-  "business": "business",
-  "business-center": "business",
+  "store": "store",
   "work": "work",
   "work-outline": "work-outline",
-  "admin-panel-settings": "admin-panel-settings",
   "settings": "settings",
-  "person": "person",
-  "person-outline": "person-outline",
+  "account-circle": "account-circle",
 } as Partial<
   Record<
     import("expo-symbols").SymbolViewProps["name"],
@@ -225,7 +221,7 @@ export type IconSymbolName = keyof typeof MAPPING;
  *
  * Icon `name`s are based on SFSymbols and require manual mapping to MaterialIcons.
  * 
- * ✅ v21.0.0: FIXED - Uses proper Material Icons with CLEAR filled/outlined variants
+ * ✅ v22.0.0: FIXED - Uses Material Icons with CLEAR filled/outlined variants
  * - Active icons: Uses filled icon name passed from TabIcon
  * - Inactive icons: Uses outlined icon name passed from TabIcon
  * - Pure white (#FFFFFF) at 100% opacity for both states
@@ -255,9 +251,17 @@ export function IconSymbol({
   const finalColor = typeof color === 'string' ? color : color.toString();
   
   // Determine if this is a filled or outlined icon based on the icon name
-  const isFilled = name.includes('.fill') || name.includes('favorite') || name.includes('person') || name.includes('people') || name.includes('work') || name.includes('business') || name.includes('event');
+  const isFilled = name.includes('.fill') || 
+                   name === 'favorite' || 
+                   name === 'person' || 
+                   name === 'people' || 
+                   name === 'work' || 
+                   name === 'store' || 
+                   name === 'event' ||
+                   name === 'home' ||
+                   name === 'account-circle';
   
-  console.log(`🎨 [IconSymbol Android/Web v21.0] ${name} → ${materialIconName}, ${isFilled ? 'FILLED' : 'OUTLINED'}, color: ${finalColor}`);
+  console.log(`🎨 [IconSymbol Android/Web v22.0] ${name} → ${materialIconName}, ${isFilled ? 'FILLED' : 'OUTLINED'}, color: ${finalColor}`);
   
   return (
     <MaterialIcons

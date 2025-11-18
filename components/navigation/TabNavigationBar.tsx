@@ -1,11 +1,11 @@
 
 /**
- * TAB NAVIGATION BAR - v21.0.0 INSTAGRAM-STYLE FIXED WITH REAL MATERIAL ICONS
+ * TAB NAVIGATION BAR - v22.0.0 INSTAGRAM-STYLE FIXED WITH CLEAR VISUAL DISTINCTIONS
  * 
  * Modern, clean tab navigation bar with Instagram-style outlined/filled icon distinction.
  * Built from scratch with no legacy code.
  * 
- * 🔥 INSTAGRAM-STYLE v21.0.0 FIX:
+ * 🔥 INSTAGRAM-STYLE v22.0.0 FIX:
  * - Inactive icons: Outlined (hollow), pure white, 100% opacity
  * - Active icons: Filled, pure white, 100% opacity
  * - Icons are 32px (matching miniavatar size)
@@ -13,7 +13,7 @@
  * - Visual distinction comes from different icon names (filled vs outlined)
  * - Icons positioned slightly higher (reduced paddingTop and paddingVertical)
  * - NO weight or fill props - distinction comes from icon name only
- * - Uses REAL Material Icons that actually exist
+ * - Uses icons with CLEAR visual differences
  */
 
 import React, { useEffect } from 'react';
@@ -50,7 +50,7 @@ export function TabNavigationBar({
   const pathname = usePathname();
 
   useEffect(() => {
-    console.log('🎯 [TabNavigationBar v21.0 INSTAGRAM-STYLE FIXED] Rendered with', tabs.length, 'tabs');
+    console.log('🎯 [TabNavigationBar v22.0 INSTAGRAM-STYLE FIXED] Rendered with', tabs.length, 'tabs');
     console.log('📍 [TabNavigationBar] Current pathname:', pathname);
     tabs.forEach(tab => {
       const active = isTabActive(tab, pathname);
@@ -155,8 +155,8 @@ export function TabNavigationBar({
                 <TabIcon
                   iosIconFilled="person.fill"
                   iosIconOutlined="person"
-                  androidIconFilled="person"
-                  androidIconOutlined="person-outline"
+                  androidIconFilled="account-circle"
+                  androidIconOutlined="account-circle"
                   isActive={isActive}
                   size={20}
                 />

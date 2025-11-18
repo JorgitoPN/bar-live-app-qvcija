@@ -1,11 +1,11 @@
 
 /**
- * FLOATING TAB BAR - v20.0.0 INSTAGRAM-STYLE FIXED
+ * FLOATING TAB BAR - v22.0.0 INSTAGRAM-STYLE FIXED WITH CLEAR VISUAL DISTINCTIONS
  * 
  * Wrapper component for backward compatibility.
  * Uses the new TabNavigationBar internally.
  * 
- * 🔥 INSTAGRAM-STYLE v20.0.0 FIX:
+ * 🔥 INSTAGRAM-STYLE v22.0.0 FIX:
  * - Inactive icons: Outlined (hollow), pure white, 100% opacity
  * - Active icons: Filled, pure white, 100% opacity
  * - Icons are 32px (matching miniavatar size)
@@ -14,7 +14,7 @@
  * - All icons now have CLEAR visual differences between states
  * - NO weight or fill props - distinction comes from icon name only
  * 
- * 🔧 FIX v20.0.0: Updated to use better Material Icons with clear distinctions
+ * 🔧 FIX v22.0.0: Updated to use icons with CLEAR visual distinctions
  */
 
 import React, { useEffect } from 'react';
@@ -43,7 +43,7 @@ export default function FloatingTabBar({ tabs: legacyTabs, containerWidth }: Flo
   // Log whenever tabs change
   useEffect(() => {
     console.log('═══════════════════════════════════════════════════════════');
-    console.log('🎯 [FloatingTabBar v20.0.0 INSTAGRAM-STYLE FIXED] RENDERING');
+    console.log('🎯 [FloatingTabBar v22.0.0 INSTAGRAM-STYLE FIXED] RENDERING');
     console.log('═══════════════════════════════════════════════════════════');
     console.log('📊 Context State:');
     console.log('   Mode:', currentMode);
