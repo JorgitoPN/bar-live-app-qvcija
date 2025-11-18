@@ -35,8 +35,8 @@ import PerfilProfesionalCard from '@/components/empleo/PerfilProfesionalCard';
 import StoryStatsModal from '@/components/social/StoryStatsModal';
 import { PROVINCIAS, getProvinceVariations, filterByProvincia } from '@/utils/provinceNormalizer';
 
-// ✅ VERSION MARKER - Force cache bust: v3.1.0 - Followers/Following Modals
-const SCREEN_VERSION = '3.1.0';
+// ✅ VERSION MARKER - Force cache bust: v3.2.0 - Fixed Followers/Following Modals Design + Navigation
+const SCREEN_VERSION = '3.2.0';
 
 const { width, height } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -168,7 +168,7 @@ export default function LocalPerfilScreen() {
   const [storyLikes, setStoryLikes] = useState<any[]>([]);
   const [loadingStats, setLoadingStats] = useState(false);
 
-  // ✅ NEW: Followers/Following modals state
+  // ✅ Followers/Following modals state
   const [showSeguidoresModal, setShowSeguidoresModal] = useState(false);
   const [showSeguidosModal, setShowSeguidosModal] = useState(false);
   const [seguidores, setSeguidores] = useState<Seguidor[]>([]);
@@ -223,7 +223,7 @@ export default function LocalPerfilScreen() {
     return R * c;
   };
 
-  // ✅ NEW: Load followers for local
+  // ✅ Load followers for local
   const loadSeguidoresLocal = useCallback(async () => {
     if (!localId) return;
     
@@ -272,7 +272,7 @@ export default function LocalPerfilScreen() {
     }
   }, [localId]);
 
-  // ✅ NEW: Load following for local (locales that this local follows)
+  // ✅ Load following for local (locales that this local follows)
   const loadSeguidosLocal = useCallback(async () => {
     if (!localId || !local?.propietario_id) return;
     
@@ -350,7 +350,7 @@ export default function LocalPerfilScreen() {
 
       setLocal(localData);
 
-      // ✅ CRITICAL FIX: Determine ownership based on propietario_id
+      // ✅ Determine ownership based on propietario_id
       if (user && localData.propietario_id === user.id) {
         setIsOwner(true);
         console.log('[LocalPerfil] ✅ User IS OWNER of this local');
@@ -769,19 +769,19 @@ export default function LocalPerfilScreen() {
     }
   };
 
-  // ✅ NEW: Handle opening followers modal
+  // ✅ Handle opening followers modal
   const handleSeguidores = async () => {
     setShowSeguidoresModal(true);
     await loadSeguidoresLocal();
   };
 
-  // ✅ NEW: Handle opening following modal
+  // ✅ Handle opening following modal
   const handleSeguidos = async () => {
     setShowSeguidosModal(true);
     await loadSeguidosLocal();
   };
 
-  // ✅ NEW: Handle user press in followers/following modals
+  // ✅ Handle user press in followers/following modals
   const handleUserPressInModal = (userId: string) => {
     // Close the modal first
     setShowSeguidoresModal(false);
@@ -971,6 +971,16 @@ export default function LocalPerfilScreen() {
     );
   }, [localStories, currentStoryIndex, user, isOwner, stopStoryTimer]);
 
+  // ✅ CRITICAL: Handle navigation from story viewer header (avatar/name press)
+  const handleStoryAuthorPress = useCallback(() => {
+    console.log('[LocalPerfil] 🔍 Story author pressed - navigating to local profile');
+    // Close story viewer
+    setShowStoryViewer(false);
+    stopStoryTimer();
+    // Already on this local's profile, so just scroll to top or do nothing
+    // Could add a scroll to top animation here if desired
+  }, [stopStoryTimer]);
+
   useEffect(() => {
     if (showStoryViewer && !isPaused) {
       startStoryTimer();
@@ -980,9 +990,6 @@ export default function LocalPerfilScreen() {
     };
   }, [showStoryViewer, currentStoryIndex, isPaused, startStoryTimer, stopStoryTimer]);
 
-  // ✅ CRITICAL FIX: Determine tabs based on whether user is owner viewing their own local
-  // When viewing own local profile, show owner tabs (gestion, favoritos, social)
-  // When viewing other's local or as client, show client tabs (eventos, favoritos, social)
   const getTabsForRole = (): TabBarItem[] => {
     const userRole = user?.rol_app || 'cliente';
 
@@ -1022,7 +1029,7 @@ export default function LocalPerfilScreen() {
       ];
     }
 
-    // ✅ CRITICAL FIX: If user is owner of this local AND in propietario mode, show owner tabs with GESTION icon
+    // ✅ If user is owner of this local AND in propietario mode, show owner tabs with GESTION icon
     if (isOwner && currentMode === 'propietario') {
       console.log('🏢🏢🏢 [getTabsForRole] Showing OWNER tabs with GESTION icon (building.2) - User owns this local');
       return [
@@ -1250,7 +1257,7 @@ export default function LocalPerfilScreen() {
               <Text style={styles.statusText}>{estado.badge}</Text>
             </View>
 
-            {/* ✅ UPDATED: Stats container with clickable followers/following */}
+            {/* ✅ Stats container with clickable followers/following */}
             <View style={styles.statsContainer}>
               <View style={styles.statItem}>
                 <Text style={styles.statNumber}>{posts.length}</Text>
@@ -1742,7 +1749,12 @@ export default function LocalPerfilScreen() {
                   ))}
                 </View>
 
-                <View style={styles.storyAutorInfo}>
+                {/* ✅ UPDATED: Make author info clickable */}
+                <TouchableOpacity 
+                  style={styles.storyAutorInfo}
+                  onPress={handleStoryAuthorPress}
+                  activeOpacity={0.7}
+                >
                   {local.imagen_url ? (
                     <Image source={{ uri: local.imagen_url }} style={styles.storyAutorAvatar} />
                   ) : (
@@ -1751,40 +1763,41 @@ export default function LocalPerfilScreen() {
                     </View>
                   )}
                   <Text style={styles.storyAutorNombre}>{local.nombre}</Text>
-                  <TouchableOpacity
-                    style={styles.storyCloseButton}
-                    onPress={async () => {
-                      const currentStory = localStories[currentStoryIndex];
-                      
-                      if (currentStory && user) {
-                        try {
-                          const { data: existingView } = await supabase
-                            .from('historia_views')
-                            .select('id')
-                            .eq('historia_id', currentStory.id)
-                            .eq('usuario_id', user.id)
-                            .single();
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={styles.storyCloseButton}
+                  onPress={async () => {
+                    const currentStory = localStories[currentStoryIndex];
+                    
+                    if (currentStory && user) {
+                      try {
+                        const { data: existingView } = await supabase
+                          .from('historia_views')
+                          .select('id')
+                          .eq('historia_id', currentStory.id)
+                          .eq('usuario_id', user.id)
+                          .single();
 
-                          if (!existingView) {
-                            await supabase.from('historia_views').insert({
-                              historia_id: currentStory.id,
-                              usuario_id: user.id,
-                            });
-                          }
-                        } catch (error) {
-                          console.error('[LocalPerfil] Error marking story as viewed on close:', error);
+                        if (!existingView) {
+                          await supabase.from('historia_views').insert({
+                            historia_id: currentStory.id,
+                            usuario_id: user.id,
+                          });
                         }
+                      } catch (error) {
+                        console.error('[LocalPerfil] Error marking story as viewed on close:', error);
                       }
-                      
-                      await loadLocalData();
-                      setShowStoryViewer(false);
-                      stopStoryTimer();
-                    }}
-                    activeOpacity={0.8}
-                  >
-                    <IconSymbol name="xmark" size={20} color="#fff" />
-                  </TouchableOpacity>
-                </View>
+                    }
+                    
+                    await loadLocalData();
+                    setShowStoryViewer(false);
+                    stopStoryTimer();
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <IconSymbol name="xmark" size={20} color="#fff" />
+                </TouchableOpacity>
               </View>
 
               <View style={styles.storyContent}>
@@ -1994,147 +2007,135 @@ export default function LocalPerfilScreen() {
         </View>
       </Modal>
 
-      {/* ✅ NEW: Seguidores Modal */}
+      {/* ✅ UPDATED: Seguidores Modal with LinearGradient header matching user profile design */}
       <Modal
         visible={showSeguidoresModal}
         animationType="slide"
-        transparent={true}
+        transparent={false}
         onRequestClose={() => setShowSeguidoresModal(false)}
       >
-        <View style={styles.followModalOverlay}>
-          <Pressable 
-            style={styles.followModalBackdrop}
-            onPress={() => setShowSeguidoresModal(false)}
-          />
-          <View style={styles.followModalContent}>
-            <View style={styles.followModalHeader}>
-              <Text style={styles.followModalTitle}>Seguidores</Text>
-              <TouchableOpacity 
-                onPress={() => setShowSeguidoresModal(false)} 
-                activeOpacity={0.8}
-              >
-                <IconSymbol name="xmark" size={24} color={colors.text} />
-              </TouchableOpacity>
+        <View style={styles.container}>
+          <LinearGradient
+            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+            style={styles.followModalHeader}
+          >
+            <TouchableOpacity onPress={() => setShowSeguidoresModal(false)} activeOpacity={0.7}>
+              <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+            </TouchableOpacity>
+            <Text style={styles.followModalTitle}>Seguidores</Text>
+            <View style={{ width: 24 }} />
+          </LinearGradient>
+          
+          {loadingSeguidores ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.primary} />
             </View>
-            
-            {loadingSeguidores ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={colors.primary} />
-              </View>
-            ) : (
-              <FlatList
-                data={seguidores}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.userItem}
-                    onPress={() => handleUserPressInModal(item.id)}
-                    activeOpacity={0.7}
-                  >
-                    {item.avatar ? (
-                      <Image source={{ uri: item.avatar }} style={styles.userAvatar} />
-                    ) : (
-                      <View style={[styles.userAvatar, styles.avatarPlaceholder]}>
-                        <Text style={styles.avatarText}>
-                          {item.nombre.charAt(0).toUpperCase()}
-                        </Text>
-                      </View>
-                    )}
-                    <View style={styles.userInfo}>
-                      <Text style={styles.userName}>{item.nombre}</Text>
-                      {item.username && (
-                        <Text style={styles.userUsername}>@{item.username}</Text>
-                      )}
-                      {item.bio && (
-                        <Text style={styles.userBio} numberOfLines={2}>
-                          {item.bio}
-                        </Text>
-                      )}
+          ) : (
+            <FlatList
+              data={seguidores}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.userItem}
+                  onPress={() => handleUserPressInModal(item.id)}
+                  activeOpacity={0.7}
+                >
+                  {item.avatar ? (
+                    <Image source={{ uri: item.avatar }} style={styles.userAvatar} />
+                  ) : (
+                    <View style={[styles.userAvatar, styles.avatarPlaceholder]}>
+                      <Text style={styles.avatarText}>
+                        {item.nombre.charAt(0).toUpperCase()}
+                      </Text>
                     </View>
-                  </TouchableOpacity>
-                )}
-                ListEmptyComponent={
-                  <View style={styles.emptyState}>
-                    <IconSymbol name="person.2" size={64} color={colors.textSecondary} />
-                    <Text style={styles.emptyText}>No hay seguidores aún</Text>
+                  )}
+                  <View style={styles.userInfo}>
+                    <Text style={styles.userName}>{item.nombre}</Text>
+                    {item.username && (
+                      <Text style={styles.userUsername}>@{item.username}</Text>
+                    )}
+                    {item.bio && (
+                      <Text style={styles.userBio} numberOfLines={2}>
+                        {item.bio}
+                      </Text>
+                    )}
                   </View>
-                }
-                contentContainerStyle={styles.followListContent}
-              />
-            )}
-          </View>
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={
+                <View style={styles.emptyState}>
+                  <IconSymbol name="person.2" size={64} color={colors.textSecondary} />
+                  <Text style={styles.emptyText}>No hay seguidores aún</Text>
+                </View>
+              }
+            />
+          )}
         </View>
       </Modal>
 
-      {/* ✅ NEW: Seguidos Modal */}
+      {/* ✅ UPDATED: Seguidos Modal with LinearGradient header matching user profile design */}
       <Modal
         visible={showSeguidosModal}
         animationType="slide"
-        transparent={true}
+        transparent={false}
         onRequestClose={() => setShowSeguidosModal(false)}
       >
-        <View style={styles.followModalOverlay}>
-          <Pressable 
-            style={styles.followModalBackdrop}
-            onPress={() => setShowSeguidosModal(false)}
-          />
-          <View style={styles.followModalContent}>
-            <View style={styles.followModalHeader}>
-              <Text style={styles.followModalTitle}>Siguiendo</Text>
-              <TouchableOpacity 
-                onPress={() => setShowSeguidosModal(false)} 
-                activeOpacity={0.8}
-              >
-                <IconSymbol name="xmark" size={24} color={colors.text} />
-              </TouchableOpacity>
+        <View style={styles.container}>
+          <LinearGradient
+            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+            style={styles.followModalHeader}
+          >
+            <TouchableOpacity onPress={() => setShowSeguidosModal(false)} activeOpacity={0.7}>
+              <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+            </TouchableOpacity>
+            <Text style={styles.followModalTitle}>Siguiendo</Text>
+            <View style={{ width: 24 }} />
+          </LinearGradient>
+          
+          {loadingSeguidos ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.primary} />
             </View>
-            
-            {loadingSeguidos ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={colors.primary} />
-              </View>
-            ) : (
-              <FlatList
-                data={seguidos}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.userItem}
-                    onPress={() => handleUserPressInModal(item.id)}
-                    activeOpacity={0.7}
-                  >
-                    {item.avatar ? (
-                      <Image source={{ uri: item.avatar }} style={styles.userAvatar} />
-                    ) : (
-                      <View style={[styles.userAvatar, styles.avatarPlaceholder]}>
-                        <Text style={styles.avatarText}>
-                          {item.nombre.charAt(0).toUpperCase()}
-                        </Text>
-                      </View>
-                    )}
-                    <View style={styles.userInfo}>
-                      <Text style={styles.userName}>{item.nombre}</Text>
-                      {item.username && (
-                        <Text style={styles.userUsername}>@{item.username}</Text>
-                      )}
-                      {item.bio && (
-                        <Text style={styles.userBio} numberOfLines={2}>
-                          {item.bio}
-                        </Text>
-                      )}
+          ) : (
+            <FlatList
+              data={seguidos}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.userItem}
+                  onPress={() => handleUserPressInModal(item.id)}
+                  activeOpacity={0.7}
+                >
+                  {item.avatar ? (
+                    <Image source={{ uri: item.avatar }} style={styles.userAvatar} />
+                  ) : (
+                    <View style={[styles.userAvatar, styles.avatarPlaceholder]}>
+                      <Text style={styles.avatarText}>
+                        {item.nombre.charAt(0).toUpperCase()}
+                      </Text>
                     </View>
-                  </TouchableOpacity>
-                )}
-                ListEmptyComponent={
-                  <View style={styles.emptyState}>
-                    <IconSymbol name="person.2" size={64} color={colors.textSecondary} />
-                    <Text style={styles.emptyText}>No sigue a nadie aún</Text>
+                  )}
+                  <View style={styles.userInfo}>
+                    <Text style={styles.userName}>{item.nombre}</Text>
+                    {item.username && (
+                      <Text style={styles.userUsername}>@{item.username}</Text>
+                    )}
+                    {item.bio && (
+                      <Text style={styles.userBio} numberOfLines={2}>
+                        {item.bio}
+                      </Text>
+                    )}
                   </View>
-                }
-                contentContainerStyle={styles.followListContent}
-              />
-            )}
-          </View>
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={
+                <View style={styles.emptyState}>
+                  <IconSymbol name="person.2" size={64} color={colors.textSecondary} />
+                  <Text style={styles.emptyText}>No sigue a nadie aún</Text>
+                </View>
+              }
+            />
+          )}
         </View>
       </Modal>
 
@@ -2705,8 +2706,14 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingHorizontal: 16,
     paddingBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   storyProgressContainer: {
+    position: 'absolute',
+    top: 50,
+    left: 16,
+    right: 16,
     flexDirection: 'row',
     gap: 4,
     marginBottom: 12,
@@ -2723,6 +2730,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   storyAutorInfo: {
+    position: 'absolute',
+    top: 66,
+    left: 16,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -2739,6 +2749,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   storyCloseButton: {
+    position: 'absolute',
+    top: 66,
+    right: 16,
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -2924,49 +2937,24 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.primary,
   },
-  // ✅ NEW: Followers/Following modal styles
-  followModalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  followModalBackdrop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  followModalContent: {
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    height: height * 0.75,
-    paddingBottom: 34,
-  },
+  // ✅ UPDATED: Followers/Following modal styles matching user profile design
   followModalHeader: {
-    paddingTop: 24,
-    paddingBottom: 16,
-    paddingHorizontal: 20,
+    paddingTop: 50,
+    paddingBottom: 12,
+    paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
   },
   followModalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: colors.text,
-  },
-  followListContent: {
-    paddingBottom: 20,
+    color: colors.headerText,
   },
   userItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    padding: 16,
     borderBottomWidth: 0.5,
     borderBottomColor: colors.cardBorder,
   },
