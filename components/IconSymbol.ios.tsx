@@ -5,15 +5,14 @@ import { StyleProp, ViewStyle } from "react-native";
 /**
  * iOS-specific icon component using native SF Symbols.
  * 
- * VERSION v20.0: INSTAGRAM-STYLE WITH EXTENSIVE LOGGING
+ * VERSION v21.0: FIXED UNDEFINED NAME ERROR
+ * - Added null/undefined check for name prop before calling includes()
  * - Active icons: Uses filled icon name (with .fill suffix) passed from TabIcon
  * - Inactive icons: Uses outlined icon name (without .fill suffix) passed from TabIcon
  * - Pure white (#FFFFFF) at 100% opacity for both states
  * - NO transparency, NO filters - icons are fully opaque and bright
  * - Visual distinction comes from different SF Symbol names (.fill suffix)
  * - Uses monochrome rendering mode for consistent appearance
- * 
- * FIX: Added extensive logging to debug icon rendering
  */
 export function IconSymbol({
   name,
@@ -30,13 +29,19 @@ export function IconSymbol({
   weight?: SymbolWeight;
   fill?: string;
 }) {
+  // ✅ FIXED: Check if name is defined before calling includes()
+  if (!name) {
+    console.error('🚨 [IconSymbol iOS v21.0] ERROR: name prop is undefined or null');
+    return null;
+  }
+
   // Determine if this is a filled or outlined icon based on the icon name
   const isFilled = name.includes('.fill');
   
   // Use monochrome rendering mode for consistent appearance
   const renderingMode = "monochrome";
   
-  console.log(`🎨 [IconSymbol iOS v20.0] Rendering "${name}", ${isFilled ? 'FILLED' : 'OUTLINED'}, mode: ${renderingMode}, color: ${color}, size: ${size}`);
+  console.log(`🎨 [IconSymbol iOS v21.0] Rendering "${name}", ${isFilled ? 'FILLED' : 'OUTLINED'}, mode: ${renderingMode}, color: ${color}, size: ${size}`);
   
   return (
     <SymbolView

@@ -25,7 +25,7 @@ const MAX_MODAL_HEIGHT = SCREEN_HEIGHT * 0.7;
 interface StoryStatsModalProps {
   visible: boolean;
   onClose: () => void;
-  onNavigateToProfile?: () => void; // NEW: Callback to close parent story viewer
+  onNavigateToProfile?: () => void; // Callback to close parent story viewer
   storyId: string;
   viewsCount: number;
   likesCount: number;
@@ -106,13 +106,17 @@ export default function StoryStatsModal({
     try {
       console.log('[StoryStatsModal] 🔍 Navigating to profile for user ID:', userId);
       
-      // ✅ CRITICAL: Close the stats modal first
+      // ✅ CRITICAL FIX: Close the stats modal FIRST
       onClose();
       
-      // ✅ CRITICAL: Close the parent story viewer if callback provided
+      // ✅ CRITICAL FIX: Close the parent story viewer if callback provided
       if (onNavigateToProfile) {
+        console.log('[StoryStatsModal] ✅ Calling onNavigateToProfile to close story viewer');
         onNavigateToProfile();
       }
+      
+      // Small delay to ensure modals close before navigation
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       // Check if this is the current user
       if (user && userId === user.id) {
