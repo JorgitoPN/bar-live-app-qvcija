@@ -1,4 +1,7 @@
 
+// FIXED: Line 101 - Changed Array<T> to T[]
+// FIXED: Line 126 - Added pulseAnim to dependency array
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
@@ -58,6 +61,7 @@ interface InteractionMessage {
   };
 }
 
+// FIXED: Changed Array<InteractionMessage> to InteractionMessage[]
 type InteractionMessageArray = InteractionMessage[];
 
 const MENSAJES_RAPIDOS = [
@@ -108,6 +112,7 @@ export default function SalaVirtualScreen() {
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const channelRef = useRef<any>(null);
 
+  // FIXED: Added pulseAnim to dependency array
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
@@ -123,7 +128,7 @@ export default function SalaVirtualScreen() {
         }),
       ])
     ).start();
-  }, []);
+  }, [pulseAnim]);
 
   const loadData = useCallback(async () => {
     try {

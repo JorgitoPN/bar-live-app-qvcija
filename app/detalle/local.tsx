@@ -616,7 +616,7 @@ export default function DetalleLocalScreen() {
   const params = useLocalSearchParams();
   const { user } = useAuth();
   const [local, setLocal] = useState<any>(null);
-  const [loading, setLoading] = useState(false); // Changed to false - show cached data immediately
+  const [loading, setLoading] = useState(false);
   const [mostrarTodasReviews, setMostrarTodasReviews] = useState(false);
   const [mostrarModalReview, setMostrarModalReview] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
@@ -627,41 +627,6 @@ export default function DetalleLocalScreen() {
   const [showGalleryModal, setShowGalleryModal] = useState(false);
   const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
   const [expandedReviews, setExpandedReviews] = useState<Set<number>>(new Set());
-
-  // FIXED: Wrap cargarLocal in useCallback
-  const cargarLocal = useCallback(async () => {
-    try {
-      // Try to get cached data first - INSTANT LOAD
-      const cachedData = localPreloader.getCached(params.id as string);
-      if (cachedData) {
-        console.log('[DetalleLocal] Using cached data - INSTANT LOAD');
-        setLocal(cachedData);
-        // Load reviews in background
-        cargarReviewsBarlive();
-        return;
-      }
-
-      // If no cache, load from Supabase
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('locales')
-        .select('*')
-        .eq('id', params.id)
-        .single();
-
-      if (error) {
-        console.error('[DetalleLocal] Error loading local:', error);
-        return;
-      }
-
-      console.log('[DetalleLocal] Loaded local from Supabase:', data);
-      setLocal(data);
-      setLoading(false);
-    } catch (error) {
-      console.error('[DetalleLocal] Error:', error);
-      setLoading(false);
-    }
-  }, [params.id]);
 
   const cargarReviewsBarlive = useCallback(async () => {
     try {
@@ -685,7 +650,37 @@ export default function DetalleLocalScreen() {
     }
   }, [params.id]);
 
-  // Now useEffect can reference the functions
+  const cargarLocal = useCallback(async () => {
+    try {
+      const cachedData = localPreloader.getCached(params.id as string);
+      if (cachedData) {
+        console.log('[DetalleLocal] Using cached data - INSTANT LOAD');
+        setLocal(cachedData);
+        cargarReviewsBarlive();
+        return;
+      }
+
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('locales')
+        .select('*')
+        .eq('id', params.id)
+        .single();
+
+      if (error) {
+        console.error('[DetalleLocal] Error loading local:', error);
+        return;
+      }
+
+      console.log('[DetalleLocal] Loaded local from Supabase:', data);
+      setLocal(data);
+      setLoading(false);
+    } catch (error) {
+      console.error('[DetalleLocal] Error:', error);
+      setLoading(false);
+    }
+  }, [params.id, cargarReviewsBarlive]);
+
   useEffect(() => {
     if (params.id) {
       cargarLocal();
@@ -838,7 +833,6 @@ export default function DetalleLocalScreen() {
   const getCurrentDayName = (): string => {
     if (!local) return '';
     
-    // Use the logical day from getEstadoLocal
     const estado = getEstadoLocal(local);
     return estado.diaLogico || '';
   };
@@ -881,7 +875,6 @@ export default function DetalleLocalScreen() {
   };
 
   const getOverlayIconColor = () => {
-    // ALWAYS return white for the lock icon
     return '#FFFFFF';
   };
 
@@ -897,7 +890,6 @@ export default function DetalleLocalScreen() {
     
     const estado = getEstadoLocal(local);
     
-    // For 24h locals, just show "Abierto 24h" without time remaining
     if (estado.badge === 'Abierto 24h') {
       return 'Abierto 24h';
     }
@@ -917,7 +909,6 @@ export default function DetalleLocalScreen() {
     return estado.badge;
   };
 
-  // Show loading only if no data at all
   if (loading && !local) {
     return (
       <View style={styles.loadingContainer}>
@@ -945,13 +936,11 @@ export default function DetalleLocalScreen() {
   const galeriaUrls = local.galeria_urls || [];
   const isDestacado = local.destacado || false;
 
-  // Filter out unwanted categories
   const CATEGORIAS_EXCLUIDAS = ['terrazas', 'rooftops', 'lounge'];
   let categoriasLocal = local.barlive_types || [];
   if (categoriasLocal.length === 0 && local.barlive_type) {
     categoriasLocal = [local.barlive_type];
   }
-  // Filter out excluded categories (case-insensitive)
   categoriasLocal = categoriasLocal.filter((cat: string) => 
     !CATEGORIAS_EXCLUIDAS.includes(cat.toLowerCase())
   );
@@ -992,9 +981,7 @@ export default function DetalleLocalScreen() {
 
   const reviewsAMostrar = mostrarTodasReviews ? todasLasReviews : todasLasReviews.slice(0, 2);
 
-  // Calculate rating using the SAME LOGIC as TarjetaLocal
   const getRating = () => {
-    // Priority: rating > google_rating > valoracion_google
     if (local.rating && local.rating > 0) {
       return local.rating;
     }
@@ -1012,7 +999,6 @@ export default function DetalleLocalScreen() {
   const currentDay = getCurrentDayName();
   const overlayIcon = getOverlayIcon();
 
-  // Ordenar los días de la semana empezando por el día LÓGICO actual
   const diasOrdenados = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
   const currentDayIndex = diasOrdenados.indexOf(currentDay);
   const diasReordenados = currentDayIndex >= 0 ? [
@@ -1023,7 +1009,6 @@ export default function DetalleLocalScreen() {
   return (
     <View style={styles.container}>
       <ScrollView>
-        {/* Imagen con overlays */}
         <View style={styles.imageContainer}>
           {local.imagen_url ? (
             <Image source={{ uri: local.imagen_url }} style={styles.image} resizeMode="cover" />
@@ -1033,19 +1018,16 @@ export default function DetalleLocalScreen() {
             </View>
           )}
 
-          {/* Dimmed overlay for closed/no info locals */}
           {shouldDimImage() && (
             <View style={styles.dimmedOverlay} />
           )}
 
-          {/* Overlay icon (lock, question mark, or clock) - CENTERED with proper color */}
           {overlayIcon && (
             <View style={styles.overlayIconContainer}>
               <IconSymbol name={overlayIcon} size={80} color={getOverlayIconColor()} />
             </View>
           )}
 
-          {/* Header Buttons - z-index 100 */}
           <View style={styles.header}>
             <TouchableOpacity style={styles.headerButton} onPress={() => router.back()}>
               <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
@@ -1055,7 +1037,6 @@ export default function DetalleLocalScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Badge "Destacado" - Esquina superior izquierda ARRIBA del botón volver - z-index 151 */}
           {isDestacado && (
             <View style={styles.badgeDestacadoOverlay}>
               <IconSymbol name="star.fill" size={14} color="#92400E" />
@@ -1063,7 +1044,6 @@ export default function DetalleLocalScreen() {
             </View>
           )}
 
-          {/* Estado (tiempo) - Debajo del badge destacado o en la esquina superior izquierda - z-index 150 */}
           <View style={[
             styles.estadoBadgeOverlay,
             { backgroundColor: getBadgeColor() },
@@ -1073,7 +1053,6 @@ export default function DetalleLocalScreen() {
             <Text style={styles.estadoText}>{getBadgeText()}</Text>
           </View>
 
-          {/* Valoración - Esquina superior derecha ARRIBA del botón compartir - z-index 150 */}
           {ratingCombinado && (
             <View style={styles.ratingBadgeOverlay}>
               <IconSymbol name="star.fill" size={16} color={colors.badgeDestacado} />
@@ -1081,7 +1060,6 @@ export default function DetalleLocalScreen() {
             </View>
           )}
 
-          {/* Botón favorito - Esquina inferior derecha */}
           <TouchableOpacity
             style={styles.favoritoButtonOverlay}
             onPress={toggleFavorito}
@@ -1097,7 +1075,6 @@ export default function DetalleLocalScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Mini Galería */}
         {galeriaUrls.length > 0 && (
           <View style={styles.galeriaContainer}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.galeriaScroll}>
@@ -1119,11 +1096,9 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* Información Principal */}
         <View style={styles.mainInfo}>
           <Text style={styles.nombre}>{local.nombre}</Text>
 
-          {/* Categorías del local */}
           {categoriasLocal.length > 0 && (
             <View style={styles.categoriasContainer}>
               {categoriasLocal.map((categoria: string, index: number) => (
@@ -1135,7 +1110,6 @@ export default function DetalleLocalScreen() {
             </View>
           )}
 
-          {/* Dirección */}
           {local.direccion && (
             <View style={styles.direccionContainer}>
               <IconSymbol name="mappin" size={20} color={colors.primary} />
@@ -1143,12 +1117,10 @@ export default function DetalleLocalScreen() {
             </View>
           )}
 
-          {/* Descripción */}
           {local.descripcion_google && (
             <Text style={styles.descripcion}>{local.descripcion_google}</Text>
           )}
 
-          {/* Botones de Acción */}
           <View style={styles.actionButtons}>
             {local.telefono && (
               <TouchableOpacity style={[styles.actionButton, styles.actionButtonPrimary]} onPress={handleLlamar}>
@@ -1169,7 +1141,6 @@ export default function DetalleLocalScreen() {
             </TouchableOpacity>
           )}
 
-          {/* Botón Sala Virtual */}
           <TouchableOpacity 
             style={styles.salaVirtualButton}
             onPress={() => router.push(`/detalle/sala-virtual?id=${local.id}`)}
@@ -1178,7 +1149,6 @@ export default function DetalleLocalScreen() {
             <Text style={styles.salaVirtualButtonText}>Ver Sala Virtual</Text>
           </TouchableOpacity>
 
-          {/* Botón Perfil Social del Local */}
           <TouchableOpacity 
             style={[styles.salaVirtualButton, { backgroundColor: colors.primary, marginTop: 12 }]}
             onPress={() => router.push(`/perfil/local?localId=${local.id}`)}
@@ -1188,7 +1158,6 @@ export default function DetalleLocalScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Tipos de Cocina */}
         {tiposCocina.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>🍴 Tipos de Cocina</Text>
@@ -1202,7 +1171,6 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* Horarios con día actual destacado - REORDENADOS POR DÍA LÓGICO */}
         {Object.keys(horariosCompletos).length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>🕐 Horarios</Text>
@@ -1239,7 +1207,6 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* Servicios Disponibles */}
         {serviciosActivos.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>🛎️ Servicios Disponibles</Text>
@@ -1253,7 +1220,6 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* Ambiente */}
         {ambienteActivo.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>🎭 Ambiente</Text>
@@ -1267,7 +1233,6 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* Clientela */}
         {clientelaActiva.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>👥 Clientela Típica</Text>
@@ -1281,7 +1246,6 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* Análisis de Reviews */}
         {analisisReviews.resumen_automatico && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>🧠 Análisis de Reseñas</Text>
@@ -1304,7 +1268,6 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* Reseñas */}
         {todasLasReviews.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>⭐ Reseñas</Text>
@@ -1396,7 +1359,6 @@ export default function DetalleLocalScreen() {
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* Modal para escribir reseña */}
       <Modal
         visible={mostrarModalReview}
         transparent
@@ -1456,7 +1418,6 @@ export default function DetalleLocalScreen() {
         </View>
       </Modal>
 
-      {/* Modal de galería de imágenes */}
       <ImageGalleryModal
         visible={showGalleryModal}
         images={galeriaUrls}
