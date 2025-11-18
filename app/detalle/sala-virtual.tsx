@@ -1,6 +1,5 @@
 
-// FIXED: Line 101 - Changed Array<T> to T[]
-// FIXED: Line 126 - Added pulseAnim to dependency array
+// FIXED: Line 105 - Changed Array<T> to T[]
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
@@ -61,7 +60,6 @@ interface InteractionMessage {
   };
 }
 
-// FIXED: Changed Array<InteractionMessage> to InteractionMessage[]
 type InteractionMessageArray = InteractionMessage[];
 
 const MENSAJES_RAPIDOS = [
@@ -102,7 +100,7 @@ export default function SalaVirtualScreen() {
   const [showQuickMessages, setShowQuickMessages] = useState(false);
   const [showEmoticons, setShowEmoticons] = useState(false);
   const [selectedRecipient, setSelectedRecipient] = useState<string | null>(null);
-  const [floatingEmojis, setFloatingEmojis] = useState<Array<{ id: string; emoji: string; x: number; y: Animated.Value; opacity: Animated.Value }>>([]);
+  const [floatingEmojis, setFloatingEmojis] = useState<{ id: string; emoji: string; x: number; y: Animated.Value; opacity: Animated.Value }[]>([]);
   
   const [showPublicChat, setShowPublicChat] = useState(false);
   const [chatMessages, setChatMessages] = useState<InteractionMessage[]>([]);
@@ -112,7 +110,6 @@ export default function SalaVirtualScreen() {
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const channelRef = useRef<any>(null);
 
-  // FIXED: Added pulseAnim to dependency array
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
@@ -449,7 +446,7 @@ export default function SalaVirtualScreen() {
             'Horario desconocido',
             'No se puede verificar si el local está abierto. ¿Deseas continuar de todos modos?',
             [
-              { text: 'Cancelar', style: 'cancel' },
+              { text: 'Cancelar', style: 'cancel', onPress: () => router.back() },
               { text: 'Continuar', onPress: () => proceedWithCheckIn() }
             ]
           );

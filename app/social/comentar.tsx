@@ -37,7 +37,7 @@ export default function ComentarScreen() {
 
   useEffect(() => {
     loadData();
-  }, [postId, parentCommentId]);
+  }, [postId, parentCommentId, loadData]);
 
   const loadData = async () => {
     try {

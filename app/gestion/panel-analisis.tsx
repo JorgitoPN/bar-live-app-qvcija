@@ -106,7 +106,7 @@ export default function PanelAnalisisScreen() {
 
     loadAnalyticsData();
     loadRecommendations();
-  }, [localId, timeRange]);
+  }, [localId, timeRange, loadAnalyticsData, loadRecommendations, router]);
 
   const loadAnalyticsData = async () => {
     if (!localId || !user) return;

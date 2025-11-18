@@ -88,7 +88,7 @@ export default function UsuarioPerfilScreen() {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [fadeAnim, scaleAnim]);
 
   const loadFollowerCounts = useCallback(async (targetUserId: string) => {
     try {

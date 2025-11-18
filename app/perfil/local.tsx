@@ -209,7 +209,7 @@ export default function LocalPerfilScreen() {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [fadeAnim, scaleAnim]);
 
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
     const R = 6371;
@@ -686,7 +686,7 @@ export default function LocalPerfilScreen() {
     router.push(`/crear/publicacion?localId=${localId}`);
   };
 
-  const handleCrearHistoria = async () => {
+  const handleCrearHistoria = useCallback(async () => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión');
       return;
@@ -701,7 +701,7 @@ export default function LocalPerfilScreen() {
     await setCurrentMode('propietario');
     
     router.push(`/crear/historia?localId=${localId}`);
-  };
+  }, [user, isOwner, localId, switchToLocalProfile, setCurrentMode, router]);
 
   const handleCrearEvento = async () => {
     if (!user) {
