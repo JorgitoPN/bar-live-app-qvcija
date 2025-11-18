@@ -84,18 +84,25 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
     }
   };
 
-  const calculateTimeRemaining = (endDate: string) => {
-    const now = new Date();
-    const end = new Date(endDate);
-    const diff = end.getTime() - now.getTime();
+  const calculateTimeRemaining = (endDate: string | null | undefined) => {
+    if (!endDate) return 'No disponible';
+    
+    try {
+      const now = new Date();
+      const end = new Date(endDate);
+      const diff = end.getTime() - now.getTime();
 
-    if (diff <= 0) return 'Finalizado';
+      if (diff <= 0) return 'Finalizado';
 
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
 
-    if (days > 0) return `${days}d ${hours}h`;
-    return `${hours}h`;
+      if (days > 0) return `${days}d ${hours}h`;
+      return `${hours}h`;
+    } catch (error) {
+      console.error('[LocalSubscriptionCard] Error calculating time:', error);
+      return 'Error';
+    }
   };
 
   const calculateProgress = (used: number, total: number) => {
@@ -108,11 +115,29 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
 
     const { suscripcion } = local;
 
+    // Check if subscription exists
+    if (!suscripcion) {
+      Alert.alert(
+        'Sin Plan Activo',
+        'Necesitas un plan de suscripción para destacar tu local.',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Ver Planes',
+            onPress: () => router.push(`/gestion/planes-suscripcion?localId=${local.id}`),
+          },
+        ]
+      );
+      return;
+    }
+
     // Check if can activate destacado
-    if (!local.destacado && (!suscripcion || suscripcion.creditos_destacados_restantes <= 0)) {
+    if (!local.destacado && suscripcion.creditos_destacados_restantes <= 0) {
       Alert.alert(
         'Sin Créditos Disponibles',
-        `El plan ${suscripcion?.plan_nombre.toUpperCase() || 'BÁSICO'} no tiene créditos de destacados disponibles. Actualiza a un plan superior o espera a la renovación mensual.`,
+        `Tu plan ${suscripcion.plan_nombre.toUpperCase()} no tiene créditos de destacados disponibles.\n\n` +
+          `Créditos restantes: ${suscripcion.creditos_destacados_restantes}\n\n` +
+          `Actualiza a un plan superior o espera a la renovación mensual.`,
         [
           { text: 'Cancelar', style: 'cancel' },
           {
@@ -138,31 +163,29 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
       if (localError) throw localError;
 
       // Update subscription credits and destacado status
-      if (suscripcion) {
-        const updates: any = {
-          destacado_activo: newDestacadoValue,
-        };
+      const updates: any = {
+        destacado_activo: newDestacadoValue,
+      };
 
-        if (newDestacadoValue) {
-          // Activating destacado - consume credit and set dates
-          updates.creditos_destacados_restantes = Math.max(0, suscripcion.creditos_destacados_restantes - 1);
-          updates.destacado_fecha_inicio = new Date().toISOString();
-          // Destacado lasts 30 days
-          const fechaFin = new Date();
-          fechaFin.setDate(fechaFin.getDate() + 30);
-          updates.destacado_fecha_fin = fechaFin.toISOString();
-        } else {
-          // Deactivating destacado
-          updates.destacado_fecha_fin = new Date().toISOString();
-        }
-
-        const { error: subError } = await supabase
-          .from('suscripciones_locales')
-          .update(updates)
-          .eq('id', suscripcion.id);
-
-        if (subError) throw subError;
+      if (newDestacadoValue) {
+        // Activating destacado - consume credit and set dates
+        updates.creditos_destacados_restantes = Math.max(0, suscripcion.creditos_destacados_restantes - 1);
+        updates.destacado_fecha_inicio = new Date().toISOString();
+        // Destacado lasts 30 days
+        const fechaFin = new Date();
+        fechaFin.setDate(fechaFin.getDate() + 30);
+        updates.destacado_fecha_fin = fechaFin.toISOString();
+      } else {
+        // Deactivating destacado
+        updates.destacado_fecha_fin = new Date().toISOString();
       }
+
+      const { error: subError } = await supabase
+        .from('suscripciones_locales')
+        .update(updates)
+        .eq('id', suscripcion.id);
+
+      if (subError) throw subError;
 
       Alert.alert(
         'Éxito',
@@ -186,10 +209,14 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
       return;
     }
 
+    const fechaPago = local.suscripcion.fecha_proximo_pago 
+      ? new Date(local.suscripcion.fecha_proximo_pago).toLocaleDateString('es-ES')
+      : 'fecha desconocida';
+
     Alert.alert(
       'Cancelar Plan',
       `¿Estás seguro de que deseas cancelar tu plan ${local.suscripcion.plan_nombre.toUpperCase()}?\n\n` +
-        `• El plan seguirá activo hasta ${new Date(local.suscripcion.fecha_proximo_pago || '').toLocaleDateString('es-ES')}\n` +
+        `• El plan seguirá activo hasta ${fechaPago}\n` +
         `• Perderás los créditos no utilizados\n` +
         `• Después volverás al plan básico gratuito`,
       [
@@ -213,7 +240,7 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
 
               Alert.alert(
                 'Plan Cancelado',
-                `Tu plan se cancelará el ${new Date(local.suscripcion!.fecha_proximo_pago || '').toLocaleDateString('es-ES')}. Hasta entonces, podrás seguir usando todos los beneficios.`
+                `Tu plan se cancelará el ${fechaPago}. Hasta entonces, podrás seguir usando todos los beneficios.`
               );
 
               onRefresh();
@@ -250,6 +277,25 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
         </View>
       </View>
     );
+  };
+
+  const calculateRenewalProgress = (fechaProximoPago: string | null | undefined) => {
+    if (!fechaProximoPago) return 0;
+    
+    try {
+      const now = new Date();
+      const end = new Date(fechaProximoPago);
+      const start = new Date(end);
+      start.setMonth(start.getMonth() - 1); // Assume 1 month period
+      
+      const totalDuration = end.getTime() - start.getTime();
+      const elapsed = now.getTime() - start.getTime();
+      const progress = (elapsed / totalDuration) * 100;
+      
+      return Math.max(0, Math.min(100, 100 - progress)); // Invert so it shows remaining time
+    } catch (error) {
+      return 0;
+    }
   };
 
   return (
@@ -311,7 +357,9 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
             <IconSymbol name="info.circle.fill" size={18} color="#F59E0B" />
             <Text style={styles.warningText}>
               Cambio a {local.suscripcion.plan_pendiente_nombre?.toUpperCase()} programado para{' '}
-              {new Date(local.suscripcion.fecha_cambio_plan || '').toLocaleDateString('es-ES')}
+              {local.suscripcion.fecha_cambio_plan 
+                ? new Date(local.suscripcion.fecha_cambio_plan).toLocaleDateString('es-ES')
+                : 'fecha pendiente'}
             </Text>
           </View>
         )}
@@ -322,7 +370,9 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
             <IconSymbol name="exclamationmark.triangle.fill" size={18} color="#DC2626" />
             <Text style={[styles.warningText, { color: '#991B1B' }]}>
               Plan cancelado. Finaliza el{' '}
-              {new Date(local.suscripcion.fecha_proximo_pago || '').toLocaleDateString('es-ES')}
+              {local.suscripcion.fecha_proximo_pago
+                ? new Date(local.suscripcion.fecha_proximo_pago).toLocaleDateString('es-ES')
+                : 'fecha pendiente'}
             </Text>
           </View>
         )}
@@ -330,44 +380,46 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
         {local.suscripcion && (
           <>
             {/* Plan Renewal Time */}
-            {local.suscripcion.fecha_proximo_pago && local.suscripcion.plan_nombre !== 'basico' && (
+            {local.suscripcion.plan_nombre !== 'basico' && (
               <View style={styles.timeSection}>
                 <View style={styles.timeSectionHeader}>
                   <IconSymbol name="clock.fill" size={18} color={colors.primary} />
                   <Text style={styles.timeSectionTitle}>Renovación del Plan</Text>
                 </View>
-                <View style={styles.timeInfo}>
-                  <Text style={styles.timeLabel}>Tiempo restante:</Text>
-                  <Text style={styles.timeValue}>
-                    {calculateTimeRemaining(local.suscripcion.fecha_proximo_pago)}
-                  </Text>
-                </View>
-                <View style={styles.timeInfo}>
-                  <Text style={styles.timeLabel}>Fecha de renovación:</Text>
-                  <Text style={styles.timeValue}>
-                    {new Date(local.suscripcion.fecha_proximo_pago).toLocaleDateString('es-ES')}
-                  </Text>
-                </View>
-                <View style={styles.progressBarBackground}>
-                  <View
-                    style={[
-                      styles.progressBarFill,
-                      {
-                        width: `${Math.max(
-                          0,
-                          Math.min(
-                            100,
-                            ((new Date(local.suscripcion.fecha_proximo_pago).getTime() -
-                              new Date().getTime()) /
-                              (30 * 24 * 60 * 60 * 1000)) *
-                              100
-                          )
-                        )}%`,
-                        backgroundColor: colors.primary,
-                      },
-                    ]}
-                  />
-                </View>
+                {local.suscripcion.fecha_proximo_pago ? (
+                  <>
+                    <View style={styles.timeInfo}>
+                      <Text style={styles.timeLabel}>Tiempo restante:</Text>
+                      <Text style={styles.timeValue}>
+                        {calculateTimeRemaining(local.suscripcion.fecha_proximo_pago)}
+                      </Text>
+                    </View>
+                    <View style={styles.timeInfo}>
+                      <Text style={styles.timeLabel}>Fecha de renovación:</Text>
+                      <Text style={styles.timeValue}>
+                        {new Date(local.suscripcion.fecha_proximo_pago).toLocaleDateString('es-ES')}
+                      </Text>
+                    </View>
+                    <View style={styles.progressBarBackground}>
+                      <View
+                        style={[
+                          styles.progressBarFill,
+                          {
+                            width: `${calculateRenewalProgress(local.suscripcion.fecha_proximo_pago)}%`,
+                            backgroundColor: colors.primary,
+                          },
+                        ]}
+                      />
+                    </View>
+                  </>
+                ) : (
+                  <View style={styles.warningBox}>
+                    <IconSymbol name="exclamationmark.triangle" size={16} color="#F59E0B" />
+                    <Text style={styles.warningBoxText}>
+                      Fecha de renovación no configurada. Contacta con soporte.
+                    </Text>
+                  </View>
+                )}
               </View>
             )}
 
@@ -693,6 +745,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#92400E',
     fontWeight: '600',
+  },
+  warningBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FEF3C7',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 8,
+  },
+  warningBoxText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#92400E',
   },
   timeSection: {
     backgroundColor: colors.background,
