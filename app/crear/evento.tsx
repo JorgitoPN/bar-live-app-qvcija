@@ -22,11 +22,14 @@ import { supabase } from '@/utils/supabase';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
 import * as FileSystem from 'expo-file-system';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 interface LocalConPlan {
   id: string;
   nombre: string;
   provincia: string;
+  direccion: string;
+  ciudad: string | null;
   suscripcion?: {
     plan_nombre: string;
     eventos_usados_mes: number;
@@ -41,10 +44,11 @@ export default function CrearEventoScreen() {
   const { user } = useAuth();
   const [titulo, setTitulo] = useState('');
   const [descripcion, setDescripcion] = useState('');
-  const [fecha, setFecha] = useState('');
-  const [hora, setHora] = useState('');
+  const [fecha, setFecha] = useState(new Date());
+  const [hora, setHora] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [precio, setPrecio] = useState('');
-  const [provincia, setProvincia] = useState('');
   const [esGratis, setEsGratis] = useState(false);
   const [imagen, setImagen] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -58,7 +62,7 @@ export default function CrearEventoScreen() {
     try {
       const { data: localesData, error: localesError } = await supabase
         .from('locales')
-        .select('id, nombre, provincia')
+        .select('id, nombre, provincia, direccion, ciudad')
         .eq('propietario_id', user.id)
         .eq('activo', true);
 
@@ -140,14 +144,11 @@ export default function CrearEventoScreen() {
         const localPreseleccionado = localesConAcceso.find((l) => l.id === localId);
         if (localPreseleccionado) {
           setLocalSeleccionado(localPreseleccionado.id);
-          setProvincia(localPreseleccionado.provincia || '');
         } else {
           setLocalSeleccionado(localesConAcceso[0].id);
-          setProvincia(localesConAcceso[0].provincia || '');
         }
       } else {
         setLocalSeleccionado(localesConAcceso[0].id);
-        setProvincia(localesConAcceso[0].provincia || '');
       }
     } catch (error) {
       console.error('[CrearEvento] Error:', error);
@@ -204,8 +205,42 @@ export default function CrearEventoScreen() {
     }
   };
 
+  const onDateChange = (event: any, selectedDate?: Date) => {
+    setShowDatePicker(Platform.OS === 'ios');
+    if (selectedDate) {
+      setFecha(selectedDate);
+    }
+  };
+
+  const onTimeChange = (event: any, selectedTime?: Date) => {
+    setShowTimePicker(Platform.OS === 'ios');
+    if (selectedTime) {
+      setHora(selectedTime);
+    }
+  };
+
+  const formatDate = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const formatTime = (date: Date): string => {
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
+
+  const formatDisplayDate = (date: Date): string => {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
   const handlePublicar = async () => {
-    if (!titulo || !descripcion || !fecha || !hora || !localSeleccionado) {
+    if (!titulo || !descripcion || !localSeleccionado) {
       Alert.alert('Error', 'Por favor completa todos los campos obligatorios');
       return;
     }
@@ -244,16 +279,18 @@ export default function CrearEventoScreen() {
       }
 
       const precioFinal = esGratis ? 0 : (precio ? parseFloat(precio) : null);
+      const fechaFormateada = formatDate(fecha);
+      const horaFormateada = formatTime(hora);
 
       const { data, error } = await supabase
         .from('eventos')
         .insert({
           titulo,
           descripcion,
-          fecha,
-          hora,
+          fecha: fechaFormateada,
+          hora: horaFormateada,
           precio: precioFinal,
-          provincia,
+          provincia: localActual.provincia,
           imagen_url: imagenUrl,
           local_id: localSeleccionado,
           propietario_id: user.id,
@@ -290,6 +327,20 @@ export default function CrearEventoScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const getLocalAddress = (): string => {
+    const local = misLocales.find((l) => l.id === localSeleccionado);
+    if (!local) return '';
+    
+    let address = local.direccion || '';
+    if (local.ciudad) {
+      address += address ? `, ${local.ciudad}` : local.ciudad;
+    }
+    if (local.provincia) {
+      address += address ? `, ${local.provincia}` : local.provincia;
+    }
+    return address;
   };
 
   if (verificandoAcceso) {
@@ -374,7 +425,6 @@ export default function CrearEventoScreen() {
                     ]}
                     onPress={() => {
                       setLocalSeleccionado(local.id);
-                      setProvincia(local.provincia || '');
                     }}
                   >
                     <Text
@@ -397,6 +447,16 @@ export default function CrearEventoScreen() {
                   </TouchableOpacity>
                 ))}
               </View>
+            </View>
+          )}
+
+          {localSeleccionado && (
+            <View style={styles.addressContainer}>
+              <View style={styles.addressHeader}>
+                <IconSymbol name="location.fill" size={18} color={colors.primary} />
+                <Text style={styles.addressLabel}>Ubicación del evento</Text>
+              </View>
+              <Text style={styles.addressText}>{getLocalAddress()}</Text>
             </View>
           )}
 
@@ -427,24 +487,42 @@ export default function CrearEventoScreen() {
           <View style={styles.row}>
             <View style={[styles.inputContainer, { flex: 1 }]}>
               <Text style={styles.label}>Fecha *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor={colors.textSecondary}
-                value={fecha}
-                onChangeText={setFecha}
-              />
+              <TouchableOpacity
+                style={styles.dateTimeButton}
+                onPress={() => setShowDatePicker(true)}
+              >
+                <IconSymbol name="calendar" size={20} color={colors.primary} />
+                <Text style={styles.dateTimeText}>{formatDisplayDate(fecha)}</Text>
+              </TouchableOpacity>
+              {showDatePicker && (
+                <DateTimePicker
+                  value={fecha}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={onDateChange}
+                  minimumDate={new Date()}
+                />
+              )}
             </View>
 
             <View style={[styles.inputContainer, { flex: 1 }]}>
               <Text style={styles.label}>Hora *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="HH:MM"
-                placeholderTextColor={colors.textSecondary}
-                value={hora}
-                onChangeText={setHora}
-              />
+              <TouchableOpacity
+                style={styles.dateTimeButton}
+                onPress={() => setShowTimePicker(true)}
+              >
+                <IconSymbol name="clock.fill" size={20} color={colors.primary} />
+                <Text style={styles.dateTimeText}>{formatTime(hora)}</Text>
+              </TouchableOpacity>
+              {showTimePicker && (
+                <DateTimePicker
+                  value={hora}
+                  mode="time"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={onTimeChange}
+                  is24Hour={true}
+                />
+              )}
             </View>
           </View>
 
@@ -483,17 +561,6 @@ export default function CrearEventoScreen() {
               />
             </View>
           )}
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Provincia *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Madrid"
-              placeholderTextColor={colors.textSecondary}
-              value={provincia}
-              onChangeText={setProvincia}
-            />
-          </View>
 
           <TouchableOpacity
             style={styles.submitButton}
@@ -677,6 +744,46 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
     marginTop: 4,
+  },
+  dateTimeButton: {
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  dateTimeText: {
+    fontSize: 16,
+    color: colors.text,
+    flex: 1,
+  },
+  addressContainer: {
+    backgroundColor: '#F0F9FF',
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+  },
+  addressHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  addressLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0369A1',
+  },
+  addressText: {
+    fontSize: 14,
+    color: '#0C4A6E',
+    lineHeight: 20,
   },
   submitButton: {
     marginTop: 30,
