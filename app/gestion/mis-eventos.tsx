@@ -221,8 +221,7 @@ export default function MisEventosScreen() {
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
               <IconSymbol 
-                ios_icon_name="chevron.left" 
-                android_material_icon_name="chevron-back" 
+                name="chevron.left" 
                 size={24} 
                 color={colors.headerText} 
               />
@@ -256,8 +255,7 @@ export default function MisEventosScreen() {
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
               <IconSymbol 
-                ios_icon_name="chevron.left" 
-                android_material_icon_name="chevron-back" 
+                name="chevron.left" 
                 size={24} 
                 color={colors.headerText} 
               />
@@ -286,8 +284,7 @@ export default function MisEventosScreen() {
         <View style={styles.headerTop}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <IconSymbol 
-              ios_icon_name="chevron.left" 
-              android_material_icon_name="chevron-back" 
+              name="chevron.left" 
               size={24} 
               color={colors.headerText} 
             />
@@ -298,8 +295,7 @@ export default function MisEventosScreen() {
             onPress={() => router.push('/crear/evento')}
           >
             <IconSymbol 
-              ios_icon_name="plus" 
-              android_material_icon_name="add" 
+              name="plus" 
               size={24} 
               color={colors.headerText} 
             />
@@ -316,8 +312,7 @@ export default function MisEventosScreen() {
         {eventos.length === 0 ? (
           <View style={styles.emptyState}>
             <IconSymbol 
-              ios_icon_name="calendar" 
-              android_material_icon_name="calendar-outline" 
+              name="calendar" 
               size={64} 
               color={colors.textSecondary} 
             />
@@ -334,8 +329,7 @@ export default function MisEventosScreen() {
                 style={styles.createButtonGradient}
               >
                 <IconSymbol 
-                  ios_icon_name="plus" 
-                  android_material_icon_name="add" 
+                  name="plus" 
                   size={20} 
                   color={colors.white} 
                 />
@@ -378,8 +372,7 @@ export default function MisEventosScreen() {
                   <View style={styles.eventoDetalles}>
                     <View style={styles.detalleItem}>
                       <IconSymbol 
-                        ios_icon_name="calendar" 
-                        android_material_icon_name="calendar-outline" 
+                        name="calendar" 
                         size={16} 
                         color={colors.primary} 
                       />
@@ -387,8 +380,7 @@ export default function MisEventosScreen() {
                     </View>
                     <View style={styles.detalleItem}>
                       <IconSymbol 
-                        ios_icon_name="clock" 
-                        android_material_icon_name="time-outline" 
+                        name="clock" 
                         size={16} 
                         color={colors.primary} 
                       />
@@ -397,8 +389,7 @@ export default function MisEventosScreen() {
                     {evento.precio !== null && evento.precio !== undefined && (
                       <View style={styles.detalleItem}>
                         <IconSymbol 
-                          ios_icon_name="eurosign.circle" 
-                          android_material_icon_name="cash-outline" 
+                          name="eurosign.circle" 
                           size={16} 
                           color={colors.primary} 
                         />
@@ -427,8 +418,7 @@ export default function MisEventosScreen() {
                       onPress={() => handleEditEvento(evento.id)}
                     >
                       <IconSymbol 
-                        ios_icon_name="pencil" 
-                        android_material_icon_name="pencil" 
+                        name="pencil" 
                         size={18} 
                         color={colors.primary} 
                       />
@@ -440,8 +430,7 @@ export default function MisEventosScreen() {
                       onPress={() => confirmDeleteEvento(evento)}
                     >
                       <IconSymbol 
-                        ios_icon_name="trash" 
-                        android_material_icon_name="trash-outline" 
+                        name="trash" 
                         size={18} 
                         color="#EF4444" 
                       />
@@ -471,8 +460,7 @@ export default function MisEventosScreen() {
           <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
               <IconSymbol 
-                ios_icon_name="exclamationmark.triangle.fill" 
-                android_material_icon_name="warning" 
+                name="exclamationmark.triangle.fill" 
                 size={48} 
                 color="#EF4444" 
               />
