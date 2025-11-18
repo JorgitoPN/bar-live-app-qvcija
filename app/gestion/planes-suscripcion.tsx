@@ -37,7 +37,15 @@ interface Plan {
 interface Local {
   id: string;
   nombre: string;
-  suscripcion_actual?: string;
+  suscripcion_actual?: {
+    id: string;
+    plan_id: string;
+    plan_nombre: string;
+    plan_precio: number;
+    creditos_destacados_restantes: number;
+    creditos_eventos_restantes: number;
+    fecha_proximo_pago?: string;
+  };
 }
 
 export default function PlanesSuscripcionScreen() {
@@ -49,7 +57,6 @@ export default function PlanesSuscripcionScreen() {
   const [procesando, setProcesando] = useState(false);
   const [planes, setPlanes] = useState<Plan[]>([]);
   const [local, setLocal] = useState<Local | null>(null);
-  const [planActual, setPlanActual] = useState<string | null>(null);
 
   const cargarDatos = useCallback(async () => {
     if (!localId) {
@@ -90,12 +97,21 @@ export default function PlanesSuscripcionScreen() {
       }
       
       console.log('[PlanesSuscripcion] Local cargado:', localData?.nombre);
-      setLocal(localData);
 
       // Verificar si el local tiene una suscripción activa
       const { data: suscripcionData, error: suscripcionError } = await supabase
         .from('suscripciones_locales')
-        .select('plan_id, planes_suscripcion(nombre)')
+        .select(`
+          id,
+          plan_id,
+          creditos_destacados_restantes,
+          creditos_eventos_restantes,
+          fecha_proximo_pago,
+          planes_suscripcion (
+            nombre,
+            precio_mensual
+          )
+        `)
         .eq('local_id', localId)
         .eq('estado', 'activa')
         .maybeSingle();
@@ -104,12 +120,20 @@ export default function PlanesSuscripcionScreen() {
         console.error('[PlanesSuscripcion] Error cargando suscripción:', suscripcionError);
       }
 
-      if (suscripcionData) {
-        console.log('[PlanesSuscripcion] Suscripción activa encontrada:', suscripcionData.plan_id);
-        setPlanActual(suscripcionData.plan_id);
-      } else {
-        console.log('[PlanesSuscripcion] No hay suscripción activa');
-      }
+      setLocal({
+        ...localData,
+        suscripcion_actual: suscripcionData
+          ? {
+              id: suscripcionData.id,
+              plan_id: suscripcionData.plan_id,
+              plan_nombre: (suscripcionData.planes_suscripcion as any)?.nombre || 'basico',
+              plan_precio: (suscripcionData.planes_suscripcion as any)?.precio_mensual || 0,
+              creditos_destacados_restantes: suscripcionData.creditos_destacados_restantes || 0,
+              creditos_eventos_restantes: suscripcionData.creditos_eventos_restantes || 0,
+              fecha_proximo_pago: suscripcionData.fecha_proximo_pago,
+            }
+          : undefined,
+      });
 
       console.log('[PlanesSuscripcion] Datos cargados exitosamente');
     } catch (error: any) {
@@ -129,27 +153,79 @@ export default function PlanesSuscripcionScreen() {
   }, [cargarDatos]);
 
   const activarPlan = (plan: Plan) => {
-    if (plan.precio_mensual === 0) {
-      // Plan básico gratuito
-      procesarActivacion(plan);
-    } else {
-      // Plan de pago - mostrar confirmación
+    if (!local?.suscripcion_actual) {
+      // No current plan - activate directly
+      if (plan.precio_mensual === 0) {
+        procesarActivacion(plan, 'new');
+      } else {
+        Alert.alert(
+          'Confirmar Suscripción',
+          `¿Deseas activar el plan ${plan.nombre} por ${plan.precio_mensual}€/mes?`,
+          [
+            { text: 'Cancelar', style: 'cancel' },
+            { text: 'Activar', onPress: () => procesarActivacion(plan, 'new') }
+          ]
+        );
+      }
+      return;
+    }
+
+    // Has current plan - check if upgrade or downgrade
+    const currentPrice = local.suscripcion_actual.plan_precio;
+    const newPrice = plan.precio_mensual;
+
+    if (newPrice > currentPrice) {
+      // UPGRADE - Immediate activation
       Alert.alert(
-        'Confirmar Suscripción',
-        `¿Deseas activar el plan ${plan.nombre} por ${plan.precio_mensual}€/mes?`,
+        'Mejorar Plan',
+        `¿Deseas mejorar a ${plan.nombre} por ${newPrice}€/mes?\n\n` +
+          `• El nuevo plan se activará inmediatamente\n` +
+          `• Se cobrará ${newPrice}€ ahora\n` +
+          `• Tus créditos se reiniciarán`,
         [
           { text: 'Cancelar', style: 'cancel' },
-          { 
-            text: 'Activar', 
-            onPress: () => procesarActivacion(plan)
-          }
+          { text: 'Mejorar Ahora', onPress: () => procesarActivacion(plan, 'upgrade') }
         ]
       );
+    } else if (newPrice < currentPrice) {
+      // DOWNGRADE - Check if has credits
+      const hasCredits =
+        local.suscripcion_actual.creditos_destacados_restantes > 0 ||
+        local.suscripcion_actual.creditos_eventos_restantes > 0;
+
+      if (hasCredits) {
+        // Has credits - schedule for end of period
+        Alert.alert(
+          'Cambiar a Plan Inferior',
+          `¿Deseas cambiar a ${plan.nombre}?\n\n` +
+            `• El cambio se aplicará el ${new Date(local.suscripcion_actual.fecha_proximo_pago || '').toLocaleDateString('es-ES')}\n` +
+            `• Podrás usar tus créditos actuales hasta entonces\n` +
+            `• No se realizará ningún cobro hasta que se active el nuevo plan`,
+          [
+            { text: 'Cancelar', style: 'cancel' },
+            { text: 'Programar Cambio', onPress: () => procesarActivacion(plan, 'downgrade_scheduled') }
+          ]
+        );
+      } else {
+        // No credits - activate immediately
+        Alert.alert(
+          'Cambiar a Plan Inferior',
+          `¿Deseas cambiar a ${plan.nombre}?\n\n` +
+            `• No tienes créditos pendientes, el cambio será inmediato\n` +
+            `• El nuevo plan costará ${newPrice}€/mes`,
+          [
+            { text: 'Cancelar', style: 'cancel' },
+            { text: 'Cambiar Ahora', onPress: () => procesarActivacion(plan, 'downgrade_immediate') }
+          ]
+        );
+      }
+    } else {
+      Alert.alert('Información', 'Ya tienes este plan activo.');
     }
   };
 
-  const procesarActivacion = async (plan: Plan) => {
-    if (!user || !localId) {
+  const procesarActivacion = async (plan: Plan, tipo: 'new' | 'upgrade' | 'downgrade_scheduled' | 'downgrade_immediate') => {
+    if (!user || !localId || !local) {
       Alert.alert('Error', 'Debes iniciar sesión para activar un plan');
       return;
     }
@@ -157,43 +233,14 @@ export default function PlanesSuscripcionScreen() {
     setProcesando(true);
 
     try {
-      console.log('[PlanesSuscripcion] Activando plan:', plan.nombre);
+      console.log('[PlanesSuscripcion] Activando plan:', plan.nombre, 'tipo:', tipo);
 
-      // Check if there's an existing subscription
-      const { data: existingSub, error: checkError } = await supabase
-        .from('suscripciones_locales')
-        .select('id')
-        .eq('local_id', localId)
-        .maybeSingle();
+      const now = new Date();
+      const nextMonth = new Date(now);
+      nextMonth.setMonth(nextMonth.getMonth() + 1);
 
-      if (checkError && checkError.code !== 'PGRST116') {
-        console.error('[PlanesSuscripcion] Error checking subscription:', checkError);
-        throw checkError;
-      }
-
-      if (existingSub) {
-        // Update existing subscription
-        const { error: updateError } = await supabase
-          .from('suscripciones_locales')
-          .update({
-            plan_id: plan.id,
-            estado: 'activa',
-            fecha_inicio: new Date().toISOString(),
-            eventos_usados_mes: 0,
-            promos_usadas_mes: 0,
-            ultimo_reset_contador: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', existingSub.id);
-
-        if (updateError) {
-          console.error('[PlanesSuscripcion] Error updating subscription:', updateError);
-          throw updateError;
-        }
-        
-        console.log('[PlanesSuscripcion] Suscripción actualizada');
-      } else {
-        // Create new subscription
+      if (tipo === 'new') {
+        // New subscription
         const { error: insertError } = await supabase
           .from('suscripciones_locales')
           .insert({
@@ -201,27 +248,96 @@ export default function PlanesSuscripcionScreen() {
             propietario_id: user.id,
             plan_id: plan.id,
             estado: 'activa',
-            fecha_inicio: new Date().toISOString(),
+            fecha_inicio: now.toISOString(),
+            fecha_proximo_pago: nextMonth.toISOString(),
+            fecha_renovacion_creditos: nextMonth.toISOString(),
             eventos_usados_mes: 0,
             promos_usadas_mes: 0,
-            ultimo_reset_contador: new Date().toISOString(),
+            creditos_destacados_restantes: plan.promos_destacadas,
+            creditos_eventos_restantes: plan.eventos_mes,
+            ultimo_reset_contador: now.toISOString(),
           });
 
-        if (insertError) {
-          console.error('[PlanesSuscripcion] Error creating subscription:', insertError);
-          throw insertError;
-        }
-        
-        console.log('[PlanesSuscripcion] Suscripción creada');
-      }
+        if (insertError) throw insertError;
 
-      Alert.alert(
-        '¡Éxito!',
-        `Plan ${plan.nombre} activado correctamente. Ahora puedes crear eventos y promociones para tu local.`,
-        [
-          { text: 'OK', onPress: () => router.back() }
-        ]
-      );
+        Alert.alert(
+          '¡Éxito!',
+          `Plan ${plan.nombre} activado correctamente.`,
+          [{ text: 'OK', onPress: () => router.back() }]
+        );
+      } else if (tipo === 'upgrade') {
+        // Upgrade - immediate activation with credit reset
+        const { error: updateError } = await supabase
+          .from('suscripciones_locales')
+          .update({
+            plan_id: plan.id,
+            fecha_inicio: now.toISOString(),
+            fecha_proximo_pago: nextMonth.toISOString(),
+            fecha_renovacion_creditos: nextMonth.toISOString(),
+            eventos_usados_mes: 0,
+            promos_usadas_mes: 0,
+            creditos_destacados_restantes: plan.promos_destacadas,
+            creditos_eventos_restantes: plan.eventos_mes,
+            ultimo_reset_contador: now.toISOString(),
+            plan_pendiente_id: null,
+            fecha_cambio_plan: null,
+            updated_at: now.toISOString(),
+          })
+          .eq('id', local.suscripcion_actual!.id);
+
+        if (updateError) throw updateError;
+
+        Alert.alert(
+          '¡Plan Mejorado!',
+          `Tu plan ${plan.nombre} está activo. Disfruta de todos los beneficios.`,
+          [{ text: 'OK', onPress: () => router.back() }]
+        );
+      } else if (tipo === 'downgrade_scheduled') {
+        // Downgrade scheduled for end of period
+        const { error: updateError } = await supabase
+          .from('suscripciones_locales')
+          .update({
+            plan_pendiente_id: plan.id,
+            fecha_cambio_plan: local.suscripcion_actual!.fecha_proximo_pago,
+            updated_at: now.toISOString(),
+          })
+          .eq('id', local.suscripcion_actual!.id);
+
+        if (updateError) throw updateError;
+
+        Alert.alert(
+          'Cambio Programado',
+          `El plan ${plan.nombre} se activará el ${new Date(local.suscripcion_actual!.fecha_proximo_pago || '').toLocaleDateString('es-ES')}. Hasta entonces, podrás usar tu plan actual.`,
+          [{ text: 'OK', onPress: () => router.back() }]
+        );
+      } else if (tipo === 'downgrade_immediate') {
+        // Downgrade immediate (no credits remaining)
+        const { error: updateError } = await supabase
+          .from('suscripciones_locales')
+          .update({
+            plan_id: plan.id,
+            fecha_inicio: now.toISOString(),
+            fecha_proximo_pago: nextMonth.toISOString(),
+            fecha_renovacion_creditos: nextMonth.toISOString(),
+            eventos_usados_mes: 0,
+            promos_usadas_mes: 0,
+            creditos_destacados_restantes: plan.promos_destacadas,
+            creditos_eventos_restantes: plan.eventos_mes,
+            ultimo_reset_contador: now.toISOString(),
+            plan_pendiente_id: null,
+            fecha_cambio_plan: null,
+            updated_at: now.toISOString(),
+          })
+          .eq('id', local.suscripcion_actual!.id);
+
+        if (updateError) throw updateError;
+
+        Alert.alert(
+          'Plan Cambiado',
+          `Tu plan ${plan.nombre} está activo.`,
+          [{ text: 'OK', onPress: () => router.back() }]
+        );
+      }
     } catch (error: any) {
       console.error('[PlanesSuscripcion] Error activando plan:', error);
       Alert.alert('Error', error.message || 'No se pudo activar el plan. Intenta de nuevo.');
@@ -234,12 +350,12 @@ export default function PlanesSuscripcionScreen() {
     switch (nombre.toLowerCase()) {
       case 'basico':
       case 'básico':
-        return ['#10B981', '#059669']; // Green
+        return ['#10B981', '#059669'];
       case 'estandar':
       case 'estándar':
-        return ['#3B82F6', '#2563EB']; // Blue
+        return ['#3B82F6', '#2563EB'];
       case 'premium':
-        return ['#F59E0B', '#D97706']; // Amber
+        return ['#F59E0B', '#D97706'];
       default:
         return [colors.primary, colors.secondary];
     }
@@ -291,6 +407,8 @@ export default function PlanesSuscripcionScreen() {
     );
   }
 
+  const planActual = local.suscripcion_actual?.plan_id;
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -322,25 +440,19 @@ export default function PlanesSuscripcionScreen() {
           </Text>
         </View>
 
-        {/* Benefits Banner */}
-        <View style={styles.benefitsBanner}>
-          <View style={styles.benefitItem}>
-            <IconSymbol name="checkmark.circle.fill" size={20} color={colors.primary} />
-            <Text style={styles.benefitText}>Sin permanencia</Text>
+        {/* Current Plan Info */}
+        {local.suscripcion_actual && (
+          <View style={styles.currentPlanBanner}>
+            <IconSymbol name="info.circle.fill" size={20} color={colors.primary} />
+            <Text style={styles.currentPlanText}>
+              Plan actual: <Text style={styles.currentPlanName}>{local.suscripcion_actual.plan_nombre.toUpperCase()}</Text>
+            </Text>
           </View>
-          <View style={styles.benefitItem}>
-            <IconSymbol name="checkmark.circle.fill" size={20} color={colors.primary} />
-            <Text style={styles.benefitText}>Cancela cuando quieras</Text>
-          </View>
-          <View style={styles.benefitItem}>
-            <IconSymbol name="checkmark.circle.fill" size={20} color={colors.primary} />
-            <Text style={styles.benefitText}>Soporte prioritario</Text>
-          </View>
-        </View>
+        )}
 
         {/* Plans */}
         <View style={styles.plansContainer}>
-          {planes.map((plan, index) => {
+          {planes.map((plan) => {
             const isActive = planActual === plan.id;
             const isPremium = plan.nombre.toLowerCase() === 'premium';
             const planColors = getPlanColor(plan.nombre);
@@ -477,63 +589,31 @@ export default function PlanesSuscripcionScreen() {
           })}
         </View>
 
-        {/* Testimonials */}
-        <View style={styles.testimonialsSection}>
-          <Text style={styles.sectionTitle}>Lo Que Dicen Nuestros Clientes</Text>
+        {/* Plan Change Rules */}
+        <View style={styles.infoSection}>
+          <Text style={styles.infoTitle}>Reglas de Cambio de Plan</Text>
           
-          <View style={styles.testimonialCard}>
-            <View style={styles.testimonialHeader}>
-              <View style={styles.testimonialAvatar}>
-                <Text style={styles.testimonialAvatarText}>JM</Text>
-              </View>
-              <View>
-                <Text style={styles.testimonialName}>José María</Text>
-                <Text style={styles.testimonialRole}>Propietario</Text>
-              </View>
+          <View style={styles.infoCard}>
+            <View style={styles.infoHeader}>
+              <IconSymbol name="arrow.up.circle.fill" size={24} color="#10B981" />
+              <Text style={styles.infoCardTitle}>Mejora de Plan</Text>
             </View>
-            <Text style={styles.testimonialText}>
-              "Desde que activé el plan Premium, mis reservas han crecido notablemente. ¡Totalmente recomendable!"
+            <Text style={styles.infoText}>
+              - El nuevo plan se activa inmediatamente{'\n'}
+              - Se cobra en ese momento{'\n'}
+              - Los créditos se reinician para acceso completo
             </Text>
           </View>
 
-          <View style={styles.testimonialCard}>
-            <View style={styles.testimonialHeader}>
-              <View style={styles.testimonialAvatar}>
-                <Text style={styles.testimonialAvatarText}>AL</Text>
-              </View>
-              <View>
-                <Text style={styles.testimonialName}>Ana López</Text>
-                <Text style={styles.testimonialRole}>Propietaria</Text>
-              </View>
+          <View style={styles.infoCard}>
+            <View style={styles.infoHeader}>
+              <IconSymbol name="arrow.down.circle.fill" size={24} color="#F59E0B" />
+              <Text style={styles.infoCardTitle}>Cambio a Plan Inferior</Text>
             </View>
-            <Text style={styles.testimonialText}>
-              "El panel de análisis me ayuda a entender mejor qué promociones funcionan. Muy útil."
-            </Text>
-          </View>
-        </View>
-
-        {/* FAQ */}
-        <View style={styles.faqSection}>
-          <Text style={styles.sectionTitle}>Preguntas Frecuentes</Text>
-          
-          <View style={styles.faqItem}>
-            <Text style={styles.faqQuestion}>¿Puedo cambiar de plan en cualquier momento?</Text>
-            <Text style={styles.faqAnswer}>
-              Sí, puedes cambiar de plan cuando quieras. Los cambios se aplicarán inmediatamente.
-            </Text>
-          </View>
-
-          <View style={styles.faqItem}>
-            <Text style={styles.faqQuestion}>¿Hay permanencia?</Text>
-            <Text style={styles.faqAnswer}>
-              No, no hay permanencia. Puedes cancelar tu suscripción en cualquier momento.
-            </Text>
-          </View>
-
-          <View style={styles.faqItem}>
-            <Text style={styles.faqQuestion}>¿Qué pasa si cancelo mi suscripción?</Text>
-            <Text style={styles.faqAnswer}>
-              Tu plan seguirá activo hasta el final del período de facturación actual. Después, volverás al plan básico gratuito.
+            <Text style={styles.infoText}>
+              - Se activa al finalizar el periodo actual{'\n'}
+              - Excepción: si no quedan créditos, se activa inmediatamente{'\n'}
+              - No se cobra hasta que el plan nuevo se active
             </Text>
           </View>
         </View>
@@ -587,7 +667,7 @@ const styles = StyleSheet.create({
   },
   heroSection: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
   },
   heroTitle: {
     fontSize: 28,
@@ -603,26 +683,28 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 24,
   },
-  benefitsBanner: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 16,
-    marginBottom: 32,
-  },
-  benefitItem: {
+  currentPlanBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 12,
+    backgroundColor: colors.primary + '15',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
   },
-  benefitText: {
-    fontSize: 14,
+  currentPlanText: {
+    fontSize: 15,
     color: colors.text,
-    fontWeight: '600',
+  },
+  currentPlanName: {
+    fontWeight: 'bold',
+    color: colors.primary,
   },
   plansContainer: {
     gap: 20,
-    marginBottom: 40,
+    marginBottom: 32,
   },
   planCard: {
     backgroundColor: colors.cardBackground,
@@ -733,78 +815,37 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.white,
   },
-  testimonialsSection: {
-    marginBottom: 40,
+  infoSection: {
+    marginBottom: 20,
   },
-  sectionTitle: {
-    fontSize: 22,
+  infoTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
-    marginBottom: 20,
-    textAlign: 'center',
+    marginBottom: 16,
   },
-  testimonialCard: {
+  infoCard: {
     backgroundColor: colors.cardBackground,
     borderRadius: 12,
-    padding: 20,
-    marginBottom: 16,
+    padding: 16,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
-  testimonialHeader: {
+  infoHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     marginBottom: 12,
   },
-  testimonialAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  testimonialAvatarText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.white,
-  },
-  testimonialName: {
+  infoCardTitle: {
     fontSize: 16,
     fontWeight: 'bold',
     color: colors.text,
   },
-  testimonialRole: {
+  infoText: {
     fontSize: 14,
     color: colors.textSecondary,
-  },
-  testimonialText: {
-    fontSize: 15,
-    color: colors.text,
     lineHeight: 22,
-    fontStyle: 'italic',
-  },
-  faqSection: {
-    marginBottom: 20,
-  },
-  faqItem: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  faqQuestion: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  faqAnswer: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    lineHeight: 20,
   },
 });

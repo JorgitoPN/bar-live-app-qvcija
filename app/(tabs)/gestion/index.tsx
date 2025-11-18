@@ -9,7 +9,6 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
-  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -18,6 +17,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/utils/supabase';
 import { useSelectedLocal } from '@/contexts/SelectedLocalContext';
+import LocalSubscriptionCard from '@/components/gestion/LocalSubscriptionCard';
 
 interface LocalConSuscripcion {
   id: string;
@@ -27,12 +27,28 @@ interface LocalConSuscripcion {
   destacado: boolean;
   suscripcion?: {
     id: string;
+    plan_id: string;
     plan_nombre: string;
+    plan_precio: number;
     estado: string;
     eventos_usados_mes: number;
     eventos_disponibles: number;
+    creditos_destacados_restantes: number;
+    creditos_eventos_restantes: number;
+    fecha_renovacion_creditos?: string;
     fecha_proximo_pago?: string;
-    destacados_restantes: number;
+    destacado_activo: boolean;
+    destacado_fecha_fin?: string;
+    plan_pendiente_id?: string;
+    plan_pendiente_nombre?: string;
+    fecha_cambio_plan?: string;
+    cancelar_al_final_periodo: boolean;
+  };
+  evento_activo?: {
+    id: string;
+    titulo: string;
+    fecha: string;
+    hora: string;
   };
 }
 
@@ -43,7 +59,6 @@ export default function GestionScreen() {
   const [locales, setLocales] = useState<LocalConSuscripcion[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [updatingDestacado, setUpdatingDestacado] = useState<string | null>(null);
 
   const cargarLocales = useCallback(async () => {
     if (!user) {
@@ -76,24 +91,49 @@ export default function GestionScreen() {
 
       console.log('[GestionScreen] Found', localesData.length, 'locales');
 
-      // Get subscriptions for each local
+      // Get subscriptions and active events for each local
       const localesConSuscripcion: LocalConSuscripcion[] = await Promise.all(
         localesData.map(async (local) => {
+          // Get subscription
           const { data: suscripcion } = await supabase
             .from('suscripciones_locales')
             .select(`
               id,
+              plan_id,
               estado,
               eventos_usados_mes,
               fecha_proximo_pago,
-              planes_suscripcion (
+              creditos_destacados_restantes,
+              creditos_eventos_restantes,
+              fecha_renovacion_creditos,
+              destacado_activo,
+              destacado_fecha_fin,
+              plan_pendiente_id,
+              fecha_cambio_plan,
+              cancelar_al_final_periodo,
+              planes_suscripcion!plan_id (
                 nombre,
-                eventos_mes,
-                promos_destacadas
+                precio_mensual,
+                eventos_mes
+              ),
+              plan_pendiente:planes_suscripcion!plan_pendiente_id (
+                nombre
               )
             `)
             .eq('local_id', local.id)
             .eq('estado', 'activa')
+            .single();
+
+          // Get active event (next upcoming event)
+          const { data: eventoActivo } = await supabase
+            .from('eventos')
+            .select('id, titulo, fecha, hora')
+            .eq('local_id', local.id)
+            .eq('activo', true)
+            .gte('fecha', new Date().toISOString().split('T')[0])
+            .order('fecha', { ascending: true })
+            .order('hora', { ascending: true })
+            .limit(1)
             .single();
 
           return {
@@ -101,14 +141,25 @@ export default function GestionScreen() {
             suscripcion: suscripcion
               ? {
                   id: suscripcion.id,
+                  plan_id: suscripcion.plan_id,
                   plan_nombre: (suscripcion.planes_suscripcion as any)?.nombre || 'basico',
+                  plan_precio: (suscripcion.planes_suscripcion as any)?.precio_mensual || 0,
                   estado: suscripcion.estado,
                   eventos_usados_mes: suscripcion.eventos_usados_mes,
                   eventos_disponibles: (suscripcion.planes_suscripcion as any)?.eventos_mes || 0,
+                  creditos_destacados_restantes: suscripcion.creditos_destacados_restantes || 0,
+                  creditos_eventos_restantes: suscripcion.creditos_eventos_restantes || 0,
+                  fecha_renovacion_creditos: suscripcion.fecha_renovacion_creditos,
                   fecha_proximo_pago: suscripcion.fecha_proximo_pago,
-                  destacados_restantes: (suscripcion.planes_suscripcion as any)?.promos_destacadas || 0,
+                  destacado_activo: suscripcion.destacado_activo || false,
+                  destacado_fecha_fin: suscripcion.destacado_fecha_fin,
+                  plan_pendiente_id: suscripcion.plan_pendiente_id,
+                  plan_pendiente_nombre: (suscripcion.plan_pendiente as any)?.nombre,
+                  fecha_cambio_plan: suscripcion.fecha_cambio_plan,
+                  cancelar_al_final_periodo: suscripcion.cancelar_al_final_periodo || false,
                 }
               : undefined,
+            evento_activo: eventoActivo || undefined,
           };
         })
       );
@@ -136,89 +187,10 @@ export default function GestionScreen() {
     cargarLocales();
   };
 
-  const handleVerLocal = (localId: string) => {
-    router.push(`/detalle/local?id=${localId}`);
-  };
-
   const handleSelectLocal = async (localId: string) => {
     await setSelectedLocalId(localId);
     await refreshLocales();
     Alert.alert('Local Seleccionado', 'Ahora estás interactuando con este local');
-  };
-
-  const handleToggleDestacado = async (local: LocalConSuscripcion) => {
-    if (updatingDestacado) return;
-
-    // Check if the local can be featured
-    if (!local.destacado && (!local.suscripcion || local.suscripcion.destacados_restantes <= 0)) {
-      Alert.alert(
-        'Sin Destacados Disponibles',
-        `El plan ${local.suscripcion?.plan_nombre.toUpperCase() || 'BÁSICO'} no incluye destacados. Actualiza a un plan superior para destacar tu local.`,
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Ver Planes',
-            onPress: () => router.push(`/gestion/planes-suscripcion?localId=${local.id}`),
-          },
-        ]
-      );
-      return;
-    }
-
-    try {
-      setUpdatingDestacado(local.id);
-
-      const newDestacadoValue = !local.destacado;
-
-      const { error } = await supabase
-        .from('locales')
-        .update({ destacado: newDestacadoValue })
-        .eq('id', local.id);
-
-      if (error) {
-        console.error('[GestionScreen] Error updating destacado:', error);
-        Alert.alert('Error', 'No se pudo actualizar el estado destacado del local.');
-        return;
-      }
-
-      // Reload locales to reflect changes
-      await cargarLocales();
-      await refreshLocales();
-
-      Alert.alert(
-        'Éxito',
-        newDestacadoValue
-          ? 'Local destacado activado correctamente.'
-          : 'Local destacado desactivado correctamente.'
-      );
-    } catch (error) {
-      console.error('[GestionScreen] Error:', error);
-      Alert.alert('Error', 'Ocurrió un error al actualizar el local.');
-    } finally {
-      setUpdatingDestacado(null);
-    }
-  };
-
-  const getPlanColor = (planNombre: string) => {
-    switch (planNombre) {
-      case 'premium':
-        return '#EF4444';
-      case 'estandar':
-        return '#3B82F6';
-      default:
-        return '#10B981';
-    }
-  };
-
-  const getPlanIcon = (planNombre: string) => {
-    switch (planNombre) {
-      case 'premium':
-        return 'star.fill';
-      case 'estandar':
-        return 'bolt.fill';
-      default:
-        return 'checkmark.circle.fill';
-    }
   };
 
   if (loading) {
@@ -259,52 +231,9 @@ export default function GestionScreen() {
         <View style={styles.headerSection}>
           <Text style={styles.sectionTitle}>Mis Locales</Text>
           <Text style={styles.sectionSubtitle}>
-            Gestiona tus locales y sus planes de suscripción
+            Gestiona tus locales, planes y promociones
           </Text>
         </View>
-
-        {/* Local Selector - Only show if user has multiple locals */}
-        {locales.length > 1 && (
-          <View style={styles.selectorContainer}>
-            <Text style={styles.selectorTitle}>Local Activo</Text>
-            <Text style={styles.selectorDescription}>
-              Selecciona el local con el que deseas interactuar
-            </Text>
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false} 
-              style={styles.selectorScroll}
-              contentContainerStyle={styles.selectorScrollContent}
-            >
-              {locales.map((local) => (
-                <TouchableOpacity
-                  key={local.id}
-                  style={[
-                    styles.selectorCard,
-                    selectedLocalId === local.id && styles.selectorCardActive,
-                  ]}
-                  onPress={() => handleSelectLocal(local.id)}
-                >
-                  {local.imagen_url ? (
-                    <Image source={{ uri: local.imagen_url }} style={styles.selectorImage} />
-                  ) : (
-                    <View style={[styles.selectorImage, styles.selectorImagePlaceholder]}>
-                      <IconSymbol name="building.2" size={32} color={colors.textSecondary} />
-                    </View>
-                  )}
-                  <Text style={styles.selectorName} numberOfLines={1}>
-                    {local.nombre}
-                  </Text>
-                  {selectedLocalId === local.id && (
-                    <View style={styles.selectorBadge}>
-                      <IconSymbol name="checkmark.circle.fill" size={20} color={colors.primary} />
-                    </View>
-                  )}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        )}
 
         {/* Quick Actions */}
         <View style={styles.quickActions}>
@@ -381,169 +310,13 @@ export default function GestionScreen() {
         ) : (
           <View style={styles.localesList}>
             {locales.map((local) => (
-              <View
+              <LocalSubscriptionCard
                 key={local.id}
-                style={[commonStyles.card, commonStyles.cardShadow, styles.localCard]}
-              >
-                {/* Cover Photo */}
-                <TouchableOpacity onPress={() => handleVerLocal(local.id)}>
-                  {local.imagen_url ? (
-                    <Image source={{ uri: local.imagen_url }} style={styles.localCoverImage} />
-                  ) : (
-                    <View style={[styles.localCoverImage, styles.localCoverImagePlaceholder]}>
-                      <IconSymbol name="building.2" size={48} color={colors.textSecondary} />
-                      <Text style={styles.localCoverImagePlaceholderText}>Sin imagen</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-
-                <View style={styles.localContent}>
-                  {/* Header */}
-                  <View style={styles.localHeader}>
-                    <View style={styles.localInfo}>
-                      <Text style={styles.localNombre}>{local.nombre}</Text>
-                      <Text style={styles.localProvincia}>{local.provincia}</Text>
-                    </View>
-                    {local.suscripcion ? (
-                      <View
-                        style={[
-                          styles.planBadge,
-                          { backgroundColor: getPlanColor(local.suscripcion.plan_nombre) },
-                        ]}
-                      >
-                        <IconSymbol
-                          name={getPlanIcon(local.suscripcion.plan_nombre) as any}
-                          size={14}
-                          color="#FFFFFF"
-                        />
-                        <Text style={styles.planBadgeText}>
-                          {local.suscripcion.plan_nombre.toUpperCase()}
-                        </Text>
-                      </View>
-                    ) : (
-                      <View style={[styles.planBadge, { backgroundColor: '#6B7280' }]}>
-                        <IconSymbol name="exclamationmark.triangle" size={14} color="#FFFFFF" />
-                        <Text style={styles.planBadgeText}>SIN PLAN</Text>
-                      </View>
-                    )}
-                  </View>
-
-                  {/* Featured Management Section */}
-                  <View style={styles.destacadoSection}>
-                    <View style={styles.destacadoInfo}>
-                      <View style={styles.destacadoHeader}>
-                        <IconSymbol name="star.fill" size={18} color={colors.badgeDestacado} />
-                        <Text style={styles.destacadoTitle}>Local Destacado</Text>
-                      </View>
-                      <Text style={styles.destacadoSubtitle}>
-                        {local.suscripcion && local.suscripcion.destacados_restantes > 0
-                          ? `${local.suscripcion.destacados_restantes} destacados disponibles`
-                          : 'Sin destacados disponibles'}
-                      </Text>
-                    </View>
-                    <TouchableOpacity
-                      style={[
-                        styles.destacadoButton,
-                        local.destacado && styles.destacadoButtonActive,
-                        updatingDestacado === local.id && styles.destacadoButtonDisabled,
-                      ]}
-                      onPress={() => handleToggleDestacado(local)}
-                      disabled={updatingDestacado === local.id}
-                    >
-                      {updatingDestacado === local.id ? (
-                        <ActivityIndicator size="small" color={colors.headerText} />
-                      ) : (
-                        <>
-                          <IconSymbol
-                            name={local.destacado ? 'star.fill' : 'star'}
-                            size={20}
-                            color={local.destacado ? '#FFFFFF' : colors.textSecondary}
-                          />
-                          <Text style={[
-                            styles.destacadoButtonText,
-                            local.destacado && styles.destacadoButtonTextActive
-                          ]}>
-                            {local.destacado ? 'Activo' : 'Activar'}
-                          </Text>
-                        </>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* Subscription Info */}
-                  {local.suscripcion ? (
-                    <View style={styles.suscripcionInfo}>
-                      <View style={styles.suscripcionStat}>
-                        <Text style={styles.suscripcionStatLabel}>Eventos este mes</Text>
-                        <Text style={styles.suscripcionStatValue}>
-                          {local.suscripcion.eventos_usados_mes} /{' '}
-                          {local.suscripcion.eventos_disponibles === 0
-                            ? '∞'
-                            : local.suscripcion.eventos_disponibles}
-                        </Text>
-                      </View>
-                      {local.suscripcion.plan_nombre !== 'basico' && (
-                        <View style={styles.suscripcionStat}>
-                          <Text style={styles.suscripcionStatLabel}>Próximo pago</Text>
-                          <Text style={styles.suscripcionStatValue}>
-                            {local.suscripcion.fecha_proximo_pago
-                              ? new Date(local.suscripcion.fecha_proximo_pago).toLocaleDateString(
-                                  'es-ES'
-                                )
-                              : 'N/A'}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                  ) : (
-                    <View style={styles.noPlanContainer}>
-                      <Text style={styles.noPlanText}>
-                        Activa un plan para crear eventos y promociones
-                      </Text>
-                      <TouchableOpacity
-                        style={styles.activarPlanButton}
-                        onPress={() =>
-                          router.push(`/gestion/planes-suscripcion?localId=${local.id}`)
-                        }
-                      >
-                        <Text style={styles.activarPlanButtonText}>Activar Plan</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-
-                  {/* Actions */}
-                  <View style={styles.localActions}>
-                    <TouchableOpacity
-                      style={styles.localActionButton}
-                      onPress={() => router.push(`/perfil/local?localId=${local.id}`)}
-                    >
-                      <IconSymbol name="person.2.fill" size={18} color={colors.primary} />
-                      <Text style={styles.localActionText}>Perfil Social</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.localActionButton}
-                      onPress={() => router.push(`/editar/local?id=${local.id}`)}
-                    >
-                      <IconSymbol name="pencil" size={18} color={colors.primary} />
-                      <Text style={styles.localActionText}>Editar Local</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.localActionButton}
-                      onPress={() => router.push(`/crear/evento?localId=${local.id}`)}
-                    >
-                      <IconSymbol name="calendar.badge.plus" size={18} color={colors.primary} />
-                      <Text style={styles.localActionText}>Crear Evento</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.localActionButton}
-                      onPress={() => router.push(`/gestion/planes-suscripcion?localId=${local.id}`)}
-                    >
-                      <IconSymbol name="arrow.up.circle" size={18} color={colors.primary} />
-                      <Text style={styles.localActionText}>Mejorar Plan</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
+                local={local}
+                onRefresh={cargarLocales}
+                isSelected={selectedLocalId === local.id}
+                onSelect={() => handleSelectLocal(local.id)}
+              />
             ))}
           </View>
         )}
@@ -577,66 +350,6 @@ const styles = StyleSheet.create({
   sectionSubtitle: {
     fontSize: 14,
     color: colors.textSecondary,
-  },
-  selectorContainer: {
-    padding: 16,
-    backgroundColor: colors.cardBackground,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-    marginBottom: 8,
-  },
-  selectorTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  selectorDescription: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginBottom: 12,
-  },
-  selectorScroll: {
-    marginHorizontal: -16,
-  },
-  selectorScrollContent: {
-    paddingHorizontal: 16,
-  },
-  selectorCard: {
-    width: 100,
-    marginRight: 12,
-    alignItems: 'center',
-    padding: 8,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    backgroundColor: colors.background,
-  },
-  selectorCardActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary + '10',
-  },
-  selectorImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    marginBottom: 8,
-  },
-  selectorImagePlaceholder: {
-    backgroundColor: colors.cardBorder,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  selectorName: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.text,
-    textAlign: 'center',
-  },
-  selectorBadge: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
   },
   quickActions: {
     flexDirection: 'row',
@@ -695,183 +408,5 @@ const styles = StyleSheet.create({
   },
   localesList: {
     padding: 20,
-    gap: 16,
-  },
-  localCard: {
-    padding: 0,
-    overflow: 'hidden',
-  },
-  localCoverImage: {
-    width: '100%',
-    height: 180,
-    backgroundColor: colors.cardBorder,
-  },
-  localCoverImagePlaceholder: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-  },
-  localCoverImagePlaceholderText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  localContent: {
-    padding: 16,
-  },
-  localHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  localInfo: {
-    flex: 1,
-  },
-  localNombre: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  localProvincia: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  planBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-  },
-  planBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  destacadoSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.background,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  destacadoInfo: {
-    flex: 1,
-  },
-  destacadoHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 4,
-  },
-  destacadoTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  destacadoSubtitle: {
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  destacadoButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: colors.cardBorder,
-  },
-  destacadoButtonActive: {
-    backgroundColor: colors.badgeDestacado,
-  },
-  destacadoButtonDisabled: {
-    opacity: 0.5,
-  },
-  destacadoButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  destacadoButtonTextActive: {
-    color: '#FFFFFF',
-  },
-  suscripcionInfo: {
-    flexDirection: 'row',
-    gap: 16,
-    marginBottom: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: colors.background,
-    borderRadius: 8,
-  },
-  suscripcionStat: {
-    flex: 1,
-  },
-  suscripcionStatLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginBottom: 4,
-  },
-  suscripcionStatValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.text,
-  },
-  noPlanContainer: {
-    padding: 16,
-    backgroundColor: '#FEF3C7',
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  noPlanText: {
-    fontSize: 14,
-    color: '#92400E',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  activarPlanButton: {
-    backgroundColor: '#F59E0B',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  activarPlanButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  localActions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
-    paddingTop: 16,
-  },
-  localActionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    backgroundColor: colors.background,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    minWidth: '47%',
-  },
-  localActionText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.primary,
   },
 });
