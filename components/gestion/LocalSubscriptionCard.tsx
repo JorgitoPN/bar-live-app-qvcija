@@ -84,6 +84,10 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
     }
   };
 
+  const hasPremiumAccess = () => {
+    return local.suscripcion?.plan_nombre?.toLowerCase() === 'premium';
+  };
+
   const calculateTimeRemaining = (endDate: string | null | undefined) => {
     if (!endDate) return 'No disponible';
     
@@ -313,6 +317,25 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
 
   const handleChangePlan = () => {
     router.push(`/gestion/planes-suscripcion?localId=${local.id}`);
+  };
+
+  const handleOpenAnalytics = () => {
+    if (!hasPremiumAccess()) {
+      Alert.alert(
+        'Plan Premium Requerido',
+        'El panel de análisis solo está disponible para usuarios con plan Premium.\n\nActualiza tu plan para acceder a estadísticas detalladas de tu local.',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Ver Planes',
+            onPress: () => router.push(`/gestion/planes-suscripcion?localId=${local.id}`),
+          },
+        ]
+      );
+      return;
+    }
+
+    router.push(`/gestion/panel-analisis?localId=${local.id}`);
   };
 
   const renderProgressBar = (remaining: number, total: number, color: string, label: string) => {
@@ -694,6 +717,30 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
             <IconSymbol name="calendar.badge.plus" size={18} color={colors.primary} />
             <Text style={styles.actionText}>Evento</Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              !hasPremiumAccess() && styles.actionButtonDisabled,
+            ]}
+            onPress={handleOpenAnalytics}
+          >
+            <IconSymbol 
+              name="chart.bar.fill" 
+              size={18} 
+              color={hasPremiumAccess() ? colors.primary : colors.textSecondary} 
+            />
+            <Text style={[
+              styles.actionText,
+              !hasPremiumAccess() && styles.actionTextDisabled,
+            ]}>
+              Análisis
+            </Text>
+            {hasPremiumAccess() && (
+              <View style={styles.premiumBadge}>
+                <IconSymbol name="star.fill" size={10} color="#F59E0B" />
+              </View>
+            )}
+          </TouchableOpacity>
           {!isSelected && (
             <TouchableOpacity style={styles.actionButton} onPress={onSelect}>
               <IconSymbol name="checkmark.circle" size={18} color={colors.primary} />
@@ -1031,10 +1078,27 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.cardBorder,
     minWidth: '22%',
+    position: 'relative',
+  },
+  actionButtonDisabled: {
+    opacity: 0.6,
   },
   actionText: {
     fontSize: 13,
     fontWeight: '600',
     color: colors.primary,
+  },
+  actionTextDisabled: {
+    color: colors.textSecondary,
+  },
+  premiumBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#FEF3C7',
+    borderRadius: 10,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: '#F59E0B',
   },
 });
