@@ -107,6 +107,7 @@ export default function PanelAnalisisScreen() {
   const [selectedRecommendation, setSelectedRecommendation] = useState<AIRecommendation | null>(null);
   const [showRecommendationModal, setShowRecommendationModal] = useState(false);
 
+  // ✅ AUTO-REFRESH: Load data and recommendations automatically when user accesses the page
   useEffect(() => {
     if (!localId) {
       Alert.alert('Error', 'No se especificó el local');
@@ -114,8 +115,11 @@ export default function PanelAnalisisScreen() {
       return;
     }
 
+    console.log('[PanelAnalisis] 🔄 Auto-loading analytics and recommendations on page access');
     loadAnalyticsData();
     loadRecommendations();
+    // ✅ AUTO-GENERATE: If no recommendations exist, generate them automatically
+    checkAndGenerateRecommendations();
 
     // Real-time synchronization for analytics
     console.log('[PanelAnalisis] 🔄 Setting up real-time subscriptions for local:', localId);
@@ -548,6 +552,33 @@ export default function PanelAnalisisScreen() {
     }
   };
 
+  // ✅ AUTO-GENERATE: Check if recommendations exist, if not, generate them automatically
+  const checkAndGenerateRecommendations = async () => {
+    if (!localId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('ai_recommendations')
+        .select('id')
+        .eq('local_id', localId)
+        .eq('estado', 'activa')
+        .limit(1);
+
+      if (error) {
+        console.error('[PanelAnalisis] Error checking recommendations:', error);
+        return;
+      }
+
+      // If no recommendations exist, generate them automatically
+      if (!data || data.length === 0) {
+        console.log('[PanelAnalisis] 🤖 No recommendations found, auto-generating...');
+        await generateRecommendations();
+      }
+    } catch (error) {
+      console.error('[PanelAnalisis] Error checking recommendations:', error);
+    }
+  };
+
   const generateRecommendations = async () => {
     if (!localId || generatingRecommendations) return;
 
@@ -584,18 +615,10 @@ export default function PanelAnalisisScreen() {
 
       console.log('[PanelAnalisis] Recommendations generated:', result);
 
-      Alert.alert(
-        '✅ Recomendaciones Generadas',
-        `Se han generado ${result.count} recomendaciones personalizadas para tu local.`
-      );
-
       await loadRecommendations();
     } catch (error: any) {
       console.error('[PanelAnalisis] Error generating recommendations:', error);
-      Alert.alert(
-        'Error',
-        error.message || 'No se pudieron generar las recomendaciones. Intenta de nuevo.'
-      );
+      // Don't show alert for auto-generation failures
     } finally {
       setGeneratingRecommendations(false);
     }

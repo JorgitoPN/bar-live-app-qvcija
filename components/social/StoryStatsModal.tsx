@@ -22,10 +22,22 @@ import { supabase } from '@/utils/supabase';
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MAX_MODAL_HEIGHT = SCREEN_HEIGHT * 0.7;
 
+interface ViewerData {
+  id: string;
+  usuario_id: string;
+  viewed_at: string;
+  liked: boolean;
+  usuario?: {
+    nombre: string;
+    avatar?: string;
+    username?: string;
+  };
+}
+
 interface StoryStatsModalProps {
   visible: boolean;
   onClose: () => void;
-  onNavigateToProfile?: () => void; // Callback to close parent story viewer
+  onNavigateToProfile?: () => void;
   storyId: string;
   viewsCount: number;
   likesCount: number;
@@ -65,7 +77,6 @@ export default function StoryStatsModal({
 }: StoryStatsModalProps) {
   const router = useRouter();
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = React.useState<'views' | 'likes'>('views');
   const slideAnim = React.useRef(new Animated.Value(MAX_MODAL_HEIGHT)).current;
 
   React.useEffect(() => {
@@ -86,6 +97,46 @@ export default function StoryStatsModal({
       }).start();
     }
   }, [visible, slideAnim]);
+
+  // ✅ CONSOLIDATED VIEW: Merge views and likes into a single list
+  const consolidatedViewers = React.useMemo(() => {
+    const viewersMap = new Map<string, ViewerData>();
+
+    // Add all viewers
+    views.forEach((view) => {
+      viewersMap.set(view.usuario_id, {
+        id: view.id,
+        usuario_id: view.usuario_id,
+        viewed_at: view.viewed_at,
+        liked: false,
+        usuario: view.usuario,
+      });
+    });
+
+    // Mark viewers who also liked
+    likes.forEach((like) => {
+      const existing = viewersMap.get(like.usuario_id);
+      if (existing) {
+        existing.liked = true;
+      } else {
+        // If someone liked without viewing (shouldn't happen, but handle it)
+        viewersMap.set(like.usuario_id, {
+          id: like.id,
+          usuario_id: like.usuario_id,
+          viewed_at: like.created_at,
+          liked: true,
+          usuario: like.usuario,
+        });
+      }
+    });
+
+    // Convert to array and sort: liked first, then by time
+    return Array.from(viewersMap.values()).sort((a, b) => {
+      if (a.liked && !b.liked) return -1;
+      if (!a.liked && b.liked) return 1;
+      return new Date(b.viewed_at).getTime() - new Date(a.viewed_at).getTime();
+    });
+  }, [views, likes]);
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -195,34 +246,19 @@ export default function StoryStatsModal({
               </TouchableOpacity>
             </View>
 
-            {/* Tabs */}
-            <View style={styles.tabsContainer}>
-              <TouchableOpacity
-                style={[styles.tab, activeTab === 'views' && styles.tabActive]}
-                onPress={() => setActiveTab('views')}
-              >
-                <IconSymbol
-                  name="eye"
-                  size={20}
-                  color={activeTab === 'views' ? colors.primary : colors.textSecondary}
-                />
-                <Text style={[styles.tabText, activeTab === 'views' && styles.tabTextActive]}>
-                  Vistas ({viewsCount})
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.tab, activeTab === 'likes' && styles.tabActive]}
-                onPress={() => setActiveTab('likes')}
-              >
-                <IconSymbol
-                  name="heart"
-                  size={20}
-                  color={activeTab === 'likes' ? colors.primary : colors.textSecondary}
-                />
-                <Text style={[styles.tabText, activeTab === 'likes' && styles.tabTextActive]}>
-                  Me gusta ({likesCount})
-                </Text>
-              </TouchableOpacity>
+            {/* Stats Summary */}
+            <View style={styles.statsContainer}>
+              <View style={styles.statItem}>
+                <IconSymbol name="eye.fill" size={20} color={colors.primary} />
+                <Text style={styles.statValue}>{viewsCount}</Text>
+                <Text style={styles.statLabel}>Vistas</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <IconSymbol name="heart.fill" size={20} color="#EF4444" />
+                <Text style={styles.statValue}>{likesCount}</Text>
+                <Text style={styles.statLabel}>Me gusta</Text>
+              </View>
             </View>
 
             {/* Content */}
@@ -232,86 +268,57 @@ export default function StoryStatsModal({
               </View>
             ) : (
               <ScrollView style={styles.listContainer} showsVerticalScrollIndicator={false}>
-                {activeTab === 'views' ? (
-                  views.length > 0 ? (
-                    views.map((view) => (
-                      <TouchableOpacity 
-                        key={view.id} 
-                        style={styles.userItem}
-                        onPress={() => handleUserPress(view.usuario_id)}
-                        activeOpacity={0.7}
-                      >
-                        {view.usuario?.avatar ? (
+                {consolidatedViewers.length > 0 ? (
+                  consolidatedViewers.map((viewer) => (
+                    <TouchableOpacity 
+                      key={viewer.id} 
+                      style={styles.userItem}
+                      onPress={() => handleUserPress(viewer.usuario_id)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.userAvatarContainer}>
+                        {viewer.usuario?.avatar ? (
                           <Image
-                            source={{ uri: view.usuario.avatar }}
+                            source={{ uri: viewer.usuario.avatar }}
                             style={styles.userAvatar}
                           />
                         ) : (
                           <View style={[styles.userAvatar, styles.avatarPlaceholder]}>
                             <Text style={styles.avatarText}>
-                              {view.usuario?.nombre?.charAt(0).toUpperCase() || 'U'}
+                              {viewer.usuario?.nombre?.charAt(0).toUpperCase() || 'U'}
                             </Text>
                           </View>
                         )}
-                        <View style={styles.userInfo}>
+                        {/* ✅ HEART INDICATOR: Show heart icon if user liked */}
+                        {viewer.liked && (
+                          <View style={styles.likeIndicator}>
+                            <IconSymbol name="heart.fill" size={16} color="#FFFFFF" />
+                          </View>
+                        )}
+                      </View>
+                      <View style={styles.userInfo}>
+                        <View style={styles.userNameRow}>
                           <Text style={styles.userName}>
-                            {view.usuario?.nombre || 'Usuario'}
+                            {viewer.usuario?.nombre || 'Usuario'}
                           </Text>
-                          {view.usuario?.username && (
-                            <Text style={styles.userUsername}>
-                              @{view.usuario.username}
-                            </Text>
+                          {viewer.liked && (
+                            <IconSymbol name="heart.fill" size={14} color="#EF4444" />
                           )}
                         </View>
-                        <Text style={styles.timeText}>{formatTime(view.viewed_at)}</Text>
-                      </TouchableOpacity>
-                    ))
-                  ) : (
-                    <View style={styles.emptyState}>
-                      <IconSymbol name="eye" size={48} color={colors.textSecondary} />
-                      <Text style={styles.emptyText}>Aún no hay vistas</Text>
-                    </View>
-                  )
+                        {viewer.usuario?.username && (
+                          <Text style={styles.userUsername}>
+                            @{viewer.usuario.username}
+                          </Text>
+                        )}
+                      </View>
+                      <Text style={styles.timeText}>{formatTime(viewer.viewed_at)}</Text>
+                    </TouchableOpacity>
+                  ))
                 ) : (
-                  likes.length > 0 ? (
-                    likes.map((like) => (
-                      <TouchableOpacity 
-                        key={like.id} 
-                        style={styles.userItem}
-                        onPress={() => handleUserPress(like.usuario_id)}
-                        activeOpacity={0.7}
-                      >
-                        {like.usuario?.avatar ? (
-                          <Image
-                            source={{ uri: like.usuario.avatar }}
-                            style={styles.userAvatar}
-                          />
-                        ) : (
-                          <View style={[styles.userAvatar, styles.avatarPlaceholder]}>
-                            <Text style={styles.avatarText}>
-                              {like.usuario?.nombre?.charAt(0).toUpperCase() || 'U'}
-                            </Text>
-                          </View>
-                        )}
-                        <View style={styles.userInfo}>
-                          <Text style={styles.userName}>
-                            {like.usuario?.nombre || 'Usuario'}
-                          </Text>
-                          {like.usuario?.username && (
-                            <Text style={styles.userUsername}>
-                              @{like.usuario.username}
-                            </Text>
-                          )}
-                        </View>
-                        <Text style={styles.timeText}>{formatTime(like.created_at)}</Text>
-                      </TouchableOpacity>
-                    ))
-                  ) : (
-                    <View style={styles.emptyState}>
-                      <IconSymbol name="heart" size={48} color={colors.textSecondary} />
-                      <Text style={styles.emptyText}>Aún no hay me gusta</Text>
-                    </View>
-                  )
+                  <View style={styles.emptyState}>
+                    <IconSymbol name="eye" size={48} color={colors.textSecondary} />
+                    <Text style={styles.emptyText}>Aún no hay vistas</Text>
+                  </View>
                 )}
               </ScrollView>
             )}
@@ -369,34 +376,33 @@ const styles = StyleSheet.create({
   closeButton: {
     padding: 4,
   },
-  tabsContainer: {
+  statsContainer: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingVertical: 16,
     paddingHorizontal: 20,
-    paddingVertical: 12,
-    gap: 12,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
   },
-  tab: {
+  statItem: {
     flex: 1,
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: colors.cardBackground,
+    gap: 4,
   },
-  tabActive: {
-    backgroundColor: colors.primary + '20',
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: colors.cardBorder,
   },
-  tabText: {
-    fontSize: 15,
-    fontWeight: '600',
+  statValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  statLabel: {
+    fontSize: 12,
     color: colors.textSecondary,
-  },
-  tabTextActive: {
-    color: colors.primary,
   },
   loadingContainer: {
     padding: 40,
@@ -404,7 +410,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   listContainer: {
-    maxHeight: MAX_MODAL_HEIGHT - 200,
+    maxHeight: MAX_MODAL_HEIGHT - 250,
   },
   userItem: {
     flexDirection: 'row',
@@ -414,11 +420,14 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0.5,
     borderBottomColor: colors.cardBorder,
   },
+  userAvatarContainer: {
+    position: 'relative',
+    marginRight: 12,
+  },
   userAvatar: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    marginRight: 12,
   },
   avatarPlaceholder: {
     backgroundColor: colors.primary,
@@ -430,8 +439,26 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.white,
   },
+  likeIndicator: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#EF4444',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: colors.background,
+  },
   userInfo: {
     flex: 1,
+  },
+  userNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   userName: {
     fontSize: 16,
