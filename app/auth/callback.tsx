@@ -52,7 +52,7 @@ export default function AuthCallbackScreen() {
         addDebugInfo('🔄 Procesando callback de autenticación...');
         addDebugInfo(`Platform: ${Platform.OS}`);
         
-        // For web, check for OAuth tokens in URL
+        // For web, check for OAuth tokens in URL hash
         if (Platform.OS === 'web' && typeof window !== 'undefined') {
           addDebugInfo('🌐 Detectando OAuth callback en web...');
           addDebugInfo(`URL: ${window.location.href}`);
@@ -86,7 +86,7 @@ export default function AuthCallbackScreen() {
           const refreshToken = hashParams.get('refresh_token');
           
           if (accessToken && refreshToken) {
-            addDebugInfo('✅ Tokens encontrados en URL');
+            addDebugInfo('✅ Tokens encontrados en URL hash');
             addDebugInfo(`Access token (primeros 20 chars): ${accessToken.substring(0, 20)}...`);
             addDebugInfo(`Refresh token (primeros 20 chars): ${refreshToken.substring(0, 20)}...`);
             
@@ -189,12 +189,16 @@ export default function AuthCallbackScreen() {
               return;
             }
           } else {
-            addDebugInfo('⚠️ No se encontraron tokens en URL');
+            addDebugInfo('⚠️ No se encontraron tokens en URL hash');
           }
         }
         
-        // FALLBACK: For native or if no tokens in URL
-        addDebugInfo('⏳ Esperando detección automática de sesión (3s)...');
+        // FALLBACK: For native platforms
+        // On native, Supabase should automatically handle the deep link and set the session
+        addDebugInfo('📱 Plataforma nativa - esperando detección automática...');
+        
+        // Wait a bit for Supabase to process the deep link
+        addDebugInfo('⏳ Esperando procesamiento de deep link (3s)...');
         await new Promise(resolve => setTimeout(resolve, 3000));
         
         // Try to get session

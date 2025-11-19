@@ -9,6 +9,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 
+// CRITICAL: Use a consistent storage key across the entire app
+const STORAGE_KEY = 'supabase.auth.token';
+
 // Custom storage implementation for React Native with improved error handling and logging
 const ExpoSecureStoreAdapter = {
   getItem: async (key: string) => {
@@ -91,15 +94,15 @@ const ExpoSecureStoreAdapter = {
   },
 };
 
-// Create Supabase client with custom storage
+// CRITICAL: Create a SINGLE Supabase client instance for the entire app
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     storage: ExpoSecureStoreAdapter,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true, // ALWAYS enable URL detection for OAuth callback
+    detectSessionInUrl: Platform.OS === 'web', // Only enable for web
     flowType: 'pkce', // Use PKCE flow for better security
-    storageKey: 'supabase.auth.token',
+    storageKey: STORAGE_KEY,
     debug: __DEV__, // Enable debug mode in development
   },
 });
@@ -156,69 +159,5 @@ export const getSupabaseConfigMessage = () => {
 Mientras tanto, la app funcionará en modo demo con datos de ejemplo.`;
 };
 
-// Helper function to manually check and restore session from storage
-export const manuallyRestoreSession = async (): Promise<{ success: boolean; session: any | null }> => {
-  try {
-    console.log('[Supabase] 🔍 Intentando restaurar sesión manualmente desde storage...');
-    
-    // Try to get the session from storage directly
-    const storageKey = 'supabase.auth.token';
-    const storedSession = await ExpoSecureStoreAdapter.getItem(storageKey);
-    
-    if (!storedSession) {
-      console.log('[Supabase] ⚠️ No hay sesión almacenada');
-      return { success: false, session: null };
-    }
-    
-    console.log('[Supabase] ✅ Sesión encontrada en storage');
-    
-    // Parse the stored session
-    const parsedSession = JSON.parse(storedSession);
-    console.log('[Supabase] 📦 Sesión parseada:', {
-      hasAccessToken: !!parsedSession.access_token,
-      hasRefreshToken: !!parsedSession.refresh_token,
-      expiresAt: parsedSession.expires_at ? new Date(parsedSession.expires_at * 1000).toISOString() : 'unknown',
-    });
-    
-    // Check if session is expired
-    if (parsedSession.expires_at && parsedSession.expires_at * 1000 < Date.now()) {
-      console.log('[Supabase] ⚠️ Sesión expirada, intentando refrescar...');
-      
-      // Try to refresh the session
-      const { data, error } = await supabase.auth.refreshSession({
-        refresh_token: parsedSession.refresh_token,
-      });
-      
-      if (error) {
-        console.error('[Supabase] ❌ Error refrescando sesión:', error);
-        return { success: false, session: null };
-      }
-      
-      if (data.session) {
-        console.log('[Supabase] ✅ Sesión refrescada exitosamente');
-        return { success: true, session: data.session };
-      }
-    }
-    
-    // Try to set the session
-    const { data, error } = await supabase.auth.setSession({
-      access_token: parsedSession.access_token,
-      refresh_token: parsedSession.refresh_token,
-    });
-    
-    if (error) {
-      console.error('[Supabase] ❌ Error estableciendo sesión:', error);
-      return { success: false, session: null };
-    }
-    
-    if (data.session) {
-      console.log('[Supabase] ✅ Sesión restaurada exitosamente');
-      return { success: true, session: data.session };
-    }
-    
-    return { success: false, session: null };
-  } catch (error) {
-    console.error('[Supabase] ❌ Error en manuallyRestoreSession:', error);
-    return { success: false, session: null };
-  }
-};
+// Export the storage adapter for use in other files
+export { ExpoSecureStoreAdapter, STORAGE_KEY };
