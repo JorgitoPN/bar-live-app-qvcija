@@ -25,6 +25,9 @@ import { supabase } from '@/utils/supabase';
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = Math.min(width - 32, 500);
 
+// VERSION MARKER - Updated Design v3.0
+const VERSION = 'v3.0-REVOLUTIONARY-DESIGN';
+
 interface LocalWithPlan {
   id: string;
   nombre: string;
@@ -36,7 +39,7 @@ interface LocalWithPlan {
   destacados_restantes: number;
 }
 
-// Animated Card Component
+// Animated Card Component with Revolutionary Design
 const LocalCard = ({ 
   local, 
   isActive, 
@@ -164,9 +167,9 @@ const LocalCard = ({
                 >
                   <IconSymbol 
                     name={
-                      local.plan_nombre === 'premium' ? 'crown.fill' :
+                      local.plan_nombre === 'premium' ? 'star.fill' :
                       local.plan_nombre === 'profesional' ? 'star.fill' :
-                      'circle.fill'
+                      'circle'
                     }
                     size={12} 
                     color="#FFFFFF" 
@@ -277,7 +280,7 @@ const LocalCard = ({
                 </View>
               </View>
 
-              {/* Floating Action Buttons */}
+              {/* Floating Action Buttons - SINGLE ROW */}
               <View style={styles.actionButtons}>
                 {!isActive && (
                   <TouchableOpacity 
@@ -290,8 +293,8 @@ const LocalCard = ({
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 1 }}
                     >
-                      <IconSymbol name="power" size={16} color="#FFFFFF" />
-                      <Text style={styles.actionBtnTextPrimary}>Activar</Text>
+                      <IconSymbol name="checkmark.circle.fill" size={16} color="#FFFFFF" />
+                      <Text style={styles.actionBtnTextPrimary}>Perfil</Text>
                     </LinearGradient>
                   </TouchableOpacity>
                 )}
@@ -311,8 +314,8 @@ const LocalCard = ({
                   onPress={onAnalytics}
                 >
                   <View style={styles.actionBtnContent}>
-                    <IconSymbol name="chart.bar.fill" size={16} color={colors.primary} />
-                    <Text style={styles.actionBtnText}>Stats</Text>
+                    <IconSymbol name="sparkles" size={16} color={colors.primary} />
+                    <Text style={styles.actionBtnText}>Análisis</Text>
                   </View>
                 </TouchableOpacity>
 
@@ -373,6 +376,11 @@ export default function MisLocalesScreen() {
   const [locales, setLocales] = useState<LocalWithPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingDestacado, setUpdatingDestacado] = useState<string | null>(null);
+
+  // Log version on mount
+  useEffect(() => {
+    console.log(`🎨 [MisLocales] Loaded ${VERSION}`);
+  }, []);
 
   const loadLocales = useCallback(async () => {
     if (!user) return;
@@ -530,7 +538,7 @@ export default function MisLocalesScreen() {
             <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>Mis Locales</Text>
+            <Text style={styles.headerTitle}>Mis Locales {VERSION}</Text>
             <Text style={styles.headerSubtitle}>
               {locales.length} {locales.length === 1 ? 'local' : 'locales'}
             </Text>
