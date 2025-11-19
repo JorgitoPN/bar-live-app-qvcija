@@ -212,13 +212,7 @@ export default function EventBanner({ evento, compact = false }: EventBannerProp
             end={{ x: 1, y: 0 }}
             style={styles.compactGradient}
           >
-            {isLive && (
-              <View style={styles.liveBadge}>
-                <View style={styles.liveDot} />
-                <Text style={styles.liveText}>EN VIVO</Text>
-              </View>
-            )}
-            
+            {/* Restructured layout to prevent overlap */}
             <View style={styles.compactContent}>
               <View style={styles.compactLeft}>
                 <IconSymbol name="calendar" size={16} color={colors.white} />
@@ -227,9 +221,18 @@ export default function EventBanner({ evento, compact = false }: EventBannerProp
                 </Text>
               </View>
               
-              <View style={styles.compactRight}>
-                <IconSymbol name="clock.fill" size={14} color={colors.white} />
-                <Text style={styles.compactTime}>{timeRemaining}</Text>
+              <View style={styles.compactRightContainer}>
+                {isLive && (
+                  <View style={styles.liveBadgeCompact}>
+                    <View style={styles.liveDot} />
+                    <Text style={styles.liveText}>EN VIVO</Text>
+                  </View>
+                )}
+                
+                <View style={styles.compactRight}>
+                  <IconSymbol name="clock.fill" size={14} color={colors.white} />
+                  <Text style={styles.compactTime}>{timeRemaining}</Text>
+                </View>
               </View>
             </View>
           </LinearGradient>
@@ -484,19 +487,6 @@ const styles = StyleSheet.create({
   compactGradient: {
     paddingHorizontal: 14,
     paddingVertical: 12,
-    position: 'relative',
-  },
-  liveBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    gap: 4,
   },
   compactContent: {
     flexDirection: 'row',
@@ -509,12 +499,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     flex: 1,
+    minWidth: 0, // Allow text to shrink
   },
   compactTitle: {
     fontSize: 15,
     fontWeight: 'bold',
     color: colors.white,
     flex: 1,
+  },
+  compactRightContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexShrink: 0, // Prevent shrinking
+  },
+  liveBadgeCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
   },
   compactRight: {
     flexDirection: 'row',
