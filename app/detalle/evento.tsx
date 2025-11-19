@@ -21,6 +21,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { getCategoryIcon } from '@/utils/categoryIcons';
+import EventBanner from '@/components/eventos/EventBanner';
 
 const { width, height } = Dimensions.get('window');
 
@@ -29,7 +30,9 @@ interface EventoData {
   titulo: string;
   descripcion: string | null;
   fecha: string;
+  fecha_fin?: string | null;
   hora: string;
+  hora_fin?: string | null;
   precio: number | null;
   imagen_url: string | null;
   local_id: string | null;
@@ -51,6 +54,8 @@ export default function DetalleEventoScreen() {
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [distance, setDistance] = useState<number | null>(null);
+  const [timeRemaining, setTimeRemaining] = useState<string>('');
+  const [isLive, setIsLive] = useState(false);
 
   // Animations
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
@@ -61,6 +66,71 @@ export default function DetalleEventoScreen() {
     cargarEvento();
     obtenerUbicacionUsuario();
   }, [params.id]);
+
+  // Update countdown timer
+  useEffect(() => {
+    if (!evento) return;
+
+    const updateCountdown = () => {
+      const now = new Date();
+      
+      // Parse event start date/time
+      const eventStartDate = new Date(`${evento.fecha}T${evento.hora}`);
+      
+      // Parse event end date/time
+      let eventEndDate: Date;
+      if (evento.fecha_fin && evento.hora_fin) {
+        eventEndDate = new Date(`${evento.fecha_fin}T${evento.hora_fin}`);
+      } else {
+        // If no end date, assume event ends 4 hours after start
+        eventEndDate = new Date(eventStartDate.getTime() + 4 * 60 * 60 * 1000);
+      }
+      
+      // Determine if event is live
+      if (now >= eventStartDate && now <= eventEndDate) {
+        setIsLive(true);
+        
+        // Calculate time until event ends
+        const diff = eventEndDate.getTime() - now.getTime();
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        
+        if (hours > 0) {
+          setTimeRemaining(`Finaliza en ${hours}h ${minutes}m`);
+        } else if (minutes > 0) {
+          setTimeRemaining(`Finaliza en ${minutes}m`);
+        } else {
+          setTimeRemaining('Finalizando...');
+        }
+      } else if (now < eventStartDate) {
+        setIsLive(false);
+        
+        // Calculate time until event starts
+        const diff = eventStartDate.getTime() - now.getTime();
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        
+        if (days > 0) {
+          setTimeRemaining(`Comienza en ${days}d ${hours}h`);
+        } else if (hours > 0) {
+          setTimeRemaining(`Comienza en ${hours}h ${minutes}m`);
+        } else if (minutes > 0) {
+          setTimeRemaining(`Comienza en ${minutes}m`);
+        } else {
+          setTimeRemaining('Comenzando...');
+        }
+      } else {
+        setIsLive(false);
+        setTimeRemaining('Finalizado');
+      }
+    };
+    
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 60000); // Update every minute
+    
+    return () => clearInterval(interval);
+  }, [evento]);
 
   useEffect(() => {
     if (evento) {
@@ -177,7 +247,9 @@ export default function DetalleEventoScreen() {
         titulo: data.titulo,
         descripcion: data.descripcion,
         fecha: data.fecha,
+        fecha_fin: data.fecha_fin,
         hora: data.hora,
+        hora_fin: data.hora_fin,
         precio: data.precio,
         imagen_url: data.imagen_url,
         local_id: data.local_id,
@@ -445,9 +517,24 @@ export default function DetalleEventoScreen() {
             </View>
           </TouchableOpacity>
 
+          {/* Live/Countdown Badge */}
+          {timeRemaining && (
+            <View style={[styles.countdownBadge, isLive && styles.liveBadge]}>
+              <View style={isLive ? styles.liveDot : undefined} />
+              <IconSymbol 
+                name={isLive ? 'bolt.fill' : 'clock.fill'} 
+                size={14} 
+                color={colors.white} 
+              />
+              <Text style={styles.countdownBadgeText}>
+                {isLive ? 'EN VIVO' : timeRemaining}
+              </Text>
+            </View>
+          )}
+
           {/* Destacado Badge */}
           {evento.destacado && (
-            <View style={styles.destacadoBadge}>
+            <View style={[styles.destacadoBadge, timeRemaining && styles.destacadoBadgeWithCountdown]}>
               <IconSymbol 
                 name="star.fill" 
                 size={14} 
@@ -523,6 +610,31 @@ export default function DetalleEventoScreen() {
             }
           ]}
         >
+          {/* Countdown Card */}
+          {timeRemaining && (
+            <View style={styles.countdownCard}>
+              <LinearGradient
+                colors={isLive ? ['#EF4444', '#DC2626'] : ['#FACC15', '#F59E0B']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.countdownGradient}
+              >
+                {isLive && <View style={styles.liveDotLarge} />}
+                <IconSymbol 
+                  name={isLive ? 'bolt.fill' : 'clock.fill'} 
+                  size={32} 
+                  color={colors.white} 
+                />
+                <View style={styles.countdownTextContainer}>
+                  <Text style={styles.countdownLabel}>
+                    {isLive ? 'EVENTO EN VIVO' : 'PRÓXIMO EVENTO'}
+                  </Text>
+                  <Text style={styles.countdownTime}>{timeRemaining}</Text>
+                </View>
+              </LinearGradient>
+            </View>
+          )}
+
           {/* Price Card */}
           {evento.precio !== null && (
             <View style={styles.priceCard}>
@@ -770,6 +882,47 @@ const styles = StyleSheet.create({
     }),
   },
   
+  countdownBadge: {
+    position: 'absolute',
+    top: Platform.OS === 'android' ? 48 : 60,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FACC15',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 5,
+    zIndex: 101,
+    borderWidth: 2,
+    borderColor: colors.white,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
+  },
+  liveBadge: {
+    backgroundColor: '#EF4444',
+  },
+  liveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.white,
+  },
+  countdownBadgeText: {
+    color: colors.white,
+    fontSize: 11,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
+  },
   destacadoBadge: {
     position: 'absolute',
     top: Platform.OS === 'android' ? 48 : 60,
@@ -793,6 +946,12 @@ const styles = StyleSheet.create({
         elevation: 6,
       },
     }),
+  },
+  destacadoBadgeWithCountdown: {
+    top: Platform.OS === 'android' ? 88 : 100,
+  },
+  destacadoBadgeWithCountdown: {
+    top: Platform.OS === 'android' ? 88 : 100,
   },
   destacadoText: {
     color: colors.badgeDestacadoText,
@@ -891,6 +1050,53 @@ const styles = StyleSheet.create({
   // Content Section
   contentSection: {
     padding: 16,
+  },
+  
+  // Countdown Card
+  countdownCard: {
+    marginBottom: 14,
+    borderRadius: 14,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
+  },
+  countdownGradient: {
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  liveDotLarge: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: colors.white,
+  },
+  countdownTextContainer: {
+    flex: 1,
+  },
+  countdownLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.white,
+    letterSpacing: 1.2,
+    opacity: 0.9,
+    marginBottom: 4,
+  },
+  countdownTime: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.white,
   },
   
   // Price Card

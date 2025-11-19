@@ -34,6 +34,8 @@ import OfertaTrabajoCard from '@/components/empleo/OfertaTrabajoCard';
 import PerfilProfesionalCard from '@/components/empleo/PerfilProfesionalCard';
 import StoryStatsModal from '@/components/social/StoryStatsModal';
 import { PROVINCIAS, getProvinceVariations, filterByProvincia } from '@/utils/provinceNormalizer';
+import EventBanner from '@/components/eventos/EventBanner';
+import { useLocalEvent } from '@/hooks/useLocalEvent';
 
 // ✅ VERSION MARKER - Force cache bust: v3.4.0 - Removed Perfil button, 3 buttons in row with soft design
 const SCREEN_VERSION = '3.4.0';
@@ -72,7 +74,9 @@ interface LocalEvent {
   titulo: string;
   descripcion?: string;
   fecha: string;
+  fecha_fin?: string | null;
   hora: string;
+  hora_fin?: string | null;
   precio?: number;
   imagen_url?: string;
   local_id: string;
@@ -193,6 +197,9 @@ export default function LocalPerfilScreen() {
     empleo: false,
     info: false,
   });
+  
+  // Fetch active event for this local
+  const { evento: activeEvent } = useLocalEvent(localId);
 
   useEffect(() => {
     console.log(`⚡⚡⚡ LocalPerfilScreen v${SCREEN_VERSION} MOUNTED ⚡⚡⚡`);
@@ -1273,6 +1280,13 @@ export default function LocalPerfilScreen() {
               <View style={[styles.statusDot, { backgroundColor: estado.estaAbierto ? '#22C55E' : '#EF4444' }]} />
               <Text style={styles.statusText}>{estado.badge}</Text>
             </View>
+
+            {/* Event Banner */}
+            {activeEvent && (
+              <View style={{ marginBottom: 16 }}>
+                <EventBanner evento={activeEvent} compact={true} />
+              </View>
+            )}
 
             {/* ✅ Stats container with clickable followers/following */}
             <View style={styles.statsContainer}>

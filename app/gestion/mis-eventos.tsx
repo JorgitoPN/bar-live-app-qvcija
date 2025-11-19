@@ -21,13 +21,16 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
+import { getEventStatus } from '@/utils/eventUtils';
 
 interface Evento {
   id: string;
   titulo: string;
   descripcion?: string;
   fecha: string;
+  fecha_fin?: string | null;
   hora: string;
+  hora_fin?: string | null;
   precio?: number;
   imagen_url?: string;
   local_id?: string;
@@ -341,6 +344,14 @@ export default function MisEventosScreen() {
           eventos.map((evento) => {
             const diasRestantes = calcularDiasRestantes(evento.fecha);
             const isPast = diasRestantes < 0;
+            
+            // Get event status with countdown
+            const eventStatus = getEventStatus(
+              evento.fecha,
+              evento.hora,
+              evento.fecha_fin,
+              evento.hora_fin
+            );
 
             return (
               <View key={evento.id} style={styles.eventoCard}>
@@ -351,6 +362,14 @@ export default function MisEventosScreen() {
                 {evento.destacado && (
                   <View style={styles.badgeDestacado}>
                     <Text style={styles.badgeDestacadoText}>⭐ Destacado</Text>
+                  </View>
+                )}
+
+                {/* Live/Countdown Badge */}
+                {eventStatus.isLive && (
+                  <View style={styles.badgeLive}>
+                    <View style={styles.liveDot} />
+                    <Text style={styles.badgeLiveText}>EN VIVO</Text>
                   </View>
                 )}
 
@@ -400,14 +419,19 @@ export default function MisEventosScreen() {
                     )}
                   </View>
 
-                  {!isPast && (
-                    <View style={styles.diasRestantesContainer}>
-                      <Text style={styles.diasRestantesTexto}>
-                        {diasRestantes === 0
-                          ? 'Hoy'
-                          : diasRestantes === 1
-                          ? 'Mañana'
-                          : `${diasRestantes} días restantes`}
+                  {/* Event Status with Countdown */}
+                  {!eventStatus.isExpired && (
+                    <View style={[
+                      styles.statusContainer,
+                      eventStatus.isLive && styles.statusContainerLive
+                    ]}>
+                      <IconSymbol 
+                        name={eventStatus.isLive ? 'bolt.fill' : 'clock.fill'} 
+                        size={16} 
+                        color={colors.white} 
+                      />
+                      <Text style={styles.statusText}>
+                        {eventStatus.statusText}
                       </Text>
                     </View>
                   )}
@@ -608,6 +632,33 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.badgeDestacadoText,
   },
+  badgeLive: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 4,
+    borderWidth: 2,
+    borderColor: colors.white,
+    zIndex: 10,
+  },
+  badgeLiveText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: colors.white,
+    letterSpacing: 0.5,
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.white,
+  },
   eventoInfo: {
     padding: 16,
   },
@@ -651,6 +702,25 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
     fontWeight: '500',
+  },
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: '#FACC15',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+    marginBottom: 16,
+  },
+  statusContainerLive: {
+    backgroundColor: '#EF4444',
+  },
+  statusText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: colors.white,
   },
   eventoActions: {
     flexDirection: 'row',

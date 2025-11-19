@@ -17,7 +17,7 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -47,23 +47,137 @@ interface LocalConPlan {
 
 export default function CrearEventoScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const { user } = useAuth();
   const { selectedLocalId } = useSelectedLocal();
+  
+  // Check if we're editing an existing event
+  const eventoId = params.id as string | undefined;
+  const isEditing = !!eventoId;
+  
   const [titulo, setTitulo] = useState('');
   const [descripcion, setDescripcion] = useState('');
-  const [fecha, setFecha] = useState(new Date());
-  const [hora, setHora] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [fechaInicio, setFechaInicio] = useState(new Date());
+  const [horaInicio, setHoraInicio] = useState(new Date());
+  const [fechaFin, setFechaFin] = useState(new Date());
+  const [horaFin, setHoraFin] = useState(new Date());
+  const [showDateInicioPicker, setShowDateInicioPicker] = useState(false);
+  const [showTimeInicioPicker, setShowTimeInicioPicker] = useState(false);
+  const [showDateFinPicker, setShowDateFinPicker] = useState(false);
+  const [showTimeFinPicker, setShowTimeFinPicker] = useState(false);
   const [precio, setPrecio] = useState('');
   const [esGratis, setEsGratis] = useState(false);
   const [imagen, setImagen] = useState<string | null>(null);
+  const [imagenExistente, setImagenExistente] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [localData, setLocalData] = useState<LocalConPlan | null>(null);
   const [verificandoAcceso, setVerificandoAcceso] = useState(true);
 
+  // Load existing event data if editing
+  const cargarEventoExistente = useCallback(async () => {
+    if (!eventoId || !user) return;
+
+    try {
+      console.log('[CrearEvento] Loading existing event:', eventoId);
+
+      const { data: eventoData, error } = await supabase
+        .from('eventos')
+        .select('*')
+        .eq('id', eventoId)
+        .eq('propietario_id', user.id)
+        .single();
+
+      if (error || !eventoData) {
+        console.error('[CrearEvento] Error loading event:', error);
+        Alert.alert(
+          'Error',
+          'No se pudo cargar el evento para editar.',
+          [{ text: 'OK', onPress: () => router.back() }]
+        );
+        return;
+      }
+
+      console.log('[CrearEvento] Event loaded for editing:', eventoData);
+
+      // Populate form with existing data
+      setTitulo(eventoData.titulo || '');
+      setDescripcion(eventoData.descripcion || '');
+      
+      // Parse start date and time
+      if (eventoData.fecha) {
+        setFechaInicio(new Date(eventoData.fecha));
+      }
+      if (eventoData.hora) {
+        const [hours, minutes] = eventoData.hora.split(':');
+        const horaDate = new Date();
+        horaDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+        setHoraInicio(horaDate);
+      }
+      
+      // Parse end date and time
+      if (eventoData.fecha_fin) {
+        setFechaFin(new Date(eventoData.fecha_fin));
+      } else {
+        // Default to same day as start
+        setFechaFin(new Date(eventoData.fecha));
+      }
+      
+      if (eventoData.hora_fin) {
+        const [hours, minutes] = eventoData.hora_fin.split(':');
+        const horaDate = new Date();
+        horaDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+        setHoraFin(horaDate);
+      } else {
+        // Default to 4 hours after start
+        const defaultEnd = new Date();
+        if (eventoData.hora) {
+          const [hours, minutes] = eventoData.hora.split(':');
+          defaultEnd.setHours(parseInt(hours) + 4, parseInt(minutes), 0, 0);
+        }
+        setHoraFin(defaultEnd);
+      }
+      
+      // Set price
+      if (eventoData.precio !== null && eventoData.precio !== undefined) {
+        if (eventoData.precio === 0) {
+          setEsGratis(true);
+          setPrecio('');
+        } else {
+          setEsGratis(false);
+          setPrecio(eventoData.precio.toString());
+        }
+      }
+      
+      // Set existing image
+      if (eventoData.imagen_url) {
+        setImagenExistente(eventoData.imagen_url);
+      }
+
+    } catch (error) {
+      console.error('[CrearEvento] Error loading event:', error);
+      Alert.alert('Error', 'Ocurrió un error al cargar el evento.');
+      router.back();
+    }
+  }, [eventoId, user, router]);
+
   const cargarLocalSeleccionado = useCallback(async () => {
-    if (!user || !selectedLocalId) {
+    if (!user) {
+      Alert.alert(
+        'Sin Sesión',
+        'Debes iniciar sesión para crear eventos.',
+        [{ text: 'OK', onPress: () => router.back() }]
+      );
+      return;
+    }
+
+    // If editing, we don't need a selected local
+    if (isEditing) {
+      await cargarEventoExistente();
+      setVerificandoAcceso(false);
+      return;
+    }
+
+    if (!selectedLocalId) {
       Alert.alert(
         'Sin Local Seleccionado',
         'Debes seleccionar un local desde la página de gestión de locales antes de crear un evento.',
@@ -220,7 +334,7 @@ export default function CrearEventoScreen() {
     } finally {
       setVerificandoAcceso(false);
     }
-  }, [user, selectedLocalId, router]);
+  }, [user, selectedLocalId, router, isEditing, cargarEventoExistente]);
 
   useEffect(() => {
     cargarLocalSeleccionado();
@@ -236,6 +350,8 @@ export default function CrearEventoScreen() {
 
     if (!result.canceled) {
       setImagen(result.assets[0].uri);
+      // Clear existing image when new one is selected
+      setImagenExistente(null);
     }
   };
 
@@ -281,30 +397,65 @@ export default function CrearEventoScreen() {
     }
   };
 
-  const onDateChange = (event: any, selectedDate?: Date) => {
+  const onDateInicioChange = (event: any, selectedDate?: Date) => {
     if (Platform.OS === 'android') {
-      setShowDatePicker(false);
+      setShowDateInicioPicker(false);
     }
     if (selectedDate) {
-      setFecha(selectedDate);
+      setFechaInicio(selectedDate);
+      // Auto-adjust end date if it's before start date
+      if (fechaFin < selectedDate) {
+        setFechaFin(selectedDate);
+      }
     }
   };
 
-  const onTimeChange = (event: any, selectedTime?: Date) => {
+  const onTimeInicioChange = (event: any, selectedTime?: Date) => {
     if (Platform.OS === 'android') {
-      setShowTimePicker(false);
+      setShowTimeInicioPicker(false);
     }
     if (selectedTime) {
-      setHora(selectedTime);
+      setHoraInicio(selectedTime);
     }
   };
 
-  const closeDatePicker = () => {
-    setShowDatePicker(false);
+  const onDateFinChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowDateFinPicker(false);
+    }
+    if (selectedDate) {
+      // Ensure end date is not before start date
+      if (selectedDate >= fechaInicio) {
+        setFechaFin(selectedDate);
+      } else {
+        Alert.alert('Error', 'La fecha de fin no puede ser anterior a la fecha de inicio');
+      }
+    }
   };
 
-  const closeTimePicker = () => {
-    setShowTimePicker(false);
+  const onTimeFinChange = (event: any, selectedTime?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowTimeFinPicker(false);
+    }
+    if (selectedTime) {
+      setHoraFin(selectedTime);
+    }
+  };
+
+  const closeDateInicioPicker = () => {
+    setShowDateInicioPicker(false);
+  };
+
+  const closeTimeInicioPicker = () => {
+    setShowTimeInicioPicker(false);
+  };
+
+  const closeDateFinPicker = () => {
+    setShowDateFinPicker(false);
+  };
+
+  const closeTimeFinPicker = () => {
+    setShowTimeFinPicker(false);
   };
 
   const formatDate = (date: Date): string => {
@@ -328,7 +479,7 @@ export default function CrearEventoScreen() {
   };
 
   const handlePublicar = async () => {
-    if (!titulo || !descripcion || !selectedLocalId || !localData) {
+    if (!titulo || !descripcion) {
       Alert.alert('Error', 'Por favor completa todos los campos obligatorios');
       return;
     }
@@ -343,89 +494,147 @@ export default function CrearEventoScreen() {
       return;
     }
 
-    if (!localData.suscripcion || localData.suscripcion.creditos_eventos_restantes <= 0) {
-      Alert.alert('Error', 'No tienes créditos de eventos disponibles');
+    // Validate dates
+    const startDateTime = new Date(`${formatDate(fechaInicio)}T${formatTime(horaInicio)}`);
+    const endDateTime = new Date(`${formatDate(fechaFin)}T${formatTime(horaFin)}`);
+    
+    if (endDateTime <= startDateTime) {
+      Alert.alert('Error', 'La fecha y hora de fin debe ser posterior a la fecha y hora de inicio');
       return;
+    }
+
+    // When editing, we don't need to check credits or selected local
+    if (!isEditing) {
+      if (!selectedLocalId || !localData) {
+        Alert.alert('Error', 'No se ha seleccionado un local');
+        return;
+      }
+
+      if (!localData.suscripcion || localData.suscripcion.creditos_eventos_restantes <= 0) {
+        Alert.alert('Error', 'No tienes créditos de eventos disponibles');
+        return;
+      }
     }
 
     try {
       setLoading(true);
 
       console.log('[CrearEvento] ========================================');
-      console.log('[CrearEvento] Creating event...');
-      console.log('[CrearEvento] Current credits:', localData.suscripcion.creditos_eventos_restantes);
+      console.log(isEditing ? '[CrearEvento] Updating event...' : '[CrearEvento] Creating event...');
+      if (!isEditing && localData?.suscripcion) {
+        console.log('[CrearEvento] Current credits:', localData.suscripcion.creditos_eventos_restantes);
+      }
 
-      let imagenUrl = null;
+      let imagenUrl = imagenExistente; // Keep existing image by default
+      
+      // Only upload new image if one was selected
       if (imagen) {
-        imagenUrl = await uploadImage(imagen);
-        if (!imagenUrl) {
+        const uploadedUrl = await uploadImage(imagen);
+        if (!uploadedUrl) {
           setLoading(false);
           return;
         }
+        imagenUrl = uploadedUrl;
       }
 
       const precioFinal = esGratis ? 0 : (precio ? parseFloat(precio) : null);
-      const fechaFormateada = formatDate(fecha);
-      const horaFormateada = formatTime(hora);
+      const fechaInicioFormateada = formatDate(fechaInicio);
+      const horaInicioFormateada = formatTime(horaInicio);
+      const fechaFinFormateada = formatDate(fechaFin);
+      const horaFinFormateada = formatTime(horaFin);
 
-      const { data, error } = await supabase
-        .from('eventos')
-        .insert({
-          titulo,
-          descripcion,
-          fecha: fechaFormateada,
-          hora: horaFormateada,
-          precio: precioFinal,
-          provincia: localData.provincia,
-          imagen_url: imagenUrl,
-          local_id: selectedLocalId,
-          propietario_id: user.id,
-          activo: true,
-        })
-        .select()
-        .single();
+      const eventoData = {
+        titulo,
+        descripcion,
+        fecha: fechaInicioFormateada,
+        hora: horaInicioFormateada,
+        fecha_fin: fechaFinFormateada,
+        hora_fin: horaFinFormateada,
+        precio: precioFinal,
+        imagen_url: imagenUrl,
+      };
 
-      if (error) {
-        console.error('[CrearEvento] Error creando evento:', error);
-        Alert.alert('Error', 'No se pudo crear el evento. Intenta de nuevo.');
-        return;
-      }
+      if (isEditing) {
+        // Update existing event
+        const { error } = await supabase
+          .from('eventos')
+          .update({
+            ...eventoData,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', eventoId)
+          .eq('propietario_id', user.id);
 
-      console.log('[CrearEvento] Event created successfully:', data.id);
+        if (error) {
+          console.error('[CrearEvento] Error updating event:', error);
+          Alert.alert('Error', 'No se pudo actualizar el evento. Intenta de nuevo.');
+          return;
+        }
 
-      const newCredits = Math.max(0, localData.suscripcion.creditos_eventos_restantes - 1);
-      const newEventosUsados = (localData.suscripcion.eventos_usados_mes || 0) + 1;
+        console.log('[CrearEvento] Event updated successfully');
+        console.log('[CrearEvento] ========================================');
 
-      console.log('[CrearEvento] Updating subscription...');
-      console.log('[CrearEvento] - New credits:', newCredits);
-      console.log('[CrearEvento] - New eventos usados:', newEventosUsados);
-
-      const { error: updateError } = await supabase
-        .from('suscripciones_locales')
-        .update({
-          eventos_usados_mes: newEventosUsados,
-          creditos_eventos_restantes: newCredits,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', localData.suscripcion.id);
-
-      if (updateError) {
-        console.error('[CrearEvento] Error updating credits:', updateError);
-        Alert.alert('Advertencia', 'El evento se creó pero hubo un error al actualizar los créditos.');
+        Alert.alert(
+          '✅ ¡Éxito!',
+          'Evento actualizado correctamente.',
+          [{ text: 'OK', onPress: () => router.back() }]
+        );
       } else {
-        console.log('[CrearEvento] Credits updated successfully');
+        // Create new event
+        const { data, error } = await supabase
+          .from('eventos')
+          .insert({
+            ...eventoData,
+            provincia: localData!.provincia,
+            local_id: selectedLocalId,
+            propietario_id: user.id,
+            activo: true,
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('[CrearEvento] Error creando evento:', error);
+          Alert.alert('Error', 'No se pudo crear el evento. Intenta de nuevo.');
+          return;
+        }
+
+        console.log('[CrearEvento] Event created successfully:', data.id);
+
+        const newCredits = Math.max(0, localData!.suscripcion!.creditos_eventos_restantes - 1);
+        const newEventosUsados = (localData!.suscripcion!.eventos_usados_mes || 0) + 1;
+
+        console.log('[CrearEvento] Updating subscription...');
+        console.log('[CrearEvento] - New credits:', newCredits);
+        console.log('[CrearEvento] - New eventos usados:', newEventosUsados);
+
+        const { error: updateError } = await supabase
+          .from('suscripciones_locales')
+          .update({
+            eventos_usados_mes: newEventosUsados,
+            creditos_eventos_restantes: newCredits,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', localData!.suscripcion!.id);
+
+        if (updateError) {
+          console.error('[CrearEvento] Error updating credits:', updateError);
+          Alert.alert('Advertencia', 'El evento se creó pero hubo un error al actualizar los créditos.');
+        } else {
+          console.log('[CrearEvento] Credits updated successfully');
+        }
+
+        console.log('[CrearEvento] ========================================');
+
+        Alert.alert(
+          '✅ ¡Éxito!',
+          `Evento publicado correctamente.\n\nCrédito consumido: 1\nCréditos restantes: ${newCredits}`,
+          [{ text: 'OK', onPress: () => router.back() }]
+        );
       }
-
-      console.log('[CrearEvento] ========================================');
-
-      Alert.alert(
-        '✅ ¡Éxito!',
-        `Evento publicado correctamente.\n\nCrédito consumido: 1\nCréditos restantes: ${newCredits}`,
-        [{ text: 'OK', onPress: () => router.back() }]
-      );
     } catch (error) {
       console.error('[CrearEvento] Error:', error);
-      Alert.alert('Error', 'Ocurrió un error al crear el evento');
+      Alert.alert('Error', 'Ocurrió un error al procesar el evento');
     } finally {
       setLoading(false);
     }
@@ -454,16 +663,20 @@ export default function CrearEventoScreen() {
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Crear Evento</Text>
+          <Text style={styles.headerTitle}>{isEditing ? 'Editar Evento' : 'Crear Evento'}</Text>
           <View style={{ width: 40 }} />
         </LinearGradient>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Verificando acceso...</Text>
+          <Text style={styles.loadingText}>
+            {isEditing ? 'Cargando evento...' : 'Verificando acceso...'}
+          </Text>
         </View>
       </View>
     );
   }
+
+  const displayImage = imagen || imagenExistente;
 
   return (
     <View style={styles.container}>
@@ -474,7 +687,7 @@ export default function CrearEventoScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Crear Evento</Text>
+        <Text style={styles.headerTitle}>{isEditing ? 'Editar Evento' : 'Crear Evento'}</Text>
         <View style={{ width: 40 }} />
       </LinearGradient>
 
@@ -490,7 +703,7 @@ export default function CrearEventoScreen() {
             keyboardShouldPersistTaps="handled"
           >
             <View style={styles.form}>
-              {localData && localData.suscripcion && (
+              {!isEditing && localData && localData.suscripcion && (
                 <View style={styles.planInfoBanner}>
                   <IconSymbol name="info.circle.fill" size={20} color={colors.primary} />
                   <View style={styles.planInfoText}>
@@ -506,8 +719,8 @@ export default function CrearEventoScreen() {
               )}
 
               <TouchableOpacity style={styles.imagenContainer} onPress={seleccionarImagen}>
-                {imagen ? (
-                  <Image source={{ uri: imagen }} style={styles.imagen} />
+                {displayImage ? (
+                  <Image source={{ uri: displayImage }} style={styles.imagen} />
                 ) : (
                   <View style={styles.imagenPlaceholder}>
                     <IconSymbol name="photo" size={48} color={colors.textSecondary} />
@@ -516,7 +729,7 @@ export default function CrearEventoScreen() {
                 )}
               </TouchableOpacity>
 
-              {localData && (
+              {!isEditing && localData && (
                 <View style={styles.addressContainer}>
                   <View style={styles.addressHeader}>
                     <IconSymbol name="location.fill" size={18} color={colors.primary} />
@@ -550,26 +763,62 @@ export default function CrearEventoScreen() {
                 />
               </View>
 
+              {/* Start Date and Time */}
+              <View style={styles.sectionHeader}>
+                <IconSymbol name="play.circle.fill" size={20} color={colors.primary} />
+                <Text style={styles.sectionTitle}>Inicio del Evento</Text>
+              </View>
+
               <View style={styles.row}>
                 <View style={[styles.inputContainer, { flex: 1 }]}>
-                  <Text style={styles.label}>Fecha *</Text>
+                  <Text style={styles.label}>Fecha de Inicio *</Text>
                   <TouchableOpacity
                     style={styles.dateTimeButton}
-                    onPress={() => setShowDatePicker(true)}
+                    onPress={() => setShowDateInicioPicker(true)}
                   >
                     <IconSymbol name="calendar" size={20} color={colors.primary} />
-                    <Text style={styles.dateTimeText}>{formatDisplayDate(fecha)}</Text>
+                    <Text style={styles.dateTimeText}>{formatDisplayDate(fechaInicio)}</Text>
                   </TouchableOpacity>
                 </View>
 
                 <View style={[styles.inputContainer, { flex: 1 }]}>
-                  <Text style={styles.label}>Hora *</Text>
+                  <Text style={styles.label}>Hora de Inicio *</Text>
                   <TouchableOpacity
                     style={styles.dateTimeButton}
-                    onPress={() => setShowTimePicker(true)}
+                    onPress={() => setShowTimeInicioPicker(true)}
                   >
                     <IconSymbol name="clock.fill" size={20} color={colors.primary} />
-                    <Text style={styles.dateTimeText}>{formatTime(hora)}</Text>
+                    <Text style={styles.dateTimeText}>{formatTime(horaInicio)}</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* End Date and Time */}
+              <View style={styles.sectionHeader}>
+                <IconSymbol name="stop.circle.fill" size={20} color={colors.secondary} />
+                <Text style={styles.sectionTitle}>Fin del Evento</Text>
+              </View>
+
+              <View style={styles.row}>
+                <View style={[styles.inputContainer, { flex: 1 }]}>
+                  <Text style={styles.label}>Fecha de Fin *</Text>
+                  <TouchableOpacity
+                    style={styles.dateTimeButton}
+                    onPress={() => setShowDateFinPicker(true)}
+                  >
+                    <IconSymbol name="calendar" size={20} color={colors.secondary} />
+                    <Text style={styles.dateTimeText}>{formatDisplayDate(fechaFin)}</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={[styles.inputContainer, { flex: 1 }]}>
+                  <Text style={styles.label}>Hora de Fin *</Text>
+                  <TouchableOpacity
+                    style={styles.dateTimeButton}
+                    onPress={() => setShowTimeFinPicker(true)}
+                  >
+                    <IconSymbol name="clock.fill" size={20} color={colors.secondary} />
+                    <Text style={styles.dateTimeText}>{formatTime(horaFin)}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -625,7 +874,9 @@ export default function CrearEventoScreen() {
                   {loading ? (
                     <ActivityIndicator color={colors.headerText} />
                   ) : (
-                    <Text style={styles.submitText}>Publicar Evento</Text>
+                    <Text style={styles.submitText}>
+                      {isEditing ? 'Actualizar Evento' : 'Publicar Evento'}
+                    </Text>
                   )}
                 </LinearGradient>
               </TouchableOpacity>
@@ -634,28 +885,28 @@ export default function CrearEventoScreen() {
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
 
-      {/* Date Picker Modal */}
+      {/* Date Inicio Picker Modal */}
       <Modal
-        visible={showDatePicker}
+        visible={showDateInicioPicker}
         transparent={true}
         animationType="fade"
-        onRequestClose={closeDatePicker}
+        onRequestClose={closeDateInicioPicker}
       >
-        <TouchableWithoutFeedback onPress={closeDatePicker}>
+        <TouchableWithoutFeedback onPress={closeDateInicioPicker}>
           <View style={styles.modalOverlay}>
             <TouchableWithoutFeedback>
               <View style={styles.pickerContainer}>
                 <View style={styles.pickerHeader}>
-                  <Text style={styles.pickerTitle}>Seleccionar Fecha</Text>
-                  <TouchableOpacity onPress={closeDatePicker} style={styles.closeButton}>
+                  <Text style={styles.pickerTitle}>Fecha de Inicio</Text>
+                  <TouchableOpacity onPress={closeDateInicioPicker} style={styles.closeButton}>
                     <IconSymbol name="xmark.circle.fill" size={28} color={colors.textSecondary} />
                   </TouchableOpacity>
                 </View>
                 <DateTimePicker
-                  value={fecha}
+                  value={fechaInicio}
                   mode="date"
                   display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                  onChange={onDateChange}
+                  onChange={onDateInicioChange}
                   minimumDate={new Date()}
                   textColor={colors.text}
                   style={styles.picker}
@@ -663,7 +914,7 @@ export default function CrearEventoScreen() {
                 {Platform.OS === 'ios' && (
                   <TouchableOpacity
                     style={styles.confirmButton}
-                    onPress={closeDatePicker}
+                    onPress={closeDateInicioPicker}
                   >
                     <Text style={styles.confirmButtonText}>Confirmar</Text>
                   </TouchableOpacity>
@@ -674,28 +925,28 @@ export default function CrearEventoScreen() {
         </TouchableWithoutFeedback>
       </Modal>
 
-      {/* Time Picker Modal */}
+      {/* Time Inicio Picker Modal */}
       <Modal
-        visible={showTimePicker}
+        visible={showTimeInicioPicker}
         transparent={true}
         animationType="fade"
-        onRequestClose={closeTimePicker}
+        onRequestClose={closeTimeInicioPicker}
       >
-        <TouchableWithoutFeedback onPress={closeTimePicker}>
+        <TouchableWithoutFeedback onPress={closeTimeInicioPicker}>
           <View style={styles.modalOverlay}>
             <TouchableWithoutFeedback>
               <View style={styles.pickerContainer}>
                 <View style={styles.pickerHeader}>
-                  <Text style={styles.pickerTitle}>Seleccionar Hora</Text>
-                  <TouchableOpacity onPress={closeTimePicker} style={styles.closeButton}>
+                  <Text style={styles.pickerTitle}>Hora de Inicio</Text>
+                  <TouchableOpacity onPress={closeTimeInicioPicker} style={styles.closeButton}>
                     <IconSymbol name="xmark.circle.fill" size={28} color={colors.textSecondary} />
                   </TouchableOpacity>
                 </View>
                 <DateTimePicker
-                  value={hora}
+                  value={horaInicio}
                   mode="time"
                   display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                  onChange={onTimeChange}
+                  onChange={onTimeInicioChange}
                   is24Hour={true}
                   textColor={colors.text}
                   style={styles.picker}
@@ -703,7 +954,87 @@ export default function CrearEventoScreen() {
                 {Platform.OS === 'ios' && (
                   <TouchableOpacity
                     style={styles.confirmButton}
-                    onPress={closeTimePicker}
+                    onPress={closeTimeInicioPicker}
+                  >
+                    <Text style={styles.confirmButtonText}>Confirmar</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      {/* Date Fin Picker Modal */}
+      <Modal
+        visible={showDateFinPicker}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={closeDateFinPicker}
+      >
+        <TouchableWithoutFeedback onPress={closeDateFinPicker}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={styles.pickerContainer}>
+                <View style={styles.pickerHeader}>
+                  <Text style={styles.pickerTitle}>Fecha de Fin</Text>
+                  <TouchableOpacity onPress={closeDateFinPicker} style={styles.closeButton}>
+                    <IconSymbol name="xmark.circle.fill" size={28} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                </View>
+                <DateTimePicker
+                  value={fechaFin}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={onDateFinChange}
+                  minimumDate={fechaInicio}
+                  textColor={colors.text}
+                  style={styles.picker}
+                />
+                {Platform.OS === 'ios' && (
+                  <TouchableOpacity
+                    style={styles.confirmButton}
+                    onPress={closeDateFinPicker}
+                  >
+                    <Text style={styles.confirmButtonText}>Confirmar</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      {/* Time Fin Picker Modal */}
+      <Modal
+        visible={showTimeFinPicker}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={closeTimeFinPicker}
+      >
+        <TouchableWithoutFeedback onPress={closeTimeFinPicker}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={styles.pickerContainer}>
+                <View style={styles.pickerHeader}>
+                  <Text style={styles.pickerTitle}>Hora de Fin</Text>
+                  <TouchableOpacity onPress={closeTimeFinPicker} style={styles.closeButton}>
+                    <IconSymbol name="xmark.circle.fill" size={28} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                </View>
+                <DateTimePicker
+                  value={horaFin}
+                  mode="time"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={onTimeFinChange}
+                  is24Hour={true}
+                  textColor={colors.text}
+                  style={styles.picker}
+                />
+                {Platform.OS === 'ios' && (
+                  <TouchableOpacity
+                    style={styles.confirmButton}
+                    onPress={closeTimeFinPicker}
                   >
                     <Text style={styles.confirmButtonText}>Confirmar</Text>
                   </TouchableOpacity>
@@ -833,6 +1164,18 @@ const styles = StyleSheet.create({
   textArea: {
     minHeight: 100,
     textAlignVertical: 'top',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+    marginTop: 8,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.text,
   },
   row: {
     flexDirection: 'row',

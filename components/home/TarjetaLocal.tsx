@@ -11,6 +11,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getCategoryIcon } from '@/utils/categoryIcons';
 import { localPreloader } from '@/utils/localPreloader';
 import { trackProfileView } from '@/utils/activityTracker';
+import EventBanner from '@/components/eventos/EventBanner';
+import { useLocalEvent } from '@/hooks/useLocalEvent';
 
 const { width } = Dimensions.get('window');
 
@@ -29,6 +31,9 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
   const [hasPreloaded, setHasPreloaded] = useState(false);
   const [hasSocialProfile, setHasSocialProfile] = useState(false);
   const [checkingSocialProfile, setCheckingSocialProfile] = useState(true);
+  
+  // Fetch active event for this local
+  const { evento: activeEvent } = useLocalEvent(local.id);
 
   const estado = getEstadoLocal(local);
   const imagenPrincipal = local.imagenes?.[0] || local.imagen_url;
@@ -372,6 +377,11 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
 
       {/* Contenido */}
       <View style={styles.content}>
+        {/* Event Banner */}
+        {activeEvent && (
+          <EventBanner evento={activeEvent} compact={true} />
+        )}
+        
         <View style={styles.header}>
           <Text style={styles.nombre} numberOfLines={1}>
             {local.nombre}

@@ -278,7 +278,9 @@ export interface Evento {
   titulo: string;
   descripcion: string;
   fecha: string;
+  fecha_fin?: string | null;
   hora: string;
+  hora_fin?: string | null;
   precio?: number | null;
   imagen: string;
   localNombre: string;

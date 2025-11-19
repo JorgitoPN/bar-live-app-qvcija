@@ -25,6 +25,8 @@ import { calcularTiempoHasta, formatDayName, getEstadoLocal } from '@/utils/time
 import ImageGalleryModal from '@/components/detalle/ImageGalleryModal';
 import { getCategoryIcon } from '@/utils/categoryIcons';
 import { localPreloader } from '@/utils/localPreloader';
+import EventBanner from '@/components/eventos/EventBanner';
+import { useLocalEvent } from '@/hooks/useLocalEvent';
 
 const { width } = Dimensions.get('window');
 
@@ -627,6 +629,9 @@ export default function DetalleLocalScreen() {
   const [showGalleryModal, setShowGalleryModal] = useState(false);
   const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
   const [expandedReviews, setExpandedReviews] = useState<Set<number>>(new Set());
+  
+  // Fetch active event for this local
+  const { evento: activeEvent } = useLocalEvent(params.id as string);
 
   // FIXED: Wrap cargarLocal in useCallback
   const cargarLocal = useCallback(async () => {
@@ -1121,6 +1126,13 @@ export default function DetalleLocalScreen() {
 
         {/* Información Principal */}
         <View style={styles.mainInfo}>
+          {/* Event Banner */}
+          {activeEvent && (
+            <View style={{ marginBottom: 20 }}>
+              <EventBanner evento={activeEvent} compact={false} />
+            </View>
+          )}
+          
           <Text style={styles.nombre}>{local.nombre}</Text>
 
           {/* Categorías del local */}

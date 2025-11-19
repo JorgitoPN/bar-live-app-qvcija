@@ -11,7 +11,9 @@ interface EventoCardProps {
     titulo: string;
     descripcion?: string | null;
     fecha: string;
+    fecha_fin?: string | null;
     hora: string;
+    hora_fin?: string | null;
     precio?: number | null;
     imagen_url?: string | null;
     local_id?: string | null;
