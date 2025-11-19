@@ -98,15 +98,6 @@ export default function PanelAnalisisScreen() {
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('30d');
   const [generatingRecommendations, setGeneratingRecommendations] = useState(false);
   const [expandedRecommendation, setExpandedRecommendation] = useState<string | null>(null);
-  const [renderTime, setRenderTime] = useState(new Date());
-
-  // Update render time every second to prove the component is live
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setRenderTime(new Date());
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
 
   const loadAnalyticsData = useCallback(async () => {
     if (!localId || !user) return;
@@ -525,7 +516,7 @@ export default function PanelAnalisisScreen() {
   if (!analyticsData) {
     return (
       <View style={[styles.container, styles.centerContent]}>
-        <IconSymbol name="exclamationmark.triangle" size={64} color={colors.textSecondary} />
+        <IconSymbol ios_icon_name="exclamationmark.triangle" android_material_icon_name="warning" size={64} color={colors.textSecondary} />
         <Text style={[styles.loadingText, { marginTop: 16, textAlign: 'center' }]}>
           No se pudieron cargar las analíticas
         </Text>
@@ -546,12 +537,11 @@ export default function PanelAnalisisScreen() {
       >
         <View style={styles.headerRow}>
           <TouchableOpacity style={styles.headerBackButton} onPress={() => router.back()}>
-            <IconSymbol name="chevron.left" size={28} color="#FFFFFF" />
+            <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={28} color="#FFFFFF" />
           </TouchableOpacity>
           <View style={styles.headerContent}>
             <Text style={styles.headerTitle}>Panel de Análisis</Text>
             <Text style={styles.headerSubtitle}>{analyticsData.local.nombre}</Text>
-            <Text style={styles.liveIndicator}>🔴 LIVE: {renderTime.toLocaleTimeString()}</Text>
           </View>
           <View style={styles.headerActions}>
             <TouchableOpacity
@@ -562,7 +552,7 @@ export default function PanelAnalisisScreen() {
               {generatingRecommendations ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
-                <IconSymbol name="sparkles" size={20} color="#FFFFFF" />
+                <IconSymbol ios_icon_name="sparkles" android_material_icon_name="auto_awesome" size={20} color="#FFFFFF" />
               )}
             </TouchableOpacity>
           </View>
@@ -594,32 +584,32 @@ export default function PanelAnalisisScreen() {
         <View style={styles.centeredContainer}>
           <View style={styles.metricsGrid}>
             <View style={styles.metricCard}>
-              <IconSymbol name="eye.fill" size={20} color="#3B82F6" />
+              <IconSymbol ios_icon_name="eye.fill" android_material_icon_name="visibility" size={20} color="#3B82F6" />
               <Text style={styles.metricValue}>{analyticsData.stats.total_views.toLocaleString()}</Text>
               <Text style={styles.metricLabel}>Vistas</Text>
             </View>
             <View style={styles.metricCard}>
-              <IconSymbol name="heart.fill" size={20} color="#EF4444" />
+              <IconSymbol ios_icon_name="heart.fill" android_material_icon_name="favorite" size={20} color="#EF4444" />
               <Text style={styles.metricValue}>{analyticsData.stats.total_likes.toLocaleString()}</Text>
               <Text style={styles.metricLabel}>Likes</Text>
             </View>
             <View style={styles.metricCard}>
-              <IconSymbol name="message.fill" size={20} color="#10B981" />
+              <IconSymbol ios_icon_name="message.fill" android_material_icon_name="chat" size={20} color="#10B981" />
               <Text style={styles.metricValue}>{analyticsData.stats.total_comments.toLocaleString()}</Text>
               <Text style={styles.metricLabel}>Comentarios</Text>
             </View>
             <View style={styles.metricCard}>
-              <IconSymbol name="arrow.up" size={20} color="#F59E0B" />
+              <IconSymbol ios_icon_name="arrow.up" android_material_icon_name="trending_up" size={20} color="#F59E0B" />
               <Text style={styles.metricValue}>{analyticsData.stats.engagement_rate.toFixed(1)}%</Text>
               <Text style={styles.metricLabel}>Engagement</Text>
             </View>
             <View style={styles.metricCard}>
-              <IconSymbol name="person.2.fill" size={20} color="#8B5CF6" />
+              <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={20} color="#8B5CF6" />
               <Text style={styles.metricValue}>{analyticsData.stats.nuevos_seguidores.toLocaleString()}</Text>
               <Text style={styles.metricLabel}>Seguidores</Text>
             </View>
             <View style={styles.metricCard}>
-              <IconSymbol name="antenna.radiowaves.left.and.right" size={20} color="#06B6D4" />
+              <IconSymbol ios_icon_name="antenna.radiowaves.left.and.right" android_material_icon_name="signal_cellular_alt" size={20} color="#06B6D4" />
               <Text style={styles.metricValue}>{analyticsData.stats.reach.toLocaleString()}</Text>
               <Text style={styles.metricLabel}>Alcance</Text>
             </View>
@@ -632,7 +622,7 @@ export default function PanelAnalisisScreen() {
                   colors={['#F59E0B', '#D97706']}
                   style={styles.aiIconGradient}
                 >
-                  <IconSymbol name="sparkles" size={18} color="#FFFFFF" />
+                  <IconSymbol ios_icon_name="sparkles" android_material_icon_name="auto_awesome" size={18} color="#FFFFFF" />
                 </LinearGradient>
                 <Text style={styles.aiTitle}>Recomendaciones IA</Text>
                 {recommendations.length > 0 && (
@@ -660,7 +650,7 @@ export default function PanelAnalisisScreen() {
                     <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : (
                     <React.Fragment>
-                      <IconSymbol name="sparkles" size={18} color="#FFFFFF" />
+                      <IconSymbol ios_icon_name="sparkles" android_material_icon_name="auto_awesome" size={18} color="#FFFFFF" />
                       <Text style={styles.generateText}>Generar Recomendaciones</Text>
                     </React.Fragment>
                   )}
@@ -678,7 +668,8 @@ export default function PanelAnalisisScreen() {
                       <View style={styles.recTitleRow}>
                         <View style={[styles.recIconCircle, { backgroundColor: getPriorityColor(rec.prioridad) }]}>
                           <IconSymbol
-                            name={getPriorityIcon(rec.prioridad)}
+                            ios_icon_name={getPriorityIcon(rec.prioridad)}
+                            android_material_icon_name={rec.prioridad === 'urgente' ? 'warning' : rec.prioridad === 'alta' ? 'star' : rec.prioridad === 'media' ? 'lightbulb' : 'info'}
                             size={14}
                             color="#FFFFFF"
                           />
@@ -688,7 +679,8 @@ export default function PanelAnalisisScreen() {
                         </Text>
                       </View>
                       <IconSymbol
-                        name={expandedRecommendation === rec.id ? 'chevron.up' : 'chevron.down'}
+                        ios_icon_name={expandedRecommendation === rec.id ? 'chevron.up' : 'chevron.down'}
+                        android_material_icon_name={expandedRecommendation === rec.id ? 'expand_less' : 'expand_more'}
                         size={18}
                         color={colors.textSecondary}
                       />
@@ -712,11 +704,11 @@ export default function PanelAnalisisScreen() {
 
                         <View style={styles.recFooter}>
                           <View style={styles.impactBadge}>
-                            <IconSymbol name="arrow.up" size={12} color="#065F46" />
+                            <IconSymbol ios_icon_name="arrow.up" android_material_icon_name="trending_up" size={12} color="#065F46" />
                             <Text style={styles.impactText}>{rec.impacto_estimado}</Text>
                           </View>
                           <View style={styles.confidenceBadge}>
-                            <IconSymbol name="checkmark.circle.fill" size={12} color="#1E40AF" />
+                            <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={12} color="#1E40AF" />
                             <Text style={styles.confidenceText}>
                               {Math.round(rec.confianza * 100)}%
                             </Text>
@@ -732,7 +724,7 @@ export default function PanelAnalisisScreen() {
                   onPress={generateRecommendations}
                   disabled={generatingRecommendations}
                 >
-                  <IconSymbol name="arrow.clockwise" size={16} color={colors.primary} />
+                  <IconSymbol ios_icon_name="arrow.clockwise" android_material_icon_name="refresh" size={16} color={colors.primary} />
                   <Text style={styles.refreshText}>Actualizar</Text>
                 </TouchableOpacity>
               </React.Fragment>
@@ -741,7 +733,7 @@ export default function PanelAnalisisScreen() {
 
           <View style={styles.compactCard}>
             <View style={styles.compactCardHeader}>
-              <IconSymbol name="clock.fill" size={20} color="#F59E0B" />
+              <IconSymbol ios_icon_name="clock.fill" android_material_icon_name="schedule" size={20} color="#F59E0B" />
               <Text style={styles.compactCardTitle}>Mejores Momentos</Text>
             </View>
             <View style={styles.timesRow}>
@@ -773,22 +765,22 @@ export default function PanelAnalisisScreen() {
 
           <View style={styles.compactCard}>
             <View style={styles.compactCardHeader}>
-              <IconSymbol name="square.grid.3x3" size={20} color="#8B5CF6" />
+              <IconSymbol ios_icon_name="square.grid.3x3" android_material_icon_name="grid_view" size={20} color="#8B5CF6" />
               <Text style={styles.compactCardTitle}>Resumen de Contenido</Text>
             </View>
             <View style={styles.contentRow}>
               <View style={styles.contentItem}>
-                <IconSymbol name="photo.fill" size={24} color={colors.primary} />
+                <IconSymbol ios_icon_name="photo.fill" android_material_icon_name="photo" size={24} color={colors.primary} />
                 <Text style={styles.contentValue}>{analyticsData.stats.total_posts}</Text>
                 <Text style={styles.contentLabel}>Posts</Text>
               </View>
               <View style={styles.contentItem}>
-                <IconSymbol name="camera.fill" size={24} color="#8B5CF6" />
+                <IconSymbol ios_icon_name="camera.fill" android_material_icon_name="camera_alt" size={24} color="#8B5CF6" />
                 <Text style={styles.contentValue}>{analyticsData.stats.total_stories}</Text>
                 <Text style={styles.contentLabel}>Historias</Text>
               </View>
               <View style={styles.contentItem}>
-                <IconSymbol name="calendar" size={24} color="#F59E0B" />
+                <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={24} color="#F59E0B" />
                 <Text style={styles.contentValue}>{analyticsData.stats.total_eventos}</Text>
                 <Text style={styles.contentLabel}>Eventos</Text>
               </View>
@@ -797,22 +789,22 @@ export default function PanelAnalisisScreen() {
 
           <View style={styles.compactCard}>
             <View style={styles.compactCardHeader}>
-              <IconSymbol name="person.2.fill" size={20} color={colors.primary} />
+              <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={20} color={colors.primary} />
               <Text style={styles.compactCardTitle}>Tu Audiencia</Text>
             </View>
             <View style={styles.audienceGrid}>
               <View style={styles.audienceItem}>
-                <IconSymbol name="person.2.fill" size={20} color={colors.primary} />
+                <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={20} color={colors.primary} />
                 <Text style={styles.audienceValue}>{analyticsData.local.seguidores.toLocaleString()}</Text>
                 <Text style={styles.audienceLabel}>Seguidores</Text>
               </View>
               <View style={styles.audienceItem}>
-                <IconSymbol name="location.fill" size={20} color="#10B981" />
+                <IconSymbol ios_icon_name="location.fill" android_material_icon_name="location_on" size={20} color="#10B981" />
                 <Text style={styles.audienceValue}>{analyticsData.local.check_ins.toLocaleString()}</Text>
                 <Text style={styles.audienceLabel}>Check-ins</Text>
               </View>
               <View style={styles.audienceItem}>
-                <IconSymbol name="star.fill" size={20} color="#F59E0B" />
+                <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={20} color="#F59E0B" />
                 <Text style={styles.audienceValue}>{analyticsData.local.rating.toFixed(1)}</Text>
                 <Text style={styles.audienceLabel}>Rating</Text>
               </View>
@@ -820,7 +812,7 @@ export default function PanelAnalisisScreen() {
           </View>
 
           <View style={styles.infoFooter}>
-            <IconSymbol name="lightbulb.fill" size={18} color="#F59E0B" />
+            <IconSymbol ios_icon_name="lightbulb.fill" android_material_icon_name="lightbulb" size={18} color="#F59E0B" />
             <Text style={styles.infoText}>
               Las recomendaciones de IA analizan tus datos para sugerirte cuándo publicar eventos, 
               destacar tu local y optimizar tu estrategia de contenido.
@@ -871,13 +863,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#FFFFFF',
     opacity: 0.9,
-    marginTop: 2,
-  },
-  liveIndicator: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    opacity: 0.85,
     marginTop: 2,
   },
   headerActions: {
@@ -932,7 +917,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 100,
+    paddingBottom: 120,
   },
   centeredContainer: {
     maxWidth: CONTENT_MAX_WIDTH,
