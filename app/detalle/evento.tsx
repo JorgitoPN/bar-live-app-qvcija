@@ -22,7 +22,7 @@ import { colors, commonStyles } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { getCategoryIcon } from '@/utils/categoryIcons';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 interface EventoData {
   id: string;
@@ -54,8 +54,8 @@ export default function DetalleEventoScreen() {
 
   // Animations
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
-  const scaleAnim = React.useRef(new Animated.Value(0.9)).current;
-  const slideAnim = React.useRef(new Animated.Value(50)).current;
+  const scaleAnim = React.useRef(new Animated.Value(0.95)).current;
+  const slideAnim = React.useRef(new Animated.Value(30)).current;
 
   useEffect(() => {
     cargarEvento();
@@ -68,7 +68,7 @@ export default function DetalleEventoScreen() {
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
-          duration: 600,
+          duration: 500,
           useNativeDriver: true,
         }),
         Animated.spring(scaleAnim, {
@@ -79,7 +79,7 @@ export default function DetalleEventoScreen() {
         }),
         Animated.timing(slideAnim, {
           toValue: 0,
-          duration: 500,
+          duration: 400,
           useNativeDriver: true,
         }),
       ]).start();
@@ -312,7 +312,8 @@ export default function DetalleEventoScreen() {
       return;
     }
 
-    router.push(`/perfil/local?localId=${evento.local_id}`);
+    // Navigate to local details page instead of profile
+    router.push(`/detalle/local?id=${evento.local_id}`);
   };
 
   const { dia, mes } = evento ? formatDiaMes(evento.fecha) : { dia: '', mes: '' };
@@ -346,128 +347,129 @@ export default function DetalleEventoScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Concert Poster Style Header */}
-        <Animated.View 
-          style={[
-            styles.posterContainer,
-            {
-              opacity: fadeAnim,
-              transform: [{ scale: scaleAnim }],
-            }
-          ]}
-        >
-          <LinearGradient
-            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.posterGradient}
-          >
-            {/* Back Button */}
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => router.back()}
-            >
-              <View style={styles.backButtonCircle}>
-                <IconSymbol 
-                  ios_icon_name="chevron.left" 
-                  android_material_icon_name="arrow_back"
-                  size={24} 
-                  color={colors.text} 
-                />
-              </View>
-            </TouchableOpacity>
-
-            {/* Destacado Badge */}
-            {evento.destacado && (
-              <View style={styles.destacadoBadge}>
-                <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={14} color="#92400E" />
-                <Text style={styles.destacadoText}>DESTACADO</Text>
-              </View>
-            )}
-
-            {/* Date Badge - Festival Style */}
-            <View style={styles.dateBadge}>
-              <Text style={styles.dateDia}>{dia}</Text>
-              <Text style={styles.dateMes}>{mes}</Text>
-            </View>
-
-            {/* Event Image */}
-            <View style={styles.imageWrapper}>
-              {evento.imagen_url ? (
-                <Image source={{ uri: evento.imagen_url }} style={styles.eventImage} />
-              ) : (
-                <View style={[styles.eventImage, styles.imagePlaceholder]}>
-                  <IconSymbol 
-                    ios_icon_name="music.note" 
-                    android_material_icon_name="music_note"
-                    size={80} 
-                    color="rgba(255,255,255,0.5)" 
-                  />
-                </View>
-              )}
-              {/* Overlay gradient for better text visibility */}
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent} 
+        showsVerticalScrollIndicator={false}
+        bounces={true}
+      >
+        {/* Full Width Cover Image */}
+        <View style={styles.coverImageContainer}>
+          {evento.imagen_url ? (
+            <Image 
+              source={{ uri: evento.imagen_url }} 
+              style={styles.coverImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={[styles.coverImage, styles.coverImagePlaceholder]}>
               <LinearGradient
-                colors={['transparent', 'rgba(0,0,0,0.7)']}
-                style={styles.imageOverlay}
+                colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+              <IconSymbol 
+                ios_icon_name="music.note" 
+                android_material_icon_name="music_note"
+                size={100} 
+                color="rgba(255,255,255,0.3)" 
               />
             </View>
+          )}
+          
+          {/* Dark gradient overlay for better text visibility */}
+          <LinearGradient
+            colors={['rgba(0,0,0,0.6)', 'transparent', 'rgba(0,0,0,0.8)']}
+            style={styles.coverOverlay}
+          />
 
-            {/* Event Title - Concert Poster Style */}
-            <View style={styles.titleContainer}>
+          {/* Back Button - Highly Visible */}
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+            activeOpacity={0.7}
+          >
+            <View style={styles.backButtonContainer}>
+              <IconSymbol 
+                ios_icon_name="chevron.left" 
+                android_material_icon_name="arrow_back"
+                size={28} 
+                color={colors.white} 
+              />
+            </View>
+          </TouchableOpacity>
+
+          {/* Destacado Badge */}
+          {evento.destacado && (
+            <View style={styles.destacadoBadge}>
+              <IconSymbol 
+                ios_icon_name="star.fill" 
+                android_material_icon_name="star" 
+                size={16} 
+                color="#92400E" 
+              />
+              <Text style={styles.destacadoText}>DESTACADO</Text>
+            </View>
+          )}
+
+          {/* Event Title Overlay */}
+          <View style={styles.titleOverlay}>
+            <Animated.View 
+              style={[
+                styles.titleContainer,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ scale: scaleAnim }],
+                }
+              ]}
+            >
               <Text style={styles.eventTitle}>{evento.titulo}</Text>
               <View style={styles.titleUnderline} />
-            </View>
+            </Animated.View>
 
-            {/* Time and Location Info */}
-            <View style={styles.infoContainer}>
-              <View style={styles.infoItem}>
-                <IconSymbol 
-                  ios_icon_name="clock.fill" 
-                  android_material_icon_name="schedule"
-                  size={20} 
-                  color={colors.white} 
-                />
-                <Text style={styles.infoText}>{formatHora(evento.hora)}</Text>
+            {/* Date and Time Info */}
+            <Animated.View 
+              style={[
+                styles.dateTimeContainer,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateY: slideAnim }],
+                }
+              ]}
+            >
+              <View style={styles.dateBox}>
+                <Text style={styles.dateDia}>{dia}</Text>
+                <Text style={styles.dateMes}>{mes}</Text>
               </View>
               
-              {evento.local_nombre && (
-                <View style={styles.infoItem}>
+              <View style={styles.timeLocationInfo}>
+                <View style={styles.infoRow}>
                   <IconSymbol 
-                    ios_icon_name="location.fill" 
-                    android_material_icon_name="location_on"
+                    ios_icon_name="clock.fill" 
+                    android_material_icon_name="schedule"
                     size={20} 
                     color={colors.white} 
                   />
-                  <Text style={styles.infoText} numberOfLines={1}>
-                    {evento.local_nombre}
-                  </Text>
+                  <Text style={styles.infoText}>{formatHora(evento.hora)}</Text>
                 </View>
-              )}
-            </View>
-
-            {/* Price - Ticket Style */}
-            {evento.precio !== null && (
-              <View style={styles.priceContainer}>
-                <View style={styles.priceTicket}>
-                  {evento.precio === 0 ? (
-                    <Text style={styles.priceText}>ENTRADA GRATUITA</Text>
-                  ) : (
-                    <React.Fragment>
-                      <Text style={styles.priceLabel}>PRECIO</Text>
-                      <Text style={styles.priceAmount}>{evento.precio}€</Text>
-                      <Text style={styles.priceNote}>Informativo</Text>
-                    </React.Fragment>
-                  )}
-                </View>
+                
+                {evento.local_nombre && (
+                  <View style={styles.infoRow}>
+                    <IconSymbol 
+                      ios_icon_name="location.fill" 
+                      android_material_icon_name="location_on"
+                      size={20} 
+                      color={colors.white} 
+                    />
+                    <Text style={styles.infoText} numberOfLines={1}>
+                      {evento.local_nombre}
+                    </Text>
+                  </View>
+                )}
               </View>
-            )}
-
-            {/* Decorative Elements - Festival Style */}
-            <View style={styles.decorativeTop} />
-            <View style={styles.decorativeBottom} />
-          </LinearGradient>
-        </Animated.View>
+            </Animated.View>
+          </View>
+        </View>
 
         {/* Content Section */}
         <Animated.View 
@@ -475,44 +477,73 @@ export default function DetalleEventoScreen() {
             styles.contentSection,
             {
               opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
             }
           ]}
         >
-          {/* Local Info Card - NEW */}
+          {/* Price Card */}
+          {evento.precio !== null && (
+            <View style={styles.priceCard}>
+              <LinearGradient
+                colors={[colors.primary, colors.secondary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.priceGradient}
+              >
+                {evento.precio === 0 ? (
+                  <React.Fragment>
+                    <IconSymbol 
+                      ios_icon_name="gift.fill" 
+                      android_material_icon_name="card_giftcard"
+                      size={32} 
+                      color={colors.white} 
+                    />
+                    <Text style={styles.priceFreeText}>ENTRADA GRATUITA</Text>
+                  </React.Fragment>
+                ) : (
+                  <React.Fragment>
+                    <Text style={styles.priceLabel}>PRECIO</Text>
+                    <Text style={styles.priceAmount}>{evento.precio}€</Text>
+                    <Text style={styles.priceNote}>Precio informativo</Text>
+                  </React.Fragment>
+                )}
+              </LinearGradient>
+            </View>
+          )}
+
+          {/* Local Info Card */}
           {evento.local_nombre && (
-            <View style={styles.localInfoCard}>
-              <View style={styles.localInfoHeader}>
+            <View style={styles.localCard}>
+              <View style={styles.localCardHeader}>
                 <IconSymbol 
                   ios_icon_name="building.2.fill" 
                   android_material_icon_name="store"
                   size={24} 
                   color={colors.primary} 
                 />
-                <Text style={styles.localInfoTitle}>INFORMACIÓN DEL LOCAL</Text>
+                <Text style={styles.localCardTitle}>INFORMACIÓN DEL LOCAL</Text>
               </View>
               
-              <View style={styles.localInfoContent}>
-                {/* Mini Local Cover Photo */}
+              <View style={styles.localCardContent}>
+                {/* Mini Local Photo */}
                 {evento.local_imagen_url && (
-                  <View style={styles.localMiniPhotoContainer}>
+                  <View style={styles.localPhotoContainer}>
                     <Image 
                       source={{ uri: evento.local_imagen_url }} 
-                      style={styles.localMiniPhoto}
+                      style={styles.localPhoto}
                     />
                   </View>
                 )}
                 
-                <View style={styles.localInfoDetails}>
+                <View style={styles.localDetails}>
                   <Text style={styles.localName}>{evento.local_nombre}</Text>
                   
-                  {/* Local Category */}
+                  {/* Category Badge */}
                   {evento.local_categoria && (
-                    <View style={styles.localCategoryBadge}>
-                      <Text style={styles.localCategoryIcon}>
+                    <View style={styles.categoryBadge}>
+                      <Text style={styles.categoryIcon}>
                         {getCategoryIcon(evento.local_categoria)}
                       </Text>
-                      <Text style={styles.localCategoryText}>
+                      <Text style={styles.categoryText}>
                         {evento.local_categoria.charAt(0).toUpperCase() + evento.local_categoria.slice(1)}
                       </Text>
                     </View>
@@ -520,11 +551,11 @@ export default function DetalleEventoScreen() {
                   
                   {/* Distance */}
                   {distance !== null && (
-                    <View style={styles.distanceContainer}>
+                    <View style={styles.distanceRow}>
                       <IconSymbol 
                         ios_icon_name="location.circle.fill" 
                         android_material_icon_name="my_location"
-                        size={16} 
+                        size={18} 
                         color={colors.secondary} 
                       />
                       <Text style={styles.distanceText}>
@@ -544,6 +575,7 @@ export default function DetalleEventoScreen() {
             <TouchableOpacity
               style={styles.actionButton}
               onPress={handleComoLlegar}
+              activeOpacity={0.8}
             >
               <LinearGradient
                 colors={[colors.headerGradientStart, colors.headerGradientEnd]}
@@ -564,6 +596,7 @@ export default function DetalleEventoScreen() {
             <TouchableOpacity
               style={styles.actionButton}
               onPress={handleVerLocal}
+              activeOpacity={0.8}
             >
               <LinearGradient
                 colors={[colors.secondary, colors.primary]}
@@ -583,38 +616,40 @@ export default function DetalleEventoScreen() {
           </View>
 
           {/* Full Date */}
-          <View style={styles.fullDateContainer}>
+          <View style={styles.infoCard}>
             <IconSymbol 
               ios_icon_name="calendar" 
               android_material_icon_name="calendar_today"
-              size={20} 
+              size={22} 
               color={colors.primary} 
             />
-            <Text style={styles.fullDateText}>{formatFecha(evento.fecha)}</Text>
+            <Text style={styles.infoCardText}>{formatFecha(evento.fecha)}</Text>
           </View>
 
           {/* Address */}
           {getLocalAddress() && (
-            <View style={styles.addressContainer}>
+            <View style={styles.infoCard}>
               <IconSymbol 
                 ios_icon_name="mappin.circle.fill" 
                 android_material_icon_name="place"
-                size={20} 
+                size={22} 
                 color={colors.primary} 
               />
-              <Text style={styles.addressText}>{getLocalAddress()}</Text>
+              <Text style={styles.infoCardText}>{getLocalAddress()}</Text>
             </View>
           )}
 
           {/* Description */}
           {evento.descripcion && (
-            <View style={styles.descriptionContainer}>
+            <View style={styles.descriptionSection}>
               <View style={styles.sectionHeader}>
-                <View style={styles.sectionHeaderLine} />
+                <View style={styles.sectionLine} />
                 <Text style={styles.sectionTitle}>SOBRE EL EVENTO</Text>
-                <View style={styles.sectionHeaderLine} />
+                <View style={styles.sectionLine} />
               </View>
-              <Text style={styles.descripcion}>{evento.descripcion}</Text>
+              <View style={styles.descriptionCard}>
+                <Text style={styles.descriptionText}>{evento.descripcion}</Text>
+              </View>
             </View>
           )}
 
@@ -623,10 +658,10 @@ export default function DetalleEventoScreen() {
             <IconSymbol 
               ios_icon_name="info.circle.fill" 
               android_material_icon_name="info"
-              size={24} 
+              size={28} 
               color={colors.primary} 
             />
-            <View style={{ flex: 1, marginLeft: 12 }}>
+            <View style={styles.infoBoxContent}>
               <Text style={styles.infoBoxTitle}>Información importante</Text>
               <Text style={styles.infoBoxText}>
                 Para más información sobre este evento, horarios y disponibilidad, 
@@ -646,7 +681,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   scrollContent: {
-    paddingBottom: 100, // Space for bottom navigation
+    paddingBottom: 120, // Space for bottom navigation
   },
   loadingContainer: {
     flex: 1,
@@ -675,82 +710,133 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   
-  // Concert Poster Styles
-  posterContainer: {
-    position: 'relative',
-    marginBottom: 20,
-  },
-  posterGradient: {
-    paddingTop: 50,
-    paddingBottom: 30,
+  // Full Width Cover Image
+  coverImageContainer: {
+    width: width,
+    height: height * 0.6,
     position: 'relative',
   },
-  backButton: {
-    position: 'absolute',
-    top: 50,
-    left: 16,
-    zIndex: 10,
+  coverImage: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: colors.cardBorder,
   },
-  backButtonCircle: {
-    backgroundColor: colors.white,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  coverImagePlaceholder: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  coverOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  
+  // Back Button - Highly Visible
+  backButton: {
+    position: 'absolute',
+    top: Platform.OS === 'android' ? 48 : 60,
+    left: 16,
+    zIndex: 100,
+  },
+  backButtonContainer: {
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.3)',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.5,
+        shadowRadius: 8,
       },
       android: {
-        elevation: 4,
+        elevation: 8,
       },
     }),
   },
+  
   destacadoBadge: {
     position: 'absolute',
-    top: 50,
+    top: Platform.OS === 'android' ? 48 : 60,
     right: 16,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.badgeDestacado,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 20,
-    gap: 4,
-    zIndex: 10,
+    gap: 6,
+    zIndex: 100,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
       },
       android: {
-        elevation: 4,
+        elevation: 6,
       },
     }),
   },
   destacadoText: {
     color: colors.badgeDestacadoText,
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: 'bold',
     letterSpacing: 0.5,
   },
-  dateBadge: {
+  
+  // Title Overlay
+  titleOverlay: {
     position: 'absolute',
-    top: 100,
-    left: 16,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 20,
+  },
+  titleContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  eventTitle: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: colors.white,
+    textAlign: 'center',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 3 },
+    textShadowRadius: 6,
+    paddingHorizontal: 10,
+  },
+  titleUnderline: {
+    width: 100,
+    height: 4,
     backgroundColor: colors.white,
-    width: 60,
-    height: 70,
-    borderRadius: 8,
+    marginTop: 12,
+    borderRadius: 2,
+  },
+  
+  dateTimeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  dateBox: {
+    backgroundColor: colors.white,
+    width: 70,
+    height: 80,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 10,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -764,109 +850,46 @@ const styles = StyleSheet.create({
     }),
   },
   dateDia: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 'bold',
     color: colors.primary,
-    lineHeight: 32,
+    lineHeight: 36,
   },
   dateMes: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
     color: colors.textSecondary,
     letterSpacing: 1,
   },
-  imageWrapper: {
-    marginTop: 20,
-    marginHorizontal: 20,
-    borderRadius: 16,
-    overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.4,
-        shadowRadius: 16,
-      },
-      android: {
-        elevation: 12,
-      },
-    }),
+  timeLocationInfo: {
+    flex: 1,
+    gap: 10,
   },
-  eventImage: {
-    width: '100%',
-    height: 280,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-  },
-  imagePlaceholder: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  imageOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 100,
-  },
-  titleContainer: {
-    marginTop: 24,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-  },
-  eventTitle: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: colors.white,
-    textAlign: 'center',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
-  titleUnderline: {
-    width: 80,
-    height: 3,
-    backgroundColor: colors.white,
-    marginTop: 12,
-    borderRadius: 2,
-  },
-  infoContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 20,
-    paddingHorizontal: 20,
-    gap: 24,
-  },
-  infoItem: {
+  infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
   infoText: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '600',
     color: colors.white,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+    flex: 1,
   },
-  priceContainer: {
-    marginTop: 24,
-    paddingHorizontal: 20,
-    alignItems: 'center',
+  
+  // Content Section
+  contentSection: {
+    padding: 20,
   },
-  priceTicket: {
-    backgroundColor: colors.white,
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    minWidth: 180,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.3)',
-    borderStyle: 'dashed',
+  
+  // Price Card
+  priceCard: {
+    marginBottom: 20,
+    borderRadius: 16,
+    overflow: 'hidden',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -879,60 +902,41 @@ const styles = StyleSheet.create({
       },
     }),
   },
+  priceGradient: {
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    gap: 8,
+  },
   priceLabel: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '600',
-    color: colors.textSecondary,
-    letterSpacing: 1,
+    color: colors.white,
+    letterSpacing: 1.5,
+    opacity: 0.9,
   },
   priceAmount: {
-    fontSize: 36,
+    fontSize: 48,
     fontWeight: 'bold',
-    color: colors.primary,
-    marginVertical: 4,
+    color: colors.white,
   },
   priceNote: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    fontStyle: 'italic',
+    fontSize: 12,
+    color: colors.white,
+    opacity: 0.8,
   },
-  priceText: {
-    fontSize: 16,
+  priceFreeText: {
+    fontSize: 22,
     fontWeight: 'bold',
-    color: colors.primary,
-    letterSpacing: 1,
-  },
-  decorativeTop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 20,
-    backgroundColor: 'transparent',
-    borderBottomWidth: 2,
-    borderBottomColor: 'rgba(255,255,255,0.2)',
-  },
-  decorativeBottom: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 20,
-    backgroundColor: 'transparent',
-    borderTopWidth: 2,
-    borderTopColor: 'rgba(255,255,255,0.2)',
+    color: colors.white,
+    letterSpacing: 2,
   },
   
-  // Content Section
-  contentSection: {
-    padding: 20,
-  },
-  
-  // Local Info Card - NEW
-  localInfoCard: {
+  // Local Card
+  localCard: {
     backgroundColor: colors.cardBackground,
     borderRadius: 16,
-    padding: 16,
+    padding: 18,
     marginBottom: 20,
     borderWidth: 1,
     borderColor: colors.cardBorder,
@@ -948,80 +952,81 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  localInfoHeader: {
+  localCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
     marginBottom: 16,
   },
-  localInfoTitle: {
-    fontSize: 14,
+  localCardTitle: {
+    fontSize: 15,
     fontWeight: 'bold',
     color: colors.primary,
-    letterSpacing: 1,
+    letterSpacing: 1.2,
   },
-  localInfoContent: {
+  localCardContent: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 14,
   },
-  localMiniPhotoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 12,
+  localPhotoContainer: {
+    width: 90,
+    height: 90,
+    borderRadius: 14,
     overflow: 'hidden',
     backgroundColor: colors.cardBorder,
   },
-  localMiniPhoto: {
+  localPhoto: {
     width: '100%',
     height: '100%',
   },
-  localInfoDetails: {
+  localDetails: {
     flex: 1,
     justifyContent: 'center',
-    gap: 8,
+    gap: 10,
   },
   localName: {
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: 'bold',
     color: colors.text,
   },
-  localCategoryBadge: {
+  categoryBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
     backgroundColor: colors.primary + '15',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+    gap: 6,
   },
-  localCategoryIcon: {
+  categoryIcon: {
+    fontSize: 16,
+  },
+  categoryText: {
     fontSize: 14,
-  },
-  localCategoryText: {
-    fontSize: 13,
     fontWeight: '600',
     color: colors.primary,
   },
-  distanceContainer: {
+  distanceRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
   distanceText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     color: colors.secondary,
   },
   
+  // Action Buttons
   actionButtons: {
     flexDirection: 'row',
     gap: 12,
-    marginBottom: 24,
+    marginBottom: 20,
   },
   actionButton: {
     flex: 1,
-    borderRadius: 12,
+    borderRadius: 14,
     overflow: 'hidden',
     ...Platform.select({
       ios: {
@@ -1039,52 +1044,40 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
+    paddingVertical: 18,
     paddingHorizontal: 16,
-    gap: 8,
+    gap: 10,
   },
   buttonText: {
     color: colors.white,
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: 'bold',
     letterSpacing: 0.5,
   },
-  fullDateContainer: {
+  
+  // Info Cards
+  infoCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 14,
     backgroundColor: colors.cardBackground,
-    padding: 16,
-    borderRadius: 12,
+    padding: 18,
+    borderRadius: 14,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
-  fullDateText: {
+  infoCardText: {
     fontSize: 16,
     color: colors.text,
     fontWeight: '600',
     flex: 1,
+    lineHeight: 24,
   },
-  addressContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    backgroundColor: colors.cardBackground,
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  addressText: {
-    fontSize: 15,
-    color: colors.text,
-    flex: 1,
-    lineHeight: 22,
-  },
-  descriptionContainer: {
-    marginBottom: 24,
+  
+  // Description Section
+  descriptionSection: {
+    marginBottom: 20,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -1092,7 +1085,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     gap: 12,
   },
-  sectionHeaderLine: {
+  sectionLine: {
     flex: 1,
     height: 2,
     backgroundColor: colors.primary,
@@ -1104,34 +1097,42 @@ const styles = StyleSheet.create({
     color: colors.primary,
     letterSpacing: 1.5,
   },
-  descripcion: {
-    fontSize: 16,
-    color: colors.text,
-    lineHeight: 26,
+  descriptionCard: {
     backgroundColor: colors.cardBackground,
-    padding: 16,
-    borderRadius: 12,
+    padding: 18,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
+  descriptionText: {
+    fontSize: 16,
+    color: colors.text,
+    lineHeight: 26,
+  },
+  
+  // Info Box
   infoBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     backgroundColor: '#F0F9FF',
     borderWidth: 1,
     borderColor: '#BAE6FD',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 14,
+    padding: 18,
+    gap: 14,
+  },
+  infoBoxContent: {
+    flex: 1,
   },
   infoBoxTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '600',
     color: '#0369A1',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   infoBoxText: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#0C4A6E',
-    lineHeight: 20,
+    lineHeight: 22,
   },
 });
