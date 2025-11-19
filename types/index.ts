@@ -279,13 +279,17 @@ export interface Evento {
   descripcion: string;
   fecha: string;
   hora: string;
-  precio?: number;
+  precio?: number | null;
   imagen: string;
   localNombre: string;
   provincia: string;
   entradasVendidas?: number;
   entradasTotales?: number;
   destacado?: boolean;
+  propietario_id?: string;
+  local_direccion?: string;
+  local_ciudad?: string;
+  activo?: boolean;
 }
 
 export interface Empleo {

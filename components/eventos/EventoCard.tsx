@@ -1,17 +1,29 @@
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
-import { Evento } from '@/types';
 import { colors } from '@/styles/commonStyles';
 import { useRouter } from 'expo-router';
 
 interface EventoCardProps {
-  evento: Evento;
+  evento: {
+    id: string;
+    titulo: string;
+    descripcion?: string | null;
+    fecha: string;
+    hora: string;
+    precio?: number | null;
+    imagen_url?: string | null;
+    local_id?: string | null;
+    provincia?: string | null;
+    destacado?: boolean;
+    activo?: boolean;
+    local_nombre?: string;
+    local_direccion?: string;
+    local_ciudad?: string;
+  };
   onPress?: () => void;
 }
-
-const { width } = Dimensions.get('window');
 
 export default function EventoCard({ evento, onPress }: EventoCardProps) {
   const router = useRouter();
@@ -25,24 +37,53 @@ export default function EventoCard({ evento, onPress }: EventoCardProps) {
   };
 
   const calcularDiasRestantes = () => {
-    const hoy = new Date();
-    const fechaEvento = new Date(evento.fecha);
-    const diff = fechaEvento.getTime() - hoy.getTime();
-    const dias = Math.ceil(diff / (1000 * 60 * 60 * 24));
-    return dias;
+    try {
+      const hoy = new Date();
+      hoy.setHours(0, 0, 0, 0);
+      const fechaEvento = new Date(evento.fecha);
+      fechaEvento.setHours(0, 0, 0, 0);
+      const diff = fechaEvento.getTime() - hoy.getTime();
+      const dias = Math.ceil(diff / (1000 * 60 * 60 * 24));
+      return dias;
+    } catch (error) {
+      console.error('[EventoCard] Error calculating days:', error);
+      return -1;
+    }
   };
 
-  const calcularPorcentajeVendido = () => {
-    if (!evento.entradasVendidas || !evento.entradasTotales) return 0;
-    return Math.round((evento.entradasVendidas / evento.entradasTotales) * 100);
+  const formatHora = (hora: string): string => {
+    try {
+      // hora comes in format "HH:MM:SS"
+      const parts = hora.split(':');
+      return `${parts[0]}:${parts[1]}`;
+    } catch (error) {
+      return hora;
+    }
+  };
+
+  const formatFecha = (fecha: string): string => {
+    try {
+      const date = new Date(fecha);
+      return date.toLocaleDateString('es-ES', {
+        day: 'numeric',
+        month: 'short',
+      });
+    } catch (error) {
+      return fecha;
+    }
   };
 
   const diasRestantes = calcularDiasRestantes();
-  const porcentajeVendido = calcularPorcentajeVendido();
 
   return (
     <TouchableOpacity style={styles.card} onPress={handlePress} activeOpacity={0.7}>
-      <Image source={{ uri: evento.imagen }} style={styles.image} />
+      {evento.imagen_url ? (
+        <Image source={{ uri: evento.imagen_url }} style={styles.image} />
+      ) : (
+        <View style={[styles.image, styles.imagePlaceholder]}>
+          <IconSymbol name="photo" size={48} color={colors.textSecondary} />
+        </View>
+      )}
       
       {evento.destacado && (
         <View style={styles.badgeDestacado}>
@@ -52,43 +93,32 @@ export default function EventoCard({ evento, onPress }: EventoCardProps) {
 
       <View style={styles.content}>
         <Text style={styles.titulo} numberOfLines={2}>{evento.titulo}</Text>
-        <Text style={styles.localNombre} numberOfLines={1}>
-          <IconSymbol name="location.fill" size={12} color={colors.textSecondary} />
-          {' '}{evento.localNombre}
-        </Text>
+        
+        {evento.local_nombre && (
+          <Text style={styles.localNombre} numberOfLines={1}>
+            <IconSymbol name="location.fill" size={12} color={colors.textSecondary} />
+            {' '}{evento.local_nombre}
+          </Text>
+        )}
 
         <View style={styles.infoRow}>
           <View style={styles.infoItem}>
             <IconSymbol name="calendar" size={14} color={colors.primary} />
-            <Text style={styles.infoText}>
-              {new Date(evento.fecha).toLocaleDateString('es-ES', {
-                day: 'numeric',
-                month: 'short',
-              })}
-            </Text>
+            <Text style={styles.infoText}>{formatFecha(evento.fecha)}</Text>
           </View>
           <View style={styles.infoItem}>
             <IconSymbol name="clock" size={14} color={colors.primary} />
-            <Text style={styles.infoText}>{evento.hora}</Text>
+            <Text style={styles.infoText}>{formatHora(evento.hora)}</Text>
           </View>
-          {evento.precio && (
+          {evento.precio !== null && evento.precio !== undefined && (
             <View style={styles.infoItem}>
               <IconSymbol name="ticket" size={14} color={colors.primary} />
-              <Text style={styles.infoText}>{evento.precio}€</Text>
+              <Text style={styles.infoText}>
+                {evento.precio === 0 ? 'Gratis' : `${evento.precio}€`}
+              </Text>
             </View>
           )}
         </View>
-
-        {evento.entradasVendidas && evento.entradasTotales && (
-          <View style={styles.entradasContainer}>
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: `${porcentajeVendido}%` }]} />
-            </View>
-            <Text style={styles.entradasText}>
-              {porcentajeVendido}% vendido • {evento.entradasVendidas}/{evento.entradasTotales} entradas
-            </Text>
-          </View>
-        )}
 
         {diasRestantes >= 0 && (
           <View style={styles.diasContainer}>
@@ -124,6 +154,10 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 200,
     backgroundColor: colors.cardBorder,
+  },
+  imagePlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   badgeDestacado: {
     position: 'absolute',
@@ -167,24 +201,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.text,
     fontWeight: '600',
-  },
-  entradasContainer: {
-    marginBottom: 12,
-  },
-  progressBar: {
-    height: 6,
-    backgroundColor: colors.cardBorder,
-    borderRadius: 3,
-    overflow: 'hidden',
-    marginBottom: 6,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: colors.primary,
-  },
-  entradasText: {
-    fontSize: 12,
-    color: colors.textSecondary,
   },
   diasContainer: {
     alignSelf: 'flex-start',
