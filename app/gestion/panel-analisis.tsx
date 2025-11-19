@@ -121,10 +121,9 @@ export default function PanelAnalisisScreen() {
         return;
       }
 
-      // 2. Verify Premium subscription - FIXED: Use separate queries to avoid ambiguous relationships
+      // 2. Verify Premium subscription
       console.log('[PanelAnalisis] Checking subscription for local:', localId);
       
-      // First, get the active subscription
       const { data: subscriptionData, error: subError } = await supabase
         .from('suscripciones_locales')
         .select('id, plan_id, estado')
@@ -160,7 +159,6 @@ export default function PanelAnalisisScreen() {
         return;
       }
 
-      // Now get the plan details separately
       const { data: planData, error: planError } = await supabase
         .from('planes_suscripcion')
         .select('nombre, precio_mensual, panel_analisis')
@@ -202,7 +200,6 @@ export default function PanelAnalisisScreen() {
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - daysAgo);
 
-      // Get posts stats
       const { data: postsData } = await supabase
         .from('posts')
         .select('id, likes, comentarios, created_at, contenido, imagen')
@@ -210,14 +207,12 @@ export default function PanelAnalisisScreen() {
         .gte('created_at', startDate.toISOString())
         .order('likes', { ascending: false });
 
-      // Get stories stats
       const { data: storiesData } = await supabase
         .from('historias')
         .select('id, created_at')
         .eq('local_id', localId)
         .gte('created_at', startDate.toISOString());
 
-      // Get story views
       const { data: storyViewsData } = await supabase
         .from('historia_views')
         .select('historia_id, viewed_at')
@@ -226,7 +221,6 @@ export default function PanelAnalisisScreen() {
           storiesData?.map((s) => s.id) || []
         );
 
-      // Get story likes
       const { data: storyLikesData } = await supabase
         .from('historia_likes')
         .select('historia_id, created_at')
@@ -235,21 +229,18 @@ export default function PanelAnalisisScreen() {
           storiesData?.map((s) => s.id) || []
         );
 
-      // Get eventos
       const { data: eventosData } = await supabase
         .from('eventos')
         .select('id, titulo, fecha, entradas_vendidas, entradas_totales')
         .eq('local_id', localId)
         .gte('created_at', startDate.toISOString());
 
-      // Get check-ins
       const { data: checkInsData } = await supabase
         .from('check_ins')
         .select('id, created_at, usuario_id')
         .eq('local_id', localId)
         .gte('created_at', startDate.toISOString());
 
-      // Get new followers
       const { data: newFollowersData } = await supabase
         .from('seguidores')
         .select('created_at')
@@ -268,24 +259,21 @@ export default function PanelAnalisisScreen() {
       const totalInteractions = totalLikes + totalComments;
       const engagementRate = totalPosts + totalStories > 0 ? ((totalInteractions / (totalPosts + totalStories)) * 100) : 0;
 
-      // Build time series data (group by day)
+      // Build time series data
       const timeSeriesMap = new Map<string, { views: number; interactions: number }>();
       
-      // Add check-ins to time series
       checkInsData?.forEach((checkIn) => {
         const date = new Date(checkIn.created_at).toISOString().split('T')[0];
         const existing = timeSeriesMap.get(date) || { views: 0, interactions: 0 };
         timeSeriesMap.set(date, { ...existing, views: existing.views + 1 });
       });
 
-      // Add story views to time series
       storyViewsData?.forEach((view) => {
         const date = new Date(view.viewed_at).toISOString().split('T')[0];
         const existing = timeSeriesMap.get(date) || { views: 0, interactions: 0 };
         timeSeriesMap.set(date, { ...existing, views: existing.views + 1 });
       });
 
-      // Add likes and comments to time series
       postsData?.forEach((post) => {
         const date = new Date(post.created_at).toISOString().split('T')[0];
         const existing = timeSeriesMap.get(date) || { views: 0, interactions: 0 };
@@ -303,7 +291,6 @@ export default function PanelAnalisisScreen() {
         }))
         .sort((a, b) => a.date.localeCompare(b.date));
 
-      // Top content
       const topContent = postsData?.slice(0, 5).map((post) => ({
         id: post.id,
         tipo: 'post',
@@ -430,7 +417,6 @@ export default function PanelAnalisisScreen() {
       setGeneratingRecommendations(true);
       console.log('[PanelAnalisis] Starting recommendation generation...');
 
-      // Get the current session
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError || !session) {
@@ -439,14 +425,11 @@ export default function PanelAnalisisScreen() {
       }
 
       console.log('[PanelAnalisis] Session obtained successfully');
-      console.log('[PanelAnalisis] User ID:', session.user.id);
 
-      // Make the request with the session token
       const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
       const functionUrl = `${supabaseUrl}/functions/v1/generate-analytics-recommendations`;
       
       console.log('[PanelAnalisis] Making request to:', functionUrl);
-      console.log('[PanelAnalisis] Request body:', { localId });
 
       const response = await fetch(functionUrl, {
         method: 'POST',
@@ -471,14 +454,13 @@ export default function PanelAnalisisScreen() {
 
       Alert.alert(
         '✅ Recomendaciones Generadas',
-        `Se han generado ${result.count} recomendaciones personalizadas para tu local.`
+        `Se han generado ${result.count} recomendaciones personalizadas para tu local, incluyendo cuándo publicar eventos y destacar tu local.`
       );
 
       await loadRecommendations();
     } catch (error: any) {
       console.error('[PanelAnalisis] Error generating recommendations:', error);
       
-      // Provide more specific error messages
       let errorMessage = 'No se pudieron generar las recomendaciones. Intenta de nuevo.';
       
       if (error.message.includes('sesión') || error.message.includes('session')) {

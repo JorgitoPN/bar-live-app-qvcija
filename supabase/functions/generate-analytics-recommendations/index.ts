@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
 
     console.log('[AI Recommendations] Generating for local:', localId);
 
-    // Verify user authentication - FIXED: Use getUser() without parameter
+    // Verify user authentication
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
     
     if (authError) {
@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
     // Verify local ownership
     const { data: local, error: localError } = await supabaseClient
       .from('locales')
-      .select('id, nombre, propietario_id')
+      .select('id, nombre, propietario_id, tipo, provincia')
       .eq('id', localId)
       .single();
 
@@ -139,6 +139,22 @@ Deno.serve(async (req) => {
       .eq('seguido_id', localId)
       .gte('created_at', thirtyDaysAgo.toISOString());
 
+    // Get events data
+    const { data: eventosData } = await supabaseClient
+      .from('eventos')
+      .select('id, titulo, fecha, hora, created_at, entradas_vendidas, entradas_totales')
+      .eq('local_id', localId)
+      .gte('created_at', thirtyDaysAgo.toISOString())
+      .order('created_at', { ascending: false });
+
+    // Get subscription data to check for highlighting credits
+    const { data: subscriptionData } = await supabaseClient
+      .from('suscripciones_locales')
+      .select('creditos_destacados_restantes, destacado_activo, destacado_fecha_fin, plan_id')
+      .eq('local_id', localId)
+      .eq('estado', 'activa')
+      .maybeSingle();
+
     // Generate recommendations
     const recommendations = [];
 
@@ -165,12 +181,12 @@ Deno.serve(async (req) => {
     if (bestHours.length > 0) {
       recommendations.push({
         tipo: 'mejor_horario_publicacion',
-        titulo: 'Mejores Horarios para Publicar',
+        titulo: 'Mejores Horarios para Publicar Contenido',
         descripcion: `Basado en el análisis de tus publicaciones, los mejores horarios para publicar son: ${bestHours
           .map((h) => `${h.hour}:00-${h.hour + 1}:00`)
-          .join(', ')}. Durante estos horarios, tus publicaciones obtienen un ${Math.round(
+          .join(', ')}. Durante estos horarios, tus publicaciones obtienen hasta un ${Math.round(
           bestHours[0].avgEngagement * 1.5
-        )} más de interacción en promedio.`,
+        )} más de interacción en promedio. Aprovecha estos momentos para publicar contenido importante y eventos.`,
         prioridad: 'alta',
         datos_soporte: {
           mejores_horas: bestHours.map((h) => ({
@@ -181,6 +197,7 @@ Deno.serve(async (req) => {
         acciones_sugeridas: [
           `Programa tus publicaciones para las ${bestHours[0].hour}:00`,
           'Usa historias durante las horas pico para maximizar visibilidad',
+          'Publica anuncios de eventos en estos horarios para mayor alcance',
           'Evita publicar en horarios de baja actividad',
         ],
         impacto_estimado: 'Aumento del 30-50% en engagement',
@@ -189,7 +206,199 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 2. Content performance recommendation
+    // 2. Event publishing strategy recommendation
+    const totalEventos = eventosData?.length || 0;
+    const eventosByDay = new Map();
+    const eventosByHour = new Map();
+    
+    eventosData?.forEach((evento) => {
+      const createdDate = new Date(evento.created_at);
+      const day = createdDate.getDay();
+      const hour = createdDate.getHours();
+      
+      // Track by day
+      const existingDay = eventosByDay.get(day) || { count: 0, ventas: 0 };
+      eventosByDay.set(day, {
+        count: existingDay.count + 1,
+        ventas: existingDay.ventas + (evento.entradas_vendidas || 0),
+      });
+      
+      // Track by hour
+      const existingHour = eventosByHour.get(hour) || { count: 0, ventas: 0 };
+      eventosByHour.set(hour, {
+        count: existingHour.count + 1,
+        ventas: existingHour.ventas + (evento.entradas_vendidas || 0),
+      });
+    });
+
+    const bestEventDays = Array.from(eventosByDay.entries())
+      .map(([day, data]) => ({
+        day,
+        avgVentas: data.ventas / data.count,
+      }))
+      .sort((a, b) => b.avgVentas - a.avgVentas)
+      .slice(0, 2);
+
+    const bestEventHours = Array.from(eventosByHour.entries())
+      .map(([hour, data]) => ({
+        hour,
+        avgVentas: data.ventas / data.count,
+      }))
+      .sort((a, b) => b.avgVentas - a.avgVentas)
+      .slice(0, 2);
+
+    const dayNames = [
+      'Domingo',
+      'Lunes',
+      'Martes',
+      'Miércoles',
+      'Jueves',
+      'Viernes',
+      'Sábado',
+    ];
+
+    if (totalEventos > 0 && bestEventDays.length > 0) {
+      recommendations.push({
+        tipo: 'estrategia_publicacion_eventos',
+        titulo: '📅 Cuándo Publicar tus Eventos',
+        descripcion: `Basado en el análisis de tus ${totalEventos} eventos anteriores, los mejores días para publicar eventos son ${bestEventDays
+          .map((d) => dayNames[d.day])
+          .join(' y ')}${bestEventHours.length > 0 ? `, preferiblemente entre las ${bestEventHours[0].hour}:00 y ${bestEventHours[0].hour + 2}:00` : ''}. Los eventos publicados en estos momentos tienen un ${Math.round(
+          (bestEventDays[0].avgVentas / (eventosData?.reduce((sum, e) => sum + (e.entradas_vendidas || 0), 0) / totalEventos || 1)) * 100
+        )}% más de ventas de entradas.`,
+        prioridad: 'alta',
+        datos_soporte: {
+          mejores_dias: bestEventDays.map((d) => ({
+            dia: dayNames[d.day],
+            ventas_promedio: Math.round(d.avgVentas),
+          })),
+          mejores_horas: bestEventHours.map((h) => ({
+            hora: `${h.hour}:00`,
+            ventas_promedio: Math.round(h.avgVentas),
+          })),
+          total_eventos_analizados: totalEventos,
+        },
+        acciones_sugeridas: [
+          `Publica eventos los ${bestEventDays.map((d) => dayNames[d.day]).join(' o ')}`,
+          bestEventHours.length > 0 ? `Horario óptimo: ${bestEventHours[0].hour}:00 - ${bestEventHours[0].hour + 2}:00` : 'Publica en horarios de alta actividad',
+          'Anuncia eventos con 1-2 semanas de anticipación',
+          'Usa historias para recordatorios 24-48h antes del evento',
+          'Comparte contenido detrás de escenas para generar expectativa',
+        ],
+        impacto_estimado: 'Aumento del 40-60% en ventas de entradas',
+        confianza: 0.8,
+        valida_hasta: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+      });
+    } else if (totalEventos === 0) {
+      // Recommend creating events if none exist
+      recommendations.push({
+        tipo: 'estrategia_publicacion_eventos',
+        titulo: '📅 Comienza a Publicar Eventos',
+        descripcion: `No has publicado eventos en los últimos 30 días. Los eventos son una excelente manera de atraer clientes y aumentar la visibilidad de tu local. Basado en locales similares en ${local.provincia}, los mejores días para eventos son Viernes y Sábado, publicados entre las 10:00-14:00 para máxima visibilidad.`,
+        prioridad: 'media',
+        datos_soporte: {
+          eventos_publicados: 0,
+          recomendacion_dias: ['Viernes', 'Sábado'],
+          recomendacion_horas: ['10:00-14:00', '18:00-20:00'],
+        },
+        acciones_sugeridas: [
+          'Crea tu primer evento para este fin de semana',
+          'Publica el evento un Martes o Miércoles para dar tiempo de difusión',
+          'Usa horarios de 10:00-14:00 para publicar (alta actividad)',
+          'Incluye imágenes atractivas y descripción clara',
+          'Promociona el evento en historias y posts',
+        ],
+        impacto_estimado: 'Aumento del 50-80% en visibilidad del local',
+        confianza: 0.75,
+        valida_hasta: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      });
+    }
+
+    // 3. Local highlighting recommendation
+    if (subscriptionData) {
+      const creditosRestantes = subscriptionData.creditos_destacados_restantes || 0;
+      const destacadoActivo = subscriptionData.destacado_activo || false;
+      const destacadoFechaFin = subscriptionData.destacado_fecha_fin;
+
+      if (creditosRestantes > 0 && !destacadoActivo) {
+        // Has credits but not currently highlighted
+        const bestHighlightDays = bestHours.length > 0 
+          ? bestHours.slice(0, 2).map(h => h.hour)
+          : [18, 20]; // Default to evening hours
+
+        recommendations.push({
+          tipo: 'destacar_local',
+          titulo: '⭐ Momento Ideal para Destacar tu Local',
+          descripcion: `Tienes ${creditosRestantes} crédito${creditosRestantes > 1 ? 's' : ''} disponible${creditosRestantes > 1 ? 's' : ''} para destacar tu local. Basado en el análisis de tu audiencia, los mejores momentos para activar el destacado son los Viernes y Sábados entre las ${bestHighlightDays[0]}:00-${bestHighlightDays[0] + 2}:00, cuando tu audiencia está más activa. Destacar tu local aumenta tu visibilidad hasta un 300% en búsquedas y el mapa.`,
+          prioridad: 'alta',
+          datos_soporte: {
+            creditos_disponibles: creditosRestantes,
+            destacado_activo: false,
+            mejores_dias: ['Viernes', 'Sábado'],
+            mejores_horas: bestHighlightDays.map(h => `${h}:00-${h + 2}:00`),
+          },
+          acciones_sugeridas: [
+            'Activa el destacado antes del fin de semana (Jueves por la tarde)',
+            `Horario óptimo: Viernes-Sábado ${bestHighlightDays[0]}:00-${bestHighlightDays[0] + 2}:00`,
+            'Combina el destacado con publicación de eventos para máximo impacto',
+            'Asegúrate de tener contenido fresco (posts/historias) antes de destacar',
+            'Monitorea las analíticas durante el periodo destacado',
+          ],
+          impacto_estimado: 'Aumento del 200-400% en visibilidad y alcance',
+          confianza: 0.9,
+          valida_hasta: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        });
+      } else if (destacadoActivo && destacadoFechaFin) {
+        // Currently highlighted
+        const diasRestantes = Math.ceil((new Date(destacadoFechaFin).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+        
+        recommendations.push({
+          tipo: 'destacar_local',
+          titulo: '⭐ Tu Local Está Destacado',
+          descripcion: `Tu local está actualmente destacado y lo estará por ${diasRestantes} día${diasRestantes > 1 ? 's' : ''} más. Aprovecha este periodo para publicar contenido de alta calidad, eventos especiales y promociones. Después del periodo destacado, considera renovar si los resultados son positivos.`,
+          prioridad: 'media',
+          datos_soporte: {
+            creditos_disponibles: creditosRestantes,
+            destacado_activo: true,
+            dias_restantes: diasRestantes,
+            fecha_fin: destacadoFechaFin,
+          },
+          acciones_sugeridas: [
+            'Publica contenido diariamente mientras estés destacado',
+            'Crea eventos especiales para aprovechar la mayor visibilidad',
+            'Responde rápidamente a comentarios y mensajes',
+            'Monitorea el aumento en seguidores y check-ins',
+            creditosRestantes > 0 ? 'Planifica tu próximo periodo destacado' : 'Considera renovar créditos si los resultados son buenos',
+          ],
+          impacto_estimado: 'Maximiza el ROI del periodo destacado actual',
+          confianza: 0.85,
+          valida_hasta: new Date(destacadoFechaFin).toISOString(),
+        });
+      } else if (creditosRestantes === 0) {
+        // No credits available
+        recommendations.push({
+          tipo: 'destacar_local',
+          titulo: '⭐ Aumenta tu Visibilidad Destacando tu Local',
+          descripcion: `Actualmente no tienes créditos para destacar tu local. Destacar tu local te coloca en la parte superior de búsquedas y el mapa, aumentando tu visibilidad hasta un 300%. Considera actualizar tu plan o comprar créditos adicionales para aprovechar los momentos de alta actividad.`,
+          prioridad: 'baja',
+          datos_soporte: {
+            creditos_disponibles: 0,
+            destacado_activo: false,
+          },
+          acciones_sugeridas: [
+            'Revisa los planes de suscripción disponibles',
+            'Considera actualizar a un plan con más créditos de destacado',
+            'Planifica destacar tu local durante eventos especiales',
+            'Combina el destacado con campañas de marketing para máximo impacto',
+          ],
+          impacto_estimado: 'Aumento del 200-400% en visibilidad cuando se active',
+          confianza: 0.7,
+          valida_hasta: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        });
+      }
+    }
+
+    // 4. Content performance recommendation
     const totalPosts = postsData?.length || 0;
     const totalStories = storiesData?.length || 0;
     const avgPostEngagement =
@@ -226,6 +435,7 @@ Deno.serve(async (req) => {
           `Publica ${betterFormat === 'posts' ? '3-4 posts' : '5-7 historias'} por semana`,
           'Experimenta con diferentes formatos de contenido',
           'Analiza qué tipo de contenido genera más comentarios',
+          'Usa el formato más efectivo para anunciar eventos',
         ],
         impacto_estimado: 'Aumento del 20-40% en alcance',
         confianza: 0.75,
@@ -233,7 +443,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 3. Engagement rate alert
+    // 5. Engagement rate alert
     const recentEngagementRate = analyticsData?.[0]?.engagement_rate || 0;
     const avgEngagementRate =
       analyticsData?.reduce((sum, d) => sum + (d.engagement_rate || 0), 0) /
@@ -259,6 +469,7 @@ Deno.serve(async (req) => {
           'Responde a todos los comentarios para fomentar conversación',
           'Comparte contenido detrás de escenas de tu local',
           'Organiza un evento o promoción especial',
+          'Considera destacar tu local para recuperar visibilidad',
         ],
         impacto_estimado: 'Recuperación del 50-70% del engagement',
         confianza: 0.9,
@@ -266,7 +477,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 4. Growth strategy recommendation
+    // 6. Growth strategy recommendation
     const followersGrowth = followersData?.length || 0;
     const avgFollowersPerWeek = followersGrowth / 4;
 
@@ -288,6 +499,7 @@ Deno.serve(async (req) => {
           'Comparte contenido generado por usuarios',
           'Ofrece promociones exclusivas para nuevos seguidores',
           'Publica consistentemente (al menos 3 veces por semana)',
+          'Destaca tu local durante campañas de crecimiento',
         ],
         impacto_estimado: 'Crecimiento del 100-200% en seguidores',
         confianza: 0.7,
@@ -295,7 +507,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 5. Best days recommendation
+    // 7. Best days recommendation
     const postsByDay = new Map();
     postsData?.forEach((post) => {
       const day = new Date(post.created_at).getDay();
@@ -316,15 +528,6 @@ Deno.serve(async (req) => {
       .slice(0, 3);
 
     if (bestDays.length > 0) {
-      const dayNames = [
-        'Domingo',
-        'Lunes',
-        'Martes',
-        'Miércoles',
-        'Jueves',
-        'Viernes',
-        'Sábado',
-      ];
       recommendations.push({
         tipo: 'dias_alta_interaccion',
         titulo: 'Días con Mayor Interacción',
@@ -332,7 +535,7 @@ Deno.serve(async (req) => {
           .map((d) => dayNames[d.day])
           .join(', ')}. Tus publicaciones en estos días reciben hasta un ${Math.round(
           (bestDays[0].avgEngagement / bestDays[bestDays.length - 1].avgEngagement - 1) * 100
-        )}% más de interacción.`,
+        )}% más de interacción. Aprovecha estos días para publicar eventos y activar el destacado de tu local.`,
         prioridad: 'alta',
         datos_soporte: {
           mejores_dias: bestDays.map((d) => ({
@@ -344,6 +547,8 @@ Deno.serve(async (req) => {
           `Planifica tu contenido más importante para ${dayNames[bestDays[0].day]}`,
           'Mantén una frecuencia constante en los días de alta interacción',
           'Experimenta con diferentes tipos de contenido en estos días',
+          'Publica eventos en estos días para máxima visibilidad',
+          'Activa el destacado de tu local en estos días',
         ],
         impacto_estimado: 'Aumento del 25-45% en engagement',
         confianza: 0.8,
@@ -351,7 +556,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 6. Visibility optimization
+    // 8. Visibility optimization
     const totalViews =
       analyticsData?.reduce((sum, d) => sum + (d.total_views || 0), 0) || 0;
     const totalEngagement =
@@ -369,7 +574,7 @@ Deno.serve(async (req) => {
           viewToEngagementRatio * 100
         ).toFixed(
           1
-        )}%). Esto sugiere que necesitas contenido más atractivo o llamadas a la acción más claras.`,
+        )}%). Esto sugiere que necesitas contenido más atractivo o llamadas a la acción más claras. Considera destacar tu local para aumentar la visibilidad de contenido de calidad.`,
         prioridad: 'alta',
         datos_soporte: {
           total_vistas: totalViews,
@@ -382,6 +587,7 @@ Deno.serve(async (req) => {
           'Comparte contenido que invite a la participación',
           'Mejora la calidad visual de tus publicaciones',
           'Cuenta historias que conecten emocionalmente',
+          'Destaca tu local cuando publiques contenido de alta calidad',
         ],
         impacto_estimado: 'Aumento del 40-60% en tasa de conversión',
         confianza: 0.75,
