@@ -6,10 +6,12 @@ import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { getCurrentUser } from '@/utils/auth';
 import { registerForPushNotifications, savePushToken } from '@/utils/notifications';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function AuthCallbackScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { refreshUser } = useAuth();
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
   const [errorMessage, setErrorMessage] = useState<string>('');
 
@@ -102,11 +104,16 @@ export default function AuthCallbackScreen() {
                   console.log('[Callback] Failed to register push notifications');
                 });
               
+              // Wait for AuthContext to update
+              console.log('[Callback] ⏳ Esperando a que AuthContext se actualice...');
+              await new Promise(resolve => setTimeout(resolve, 2000));
+              
+              // Force refresh user in AuthContext
+              console.log('[Callback] 🔄 Refrescando usuario en AuthContext...');
+              await refreshUser();
+              
               // Get user profile to check if needs profile completion
               console.log('[Callback] 🔍 Obteniendo perfil de usuario...');
-              
-              // Wait a bit for the database trigger to create the profile
-              await new Promise(resolve => setTimeout(resolve, 1500));
               
               const { user: userData } = await getCurrentUser();
               
@@ -182,11 +189,16 @@ export default function AuthCallbackScreen() {
               console.log('[Callback] Failed to register push notifications');
             });
           
+          // Wait for AuthContext to update
+          console.log('[Callback] ⏳ Esperando a que AuthContext se actualice...');
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          // Force refresh user in AuthContext
+          console.log('[Callback] 🔄 Refrescando usuario en AuthContext...');
+          await refreshUser();
+          
           // Get user profile to check if needs profile completion
           console.log('[Callback] 🔍 Obteniendo perfil de usuario...');
-          
-          // Wait a bit for the database trigger to create the profile
-          await new Promise(resolve => setTimeout(resolve, 1500));
           
           const { user: userData } = await getCurrentUser();
           
@@ -248,7 +260,7 @@ export default function AuthCallbackScreen() {
         clearTimeout(redirectTimeout);
       }
     };
-  }, [router, params]);
+  }, [router, params, refreshUser]);
 
   return (
     <View style={styles.container}>

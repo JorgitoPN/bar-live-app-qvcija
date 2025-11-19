@@ -19,17 +19,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
     console.log('[AuthContext] 🚀 Inicializando contexto de autenticación');
+    
+    let authSubscription: { unsubscribe: () => void } | null = null;
     
     // Initialize auth state
     const initializeAuth = async () => {
       try {
         if (!isSupabaseConfigured()) {
           console.log('[AuthContext] ⚠️ Supabase no configurado - modo sin autenticación');
-          setInitializing(false);
           setLoading(false);
           return;
         }
@@ -68,25 +68,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error('[AuthContext] ❌ Error inicializando:', error);
       } finally {
         console.log('[AuthContext] ✅ Inicialización completada');
-        setInitializing(false);
         setLoading(false);
       }
     };
 
-    initializeAuth();
+    // Set up auth state listener
+    const setupAuthListener = () => {
+      if (!isSupabaseConfigured()) {
+        return;
+      }
 
-    // Listen for auth state changes
-    let subscription: { unsubscribe: () => void } | null = null;
-    
-    if (isSupabaseConfigured()) {
       const { data } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
         console.log('[AuthContext] 🔄 Auth state cambió:', event);
-        
-        // Don't process events during initialization to avoid race conditions
-        if (initializing) {
-          console.log('[AuthContext] ⏳ Ignorando evento durante inicialización');
-          return;
-        }
         
         setSession(currentSession);
         
@@ -137,16 +130,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       });
       
-      subscription = data.subscription;
-    }
+      authSubscription = data.subscription;
+    };
+
+    // Initialize and set up listener
+    initializeAuth().then(() => {
+      setupAuthListener();
+    });
 
     return () => {
-      if (subscription) {
+      if (authSubscription) {
         console.log('[AuthContext] 🧹 Limpiando suscripción');
-        subscription.unsubscribe();
+        authSubscription.unsubscribe();
       }
     };
-  }, [initializing]);
+  }, []);
 
   const handleSignOut = async () => {
     try {
