@@ -683,48 +683,31 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
           </View>
         )}
 
-        {/* Quick Actions - Redesigned with 2x2 Grid */}
+        {/* Quick Actions - 3 buttons in a row with soft design */}
         <View style={styles.actionsContainer}>
-          <View style={styles.actionsGrid}>
-            {/* Row 1 */}
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => router.push(`/perfil/local?localId=${local.id}`)}
-            >
-              <LinearGradient
-                colors={[colors.primary, colors.secondary]}
-                style={styles.actionButtonGradient}
-              >
-                <IconSymbol name="person.2.fill" size={24} color="#FFFFFF" />
-                <Text style={styles.actionButtonText}>Perfil</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-
+          <View style={styles.actionsRow}>
             <TouchableOpacity
               style={styles.actionButton}
               onPress={() => router.push(`/editar/local?id=${local.id}`)}
             >
-              <LinearGradient
-                colors={['#8B5CF6', '#7C3AED']}
-                style={styles.actionButtonGradient}
-              >
-                <IconSymbol name="pencil" size={24} color="#FFFFFF" />
+              <View style={styles.actionButtonContent}>
+                <View style={[styles.iconCircle, { backgroundColor: '#EDE9FE' }]}>
+                  <IconSymbol name="pencil" size={18} color="#8B5CF6" />
+                </View>
                 <Text style={styles.actionButtonText}>Editar</Text>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
 
-            {/* Row 2 */}
             <TouchableOpacity
               style={styles.actionButton}
               onPress={() => router.push(`/crear/evento?localId=${local.id}`)}
             >
-              <LinearGradient
-                colors={['#F59E0B', '#D97706']}
-                style={styles.actionButtonGradient}
-              >
-                <IconSymbol name="calendar.badge.plus" size={24} color="#FFFFFF" />
+              <View style={styles.actionButtonContent}>
+                <View style={[styles.iconCircle, { backgroundColor: '#FEF3C7' }]}>
+                  <IconSymbol name="calendar.badge.plus" size={18} color="#F59E0B" />
+                </View>
                 <Text style={styles.actionButtonText}>Evento</Text>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -734,28 +717,33 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
               ]}
               onPress={handleOpenAnalytics}
             >
-              <LinearGradient
-                colors={hasPremiumAccess() ? ['#10B981', '#059669'] : ['#9CA3AF', '#6B7280']}
-                style={styles.actionButtonGradient}
-              >
-                <View style={styles.actionButtonContent}>
+              <View style={styles.actionButtonContent}>
+                <View style={[
+                  styles.iconCircle, 
+                  { backgroundColor: hasPremiumAccess() ? '#D1FAE5' : '#F3F4F6' }
+                ]}>
                   <IconSymbol 
                     name="chart.bar.fill" 
-                    size={24} 
-                    color="#FFFFFF"
+                    size={18} 
+                    color={hasPremiumAccess() ? '#10B981' : '#9CA3AF'}
                   />
-                  <Text style={styles.actionButtonText}>Análisis</Text>
-                  {hasPremiumAccess() && (
-                    <View style={styles.premiumBadge}>
-                      <IconSymbol name="star.fill" size={10} color="#F59E0B" />
-                    </View>
-                  )}
                 </View>
-              </LinearGradient>
+                <Text style={[
+                  styles.actionButtonText,
+                  !hasPremiumAccess() && styles.actionButtonTextDisabled
+                ]}>
+                  Análisis
+                </Text>
+                {hasPremiumAccess() && (
+                  <View style={styles.premiumBadge}>
+                    <IconSymbol name="star.fill" size={8} color="#F59E0B" />
+                  </View>
+                )}
+              </View>
             </TouchableOpacity>
           </View>
 
-          {/* Select Button - Full Width Below Grid */}
+          {/* Select Button - Full Width Below */}
           {!isSelected && (
             <TouchableOpacity 
               style={styles.selectButton} 
@@ -1089,47 +1077,54 @@ const styles = StyleSheet.create({
     borderTopColor: colors.cardBorder,
     paddingTop: 16,
   },
-  actionsGrid: {
+  actionsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
+    justifyContent: 'space-between',
+    gap: 8,
     marginBottom: 12,
   },
   actionButton: {
-    width: '48%',
-    borderRadius: 12,
-    overflow: 'hidden',
-    minHeight: 90,
-  },
-  actionButtonDisabled: {
-    opacity: 0.7,
-  },
-  actionButtonGradient: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 12,
-    gap: 8,
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  actionButtonDisabled: {
+    opacity: 0.6,
   },
   actionButtonContent: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
     position: 'relative',
   },
+  iconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   actionButtonText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.text,
     textAlign: 'center',
+  },
+  actionButtonTextDisabled: {
+    color: colors.textSecondary,
   },
   premiumBadge: {
     position: 'absolute',
-    top: -8,
-    right: -8,
+    top: -4,
+    right: -4,
     backgroundColor: '#FEF3C7',
-    borderRadius: 10,
+    borderRadius: 8,
     padding: 3,
     borderWidth: 1,
     borderColor: '#F59E0B',
