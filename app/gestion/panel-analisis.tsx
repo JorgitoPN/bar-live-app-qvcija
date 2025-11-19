@@ -117,10 +117,9 @@ export default function PanelAnalisisScreen() {
     loadAnalyticsData();
     loadRecommendations();
 
-    // ✅ Real-time synchronization for analytics
+    // Real-time synchronization for analytics
     console.log('[PanelAnalisis] 🔄 Setting up real-time subscriptions for local:', localId);
 
-    // Subscribe to posts changes
     const postsChannel = supabase
       .channel(`analytics-posts-${localId}`)
       .on(
@@ -138,7 +137,6 @@ export default function PanelAnalisisScreen() {
       )
       .subscribe();
 
-    // Subscribe to stories changes
     const storiesChannel = supabase
       .channel(`analytics-stories-${localId}`)
       .on(
@@ -156,7 +154,6 @@ export default function PanelAnalisisScreen() {
       )
       .subscribe();
 
-    // Subscribe to events changes
     const eventsChannel = supabase
       .channel(`analytics-events-${localId}`)
       .on(
@@ -174,7 +171,6 @@ export default function PanelAnalisisScreen() {
       )
       .subscribe();
 
-    // Subscribe to followers changes
     const followersChannel = supabase
       .channel(`analytics-followers-${localId}`)
       .on(
@@ -192,7 +188,6 @@ export default function PanelAnalisisScreen() {
       )
       .subscribe();
 
-    // Subscribe to check-ins changes
     const checkInsChannel = supabase
       .channel(`analytics-checkins-${localId}`)
       .on(
@@ -210,7 +205,6 @@ export default function PanelAnalisisScreen() {
       )
       .subscribe();
 
-    // Cleanup subscriptions on unmount
     return () => {
       console.log('[PanelAnalisis] 🧹 Cleaning up real-time subscriptions');
       supabase.removeChannel(postsChannel);
@@ -371,7 +365,6 @@ export default function PanelAnalisisScreen() {
         .eq('local_id', localId)
         .gte('created_at', startDate.toISOString());
 
-      // ✅ Load comprehensive BarLive data (not just social media)
       const { data: profileViewsData } = await supabase
         .from('profile_views')
         .select('id, created_at')
@@ -396,7 +389,6 @@ export default function PanelAnalisisScreen() {
         .eq('local_id', localId)
         .gte('created_at', startDate.toISOString());
 
-      // ✅ Calculate comprehensive stats from all BarLive sources
       const totalPosts = postsData?.length || 0;
       const totalStories = storiesData?.length || 0;
       const totalLikes = (postsData?.reduce((sum, p) => sum + (p.likes || 0), 0) || 0) + (storyLikesData?.length || 0);
@@ -405,19 +397,16 @@ export default function PanelAnalisisScreen() {
       const totalEventos = eventosData?.length || 0;
       const nuevosSeguidores = newFollowersData?.length || 0;
 
-      // ✅ Add comprehensive BarLive metrics
       const totalProfileViews = profileViewsData?.length || 0;
       const totalMapViews = mapViewsData?.length || 0;
       const totalSearchAppearances = searchAppearancesData?.length || 0;
       const totalEventInteractions = eventInteractionsData?.length || 0;
 
-      // ✅ Calculate total reach across all BarLive platforms
       const totalReach = totalViews + totalProfileViews + totalMapViews + totalSearchAppearances;
       
       const totalInteractions = totalLikes + totalComments + totalEventInteractions;
       const engagementRate = totalPosts + totalStories > 0 ? ((totalInteractions / (totalPosts + totalStories)) * 100) : 0;
 
-      // Build time series data
       const timeSeriesMap = new Map<string, { views: number; interactions: number }>();
       
       checkInsData?.forEach((checkIn) => {
@@ -459,7 +448,6 @@ export default function PanelAnalisisScreen() {
         created_at: post.created_at,
       })) || [];
 
-      // Best posting times
       const postsByHour = new Map<number, { count: number; engagement: number }>();
       postsData?.forEach((post) => {
         const hour = new Date(post.created_at).getHours();
@@ -479,7 +467,6 @@ export default function PanelAnalisisScreen() {
         .sort((a, b) => b.avgEngagement - a.avgEngagement)
         .slice(0, 3);
 
-      // Best days
       const postsByDay = new Map<number, { count: number; engagement: number }>();
       postsData?.forEach((post) => {
         const day = new Date(post.created_at).getDay();
@@ -515,7 +502,7 @@ export default function PanelAnalisisScreen() {
           total_eventos: totalEventos,
           engagement_rate: engagementRate,
           nuevos_seguidores: nuevosSeguidores,
-          reach: totalReach, // ✅ Updated to use comprehensive reach
+          reach: totalReach,
           total_profile_views: totalProfileViews,
           total_map_views: totalMapViews,
           total_search_appearances: totalSearchAppearances,
@@ -651,18 +638,6 @@ export default function PanelAnalisisScreen() {
     setShowRecommendationModal(true);
   };
 
-  const renderCompactStat = (icon: string, value: string | number, label: string, color: string) => (
-    <View style={styles.compactStat}>
-      <View style={[styles.compactStatIcon, { backgroundColor: color + '20' }]}>
-        <IconSymbol name={icon as any} size={20} color={color} />
-      </View>
-      <View style={styles.compactStatContent}>
-        <Text style={styles.compactStatValue} numberOfLines={1}>{value}</Text>
-        <Text style={styles.compactStatLabel} numberOfLines={1}>{label}</Text>
-      </View>
-    </View>
-  );
-
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -690,18 +665,18 @@ export default function PanelAnalisisScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Compact Header */}
+      {/* Header */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         style={styles.header}
       >
         <View style={styles.headerRow}>
           <TouchableOpacity style={styles.headerBackButton} onPress={() => router.back()}>
-            <IconSymbol name="chevron.left" size={22} color={colors.headerText} />
+            <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
           </TouchableOpacity>
           <View style={styles.headerContent}>
-            <Text style={styles.headerTitle}>Analíticas</Text>
-            <Text style={styles.headerSubtitle}>{analyticsData.local.nombre}</Text>
+            <Text style={styles.headerTitle}>Panel de Análisis</Text>
+            <Text style={styles.headerSubtitle} numberOfLines={1}>{analyticsData.local.nombre}</Text>
           </View>
           <TouchableOpacity
             style={styles.headerActionButton}
@@ -711,21 +686,21 @@ export default function PanelAnalisisScreen() {
             {generatingRecommendations ? (
               <ActivityIndicator size="small" color={colors.headerText} />
             ) : (
-              <IconSymbol name="sparkles" size={22} color={colors.headerText} />
+              <IconSymbol name="sparkles" size={24} color={colors.headerText} />
             )}
           </TouchableOpacity>
         </View>
 
-        {/* Inline Time Range Selector */}
-        <View style={styles.inlineTimeRange}>
+        {/* Time Range Selector */}
+        <View style={styles.timeRangeContainer}>
           {['7d', '30d', '90d'].map((range) => (
             <TouchableOpacity
               key={range}
-              style={[styles.inlineTimeButton, timeRange === range && styles.inlineTimeButtonActive]}
+              style={[styles.timeButton, timeRange === range && styles.timeButtonActive]}
               onPress={() => setTimeRange(range as any)}
             >
-              <Text style={[styles.inlineTimeText, timeRange === range && styles.inlineTimeTextActive]}>
-                {range === '7d' ? '7d' : range === '30d' ? '30d' : '90d'}
+              <Text style={[styles.timeButtonText, timeRange === range && styles.timeButtonTextActive]}>
+                {range === '7d' ? '7 días' : range === '30d' ? '30 días' : '90 días'}
               </Text>
             </TouchableOpacity>
           ))}
@@ -740,56 +715,70 @@ export default function PanelAnalisisScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
       >
-        {/* Local Info Card */}
-        <View style={styles.localInfoCard}>
-          <View style={styles.localInfoHeader}>
-            <View style={styles.localInfoContent}>
-              <Text style={styles.localInfoName} numberOfLines={2}>{analyticsData.local.nombre}</Text>
-              <Text style={styles.localInfoDetails} numberOfLines={1}>
-                {analyticsData.local.tipo} • {analyticsData.local.provincia}
-              </Text>
+        {/* Info Card - What is this? */}
+        <View style={styles.infoCard}>
+          <View style={styles.infoCardHeader}>
+            <IconSymbol name="info.circle.fill" size={20} color={colors.primary} />
+            <Text style={styles.infoCardTitle}>¿Qué es el Panel de Análisis?</Text>
+          </View>
+          <Text style={styles.infoCardText}>
+            Aquí puedes ver cómo está funcionando tu local en BarLive. Te mostramos cuántas personas ven tu local, 
+            cuántos les gusta tu contenido y te damos consejos para mejorar. Todo en tiempo real y fácil de entender.
+          </Text>
+        </View>
+
+        {/* Main Stats - Simple Cards */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <IconSymbol name="chart.bar.fill" size={20} color={colors.primary} />
+            <Text style={styles.sectionTitle}>Resumen General</Text>
+          </View>
+          <Text style={styles.sectionDescription}>
+            Estas son las cifras más importantes de tu local en los últimos {timeRange === '7d' ? '7 días' : timeRange === '30d' ? '30 días' : '90 días'}
+          </Text>
+
+          <View style={styles.statsGrid}>
+            <View style={[styles.statCard, { backgroundColor: '#EFF6FF' }]}>
+              <IconSymbol name="eye.fill" size={28} color="#3B82F6" />
+              <Text style={styles.statValue}>{analyticsData.stats.reach.toLocaleString()}</Text>
+              <Text style={styles.statLabel}>Personas Alcanzadas</Text>
+              <Text style={styles.statHelp}>Cuántas personas vieron tu local</Text>
             </View>
-            <View style={styles.planBadge}>
-              <IconSymbol name="star.fill" size={12} color="#FFFFFF" />
-              <Text style={styles.planBadgeText}>{analyticsData.subscription.plan_nombre.toUpperCase()}</Text>
+
+            <View style={[styles.statCard, { backgroundColor: '#FEF3C7' }]}>
+              <IconSymbol name="heart.fill" size={28} color="#F59E0B" />
+              <Text style={styles.statValue}>{analyticsData.stats.total_likes.toLocaleString()}</Text>
+              <Text style={styles.statLabel}>Me Gusta</Text>
+              <Text style={styles.statHelp}>A cuántas personas les gustó</Text>
+            </View>
+
+            <View style={[styles.statCard, { backgroundColor: '#D1FAE5' }]}>
+              <IconSymbol name="person.2.fill" size={28} color="#10B981" />
+              <Text style={styles.statValue}>{analyticsData.stats.nuevos_seguidores.toLocaleString()}</Text>
+              <Text style={styles.statLabel}>Nuevos Seguidores</Text>
+              <Text style={styles.statHelp}>Personas que te siguen ahora</Text>
+            </View>
+
+            <View style={[styles.statCard, { backgroundColor: '#FCE7F3' }]}>
+              <IconSymbol name="chart.line.uptrend.xyaxis" size={28} color="#EC4899" />
+              <Text style={styles.statValue}>{analyticsData.stats.engagement_rate.toFixed(1)}%</Text>
+              <Text style={styles.statLabel}>Interacción</Text>
+              <Text style={styles.statHelp}>Qué tan activa es tu audiencia</Text>
             </View>
           </View>
         </View>
 
-        {/* Hero Stats - 2x2 Grid */}
-        <View style={styles.heroGrid}>
-          <View style={[styles.heroCard, { backgroundColor: '#3B82F6' }]}>
-            <IconSymbol name="eye.fill" size={24} color="#FFFFFF" />
-            <Text style={styles.heroValue} numberOfLines={1}>{analyticsData.stats.total_views.toLocaleString()}</Text>
-            <Text style={styles.heroLabel} numberOfLines={1}>Vistas</Text>
-          </View>
-          <View style={[styles.heroCard, { backgroundColor: '#EF4444' }]}>
-            <IconSymbol name="heart.fill" size={24} color="#FFFFFF" />
-            <Text style={styles.heroValue} numberOfLines={1}>{analyticsData.stats.total_likes.toLocaleString()}</Text>
-            <Text style={styles.heroLabel} numberOfLines={1}>Me Gusta</Text>
-          </View>
-          <View style={[styles.heroCard, { backgroundColor: '#10B981' }]}>
-            <IconSymbol name="person.2.badge.plus" size={24} color="#FFFFFF" />
-            <Text style={styles.heroValue} numberOfLines={1}>{analyticsData.stats.nuevos_seguidores.toLocaleString()}</Text>
-            <Text style={styles.heroLabel} numberOfLines={1}>Seguidores</Text>
-          </View>
-          <View style={[styles.heroCard, { backgroundColor: '#F59E0B' }]}>
-            <IconSymbol name="chart.line.uptrend.xyaxis" size={24} color="#FFFFFF" />
-            <Text style={styles.heroValue} numberOfLines={1}>{analyticsData.stats.engagement_rate.toFixed(1)}%</Text>
-            <Text style={styles.heroLabel} numberOfLines={1}>Engagement</Text>
-          </View>
-        </View>
-
-        {/* AI Recommendations - Clickable Cards */}
+        {/* AI Recommendations */}
         {recommendations.length > 0 && (
-          <View style={styles.compactSection}>
-            <View style={styles.compactSectionHeader}>
-              <IconSymbol name="sparkles" size={18} color="#F59E0B" />
-              <Text style={styles.compactSectionTitle}>Recomendaciones de IA</Text>
-              <TouchableOpacity onPress={generateRecommendations} disabled={generatingRecommendations}>
-                <IconSymbol name="arrow.clockwise" size={16} color={colors.primary} />
-              </TouchableOpacity>
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <IconSymbol name="sparkles" size={20} color="#F59E0B" />
+              <Text style={styles.sectionTitle}>Consejos Personalizados</Text>
             </View>
+            <Text style={styles.sectionDescription}>
+              Nuestra inteligencia artificial ha analizado tu local y te da estos consejos para mejorar
+            </Text>
+
             {recommendations.map((rec) => (
               <TouchableOpacity 
                 key={rec.id} 
@@ -797,24 +786,17 @@ export default function PanelAnalisisScreen() {
                 onPress={() => openRecommendationModal(rec)}
                 activeOpacity={0.7}
               >
-                <View style={[styles.priorityIndicator, { backgroundColor: getPriorityColor(rec.prioridad) }]}>
-                  <IconSymbol name={getPriorityIcon(rec.prioridad) as any} size={16} color="#FFFFFF" />
-                </View>
-                <View style={styles.recommendationContent}>
-                  <View style={styles.recommendationHeader}>
-                    <Text style={styles.recommendationTitle} numberOfLines={2}>{rec.titulo}</Text>
-                    <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(rec.prioridad) }]}>
-                      <Text style={styles.priorityBadgeText} numberOfLines={1}>{rec.prioridad.toUpperCase()}</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.recommendationDesc} numberOfLines={2}>{rec.descripcion}</Text>
-                  <View style={styles.recommendationFooter}>
-                    <View style={styles.impactBadge}>
+                <View style={[styles.recPriorityDot, { backgroundColor: getPriorityColor(rec.prioridad) }]} />
+                <View style={styles.recContent}>
+                  <Text style={styles.recTitle} numberOfLines={2}>{rec.titulo}</Text>
+                  <Text style={styles.recDescription} numberOfLines={2}>{rec.descripcion}</Text>
+                  <View style={styles.recFooter}>
+                    <View style={styles.recBadge}>
                       <IconSymbol name="chart.bar.fill" size={12} color="#10B981" />
-                      <Text style={styles.impactText} numberOfLines={1}>{rec.impacto_estimado}</Text>
+                      <Text style={styles.recBadgeText} numberOfLines={1}>{rec.impacto_estimado}</Text>
                     </View>
-                    <View style={styles.confidenceBadge}>
-                      <Text style={styles.confidenceText} numberOfLines={1}>{Math.round(rec.confianza * 100)}% confianza</Text>
+                    <View style={styles.recConfidenceBadge}>
+                      <Text style={styles.recConfidenceText}>{Math.round(rec.confianza * 100)}%</Text>
                     </View>
                   </View>
                 </View>
@@ -824,129 +806,135 @@ export default function PanelAnalisisScreen() {
           </View>
         )}
 
-        {/* ✅ BarLive Platform Metrics - Comprehensive View */}
-        <View style={styles.compactSection}>
-          <View style={styles.compactSectionHeader}>
-            <IconSymbol name="chart.bar.fill" size={18} color={colors.primary} />
-            <Text style={styles.compactSectionTitle}>Alcance en BarLive</Text>
+        {/* Where People See You */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <IconSymbol name="location.fill" size={20} color={colors.primary} />
+            <Text style={styles.sectionTitle}>Dónde Te Ven</Text>
           </View>
-          <View style={styles.platformMetricsGrid}>
-            <View style={styles.platformMetric}>
-              <View style={[styles.platformMetricIcon, { backgroundColor: '#3B82F6' + '20' }]}>
-                <IconSymbol name="eye.fill" size={20} color="#3B82F6" />
+          <Text style={styles.sectionDescription}>
+            Estos son los lugares de BarLive donde las personas encuentran tu local
+          </Text>
+
+          <View style={styles.platformGrid}>
+            <View style={styles.platformCard}>
+              <View style={[styles.platformIcon, { backgroundColor: '#EFF6FF' }]}>
+                <IconSymbol name="person.fill" size={24} color="#3B82F6" />
               </View>
-              <Text style={styles.platformMetricValue} numberOfLines={1}>{analyticsData.stats.total_profile_views?.toLocaleString() || 0}</Text>
-              <Text style={styles.platformMetricLabel} numberOfLines={2}>Visitas al Perfil</Text>
+              <Text style={styles.platformValue}>{analyticsData.stats.total_profile_views?.toLocaleString() || 0}</Text>
+              <Text style={styles.platformLabel}>Visitas al Perfil</Text>
+              <Text style={styles.platformHelp}>Personas que entraron a ver tu perfil completo</Text>
             </View>
-            <View style={styles.platformMetric}>
-              <View style={[styles.platformMetricIcon, { backgroundColor: '#10B981' + '20' }]}>
-                <IconSymbol name="map.fill" size={20} color="#10B981" />
+
+            <View style={styles.platformCard}>
+              <View style={[styles.platformIcon, { backgroundColor: '#D1FAE5' }]}>
+                <IconSymbol name="map.fill" size={24} color="#10B981" />
               </View>
-              <Text style={styles.platformMetricValue} numberOfLines={1}>{analyticsData.stats.total_map_views?.toLocaleString() || 0}</Text>
-              <Text style={styles.platformMetricLabel} numberOfLines={2}>Vistas en Mapa</Text>
+              <Text style={styles.platformValue}>{analyticsData.stats.total_map_views?.toLocaleString() || 0}</Text>
+              <Text style={styles.platformLabel}>Vistas en Mapa</Text>
+              <Text style={styles.platformHelp}>Personas que te vieron en el mapa de locales</Text>
             </View>
-            <View style={styles.platformMetric}>
-              <View style={[styles.platformMetricIcon, { backgroundColor: '#F59E0B' + '20' }]}>
-                <IconSymbol name="magnifyingglass" size={20} color="#F59E0B" />
+
+            <View style={styles.platformCard}>
+              <View style={[styles.platformIcon, { backgroundColor: '#FEF3C7' }]}>
+                <IconSymbol name="magnifyingglass" size={24} color="#F59E0B" />
               </View>
-              <Text style={styles.platformMetricValue} numberOfLines={1}>{analyticsData.stats.total_search_appearances?.toLocaleString() || 0}</Text>
-              <Text style={styles.platformMetricLabel} numberOfLines={2}>Búsquedas</Text>
+              <Text style={styles.platformValue}>{analyticsData.stats.total_search_appearances?.toLocaleString() || 0}</Text>
+              <Text style={styles.platformLabel}>Búsquedas</Text>
+              <Text style={styles.platformHelp}>Veces que apareciste en resultados de búsqueda</Text>
             </View>
-            <View style={styles.platformMetric}>
-              <View style={[styles.platformMetricIcon, { backgroundColor: '#8B5CF6' + '20' }]}>
-                <IconSymbol name="calendar" size={20} color="#8B5CF6" />
+
+            <View style={styles.platformCard}>
+              <View style={[styles.platformIcon, { backgroundColor: '#F3E8FF' }]}>
+                <IconSymbol name="calendar" size={24} color="#8B5CF6" />
               </View>
-              <Text style={styles.platformMetricValue} numberOfLines={1}>{analyticsData.stats.total_event_interactions?.toLocaleString() || 0}</Text>
-              <Text style={styles.platformMetricLabel} numberOfLines={2}>Interacciones Eventos</Text>
+              <Text style={styles.platformValue}>{analyticsData.stats.total_event_interactions?.toLocaleString() || 0}</Text>
+              <Text style={styles.platformLabel}>Eventos</Text>
+              <Text style={styles.platformHelp}>Interacciones con tus eventos publicados</Text>
             </View>
           </View>
         </View>
 
-        {/* Content & Audience - Side by Side */}
-        <View style={styles.dualSection}>
-          <View style={styles.dualCard}>
-            <View style={styles.dualCardHeader}>
-              <IconSymbol name="photo.fill" size={16} color={colors.primary} />
-              <Text style={styles.dualCardTitle}>Contenido</Text>
-            </View>
-            {renderCompactStat('photo.fill', analyticsData.stats.total_posts, 'Posts', '#3B82F6')}
-            {renderCompactStat('camera.fill', analyticsData.stats.total_stories, 'Historias', '#8B5CF6')}
-            {renderCompactStat('calendar', analyticsData.stats.total_eventos, 'Eventos', '#F59E0B')}
+        {/* Your Content */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <IconSymbol name="photo.fill" size={20} color={colors.primary} />
+            <Text style={styles.sectionTitle}>Tu Contenido</Text>
           </View>
+          <Text style={styles.sectionDescription}>
+            Resumen de lo que has publicado y cómo ha funcionado
+          </Text>
 
-          <View style={styles.dualCard}>
-            <View style={styles.dualCardHeader}>
-              <IconSymbol name="person.2.fill" size={16} color={colors.primary} />
-              <Text style={styles.dualCardTitle}>Audiencia</Text>
+          <View style={styles.contentGrid}>
+            <View style={styles.contentCard}>
+              <IconSymbol name="photo.fill" size={32} color="#3B82F6" />
+              <Text style={styles.contentValue}>{analyticsData.stats.total_posts}</Text>
+              <Text style={styles.contentLabel}>Publicaciones</Text>
             </View>
-            {renderCompactStat('person.2.fill', analyticsData.local.seguidores.toLocaleString(), 'Seguidores', '#3B82F6')}
-            {renderCompactStat('location.fill', analyticsData.local.check_ins.toLocaleString(), 'Check-ins', '#10B981')}
-            {renderCompactStat('star.fill', analyticsData.local.rating.toFixed(1), 'Rating', '#F59E0B')}
+            <View style={styles.contentCard}>
+              <IconSymbol name="camera.fill" size={32} color="#8B5CF6" />
+              <Text style={styles.contentValue}>{analyticsData.stats.total_stories}</Text>
+              <Text style={styles.contentLabel}>Historias</Text>
+            </View>
+            <View style={styles.contentCard}>
+              <IconSymbol name="calendar" size={32} color="#F59E0B" />
+              <Text style={styles.contentValue}>{analyticsData.stats.total_eventos}</Text>
+              <Text style={styles.contentLabel}>Eventos</Text>
+            </View>
           </View>
         </View>
 
-        {/* Trend Chart - Compact */}
-        {analyticsData.timeSeriesData.length > 0 && (
-          <View style={styles.compactSection}>
-            <View style={styles.compactSectionHeader}>
-              <IconSymbol name="chart.bar.fill" size={18} color={colors.primary} />
-              <Text style={styles.compactSectionTitle}>Tendencia</Text>
-            </View>
-            <View style={styles.miniChart}>
-              {analyticsData.timeSeriesData.slice(-7).map((data, index) => {
-                const maxValue = Math.max(...analyticsData.timeSeriesData.map((d) => d.views + d.interactions));
-                const height = ((data.views + data.interactions) / maxValue) * 100;
-                return (
-                  <View key={index} style={styles.miniBar}>
-                    <View style={[styles.miniBarFill, { height: `${height}%` }]} />
-                  </View>
-                );
-              })}
-            </View>
-          </View>
-        )}
-
-        {/* Best Times - Horizontal Pills */}
+        {/* Best Times to Post */}
         {analyticsData.bestPostingTimes.length > 0 && (
-          <View style={styles.compactSection}>
-            <View style={styles.compactSectionHeader}>
-              <IconSymbol name="clock.fill" size={18} color={colors.primary} />
-              <Text style={styles.compactSectionTitle}>Mejores Horarios</Text>
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <IconSymbol name="clock.fill" size={20} color={colors.primary} />
+              <Text style={styles.sectionTitle}>Mejores Horarios</Text>
             </View>
-            <View style={styles.pillsContainer}>
+            <Text style={styles.sectionDescription}>
+              Estos son los mejores momentos para publicar según tu audiencia
+            </Text>
+
+            <View style={styles.timesContainer}>
               {analyticsData.bestPostingTimes.map((time, index) => (
-                <View key={index} style={[styles.timePill, { backgroundColor: index === 0 ? '#F59E0B' : index === 1 ? '#3B82F6' : '#10B981' }]}>
-                  <Text style={styles.timePillText}>#{index + 1}</Text>
-                  <Text style={styles.timePillTime}>{time.hour}:00</Text>
+                <View key={index} style={styles.timeCard}>
+                  <View style={[styles.timeRank, { backgroundColor: index === 0 ? '#F59E0B' : index === 1 ? '#3B82F6' : '#10B981' }]}>
+                    <Text style={styles.timeRankText}>#{index + 1}</Text>
+                  </View>
+                  <Text style={styles.timeValue}>{time.hour}:00 - {time.hour + 1}:00</Text>
+                  <Text style={styles.timeHelp}>Mejor momento para publicar</Text>
                 </View>
               ))}
             </View>
           </View>
         )}
 
-        {/* Top Content - Minimal */}
-        {analyticsData.topContent.length > 0 && (
-          <View style={styles.compactSection}>
-            <View style={styles.compactSectionHeader}>
-              <IconSymbol name="trophy.fill" size={18} color={colors.primary} />
-              <Text style={styles.compactSectionTitle}>Top Posts</Text>
+        {/* Best Days */}
+        {analyticsData.bestDays.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <IconSymbol name="calendar" size={20} color={colors.primary} />
+              <Text style={styles.sectionTitle}>Mejores Días</Text>
             </View>
-            {analyticsData.topContent.slice(0, 3).map((content, index) => (
-              <View key={content.id} style={styles.topContentMini}>
-                <View style={[styles.topRank, { backgroundColor: index === 0 ? '#F59E0B' : index === 1 ? '#3B82F6' : '#10B981' }]}>
-                  <Text style={styles.topRankText}>#{index + 1}</Text>
-                </View>
-                <Text style={styles.topContentMiniText} numberOfLines={1}>{content.contenido || 'Sin texto'}</Text>
-                <View style={styles.topContentMiniStats}>
-                  <View style={styles.topContentMiniStat}>
-                    <IconSymbol name="heart.fill" size={12} color="#EF4444" />
-                    <Text style={styles.topContentMiniStatText}>{content.likes}</Text>
+            <Text style={styles.sectionDescription}>
+              Los días de la semana donde tu contenido funciona mejor
+            </Text>
+
+            <View style={styles.daysContainer}>
+              {analyticsData.bestDays.map((day, index) => (
+                <View key={index} style={styles.dayCard}>
+                  <View style={[styles.dayRank, { backgroundColor: index === 0 ? '#F59E0B' : index === 1 ? '#3B82F6' : '#10B981' }]}>
+                    <Text style={styles.dayRankText}>#{index + 1}</Text>
                   </View>
+                  <Text style={styles.dayValue}>{dayNames[day.day]}</Text>
                 </View>
-              </View>
-            ))}
+              ))}
+            </View>
           </View>
         )}
+
+        {/* Bottom Spacer */}
+        <View style={{ height: 100 }} />
       </ScrollView>
 
       {/* Recommendation Detail Modal */}
@@ -966,7 +954,7 @@ export default function PanelAnalisisScreen() {
                     <Text style={styles.modalPriorityText}>{selectedRecommendation.prioridad.toUpperCase()}</Text>
                   </View>
                   <TouchableOpacity onPress={() => setShowRecommendationModal(false)} style={styles.modalCloseButton}>
-                    <IconSymbol name="xmark.circle.fill" size={28} color={colors.textSecondary} />
+                    <IconSymbol name="xmark.circle.fill" size={32} color={colors.textSecondary} />
                   </TouchableOpacity>
                 </View>
 
@@ -976,12 +964,12 @@ export default function PanelAnalisisScreen() {
 
                   <View style={styles.modalMetrics}>
                     <View style={styles.modalMetric}>
-                      <IconSymbol name="chart.bar.fill" size={18} color="#10B981" />
-                      <Text style={styles.modalMetricLabel}>Impacto Estimado</Text>
+                      <IconSymbol name="chart.bar.fill" size={20} color="#10B981" />
+                      <Text style={styles.modalMetricLabel}>Impacto Esperado</Text>
                       <Text style={styles.modalMetricValue}>{selectedRecommendation.impacto_estimado}</Text>
                     </View>
                     <View style={styles.modalMetric}>
-                      <IconSymbol name="checkmark.seal.fill" size={18} color="#3B82F6" />
+                      <IconSymbol name="checkmark.seal.fill" size={20} color="#3B82F6" />
                       <Text style={styles.modalMetricLabel}>Confianza</Text>
                       <Text style={styles.modalMetricValue}>{Math.round(selectedRecommendation.confianza * 100)}%</Text>
                     </View>
@@ -989,7 +977,8 @@ export default function PanelAnalisisScreen() {
 
                   {selectedRecommendation.acciones_sugeridas && selectedRecommendation.acciones_sugeridas.length > 0 && (
                     <View style={styles.modalSection}>
-                      <Text style={styles.modalSectionTitle}>Acciones Sugeridas</Text>
+                      <Text style={styles.modalSectionTitle}>Qué Puedes Hacer</Text>
+                      <Text style={styles.modalSectionHelp}>Sigue estos pasos para mejorar tu local:</Text>
                       {selectedRecommendation.acciones_sugeridas.map((accion, index) => (
                         <View key={index} style={styles.modalActionItem}>
                           <View style={styles.modalActionBullet}>
@@ -1000,8 +989,6 @@ export default function PanelAnalisisScreen() {
                       ))}
                     </View>
                   )}
-
-
                 </ScrollView>
 
                 <TouchableOpacity 
@@ -1031,56 +1018,59 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingTop: Platform.OS === 'ios' ? 50 : 40,
-    paddingBottom: 12,
+    paddingBottom: 16,
     paddingHorizontal: 16,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   headerBackButton: {
     padding: 4,
+    marginRight: 8,
   },
   headerContent: {
     flex: 1,
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: colors.headerText,
   },
   headerSubtitle: {
-    fontSize: 12,
+    fontSize: 13,
     color: colors.headerText,
     opacity: 0.9,
+    marginTop: 2,
   },
   headerActionButton: {
     padding: 4,
+    marginLeft: 8,
   },
-  inlineTimeRange: {
+  timeRangeContainer: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 8,
+    borderRadius: 10,
     padding: 4,
   },
-  inlineTimeButton: {
+  timeButton: {
     flex: 1,
-    paddingVertical: 6,
-    borderRadius: 6,
+    paddingVertical: 8,
+    borderRadius: 8,
     alignItems: 'center',
   },
-  inlineTimeButtonActive: {
+  timeButtonActive: {
     backgroundColor: colors.white,
   },
-  inlineTimeText: {
-    fontSize: 12,
+  timeButtonText: {
+    fontSize: 13,
     fontWeight: '600',
     color: colors.headerText,
   },
-  inlineTimeTextActive: {
+  timeButtonTextActive: {
     color: colors.primary,
   },
   loadingText: {
@@ -1090,10 +1080,10 @@ const styles = StyleSheet.create({
   },
   backButton: {
     marginTop: 16,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
     backgroundColor: colors.primary,
-    borderRadius: 8,
+    borderRadius: 10,
   },
   backButtonText: {
     color: colors.white,
@@ -1104,155 +1094,120 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 12,
-    paddingBottom: 100,
+    padding: 16,
   },
-  localInfoCard: {
-    backgroundColor: colors.cardBackground,
+  infoCard: {
+    backgroundColor: '#EFF6FF',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 12,
+    marginBottom: 20,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
+    borderColor: '#BFDBFE',
   },
-  localInfoHeader: {
+  infoCardHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
   },
-  localInfoContent: {
-    flex: 1,
+  infoCardTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1E40AF',
   },
-  localInfoName: {
+  infoCardText: {
+    fontSize: 14,
+    color: '#1E40AF',
+    lineHeight: 20,
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: colors.text,
-    marginBottom: 4,
-    flexShrink: 1,
   },
-  localInfoDetails: {
-    fontSize: 13,
+  sectionDescription: {
+    fontSize: 14,
     color: colors.textSecondary,
-    flexShrink: 1,
+    lineHeight: 20,
+    marginBottom: 16,
   },
-  planBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#F59E0B',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  planBadgeText: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  heroGrid: {
+  statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 12,
+    gap: 12,
   },
-  heroCard: {
-    width: (width - 32) / 2,
+  statCard: {
+    width: (width - 44) / 2,
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 120,
   },
-  heroValue: {
+  statValue: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: colors.text,
     marginTop: 8,
   },
-  heroLabel: {
-    fontSize: 12,
-    color: '#FFFFFF',
-    opacity: 0.9,
+  statLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
     marginTop: 4,
     textAlign: 'center',
   },
-  compactSection: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  compactSectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 12,
-  },
-  compactSectionTitle: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: colors.text,
+  statHelp: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    marginTop: 4,
+    textAlign: 'center',
   },
   recommendationCard: {
     flexDirection: 'row',
-    backgroundColor: colors.background,
+    backgroundColor: colors.cardBackground,
     borderRadius: 12,
-    padding: 12,
-    marginBottom: 8,
+    padding: 16,
+    marginBottom: 12,
     gap: 12,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
-  priorityIndicator: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
+  recPriorityDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
-  recommendationContent: {
+  recContent: {
     flex: 1,
   },
-  recommendationHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  recommendationTitle: {
-    flex: 1,
-    fontSize: 14,
+  recTitle: {
+    fontSize: 15,
     fontWeight: '600',
     color: colors.text,
-    marginRight: 8,
-    flexShrink: 1,
+    marginBottom: 6,
   },
-  priorityBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  priorityBadgeText: {
-    fontSize: 9,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  recommendationDesc: {
-    fontSize: 12,
+  recDescription: {
+    fontSize: 13,
     color: colors.textSecondary,
     lineHeight: 18,
-    marginBottom: 8,
+    marginBottom: 10,
   },
-  recommendationFooter: {
+  recFooter: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    flexWrap: 'wrap',
   },
-  impactBadge: {
+  recBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
@@ -1260,187 +1215,156 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
+    flexShrink: 1,
   },
-  impactText: {
-    fontSize: 10,
+  recBadgeText: {
+    fontSize: 11,
     fontWeight: '600',
     color: '#065F46',
+    flexShrink: 1,
   },
-  confidenceBadge: {
-    backgroundColor: colors.cardBorder,
+  recConfidenceBadge: {
+    backgroundColor: '#F3F4F6',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
   },
-  confidenceText: {
-    fontSize: 10,
+  recConfidenceText: {
+    fontSize: 11,
     fontWeight: '600',
     color: colors.text,
   },
-  dualSection: {
+  platformGrid: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 12,
+    flexWrap: 'wrap',
+    gap: 12,
   },
-  dualCard: {
-    flex: 1,
+  platformCard: {
+    width: (width - 44) / 2,
     backgroundColor: colors.cardBackground,
     borderRadius: 12,
-    padding: 12,
+    padding: 16,
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
-  dualCardHeader: {
-    flexDirection: 'row',
+  platformIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 6,
     marginBottom: 12,
   },
-  dualCardTitle: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: colors.text,
-  },
-  compactStat: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  compactStatIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  compactStatContent: {
-    flex: 1,
-  },
-  compactStatValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.text,
-  },
-  compactStatLabel: {
-    fontSize: 11,
-    color: colors.textSecondary,
-  },
-  miniChart: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 4,
-    height: 60,
-    backgroundColor: colors.background,
-    borderRadius: 8,
-    padding: 8,
-  },
-  miniBar: {
-    flex: 1,
-    height: '100%',
-    justifyContent: 'flex-end',
-  },
-  miniBarFill: {
-    width: '100%',
-    backgroundColor: colors.primary,
-    borderRadius: 2,
-    minHeight: 4,
-  },
-  pillsContainer: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  timePill: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  timePillText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  timePillTime: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  topContentMini: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-    borderRadius: 8,
-    padding: 8,
-    marginBottom: 6,
-    gap: 8,
-  },
-  topRank: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  topRankText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  topContentMiniText: {
-    flex: 1,
-    fontSize: 12,
-    color: colors.text,
-  },
-  topContentMiniStats: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  topContentMiniStat: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-  },
-  topContentMiniStatText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  platformMetricsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  platformMetric: {
-    width: '48%',
-    backgroundColor: colors.background,
-    borderRadius: 12,
-    padding: 12,
-    alignItems: 'center',
-  },
-  platformMetricIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  platformMetricValue: {
-    fontSize: 20,
+  platformValue: {
+    fontSize: 24,
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 4,
   },
-  platformMetricLabel: {
+  platformLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  platformHelp: {
     fontSize: 11,
     color: colors.textSecondary,
     textAlign: 'center',
-    flexWrap: 'wrap',
-    maxWidth: '100%',
+    lineHeight: 14,
+  },
+  contentGrid: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  contentCard: {
+    flex: 1,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  contentValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginTop: 8,
+  },
+  contentLabel: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  timesContainer: {
+    gap: 12,
+  },
+  timeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  timeRank: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  timeRankText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  timeValue: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  timeHelp: {
+    fontSize: 11,
+    color: colors.textSecondary,
+  },
+  daysContainer: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  dayCard: {
+    flex: 1,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  dayRank: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  dayRankText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  dayValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
   },
   modalOverlay: {
     flex: 1,
@@ -1482,51 +1406,56 @@ const styles = StyleSheet.create({
     maxHeight: '70%',
   },
   modalTitle: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 12,
   },
   modalDescription: {
-    fontSize: 15,
+    fontSize: 16,
     color: colors.textSecondary,
-    lineHeight: 22,
+    lineHeight: 24,
     marginBottom: 20,
   },
   modalMetrics: {
     flexDirection: 'row',
     gap: 12,
-    marginBottom: 20,
+    marginBottom: 24,
   },
   modalMetric: {
     flex: 1,
     backgroundColor: colors.cardBackground,
     borderRadius: 12,
-    padding: 12,
+    padding: 16,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
   modalMetricLabel: {
-    fontSize: 11,
+    fontSize: 12,
     color: colors.textSecondary,
-    marginTop: 6,
+    marginTop: 8,
     textAlign: 'center',
   },
   modalMetricValue: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
     color: colors.text,
     marginTop: 4,
   },
   modalSection: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   modalSectionTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
     color: colors.text,
-    marginBottom: 12,
+    marginBottom: 8,
+  },
+  modalSectionHelp: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: 16,
   },
   modalActionItem: {
     flexDirection: 'row',
@@ -1557,18 +1486,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.text,
     lineHeight: 20,
-  },
-  modalDataCard: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 10,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  modalDataText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   modalActionButton: {
     marginTop: 16,
