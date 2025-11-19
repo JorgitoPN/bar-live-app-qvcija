@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -36,40 +36,40 @@ export default function ComentarScreen() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        // Load post
-        const { data: postData, error: postError } = await supabase
-          .from('posts')
+    loadData();
+  }, [postId, parentCommentId]);
+
+  const loadData = async () => {
+    try {
+      // Load post
+      const { data: postData, error: postError } = await supabase
+        .from('posts')
+        .select('*, autor:usuarios(nombre, avatar, username)')
+        .eq('id', postId)
+        .single();
+
+      if (postError) throw postError;
+      setPost(postData);
+
+      // Load parent comment if replying
+      if (parentCommentId) {
+        const { data: commentData, error: commentError } = await supabase
+          .from('comentarios')
           .select('*, autor:usuarios(nombre, avatar, username)')
-          .eq('id', postId)
+          .eq('id', parentCommentId)
           .single();
 
-        if (postError) throw postError;
-        setPost(postData);
-
-        // Load parent comment if replying
-        if (parentCommentId) {
-          const { data: commentData, error: commentError } = await supabase
-            .from('comentarios')
-            .select('*, autor:usuarios(nombre, avatar, username)')
-            .eq('id', parentCommentId)
-            .single();
-
-          if (commentError) throw commentError;
-          setParentComment(commentData);
-        }
-      } catch (error) {
-        console.error('[Comentar] Error loading data:', error);
-        Alert.alert('Error', 'No se pudo cargar la información');
-        router.back();
-      } finally {
-        setLoading(false);
+        if (commentError) throw commentError;
+        setParentComment(commentData);
       }
-    };
-
-    loadData();
-  }, [postId, parentCommentId, router]);
+    } catch (error) {
+      console.error('[Comentar] Error loading data:', error);
+      Alert.alert('Error', 'No se pudo cargar la información');
+      router.back();
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const publicarComentario = async () => {
     if (!comentario.trim()) {

@@ -170,7 +170,7 @@ class PerformanceOptimizer {
     return results;
   }
 
-  async batchSetCache<T>(entries: { key: string; data: T; ttl?: number }[]): Promise<void> {
+  async batchSetCache<T>(entries: Array<{ key: string; data: T; ttl?: number }>): Promise<void> {
     await Promise.all(
       entries.map(({ key, data, ttl }) => this.setCache(key, data, ttl))
     );

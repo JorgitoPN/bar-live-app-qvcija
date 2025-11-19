@@ -1,22 +1,20 @@
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from './AuthContext';
 
-interface LocaleData {
-  id: string;
-  nombre: string;
-  imagen_url: string | null;
-  tipo: string;
-  plan_nombre?: string;
-  destacados_restantes?: number;
-}
-
 interface SelectedLocalContextType {
   selectedLocalId: string | null;
   setSelectedLocalId: (localId: string | null) => Promise<void>;
-  userLocales: LocaleData[];
+  userLocales: Array<{
+    id: string;
+    nombre: string;
+    imagen_url: string | null;
+    tipo: string;
+    plan_nombre?: string;
+    destacados_restantes?: number;
+  }>;
   loadingLocales: boolean;
   refreshLocales: () => Promise<void>;
 }
@@ -28,7 +26,7 @@ const STORAGE_KEY = '@selected_local_id';
 export function SelectedLocalProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [selectedLocalId, setSelectedLocalIdState] = useState<string | null>(null);
-  const [userLocales, setUserLocales] = useState<LocaleData[]>([]);
+  const [userLocales, setUserLocales] = useState<any[]>([]);
   const [loadingLocales, setLoadingLocales] = useState(true);
 
   // Load selected local from storage
@@ -48,7 +46,7 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Load user's locales
-  const loadUserLocales = useCallback(async () => {
+  const loadUserLocales = async () => {
     if (!user || user.rol_app !== 'propietario') {
       setUserLocales([]);
       setLoadingLocales(false);
@@ -123,7 +121,7 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoadingLocales(false);
     }
-  }, [user, selectedLocalId]);
+  };
 
   useEffect(() => {
     loadUserLocales();

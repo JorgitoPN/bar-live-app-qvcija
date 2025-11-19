@@ -686,7 +686,7 @@ export default function LocalPerfilScreen() {
     router.push(`/crear/publicacion?localId=${localId}`);
   };
 
-  const handleCrearHistoria = useCallback(async () => {
+  const handleCrearHistoria = async () => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión');
       return;
@@ -701,77 +701,7 @@ export default function LocalPerfilScreen() {
     await setCurrentMode('propietario');
     
     router.push(`/crear/historia?localId=${localId}`);
-  }, [user, isOwner, localId, switchToLocalProfile, setCurrentMode, router]);
-
-  const stopStoryTimer = useCallback(() => {
-    if (storyTimerRef.current) {
-      clearTimeout(storyTimerRef.current);
-      storyTimerRef.current = null;
-    }
-    progressAnim.stopAnimation();
-  }, [progressAnim]);
-
-  const handleNextStory = useCallback(async () => {
-    const currentStory = localStories[currentStoryIndex];
-    
-    if (currentStory && user) {
-      try {
-        const { data: existingView } = await supabase
-          .from('historia_views')
-          .select('id')
-          .eq('historia_id', currentStory.id)
-          .eq('usuario_id', user.id)
-          .single();
-
-        if (!existingView) {
-          await supabase.from('historia_views').insert({
-            historia_id: currentStory.id,
-            usuario_id: user.id,
-          });
-        }
-      } catch (error) {
-        console.error('[LocalPerfil] Error marking story as viewed:', error);
-      }
-    }
-    
-    if (currentStoryIndex < localStories.length - 1) {
-      setCurrentStoryIndex(currentStoryIndex + 1);
-      progressAnim.setValue(0);
-    } else {
-      await loadLocalData();
-      setShowStoryViewer(false);
-      stopStoryTimer();
-    }
-  }, [currentStoryIndex, localStories, stopStoryTimer, user, loadLocalData, progressAnim]);
-
-  const startStoryTimer = useCallback(() => {
-    if (storyTimerRef.current) {
-      clearTimeout(storyTimerRef.current);
-    }
-
-    progressAnim.setValue(0);
-
-    Animated.timing(progressAnim, {
-      toValue: 1,
-      duration: 5000,
-      useNativeDriver: false,
-    }).start();
-
-    storyTimerRef.current = setTimeout(() => {
-      handleNextStory();
-    }, 5000);
-  }, [handleNextStory, progressAnim]);
-
-  const handleAvatarPress = useCallback(async () => {
-    if (localStories.length > 0) {
-      setCurrentStoryIndex(0);
-      setShowStoryViewer(true);
-      setIsPaused(false);
-      startStoryTimer();
-    } else if (isOwner) {
-      handleCrearHistoria();
-    }
-  }, [localStories, startStoryTimer, isOwner, handleCrearHistoria]);
+  };
 
   const handleCrearEvento = async () => {
     if (!user) {
@@ -865,6 +795,65 @@ export default function LocalPerfilScreen() {
     }
   };
 
+  const stopStoryTimer = useCallback(() => {
+    if (storyTimerRef.current) {
+      clearTimeout(storyTimerRef.current);
+      storyTimerRef.current = null;
+    }
+    progressAnim.stopAnimation();
+  }, [progressAnim]);
+
+  const handleNextStory = useCallback(async () => {
+    const currentStory = localStories[currentStoryIndex];
+    
+    if (currentStory && user) {
+      try {
+        const { data: existingView } = await supabase
+          .from('historia_views')
+          .select('id')
+          .eq('historia_id', currentStory.id)
+          .eq('usuario_id', user.id)
+          .single();
+
+        if (!existingView) {
+          await supabase.from('historia_views').insert({
+            historia_id: currentStory.id,
+            usuario_id: user.id,
+          });
+        }
+      } catch (error) {
+        console.error('[LocalPerfil] Error marking story as viewed:', error);
+      }
+    }
+    
+    if (currentStoryIndex < localStories.length - 1) {
+      setCurrentStoryIndex(currentStoryIndex + 1);
+      progressAnim.setValue(0);
+    } else {
+      await loadLocalData();
+      setShowStoryViewer(false);
+      stopStoryTimer();
+    }
+  }, [currentStoryIndex, localStories, stopStoryTimer, user, loadLocalData, progressAnim]);
+
+  const startStoryTimer = useCallback(() => {
+    if (storyTimerRef.current) {
+      clearTimeout(storyTimerRef.current);
+    }
+
+    progressAnim.setValue(0);
+
+    Animated.timing(progressAnim, {
+      toValue: 1,
+      duration: 5000,
+      useNativeDriver: false,
+    }).start();
+
+    storyTimerRef.current = setTimeout(() => {
+      handleNextStory();
+    }, 5000);
+  }, [handleNextStory, progressAnim]);
+
   const handlePreviousStory = useCallback(() => {
     if (currentStoryIndex > 0) {
       setCurrentStoryIndex(currentStoryIndex - 1);
@@ -875,6 +864,17 @@ export default function LocalPerfilScreen() {
       stopStoryTimer();
     }
   }, [currentStoryIndex, startStoryTimer, stopStoryTimer, progressAnim]);
+
+  const handleAvatarPress = useCallback(async () => {
+    if (localStories.length > 0) {
+      setCurrentStoryIndex(0);
+      setShowStoryViewer(true);
+      setIsPaused(false);
+      startStoryTimer();
+    } else if (isOwner) {
+      handleCrearHistoria();
+    }
+  }, [localStories, startStoryTimer, isOwner]);
 
   const handleViewStoryStats = useCallback(async () => {
     const currentStory = localStories[currentStoryIndex];
