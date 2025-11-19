@@ -35,8 +35,8 @@ import PerfilProfesionalCard from '@/components/empleo/PerfilProfesionalCard';
 import StoryStatsModal from '@/components/social/StoryStatsModal';
 import { PROVINCIAS, getProvinceVariations, filterByProvincia } from '@/utils/provinceNormalizer';
 
-// ✅ VERSION MARKER - Force cache bust: v3.3.0 - Improved button alignment and design
-const SCREEN_VERSION = '3.3.0';
+// ✅ VERSION MARKER - Force cache bust: v3.4.0 - Removed Perfil button, 3 buttons in row with soft design
+const SCREEN_VERSION = '3.4.0';
 
 const { width, height } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -1292,57 +1292,43 @@ export default function LocalPerfilScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* ✅ IMPROVED: Better aligned and centered action buttons */}
+            {/* ✅ UPDATED: 3 buttons in a single row with soft design - NO PERFIL BUTTON */}
             <View style={styles.actionsContainer}>
               {isOwner ? (
-                <>
-                  {/* ✅ Owner buttons - 2x2 grid layout */}
-                  <View style={styles.ownerButtonsGrid}>
-                    <TouchableOpacity 
-                      style={styles.ownerGridButton} 
-                      onPress={() => router.push(`/perfil/local?localId=${localId}`)}
-                      activeOpacity={0.8}
-                    >
-                      <View style={styles.ownerButtonContent}>
-                        <IconSymbol name="person.2.fill" size={22} color={colors.primary} />
-                        <Text style={styles.ownerButtonText}>Perfil</Text>
-                      </View>
-                    </TouchableOpacity>
+                <View style={styles.ownerButtonsRow}>
+                  <TouchableOpacity 
+                    style={styles.ownerRowButton} 
+                    onPress={handleEditarLocal}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.ownerButtonIconContainer}>
+                      <IconSymbol name="pencil" size={20} color={colors.primary} />
+                    </View>
+                    <Text style={styles.ownerRowButtonText}>Editar</Text>
+                  </TouchableOpacity>
 
-                    <TouchableOpacity 
-                      style={styles.ownerGridButton} 
-                      onPress={handleEditarLocal}
-                      activeOpacity={0.8}
-                    >
-                      <View style={styles.ownerButtonContent}>
-                        <IconSymbol name="pencil" size={22} color={colors.primary} />
-                        <Text style={styles.ownerButtonText}>Editar</Text>
-                      </View>
-                    </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.ownerRowButton} 
+                    onPress={handleCrearEvento}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.ownerButtonIconContainer}>
+                      <IconSymbol name="calendar" size={20} color={colors.primary} />
+                    </View>
+                    <Text style={styles.ownerRowButtonText}>Evento</Text>
+                  </TouchableOpacity>
 
-                    <TouchableOpacity 
-                      style={styles.ownerGridButton} 
-                      onPress={handleCrearEvento}
-                      activeOpacity={0.8}
-                    >
-                      <View style={styles.ownerButtonContent}>
-                        <IconSymbol name="calendar" size={22} color={colors.primary} />
-                        <Text style={styles.ownerButtonText}>Evento</Text>
-                      </View>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity 
-                      style={[styles.ownerGridButton, styles.ownerGridButtonHighlight]} 
-                      onPress={handleVerAnalisis}
-                      activeOpacity={0.8}
-                    >
-                      <View style={styles.ownerButtonContent}>
-                        <IconSymbol name="chart.bar.fill" size={22} color={colors.white} />
-                        <Text style={[styles.ownerButtonText, { color: colors.white }]}>Análisis</Text>
-                      </View>
-                    </TouchableOpacity>
-                  </View>
-                </>
+                  <TouchableOpacity 
+                    style={styles.ownerRowButton} 
+                    onPress={handleVerAnalisis}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.ownerButtonIconContainer}>
+                      <IconSymbol name="chart.bar.fill" size={20} color={colors.primary} />
+                    </View>
+                    <Text style={styles.ownerRowButtonText}>Análisis</Text>
+                  </TouchableOpacity>
+                </View>
               ) : (
                 <>
                   <TouchableOpacity 
@@ -2412,41 +2398,33 @@ const styles = StyleSheet.create({
   actionsContainer: {
     width: '100%',
   },
-  // ✅ NEW: Owner buttons grid layout (2x2)
-  ownerButtonsGrid: {
+  // ✅ NEW: Owner buttons in a single row with soft design
+  ownerButtonsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
+    gap: 10,
     justifyContent: 'center',
+    alignItems: 'center',
   },
-  ownerGridButton: {
-    width: (width - 64) / 2, // 2 buttons per row with proper spacing
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 16,
-    paddingVertical: 18,
-    paddingHorizontal: 12,
+  ownerRowButton: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
   },
-  ownerGridButtonHighlight: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+  ownerButtonIconContainer: {
+    marginBottom: 4,
   },
-  ownerButtonContent: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  ownerButtonText: {
-    fontSize: 15,
-    fontWeight: '700',
+  ownerRowButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
     color: colors.primary,
     textAlign: 'center',
   },
