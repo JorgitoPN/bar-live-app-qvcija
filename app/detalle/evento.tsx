@@ -352,7 +352,7 @@ export default function DetalleEventoScreen() {
         showsVerticalScrollIndicator={false}
         bounces={true}
       >
-        {/* Full Width Cover Image */}
+        {/* Full Width Cover Image - More Compact */}
         <View style={styles.coverImageContainer}>
           {evento.imagen_url ? (
             <Image 
@@ -371,7 +371,7 @@ export default function DetalleEventoScreen() {
               <IconSymbol 
                 ios_icon_name="music.note" 
                 android_material_icon_name="music_note"
-                size={100} 
+                size={80} 
                 color="rgba(255,255,255,0.3)" 
               />
             </View>
@@ -383,7 +383,7 @@ export default function DetalleEventoScreen() {
             style={styles.coverOverlay}
           />
 
-          {/* Back Button - Highly Visible */}
+          {/* Back Button - WHITE and Highly Visible */}
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
@@ -394,7 +394,7 @@ export default function DetalleEventoScreen() {
                 ios_icon_name="chevron.left" 
                 android_material_icon_name="arrow_back"
                 size={28} 
-                color={colors.white} 
+                color="#FFFFFF"
               />
             </View>
           </TouchableOpacity>
@@ -405,14 +405,14 @@ export default function DetalleEventoScreen() {
               <IconSymbol 
                 ios_icon_name="star.fill" 
                 android_material_icon_name="star" 
-                size={16} 
+                size={14} 
                 color="#92400E" 
               />
               <Text style={styles.destacadoText}>DESTACADO</Text>
             </View>
           )}
 
-          {/* Event Title Overlay */}
+          {/* Event Title Overlay - More Compact */}
           <View style={styles.titleOverlay}>
             <Animated.View 
               style={[
@@ -427,7 +427,7 @@ export default function DetalleEventoScreen() {
               <View style={styles.titleUnderline} />
             </Animated.View>
 
-            {/* Date and Time Info */}
+            {/* Date and Time Info - More Compact */}
             <Animated.View 
               style={[
                 styles.dateTimeContainer,
@@ -447,7 +447,7 @@ export default function DetalleEventoScreen() {
                   <IconSymbol 
                     ios_icon_name="clock.fill" 
                     android_material_icon_name="schedule"
-                    size={20} 
+                    size={18} 
                     color={colors.white} 
                   />
                   <Text style={styles.infoText}>{formatHora(evento.hora)}</Text>
@@ -458,7 +458,7 @@ export default function DetalleEventoScreen() {
                     <IconSymbol 
                       ios_icon_name="location.fill" 
                       android_material_icon_name="location_on"
-                      size={20} 
+                      size={18} 
                       color={colors.white} 
                     />
                     <Text style={styles.infoText} numberOfLines={1}>
@@ -471,7 +471,7 @@ export default function DetalleEventoScreen() {
           </View>
         </View>
 
-        {/* Content Section */}
+        {/* Content Section - More Compact */}
         <Animated.View 
           style={[
             styles.contentSection,
@@ -480,7 +480,7 @@ export default function DetalleEventoScreen() {
             }
           ]}
         >
-          {/* Price Card */}
+          {/* Price Card - More Compact */}
           {evento.precio !== null && (
             <View style={styles.priceCard}>
               <LinearGradient
@@ -494,7 +494,7 @@ export default function DetalleEventoScreen() {
                     <IconSymbol 
                       ios_icon_name="gift.fill" 
                       android_material_icon_name="card_giftcard"
-                      size={32} 
+                      size={28} 
                       color={colors.white} 
                     />
                     <Text style={styles.priceFreeText}>ENTRADA GRATUITA</Text>
@@ -503,26 +503,15 @@ export default function DetalleEventoScreen() {
                   <React.Fragment>
                     <Text style={styles.priceLabel}>PRECIO</Text>
                     <Text style={styles.priceAmount}>{evento.precio}€</Text>
-                    <Text style={styles.priceNote}>Precio informativo</Text>
                   </React.Fragment>
                 )}
               </LinearGradient>
             </View>
           )}
 
-          {/* Local Info Card */}
+          {/* Local Info Card - More Compact */}
           {evento.local_nombre && (
             <View style={styles.localCard}>
-              <View style={styles.localCardHeader}>
-                <IconSymbol 
-                  ios_icon_name="building.2.fill" 
-                  android_material_icon_name="store"
-                  size={24} 
-                  color={colors.primary} 
-                />
-                <Text style={styles.localCardTitle}>INFORMACIÓN DEL LOCAL</Text>
-              </View>
-              
               <View style={styles.localCardContent}>
                 {/* Mini Local Photo */}
                 {evento.local_imagen_url && (
@@ -537,40 +526,41 @@ export default function DetalleEventoScreen() {
                 <View style={styles.localDetails}>
                   <Text style={styles.localName}>{evento.local_nombre}</Text>
                   
-                  {/* Category Badge */}
-                  {evento.local_categoria && (
-                    <View style={styles.categoryBadge}>
-                      <Text style={styles.categoryIcon}>
-                        {getCategoryIcon(evento.local_categoria)}
-                      </Text>
-                      <Text style={styles.categoryText}>
-                        {evento.local_categoria.charAt(0).toUpperCase() + evento.local_categoria.slice(1)}
-                      </Text>
-                    </View>
-                  )}
-                  
-                  {/* Distance */}
-                  {distance !== null && (
-                    <View style={styles.distanceRow}>
-                      <IconSymbol 
-                        ios_icon_name="location.circle.fill" 
-                        android_material_icon_name="my_location"
-                        size={18} 
-                        color={colors.secondary} 
-                      />
-                      <Text style={styles.distanceText}>
-                        {distance < 1 
-                          ? `${Math.round(distance * 1000)} m` 
-                          : `${distance.toFixed(1)} km`} de distancia
-                      </Text>
-                    </View>
-                  )}
+                  {/* Category and Distance in one row */}
+                  <View style={styles.localMetaRow}>
+                    {evento.local_categoria && (
+                      <View style={styles.categoryBadge}>
+                        <Text style={styles.categoryIcon}>
+                          {getCategoryIcon(evento.local_categoria)}
+                        </Text>
+                        <Text style={styles.categoryText}>
+                          {evento.local_categoria.charAt(0).toUpperCase() + evento.local_categoria.slice(1)}
+                        </Text>
+                      </View>
+                    )}
+                    
+                    {distance !== null && (
+                      <View style={styles.distanceRow}>
+                        <IconSymbol 
+                          ios_icon_name="location.circle.fill" 
+                          android_material_icon_name="my_location"
+                          size={16} 
+                          color={colors.secondary} 
+                        />
+                        <Text style={styles.distanceText}>
+                          {distance < 1 
+                            ? `${Math.round(distance * 1000)} m` 
+                            : `${distance.toFixed(1)} km`}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                 </View>
               </View>
             </View>
           )}
 
-          {/* Action Buttons */}
+          {/* Action Buttons - More Compact */}
           <View style={styles.actionButtons}>
             <TouchableOpacity
               style={styles.actionButton}
@@ -586,7 +576,7 @@ export default function DetalleEventoScreen() {
                 <IconSymbol 
                   ios_icon_name="map.fill" 
                   android_material_icon_name="directions"
-                  size={24} 
+                  size={20} 
                   color={colors.white} 
                 />
                 <Text style={styles.buttonText}>Cómo Llegar</Text>
@@ -607,7 +597,7 @@ export default function DetalleEventoScreen() {
                 <IconSymbol 
                   ios_icon_name="building.2.fill" 
                   android_material_icon_name="store"
-                  size={24} 
+                  size={20} 
                   color={colors.white} 
                 />
                 <Text style={styles.buttonText}>Ver Local</Text>
@@ -615,31 +605,31 @@ export default function DetalleEventoScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Full Date */}
+          {/* Full Date - More Compact */}
           <View style={styles.infoCard}>
             <IconSymbol 
               ios_icon_name="calendar" 
               android_material_icon_name="calendar_today"
-              size={22} 
+              size={20} 
               color={colors.primary} 
             />
             <Text style={styles.infoCardText}>{formatFecha(evento.fecha)}</Text>
           </View>
 
-          {/* Address */}
+          {/* Address - More Compact */}
           {getLocalAddress() && (
             <View style={styles.infoCard}>
               <IconSymbol 
                 ios_icon_name="mappin.circle.fill" 
                 android_material_icon_name="place"
-                size={22} 
+                size={20} 
                 color={colors.primary} 
               />
               <Text style={styles.infoCardText}>{getLocalAddress()}</Text>
             </View>
           )}
 
-          {/* Description */}
+          {/* Description - More Compact */}
           {evento.descripcion && (
             <View style={styles.descriptionSection}>
               <View style={styles.sectionHeader}>
@@ -652,23 +642,6 @@ export default function DetalleEventoScreen() {
               </View>
             </View>
           )}
-
-          {/* Info Box */}
-          <View style={styles.infoBox}>
-            <IconSymbol 
-              ios_icon_name="info.circle.fill" 
-              android_material_icon_name="info"
-              size={28} 
-              color={colors.primary} 
-            />
-            <View style={styles.infoBoxContent}>
-              <Text style={styles.infoBoxTitle}>Información importante</Text>
-              <Text style={styles.infoBoxText}>
-                Para más información sobre este evento, horarios y disponibilidad, 
-                contacta directamente con el local.
-              </Text>
-            </View>
-          </View>
         </Animated.View>
       </ScrollView>
     </View>
@@ -710,10 +683,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   
-  // Full Width Cover Image
+  // Full Width Cover Image - More Compact (reduced from 60% to 45%)
   coverImageContainer: {
     width: width,
-    height: height * 0.6,
+    height: height * 0.45,
     position: 'relative',
   },
   coverImage: {
@@ -733,7 +706,7 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   
-  // Back Button - Highly Visible
+  // Back Button - WHITE and Highly Visible
   backButton: {
     position: 'absolute',
     top: Platform.OS === 'android' ? 48 : 60,
@@ -741,14 +714,14 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   backButtonContainer: {
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     width: 44,
     height: 44,
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.3)',
+    borderColor: 'rgba(255,255,255,0.4)',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -769,10 +742,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.badgeDestacado,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 5,
     zIndex: 100,
     ...Platform.select({
       ios: {
@@ -788,29 +761,29 @@ const styles = StyleSheet.create({
   },
   destacadoText: {
     color: colors.badgeDestacadoText,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 'bold',
     letterSpacing: 0.5,
   },
   
-  // Title Overlay
+  // Title Overlay - More Compact
   titleOverlay: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 20,
+    padding: 16,
   },
   titleContainer: {
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 14,
   },
   eventTitle: {
-    fontSize: 36,
+    fontSize: 28,
     fontWeight: 'bold',
     color: colors.white,
     textAlign: 'center',
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
     textTransform: 'uppercase',
     textShadowColor: 'rgba(0, 0, 0, 0.8)',
     textShadowOffset: { width: 0, height: 3 },
@@ -818,23 +791,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   titleUnderline: {
-    width: 100,
-    height: 4,
+    width: 80,
+    height: 3,
     backgroundColor: colors.white,
-    marginTop: 12,
+    marginTop: 10,
     borderRadius: 2,
   },
   
   dateTimeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    gap: 12,
   },
   dateBox: {
     backgroundColor: colors.white,
-    width: 70,
-    height: 80,
-    borderRadius: 12,
+    width: 60,
+    height: 70,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     ...Platform.select({
@@ -850,28 +823,28 @@ const styles = StyleSheet.create({
     }),
   },
   dateDia: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
     color: colors.primary,
-    lineHeight: 36,
+    lineHeight: 32,
   },
   dateMes: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: colors.textSecondary,
-    letterSpacing: 1,
+    letterSpacing: 0.8,
   },
   timeLocationInfo: {
     flex: 1,
-    gap: 10,
+    gap: 8,
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
   infoText: {
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: '600',
     color: colors.white,
     textShadowColor: 'rgba(0, 0, 0, 0.8)',
@@ -880,64 +853,59 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   
-  // Content Section
+  // Content Section - More Compact
   contentSection: {
-    padding: 20,
+    padding: 16,
   },
   
-  // Price Card
+  // Price Card - More Compact
   priceCard: {
-    marginBottom: 20,
-    borderRadius: 16,
+    marginBottom: 14,
+    borderRadius: 14,
     overflow: 'hidden',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
+        shadowOffset: { width: 0, height: 3 },
         shadowOpacity: 0.2,
-        shadowRadius: 8,
+        shadowRadius: 6,
       },
       android: {
-        elevation: 6,
+        elevation: 5,
       },
     }),
   },
   priceGradient: {
-    paddingVertical: 24,
-    paddingHorizontal: 20,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   priceLabel: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: colors.white,
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
     opacity: 0.9,
   },
   priceAmount: {
-    fontSize: 48,
+    fontSize: 40,
     fontWeight: 'bold',
     color: colors.white,
-  },
-  priceNote: {
-    fontSize: 12,
-    color: colors.white,
-    opacity: 0.8,
   },
   priceFreeText: {
-    fontSize: 22,
+    fontSize: 19,
     fontWeight: 'bold',
     color: colors.white,
-    letterSpacing: 2,
+    letterSpacing: 1.5,
   },
   
-  // Local Card
+  // Local Card - More Compact
   localCard: {
     backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    padding: 18,
-    marginBottom: 20,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 14,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     ...Platform.select({
@@ -945,33 +913,21 @@ const styles = StyleSheet.create({
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
-        shadowRadius: 8,
+        shadowRadius: 6,
       },
       android: {
         elevation: 3,
       },
     }),
   },
-  localCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 16,
-  },
-  localCardTitle: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: colors.primary,
-    letterSpacing: 1.2,
-  },
   localCardContent: {
     flexDirection: 'row',
-    gap: 14,
+    gap: 12,
   },
   localPhotoContainer: {
-    width: 90,
-    height: 90,
-    borderRadius: 14,
+    width: 70,
+    height: 70,
+    borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: colors.cardBorder,
   },
@@ -982,61 +938,66 @@ const styles = StyleSheet.create({
   localDetails: {
     flex: 1,
     justifyContent: 'center',
-    gap: 10,
+    gap: 8,
   },
   localName: {
-    fontSize: 19,
+    fontSize: 17,
     fontWeight: 'bold',
     color: colors.text,
+  },
+  localMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flexWrap: 'wrap',
   },
   categoryBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
     backgroundColor: colors.primary + '15',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 14,
-    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    gap: 5,
   },
   categoryIcon: {
-    fontSize: 16,
+    fontSize: 14,
   },
   categoryText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: colors.primary,
   },
   distanceRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   distanceText: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '600',
     color: colors.secondary,
   },
   
-  // Action Buttons
+  // Action Buttons - More Compact
   actionButtons: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 20,
+    gap: 10,
+    marginBottom: 14,
   },
   actionButton: {
     flex: 1,
-    borderRadius: 14,
+    borderRadius: 12,
     overflow: 'hidden',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
+        shadowOffset: { width: 0, height: 3 },
         shadowOpacity: 0.2,
-        shadowRadius: 8,
+        shadowRadius: 6,
       },
       android: {
-        elevation: 6,
+        elevation: 5,
       },
     }),
   },
@@ -1044,46 +1005,46 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 18,
-    paddingHorizontal: 16,
-    gap: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    gap: 8,
   },
   buttonText: {
     color: colors.white,
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: 'bold',
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
   
-  // Info Cards
+  // Info Cards - More Compact
   infoCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 12,
     backgroundColor: colors.cardBackground,
-    padding: 18,
-    borderRadius: 14,
-    marginBottom: 12,
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
   infoCardText: {
-    fontSize: 16,
+    fontSize: 15,
     color: colors.text,
     fontWeight: '600',
     flex: 1,
-    lineHeight: 24,
+    lineHeight: 22,
   },
   
-  // Description Section
+  // Description Section - More Compact
   descriptionSection: {
-    marginBottom: 20,
+    marginBottom: 14,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-    gap: 12,
+    marginBottom: 12,
+    gap: 10,
   },
   sectionLine: {
     flex: 1,
@@ -1092,47 +1053,21 @@ const styles = StyleSheet.create({
     opacity: 0.3,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
     color: colors.primary,
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
   },
   descriptionCard: {
     backgroundColor: colors.cardBackground,
-    padding: 18,
-    borderRadius: 14,
+    padding: 14,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
   descriptionText: {
-    fontSize: 16,
-    color: colors.text,
-    lineHeight: 26,
-  },
-  
-  // Info Box
-  infoBox: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: '#F0F9FF',
-    borderWidth: 1,
-    borderColor: '#BAE6FD',
-    borderRadius: 14,
-    padding: 18,
-    gap: 14,
-  },
-  infoBoxContent: {
-    flex: 1,
-  },
-  infoBoxTitle: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: '#0369A1',
-    marginBottom: 6,
-  },
-  infoBoxText: {
     fontSize: 15,
-    color: '#0C4A6E',
-    lineHeight: 22,
+    color: colors.text,
+    lineHeight: 23,
   },
 });
