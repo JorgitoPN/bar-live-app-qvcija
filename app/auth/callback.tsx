@@ -7,7 +7,6 @@ import { supabase } from '@/utils/supabase';
 import { getCurrentUser } from '@/utils/auth';
 import { registerForPushNotifications, savePushToken } from '@/utils/notifications';
 import { useAuth } from '@/contexts/AuthContext';
-import * as SecureStore from 'expo-secure-store';
 
 export default function AuthCallbackScreen() {
   const router = useRouter();
@@ -48,52 +47,22 @@ export default function AuthCallbackScreen() {
       }, delay);
     };
 
-    const verifyStoredSession = async () => {
-      try {
-        addDebugInfo('🔍 Verificando sesión almacenada...');
-        
-        if (Platform.OS !== 'web') {
-          const storedSession = await SecureStore.getItemAsync('supabase.auth.token');
-          addDebugInfo(`SecureStore session: ${storedSession ? 'PRESENTE' : 'AUSENTE'}`);
-          
-          if (storedSession) {
-            try {
-              const parsed = JSON.parse(storedSession);
-              addDebugInfo(`Session data: access_token=${parsed.access_token ? 'SI' : 'NO'}, refresh_token=${parsed.refresh_token ? 'SI' : 'NO'}`);
-            } catch (e) {
-              addDebugInfo('Error parseando session data');
-            }
-          }
-        } else {
-          addDebugInfo('Web platform - usando localStorage');
-          const storedSession = localStorage.getItem('supabase.auth.token');
-          addDebugInfo(`localStorage session: ${storedSession ? 'PRESENTE' : 'AUSENTE'}`);
-        }
-      } catch (error: any) {
-        addDebugInfo(`❌ Error verificando storage: ${error.message}`);
-      }
-    };
-
     const handleCallback = async () => {
       try {
         addDebugInfo('🔄 Procesando callback de autenticación...');
         addDebugInfo(`Platform: ${Platform.OS}`);
-        addDebugInfo(`Params: ${JSON.stringify(params)}`);
         
-        // For web, check URL hash for tokens
+        // For web, Supabase will automatically detect and process the OAuth callback
+        // because we have detectSessionInUrl: true in the client config
+        // We just need to wait for it to complete
+        
         if (Platform.OS === 'web' && typeof window !== 'undefined') {
-          addDebugInfo('🌐 Detectando tokens en URL...');
-          addDebugInfo(`URL completa: ${window.location.href}`);
-          addDebugInfo(`Hash: ${window.location.hash}`);
-          addDebugInfo(`Search: ${window.location.search}`);
+          addDebugInfo('🌐 Detectando OAuth callback en web...');
+          addDebugInfo(`URL: ${window.location.href}`);
           
           const hashParams = new URLSearchParams(window.location.hash.substring(1));
-          const accessToken = hashParams.get('access_token');
-          const refreshToken = hashParams.get('refresh_token');
           const errorParam = hashParams.get('error');
           const errorDescription = hashParams.get('error_description');
-
-          addDebugInfo(`Hash params: access_token=${!!accessToken}, refresh_token=${!!refreshToken}, error=${errorParam}`);
 
           // Check for OAuth errors
           if (errorParam) {
@@ -114,259 +83,109 @@ export default function AuthCallbackScreen() {
             }
             return;
           }
-
-          if (accessToken && refreshToken) {
-            addDebugInfo('✅ Tokens encontrados en URL, estableciendo sesión...');
-            
-            // CRITICAL: Set the session with the tokens
-            const { data, error: sessionError } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken,
-            });
-
-            if (sessionError) {
-              addDebugInfo(`❌ Error estableciendo sesión: ${sessionError.message}`);
-              if (isMounted) {
-                setStatus('error');
-                setErrorMessage('No se pudo completar la autenticación');
-                setErrorDetails('Error al establecer la sesión. Código: ' + sessionError.message);
-              }
-              safeRedirect('/(tabs)/explorar', 3000);
-              return;
-            }
-
-            if (data.session && data.user) {
-              addDebugInfo(`✅ Sesión establecida para usuario: ${data.user.email}`);
-              addDebugInfo(`User ID: ${data.user.id}`);
-              addDebugInfo(`Session expires at: ${data.session.expires_at}`);
-              
-              // CRITICAL: Wait longer for the session to be persisted to storage
-              addDebugInfo('⏳ Esperando persistencia en storage (3000ms)...');
-              await new Promise(resolve => setTimeout(resolve, 3000));
-              
-              // Verify storage
-              await verifyStoredSession();
-              
-              // Verify the session was persisted with retries
-              addDebugInfo('🔍 Verificando sesión persistida...');
-              let verifySession = null;
-              let verifyRetries = 3;
-              
-              while (verifyRetries > 0 && !verifySession) {
-                const { data: { session: checkSession } } = await supabase.auth.getSession();
-                verifySession = checkSession;
-                
-                if (!verifySession && verifyRetries > 1) {
-                  addDebugInfo(`⏳ Sesión no verificada, reintentando... (${4 - verifyRetries}/3)`);
-                  await new Promise(resolve => setTimeout(resolve, 1000));
-                }
-                
-                verifyRetries--;
-              }
-              
-              if (!verifySession) {
-                addDebugInfo('❌ La sesión no se persistió correctamente después de 3 intentos');
-                
-                // Try one more time to set the session
-                addDebugInfo('🔄 Reintentando establecer sesión...');
-                const { data: retryData, error: retryError } = await supabase.auth.setSession({
-                  access_token: accessToken,
-                  refresh_token: refreshToken,
-                });
-                
-                if (retryError || !retryData.session) {
-                  addDebugInfo(`❌ Reintento falló: ${retryError?.message || 'No session'}`);
-                  if (isMounted) {
-                    setStatus('error');
-                    setErrorMessage('No se pudo completar la autenticación');
-                    setErrorDetails('La sesión no se guardó correctamente. Por favor, intenta de nuevo.');
-                  }
-                  safeRedirect('/(tabs)/explorar', 3000);
-                  return;
-                }
-                
-                addDebugInfo('✅ Sesión establecida en segundo intento');
-                await new Promise(resolve => setTimeout(resolve, 1500));
-              }
-              
-              addDebugInfo('✅ Sesión verificada y persistida correctamente');
-              
-              // Register push notifications (non-blocking)
-              registerForPushNotifications()
-                .then(pushToken => {
-                  if (pushToken) {
-                    savePushToken(data.user.id, pushToken).catch(() => {
-                      addDebugInfo('Failed to save push token');
-                    });
-                  }
-                })
-                .catch(() => {
-                  addDebugInfo('Failed to register push notifications');
-                });
-              
-              // Force multiple refreshes with longer delays to ensure AuthContext picks up the session
-              addDebugInfo('🔄 Refrescando usuario en AuthContext (intento 1)...');
-              await refreshUser();
-              
-              await new Promise(resolve => setTimeout(resolve, 1000));
-              
-              addDebugInfo('🔄 Refrescando usuario en AuthContext (intento 2)...');
-              await refreshUser();
-              
-              await new Promise(resolve => setTimeout(resolve, 800));
-              
-              addDebugInfo('🔄 Refrescando usuario en AuthContext (intento 3)...');
-              await refreshUser();
-              
-              await new Promise(resolve => setTimeout(resolve, 500));
-              
-              // Get user profile to check if needs profile completion
-              addDebugInfo('🔍 Obteniendo perfil de usuario...');
-              
-              const { user: userData } = await getCurrentUser();
-              
-              if (userData) {
-                addDebugInfo(`✅ Perfil obtenido: ${userData.email}`);
-                addDebugInfo(`hasAcceptedTerms: ${userData.ha_aceptado_terminos}`);
-                addDebugInfo(`hasUsername: ${!!userData.username}`);
-                addDebugInfo(`hasName: ${!!userData.nombre}`);
-                
-                if (isMounted) setStatus('success');
-                
-                // Check if user needs to accept terms
-                if (!userData.ha_aceptado_terminos) {
-                  addDebugInfo('📋 Usuario debe aceptar términos');
-                  safeRedirect(`/auth/terms-acceptance?userId=${userData.id}`, 500);
-                  return;
-                }
-                
-                // Check if user needs to complete profile (username and name are mandatory)
-                if (!userData.username || !userData.nombre) {
-                  addDebugInfo('📝 Usuario nuevo - redirigiendo a editar perfil');
-                  safeRedirect('/editar/perfil', 500);
-                  return;
-                }
-                
-                // Existing users go to explorar
-                addDebugInfo('✅ Usuario existente - redirigiendo a explorar');
-                safeRedirect('/(tabs)/explorar', 500);
-                return;
-              }
-              
-              // If no user data, redirect to explorar
-              addDebugInfo('⚠️ No se pudo obtener datos del usuario, redirigiendo a explorar');
-              if (isMounted) setStatus('success');
-              safeRedirect('/(tabs)/explorar', 500);
-              return;
-            } else {
-              addDebugInfo('❌ No se obtuvo sesión o usuario después de setSession');
-              if (isMounted) {
-                setStatus('error');
-                setErrorMessage('No se pudo completar la autenticación');
-                setErrorDetails('No se pudo establecer la sesión. Por favor, intenta de nuevo.');
-              }
-              safeRedirect('/(tabs)/explorar', 3000);
-              return;
-            }
-          } else {
-            addDebugInfo('ℹ️ No se encontraron tokens en URL hash');
-          }
         }
         
-        // For native or if no hash params, check for existing session
-        addDebugInfo('🔍 Verificando sesión existente...');
+        // Wait for Supabase to process the OAuth callback and persist the session
+        addDebugInfo('⏳ Esperando que Supabase procese el callback...');
+        await new Promise(resolve => setTimeout(resolve, 2000));
         
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        // Now check for the session with retries
+        addDebugInfo('🔍 Verificando sesión...');
         
-        if (sessionError) {
-          addDebugInfo(`❌ Error obteniendo sesión: ${sessionError.message}`);
+        let session = null;
+        let retries = 5;
+        let delay = 1000;
+        
+        while (retries > 0 && !session) {
+          const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+          
+          if (sessionError) {
+            addDebugInfo(`❌ Error obteniendo sesión: ${sessionError.message}`);
+          }
+          
+          session = currentSession;
+          
+          if (!session && retries > 1) {
+            addDebugInfo(`⏳ Sesión no encontrada, reintentando en ${delay}ms... (${6 - retries}/5)`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            delay = Math.min(delay * 1.2, 2000);
+          }
+          
+          retries--;
+        }
+
+        if (!session) {
+          addDebugInfo('❌ No se pudo obtener la sesión después de 5 intentos');
           if (isMounted) {
             setStatus('error');
             setErrorMessage('No se pudo completar la autenticación');
-            setErrorDetails('Error al verificar la sesión. Código: ' + sessionError.message);
+            setErrorDetails('La sesión no se estableció correctamente. Por favor, intenta de nuevo.');
           }
           safeRedirect('/(tabs)/explorar', 3000);
           return;
         }
 
-        if (session?.user) {
-          addDebugInfo(`✅ Sesión encontrada para: ${session.user.email}`);
-          
-          // Register push notifications (non-blocking)
-          registerForPushNotifications()
-            .then(pushToken => {
-              if (pushToken) {
-                savePushToken(session.user.id, pushToken).catch(() => {
-                  addDebugInfo('Failed to save push token');
-                });
-              }
-            })
-            .catch(() => {
-              addDebugInfo('Failed to register push notifications');
-            });
-          
-          // Wait for the session to be fully established
-          addDebugInfo('⏳ Esperando establecimiento completo de sesión...');
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          
-          // Force refresh user in AuthContext multiple times with longer delays
-          addDebugInfo('🔄 Refrescando usuario en AuthContext (intento 1)...');
-          await refreshUser();
-          
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          addDebugInfo('🔄 Refrescando usuario en AuthContext (intento 2)...');
-          await refreshUser();
-          
-          await new Promise(resolve => setTimeout(resolve, 800));
-          
-          addDebugInfo('🔄 Refrescando usuario en AuthContext (intento 3)...');
-          await refreshUser();
-          
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          // Get user profile to check if needs profile completion
-          addDebugInfo('🔍 Obteniendo perfil de usuario...');
-          
-          const { user: userData } = await getCurrentUser();
-          
-          if (userData) {
-            addDebugInfo(`✅ Perfil obtenido: ${userData.email}`);
-            
-            if (isMounted) setStatus('success');
-            
-            // Check if user needs to accept terms
-            if (!userData.ha_aceptado_terminos) {
-              addDebugInfo('📋 Usuario debe aceptar términos');
-              safeRedirect(`/auth/terms-acceptance?userId=${userData.id}`, 500);
-              return;
+        addDebugInfo(`✅ Sesión encontrada para: ${session.user.email}`);
+        addDebugInfo(`User ID: ${session.user.id}`);
+        
+        // Register push notifications (non-blocking)
+        registerForPushNotifications()
+          .then(pushToken => {
+            if (pushToken) {
+              savePushToken(session.user.id, pushToken).catch(() => {
+                addDebugInfo('Failed to save push token');
+              });
             }
-            
-            // Check if user needs to complete profile
-            if (!userData.username || !userData.nombre) {
-              addDebugInfo('📝 Usuario nuevo - redirigiendo a editar perfil');
-              safeRedirect('/editar/perfil', 500);
-              return;
-            }
-            
-            // Existing users go to explorar
-            addDebugInfo('✅ Usuario existente - redirigiendo a explorar');
-            safeRedirect('/(tabs)/explorar', 500);
-          } else {
-            // If no user data, redirect to explorar
-            addDebugInfo('⚠️ No se pudo obtener datos del usuario, redirigiendo a explorar');
-            if (isMounted) setStatus('success');
-            safeRedirect('/(tabs)/explorar', 500);
+          })
+          .catch(() => {
+            addDebugInfo('Failed to register push notifications');
+          });
+        
+        // Force refresh user in AuthContext multiple times
+        addDebugInfo('🔄 Refrescando usuario en AuthContext...');
+        await refreshUser();
+        await new Promise(resolve => setTimeout(resolve, 500));
+        await refreshUser();
+        await new Promise(resolve => setTimeout(resolve, 500));
+        await refreshUser();
+        
+        // Get user profile to check if needs profile completion
+        addDebugInfo('🔍 Obteniendo perfil de usuario...');
+        
+        const { user: userData } = await getCurrentUser();
+        
+        if (userData) {
+          addDebugInfo(`✅ Perfil obtenido: ${userData.email}`);
+          addDebugInfo(`hasAcceptedTerms: ${userData.ha_aceptado_terminos}`);
+          addDebugInfo(`hasUsername: ${!!userData.username}`);
+          addDebugInfo(`hasName: ${!!userData.nombre}`);
+          
+          if (isMounted) setStatus('success');
+          
+          // Check if user needs to accept terms
+          if (!userData.ha_aceptado_terminos) {
+            addDebugInfo('📋 Usuario debe aceptar términos');
+            safeRedirect(`/auth/terms-acceptance?userId=${userData.id}`, 500);
+            return;
           }
-        } else {
-          addDebugInfo('ℹ️ No hay sesión activa, redirigiendo a explorar');
-          if (isMounted) {
-            setStatus('error');
-            setErrorMessage('No se pudo completar la autenticación');
-            setErrorDetails('No se encontró una sesión activa. Por favor, intenta iniciar sesión de nuevo.');
+          
+          // Check if user needs to complete profile (username and name are mandatory)
+          if (!userData.username || !userData.nombre) {
+            addDebugInfo('📝 Usuario nuevo - redirigiendo a editar perfil');
+            safeRedirect('/editar/perfil', 500);
+            return;
           }
-          safeRedirect('/(tabs)/explorar', 3000);
+          
+          // Existing users go to explorar
+          addDebugInfo('✅ Usuario existente - redirigiendo a explorar');
+          safeRedirect('/(tabs)/explorar', 500);
+          return;
         }
+        
+        // If no user data, redirect to explorar
+        addDebugInfo('⚠️ No se pudo obtener datos del usuario, redirigiendo a explorar');
+        if (isMounted) setStatus('success');
+        safeRedirect('/(tabs)/explorar', 500);
       } catch (error: any) {
         addDebugInfo(`❌ Error en callback: ${error.message}`);
         console.error('[Callback] ❌ Error en callback:', error);

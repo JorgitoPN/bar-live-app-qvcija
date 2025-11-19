@@ -77,10 +77,10 @@ const ExpoSecureStoreAdapter = {
 // Create Supabase client with custom storage
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
-    storage: Platform.OS !== 'web' ? ExpoSecureStoreAdapter : undefined,
+    storage: ExpoSecureStoreAdapter,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: Platform.OS === 'web', // Enable URL detection on web for OAuth callback
+    detectSessionInUrl: true, // ALWAYS enable URL detection for OAuth callback
     flowType: 'pkce', // Use PKCE flow for better security
     storageKey: 'supabase.auth.token',
     debug: __DEV__, // Enable debug mode in development
