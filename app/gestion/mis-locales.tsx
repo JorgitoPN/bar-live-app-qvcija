@@ -20,6 +20,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSelectedLocal } from '@/contexts/SelectedLocalContext';
 import { supabase } from '@/utils/supabase';
 
+// ✅ FORCE CACHE BUST - VERSION 4.0.0 - COMPLETE REDESIGN
+const SCREEN_VERSION = '4.0.0-REDESIGNED';
+
 const { width } = Dimensions.get('window');
 const CONTENT_MAX_WIDTH = 600;
 
@@ -217,7 +220,10 @@ export default function MisLocalesScreen() {
             <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
               <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Mis Locales</Text>
+            <View style={styles.headerTitleContainer}>
+              <Text style={styles.headerTitle}>Gestión de Locales</Text>
+              <Text style={styles.headerVersion}>v{SCREEN_VERSION}</Text>
+            </View>
             <TouchableOpacity
               style={styles.addButton}
               onPress={() => router.push('/crear/local')}
@@ -236,7 +242,7 @@ export default function MisLocalesScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
+      {/* Header with VERSION MARKER */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         style={styles.header}
@@ -245,7 +251,10 @@ export default function MisLocalesScreen() {
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Mis Locales</Text>
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.headerTitle}>Gestión de Locales</Text>
+            <Text style={styles.headerVersion}>v{SCREEN_VERSION}</Text>
+          </View>
           <TouchableOpacity
             style={styles.addButton}
             onPress={() => router.push('/crear/local')}
@@ -279,7 +288,7 @@ export default function MisLocalesScreen() {
             </View>
           ) : (
             <React.Fragment>
-              {/* REDESIGNED LOCAL CARDS */}
+              {/* ✅ REDESIGNED LOCAL CARDS - ALL 4 BUTTONS IN ONE ROW */}
               <View style={styles.localesGrid}>
                 {locales.map((local, index) => (
                   <View key={index} style={[
@@ -399,14 +408,14 @@ export default function MisLocalesScreen() {
                         </TouchableOpacity>
                       </View>
 
-                      {/* ALL 4 ACTION BUTTONS IN ONE ROW */}
+                      {/* ✅ ALL 4 ACTION BUTTONS IN ONE ROW - RESPONSIVE */}
                       <View style={styles.actionsRow}>
                         <TouchableOpacity
                           style={styles.actionButton}
                           onPress={() => router.push(`/perfil/local?localId=${local.id}`)}
                         >
-                          <View style={styles.actionIconWrapper}>
-                            <IconSymbol ios_icon_name="person.2" android_material_icon_name="people" size={20} color={colors.primary} />
+                          <View style={[styles.actionIconWrapper, { backgroundColor: '#3B82F6' + '20' }]}>
+                            <IconSymbol ios_icon_name="person.2" android_material_icon_name="people" size={20} color="#3B82F6" />
                           </View>
                           <Text style={styles.actionButtonText}>Perfil</Text>
                         </TouchableOpacity>
@@ -415,8 +424,8 @@ export default function MisLocalesScreen() {
                           style={styles.actionButton}
                           onPress={() => router.push(`/editar/local?id=${local.id}`)}
                         >
-                          <View style={styles.actionIconWrapper}>
-                            <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={20} color={colors.primary} />
+                          <View style={[styles.actionIconWrapper, { backgroundColor: '#10B981' + '20' }]}>
+                            <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={20} color="#10B981" />
                           </View>
                           <Text style={styles.actionButtonText}>Editar</Text>
                         </TouchableOpacity>
@@ -425,8 +434,8 @@ export default function MisLocalesScreen() {
                           style={styles.actionButton}
                           onPress={() => router.push(`/crear/evento?localId=${local.id}`)}
                         >
-                          <View style={styles.actionIconWrapper}>
-                            <IconSymbol ios_icon_name="calendar.badge.plus" android_material_icon_name="event" size={20} color={colors.primary} />
+                          <View style={[styles.actionIconWrapper, { backgroundColor: '#F59E0B' + '20' }]}>
+                            <IconSymbol ios_icon_name="calendar.badge.plus" android_material_icon_name="event" size={20} color="#F59E0B" />
                           </View>
                           <Text style={styles.actionButtonText}>Evento</Text>
                         </TouchableOpacity>
@@ -435,8 +444,8 @@ export default function MisLocalesScreen() {
                           style={styles.actionButton}
                           onPress={() => router.push(`/gestion/panel-analisis?localId=${local.id}`)}
                         >
-                          <View style={styles.actionIconWrapper}>
-                            <IconSymbol ios_icon_name="chart.bar.fill" android_material_icon_name="bar_chart" size={20} color={colors.primary} />
+                          <View style={[styles.actionIconWrapper, { backgroundColor: '#8B5CF6' + '20' }]}>
+                            <IconSymbol ios_icon_name="chart.bar.fill" android_material_icon_name="bar_chart" size={20} color="#8B5CF6" />
                           </View>
                           <Text style={styles.actionButtonText}>Análisis</Text>
                         </TouchableOpacity>
@@ -526,10 +535,21 @@ const styles = StyleSheet.create({
   backButton: {
     padding: 8,
   },
+  headerTitleContainer: {
+    flex: 1,
+    alignItems: 'center',
+  },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: colors.headerText,
+  },
+  headerVersion: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: colors.headerText,
+    opacity: 0.7,
+    marginTop: 2,
   },
   addButton: {
     padding: 8,
@@ -792,7 +812,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
 
-  // ALL 4 ACTION BUTTONS IN ONE ROW
+  // ✅ ALL 4 ACTION BUTTONS IN ONE ROW - RESPONSIVE
   actionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -804,22 +824,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     paddingVertical: 12,
-    paddingHorizontal: 8,
+    paddingHorizontal: 4,
     backgroundColor: colors.background,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.cardBorder,
+    minWidth: 0,
   },
   actionIconWrapper: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.primary + '15',
     justifyContent: 'center',
     alignItems: 'center',
   },
   actionButtonText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: colors.text,
     textAlign: 'center',
