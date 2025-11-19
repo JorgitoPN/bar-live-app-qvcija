@@ -10,13 +10,19 @@ import {
   ActivityIndicator,
   Platform,
   Alert,
+  Animated,
+  Dimensions,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Linking from 'expo-linking';
+import * as Location from 'expo-location';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
+import { getCategoryIcon } from '@/utils/categoryIcons';
+
+const { width } = Dimensions.get('window');
 
 interface EventoData {
   id: string;
@@ -34,6 +40,8 @@ interface EventoData {
   local_ciudad?: string;
   local_latitud?: number;
   local_longitud?: number;
+  local_imagen_url?: string;
+  local_categoria?: string;
 }
 
 export default function DetalleEventoScreen() {
@@ -41,10 +49,84 @@ export default function DetalleEventoScreen() {
   const params = useLocalSearchParams();
   const [evento, setEvento] = useState<EventoData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [distance, setDistance] = useState<number | null>(null);
+
+  // Animations
+  const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  const scaleAnim = React.useRef(new Animated.Value(0.9)).current;
+  const slideAnim = React.useRef(new Animated.Value(50)).current;
 
   useEffect(() => {
     cargarEvento();
+    obtenerUbicacionUsuario();
   }, [params.id]);
+
+  useEffect(() => {
+    if (evento) {
+      // Trigger animations
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          friction: 8,
+          tension: 40,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [evento]);
+
+  const obtenerUbicacionUsuario = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        console.log('[DetalleEvento] Location permission denied');
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({});
+      setUserLocation({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
+    } catch (error) {
+      console.error('[DetalleEvento] Error getting location:', error);
+    }
+  };
+
+  const calcularDistancia = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371; // Radio de la Tierra en km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
+  useEffect(() => {
+    if (userLocation && evento?.local_latitud && evento?.local_longitud) {
+      const dist = calcularDistancia(
+        userLocation.latitude,
+        userLocation.longitude,
+        evento.local_latitud,
+        evento.local_longitud
+      );
+      setDistance(dist);
+    }
+  }, [userLocation, evento]);
 
   const cargarEvento = async () => {
     try {
@@ -68,7 +150,9 @@ export default function DetalleEventoScreen() {
             direccion,
             ciudad,
             latitud,
-            longitud
+            longitud,
+            imagen_url,
+            barlive_type
           )
         `)
         .eq('id', eventoId)
@@ -104,6 +188,8 @@ export default function DetalleEventoScreen() {
         local_ciudad: data.locales?.ciudad,
         local_latitud: data.locales?.latitud,
         local_longitud: data.locales?.longitud,
+        local_imagen_url: data.locales?.imagen_url,
+        local_categoria: data.locales?.barlive_type,
       };
 
       console.log('[DetalleEvento] Event loaded:', eventoData.titulo);
@@ -120,9 +206,9 @@ export default function DetalleEventoScreen() {
     try {
       const date = new Date(fecha);
       return date.toLocaleDateString('es-ES', {
-        weekday: 'short',
+        weekday: 'long',
         day: 'numeric',
-        month: 'short',
+        month: 'long',
         year: 'numeric',
       }).toUpperCase();
     } catch (error) {
@@ -226,7 +312,7 @@ export default function DetalleEventoScreen() {
       return;
     }
 
-    router.push(`/perfil/local?id=${evento.local_id}`);
+    router.push(`/perfil/local?localId=${evento.local_id}`);
   };
 
   const { dia, mes } = evento ? formatDiaMes(evento.fecha) : { dia: '', mes: '' };
@@ -260,11 +346,21 @@ export default function DetalleEventoScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Concert Poster Style Header */}
-        <View style={styles.posterContainer}>
+        <Animated.View 
+          style={[
+            styles.posterContainer,
+            {
+              opacity: fadeAnim,
+              transform: [{ scale: scaleAnim }],
+            }
+          ]}
+        >
           <LinearGradient
             colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
             style={styles.posterGradient}
           >
             {/* Back Button */}
@@ -285,7 +381,8 @@ export default function DetalleEventoScreen() {
             {/* Destacado Badge */}
             {evento.destacado && (
               <View style={styles.destacadoBadge}>
-                <Text style={styles.destacadoText}>⭐ DESTACADO</Text>
+                <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={14} color="#92400E" />
+                <Text style={styles.destacadoText}>DESTACADO</Text>
               </View>
             )}
 
@@ -370,10 +467,78 @@ export default function DetalleEventoScreen() {
             <View style={styles.decorativeTop} />
             <View style={styles.decorativeBottom} />
           </LinearGradient>
-        </View>
+        </Animated.View>
 
         {/* Content Section */}
-        <View style={styles.contentSection}>
+        <Animated.View 
+          style={[
+            styles.contentSection,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            }
+          ]}
+        >
+          {/* Local Info Card - NEW */}
+          {evento.local_nombre && (
+            <View style={styles.localInfoCard}>
+              <View style={styles.localInfoHeader}>
+                <IconSymbol 
+                  ios_icon_name="building.2.fill" 
+                  android_material_icon_name="store"
+                  size={24} 
+                  color={colors.primary} 
+                />
+                <Text style={styles.localInfoTitle}>INFORMACIÓN DEL LOCAL</Text>
+              </View>
+              
+              <View style={styles.localInfoContent}>
+                {/* Mini Local Cover Photo */}
+                {evento.local_imagen_url && (
+                  <View style={styles.localMiniPhotoContainer}>
+                    <Image 
+                      source={{ uri: evento.local_imagen_url }} 
+                      style={styles.localMiniPhoto}
+                    />
+                  </View>
+                )}
+                
+                <View style={styles.localInfoDetails}>
+                  <Text style={styles.localName}>{evento.local_nombre}</Text>
+                  
+                  {/* Local Category */}
+                  {evento.local_categoria && (
+                    <View style={styles.localCategoryBadge}>
+                      <Text style={styles.localCategoryIcon}>
+                        {getCategoryIcon(evento.local_categoria)}
+                      </Text>
+                      <Text style={styles.localCategoryText}>
+                        {evento.local_categoria.charAt(0).toUpperCase() + evento.local_categoria.slice(1)}
+                      </Text>
+                    </View>
+                  )}
+                  
+                  {/* Distance */}
+                  {distance !== null && (
+                    <View style={styles.distanceContainer}>
+                      <IconSymbol 
+                        ios_icon_name="location.circle.fill" 
+                        android_material_icon_name="my_location"
+                        size={16} 
+                        color={colors.secondary} 
+                      />
+                      <Text style={styles.distanceText}>
+                        {distance < 1 
+                          ? `${Math.round(distance * 1000)} m` 
+                          : `${distance.toFixed(1)} km`} de distancia
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            </View>
+          )}
+
           {/* Action Buttons */}
           <View style={styles.actionButtons}>
             <TouchableOpacity
@@ -382,6 +547,8 @@ export default function DetalleEventoScreen() {
             >
               <LinearGradient
                 colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
                 style={styles.buttonGradient}
               >
                 <IconSymbol 
@@ -399,7 +566,9 @@ export default function DetalleEventoScreen() {
               onPress={handleVerLocal}
             >
               <LinearGradient
-                colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+                colors={[colors.secondary, colors.primary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
                 style={styles.buttonGradient}
               >
                 <IconSymbol 
@@ -465,7 +634,7 @@ export default function DetalleEventoScreen() {
               </Text>
             </View>
           </View>
-        </View>
+        </Animated.View>
       </ScrollView>
     </View>
   );
@@ -509,6 +678,7 @@ const styles = StyleSheet.create({
   // Concert Poster Styles
   posterContainer: {
     position: 'relative',
+    marginBottom: 20,
   },
   posterGradient: {
     paddingTop: 50,
@@ -544,10 +714,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 50,
     right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.badgeDestacado,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
+    gap: 4,
     zIndex: 10,
     ...Platform.select({
       ios: {
@@ -754,6 +927,93 @@ const styles = StyleSheet.create({
   contentSection: {
     padding: 20,
   },
+  
+  // Local Info Card - NEW
+  localInfoCard: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  localInfoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
+  localInfoTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: colors.primary,
+    letterSpacing: 1,
+  },
+  localInfoContent: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  localMiniPhotoContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: colors.cardBorder,
+  },
+  localMiniPhoto: {
+    width: '100%',
+    height: '100%',
+  },
+  localInfoDetails: {
+    flex: 1,
+    justifyContent: 'center',
+    gap: 8,
+  },
+  localName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  localCategoryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: colors.primary + '15',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    gap: 4,
+  },
+  localCategoryIcon: {
+    fontSize: 14,
+  },
+  localCategoryText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  distanceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  distanceText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.secondary,
+  },
+  
   actionButtons: {
     flexDirection: 'row',
     gap: 12,
