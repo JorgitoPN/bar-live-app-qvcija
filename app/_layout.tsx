@@ -4,7 +4,7 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import 'react-native-reanimated';
 import { useColorScheme, View, ActivityIndicator } from 'react-native';
 import { AuthProvider } from '@/contexts/AuthContext';
@@ -14,39 +14,21 @@ import { SelectedLocalProvider } from '@/contexts/SelectedLocalContext';
 import { colors } from '@/styles/commonStyles';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
-// Wrap in try-catch to handle the error gracefully
-try {
-  SplashScreen.preventAutoHideAsync();
-} catch (error) {
-  console.warn('[SplashScreen] Could not prevent auto hide:', error);
-}
+SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
-  const [splashHidden, setSplashHidden] = useState(false);
 
   useEffect(() => {
-    if (loaded && !splashHidden) {
+    if (loaded) {
       // Hide splash screen after fonts are loaded
       // GlobalDataProvider will handle data loading
-      const hideSplash = async () => {
-        try {
-          await SplashScreen.hideAsync();
-          setSplashHidden(true);
-          console.log('[SplashScreen] ✅ Hidden successfully');
-        } catch (error) {
-          console.warn('[SplashScreen] Error hiding:', error);
-          // Even if hiding fails, mark as hidden to prevent infinite loading
-          setSplashHidden(true);
-        }
-      };
-      
-      hideSplash();
+      SplashScreen.hideAsync();
     }
-  }, [loaded, splashHidden]);
+  }, [loaded]);
 
   if (!loaded) {
     return null;

@@ -18,7 +18,6 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { colors } from '@/styles/commonStyles';
-import FloatingTabBar from '@/components/FloatingTabBar';
 
 const { width } = Dimensions.get('window');
 const CONTENT_MAX_WIDTH = 600;
@@ -834,9 +833,6 @@ export default function PanelAnalisisScreen() {
           </View>
         </View>
       </ScrollView>
-
-      {/* FloatingTabBar for Propietario Navigation */}
-      <FloatingTabBar />
     </View>
   );
 }
@@ -930,7 +926,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 120,
+    paddingBottom: 100,
   },
   centeredContainer: {
     maxWidth: CONTENT_MAX_WIDTH,

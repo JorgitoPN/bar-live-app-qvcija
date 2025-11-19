@@ -31,7 +31,7 @@ WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginPopupScreen() {
   const router = useRouter();
-  const { user, refreshUser, session } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -39,62 +39,13 @@ export default function LoginPopupScreen() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  // Check if user is already logged in when component mounts
   useEffect(() => {
-    console.log('[LoginPopup] 🔍 Verificando estado de autenticación...');
-    console.log('[LoginPopup] User:', user?.email);
-    console.log('[LoginPopup] Session:', session?.user?.email);
-    
-    // If user is already logged in, close modal immediately
-    if (user || session) {
+    // If user is already logged in, redirect
+    if (user) {
       console.log('[LoginPopup] ✅ Usuario ya autenticado, cerrando modal');
-      // Small delay to ensure smooth transition
-      setTimeout(() => {
-        router.back();
-      }, 100);
+      router.back();
     }
-  }, [user, session, router]);
-
-  // Reset Google loading state on mount and when coming back from redirect
-  useEffect(() => {
-    console.log('[LoginPopup] 🔄 Reseteando estado de Google loading');
-    
-    // Check if we're coming back from a Google OAuth redirect
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      const hash = window.location.hash;
-      const search = window.location.search;
-      
-      // If there's a hash or search params, we might be coming back from OAuth
-      if (hash || search) {
-        console.log('[LoginPopup] 🔍 Detectado posible retorno de OAuth, limpiando estado');
-        setGoogleLoading(false);
-      }
-    }
-    
-    // Always reset on mount
-    setGoogleLoading(false);
-  }, []);
-
-  // Add timeout to reset Google loading state if it takes too long
-  useEffect(() => {
-    if (googleLoading) {
-      console.log('[LoginPopup] ⏱️ Iniciando timeout de 30 segundos para Google loading');
-      const timeout = setTimeout(() => {
-        console.log('[LoginPopup] ⏱️ Timeout de Google loading alcanzado, reseteando estado');
-        setGoogleLoading(false);
-        Alert.alert(
-          'Tiempo de espera agotado',
-          'La autenticación con Google está tardando más de lo esperado. Por favor, intenta de nuevo.',
-          [{ text: 'OK' }]
-        );
-      }, 30000); // 30 seconds timeout
-
-      return () => {
-        console.log('[LoginPopup] 🧹 Limpiando timeout de Google loading');
-        clearTimeout(timeout);
-      };
-    }
-  }, [googleLoading]);
+  }, [user, router]);
 
   const handleBarLiveAuth = async () => {
     if (!email || !password) {
@@ -172,52 +123,44 @@ export default function LoginPopupScreen() {
   };
 
   const handleGoogleSignIn = async () => {
-    console.log('[LoginPopup] 🔐 Iniciando Google Sign-In...');
-    console.log('[LoginPopup] Platform:', Platform.OS);
-    
     setGoogleLoading(true);
 
     try {
+      console.log('[LoginPopup] 🔐 Iniciando Google Sign-In...');
       const result = await signInWithGoogle();
 
-      // On web, signInWithGoogle will redirect to Google OAuth
-      // The page will reload and come back through the callback
-      // So we don't need to handle the result here for web
-      if (Platform.OS === 'web') {
-        console.log('[LoginPopup] 🌐 Redirigiendo a Google OAuth en web...');
-        // The loading state will be reset when the component remounts after redirect
-        // or by the timeout if something goes wrong
-        return;
-      }
-
+      // On web, signInWithGoogle will redirect to callback page
       // On native, we handle the result here
-      const { user: userData, error } = result;
+      if (Platform.OS !== 'web') {
+        const { user: userData, error } = result;
 
-      if (error) {
-        console.log('[LoginPopup] ❌ Error en Google sign-in:', error);
-        
-        if (error.includes('cancelled') || error.includes('canceled')) {
-          // User cancelled, no need to show error
-          console.log('[LoginPopup] ℹ️ Usuario canceló');
-        } else {
-          Alert.alert('Error', error);
+        if (error) {
+          console.log('[LoginPopup] ❌ Error en Google sign-in:', error);
+          
+          if (error.includes('cancelled') || error.includes('canceled')) {
+            // User cancelled, no need to show error
+            console.log('[LoginPopup] ℹ️ Usuario canceló');
+          } else {
+            Alert.alert('Error', error);
+          }
+          setGoogleLoading(false);
+          return;
         }
-        setGoogleLoading(false);
-        return;
-      }
 
-      if (userData) {
-        console.log('[LoginPopup] ✅ Google Sign-In exitoso');
+        if (userData) {
+          console.log('[LoginPopup] ✅ Google Sign-In exitoso');
+          
+          // Wait for auth context to update
+          await new Promise(resolve => setTimeout(resolve, 500));
+          await refreshUser();
+          
+          // Close modal and let AuthContext handle navigation
+          router.back();
+        }
         
-        // Wait for auth context to update
-        await new Promise(resolve => setTimeout(resolve, 500));
-        await refreshUser();
-        
-        // Close modal and let AuthContext handle navigation
-        router.back();
+        setGoogleLoading(false);
       }
-      
-      setGoogleLoading(false);
+      // On web, the page will redirect, so we keep the loading state
     } catch (error: any) {
       console.error('[LoginPopup] ❌ Error:', error);
       Alert.alert('Error', error.message || 'Error al iniciar sesión con Google');
