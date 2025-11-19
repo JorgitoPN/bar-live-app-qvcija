@@ -241,6 +241,9 @@ export default function CrearEventoScreen() {
 
   const uploadImage = async (uri: string): Promise<string | null> => {
     try {
+      console.log('[CrearEvento] Starting image upload...');
+      console.log('[CrearEvento] Image URI:', uri);
+      
       const base64 = await FileSystem.readAsStringAsync(uri, {
         encoding: 'base64',
       });
@@ -248,24 +251,32 @@ export default function CrearEventoScreen() {
       const fileName = `evento_${Date.now()}.jpg`;
       const filePath = `eventos/${user?.id}/${fileName}`;
 
+      console.log('[CrearEvento] Uploading to bucket: eventos');
+      console.log('[CrearEvento] File path:', filePath);
+
       const { data, error } = await supabase.storage
-        .from('imagenes')
+        .from('eventos')
         .upload(filePath, decode(base64), {
           contentType: 'image/jpeg',
         });
 
       if (error) {
         console.error('[CrearEvento] Error subiendo imagen:', error);
+        Alert.alert('Error', `No se pudo subir la imagen: ${error.message}`);
         return null;
       }
 
+      console.log('[CrearEvento] Image uploaded successfully:', data.path);
+
       const { data: urlData } = supabase.storage
-        .from('imagenes')
+        .from('eventos')
         .getPublicUrl(filePath);
 
+      console.log('[CrearEvento] Public URL:', urlData.publicUrl);
       return urlData.publicUrl;
     } catch (error) {
       console.error('[CrearEvento] Error:', error);
+      Alert.alert('Error', 'Ocurrió un error al subir la imagen');
       return null;
     }
   };
@@ -347,6 +358,10 @@ export default function CrearEventoScreen() {
       let imagenUrl = null;
       if (imagen) {
         imagenUrl = await uploadImage(imagen);
+        if (!imagenUrl) {
+          setLoading(false);
+          return;
+        }
       }
 
       const precioFinal = esGratis ? 0 : (precio ? parseFloat(precio) : null);
