@@ -66,13 +66,22 @@ export default function AuthCallbackScreen() {
             errorDescription: errorDescription,
           });
 
+          // Check for OAuth errors
           if (errorParam) {
             console.error('[Callback] ❌ Error en OAuth:', errorParam, errorDescription);
-            if (isMounted) {
-              setStatus('error');
-              setErrorMessage(errorDescription || errorParam);
+            
+            // Only show error if it's not a user cancellation
+            if (!errorParam.includes('access_denied') && !errorParam.includes('cancelled')) {
+              if (isMounted) {
+                setStatus('error');
+                setErrorMessage(errorDescription || 'No se pudo completar la autenticación. Por favor, intenta de nuevo.');
+              }
+              safeRedirect('/(tabs)/explorar', 3000);
+            } else {
+              // User cancelled, just redirect without error
+              console.log('[Callback] ℹ️ Usuario canceló la autenticación');
+              safeRedirect('/(tabs)/explorar', 500);
             }
-            safeRedirect('/(tabs)/explorar', 2000);
             return;
           }
 
@@ -88,9 +97,9 @@ export default function AuthCallbackScreen() {
               console.error('[Callback] ❌ Error estableciendo sesión:', sessionError);
               if (isMounted) {
                 setStatus('error');
-                setErrorMessage('Error al establecer la sesión');
+                setErrorMessage('No se pudo establecer la sesión. Por favor, intenta iniciar sesión de nuevo.');
               }
-              safeRedirect('/(tabs)/explorar', 2000);
+              safeRedirect('/(tabs)/explorar', 3000);
               return;
             }
 
@@ -185,9 +194,9 @@ export default function AuthCallbackScreen() {
           console.error('[Callback] ❌ Error obteniendo sesión:', sessionError);
           if (isMounted) {
             setStatus('error');
-            setErrorMessage('Error al verificar la sesión');
+            setErrorMessage('No se pudo verificar la sesión. Por favor, intenta iniciar sesión de nuevo.');
           }
-          safeRedirect('/(tabs)/explorar', 2000);
+          safeRedirect('/(tabs)/explorar', 3000);
           return;
         }
 
@@ -270,9 +279,9 @@ export default function AuthCallbackScreen() {
         console.error('[Callback] ❌ Error en callback:', error);
         if (isMounted) {
           setStatus('error');
-          setErrorMessage(error.message || 'Error inesperado');
+          setErrorMessage('Ocurrió un error inesperado. Por favor, intenta iniciar sesión de nuevo.');
         }
-        safeRedirect('/(tabs)/explorar', 2000);
+        safeRedirect('/(tabs)/explorar', 3000);
       }
     };
 
@@ -303,14 +312,17 @@ export default function AuthCallbackScreen() {
             <Text style={styles.successIconText}>✓</Text>
           </View>
           <Text style={styles.text}>¡Autenticación exitosa!</Text>
-          <Text style={styles.subText}>Redirigiendo a BarLive...</Text>
+          <Text style={styles.subText}>Redirigiendo...</Text>
         </>
       )}
       
       {status === 'error' && (
         <>
           <Text style={styles.errorIcon}>⚠️</Text>
-          <Text style={styles.errorText}>{errorMessage}</Text>
+          <Text style={styles.errorText}>No se pudo completar la autenticación</Text>
+          {errorMessage && (
+            <Text style={styles.errorDetails}>{errorMessage}</Text>
+          )}
           <Text style={styles.subText}>Redirigiendo...</Text>
         </>
       )}
@@ -328,7 +340,7 @@ const styles = StyleSheet.create({
   },
   text: {
     marginTop: 20,
-    fontSize: 16,
+    fontSize: 18,
     color: colors.text,
     textAlign: 'center',
     fontWeight: '600',
@@ -357,10 +369,17 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   errorText: {
-    fontSize: 16,
+    fontSize: 18,
     color: '#EF4444',
     textAlign: 'center',
     marginBottom: 8,
     fontWeight: '600',
+  },
+  errorDetails: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 12,
+    paddingHorizontal: 20,
   },
 });
