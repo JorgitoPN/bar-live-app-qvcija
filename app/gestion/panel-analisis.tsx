@@ -18,8 +18,10 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { colors } from '@/styles/commonStyles';
+import FloatingTabBar from '@/components/FloatingTabBar';
 
 const { width } = Dimensions.get('window');
+const CONTENT_MAX_WIDTH = 600;
 
 interface AnalyticsData {
   local: {
@@ -502,30 +504,17 @@ export default function PanelAnalisisScreen() {
       case 'urgente':
         return 'exclamationmark.triangle.fill';
       case 'alta':
-        return 'exclamationmark.circle.fill';
+        return 'star.fill';
       case 'media':
-        return 'info.circle.fill';
+        return 'lightbulb.fill';
       default:
-        return 'checkmark.circle.fill';
+        return 'info.circle.fill';
     }
   };
 
-  const renderCompactStatCard = (
-    icon: string,
-    label: string,
-    value: string | number,
-    color: string
-  ) => (
-    <View style={styles.compactStatCard}>
-      <IconSymbol name={icon as any} size={20} color={color} />
-      <Text style={styles.compactStatValue}>{value}</Text>
-      <Text style={styles.compactStatLabel}>{label}</Text>
-    </View>
-  );
-
   if (loading) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+      <View style={[styles.container, styles.centerContent]}>
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Cargando analíticas...</Text>
       </View>
@@ -534,7 +523,7 @@ export default function PanelAnalisisScreen() {
 
   if (!analyticsData) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
+      <View style={[styles.container, styles.centerContent]}>
         <IconSymbol name="exclamationmark.triangle" size={64} color={colors.textSecondary} />
         <Text style={[styles.loadingText, { marginTop: 16, textAlign: 'center' }]}>
           No se pudieron cargar las analíticas
@@ -553,38 +542,40 @@ export default function PanelAnalisisScreen() {
       {/* Compact Header */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-        style={styles.compactHeader}
+        style={styles.header}
       >
         <View style={styles.headerRow}>
           <TouchableOpacity style={styles.headerBackButton} onPress={() => router.back()}>
             <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
           </TouchableOpacity>
           <View style={styles.headerContent}>
-            <Text style={styles.headerTitle}>Análisis</Text>
+            <Text style={styles.headerTitle}>Panel de Análisis</Text>
             <Text style={styles.headerSubtitle}>{analyticsData.local.nombre}</Text>
           </View>
-          <TouchableOpacity
-            style={styles.headerRefreshButton}
-            onPress={generateRecommendations}
-            disabled={generatingRecommendations}
-          >
-            {generatingRecommendations ? (
-              <ActivityIndicator size="small" color={colors.headerText} />
-            ) : (
-              <IconSymbol name="sparkles" size={22} color={colors.headerText} />
-            )}
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={styles.headerActionButton}
+              onPress={generateRecommendations}
+              disabled={generatingRecommendations}
+            >
+              {generatingRecommendations ? (
+                <ActivityIndicator size="small" color={colors.headerText} />
+              ) : (
+                <IconSymbol name="sparkles" size={20} color={colors.headerText} />
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {/* Inline Time Range Selector */}
-        <View style={styles.inlineTimeRange}>
+        {/* Compact Time Range Selector */}
+        <View style={styles.timeRangeContainer}>
           {(['7d', '30d', '90d'] as const).map((range) => (
             <TouchableOpacity
               key={range}
-              style={[styles.inlineTimeButton, timeRange === range && styles.inlineTimeButtonActive]}
+              style={[styles.timeButton, timeRange === range && styles.timeButtonActive]}
               onPress={() => setTimeRange(range)}
             >
-              <Text style={[styles.inlineTimeText, timeRange === range && styles.inlineTimeTextActive]}>
+              <Text style={[styles.timeText, timeRange === range && styles.timeTextActive]}>
                 {range === '7d' ? '7d' : range === '30d' ? '30d' : '90d'}
               </Text>
             </TouchableOpacity>
@@ -600,196 +591,252 @@ export default function PanelAnalisisScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
       >
-        {/* Compact Stats Grid */}
-        <View style={styles.compactStatsGrid}>
-          {renderCompactStatCard('eye.fill', 'Vistas', analyticsData.stats.total_views.toLocaleString(), '#3B82F6')}
-          {renderCompactStatCard('heart.fill', 'Likes', analyticsData.stats.total_likes.toLocaleString(), '#EF4444')}
-          {renderCompactStatCard('bubble.left.fill', 'Comentarios', analyticsData.stats.total_comments.toLocaleString(), '#10B981')}
-          {renderCompactStatCard('chart.line.uptrend.xyaxis', 'Engagement', `${analyticsData.stats.engagement_rate.toFixed(1)}%`, '#F59E0B')}
-          {renderCompactStatCard('person.2.badge.plus', 'Seguidores', analyticsData.stats.nuevos_seguidores.toLocaleString(), '#8B5CF6')}
-          {renderCompactStatCard('antenna.radiowaves.left.and.right', 'Alcance', analyticsData.stats.reach.toLocaleString(), '#06B6D4')}
-        </View>
-
-        {/* AI Recommendations - Compact & Prominent */}
-        <View style={styles.recommendationsSection}>
-          <View style={styles.recommendationsHeader}>
-            <IconSymbol name="sparkles" size={22} color="#F59E0B" />
-            <Text style={styles.recommendationsTitle}>Recomendaciones IA</Text>
-            {recommendations.length > 0 && (
-              <View style={styles.recommendationsBadge}>
-                <Text style={styles.recommendationsBadgeText}>{recommendations.length}</Text>
-              </View>
-            )}
+        <View style={styles.centeredContainer}>
+          {/* Compact Key Metrics - 2 rows of 3 */}
+          <View style={styles.metricsGrid}>
+            <View style={styles.metricCard}>
+              <IconSymbol name="eye.fill" size={20} color="#3B82F6" />
+              <Text style={styles.metricValue}>{analyticsData.stats.total_views.toLocaleString()}</Text>
+              <Text style={styles.metricLabel}>Vistas</Text>
+            </View>
+            <View style={styles.metricCard}>
+              <IconSymbol name="heart.fill" size={20} color="#EF4444" />
+              <Text style={styles.metricValue}>{analyticsData.stats.total_likes.toLocaleString()}</Text>
+              <Text style={styles.metricLabel}>Likes</Text>
+            </View>
+            <View style={styles.metricCard}>
+              <IconSymbol name="bubble.left.fill" size={20} color="#10B981" />
+              <Text style={styles.metricValue}>{analyticsData.stats.total_comments.toLocaleString()}</Text>
+              <Text style={styles.metricLabel}>Comentarios</Text>
+            </View>
+            <View style={styles.metricCard}>
+              <IconSymbol name="chart.line.uptrend.xyaxis" size={20} color="#F59E0B" />
+              <Text style={styles.metricValue}>{analyticsData.stats.engagement_rate.toFixed(1)}%</Text>
+              <Text style={styles.metricLabel}>Engagement</Text>
+            </View>
+            <View style={styles.metricCard}>
+              <IconSymbol name="person.2.badge.plus" size={20} color="#8B5CF6" />
+              <Text style={styles.metricValue}>{analyticsData.stats.nuevos_seguidores.toLocaleString()}</Text>
+              <Text style={styles.metricLabel}>Seguidores</Text>
+            </View>
+            <View style={styles.metricCard}>
+              <IconSymbol name="antenna.radiowaves.left.and.right" size={20} color="#06B6D4" />
+              <Text style={styles.metricValue}>{analyticsData.stats.reach.toLocaleString()}</Text>
+              <Text style={styles.metricLabel}>Alcance</Text>
+            </View>
           </View>
 
-          {recommendations.length === 0 ? (
-            <TouchableOpacity
-              style={styles.generateCompactButton}
-              onPress={generateRecommendations}
-              disabled={generatingRecommendations}
-            >
-              <LinearGradient
-                colors={['#F59E0B', '#D97706']}
-                style={styles.generateCompactGradient}
-              >
-                {generatingRecommendations ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <>
-                    <IconSymbol name="sparkles" size={18} color="#FFFFFF" />
-                    <Text style={styles.generateCompactText}>Generar Recomendaciones</Text>
-                  </>
+          {/* AI Recommendations - Prominent Section */}
+          <View style={styles.aiSection}>
+            <View style={styles.aiHeader}>
+              <View style={styles.aiTitleRow}>
+                <LinearGradient
+                  colors={['#F59E0B', '#D97706']}
+                  style={styles.aiIconGradient}
+                >
+                  <IconSymbol name="sparkles" size={18} color="#FFFFFF" />
+                </LinearGradient>
+                <Text style={styles.aiTitle}>Recomendaciones IA</Text>
+                {recommendations.length > 0 && (
+                  <View style={styles.aiBadge}>
+                    <Text style={styles.aiBadgeText}>{recommendations.length}</Text>
+                  </View>
                 )}
-              </LinearGradient>
-            </TouchableOpacity>
-          ) : (
-            <>
-              {recommendations.map((rec) => (
-                <View key={rec.id} style={styles.compactRecommendationCard}>
-                  <TouchableOpacity
-                    style={styles.recommendationHeader}
-                    onPress={() => setExpandedRecommendation(expandedRecommendation === rec.id ? null : rec.id)}
-                  >
-                    <View style={styles.recommendationTitleRow}>
-                      <View style={[styles.priorityDot, { backgroundColor: getPriorityColor(rec.prioridad) }]} />
-                      <Text style={styles.compactRecommendationTitle} numberOfLines={expandedRecommendation === rec.id ? undefined : 1}>
-                        {rec.titulo}
-                      </Text>
-                    </View>
-                    <IconSymbol
-                      name={expandedRecommendation === rec.id ? 'chevron.up' : 'chevron.down'}
-                      size={18}
-                      color={colors.textSecondary}
-                    />
-                  </TouchableOpacity>
+              </View>
+              <Text style={styles.aiSubtitle}>
+                Incluye cuándo publicar eventos y destacar tu local
+              </Text>
+            </View>
 
-                  {expandedRecommendation === rec.id && (
-                    <View style={styles.recommendationExpanded}>
-                      <Text style={styles.recommendationDescription}>{rec.descripcion}</Text>
-                      
-                      {rec.acciones_sugeridas && rec.acciones_sugeridas.length > 0 && (
-                        <View style={styles.compactActionsContainer}>
-                          <Text style={styles.compactActionsTitle}>Acciones:</Text>
-                          {rec.acciones_sugeridas.slice(0, 3).map((accion, index) => (
-                            <View key={index} style={styles.compactActionItem}>
-                              <Text style={styles.compactActionBullet}>•</Text>
-                              <Text style={styles.compactActionText}>{accion}</Text>
-                            </View>
-                          ))}
-                        </View>
-                      )}
-
-                      <View style={styles.recommendationFooter}>
-                        <View style={styles.compactImpactBadge}>
-                          <Text style={styles.compactImpactText}>{rec.impacto_estimado}</Text>
-                        </View>
-                        <View style={styles.compactConfidenceBadge}>
-                          <Text style={styles.compactConfidenceText}>
-                            {Math.round(rec.confianza * 100)}% confianza
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-                  )}
-                </View>
-              ))}
-              
+            {recommendations.length === 0 ? (
               <TouchableOpacity
-                style={styles.refreshRecommendationsCompact}
+                style={styles.generateButton}
                 onPress={generateRecommendations}
                 disabled={generatingRecommendations}
               >
-                <IconSymbol name="arrow.clockwise" size={16} color={colors.primary} />
-                <Text style={styles.refreshRecommendationsText}>Actualizar</Text>
+                <LinearGradient
+                  colors={['#F59E0B', '#D97706']}
+                  style={styles.generateGradient}
+                >
+                  {generatingRecommendations ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <React.Fragment>
+                      <IconSymbol name="sparkles" size={18} color="#FFFFFF" />
+                      <Text style={styles.generateText}>Generar Recomendaciones</Text>
+                    </React.Fragment>
+                  )}
+                </LinearGradient>
               </TouchableOpacity>
-            </>
-          )}
-        </View>
+            ) : (
+              <React.Fragment>
+                {recommendations.map((rec, index) => (
+                  <View key={rec.id} style={styles.recCard}>
+                    <TouchableOpacity
+                      style={styles.recHeader}
+                      onPress={() => setExpandedRecommendation(expandedRecommendation === rec.id ? null : rec.id)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.recTitleRow}>
+                        <View style={[styles.recIconCircle, { backgroundColor: getPriorityColor(rec.prioridad) }]}>
+                          <IconSymbol
+                            name={getPriorityIcon(rec.prioridad) as any}
+                            size={14}
+                            color="#FFFFFF"
+                          />
+                        </View>
+                        <Text style={styles.recTitle} numberOfLines={expandedRecommendation === rec.id ? undefined : 2}>
+                          {rec.titulo}
+                        </Text>
+                      </View>
+                      <IconSymbol
+                        name={expandedRecommendation === rec.id ? 'chevron.up' : 'chevron.down'}
+                        size={18}
+                        color={colors.textSecondary}
+                      />
+                    </TouchableOpacity>
 
-        {/* Compact Best Times & Days */}
-        <View style={styles.compactSection}>
-          <Text style={styles.compactSectionTitle}>⏰ Mejores Momentos</Text>
-          <View style={styles.timesAndDaysRow}>
-            {/* Best Hours */}
-            <View style={styles.halfCard}>
-              <Text style={styles.halfCardTitle}>Horarios</Text>
-              {analyticsData.bestPostingTimes.slice(0, 3).map((time, index) => (
-                <View key={index} style={styles.compactTimeItem}>
-                  <View style={styles.compactTimeRank}>
-                    <Text style={styles.compactTimeRankText}>{index + 1}</Text>
+                    {expandedRecommendation === rec.id && (
+                      <View style={styles.recExpanded}>
+                        <Text style={styles.recDescription}>{rec.descripcion}</Text>
+                        
+                        {rec.acciones_sugeridas && rec.acciones_sugeridas.length > 0 && (
+                          <View style={styles.actionsContainer}>
+                            <Text style={styles.actionsTitle}>Acciones:</Text>
+                            {rec.acciones_sugeridas.map((accion, idx) => (
+                              <View key={idx} style={styles.actionItem}>
+                                <View style={styles.actionDot} />
+                                <Text style={styles.actionText}>{accion}</Text>
+                              </View>
+                            ))}
+                          </View>
+                        )}
+
+                        <View style={styles.recFooter}>
+                          <View style={styles.impactBadge}>
+                            <IconSymbol name="chart.line.uptrend.xyaxis" size={12} color="#065F46" />
+                            <Text style={styles.impactText}>{rec.impacto_estimado}</Text>
+                          </View>
+                          <View style={styles.confidenceBadge}>
+                            <IconSymbol name="checkmark.seal.fill" size={12} color="#1E40AF" />
+                            <Text style={styles.confidenceText}>
+                              {Math.round(rec.confianza * 100)}%
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    )}
                   </View>
-                  <Text style={styles.compactTimeText}>{time.hour}:00</Text>
-                </View>
-              ))}
+                ))}
+                
+                <TouchableOpacity
+                  style={styles.refreshButton}
+                  onPress={generateRecommendations}
+                  disabled={generatingRecommendations}
+                >
+                  <IconSymbol name="arrow.clockwise" size={16} color={colors.primary} />
+                  <Text style={styles.refreshText}>Actualizar</Text>
+                </TouchableOpacity>
+              </React.Fragment>
+            )}
+          </View>
+
+          {/* Compact Best Times - Single Card */}
+          <View style={styles.compactCard}>
+            <View style={styles.compactCardHeader}>
+              <IconSymbol name="clock.fill" size={20} color="#F59E0B" />
+              <Text style={styles.compactCardTitle}>Mejores Momentos</Text>
             </View>
-
-            {/* Best Days */}
-            <View style={styles.halfCard}>
-              <Text style={styles.halfCardTitle}>Días</Text>
-              {analyticsData.bestDays.slice(0, 3).map((day, index) => (
-                <View key={index} style={styles.compactTimeItem}>
-                  <View style={styles.compactTimeRank}>
-                    <Text style={styles.compactTimeRankText}>{index + 1}</Text>
+            <View style={styles.timesRow}>
+              <View style={styles.timesColumn}>
+                <Text style={styles.timesColumnTitle}>Horarios</Text>
+                {analyticsData.bestPostingTimes.slice(0, 3).map((time, idx) => (
+                  <View key={idx} style={styles.timeRow}>
+                    <View style={[styles.timeRank, { backgroundColor: idx === 0 ? '#F59E0B' : idx === 1 ? '#3B82F6' : '#10B981' }]}>
+                      <Text style={styles.timeRankText}>{idx + 1}</Text>
+                    </View>
+                    <Text style={styles.timeValue}>{time.hour}:00</Text>
                   </View>
-                  <Text style={styles.compactTimeText}>{dayNames[day.day]}</Text>
-                </View>
-              ))}
+                ))}
+              </View>
+              <View style={styles.timesDivider} />
+              <View style={styles.timesColumn}>
+                <Text style={styles.timesColumnTitle}>Días</Text>
+                {analyticsData.bestDays.slice(0, 3).map((day, idx) => (
+                  <View key={idx} style={styles.timeRow}>
+                    <View style={[styles.timeRank, { backgroundColor: idx === 0 ? '#F59E0B' : idx === 1 ? '#3B82F6' : '#10B981' }]}>
+                      <Text style={styles.timeRankText}>{idx + 1}</Text>
+                    </View>
+                    <Text style={styles.timeValue}>{dayNames[day.day]}</Text>
+                  </View>
+                ))}
+              </View>
             </View>
           </View>
-        </View>
 
-        {/* Compact Content Stats */}
-        <View style={styles.compactSection}>
-          <Text style={styles.compactSectionTitle}>📊 Contenido</Text>
-          <View style={styles.contentStatsCompactRow}>
-            <View style={styles.contentStatCompactItem}>
-              <IconSymbol name="photo.fill" size={24} color={colors.primary} />
-              <Text style={styles.contentStatCompactValue}>{analyticsData.stats.total_posts}</Text>
-              <Text style={styles.contentStatCompactLabel}>Posts</Text>
+          {/* Compact Content Summary */}
+          <View style={styles.compactCard}>
+            <View style={styles.compactCardHeader}>
+              <IconSymbol name="square.grid.2x2.fill" size={20} color="#8B5CF6" />
+              <Text style={styles.compactCardTitle}>Resumen de Contenido</Text>
             </View>
-            <View style={styles.contentStatCompactItem}>
-              <IconSymbol name="camera.fill" size={24} color="#8B5CF6" />
-              <Text style={styles.contentStatCompactValue}>{analyticsData.stats.total_stories}</Text>
-              <Text style={styles.contentStatCompactLabel}>Historias</Text>
-            </View>
-            <View style={styles.contentStatCompactItem}>
-              <IconSymbol name="calendar" size={24} color="#F59E0B" />
-              <Text style={styles.contentStatCompactValue}>{analyticsData.stats.total_eventos}</Text>
-              <Text style={styles.contentStatCompactLabel}>Eventos</Text>
+            <View style={styles.contentRow}>
+              <View style={styles.contentItem}>
+                <IconSymbol name="photo.fill" size={24} color={colors.primary} />
+                <Text style={styles.contentValue}>{analyticsData.stats.total_posts}</Text>
+                <Text style={styles.contentLabel}>Posts</Text>
+              </View>
+              <View style={styles.contentItem}>
+                <IconSymbol name="camera.fill" size={24} color="#8B5CF6" />
+                <Text style={styles.contentValue}>{analyticsData.stats.total_stories}</Text>
+                <Text style={styles.contentLabel}>Historias</Text>
+              </View>
+              <View style={styles.contentItem}>
+                <IconSymbol name="calendar" size={24} color="#F59E0B" />
+                <Text style={styles.contentValue}>{analyticsData.stats.total_eventos}</Text>
+                <Text style={styles.contentLabel}>Eventos</Text>
+              </View>
             </View>
           </View>
-        </View>
 
-        {/* Compact Audience */}
-        <View style={styles.compactSection}>
-          <Text style={styles.compactSectionTitle}>👥 Audiencia</Text>
-          <View style={styles.audienceCompactCard}>
-            <View style={styles.audienceCompactRow}>
+          {/* Compact Audience */}
+          <View style={styles.compactCard}>
+            <View style={styles.compactCardHeader}>
               <IconSymbol name="person.2.fill" size={20} color={colors.primary} />
-              <Text style={styles.audienceCompactValue}>{analyticsData.local.seguidores.toLocaleString()}</Text>
-              <Text style={styles.audienceCompactLabel}>Seguidores</Text>
+              <Text style={styles.compactCardTitle}>Tu Audiencia</Text>
             </View>
-            <View style={styles.audienceCompactRow}>
-              <IconSymbol name="location.fill" size={20} color="#10B981" />
-              <Text style={styles.audienceCompactValue}>{analyticsData.local.check_ins.toLocaleString()}</Text>
-              <Text style={styles.audienceCompactLabel}>Check-ins</Text>
-            </View>
-            <View style={styles.audienceCompactRow}>
-              <IconSymbol name="star.fill" size={20} color="#F59E0B" />
-              <Text style={styles.audienceCompactValue}>{analyticsData.local.rating.toFixed(1)}</Text>
-              <Text style={styles.audienceCompactLabel}>Rating</Text>
+            <View style={styles.audienceGrid}>
+              <View style={styles.audienceItem}>
+                <IconSymbol name="person.2.fill" size={20} color={colors.primary} />
+                <Text style={styles.audienceValue}>{analyticsData.local.seguidores.toLocaleString()}</Text>
+                <Text style={styles.audienceLabel}>Seguidores</Text>
+              </View>
+              <View style={styles.audienceItem}>
+                <IconSymbol name="location.fill" size={20} color="#10B981" />
+                <Text style={styles.audienceValue}>{analyticsData.local.check_ins.toLocaleString()}</Text>
+                <Text style={styles.audienceLabel}>Check-ins</Text>
+              </View>
+              <View style={styles.audienceItem}>
+                <IconSymbol name="star.fill" size={20} color="#F59E0B" />
+                <Text style={styles.audienceValue}>{analyticsData.local.rating.toFixed(1)}</Text>
+                <Text style={styles.audienceLabel}>Rating</Text>
+              </View>
             </View>
           </View>
-        </View>
 
-        {/* Info Footer */}
-        <View style={styles.compactInfoBanner}>
-          <IconSymbol name="info.circle.fill" size={16} color={colors.primary} />
-          <Text style={styles.compactInfoText}>
-            Las recomendaciones de IA incluyen cuándo publicar eventos y destacar tu local para máxima visibilidad.
-          </Text>
+          {/* Info Footer */}
+          <View style={styles.infoFooter}>
+            <IconSymbol name="lightbulb.fill" size={18} color="#F59E0B" />
+            <Text style={styles.infoText}>
+              Las recomendaciones de IA analizan tus datos para sugerirte cuándo publicar eventos, 
+              destacar tu local y optimizar tu estrategia de contenido.
+            </Text>
+          </View>
         </View>
       </ScrollView>
+
+      {/* FloatingTabBar for Propietario Navigation */}
+      <FloatingTabBar />
     </View>
   );
 }
@@ -799,7 +846,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  compactHeader: {
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  header: {
     paddingTop: Platform.OS === 'ios' ? 50 : 40,
     paddingBottom: 12,
     paddingHorizontal: 16,
@@ -826,30 +878,35 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.headerText,
     opacity: 0.9,
+    marginTop: 2,
   },
-  headerRefreshButton: {
+  headerActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  headerActionButton: {
     padding: 4,
   },
-  inlineTimeRange: {
+  timeRangeContainer: {
     flexDirection: 'row',
     gap: 8,
     justifyContent: 'center',
   },
-  inlineTimeButton: {
+  timeButton: {
     paddingVertical: 6,
     paddingHorizontal: 16,
     borderRadius: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
-  inlineTimeButtonActive: {
+  timeButtonActive: {
     backgroundColor: colors.headerText,
   },
-  inlineTimeText: {
+  timeText: {
     fontSize: 13,
     fontWeight: '600',
     color: colors.headerText,
   },
-  inlineTimeTextActive: {
+  timeTextActive: {
     color: colors.primary,
   },
   loadingText: {
@@ -873,17 +930,22 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
-    paddingBottom: 100,
+    paddingBottom: 120,
   },
-  compactStatsGrid: {
+  centeredContainer: {
+    maxWidth: CONTENT_MAX_WIDTH,
+    width: '100%',
+    alignSelf: 'center',
+    padding: 12,
+  },
+  metricsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginBottom: 16,
+    marginBottom: 12,
   },
-  compactStatCard: {
-    width: (width - 48) / 3,
+  metricCard: {
+    width: (Math.min(width, CONTENT_MAX_WIDTH) - 40) / 3,
     backgroundColor: colors.cardBackground,
     borderRadius: 12,
     padding: 12,
@@ -891,287 +953,314 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
-  compactStatValue: {
+  metricValue: {
     fontSize: 18,
     fontWeight: 'bold',
     color: colors.text,
-    marginTop: 4,
+    marginTop: 6,
   },
-  compactStatLabel: {
+  metricLabel: {
     fontSize: 10,
     color: colors.textSecondary,
     marginTop: 2,
     textAlign: 'center',
   },
-  recommendationsSection: {
+  aiSection: {
     backgroundColor: colors.cardBackground,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: '#F59E0B',
   },
-  recommendationsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  aiHeader: {
     marginBottom: 12,
   },
-  recommendationsTitle: {
-    fontSize: 16,
+  aiTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 6,
+  },
+  aiIconGradient: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  aiTitle: {
+    fontSize: 17,
     fontWeight: 'bold',
     color: colors.text,
     flex: 1,
   },
-  recommendationsBadge: {
+  aiBadge: {
     backgroundColor: '#F59E0B',
     borderRadius: 12,
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: 3,
   },
-  recommendationsBadgeText: {
+  aiBadgeText: {
     fontSize: 12,
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
-  generateCompactButton: {
-    borderRadius: 10,
+  aiSubtitle: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  generateButton: {
+    borderRadius: 12,
     overflow: 'hidden',
   },
-  generateCompactGradient: {
+  generateGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 12,
+    paddingVertical: 14,
   },
-  generateCompactText: {
-    fontSize: 14,
+  generateText: {
+    fontSize: 15,
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
-  compactRecommendationCard: {
+  recCard: {
     backgroundColor: colors.background,
-    borderRadius: 10,
+    borderRadius: 12,
     padding: 12,
-    marginBottom: 8,
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
-  recommendationHeader: {
+  recHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  recommendationTitleRow: {
+  recTitleRow: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
-  priorityDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  recIconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  compactRecommendationTitle: {
+  recTitle: {
     flex: 1,
     fontSize: 14,
     fontWeight: '600',
     color: colors.text,
   },
-  recommendationExpanded: {
+  recExpanded: {
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
   },
-  recommendationDescription: {
+  recDescription: {
     fontSize: 13,
     color: colors.text,
     lineHeight: 18,
     marginBottom: 12,
   },
-  compactActionsContainer: {
+  actionsContainer: {
     marginBottom: 12,
   },
-  compactActionsTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 6,
-  },
-  compactActionItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 4,
-  },
-  compactActionBullet: {
-    fontSize: 13,
-    color: colors.primary,
-    marginRight: 6,
-    marginTop: 1,
-  },
-  compactActionText: {
-    flex: 1,
-    fontSize: 12,
-    color: colors.text,
-    lineHeight: 16,
-  },
-  recommendationFooter: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  compactImpactBadge: {
-    flex: 1,
-    backgroundColor: '#D1FAE5',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  compactImpactText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#065F46',
-  },
-  compactConfidenceBadge: {
-    flex: 1,
-    backgroundColor: '#DBEAFE',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  compactConfidenceText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#1E40AF',
-  },
-  refreshRecommendationsCompact: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 8,
-    marginTop: 4,
-  },
-  refreshRecommendationsText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.primary,
-  },
-  compactSection: {
-    marginBottom: 16,
-  },
-  compactSectionTitle: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 10,
-  },
-  timesAndDaysRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  halfCard: {
-    flex: 1,
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  halfCardTitle: {
+  actionsTitle: {
     fontSize: 13,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 8,
   },
-  compactTimeItem: {
+  actionItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 6,
+  },
+  actionDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.primary,
+    marginTop: 6,
+    marginRight: 8,
+  },
+  actionText: {
+    flex: 1,
+    fontSize: 12,
+    color: colors.text,
+    lineHeight: 16,
+  },
+  recFooter: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  impactBadge: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#D1FAE5',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  impactText: {
+    flex: 1,
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#065F46',
+  },
+  confidenceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#DBEAFE',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  confidenceText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#1E40AF',
+  },
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    marginTop: 4,
+  },
+  refreshText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  compactCard: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  compactCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 6,
+    marginBottom: 12,
   },
-  compactTimeRank: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: colors.primary,
+  compactCardTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  timesRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  timesColumn: {
+    flex: 1,
+  },
+  timesColumnTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  timeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  timeRank: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  compactTimeRankText: {
+  timeRankText: {
     fontSize: 11,
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
-  compactTimeText: {
+  timeValue: {
+    flex: 1,
     fontSize: 13,
     fontWeight: '600',
     color: colors.text,
   },
-  contentStatsCompactRow: {
-    flexDirection: 'row',
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    padding: 12,
-    gap: 12,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
+  timesDivider: {
+    width: 1,
+    backgroundColor: colors.cardBorder,
   },
-  contentStatCompactItem: {
+  contentRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  contentItem: {
     flex: 1,
     alignItems: 'center',
   },
-  contentStatCompactValue: {
+  contentValue: {
     fontSize: 18,
     fontWeight: 'bold',
     color: colors.text,
-    marginTop: 4,
+    marginTop: 6,
   },
-  contentStatCompactLabel: {
+  contentLabel: {
     fontSize: 11,
     color: colors.textSecondary,
     marginTop: 2,
+    textAlign: 'center',
   },
-  audienceCompactCard: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    padding: 12,
+  audienceGrid: {
     flexDirection: 'row',
     gap: 12,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
   },
-  audienceCompactRow: {
+  audienceItem: {
     flex: 1,
     alignItems: 'center',
   },
-  audienceCompactValue: {
+  audienceValue: {
     fontSize: 16,
     fontWeight: 'bold',
     color: colors.text,
-    marginTop: 4,
+    marginTop: 6,
   },
-  audienceCompactLabel: {
+  audienceLabel: {
     fontSize: 10,
     color: colors.textSecondary,
     marginTop: 2,
+    textAlign: 'center',
   },
-  compactInfoBanner: {
+  infoFooter: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 8,
-    backgroundColor: colors.primary + '10',
+    gap: 10,
+    backgroundColor: '#FEF3C7',
     borderRadius: 10,
     padding: 12,
     borderWidth: 1,
-    borderColor: colors.primary + '20',
+    borderColor: '#FDE68A',
   },
-  compactInfoText: {
+  infoText: {
     flex: 1,
     fontSize: 11,
-    color: colors.text,
+    color: '#92400E',
     lineHeight: 16,
   },
 });
