@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -13,36 +13,21 @@ import {
   Modal,
   Pressable,
   Linking,
-  Animated,
   Alert,
-  TextInput,
   Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
-import { useRouter, useFocusEffect, Redirect } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
 import { supabase } from '@/utils/supabase';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
-import StoryStatsModal from '@/components/social/StoryStatsModal';
 import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
-import DateTimePicker from '@react-native-community/datetimepicker';
 
-const { width, height } = Dimensions.get('window');
-// FIXED: Correct grid calculation for 3 columns with 2px gaps
+const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
-
-const PROVINCIAS = [
-  'Álava', 'Albacete', 'Alicante', 'Almería', 'Asturias', 'Ávila', 'Badajoz',
-  'Barcelona', 'Burgos', 'Cáceres', 'Cádiz', 'Cantabria', 'Castellón', 'Ciudad Real',
-  'Córdoba', 'Cuenca', 'Girona', 'Granada', 'Guadalajara', 'Guipúzcoa', 'Huelva',
-  'Huesca', 'Islas Baleares', 'Jaén', 'La Coruña', 'La Rioja', 'Las Palmas', 'León',
-  'Lleida', 'Lugo', 'Madrid', 'Málaga', 'Murcia', 'Navarra', 'Ourense', 'Palencia',
-  'Pontevedra', 'Salamanca', 'Santa Cruz de Tenerife', 'Segovia', 'Sevilla', 'Soria',
-  'Tarragoza', 'Teruel', 'Toledo', 'Valencia', 'Valladolid', 'Vizcaya', 'Zamora', 'Zaragoza'
-];
 
 interface Post {
   id: string;
@@ -64,108 +49,18 @@ interface Post {
   comentarios?: number;
 }
 
-interface OfertaTrabajo {
-  id: string;
-  titulo: string;
-  descripcion: string;
-  tipo: string;
-  salario?: string;
-  requisitos?: string[];
-  provincia?: string;
-  imagen_url?: string;
-  created_at: string;
-  local?: {
-    nombre: string;
-    imagen_url?: string;
-  };
-  propietario?: {
-    nombre: string;
-  };
-}
-
-interface PerfilProfesional {
-  id: string;
-  usuario_id?: string;
-  nombre_completo: string;
-  puesto_deseado: string;
-  experiencia: string;
-  habilidades?: string;
-  disponibilidad?: string;
-  foto_url?: string;
-  provincia?: string;
-  created_at: string;
-  usuario?: {
-    nombre: string;
-    avatar?: string;
-    username?: string;
-  };
-}
-
-interface HistoriaConAutor {
-  id: string;
-  autor_id: string;
-  tipo: string;
-  imagen: string;
-  created_at: string;
-  expires_at: string;
-  visto: boolean;
-  local_id?: string;
-  autor?: {
-    nombre: string;
-    avatar?: string;
-    username?: string;
-  };
-  visto_por_usuario?: boolean;
-  views_count?: number;
-  likes_count?: number;
-  liked_by_user?: boolean;
-}
-
-interface LocalProfile {
-  id: string;
-  nombre: string;
-  tipo: string;
-  direccion: string;
-  provincia: string;
-  imagen_url?: string;
-  descripcion?: string;
-  telefono?: string;
-  website?: string;
-  seguidores?: number;
-}
-
-function formatearFecha(fecha: string): string {
-  const ahora = new Date();
-  const fechaPost = new Date(fecha);
-  const diffMs = ahora.getTime() - fechaPost.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHoras = Math.floor(diffMs / 3600000);
-  const diffDias = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return 'Ahora';
-  if (diffMins < 60) return `${diffMins}m`;
-  if (diffHoras < 24) return `${diffHoras}h`;
-  if (diffDias < 7) return `${diffDias}d`;
-  return fechaPost.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
-}
-
 export default function PerfilScreen() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const { 
     currentMode, 
-    activeProfileId,
-    activeProfileType,
-    activeLocalData,
     ownedLocals,
-    switchToClientProfile,
   } = useMode();
   
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showCreateOptions, setShowCreateOptions] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
   const [showProfileSwitcher, setShowProfileSwitcher] = useState(false);
   
   const [unreadNotifications, setUnreadNotifications] = useState(0);
@@ -174,73 +69,15 @@ export default function PerfilScreen() {
   const [seguidores, setSeguidores] = useState(0);
   const [seguidos, setSeguidos] = useState(0);
   const [publicaciones, setPublicaciones] = useState(0);
-  const [hasActiveStory, setHasActiveStory] = useState(false);
   
-  const [activeTab, setActiveTab] = useState<'posts' | 'favoritos' | 'etiquetados' | 'empleo'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'favoritos' | 'etiquetados'>('posts');
   const [posts, setPosts] = useState<Post[]>([]);
   const [savedPosts, setSavedPosts] = useState<Post[]>([]);
   const [taggedPosts, setTaggedPosts] = useState<Post[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
-  
-  // Track which tabs have been loaded
-  const [tabsLoaded, setTabsLoaded] = useState({
-    posts: false,
-    favoritos: false,
-    etiquetados: false,
-    empleo: false,
-  });
-  
-  const [empleoTab, setEmpleoTab] = useState<'ofertas' | 'perfiles'>('ofertas');
-  const [ofertas, setOfertas] = useState<OfertaTrabajo[]>([]);
-  const [perfiles, setPerfiles] = useState<PerfilProfesional[]>([]);
-  const [loadingEmpleo, setLoadingEmpleo] = useState(false);
-
-  const [searchQuery, setSearchQuery] = useState('');
-  const [provinciaFiltro, setProvinciaFiltro] = useState<string>('');
-  
-  // Infinite scroll state
-  const [ofertasPage, setOfertasPage] = useState(1);
-  const [perfilesPage, setPerfilesPage] = useState(1);
-  const [hasMoreOfertas, setHasMoreOfertas] = useState(true);
-  const [hasMorePerfiles, setHasMorePerfiles] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  
-  const ITEMS_PER_PAGE = 20;
-
-  const [showStoryViewer, setShowStoryViewer] = useState(false);
-  const [userStories, setUserStories] = useState<HistoriaConAutor[]>([]);
-  const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
-  const storyTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const progressAnim = useRef(new Animated.Value(0)).current;
-
-  const [showStoryStats, setShowStoryStats] = useState(false);
-  const [storyViews, setStoryViews] = useState<any[]>([]);
-  const [storyLikes, setStoryLikes] = useState<any[]>([]);
-  const [loadingStats, setLoadingStats] = useState(false);
-
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.95)).current;
 
   const userRole = user?.rol_app || 'cliente';
   const isPropietario = userRole === 'propietario' || (userRole === 'admin' && currentMode === 'propietario');
-  const isOwnerMode = currentMode === 'propietario' && isPropietario;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        friction: 8,
-        tension: 40,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [fadeAnim, scaleAnim]);
 
   const loadUnreadCounts = useCallback(async () => {
     if (!user) return;
@@ -466,112 +303,6 @@ export default function PerfilScreen() {
     }
   }, [user]);
 
-  const cargarDatosEmpleo = useCallback(async () => {
-    if (!user) return;
-
-    try {
-      setLoadingEmpleo(true);
-
-      if (isPropietario) {
-        let query = supabase
-          .from('ofertas_trabajo')
-          .select(`
-            *,
-            local:locales(nombre, imagen_url),
-            propietario:usuarios(nombre)
-          `)
-          .eq('propietario_id', user.id)
-          .eq('activo', true);
-
-        if (searchQuery) {
-          query = query.or(`titulo.ilike.%${searchQuery}%,descripcion.ilike.%${searchQuery}%`);
-        }
-
-        if (provinciaFiltro) {
-          query = query.eq('provincia', provinciaFiltro);
-        }
-
-        const { data: ofertasData, error: ofertasError } = await query
-          .order('created_at', { ascending: false })
-          .range(0, ITEMS_PER_PAGE - 1);
-
-        if (ofertasError) {
-          console.error('[Perfil] Error cargando ofertas:', ofertasError);
-        } else {
-          const ofertasConImagenes = (ofertasData || []).map(oferta => ({
-            ...oferta,
-            imagen_url: oferta.imagen_url || oferta.local?.imagen_url,
-          }));
-          setOfertas(ofertasConImagenes);
-          setHasMoreOfertas((ofertasData || []).length === ITEMS_PER_PAGE);
-          setOfertasPage(1);
-        }
-      }
-
-      let perfilQuery = supabase
-        .from('perfiles_profesionales')
-        .select(`
-          *,
-          usuario:usuarios(nombre, avatar, username)
-        `)
-        .eq('usuario_id', user.id)
-        .eq('activo', true);
-
-      if (searchQuery) {
-        perfilQuery = perfilQuery.or(`nombre_completo.ilike.%${searchQuery}%,puesto_deseado.ilike.%${searchQuery}%,experiencia.ilike.%${searchQuery}%`);
-      }
-
-      if (provinciaFiltro) {
-        perfilQuery = perfilQuery.eq('provincia', provinciaFiltro);
-      }
-
-      const { data: perfilesData, error: perfilesError } = await perfilQuery
-        .order('created_at', { ascending: false })
-        .range(0, ITEMS_PER_PAGE - 1);
-
-      if (perfilesError) {
-        console.error('[Perfil] Error cargando perfiles:', perfilesError);
-      } else {
-        setPerfiles(perfilesData || []);
-        setHasMorePerfiles((perfilesData || []).length === ITEMS_PER_PAGE);
-        setPerfilesPage(1);
-      }
-    } catch (error) {
-      console.error('[Perfil] Error en cargarDatosEmpleo:', error);
-    } finally {
-      setLoadingEmpleo(false);
-    }
-  }, [user, isPropietario, searchQuery, provinciaFiltro]);
-
-  const cargarContenido = useCallback(async () => {
-    if (!user) return;
-
-    // Only load if this tab hasn't been loaded yet
-    if (tabsLoaded[activeTab]) {
-      return;
-    }
-
-    setLoadingPosts(true);
-    try {
-      if (activeTab === 'posts') {
-        await cargarPosts();
-      } else if (activeTab === 'favoritos') {
-        await cargarFavoritos();
-      } else if (activeTab === 'etiquetados') {
-        await cargarEtiquetados();
-      } else if (activeTab === 'empleo') {
-        await cargarDatosEmpleo();
-      }
-      
-      // Mark this tab as loaded
-      setTabsLoaded(prev => ({ ...prev, [activeTab]: true }));
-    } catch (error) {
-      console.error('[Perfil] Error cargando contenido:', error);
-    } finally {
-      setLoadingPosts(false);
-    }
-  }, [user, activeTab, tabsLoaded, cargarPosts, cargarFavoritos, cargarEtiquetados, cargarDatosEmpleo]);
-
   const cargarDatosPerfil = useCallback(async () => {
     if (!user) return;
 
@@ -602,366 +333,14 @@ export default function PerfilScreen() {
       setSeguidos(seguidosCount || 0);
       setPublicaciones(publicacionesCount || 0);
 
-      const { data: storiesData } = await supabase
-        .from('historias')
-        .select('id')
-        .eq('autor_id', user.id)
-        .eq('tipo', 'usuario')
-        .gt('expires_at', new Date().toISOString());
-
-      if (storiesData && storiesData.length > 0) {
-        const storyIds = storiesData.map(s => s.id);
-        
-        const { data: viewedData } = await supabase
-          .from('historia_views')
-          .select('historia_id')
-          .eq('usuario_id', user.id)
-          .in('historia_id', storyIds);
-
-        const viewedStoryIds = new Set(viewedData?.map(v => v.historia_id) || []);
-        
-        const hasUnviewedStories = storiesData.some(s => !viewedStoryIds.has(s.id));
-        setHasActiveStory(hasUnviewedStories);
-      } else {
-        setHasActiveStory(false);
-      }
-
-      const { data: userStoriesData } = await supabase
-        .from('historias')
-        .select(`
-          id,
-          autor_id,
-          tipo,
-          imagen,
-          created_at,
-          expires_at,
-          visto
-        `)
-        .eq('autor_id', user.id)
-        .eq('tipo', 'usuario')
-        .gt('expires_at', new Date().toISOString())
-        .order('created_at', { ascending: true });
-
-      if (userStoriesData) {
-        const storyIds = userStoriesData.map(s => s.id);
-        
-        const [viewedData, viewsCountData, likesCountData] = await Promise.all([
-          supabase
-            .from('historia_views')
-            .select('historia_id')
-            .eq('usuario_id', user.id)
-            .in('historia_id', storyIds),
-          supabase
-            .from('historia_views')
-            .select('historia_id')
-            .in('historia_id', storyIds),
-          supabase
-            .from('historia_likes')
-            .select('historia_id')
-            .in('historia_id', storyIds),
-        ]);
-
-        const viewedStoryIds = new Set(viewedData.data?.map(v => v.historia_id) || []);
-        
-        const viewsCounts = viewsCountData.data?.reduce((acc, v) => {
-          acc[v.historia_id] = (acc[v.historia_id] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>) || {};
-        
-        const likesCounts = likesCountData.data?.reduce((acc, l) => {
-          acc[l.historia_id] = (acc[l.historia_id] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>) || {};
-
-        const storiesWithStatus = userStoriesData.map(story => ({
-          ...story,
-          visto_por_usuario: viewedStoryIds.has(story.id),
-          views_count: viewsCounts[story.id] || 0,
-          likes_count: likesCounts[story.id] || 0,
-          autor: {
-            nombre: user.nombre,
-            avatar: user.avatar,
-            username: user.username,
-          },
-        }));
-
-        setUserStories(storiesWithStatus);
-      }
-
-      // Pre-load all tab content in parallel for instant switching
-      console.log('[Perfil] 🚀 Pre-loading all tab content...');
-      await Promise.all([
-        cargarPosts(),
-        cargarFavoritos(),
-        cargarEtiquetados(),
-        cargarDatosEmpleo(),
-      ]);
-      
-      // Mark all tabs as loaded
-      setTabsLoaded({
-        posts: true,
-        favoritos: true,
-        etiquetados: true,
-        empleo: true,
-      });
-      
-      console.log('[Perfil] ✅ All tabs pre-loaded');
+      await cargarPosts();
     } catch (error) {
       console.error('[Perfil] Error cargando datos:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user, loadUnreadCounts, cargarPosts, cargarFavoritos, cargarEtiquetados, cargarDatosEmpleo]);
-
-  const stopStoryTimer = useCallback(() => {
-    if (storyTimerRef.current) {
-      clearTimeout(storyTimerRef.current);
-      storyTimerRef.current = null;
-    }
-    progressAnim.stopAnimation();
-  }, [progressAnim]);
-
-  const handleNextStory = useCallback(async () => {
-    const currentStory = userStories[currentStoryIndex];
-    
-    if (currentStory && user) {
-      try {
-        const { data: existingView } = await supabase
-          .from('historia_views')
-          .select('id')
-          .eq('historia_id', currentStory.id)
-          .eq('usuario_id', user.id)
-          .single();
-
-        if (!existingView) {
-          await supabase.from('historia_views').insert({
-            historia_id: currentStory.id,
-            usuario_id: user.id,
-          });
-        }
-      } catch (error) {
-        console.error('[Perfil] Error marking story as viewed:', error);
-      }
-    }
-    
-    if (currentStoryIndex < userStories.length - 1) {
-      setCurrentStoryIndex(currentStoryIndex + 1);
-      progressAnim.setValue(0);
-    } else {
-      await cargarDatosPerfil();
-      setShowStoryViewer(false);
-      stopStoryTimer();
-    }
-  }, [currentStoryIndex, userStories, stopStoryTimer, user, cargarDatosPerfil, progressAnim]);
-
-  const startStoryTimer = useCallback(() => {
-    if (storyTimerRef.current) {
-      clearTimeout(storyTimerRef.current);
-    }
-
-    progressAnim.setValue(0);
-
-    Animated.timing(progressAnim, {
-      toValue: 1,
-      duration: 5000,
-      useNativeDriver: false,
-    }).start();
-
-    storyTimerRef.current = setTimeout(() => {
-      handleNextStory();
-    }, 5000);
-  }, [handleNextStory, progressAnim]);
-
-  const handlePreviousStory = useCallback(() => {
-    if (currentStoryIndex > 0) {
-      setCurrentStoryIndex(currentStoryIndex - 1);
-      progressAnim.setValue(0);
-      startStoryTimer();
-    } else {
-      setShowStoryViewer(false);
-      stopStoryTimer();
-    }
-  }, [currentStoryIndex, startStoryTimer, stopStoryTimer, progressAnim]);
-
-  const handleAvatarPress = useCallback(() => {
-    if (!user) {
-      setShowLoginModal(true);
-      return;
-    }
-
-    if (userStories.length > 0) {
-      setCurrentStoryIndex(0);
-      setShowStoryViewer(true);
-      setIsPaused(false);
-      startStoryTimer();
-    } else {
-      router.push('/crear/historia');
-    }
-  }, [user, userStories, startStoryTimer, router]);
-
-  const handleDeleteStory = useCallback(async () => {
-    const currentStory = userStories[currentStoryIndex];
-    
-    if (!currentStory || !user) {
-      return;
-    }
-
-    const isOwner = currentStory.tipo === 'usuario' && currentStory.autor_id === user.id;
-
-    if (!isOwner) {
-      return;
-    }
-
-    Alert.alert(
-      'Eliminar historia',
-      '¿Estás seguro de que quieres eliminar esta historia?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const { error } = await supabase
-                .from('historias')
-                .delete()
-                .eq('id', currentStory.id);
-
-              if (error) throw error;
-
-              const newStories = userStories.filter((_, i) => i !== currentStoryIndex);
-              setUserStories(newStories);
-
-              if (newStories.length === 0) {
-                setShowStoryViewer(false);
-                stopStoryTimer();
-                setHasActiveStory(false);
-              } else if (currentStoryIndex >= newStories.length) {
-                setCurrentStoryIndex(newStories.length - 1);
-              }
-
-              Alert.alert('Éxito', 'Historia eliminada correctamente');
-            } catch (error) {
-              console.error('[Perfil] Error deleting story:', error);
-              Alert.alert('Error', 'No se pudo eliminar la historia');
-            }
-          },
-        },
-      ]
-    );
-  }, [userStories, currentStoryIndex, user, stopStoryTimer]);
-
-  const handleViewStoryStats = useCallback(async () => {
-    const currentStory = userStories[currentStoryIndex];
-    
-    if (!currentStory || !user) {
-      return;
-    }
-
-    const isOwner = currentStory.tipo === 'usuario' && currentStory.autor_id === user.id;
-
-    if (!isOwner) {
-      return;
-    }
-
-    setIsPaused(true);
-    stopStoryTimer();
-
-    setLoadingStats(true);
-    setShowStoryStats(true);
-
-    try {
-      const { data: viewsData, error: viewsError } = await supabase
-        .from('historia_views')
-        .select(`
-          id,
-          usuario_id,
-          viewed_at,
-          usuario:usuarios(nombre, avatar, username)
-        `)
-        .eq('historia_id', currentStory.id)
-        .order('viewed_at', { ascending: false });
-
-      if (viewsError) throw viewsError;
-
-      const { data: likesData, error: likesError } = await supabase
-        .from('historia_likes')
-        .select(`
-          id,
-          usuario_id,
-          created_at,
-          usuario:usuarios(nombre, avatar, username)
-        `)
-        .eq('historia_id', currentStory.id)
-        .order('created_at', { ascending: false });
-
-      if (likesError) throw likesError;
-
-      setStoryViews(viewsData || []);
-      setStoryLikes(likesData || []);
-    } catch (error) {
-      console.error('[Perfil] Error loading story stats:', error);
-      Alert.alert('Error', 'No se pudieron cargar las estadísticas');
-    } finally {
-      setLoadingStats(false);
-    }
-  }, [userStories, currentStoryIndex, user, stopStoryTimer]);
-
-  // ✅ NEW: Handle navigation from story viewer/stats modal
-  const handleNavigateToProfileFromStory = useCallback(() => {
-    console.log('[Perfil] 🔍 Closing story viewer and stats modal for navigation');
-    // Close both modals
-    setShowStoryStats(false);
-    setShowStoryViewer(false);
-    stopStoryTimer();
-  }, [stopStoryTimer]);
-
-  useFocusEffect(
-    useCallback(() => {
-      console.log('[Perfil] 📍 Screen focused, current mode:', currentMode, 'active profile type:', activeProfileType);
-      
-      if (user) {
-        loadUnreadCounts();
-        
-        const notificationsChannel = supabase
-          .channel('notifications-changes')
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'notificaciones',
-              filter: `usuario_id=eq.${user.id}`,
-            },
-            () => {
-              loadUnreadCounts();
-            }
-          )
-          .subscribe();
-
-        const messagesChannel = supabase
-          .channel('messages-changes')
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'mensajes',
-            },
-            () => {
-              loadUnreadCounts();
-            }
-          )
-          .subscribe();
-
-        return () => {
-          supabase.removeChannel(notificationsChannel);
-          supabase.removeChannel(messagesChannel);
-        };
-      }
-    }, [user, loadUnreadCounts, activeProfileType, currentMode])
-  );
+  }, [user, loadUnreadCounts, cargarPosts]);
 
   useEffect(() => {
     if (!authLoading) {
@@ -974,45 +353,24 @@ export default function PerfilScreen() {
     }
   }, [user, authLoading, cargarDatosPerfil]);
 
-  // Only reload content when filters change, not when switching tabs
   useEffect(() => {
-    if (user && (searchQuery || provinciaFiltro)) {
-      // Reset the loaded state for empleo tab when filters change
-      if (activeTab === 'empleo') {
-        setTabsLoaded(prev => ({ ...prev, empleo: false }));
-        cargarContenido();
+    if (user) {
+      setLoadingPosts(true);
+      if (activeTab === 'posts') {
+        cargarPosts().finally(() => setLoadingPosts(false));
+      } else if (activeTab === 'favoritos') {
+        cargarFavoritos().finally(() => setLoadingPosts(false));
+      } else if (activeTab === 'etiquetados') {
+        cargarEtiquetados().finally(() => setLoadingPosts(false));
       }
     }
-  }, [user, searchQuery, provinciaFiltro, activeTab, cargarContenido]);
-
-  // Load content when switching to a tab that hasn't been loaded yet
-  useEffect(() => {
-    if (user && !tabsLoaded[activeTab]) {
-      cargarContenido();
-    }
-  }, [activeTab, user, tabsLoaded, cargarContenido]);
-
-  useEffect(() => {
-    if (showStoryViewer && !isPaused) {
-      startStoryTimer();
-    }
-    return () => {
-      stopStoryTimer();
-    };
-  }, [showStoryViewer, currentStoryIndex, isPaused, startStoryTimer, stopStoryTimer]);
+  }, [activeTab, user, cargarPosts, cargarFavoritos, cargarEtiquetados]);
 
   const displayName = user?.nombre || 'Usuario';
   const displayAvatar = user?.avatar;
 
   const onRefresh = () => {
     setRefreshing(true);
-    // Reset all tabs loaded state to force reload
-    setTabsLoaded({
-      posts: false,
-      favoritos: false,
-      etiquetados: false,
-      empleo: false,
-    });
     cargarDatosPerfil();
   };
 
@@ -1066,188 +424,10 @@ export default function PerfilScreen() {
     router.push(`/perfil/seguidos?userId=${user.id}`);
   };
 
-  const handleCrearOferta = () => {
-    if (!user) {
-      setShowLoginModal(true);
-      return;
-    }
-    router.push('/crear/oferta-trabajo');
-  };
-
-  const handleCrearPerfil = () => {
-    if (!user) {
-      setShowLoginModal(true);
-      return;
-    }
-    router.push('/crear/perfil-profesional');
-  };
-
-  const handleEditarPerfil = (perfilId: string) => {
-    router.push('/crear/perfil-profesional');
-  };
-
-  const handleEliminarPerfil = async (perfilId: string) => {
-    Alert.alert(
-      'Eliminar Perfil',
-      '¿Estás seguro de que quieres eliminar tu perfil profesional?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const { error } = await supabase
-                .from('perfiles_profesionales')
-                .update({ activo: false })
-                .eq('id', perfilId);
-
-              if (error) throw error;
-
-              Alert.alert('Éxito', 'Perfil eliminado correctamente');
-              // Reset empleo tab to reload data
-              setTabsLoaded(prev => ({ ...prev, empleo: false }));
-              await cargarDatosEmpleo();
-              setTabsLoaded(prev => ({ ...prev, empleo: true }));
-            } catch (error) {
-              console.error('[Perfil] Error eliminando perfil:', error);
-              Alert.alert('Error', 'No se pudo eliminar el perfil');
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const handleVerOferta = (oferta: OfertaTrabajo) => {
-    router.push(`/empleo/oferta-detalle?id=${oferta.id}`);
-  };
-
-  const handleVerPerfil = (perfil: PerfilProfesional) => {
-    router.push(`/empleo/perfil-detalle?id=${perfil.id}`);
-  };
-
   const handleWebsite = () => {
     if (user?.sitio_web) {
       Linking.openURL(user.sitio_web);
     }
-  };
-
-  const limpiarFiltros = () => {
-    setSearchQuery('');
-    setProvinciaFiltro('');
-    // Reset empleo tab to reload without filters
-    if (activeTab === 'empleo') {
-      setTabsLoaded(prev => ({ ...prev, empleo: false }));
-    }
-  };
-
-  const loadMoreOfertas = useCallback(async () => {
-    if (loadingMore || !hasMoreOfertas || !user || !isPropietario) return;
-
-    setLoadingMore(true);
-    try {
-      let query = supabase
-        .from('ofertas_trabajo')
-        .select(`
-          *,
-          local:locales(nombre, imagen_url),
-          propietario:usuarios(nombre)
-        `)
-        .eq('propietario_id', user.id)
-        .eq('activo', true);
-
-      if (searchQuery) {
-        query = query.or(`titulo.ilike.%${searchQuery}%,descripcion.ilike.%${searchQuery}%`);
-      }
-
-      if (provinciaFiltro) {
-        query = query.eq('provincia', provinciaFiltro);
-      }
-
-      const { data, error } = await query
-        .order('created_at', { ascending: false })
-        .range(ofertasPage * ITEMS_PER_PAGE, (ofertasPage + 1) * ITEMS_PER_PAGE - 1);
-
-      if (!error && data) {
-        const ofertasConImagenes = data.map(oferta => ({
-          ...oferta,
-          imagen_url: oferta.imagen_url || oferta.local?.imagen_url,
-        }));
-        setOfertas(prev => [...prev, ...ofertasConImagenes]);
-        setOfertasPage(prev => prev + 1);
-        setHasMoreOfertas(data.length === ITEMS_PER_PAGE);
-      }
-    } catch (error) {
-      console.error('[Perfil] Error loading more ofertas:', error);
-    } finally {
-      setLoadingMore(false);
-    }
-  }, [loadingMore, hasMoreOfertas, ofertasPage, user, isPropietario, searchQuery, provinciaFiltro]);
-
-  const loadMorePerfiles = useCallback(async () => {
-    if (loadingMore || !hasMorePerfiles || !user) return;
-
-    setLoadingMore(true);
-    try {
-      let perfilQuery = supabase
-        .from('perfiles_profesionales')
-        .select(`
-          *,
-          usuario:usuarios(nombre, avatar, username)
-        `)
-        .eq('usuario_id', user.id)
-        .eq('activo', true);
-
-      if (searchQuery) {
-        perfilQuery = perfilQuery.or(`nombre_completo.ilike.%${searchQuery}%,puesto_deseado.ilike.%${searchQuery}%,experiencia.ilike.%${searchQuery}%`);
-      }
-
-      if (provinciaFiltro) {
-        perfilQuery = perfilQuery.eq('provincia', provinciaFiltro);
-      }
-
-      const { data, error } = await perfilQuery
-        .order('created_at', { ascending: false })
-        .range(perfilesPage * ITEMS_PER_PAGE, (perfilesPage + 1) * ITEMS_PER_PAGE - 1);
-
-      if (!error && data) {
-        setPerfiles(prev => [...prev, ...data]);
-        setPerfilesPage(prev => prev + 1);
-        setHasMorePerfiles(data.length === ITEMS_PER_PAGE);
-      }
-    } catch (error) {
-      console.error('[Perfil] Error loading more perfiles:', error);
-    } finally {
-      setLoadingMore(false);
-    }
-  }, [loadingMore, hasMorePerfiles, perfilesPage, user, searchQuery, provinciaFiltro]);
-
-  const handleScrollEmpleo = useCallback((event: any) => {
-    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
-    const paddingToBottom = 20;
-    const isCloseToBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom;
-
-    if (isCloseToBottom) {
-      if (empleoTab === 'ofertas') {
-        loadMoreOfertas();
-      } else if (empleoTab === 'perfiles') {
-        loadMorePerfiles();
-      }
-    }
-  }, [empleoTab, loadMoreOfertas, loadMorePerfiles]);
-
-  const calcularDiasPublicado = (fecha: string): string => {
-    const ahora = new Date();
-    const fechaPublicacion = new Date(fecha);
-    const diffMs = ahora.getTime() - fechaPublicacion.getTime();
-    const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-    if (diffDias === 0) return 'Hoy';
-    if (diffDias === 1) return 'Ayer';
-    if (diffDias < 7) return `Hace ${diffDias} días`;
-    if (diffDias < 30) return `Hace ${Math.floor(diffDias / 7)} semanas`;
-    return `Hace ${Math.floor(diffDias / 30)} meses`;
   };
 
   const renderGridPost = (post: Post) => {
@@ -1278,188 +458,19 @@ export default function PerfilScreen() {
     );
   };
 
-  const renderOferta = (oferta: OfertaTrabajo) => (
-    <TouchableOpacity
-      key={oferta.id}
-      style={styles.empleoCard}
-      onPress={() => handleVerOferta(oferta)}
-      activeOpacity={0.8}
-    >
-      <LinearGradient
-        colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.7)']}
-        style={styles.ofertaGradient}
-      >
-        {oferta.imagen_url && (
-          <Image 
-            source={{ uri: oferta.imagen_url }} 
-            style={styles.ofertaImagen}
-            resizeMode="cover"
-          />
-        )}
-        
-        <View style={styles.ofertaContent}>
-          <View style={styles.ofertaHeader}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.empleoTitulo} numberOfLines={2}>
-                {oferta.titulo}
-              </Text>
-              <Text style={styles.empleoLocal} numberOfLines={1}>
-                {oferta.local?.nombre || oferta.propietario?.nombre || 'Local'}
-              </Text>
-            </View>
-            {oferta.salario && (
-              <View style={styles.salarioContainer}>
-                <IconSymbol name="eurosign.circle.fill" size={16} color={colors.white} />
-                <Text style={styles.salarioTexto}>{oferta.salario}</Text>
-              </View>
-            )}
-          </View>
-
-          <View style={styles.empleoFooter}>
-            <View style={styles.empleoTag}>
-              <IconSymbol name="briefcase.fill" size={14} color={colors.primary} />
-              <Text style={styles.empleoTagText}>{oferta.tipo}</Text>
-            </View>
-            {oferta.provincia && (
-              <View style={styles.empleoTag}>
-                <IconSymbol name="mappin.circle.fill" size={14} color={colors.primary} />
-                <Text style={styles.empleoTagText}>{oferta.provincia}</Text>
-              </View>
-            )}
-            <Text style={styles.empleoFecha}>
-              {calcularDiasPublicado(oferta.created_at)}
-            </Text>
-          </View>
-        </View>
-      </LinearGradient>
-    </TouchableOpacity>
-  );
-
-  const renderPerfil = (perfil: PerfilProfesional) => {
-    const fotoUrl = perfil.foto_url || perfil.usuario?.avatar || user?.avatar;
-    
-    return (
-      <TouchableOpacity
-        key={perfil.id}
-        style={styles.perfilCard}
-        onPress={() => handleVerPerfil(perfil)}
-        activeOpacity={0.8}
-      >
-        <LinearGradient
-          colors={[colors.primary + '15', colors.secondary + '10']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.perfilGradient}
-        >
-          <View style={styles.perfilHeader}>
-            {fotoUrl ? (
-              <Image
-                source={{ uri: fotoUrl }}
-                style={styles.perfilAvatar}
-              />
-            ) : (
-              <View style={[styles.perfilAvatar, styles.perfilAvatarPlaceholder]}>
-                <IconSymbol name="person.fill" size={28} color={colors.textSecondary} />
-              </View>
-            )}
-            <View style={{ flex: 1 }}>
-              <Text style={styles.perfilNombre} numberOfLines={1}>
-                {perfil.nombre_completo}
-              </Text>
-              <Text style={styles.perfilPuesto} numberOfLines={1}>
-                {perfil.puesto_deseado}
-              </Text>
-            </View>
-          </View>
-
-          <Text style={styles.perfilExperiencia} numberOfLines={3}>
-            {perfil.experiencia}
-          </Text>
-
-          {perfil.habilidades && (
-            <View style={styles.habilidadesContainer}>
-              {perfil.habilidades.split(',').slice(0, 3).map((habilidad, index) => (
-                <View key={index} style={styles.habilidadTag}>
-                  <Text style={styles.habilidadText}>{habilidad.trim()}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-
-          <View style={styles.perfilFooter}>
-            {perfil.provincia && (
-              <View style={styles.perfilTag}>
-                <IconSymbol name="mappin.circle.fill" size={14} color={colors.primary} />
-                <Text style={styles.perfilTagText}>{perfil.provincia}</Text>
-              </View>
-            )}
-            {perfil.disponibilidad && (
-              <View style={styles.perfilTag}>
-                <IconSymbol name="clock.fill" size={14} color={colors.primary} />
-                <Text style={styles.perfilTagText}>{perfil.disponibilidad}</Text>
-              </View>
-            )}
-            <View style={styles.perfilActions}>
-              <TouchableOpacity 
-                style={styles.perfilActionButton}
-                onPress={(e) => {
-                  e.stopPropagation();
-                  handleEditarPerfil(perfil.id);
-                }}
-              >
-                <IconSymbol name="pencil.circle.fill" size={24} color={colors.primary} />
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.perfilActionButton}
-                onPress={(e) => {
-                  e.stopPropagation();
-                  handleEliminarPerfil(perfil.id);
-                }}
-              >
-                <IconSymbol name="trash.circle.fill" size={24} color="#EF4444" />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </LinearGradient>
-      </TouchableOpacity>
-    );
-  };
-
   const renderProfileHeader = () => {
     return (
-      <Animated.View 
-        style={[
-          styles.profileSection,
-          {
-            opacity: fadeAnim,
-            transform: [{ scale: scaleAnim }],
-          }
-        ]}
-      >
+      <View style={styles.profileSection}>
         <View style={styles.profileHeader}>
           <TouchableOpacity 
             style={styles.avatarContainer}
-            onPress={handleAvatarPress}
             activeOpacity={0.8}
           >
-            {hasActiveStory && (
-              <LinearGradient
-                colors={['#FFD700', '#00FF00']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.storyRing}
-              />
-            )}
             {displayAvatar ? (
               <Image source={{ uri: displayAvatar }} style={styles.avatar} />
             ) : (
               <View style={[styles.avatar, styles.avatarPlaceholder]}>
                 <IconSymbol name="person.fill" size={40} color={colors.headerText} />
-              </View>
-            )}
-            {!hasActiveStory && (
-              <View style={styles.addStoryIcon}>
-                <IconSymbol name="plus" size={18} color={colors.white} />
               </View>
             )}
           </TouchableOpacity>
@@ -1521,7 +532,7 @@ export default function PerfilScreen() {
             <Text style={[styles.actionButtonText, { color: colors.white }]}>Crear</Text>
           </TouchableOpacity>
         </View>
-      </Animated.View>
+      </View>
     );
   };
 
@@ -1574,17 +585,9 @@ export default function PerfilScreen() {
   }
 
   const currentPosts = activeTab === 'posts' ? posts : activeTab === 'favoritos' ? savedPosts : taggedPosts;
-  const currentStory = userStories[currentStoryIndex];
-  const hasUnviewedUserStories = userStories.some(s => !s.visto_por_usuario);
-
-  const progressWidth = progressAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0%', '100%'],
-  });
 
   return (
     <View style={commonStyles.container}>
-      {/* Fixed Header */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         start={{ x: 0, y: 0 }}
@@ -1621,7 +624,6 @@ export default function PerfilScreen() {
         </View>
       </LinearGradient>
 
-      {/* Scrollable Content */}
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollViewContent}
@@ -1631,8 +633,6 @@ export default function PerfilScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
-        onScroll={activeTab === 'empleo' ? handleScrollEmpleo : undefined}
-        scrollEventThrottle={400}
       >
         <LinearGradient
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
@@ -1674,16 +674,6 @@ export default function PerfilScreen() {
               color={activeTab === 'etiquetados' ? colors.primary : colors.textSecondary} 
             />
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'empleo' && styles.tabActive]}
-            onPress={() => setActiveTab('empleo')}
-          >
-            <IconSymbol 
-              name="briefcase" 
-              size={24} 
-              color={activeTab === 'empleo' ? colors.primary : colors.textSecondary} 
-            />
-          </TouchableOpacity>
         </View>
 
         <View style={styles.content}>
@@ -1692,235 +682,39 @@ export default function PerfilScreen() {
               <ActivityIndicator size="large" color={colors.primary} />
             </View>
           ) : (
-            <>
-              {activeTab === 'empleo' ? (
-                <View style={styles.empleoSection}>
-                  <View style={styles.searchContainer}>
-                    <View style={styles.searchBar}>
-                      <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
-                      <TextInput
-                        style={styles.searchInput}
-                        placeholder="Buscar..."
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                        placeholderTextColor={colors.textSecondary}
-                      />
-                      {searchQuery.length > 0 && (
-                        <TouchableOpacity onPress={() => setSearchQuery('')}>
-                          <IconSymbol name="xmark.circle.fill" size={20} color={colors.textSecondary} />
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                    <TouchableOpacity 
-                      style={styles.filterButton}
-                      onPress={() => setShowFilters(true)}
-                    >
-                      <IconSymbol 
-                        name="line.3.horizontal.decrease.circle" 
-                        size={24} 
-                        color={provinciaFiltro ? colors.primary : colors.text} 
-                      />
-                    </TouchableOpacity>
-                  </View>
-
-                  <View style={styles.empleoTabs}>
-                    {isOwnerMode && (
-                      <TouchableOpacity
-                        style={[styles.empleoTab, empleoTab === 'ofertas' && styles.empleoTabActive]}
-                        onPress={() => setEmpleoTab('ofertas')}
-                      >
-                        <Text
-                          style={[
-                            styles.empleoTabText,
-                            empleoTab === 'ofertas' && styles.empleoTabTextActive,
-                          ]}
-                        >
-                          Mis Ofertas
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-                    <TouchableOpacity
-                      style={[styles.empleoTab, empleoTab === 'perfiles' && styles.empleoTabActive]}
-                      onPress={() => setEmpleoTab('perfiles')}
-                    >
-                      <Text
-                        style={[
-                          styles.empleoTabText,
-                          empleoTab === 'perfiles' && styles.empleoTabTextActive,
-                        ]}
-                      >
-                        Mi Perfil
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  {loadingEmpleo ? (
-                    <View style={styles.loadingContainer}>
-                      <ActivityIndicator size="small" color={colors.primary} />
-                    </View>
-                  ) : (
-                    <View style={styles.empleoContent}>
-                      {empleoTab === 'ofertas' && isOwnerMode ? (
-                        ofertas.length > 0 ? (
-                          ofertas.map(renderOferta)
-                        ) : (
-                          <View style={styles.emptyState}>
-                            <IconSymbol name="briefcase" size={48} color={colors.textSecondary} />
-                            <Text style={styles.emptyStateText}>
-                              {searchQuery || provinciaFiltro 
-                                ? 'No se encontraron ofertas con los filtros aplicados'
-                                : 'No has creado ofertas de trabajo'}
-                            </Text>
-                            {!searchQuery && !provinciaFiltro && (
-                              <TouchableOpacity style={styles.emptyStateButton} onPress={handleCrearOferta}>
-                                <Text style={styles.emptyStateButtonText}>Crear Oferta</Text>
-                              </TouchableOpacity>
-                            )}
-                          </View>
-                        )
-                      ) : (
-                        perfiles.length > 0 ? (
-                          perfiles.map(renderPerfil)
-                        ) : (
-                          <View style={styles.emptyState}>
-                            <IconSymbol name="person.2" size={48} color={colors.textSecondary} />
-                            <Text style={styles.emptyStateText}>
-                              {searchQuery || provinciaFiltro 
-                                ? 'No se encontraron perfiles con los filtros aplicados'
-                                : 'No has creado tu perfil profesional'}
-                            </Text>
-                            {!searchQuery && !provinciaFiltro && (
-                              <TouchableOpacity style={styles.emptyStateButton} onPress={handleCrearPerfil}>
-                                <Text style={styles.emptyStateButtonText}>Crear Perfil</Text>
-                              </TouchableOpacity>
-                            )}
-                          </View>
-                        )
-                      )}
-
-                      {/* Loading indicator for infinite scroll */}
-                      {loadingMore && (
-                        <View style={styles.loadingMoreContainer}>
-                          <ActivityIndicator size="small" color={colors.primary} />
-                          <Text style={styles.loadingMoreText}>Cargando más...</Text>
-                        </View>
-                      )}
-
-                      {/* End of list indicator */}
-                      {!hasMoreOfertas && ofertas.length > 0 && empleoTab === 'ofertas' && (
-                        <View style={styles.endOfListContainer}>
-                          <Text style={styles.endOfListText}>No hay más ofertas</Text>
-                        </View>
-                      )}
-                      {!hasMorePerfiles && perfiles.length > 0 && empleoTab === 'perfiles' && (
-                        <View style={styles.endOfListContainer}>
-                          <Text style={styles.endOfListText}>No hay más perfiles</Text>
-                        </View>
-                      )}
-                    </View>
-                  )}
-                </View>
+            <View style={styles.postsGrid}>
+              {currentPosts.length > 0 ? (
+                currentPosts.map(renderGridPost)
               ) : (
-                <View style={styles.postsGrid}>
-                  {currentPosts.length > 0 ? (
-                    currentPosts.map(renderGridPost)
-                  ) : (
-                    <View style={styles.emptyState}>
-                      <IconSymbol 
-                        name={
-                          activeTab === 'posts' ? 'photo.on.rectangle' : 
-                          activeTab === 'favoritos' ? 'bookmark' : 
-                          'person.crop.square'
-                        } 
-                        size={48} 
-                        color={colors.textSecondary} 
-                      />
-                      <Text style={styles.emptyStateText}>
-                        {activeTab === 'posts' ? 'No hay publicaciones aún' :
-                         activeTab === 'favoritos' ? 'No hay publicaciones guardadas' :
-                         'No hay publicaciones etiquetadas'}
-                      </Text>
-                      {activeTab === 'posts' && (
-                        <TouchableOpacity 
-                          style={styles.emptyStateButton} 
-                          onPress={() => router.push('/crear/publicacion')}
-                        >
-                          <Text style={styles.emptyStateButtonText}>Crear Publicación</Text>
-                        </TouchableOpacity>
-                      )}
-                    </View>
+                <View style={styles.emptyState}>
+                  <IconSymbol 
+                    name={
+                      activeTab === 'posts' ? 'photo.on.rectangle' : 
+                      activeTab === 'favoritos' ? 'bookmark' : 
+                      'person.crop.square'
+                    } 
+                    size={48} 
+                    color={colors.textSecondary} 
+                  />
+                  <Text style={styles.emptyStateText}>
+                    {activeTab === 'posts' ? 'No hay publicaciones aún' :
+                     activeTab === 'favoritos' ? 'No hay publicaciones guardadas' :
+                     'No hay publicaciones etiquetadas'}
+                  </Text>
+                  {activeTab === 'posts' && (
+                    <TouchableOpacity 
+                      style={styles.emptyStateButton} 
+                      onPress={() => router.push('/crear/publicacion')}
+                    >
+                      <Text style={styles.emptyStateButtonText}>Crear Publicación</Text>
+                    </TouchableOpacity>
                   )}
                 </View>
               )}
-            </>
+            </View>
           )}
         </View>
       </ScrollView>
-
-      <Modal
-        visible={showFilters}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowFilters(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <Pressable 
-            style={styles.modalOverlayTouchable}
-            onPress={() => setShowFilters(false)}
-          />
-          <View style={styles.filtersModal}>
-            <View style={styles.filtersHeader}>
-              <Text style={styles.filtersTitle}>Filtros</Text>
-              <TouchableOpacity onPress={() => setShowFilters(false)}>
-                <IconSymbol name="xmark" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.filtersContent}>
-              <Text style={styles.filterLabel}>Provincia</Text>
-              <ScrollView style={styles.provinciasList} nestedScrollEnabled>
-                <TouchableOpacity
-                  style={[styles.provinciaItem, !provinciaFiltro && styles.provinciaItemActive]}
-                  onPress={() => setProvinciaFiltro('')}
-                >
-                  <Text style={[styles.provinciaText, !provinciaFiltro && styles.provinciaTextActive]}>
-                    Todas las provincias
-                  </Text>
-                </TouchableOpacity>
-                {PROVINCIAS.map((provincia) => (
-                  <TouchableOpacity
-                    key={provincia}
-                    style={[styles.provinciaItem, provinciaFiltro === provincia && styles.provinciaItemActive]}
-                    onPress={() => setProvinciaFiltro(provincia)}
-                  >
-                    <Text style={[styles.provinciaText, provinciaFiltro === provincia && styles.provinciaTextActive]}>
-                      {provincia}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </ScrollView>
-
-            <View style={styles.filtersFooter}>
-              <TouchableOpacity 
-                style={styles.clearFiltersButton}
-                onPress={() => {
-                  limpiarFiltros();
-                  setShowFilters(false);
-                }}
-              >
-                <Text style={styles.clearFiltersText}>Limpiar Filtros</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.applyFiltersButton}
-                onPress={() => setShowFilters(false)}
-              >
-                <Text style={styles.applyFiltersText}>Aplicar</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
 
       <Modal
         visible={showCreateOptions}
@@ -1979,180 +773,6 @@ export default function PerfilScreen() {
             </View>
           </Pressable>
         </Pressable>
-      </Modal>
-
-      {/* ✅ FIXED: Story Viewer Modal with stats modal INSIDE and navigation callback */}
-      <Modal
-        visible={showStoryViewer}
-        animationType="fade"
-        onRequestClose={async () => {
-          const currentStory = userStories[currentStoryIndex];
-          
-          if (currentStory && user) {
-            try {
-              const { data: existingView } = await supabase
-                .from('historia_views')
-                .select('id')
-                .eq('historia_id', currentStory.id)
-                .eq('usuario_id', user.id)
-                .single();
-
-              if (!existingView) {
-                await supabase.from('historia_views').insert({
-                  historia_id: currentStory.id,
-                  usuario_id: user.id,
-                });
-              }
-            } catch (error) {
-              console.error('[Perfil] Error marking story as viewed on modal close:', error);
-            }
-          }
-          
-          // ✅ FIXED: Close stats modal immediately when story viewer closes
-          setShowStoryStats(false);
-          await cargarDatosPerfil();
-          setShowStoryViewer(false);
-          stopStoryTimer();
-        }}
-      >
-        <View style={styles.storyViewerModal}>
-          {currentStory && (
-            <>
-              <View style={styles.storyViewerHeader}>
-                <View style={styles.storyProgressContainer}>
-                  {userStories.map((_, index) => (
-                    <View key={index} style={styles.storyProgressBar}>
-                      {index < currentStoryIndex && (
-                        <View style={[styles.storyProgressFill, { width: '100%' }]} />
-                      )}
-                      {index === currentStoryIndex && (
-                        <Animated.View
-                          style={[styles.storyProgressFill, { width: progressWidth }]}
-                        />
-                      )}
-                    </View>
-                  ))}
-                </View>
-
-                <View style={styles.storyAutorInfo}>
-                  {user.avatar ? (
-                    <Image source={{ uri: user.avatar }} style={styles.storyAutorAvatar} />
-                  ) : (
-                    <View style={[styles.storyAutorAvatar, styles.avatarPlaceholder]}>
-                      <Text style={styles.avatarText}>
-                        {user.nombre?.charAt(0).toUpperCase() || 'U'}
-                      </Text>
-                    </View>
-                  )}
-                  <Text style={styles.storyAutorNombre}>{user.nombre}</Text>
-                  
-                  <TouchableOpacity
-                    style={styles.storyCloseButton}
-                    onPress={async () => {
-                      const currentStory = userStories[currentStoryIndex];
-                      
-                      if (currentStory && user) {
-                        try {
-                          const { data: existingView } = await supabase
-                            .from('historia_views')
-                            .select('id')
-                            .eq('historia_id', currentStory.id)
-                            .eq('usuario_id', user.id)
-                            .single();
-
-                          if (!existingView) {
-                            await supabase.from('historia_views').insert({
-                              historia_id: currentStory.id,
-                              usuario_id: user.id,
-                            });
-                          }
-                        } catch (error) {
-                          console.error('[Perfil] Error marking story as viewed on close:', error);
-                        }
-                      }
-                      
-                      // ✅ FIXED: Close stats modal immediately when story viewer closes
-                      setShowStoryStats(false);
-                      await cargarDatosPerfil();
-                      setShowStoryViewer(false);
-                      stopStoryTimer();
-                    }}
-                    activeOpacity={0.8}
-                  >
-                    <IconSymbol name="xmark" size={20} color="#fff" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              <View style={styles.storyContent}>
-                <Image
-                  source={{ uri: currentStory.imagen }}
-                  style={styles.storyImage}
-                  resizeMode="contain"
-                />
-              </View>
-
-              {/* ✅ FIXED: Bottom-left controls for own stories */}
-              {user && currentStory.tipo === 'usuario' && currentStory.autor_id === user.id && (
-                <View style={styles.storyBottomLeftControls}>
-                  <TouchableOpacity
-                    style={styles.storyStatsButtonBottom}
-                    onPress={handleViewStoryStats}
-                    activeOpacity={0.8}
-                  >
-                    <IconSymbol name="eye.fill" size={24} color="#fff" />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.storyDeleteButtonBottom}
-                    onPress={handleDeleteStory}
-                    activeOpacity={0.8}
-                  >
-                    <IconSymbol name="trash.fill" size={24} color="#fff" />
-                  </TouchableOpacity>
-                </View>
-              )}
-
-              <View style={styles.storyTouchZones}>
-                <Pressable
-                  style={styles.storyTouchZone}
-                  onPress={handlePreviousStory}
-                />
-                <Pressable
-                  style={styles.storyTouchZone}
-                  onPressIn={() => {
-                    setIsPaused(true);
-                    stopStoryTimer();
-                  }}
-                  onPressOut={() => {
-                    setIsPaused(false);
-                    startStoryTimer();
-                  }}
-                />
-                <Pressable
-                  style={styles.storyTouchZone}
-                  onPress={handleNextStory}
-                />
-              </View>
-
-              {/* ✅ FIXED: Stats Modal - Rendered INSIDE the story viewer with navigation callback */}
-              <StoryStatsModal
-                visible={showStoryStats}
-                onClose={() => {
-                  setShowStoryStats(false);
-                  setIsPaused(false);
-                  startStoryTimer();
-                }}
-                onNavigateToProfile={handleNavigateToProfileFromStory}
-                storyId={currentStory.id}
-                viewsCount={currentStory.views_count || 0}
-                likesCount={currentStory.likes_count || 0}
-                views={storyViews}
-                likes={storyLikes}
-                loading={loadingStats}
-              />
-            </>
-          )}
-        </View>
       </Modal>
 
       <LoginRequiredModal
@@ -2270,15 +890,6 @@ const styles = StyleSheet.create({
     position: 'relative',
     marginRight: 20,
   },
-  storyRing: {
-    position: 'absolute',
-    top: -4,
-    left: -4,
-    right: -4,
-    bottom: -4,
-    borderRadius: 48,
-    zIndex: 0,
-  },
   avatar: {
     width: 88,
     height: 88,
@@ -2291,25 +902,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.headerText,
-  },
-  addStoryIcon: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 4,
-    borderColor: colors.headerGradientStart,
-    zIndex: 2,
   },
   profileInfo: {
     flex: 1,
@@ -2467,361 +1059,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.white,
   },
-  empleoSection: {
-    padding: 20,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 20,
-  },
-  searchBar: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 12,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: colors.text,
-  },
-  filterButton: {
-    width: 52,
-    height: 52,
-    backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  empleoTabs: {
-    flexDirection: 'row',
-    backgroundColor: colors.background,
-    borderRadius: 16,
-    padding: 4,
-    marginBottom: 20,
-  },
-  empleoTab: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderRadius: 12,
-  },
-  empleoTabActive: {
-    backgroundColor: colors.cardBackground,
-  },
-  empleoTabText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  empleoTabTextActive: {
-    color: colors.primary,
-  },
-  empleoContent: {
-    gap: 20,
-  },
-  empleoCard: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 20,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  ofertaGradient: {
-    position: 'relative',
-  },
-  ofertaImagen: {
-    width: '100%',
-    height: 200,
-    backgroundColor: colors.cardBorder,
-  },
-  ofertaContent: {
-    padding: 20,
-  },
-  empleoTitulo: {
-    fontSize: 19,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  empleoLocal: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  salarioContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: colors.primary,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 12,
-  },
-  salarioTexto: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.white,
-  },
-  empleoFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginTop: 16,
-  },
-  empleoTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    gap: 6,
-  },
-  empleoTagText: {
-    fontSize: 14,
-    color: colors.text,
-    fontWeight: '600',
-  },
-  empleoFecha: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginLeft: 'auto',
-  },
-  ofertaHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  perfilCard: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 20,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  perfilGradient: {
-    padding: 20,
-  },
-  perfilHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  perfilAvatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    marginRight: 16,
-    borderWidth: 2,
-    borderColor: colors.primary + '30',
-  },
-  perfilAvatarPlaceholder: {
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  perfilNombre: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  perfilPuesto: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  perfilExperiencia: {
-    fontSize: 15,
-    color: colors.text,
-    lineHeight: 22,
-    marginBottom: 16,
-  },
-  habilidadesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginBottom: 16,
-  },
-  habilidadTag: {
-    backgroundColor: colors.primary + '20',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 12,
-  },
-  habilidadText: {
-    fontSize: 13,
-    color: colors.primary,
-    fontWeight: '700',
-  },
-  perfilFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  perfilTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  perfilTagText: {
-    fontSize: 14,
-    color: colors.text,
-    fontWeight: '600',
-  },
-  perfilActions: {
-    flexDirection: 'row',
-    gap: 12,
-    marginLeft: 'auto',
-  },
-  perfilActionButton: {
-    padding: 4,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalOverlayTouchable: {
-    flex: 1,
-  },
-  filtersModal: {
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    maxHeight: '80%',
-  },
-  filtersHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  filtersTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: colors.text,
-  },
-  filtersContent: {
-    padding: 24,
-  },
-  filterLabel: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 16,
-  },
-  dateFilters: {
-    gap: 20,
-    marginBottom: 20,
-  },
-  dateFilterItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  dateFilterLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: colors.text,
-    width: 70,
-  },
-  datePickerButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: colors.cardBackground,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  datePickerText: {
-    fontSize: 16,
-    color: colors.text,
-  },
-  clearDateButton: {
-    padding: 4,
-  },
-  provinciasList: {
-    maxHeight: 300,
-  },
-  provinciaItem: {
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    marginBottom: 10,
-    backgroundColor: colors.cardBackground,
-  },
-  provinciaItemActive: {
-    backgroundColor: colors.primary,
-  },
-  provinciaText: {
-    fontSize: 16,
-    color: colors.text,
-  },
-  provinciaTextActive: {
-    color: colors.white,
-    fontWeight: '600',
-  },
-  filtersFooter: {
-    flexDirection: 'row',
-    gap: 16,
-    padding: 24,
-    borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
-  },
-  clearFiltersButton: {
-    flex: 1,
-    paddingVertical: 16,
-    borderRadius: 16,
-    backgroundColor: colors.cardBackground,
-    alignItems: 'center',
-  },
-  clearFiltersText: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  applyFiltersButton: {
-    flex: 1,
-    paddingVertical: 16,
-    borderRadius: 16,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-  },
-  applyFiltersText: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: colors.white,
-  },
   createOptionsModal: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -2883,121 +1120,5 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.textSecondary,
     lineHeight: 20,
-  },
-  storyViewerModal: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  storyViewerHeader: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    paddingTop: 50,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
-  storyProgressContainer: {
-    flexDirection: 'row',
-    gap: 4,
-    marginBottom: 12,
-  },
-  storyProgressBar: {
-    flex: 1,
-    height: 3,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 1.5,
-    overflow: 'hidden',
-  },
-  storyProgressFill: {
-    height: '100%',
-    backgroundColor: '#fff',
-  },
-  storyAutorInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  storyAutorAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    marginRight: 12,
-  },
-  storyAutorNombre: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-    flex: 1,
-  },
-  storyBottomLeftControls: {
-    position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 40 : 20,
-    left: 16,
-    flexDirection: 'row',
-    gap: 16,
-    zIndex: 10,
-  },
-  storyStatsButtonBottom: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  storyDeleteButtonBottom: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  storyCloseButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  storyContent: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  storyImage: {
-    width: width,
-    height: height,
-  },
-  storyTouchZones: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    flexDirection: 'row',
-  },
-  storyTouchZone: {
-    flex: 1,
-  },
-  loadingMoreContainer: {
-    paddingVertical: 20,
-    alignItems: 'center',
-    gap: 8,
-  },
-  loadingMoreText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  endOfListContainer: {
-    paddingVertical: 20,
-    alignItems: 'center',
-  },
-  endOfListText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    fontStyle: 'italic',
   },
 });

@@ -69,6 +69,10 @@ export default function CrearEventoScreen() {
     }
 
     try {
+      console.log('[CrearEvento] ========================================');
+      console.log('[CrearEvento] Loading local:', selectedLocalId);
+      console.log('[CrearEvento] User ID:', user.id);
+
       const { data: localInfo, error: localError } = await supabase
         .from('locales')
         .select('id, nombre, provincia, direccion, ciudad')
@@ -87,7 +91,9 @@ export default function CrearEventoScreen() {
         return;
       }
 
-      const { data: suscripcion } = await supabase
+      console.log('[CrearEvento] Local loaded:', localInfo.nombre);
+
+      const { data: suscripcion, error: suscripcionError } = await supabase
         .from('suscripciones_locales')
         .select(`
           id,
@@ -102,14 +108,26 @@ export default function CrearEventoScreen() {
         .eq('estado', 'activa')
         .single();
 
+      console.log('[CrearEvento] Subscription query result:', { suscripcion, suscripcionError });
+
       const planNombre = (suscripcion?.planes_suscripcion as any)?.nombre || 'basico';
       const eventosDisponibles = (suscripcion?.planes_suscripcion as any)?.eventos_mes || 0;
       const eventosUsados = suscripcion?.eventos_usados_mes || 0;
-      const creditosEventosRestantes = suscripcion?.creditos_eventos_restantes || 0;
+      const creditosEventosRestantes = suscripcion?.creditos_eventos_restantes ?? 0;
       
-      // Check if can create events based on credits
+      console.log('[CrearEvento] Plan details:');
+      console.log('[CrearEvento] - Plan nombre:', planNombre);
+      console.log('[CrearEvento] - Eventos disponibles (plan):', eventosDisponibles);
+      console.log('[CrearEvento] - Eventos usados este mes:', eventosUsados);
+      console.log('[CrearEvento] - Créditos eventos restantes:', creditosEventosRestantes);
+      
+      // ✅ FIXED: Check if can create events based on credits
+      // Premium and estandar plans should have credits > 0
       const puedeCrearEventos =
         planNombre !== 'basico' && creditosEventosRestantes > 0;
+
+      console.log('[CrearEvento] - Puede crear eventos:', puedeCrearEventos);
+      console.log('[CrearEvento] ========================================');
 
       if (!puedeCrearEventos) {
         Alert.alert(
@@ -257,6 +275,10 @@ export default function CrearEventoScreen() {
     try {
       setLoading(true);
 
+      console.log('[CrearEvento] ========================================');
+      console.log('[CrearEvento] Creating event...');
+      console.log('[CrearEvento] Current credits:', localData.suscripcion.creditos_eventos_restantes);
+
       let imagenUrl = null;
       if (imagen) {
         imagenUrl = await uploadImage(imagen);
@@ -289,24 +311,37 @@ export default function CrearEventoScreen() {
         return;
       }
 
-      // Update subscription: increment eventos_usados_mes AND decrement creditos_eventos_restantes
+      console.log('[CrearEvento] Event created successfully:', data.id);
+
+      // ✅ FIXED: Update subscription - decrement creditos_eventos_restantes
+      const newCredits = Math.max(0, localData.suscripcion.creditos_eventos_restantes - 1);
+      const newEventosUsados = (localData.suscripcion.eventos_usados_mes || 0) + 1;
+
+      console.log('[CrearEvento] Updating subscription...');
+      console.log('[CrearEvento] - New credits:', newCredits);
+      console.log('[CrearEvento] - New eventos usados:', newEventosUsados);
+
       const { error: updateError } = await supabase
         .from('suscripciones_locales')
         .update({
-          eventos_usados_mes: (localData.suscripcion.eventos_usados_mes || 0) + 1,
-          creditos_eventos_restantes: Math.max(0, (localData.suscripcion.creditos_eventos_restantes || 0) - 1),
+          eventos_usados_mes: newEventosUsados,
+          creditos_eventos_restantes: newCredits,
           updated_at: new Date().toISOString(),
         })
         .eq('id', localData.suscripcion.id);
 
       if (updateError) {
         console.error('[CrearEvento] Error updating credits:', updateError);
+        Alert.alert('Advertencia', 'El evento se creó pero hubo un error al actualizar los créditos.');
+      } else {
+        console.log('[CrearEvento] Credits updated successfully');
       }
 
-      console.log('[CrearEvento] Evento creado:', data);
+      console.log('[CrearEvento] ========================================');
+
       Alert.alert(
         '✅ ¡Éxito!',
-        `Evento publicado correctamente.\n\nCrédito consumido: 1\nCréditos restantes: ${Math.max(0, localData.suscripcion.creditos_eventos_restantes - 1)}`,
+        `Evento publicado correctamente.\n\nCrédito consumido: 1\nCréditos restantes: ${newCredits}`,
         [{ text: 'OK', onPress: () => router.back() }]
       );
     } catch (error) {
