@@ -67,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         console.error('[AuthContext] ❌ Error inicializando:', error);
       } finally {
+        console.log('[AuthContext] ✅ Inicialización completada');
         setInitializing(false);
         setLoading(false);
       }
@@ -81,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
         console.log('[AuthContext] 🔄 Auth state cambió:', event);
         
-        // Don't process events during initialization
+        // Don't process events during initialization to avoid race conditions
         if (initializing) {
           console.log('[AuthContext] ⏳ Ignorando evento durante inicialización');
           return;
@@ -91,9 +92,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (event === 'SIGNED_IN' && currentSession) {
           console.log('[AuthContext] ✅ Usuario inició sesión:', currentSession.user.email);
-          setLoading(true);
           
-          // Load user profile
+          // Don't set loading here to avoid blocking the UI
+          // The callback page will handle the redirect
+          
+          // Load user profile in the background
           const { user: userData } = await getCurrentUser();
           if (userData) {
             console.log('[AuthContext] ✅ Perfil cargado:', userData.email);
@@ -107,9 +110,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 }
               })
               .catch(() => {});
+          } else {
+            console.log('[AuthContext] ⚠️ No se pudo cargar el perfil del usuario');
           }
-          
-          setLoading(false);
         } else if (event === 'SIGNED_OUT') {
           console.log('[AuthContext] 🚪 Usuario cerró sesión');
           setUser(null);
@@ -119,12 +122,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Session is already updated, just log
         } else if (event === 'USER_UPDATED') {
           console.log('[AuthContext] 🔄 Usuario actualizado');
-          setLoading(true);
           const { user: userData } = await getCurrentUser();
           if (userData) {
             setUser(userData);
           }
-          setLoading(false);
         }
       });
       
