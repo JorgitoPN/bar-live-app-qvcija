@@ -161,18 +161,20 @@ export default function MisLocalesScreen() {
       <View style={styles.container}>
         <LinearGradient
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-          style={styles.header}
+          style={styles.compactHeader}
         >
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Mis Locales</Text>
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => router.push('/crear/local')}
-          >
-            <IconSymbol name="plus" size={24} color={colors.headerText} />
-          </TouchableOpacity>
+          <View style={styles.headerRow}>
+            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+              <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Mis Locales</Text>
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => router.push('/crear/local')}
+            >
+              <IconSymbol name="plus" size={24} color={colors.headerText} />
+            </TouchableOpacity>
+          </View>
         </LinearGradient>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -184,23 +186,26 @@ export default function MisLocalesScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Compact Header */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-        style={styles.header}
+        style={styles.compactHeader}
       >
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Mis Locales</Text>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => router.push('/crear/local')}
-        >
-          <IconSymbol name="plus" size={24} color={colors.headerText} />
-        </TouchableOpacity>
+        <View style={styles.headerRow}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Mis Locales</Text>
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => router.push('/crear/local')}
+          >
+            <IconSymbol name="plus" size={24} color={colors.headerText} />
+          </TouchableOpacity>
+        </View>
       </LinearGradient>
 
-      <ScrollView style={styles.content}>
+      <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
         {locales.length === 0 ? (
           <View style={styles.emptyContainer}>
             <IconSymbol name="building.2" size={64} color={colors.textSecondary} />
@@ -223,35 +228,33 @@ export default function MisLocalesScreen() {
           </View>
         ) : (
           <>
+            {/* Compact Local Selector */}
             {locales.length > 1 && (
-              <View style={styles.selectorContainer}>
-                <Text style={styles.selectorTitle}>Local Activo</Text>
-                <Text style={styles.selectorDescription}>
-                  Selecciona el local con el que deseas interactuar
-                </Text>
+              <View style={styles.compactSelectorContainer}>
+                <Text style={styles.compactSelectorTitle}>Local Activo</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.selectorScroll}>
                   {locales.map((local) => (
                     <TouchableOpacity
                       key={local.id}
                       style={[
-                        styles.selectorCard,
-                        selectedLocalId === local.id && styles.selectorCardActive,
+                        styles.compactSelectorCard,
+                        selectedLocalId === local.id && styles.compactSelectorCardActive,
                       ]}
                       onPress={() => handleSelectLocal(local.id)}
                     >
                       {local.imagen_url ? (
-                        <Image source={{ uri: local.imagen_url }} style={styles.selectorImage} />
+                        <Image source={{ uri: local.imagen_url }} style={styles.compactSelectorImage} />
                       ) : (
-                        <View style={[styles.selectorImage, styles.selectorImagePlaceholder]}>
-                          <IconSymbol name="building.2" size={32} color={colors.textSecondary} />
+                        <View style={[styles.compactSelectorImage, styles.compactSelectorImagePlaceholder]}>
+                          <IconSymbol name="building.2" size={24} color={colors.textSecondary} />
                         </View>
                       )}
-                      <Text style={styles.selectorName} numberOfLines={1}>
+                      <Text style={styles.compactSelectorName} numberOfLines={1}>
                         {local.nombre}
                       </Text>
                       {selectedLocalId === local.id && (
-                        <View style={styles.selectorBadge}>
-                          <IconSymbol name="checkmark.circle.fill" size={20} color={colors.primary} />
+                        <View style={styles.compactSelectorCheck}>
+                          <IconSymbol name="checkmark.circle.fill" size={16} color={colors.primary} />
                         </View>
                       )}
                     </TouchableOpacity>
@@ -260,93 +263,101 @@ export default function MisLocalesScreen() {
               </View>
             )}
 
+            {/* Compact Local Cards */}
             <View style={styles.localesContainer}>
               {locales.map((local) => (
-                <View
-                  key={local.id}
-                  style={[commonStyles.card, commonStyles.cardShadow, styles.localCard]}
-                >
-                  {local.imagen_url ? (
-                    <Image source={{ uri: local.imagen_url }} style={styles.localImage} />
-                  ) : (
-                    <View style={[styles.localImage, styles.localImagePlaceholder]}>
-                      <IconSymbol name="building.2" size={40} color={colors.textSecondary} />
-                    </View>
-                  )}
-                  <View style={styles.localInfo}>
-                    <View style={styles.localHeader}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.localNombre}>{local.nombre}</Text>
-                        <Text style={styles.localTipo}>
-                          {local.tipo.charAt(0).toUpperCase() + local.tipo.slice(1)}
-                        </Text>
+                <View key={local.id} style={styles.compactLocalCard}>
+                  <View style={styles.localCardHeader}>
+                    {local.imagen_url ? (
+                      <Image source={{ uri: local.imagen_url }} style={styles.compactLocalImage} />
+                    ) : (
+                      <View style={[styles.compactLocalImage, styles.compactLocalImagePlaceholder]}>
+                        <IconSymbol name="building.2" size={28} color={colors.textSecondary} />
                       </View>
-                      {selectedLocalId === local.id && (
-                        <View style={styles.activeBadge}>
-                          <Text style={styles.activeBadgeText}>ACTIVO</Text>
-                        </View>
-                      )}
-                    </View>
-
-                    <View style={styles.planBadge}>
-                      <Text style={styles.planBadgeText}>
-                        Plan: {local.plan_nombre.toUpperCase()}
+                    )}
+                    
+                    <View style={styles.localCardInfo}>
+                      <View style={styles.localCardTitleRow}>
+                        <Text style={styles.compactLocalNombre} numberOfLines={1}>{local.nombre}</Text>
+                        {selectedLocalId === local.id && (
+                          <View style={styles.compactActiveBadge}>
+                            <Text style={styles.compactActiveBadgeText}>ACTIVO</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text style={styles.compactLocalTipo}>
+                        {local.tipo.charAt(0).toUpperCase() + local.tipo.slice(1)}
                       </Text>
-                    </View>
-
-                    <View style={styles.statsContainer}>
-                      <View style={styles.stat}>
-                        <IconSymbol name="person.2" size={16} color={colors.textSecondary} />
-                        <Text style={styles.statText}>{local.seguidores}</Text>
+                      
+                      <View style={styles.compactStatsRow}>
+                        <View style={styles.compactStat}>
+                          <IconSymbol name="person.2" size={14} color={colors.textSecondary} />
+                          <Text style={styles.compactStatText}>{local.seguidores}</Text>
+                        </View>
+                        <View style={styles.compactPlanBadge}>
+                          <Text style={styles.compactPlanText}>{local.plan_nombre.toUpperCase()}</Text>
+                        </View>
                       </View>
                     </View>
+                  </View>
 
-                    <View style={styles.destacadoContainer}>
+                  {/* Destacado Section */}
+                  <View style={styles.compactDestacadoSection}>
+                    <View style={styles.compactDestacadoInfo}>
+                      <IconSymbol name="star.fill" size={16} color={colors.badgeDestacado} />
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.destacadoTitle}>Local Destacado</Text>
-                        <Text style={styles.destacadoSubtitle}>
+                        <Text style={styles.compactDestacadoTitle}>Destacado</Text>
+                        <Text style={styles.compactDestacadoSubtitle}>
                           {local.destacados_restantes > 0
-                            ? `${local.destacados_restantes} destacados disponibles`
-                            : 'Sin destacados disponibles'}
+                            ? `${local.destacados_restantes} disponibles`
+                            : 'Sin créditos'}
                         </Text>
                       </View>
                       <TouchableOpacity
                         style={[
-                          styles.destacadoButton,
-                          local.destacado && styles.destacadoButtonActive,
-                          updatingDestacado === local.id && styles.destacadoButtonDisabled,
+                          styles.compactDestacadoButton,
+                          local.destacado && styles.compactDestacadoButtonActive,
+                          updatingDestacado === local.id && styles.compactDestacadoButtonDisabled,
                         ]}
                         onPress={() => handleToggleDestacado(local)}
                         disabled={updatingDestacado === local.id}
                       >
                         {updatingDestacado === local.id ? (
-                          <ActivityIndicator size="small" color={colors.headerText} />
+                          <ActivityIndicator size="small" color={colors.primary} />
                         ) : (
                           <IconSymbol
                             name={local.destacado ? 'star.fill' : 'star'}
-                            size={20}
+                            size={18}
                             color={local.destacado ? colors.badgeDestacado : colors.textSecondary}
                           />
                         )}
                       </TouchableOpacity>
                     </View>
+                  </View>
 
-                    <View style={styles.actions}>
-                      <TouchableOpacity
-                        style={styles.actionButton}
-                        onPress={() => router.push(`/editar/local?id=${local.id}`)}
-                      >
-                        <IconSymbol name="pencil" size={18} color={colors.primary} />
-                        <Text style={styles.actionText}>Editar</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.actionButton}
-                        onPress={() => router.push(`/gestion/planes-suscripcion?localId=${local.id}`)}
-                      >
-                        <IconSymbol name="creditcard" size={18} color={colors.primary} />
-                        <Text style={styles.actionText}>Plan</Text>
-                      </TouchableOpacity>
-                    </View>
+                  {/* Compact Actions */}
+                  <View style={styles.compactActions}>
+                    <TouchableOpacity
+                      style={styles.compactActionButton}
+                      onPress={() => router.push(`/editar/local?id=${local.id}`)}
+                    >
+                      <IconSymbol name="pencil" size={16} color={colors.primary} />
+                      <Text style={styles.compactActionText}>Editar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.compactActionButton}
+                      onPress={() => router.push(`/gestion/panel-analisis?localId=${local.id}`)}
+                    >
+                      <IconSymbol name="chart.bar.fill" size={16} color={colors.primary} />
+                      <Text style={styles.compactActionText}>Análisis</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.compactActionButton}
+                      onPress={() => router.push(`/gestion/planes-suscripcion?localId=${local.id}`)}
+                    >
+                      <IconSymbol name="creditcard" size={16} color={colors.primary} />
+                      <Text style={styles.compactActionText}>Plan</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
               ))}
@@ -363,27 +374,32 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  header: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 50,
-    paddingBottom: 16,
+  compactHeader: {
+    paddingTop: Platform.OS === 'ios' ? 50 : 40,
+    paddingBottom: 12,
     paddingHorizontal: 16,
+  },
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   backButton: {
-    padding: 8,
+    padding: 4,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: colors.headerText,
   },
   addButton: {
-    padding: 8,
+    padding: 4,
   },
   content: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 100,
   },
   loadingContainer: {
     flex: 1,
@@ -431,181 +447,193 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  selectorContainer: {
+  compactSelectorContainer: {
     padding: 16,
     backgroundColor: colors.cardBackground,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
   },
-  selectorTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
+  compactSelectorTitle: {
+    fontSize: 14,
+    fontWeight: '600',
     color: colors.text,
-    marginBottom: 4,
-  },
-  selectorDescription: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   selectorScroll: {
     marginHorizontal: -16,
     paddingHorizontal: 16,
   },
-  selectorCard: {
-    width: 100,
-    marginRight: 12,
+  compactSelectorCard: {
+    width: 80,
+    marginRight: 10,
     alignItems: 'center',
     padding: 8,
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 2,
     borderColor: 'transparent',
     backgroundColor: colors.background,
   },
-  selectorCardActive: {
+  compactSelectorCardActive: {
     borderColor: colors.primary,
     backgroundColor: colors.primary + '10',
   },
-  selectorImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    marginBottom: 8,
+  compactSelectorImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginBottom: 6,
   },
-  selectorImagePlaceholder: {
+  compactSelectorImagePlaceholder: {
     backgroundColor: colors.cardBorder,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  selectorName: {
-    fontSize: 12,
+  compactSelectorName: {
+    fontSize: 11,
     fontWeight: '600',
     color: colors.text,
     textAlign: 'center',
   },
-  selectorBadge: {
+  compactSelectorCheck: {
     position: 'absolute',
     top: 4,
     right: 4,
   },
   localesContainer: {
     padding: 16,
+    gap: 12,
   },
-  localCard: {
-    flexDirection: 'row',
-    marginBottom: 16,
+  compactLocalCard: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
     padding: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
-  localImage: {
-    width: 100,
-    height: 100,
+  localCardHeader: {
+    flexDirection: 'row',
+    marginBottom: 12,
+  },
+  compactLocalImage: {
+    width: 70,
+    height: 70,
     borderRadius: 8,
   },
-  localImagePlaceholder: {
+  compactLocalImagePlaceholder: {
     backgroundColor: colors.cardBorder,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  localInfo: {
+  localCardInfo: {
     flex: 1,
     marginLeft: 12,
   },
-  localHeader: {
+  localCardTitleRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  localNombre: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text,
+    alignItems: 'center',
+    gap: 8,
     marginBottom: 4,
   },
-  localTipo: {
-    fontSize: 14,
-    color: colors.textSecondary,
+  compactLocalNombre: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.text,
   },
-  activeBadge: {
+  compactActiveBadge: {
     backgroundColor: colors.primary,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
-  activeBadgeText: {
-    fontSize: 10,
+  compactActiveBadgeText: {
+    fontSize: 9,
     fontWeight: 'bold',
     color: colors.headerText,
   },
-  planBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#DBEAFE',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+  compactLocalTipo: {
+    fontSize: 13,
+    color: colors.textSecondary,
     marginBottom: 8,
   },
-  planBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#1E40AF',
-  },
-  statsContainer: {
+  compactStatsRow: {
     flexDirection: 'row',
-    gap: 16,
-    marginBottom: 12,
+    alignItems: 'center',
+    gap: 10,
   },
-  stat: {
+  compactStat: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
-  statText: {
-    fontSize: 14,
+  compactStatText: {
+    fontSize: 13,
     color: colors.textSecondary,
   },
-  destacadoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  compactPlanBadge: {
+    backgroundColor: '#DBEAFE',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  compactPlanText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#1E40AF',
+  },
+  compactDestacadoSection: {
     backgroundColor: colors.background,
     borderRadius: 8,
-    padding: 12,
+    padding: 10,
     marginBottom: 12,
   },
-  destacadoTitle: {
-    fontSize: 14,
+  compactDestacadoInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  compactDestacadoTitle: {
+    fontSize: 13,
     fontWeight: '600',
     color: colors.text,
-    marginBottom: 2,
   },
-  destacadoSubtitle: {
-    fontSize: 12,
+  compactDestacadoSubtitle: {
+    fontSize: 11,
     color: colors.textSecondary,
   },
-  destacadoButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  compactDestacadoButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: colors.cardBorder,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  destacadoButtonActive: {
+  compactDestacadoButtonActive: {
     backgroundColor: colors.badgeDestacado + '30',
   },
-  destacadoButtonDisabled: {
+  compactDestacadoButtonDisabled: {
     opacity: 0.5,
   },
-  actions: {
+  compactActions: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 16,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
   },
-  actionButton: {
+  compactActionButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 4,
+    paddingVertical: 8,
+    backgroundColor: colors.background,
+    borderRadius: 8,
   },
-  actionText: {
-    fontSize: 14,
+  compactActionText: {
+    fontSize: 13,
     fontWeight: '600',
     color: colors.primary,
   },
