@@ -17,6 +17,7 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     persistSession: true,
     detectSessionInUrl: Platform.OS === 'web', // Enable URL detection on web
     flowType: 'pkce', // Use PKCE flow for better security
-    debug: true, // Enable debug logging to help troubleshoot
+    storageKey: 'supabase.auth.token', // Use consistent storage key
+    debug: false, // Set to true only for debugging
   },
 })

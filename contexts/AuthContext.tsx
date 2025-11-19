@@ -37,8 +37,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         console.log('[AuthContext] 🔍 Obteniendo sesión actual...');
         
-        // Get current session
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        // CRITICAL FIX: Add retry logic for getting session
+        let currentSession = null;
+        let retries = 3;
+        
+        while (retries > 0 && !currentSession) {
+          const { data: { session: sessionData } } = await supabase.auth.getSession();
+          currentSession = sessionData;
+          
+          if (!currentSession && retries > 1) {
+            console.log('[AuthContext] ⏳ Sesión no encontrada, reintentando en 500ms...');
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+          
+          retries--;
+        }
         
         if (currentSession) {
           console.log('[AuthContext] ✅ Sesión existente encontrada para:', currentSession.user.email);
@@ -197,8 +210,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       console.log('[AuthContext] 🔄 Refrescando usuario...');
       
-      // First, check if we have a session
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      // CRITICAL FIX: Add retry logic for getting session
+      let currentSession = null;
+      let retries = 3;
+      
+      while (retries > 0 && !currentSession) {
+        const { data: { session: sessionData } } = await supabase.auth.getSession();
+        currentSession = sessionData;
+        
+        if (!currentSession && retries > 1) {
+          console.log('[AuthContext] ⏳ Sesión no encontrada en refresh, reintentando en 500ms...');
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        
+        retries--;
+      }
       
       if (!currentSession) {
         console.log('[AuthContext] ⚠️ No hay sesión activa para refrescar');

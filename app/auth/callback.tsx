@@ -14,6 +14,7 @@ export default function AuthCallbackScreen() {
   const { refreshUser } = useAuth();
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [errorDetails, setErrorDetails] = useState<string>('');
 
   useEffect(() => {
     let isMounted = true;
@@ -74,7 +75,8 @@ export default function AuthCallbackScreen() {
             if (!errorParam.includes('access_denied') && !errorParam.includes('cancelled')) {
               if (isMounted) {
                 setStatus('error');
-                setErrorMessage(errorDescription || 'No se pudo completar la autenticación. Por favor, intenta de nuevo.');
+                setErrorMessage('No se pudo completar la autenticación');
+                setErrorDetails(errorDescription || 'Por favor, intenta de nuevo.');
               }
               safeRedirect('/(tabs)/explorar', 3000);
             } else {
@@ -88,6 +90,7 @@ export default function AuthCallbackScreen() {
           if (accessToken && refreshToken) {
             console.log('[Callback] ✅ Tokens encontrados en URL, estableciendo sesión...');
             
+            // CRITICAL FIX: Set the session with the tokens
             const { data, error: sessionError } = await supabase.auth.setSession({
               access_token: accessToken,
               refresh_token: refreshToken,
@@ -97,15 +100,36 @@ export default function AuthCallbackScreen() {
               console.error('[Callback] ❌ Error estableciendo sesión:', sessionError);
               if (isMounted) {
                 setStatus('error');
-                setErrorMessage('No se pudo establecer la sesión. Por favor, intenta iniciar sesión de nuevo.');
+                setErrorMessage('No se pudo completar la autenticación');
+                setErrorDetails('Error al establecer la sesión. Código: ' + sessionError.message);
               }
               safeRedirect('/(tabs)/explorar', 3000);
               return;
             }
 
-            if (data.user) {
+            if (data.session && data.user) {
               console.log('[Callback] ✅ Sesión establecida para usuario:', data.user.email);
               console.log('[Callback] User ID:', data.user.id);
+              console.log('[Callback] Session expires at:', data.session.expires_at);
+              
+              // CRITICAL FIX: Wait longer for the session to be fully persisted to storage
+              console.log('[Callback] ⏳ Esperando a que la sesión se persista en storage...');
+              await new Promise(resolve => setTimeout(resolve, 1500));
+              
+              // Verify the session was persisted
+              const { data: { session: verifySession } } = await supabase.auth.getSession();
+              if (!verifySession) {
+                console.error('[Callback] ❌ La sesión no se persistió correctamente');
+                if (isMounted) {
+                  setStatus('error');
+                  setErrorMessage('No se pudo completar la autenticación');
+                  setErrorDetails('La sesión no se guardó correctamente. Por favor, intenta de nuevo.');
+                }
+                safeRedirect('/(tabs)/explorar', 3000);
+                return;
+              }
+              
+              console.log('[Callback] ✅ Sesión verificada y persistida correctamente');
               
               // Register push notifications (non-blocking)
               registerForPushNotifications()
@@ -120,22 +144,19 @@ export default function AuthCallbackScreen() {
                   console.log('[Callback] Failed to register push notifications');
                 });
               
-              // Wait for the session to be fully established and persisted
-              console.log('[Callback] ⏳ Esperando a que la sesión se establezca completamente...');
-              await new Promise(resolve => setTimeout(resolve, 2000));
-              
-              // Force refresh user in AuthContext multiple times to ensure it picks up the session
+              // CRITICAL FIX: Force multiple refreshes to ensure AuthContext picks up the session
               console.log('[Callback] 🔄 Refrescando usuario en AuthContext (intento 1)...');
               await refreshUser();
               
-              // Wait a bit more
-              await new Promise(resolve => setTimeout(resolve, 1000));
+              await new Promise(resolve => setTimeout(resolve, 800));
               
               console.log('[Callback] 🔄 Refrescando usuario en AuthContext (intento 2)...');
               await refreshUser();
               
-              // Wait a bit more
               await new Promise(resolve => setTimeout(resolve, 500));
+              
+              console.log('[Callback] 🔄 Refrescando usuario en AuthContext (intento 3)...');
+              await refreshUser();
               
               // Get user profile to check if needs profile completion
               console.log('[Callback] 🔍 Obteniendo perfil de usuario...');
@@ -179,6 +200,15 @@ export default function AuthCallbackScreen() {
               if (isMounted) setStatus('success');
               safeRedirect('/(tabs)/explorar', 500);
               return;
+            } else {
+              console.error('[Callback] ❌ No se obtuvo sesión o usuario después de setSession');
+              if (isMounted) {
+                setStatus('error');
+                setErrorMessage('No se pudo completar la autenticación');
+                setErrorDetails('No se pudo establecer la sesión. Por favor, intenta de nuevo.');
+              }
+              safeRedirect('/(tabs)/explorar', 3000);
+              return;
             }
           } else {
             console.log('[Callback] ℹ️ No se encontraron tokens en URL hash');
@@ -194,7 +224,8 @@ export default function AuthCallbackScreen() {
           console.error('[Callback] ❌ Error obteniendo sesión:', sessionError);
           if (isMounted) {
             setStatus('error');
-            setErrorMessage('No se pudo verificar la sesión. Por favor, intenta iniciar sesión de nuevo.');
+            setErrorMessage('No se pudo completar la autenticación');
+            setErrorDetails('Error al verificar la sesión. Código: ' + sessionError.message);
           }
           safeRedirect('/(tabs)/explorar', 3000);
           return;
@@ -218,18 +249,21 @@ export default function AuthCallbackScreen() {
           
           // Wait for the session to be fully established
           console.log('[Callback] ⏳ Esperando a que la sesión se establezca completamente...');
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          await new Promise(resolve => setTimeout(resolve, 1500));
           
           // Force refresh user in AuthContext multiple times
           console.log('[Callback] 🔄 Refrescando usuario en AuthContext (intento 1)...');
           await refreshUser();
           
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 800));
           
           console.log('[Callback] 🔄 Refrescando usuario en AuthContext (intento 2)...');
           await refreshUser();
           
           await new Promise(resolve => setTimeout(resolve, 500));
+          
+          console.log('[Callback] 🔄 Refrescando usuario en AuthContext (intento 3)...');
+          await refreshUser();
           
           // Get user profile to check if needs profile completion
           console.log('[Callback] 🔍 Obteniendo perfil de usuario...');
@@ -273,13 +307,19 @@ export default function AuthCallbackScreen() {
           }
         } else {
           console.log('[Callback] ℹ️ No hay sesión activa, redirigiendo a explorar');
-          safeRedirect('/(tabs)/explorar', 500);
+          if (isMounted) {
+            setStatus('error');
+            setErrorMessage('No se pudo completar la autenticación');
+            setErrorDetails('No se encontró una sesión activa. Por favor, intenta iniciar sesión de nuevo.');
+          }
+          safeRedirect('/(tabs)/explorar', 3000);
         }
       } catch (error: any) {
         console.error('[Callback] ❌ Error en callback:', error);
         if (isMounted) {
           setStatus('error');
-          setErrorMessage('Ocurrió un error inesperado. Por favor, intenta iniciar sesión de nuevo.');
+          setErrorMessage('No se pudo completar la autenticación');
+          setErrorDetails('Ocurrió un error inesperado: ' + (error.message || 'Error desconocido'));
         }
         safeRedirect('/(tabs)/explorar', 3000);
       }
@@ -319,9 +359,9 @@ export default function AuthCallbackScreen() {
       {status === 'error' && (
         <>
           <Text style={styles.errorIcon}>⚠️</Text>
-          <Text style={styles.errorText}>No se pudo completar la autenticación</Text>
-          {errorMessage && (
-            <Text style={styles.errorDetails}>{errorMessage}</Text>
+          <Text style={styles.errorText}>{errorMessage}</Text>
+          {errorDetails && (
+            <Text style={styles.errorDetails}>{errorDetails}</Text>
           )}
           <Text style={styles.subText}>Redirigiendo...</Text>
         </>
@@ -374,6 +414,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 8,
     fontWeight: '600',
+    paddingHorizontal: 20,
   },
   errorDetails: {
     fontSize: 14,
