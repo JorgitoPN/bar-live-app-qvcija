@@ -93,7 +93,11 @@ export default function CrearEventoScreen() {
 
       console.log('[CrearEvento] Local loaded:', localInfo.nombre);
 
-      // ✅ FIX: Fetch subscription and plan separately to avoid cardinality issues
+      // ✅ FIX: Fetch subscription separately (no embed) to avoid multiple relationship error
+      // The suscripciones_locales table has TWO foreign keys to planes_suscripcion:
+      // - plan_id (current active plan)
+      // - plan_pendiente_id (pending plan for downgrades)
+      // This causes PGRST201 error when trying to embed planes_suscripcion
       const { data: suscripcion, error: suscripcionError } = await supabase
         .from('suscripciones_locales')
         .select('id, eventos_usados_mes, creditos_eventos_restantes, plan_id')
