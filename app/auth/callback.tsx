@@ -7,6 +7,7 @@ import { supabase } from '@/utils/supabase';
 import { getCurrentUser } from '@/utils/auth';
 import { registerForPushNotifications, savePushToken } from '@/utils/notifications';
 import { useAuth } from '@/contexts/AuthContext';
+import * as SecureStore from 'expo-secure-store';
 
 export default function AuthCallbackScreen() {
   const router = useRouter();
@@ -15,6 +16,12 @@ export default function AuthCallbackScreen() {
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [errorDetails, setErrorDetails] = useState<string>('');
+  const [debugInfo, setDebugInfo] = useState<string[]>([]);
+
+  const addDebugInfo = (message: string) => {
+    console.log('[Callback]', message);
+    setDebugInfo(prev => [...prev, `${new Date().toISOString().split('T')[1].split('.')[0]} - ${message}`]);
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -23,11 +30,11 @@ export default function AuthCallbackScreen() {
     const safeRedirect = (path: string, delay: number = 0) => {
       if (!isMounted) return;
       
-      console.log('[Callback] 🚀 Programando redirección a:', path, 'en', delay, 'ms');
+      addDebugInfo(`🚀 Programando redirección a: ${path} en ${delay}ms`);
       
       redirectTimeout = setTimeout(() => {
         if (isMounted) {
-          console.log('[Callback] ✅ Ejecutando redirección a:', path);
+          addDebugInfo(`✅ Ejecutando redirección a: ${path}`);
           
           // For web, use window.location to ensure clean navigation
           if (Platform.OS === 'web' && typeof window !== 'undefined') {
@@ -41,18 +48,44 @@ export default function AuthCallbackScreen() {
       }, delay);
     };
 
+    const verifyStoredSession = async () => {
+      try {
+        addDebugInfo('🔍 Verificando sesión almacenada en SecureStore...');
+        
+        if (Platform.OS !== 'web') {
+          const storedSession = await SecureStore.getItemAsync('supabase.auth.token');
+          addDebugInfo(`SecureStore session: ${storedSession ? 'PRESENTE' : 'AUSENTE'}`);
+          
+          if (storedSession) {
+            try {
+              const parsed = JSON.parse(storedSession);
+              addDebugInfo(`Session data: access_token=${parsed.access_token ? 'SI' : 'NO'}, refresh_token=${parsed.refresh_token ? 'SI' : 'NO'}`);
+            } catch (e) {
+              addDebugInfo('Error parseando session data');
+            }
+          }
+        } else {
+          addDebugInfo('Web platform - usando localStorage');
+          const storedSession = localStorage.getItem('supabase.auth.token');
+          addDebugInfo(`localStorage session: ${storedSession ? 'PRESENTE' : 'AUSENTE'}`);
+        }
+      } catch (error: any) {
+        addDebugInfo(`❌ Error verificando storage: ${error.message}`);
+      }
+    };
+
     const handleCallback = async () => {
       try {
-        console.log('[Callback] 🔄 Procesando callback de autenticación...');
-        console.log('[Callback] Platform:', Platform.OS);
-        console.log('[Callback] Params:', params);
+        addDebugInfo('🔄 Procesando callback de autenticación...');
+        addDebugInfo(`Platform: ${Platform.OS}`);
+        addDebugInfo(`Params: ${JSON.stringify(params)}`);
         
         // For web, check URL hash for tokens
         if (Platform.OS === 'web' && typeof window !== 'undefined') {
-          console.log('[Callback] 🌐 Detectando tokens en URL...');
-          console.log('[Callback] URL completa:', window.location.href);
-          console.log('[Callback] Hash:', window.location.hash);
-          console.log('[Callback] Search:', window.location.search);
+          addDebugInfo('🌐 Detectando tokens en URL...');
+          addDebugInfo(`URL completa: ${window.location.href}`);
+          addDebugInfo(`Hash: ${window.location.hash}`);
+          addDebugInfo(`Search: ${window.location.search}`);
           
           const hashParams = new URLSearchParams(window.location.hash.substring(1));
           const accessToken = hashParams.get('access_token');
@@ -60,16 +93,11 @@ export default function AuthCallbackScreen() {
           const errorParam = hashParams.get('error');
           const errorDescription = hashParams.get('error_description');
 
-          console.log('[Callback] Hash params:', {
-            hasAccessToken: !!accessToken,
-            hasRefreshToken: !!refreshToken,
-            error: errorParam,
-            errorDescription: errorDescription,
-          });
+          addDebugInfo(`Hash params: access_token=${!!accessToken}, refresh_token=${!!refreshToken}, error=${errorParam}`);
 
           // Check for OAuth errors
           if (errorParam) {
-            console.error('[Callback] ❌ Error en OAuth:', errorParam, errorDescription);
+            addDebugInfo(`❌ Error en OAuth: ${errorParam} - ${errorDescription}`);
             
             // Only show error if it's not a user cancellation
             if (!errorParam.includes('access_denied') && !errorParam.includes('cancelled')) {
@@ -81,23 +109,23 @@ export default function AuthCallbackScreen() {
               safeRedirect('/(tabs)/explorar', 3000);
             } else {
               // User cancelled, just redirect without error
-              console.log('[Callback] ℹ️ Usuario canceló la autenticación');
+              addDebugInfo('ℹ️ Usuario canceló la autenticación');
               safeRedirect('/(tabs)/explorar', 500);
             }
             return;
           }
 
           if (accessToken && refreshToken) {
-            console.log('[Callback] ✅ Tokens encontrados en URL, estableciendo sesión...');
+            addDebugInfo('✅ Tokens encontrados en URL, estableciendo sesión...');
             
-            // CRITICAL FIX: Set the session with the tokens
+            // CRITICAL: Set the session with the tokens
             const { data, error: sessionError } = await supabase.auth.setSession({
               access_token: accessToken,
               refresh_token: refreshToken,
             });
 
             if (sessionError) {
-              console.error('[Callback] ❌ Error estableciendo sesión:', sessionError);
+              addDebugInfo(`❌ Error estableciendo sesión: ${sessionError.message}`);
               if (isMounted) {
                 setStatus('error');
                 setErrorMessage('No se pudo completar la autenticación');
@@ -108,100 +136,115 @@ export default function AuthCallbackScreen() {
             }
 
             if (data.session && data.user) {
-              console.log('[Callback] ✅ Sesión establecida para usuario:', data.user.email);
-              console.log('[Callback] User ID:', data.user.id);
-              console.log('[Callback] Session expires at:', data.session.expires_at);
+              addDebugInfo(`✅ Sesión establecida para usuario: ${data.user.email}`);
+              addDebugInfo(`User ID: ${data.user.id}`);
+              addDebugInfo(`Session expires at: ${data.session.expires_at}`);
               
-              // CRITICAL FIX: Wait longer for the session to be fully persisted to storage
-              console.log('[Callback] ⏳ Esperando a que la sesión se persista en storage...');
-              await new Promise(resolve => setTimeout(resolve, 1500));
+              // CRITICAL: Wait for the session to be persisted to storage
+              addDebugInfo('⏳ Esperando persistencia en storage (2000ms)...');
+              await new Promise(resolve => setTimeout(resolve, 2000));
+              
+              // Verify storage
+              await verifyStoredSession();
               
               // Verify the session was persisted
+              addDebugInfo('🔍 Verificando sesión persistida...');
               const { data: { session: verifySession } } = await supabase.auth.getSession();
+              
               if (!verifySession) {
-                console.error('[Callback] ❌ La sesión no se persistió correctamente');
-                if (isMounted) {
-                  setStatus('error');
-                  setErrorMessage('No se pudo completar la autenticación');
-                  setErrorDetails('La sesión no se guardó correctamente. Por favor, intenta de nuevo.');
+                addDebugInfo('❌ La sesión no se persistió correctamente');
+                
+                // Try one more time to set the session
+                addDebugInfo('🔄 Reintentando establecer sesión...');
+                const { data: retryData, error: retryError } = await supabase.auth.setSession({
+                  access_token: accessToken,
+                  refresh_token: refreshToken,
+                });
+                
+                if (retryError || !retryData.session) {
+                  addDebugInfo(`❌ Reintento falló: ${retryError?.message || 'No session'}`);
+                  if (isMounted) {
+                    setStatus('error');
+                    setErrorMessage('No se pudo completar la autenticación');
+                    setErrorDetails('La sesión no se guardó correctamente. Por favor, intenta de nuevo.');
+                  }
+                  safeRedirect('/(tabs)/explorar', 3000);
+                  return;
                 }
-                safeRedirect('/(tabs)/explorar', 3000);
-                return;
+                
+                addDebugInfo('✅ Sesión establecida en segundo intento');
+                await new Promise(resolve => setTimeout(resolve, 1000));
               }
               
-              console.log('[Callback] ✅ Sesión verificada y persistida correctamente');
+              addDebugInfo('✅ Sesión verificada y persistida correctamente');
               
               // Register push notifications (non-blocking)
               registerForPushNotifications()
                 .then(pushToken => {
                   if (pushToken) {
                     savePushToken(data.user.id, pushToken).catch(() => {
-                      console.log('[Callback] Failed to save push token');
+                      addDebugInfo('Failed to save push token');
                     });
                   }
                 })
                 .catch(() => {
-                  console.log('[Callback] Failed to register push notifications');
+                  addDebugInfo('Failed to register push notifications');
                 });
               
-              // CRITICAL FIX: Force multiple refreshes to ensure AuthContext picks up the session
-              console.log('[Callback] 🔄 Refrescando usuario en AuthContext (intento 1)...');
+              // Force multiple refreshes to ensure AuthContext picks up the session
+              addDebugInfo('🔄 Refrescando usuario en AuthContext (intento 1)...');
               await refreshUser();
               
               await new Promise(resolve => setTimeout(resolve, 800));
               
-              console.log('[Callback] 🔄 Refrescando usuario en AuthContext (intento 2)...');
+              addDebugInfo('🔄 Refrescando usuario en AuthContext (intento 2)...');
               await refreshUser();
               
               await new Promise(resolve => setTimeout(resolve, 500));
               
-              console.log('[Callback] 🔄 Refrescando usuario en AuthContext (intento 3)...');
+              addDebugInfo('🔄 Refrescando usuario en AuthContext (intento 3)...');
               await refreshUser();
               
               // Get user profile to check if needs profile completion
-              console.log('[Callback] 🔍 Obteniendo perfil de usuario...');
+              addDebugInfo('🔍 Obteniendo perfil de usuario...');
               
               const { user: userData } = await getCurrentUser();
               
               if (userData) {
-                console.log('[Callback] ✅ Perfil obtenido:', {
-                  email: userData.email,
-                  hasAcceptedTerms: userData.ha_aceptado_terminos,
-                  profileCompleted: userData.perfil_completado,
-                  hasUsername: !!userData.username,
-                  hasName: !!userData.nombre,
-                });
+                addDebugInfo(`✅ Perfil obtenido: ${userData.email}`);
+                addDebugInfo(`hasAcceptedTerms: ${userData.ha_aceptado_terminos}`);
+                addDebugInfo(`hasUsername: ${!!userData.username}`);
+                addDebugInfo(`hasName: ${!!userData.nombre}`);
                 
                 if (isMounted) setStatus('success');
                 
                 // Check if user needs to accept terms
                 if (!userData.ha_aceptado_terminos) {
-                  console.log('[Callback] 📋 Usuario debe aceptar términos');
+                  addDebugInfo('📋 Usuario debe aceptar términos');
                   safeRedirect(`/auth/terms-acceptance?userId=${userData.id}`, 500);
                   return;
                 }
                 
                 // Check if user needs to complete profile (username and name are mandatory)
-                // New users (without username or nombre) should go to /editar/perfil
                 if (!userData.username || !userData.nombre) {
-                  console.log('[Callback] 📝 Usuario nuevo - redirigiendo a editar perfil');
+                  addDebugInfo('📝 Usuario nuevo - redirigiendo a editar perfil');
                   safeRedirect('/editar/perfil', 500);
                   return;
                 }
                 
-                // Existing users go to home/explorar (the main feed - "barlive")
-                console.log('[Callback] ✅ Usuario existente - redirigiendo a explorar (barlive)');
+                // Existing users go to explorar
+                addDebugInfo('✅ Usuario existente - redirigiendo a explorar');
                 safeRedirect('/(tabs)/explorar', 500);
                 return;
               }
               
               // If no user data, redirect to explorar
-              console.log('[Callback] ⚠️ No se pudo obtener datos del usuario, redirigiendo a explorar');
+              addDebugInfo('⚠️ No se pudo obtener datos del usuario, redirigiendo a explorar');
               if (isMounted) setStatus('success');
               safeRedirect('/(tabs)/explorar', 500);
               return;
             } else {
-              console.error('[Callback] ❌ No se obtuvo sesión o usuario después de setSession');
+              addDebugInfo('❌ No se obtuvo sesión o usuario después de setSession');
               if (isMounted) {
                 setStatus('error');
                 setErrorMessage('No se pudo completar la autenticación');
@@ -211,17 +254,17 @@ export default function AuthCallbackScreen() {
               return;
             }
           } else {
-            console.log('[Callback] ℹ️ No se encontraron tokens en URL hash');
+            addDebugInfo('ℹ️ No se encontraron tokens en URL hash');
           }
         }
         
         // For native or if no hash params, check for existing session
-        console.log('[Callback] 🔍 Verificando sesión existente...');
+        addDebugInfo('🔍 Verificando sesión existente...');
         
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
-          console.error('[Callback] ❌ Error obteniendo sesión:', sessionError);
+          addDebugInfo(`❌ Error obteniendo sesión: ${sessionError.message}`);
           if (isMounted) {
             setStatus('error');
             setErrorMessage('No se pudo completar la autenticación');
@@ -232,81 +275,74 @@ export default function AuthCallbackScreen() {
         }
 
         if (session?.user) {
-          console.log('[Callback] ✅ Sesión encontrada para:', session.user.email);
+          addDebugInfo(`✅ Sesión encontrada para: ${session.user.email}`);
           
           // Register push notifications (non-blocking)
           registerForPushNotifications()
             .then(pushToken => {
               if (pushToken) {
                 savePushToken(session.user.id, pushToken).catch(() => {
-                  console.log('[Callback] Failed to save push token');
+                  addDebugInfo('Failed to save push token');
                 });
               }
             })
             .catch(() => {
-              console.log('[Callback] Failed to register push notifications');
+              addDebugInfo('Failed to register push notifications');
             });
           
           // Wait for the session to be fully established
-          console.log('[Callback] ⏳ Esperando a que la sesión se establezca completamente...');
+          addDebugInfo('⏳ Esperando establecimiento completo de sesión...');
           await new Promise(resolve => setTimeout(resolve, 1500));
           
           // Force refresh user in AuthContext multiple times
-          console.log('[Callback] 🔄 Refrescando usuario en AuthContext (intento 1)...');
+          addDebugInfo('🔄 Refrescando usuario en AuthContext (intento 1)...');
           await refreshUser();
           
           await new Promise(resolve => setTimeout(resolve, 800));
           
-          console.log('[Callback] 🔄 Refrescando usuario en AuthContext (intento 2)...');
+          addDebugInfo('🔄 Refrescando usuario en AuthContext (intento 2)...');
           await refreshUser();
           
           await new Promise(resolve => setTimeout(resolve, 500));
           
-          console.log('[Callback] 🔄 Refrescando usuario en AuthContext (intento 3)...');
+          addDebugInfo('🔄 Refrescando usuario en AuthContext (intento 3)...');
           await refreshUser();
           
           // Get user profile to check if needs profile completion
-          console.log('[Callback] 🔍 Obteniendo perfil de usuario...');
+          addDebugInfo('🔍 Obteniendo perfil de usuario...');
           
           const { user: userData } = await getCurrentUser();
           
           if (userData) {
-            console.log('[Callback] ✅ Perfil obtenido:', {
-              email: userData.email,
-              hasAcceptedTerms: userData.ha_aceptado_terminos,
-              profileCompleted: userData.perfil_completado,
-              hasUsername: !!userData.username,
-              hasName: !!userData.nombre,
-            });
+            addDebugInfo(`✅ Perfil obtenido: ${userData.email}`);
             
             if (isMounted) setStatus('success');
             
             // Check if user needs to accept terms
             if (!userData.ha_aceptado_terminos) {
-              console.log('[Callback] 📋 Usuario debe aceptar términos');
+              addDebugInfo('📋 Usuario debe aceptar términos');
               safeRedirect(`/auth/terms-acceptance?userId=${userData.id}`, 500);
               return;
             }
             
-            // Check if user needs to complete profile (username and name are mandatory)
-            // New users (without username or nombre) should go to /editar/perfil
+            // Check if user needs to complete profile
             if (!userData.username || !userData.nombre) {
-              console.log('[Callback] 📝 Usuario nuevo - redirigiendo a editar perfil');
+              addDebugInfo('📝 Usuario nuevo - redirigiendo a editar perfil');
               safeRedirect('/editar/perfil', 500);
               return;
             }
             
-            // Existing users go to home/explorar (the main feed - "barlive")
-            console.log('[Callback] ✅ Usuario existente - redirigiendo a explorar (barlive)');
+            // Existing users go to explorar
+            addDebugInfo('✅ Usuario existente - redirigiendo a explorar');
             safeRedirect('/(tabs)/explorar', 500);
           } else {
             // If no user data, redirect to explorar
-            console.log('[Callback] ⚠️ No se pudo obtener datos del usuario, redirigiendo a explorar');
+            addDebugInfo('⚠️ No se pudo obtener datos del usuario, redirigiendo a explorar');
             if (isMounted) setStatus('success');
             safeRedirect('/(tabs)/explorar', 500);
           }
         } else {
-          console.log('[Callback] ℹ️ No hay sesión activa, redirigiendo a explorar');
+          addDebugInfo('ℹ️ No hay sesión activa, redirigiendo a explorar');
           if (isMounted) {
             setStatus('error');
             setErrorMessage('No se pudo completar la autenticación');
@@ -315,6 +351,7 @@ export default function AuthCallbackScreen() {
           safeRedirect('/(tabs)/explorar', 3000);
         }
       } catch (error: any) {
+        addDebugInfo(`❌ Error en callback: ${error.message}`);
         console.error('[Callback] ❌ Error en callback:', error);
         if (isMounted) {
           setStatus('error');
@@ -328,7 +365,7 @@ export default function AuthCallbackScreen() {
     handleCallback();
 
     return () => {
-      console.log('[Callback] 🧹 Limpiando componente');
+      addDebugInfo('🧹 Limpiando componente');
       isMounted = false;
       if (redirectTimeout) {
         clearTimeout(redirectTimeout);
@@ -365,6 +402,16 @@ export default function AuthCallbackScreen() {
           )}
           <Text style={styles.subText}>Redirigiendo...</Text>
         </>
+      )}
+      
+      {/* Debug info - only show in development */}
+      {__DEV__ && debugInfo.length > 0 && (
+        <View style={styles.debugContainer}>
+          <Text style={styles.debugTitle}>Debug Info:</Text>
+          {debugInfo.slice(-10).map((info, index) => (
+            <Text key={index} style={styles.debugText}>{info}</Text>
+          ))}
+        </View>
       )}
     </View>
   );
@@ -422,5 +469,26 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 12,
     paddingHorizontal: 20,
+  },
+  debugContainer: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    padding: 10,
+    borderRadius: 8,
+    maxHeight: 200,
+  },
+  debugTitle: {
+    color: '#FFD700',
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  debugText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
 });
