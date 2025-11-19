@@ -392,7 +392,7 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
       {/* Selected Badge */}
       {isSelected && (
         <View style={styles.selectedBadge}>
-          <IconSymbol name="checkmark.circle.fill" size={20} color={colors.primary} />
+          <IconSymbol name="checkmark.circle.fill" size={20} color="#FFFFFF" />
           <Text style={styles.selectedBadgeText}>ACTIVO</Text>
         </View>
       )}
@@ -536,24 +536,6 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
               </View>
             )}
 
-            {/* Active Event Time */}
-            {local.evento_activo && (
-              <View style={styles.timeSection}>
-                <View style={styles.timeSectionHeader}>
-                  <IconSymbol name="calendar" size={18} color="#8B5CF6" />
-                  <Text style={styles.timeSectionTitle}>Evento Activo</Text>
-                </View>
-                <Text style={styles.eventTitle}>{local.evento_activo.titulo}</Text>
-                <View style={styles.timeInfo}>
-                  <Text style={styles.timeLabel}>Fecha:</Text>
-                  <Text style={styles.timeValue}>
-                    {new Date(local.evento_activo.fecha).toLocaleDateString('es-ES')} a las{' '}
-                    {local.evento_activo.hora}
-                  </Text>
-                </View>
-              </View>
-            )}
-
             {/* Credits Section */}
             <View style={styles.creditsSection}>
               <View style={styles.creditsSectionHeader}>
@@ -682,69 +664,110 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
         {/* No Plan State */}
         {!local.suscripcion && (
           <View style={styles.noPlanContainer}>
+            <IconSymbol name="exclamationmark.triangle.fill" size={32} color="#F59E0B" />
             <Text style={styles.noPlanText}>
               Activa un plan para crear eventos y promociones
             </Text>
             <TouchableOpacity
-              style={styles.activarPlanButton}
+              style={styles.activarPlanButtonContainer}
               onPress={() => router.push(`/gestion/planes-suscripcion?localId=${local.id}`)}
             >
-              <Text style={styles.activarPlanButtonText}>Activar Plan</Text>
+              <LinearGradient
+                colors={['#F59E0B', '#D97706']}
+                style={styles.activarPlanButtonGradient}
+              >
+                <IconSymbol name="crown.fill" size={18} color="#FFFFFF" />
+                <Text style={styles.activarPlanButtonText}>Activar Plan</Text>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         )}
 
-        {/* Quick Actions */}
-        <View style={styles.actions}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => router.push(`/perfil/local?localId=${local.id}`)}
-          >
-            <IconSymbol name="person.2.fill" size={18} color={colors.primary} />
-            <Text style={styles.actionText}>Perfil</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => router.push(`/editar/local?id=${local.id}`)}
-          >
-            <IconSymbol name="pencil" size={18} color={colors.primary} />
-            <Text style={styles.actionText}>Editar</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => router.push(`/crear/evento?localId=${local.id}`)}
-          >
-            <IconSymbol name="calendar.badge.plus" size={18} color={colors.primary} />
-            <Text style={styles.actionText}>Evento</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              !hasPremiumAccess() && styles.actionButtonDisabled,
-            ]}
-            onPress={handleOpenAnalytics}
-          >
-            <IconSymbol 
-              name="chart.bar.fill" 
-              size={18} 
-              color={hasPremiumAccess() ? colors.primary : colors.textSecondary} 
-            />
-            <Text style={[
-              styles.actionText,
-              !hasPremiumAccess() && styles.actionTextDisabled,
-            ]}>
-              Análisis
-            </Text>
-            {hasPremiumAccess() && (
-              <View style={styles.premiumBadge}>
-                <IconSymbol name="star.fill" size={10} color="#F59E0B" />
-              </View>
-            )}
-          </TouchableOpacity>
+        {/* Quick Actions - Redesigned with 2x2 Grid */}
+        <View style={styles.actionsContainer}>
+          <View style={styles.actionsGrid}>
+            {/* Row 1 */}
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => router.push(`/perfil/local?localId=${local.id}`)}
+            >
+              <LinearGradient
+                colors={[colors.primary, colors.secondary]}
+                style={styles.actionButtonGradient}
+              >
+                <IconSymbol name="person.2.fill" size={24} color="#FFFFFF" />
+                <Text style={styles.actionButtonText}>Perfil</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => router.push(`/editar/local?id=${local.id}`)}
+            >
+              <LinearGradient
+                colors={['#8B5CF6', '#7C3AED']}
+                style={styles.actionButtonGradient}
+              >
+                <IconSymbol name="pencil" size={24} color="#FFFFFF" />
+                <Text style={styles.actionButtonText}>Editar</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            {/* Row 2 */}
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => router.push(`/crear/evento?localId=${local.id}`)}
+            >
+              <LinearGradient
+                colors={['#F59E0B', '#D97706']}
+                style={styles.actionButtonGradient}
+              >
+                <IconSymbol name="calendar.badge.plus" size={24} color="#FFFFFF" />
+                <Text style={styles.actionButtonText}>Evento</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.actionButton,
+                !hasPremiumAccess() && styles.actionButtonDisabled,
+              ]}
+              onPress={handleOpenAnalytics}
+            >
+              <LinearGradient
+                colors={hasPremiumAccess() ? ['#10B981', '#059669'] : ['#9CA3AF', '#6B7280']}
+                style={styles.actionButtonGradient}
+              >
+                <View style={styles.actionButtonContent}>
+                  <IconSymbol 
+                    name="chart.bar.fill" 
+                    size={24} 
+                    color="#FFFFFF"
+                  />
+                  <Text style={styles.actionButtonText}>Análisis</Text>
+                  {hasPremiumAccess() && (
+                    <View style={styles.premiumBadge}>
+                      <IconSymbol name="star.fill" size={10} color="#F59E0B" />
+                    </View>
+                  )}
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+
+          {/* Select Button - Full Width Below Grid */}
           {!isSelected && (
-            <TouchableOpacity style={styles.actionButton} onPress={onSelect}>
-              <IconSymbol name="checkmark.circle" size={18} color={colors.primary} />
-              <Text style={styles.actionText}>Seleccionar</Text>
+            <TouchableOpacity 
+              style={styles.selectButton} 
+              onPress={onSelect}
+            >
+              <LinearGradient
+                colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+                style={styles.selectButtonGradient}
+              >
+                <IconSymbol name="checkmark.circle.fill" size={20} color="#FFFFFF" />
+                <Text style={styles.selectButtonText}>Seleccionar Local</Text>
+              </LinearGradient>
             </TouchableOpacity>
           )}
         </View>
@@ -812,7 +835,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   localNombre: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 4,
@@ -881,12 +904,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: colors.text,
-  },
-  eventTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 8,
   },
   timeInfo: {
     flexDirection: 'row',
@@ -1035,70 +1052,102 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   noPlanContainer: {
-    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
     backgroundColor: '#FEF3C7',
-    borderRadius: 8,
+    borderRadius: 12,
     marginBottom: 16,
+    gap: 12,
   },
   noPlanText: {
     fontSize: 14,
     color: '#92400E',
-    marginBottom: 12,
     textAlign: 'center',
+    fontWeight: '600',
   },
-  activarPlanButton: {
-    backgroundColor: '#F59E0B',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
+  activarPlanButtonContainer: {
+    borderRadius: 10,
+    overflow: 'hidden',
+    width: '100%',
+  },
+  activarPlanButtonGradient: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
   },
   activarPlanButtonText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: 'bold',
   },
-  actions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
+  actionsContainer: {
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
     paddingTop: 16,
   },
-  actionButton: {
+  actionsGrid: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    backgroundColor: colors.background,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    minWidth: '22%',
-    position: 'relative',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 12,
+  },
+  actionButton: {
+    width: '48%',
+    borderRadius: 12,
+    overflow: 'hidden',
+    minHeight: 90,
   },
   actionButtonDisabled: {
-    opacity: 0.6,
+    opacity: 0.7,
   },
-  actionText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.primary,
+  actionButtonGradient: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    gap: 8,
   },
-  actionTextDisabled: {
-    color: colors.textSecondary,
+  actionButtonContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    position: 'relative',
+  },
+  actionButtonText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    textAlign: 'center',
   },
   premiumBadge: {
     position: 'absolute',
-    top: -4,
-    right: -4,
+    top: -8,
+    right: -8,
     backgroundColor: '#FEF3C7',
     borderRadius: 10,
     padding: 3,
     borderWidth: 1,
     borderColor: '#F59E0B',
+  },
+  selectButton: {
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  selectButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+  },
+  selectButtonText: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
   },
 });
