@@ -49,6 +49,10 @@ interface AnalyticsData {
     engagement_rate: number;
     nuevos_seguidores: number;
     reach: number;
+    total_profile_views?: number;
+    total_map_views?: number;
+    total_search_appearances?: number;
+    total_event_interactions?: number;
   };
   timeSeriesData: {
     date: string;
@@ -112,6 +116,109 @@ export default function PanelAnalisisScreen() {
 
     loadAnalyticsData();
     loadRecommendations();
+
+    // ✅ Real-time synchronization for analytics
+    console.log('[PanelAnalisis] 🔄 Setting up real-time subscriptions for local:', localId);
+
+    // Subscribe to posts changes
+    const postsChannel = supabase
+      .channel(`analytics-posts-${localId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'posts',
+          filter: `local_id=eq.${localId}`,
+        },
+        (payload) => {
+          console.log('[PanelAnalisis] 📊 Posts changed, reloading analytics');
+          loadAnalyticsData();
+        }
+      )
+      .subscribe();
+
+    // Subscribe to stories changes
+    const storiesChannel = supabase
+      .channel(`analytics-stories-${localId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'historias',
+          filter: `local_id=eq.${localId}`,
+        },
+        (payload) => {
+          console.log('[PanelAnalisis] 📊 Stories changed, reloading analytics');
+          loadAnalyticsData();
+        }
+      )
+      .subscribe();
+
+    // Subscribe to events changes
+    const eventsChannel = supabase
+      .channel(`analytics-events-${localId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'eventos',
+          filter: `local_id=eq.${localId}`,
+        },
+        (payload) => {
+          console.log('[PanelAnalisis] 📊 Events changed, reloading analytics');
+          loadAnalyticsData();
+        }
+      )
+      .subscribe();
+
+    // Subscribe to followers changes
+    const followersChannel = supabase
+      .channel(`analytics-followers-${localId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'locales_favoritos',
+          filter: `local_id=eq.${localId}`,
+        },
+        (payload) => {
+          console.log('[PanelAnalisis] 📊 Followers changed, reloading analytics');
+          loadAnalyticsData();
+        }
+      )
+      .subscribe();
+
+    // Subscribe to check-ins changes
+    const checkInsChannel = supabase
+      .channel(`analytics-checkins-${localId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'check_ins',
+          filter: `local_id=eq.${localId}`,
+        },
+        (payload) => {
+          console.log('[PanelAnalisis] 📊 Check-ins changed, reloading analytics');
+          loadAnalyticsData();
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscriptions on unmount
+    return () => {
+      console.log('[PanelAnalisis] 🧹 Cleaning up real-time subscriptions');
+      supabase.removeChannel(postsChannel);
+      supabase.removeChannel(storiesChannel);
+      supabase.removeChannel(eventsChannel);
+      supabase.removeChannel(followersChannel);
+      supabase.removeChannel(checkInsChannel);
+    };
   }, [localId, timeRange]);
 
   const loadAnalyticsData = async () => {
@@ -259,12 +366,37 @@ export default function PanelAnalisisScreen() {
         .gte('created_at', startDate.toISOString());
 
       const { data: newFollowersData } = await supabase
-        .from('seguidores')
+        .from('locales_favoritos')
         .select('created_at')
-        .eq('seguido_id', localId)
+        .eq('local_id', localId)
         .gte('created_at', startDate.toISOString());
 
-      // Calculate stats
+      // ✅ Load comprehensive BarLive data (not just social media)
+      const { data: profileViewsData } = await supabase
+        .from('profile_views')
+        .select('id, created_at')
+        .eq('local_id', localId)
+        .gte('created_at', startDate.toISOString());
+
+      const { data: mapViewsData } = await supabase
+        .from('map_interactions')
+        .select('id, created_at')
+        .eq('local_id', localId)
+        .gte('created_at', startDate.toISOString());
+
+      const { data: searchAppearancesData } = await supabase
+        .from('search_results')
+        .select('id, created_at')
+        .eq('local_id', localId)
+        .gte('created_at', startDate.toISOString());
+
+      const { data: eventInteractionsData } = await supabase
+        .from('evento_interacciones')
+        .select('id, created_at, tipo')
+        .eq('local_id', localId)
+        .gte('created_at', startDate.toISOString());
+
+      // ✅ Calculate comprehensive stats from all BarLive sources
       const totalPosts = postsData?.length || 0;
       const totalStories = storiesData?.length || 0;
       const totalLikes = (postsData?.reduce((sum, p) => sum + (p.likes || 0), 0) || 0) + (storyLikesData?.length || 0);
@@ -273,7 +405,16 @@ export default function PanelAnalisisScreen() {
       const totalEventos = eventosData?.length || 0;
       const nuevosSeguidores = newFollowersData?.length || 0;
 
-      const totalInteractions = totalLikes + totalComments;
+      // ✅ Add comprehensive BarLive metrics
+      const totalProfileViews = profileViewsData?.length || 0;
+      const totalMapViews = mapViewsData?.length || 0;
+      const totalSearchAppearances = searchAppearancesData?.length || 0;
+      const totalEventInteractions = eventInteractionsData?.length || 0;
+
+      // ✅ Calculate total reach across all BarLive platforms
+      const totalReach = totalViews + totalProfileViews + totalMapViews + totalSearchAppearances;
+      
+      const totalInteractions = totalLikes + totalComments + totalEventInteractions;
       const engagementRate = totalPosts + totalStories > 0 ? ((totalInteractions / (totalPosts + totalStories)) * 100) : 0;
 
       // Build time series data
@@ -374,7 +515,11 @@ export default function PanelAnalisisScreen() {
           total_eventos: totalEventos,
           engagement_rate: engagementRate,
           nuevos_seguidores: nuevosSeguidores,
-          reach: totalViews + totalInteractions,
+          reach: totalReach, // ✅ Updated to use comprehensive reach
+          total_profile_views: totalProfileViews,
+          total_map_views: totalMapViews,
+          total_search_appearances: totalSearchAppearances,
+          total_event_interactions: totalEventInteractions,
         },
         timeSeriesData,
         topContent,
@@ -679,6 +824,44 @@ export default function PanelAnalisisScreen() {
           </View>
         )}
 
+        {/* ✅ BarLive Platform Metrics - Comprehensive View */}
+        <View style={styles.compactSection}>
+          <View style={styles.compactSectionHeader}>
+            <IconSymbol name="chart.bar.fill" size={18} color={colors.primary} />
+            <Text style={styles.compactSectionTitle}>Alcance en BarLive</Text>
+          </View>
+          <View style={styles.platformMetricsGrid}>
+            <View style={styles.platformMetric}>
+              <View style={[styles.platformMetricIcon, { backgroundColor: '#3B82F6' + '20' }]}>
+                <IconSymbol name="eye.fill" size={20} color="#3B82F6" />
+              </View>
+              <Text style={styles.platformMetricValue}>{analyticsData.stats.total_profile_views?.toLocaleString() || 0}</Text>
+              <Text style={styles.platformMetricLabel}>Visitas al Perfil</Text>
+            </View>
+            <View style={styles.platformMetric}>
+              <View style={[styles.platformMetricIcon, { backgroundColor: '#10B981' + '20' }]}>
+                <IconSymbol name="map.fill" size={20} color="#10B981" />
+              </View>
+              <Text style={styles.platformMetricValue}>{analyticsData.stats.total_map_views?.toLocaleString() || 0}</Text>
+              <Text style={styles.platformMetricLabel}>Vistas en Mapa</Text>
+            </View>
+            <View style={styles.platformMetric}>
+              <View style={[styles.platformMetricIcon, { backgroundColor: '#F59E0B' + '20' }]}>
+                <IconSymbol name="magnifyingglass" size={20} color="#F59E0B" />
+              </View>
+              <Text style={styles.platformMetricValue}>{analyticsData.stats.total_search_appearances?.toLocaleString() || 0}</Text>
+              <Text style={styles.platformMetricLabel}>Búsquedas</Text>
+            </View>
+            <View style={styles.platformMetric}>
+              <View style={[styles.platformMetricIcon, { backgroundColor: '#8B5CF6' + '20' }]}>
+                <IconSymbol name="calendar" size={20} color="#8B5CF6" />
+              </View>
+              <Text style={styles.platformMetricValue}>{analyticsData.stats.total_event_interactions?.toLocaleString() || 0}</Text>
+              <Text style={styles.platformMetricLabel}>Interacciones Eventos</Text>
+            </View>
+          </View>
+        </View>
+
         {/* Content & Audience - Side by Side */}
         <View style={styles.dualSection}>
           <View style={styles.dualCard}>
@@ -818,14 +1001,7 @@ export default function PanelAnalisisScreen() {
                     </View>
                   )}
 
-                  {selectedRecommendation.datos_soporte && Object.keys(selectedRecommendation.datos_soporte).length > 0 && (
-                    <View style={styles.modalSection}>
-                      <Text style={styles.modalSectionTitle}>Datos de Soporte</Text>
-                      <View style={styles.modalDataCard}>
-                        <Text style={styles.modalDataText}>{JSON.stringify(selectedRecommendation.datos_soporte, null, 2)}</Text>
-                      </View>
-                    </View>
-                  )}
+
                 </ScrollView>
 
                 <TouchableOpacity 
@@ -1228,6 +1404,37 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: colors.text,
+  },
+  platformMetricsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  platformMetric: {
+    width: '48%',
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+  },
+  platformMetricIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  platformMetricValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  platformMetricLabel: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    textAlign: 'center',
   },
   modalOverlay: {
     flex: 1,
