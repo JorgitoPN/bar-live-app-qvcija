@@ -186,32 +186,45 @@ export default function EventosScreen() {
   };
 
   const onChangeDateInicio = (event: any, selectedDate?: Date) => {
-    setShowDatePickerInicio(Platform.OS === 'ios');
+    setShowDatePickerInicio(false);
     if (selectedDate) {
       setFechaInicio(selectedDate);
     }
   };
 
   const onChangeDateFin = (event: any, selectedDate?: Date) => {
-    setShowDatePickerFin(Platform.OS === 'ios');
+    setShowDatePickerFin(false);
     if (selectedDate) {
       setFechaFin(selectedDate);
     }
   };
 
-  // FIXED: Simplified delete function - just mark as inactive
+  // Check if user can delete an event
+  // Only owners in "propietario" mode can delete their own events
+  const canDeleteEvent = (eventoId: string, propietarioId: string): boolean => {
+    if (!user) return false;
+    
+    // Admin can always delete
+    if (user.rol_app === 'admin') return true;
+    
+    // Owner can only delete if they are in "propietario" mode
+    if (user.id === propietarioId && currentMode === 'propietario') return true;
+    
+    return false;
+  };
+
   const handleDeleteEvent = useCallback(async (eventoId: string, propietarioId: string) => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión');
       return;
     }
 
-    // Check if user is owner or admin
-    const isOwner = user.id === propietarioId;
-    const isAdmin = user.rol_app === 'admin';
-
-    if (!isOwner && !isAdmin) {
-      Alert.alert('Error', 'Solo el propietario o un administrador puede eliminar este evento');
+    // Check if user can delete
+    if (!canDeleteEvent(eventoId, propietarioId)) {
+      Alert.alert(
+        'Acción no permitida',
+        'Solo el propietario en modo propietario puede eliminar eventos. Cambia a modo propietario para gestionar tus eventos.'
+      );
       return;
     }
 
@@ -227,7 +240,7 @@ export default function EventosScreen() {
             try {
               console.log('[Eventos] Deleting event:', eventoId);
               
-              // Simply mark as inactive
+              // Mark as inactive
               const { error } = await supabase
                 .from('eventos')
                 .update({ activo: false })
@@ -248,13 +261,11 @@ export default function EventosScreen() {
         },
       ]
     );
-  }, [user, cargarEventos]);
+  }, [user, currentMode, cargarEventos]);
 
   const renderEvento = (evento: Evento) => {
     const diasRestantes = calcularDiasRestantes(evento.fecha);
-    const isOwner = user && evento.propietario_id === user.id;
-    const isAdmin = user && user.rol_app === 'admin';
-    const canDelete = isOwner || isAdmin;
+    const canDelete = canDeleteEvent(evento.id, evento.propietario_id!);
 
     return (
       <TouchableOpacity
@@ -536,7 +547,7 @@ export default function EventosScreen() {
         </Pressable>
       </Modal>
 
-      {mostrarFiltros && showDatePickerInicio && (
+      {showDatePickerInicio && (
         <DateTimePicker
           value={fechaInicio || new Date()}
           mode="date"
@@ -546,7 +557,7 @@ export default function EventosScreen() {
         />
       )}
 
-      {mostrarFiltros && showDatePickerFin && (
+      {showDatePickerFin && (
         <DateTimePicker
           value={fechaFin || new Date()}
           mode="date"

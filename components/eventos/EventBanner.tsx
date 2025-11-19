@@ -2,7 +2,7 @@
 /**
  * EventBanner Component
  * 
- * Displays an event banner with countdown timer.
+ * Displays an event banner with countdown timer and animations.
  * Automatically determines if event is LIVE or UPCOMING and shows appropriate styling.
  * 
  * Features:
@@ -11,6 +11,7 @@
  * - Active event countdown (shows time until event ends)
  * - Compact mode for use in cards
  * - Full mode for use in detail pages
+ * - Pulsing animation to draw attention
  * 
  * Usage:
  * ```tsx
@@ -23,8 +24,8 @@
  * ```
  */
 
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Platform } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Platform, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -49,6 +50,10 @@ export default function EventBanner({ evento, compact = false }: EventBannerProp
   const [timeRemaining, setTimeRemaining] = useState<string>('');
   const [isLive, setIsLive] = useState(false);
   const [isUpcoming, setIsUpcoming] = useState(false);
+
+  // Animation values
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     const updateCountdown = () => {
@@ -118,6 +123,47 @@ export default function EventBanner({ evento, compact = false }: EventBannerProp
     return () => clearInterval(interval);
   }, [evento]);
 
+  // Pulsing animation for the banner
+  useEffect(() => {
+    const pulseAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.03,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    pulseAnimation.start();
+
+    return () => {
+      pulseAnimation.stop();
+    };
+  }, [pulseAnim]);
+
+  // Scale animation on press
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.97,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      friction: 3,
+      tension: 40,
+      useNativeDriver: true,
+    }).start();
+  };
+
   const handlePress = () => {
     router.push(`/detalle/evento?id=${evento.id}`);
   };
@@ -145,133 +191,157 @@ export default function EventBanner({ evento, compact = false }: EventBannerProp
 
   if (compact) {
     return (
-      <TouchableOpacity 
-        style={styles.compactBanner} 
-        onPress={handlePress}
-        activeOpacity={0.9}
+      <Animated.View
+        style={[
+          styles.compactBannerContainer,
+          {
+            transform: [{ scale: Animated.multiply(scaleAnim, pulseAnim) }],
+          },
+        ]}
       >
-        <LinearGradient
-          colors={isLive ? ['#EF4444', '#DC2626'] : [colors.primary, colors.secondary]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.compactGradient}
+        <TouchableOpacity 
+          style={styles.compactBanner} 
+          onPress={handlePress}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          activeOpacity={0.9}
         >
-          {isLive && (
-            <View style={styles.liveBadge}>
-              <View style={styles.liveDot} />
-              <Text style={styles.liveText}>EN VIVO</Text>
-            </View>
-          )}
-          
-          <View style={styles.compactContent}>
-            <View style={styles.compactLeft}>
-              <IconSymbol name="calendar" size={16} color={colors.white} />
-              <Text style={styles.compactTitle} numberOfLines={1}>
-                {evento.titulo}
-              </Text>
-            </View>
+          <LinearGradient
+            colors={isLive ? ['#EF4444', '#DC2626'] : [colors.primary, colors.secondary]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.compactGradient}
+          >
+            {isLive && (
+              <View style={styles.liveBadge}>
+                <View style={styles.liveDot} />
+                <Text style={styles.liveText}>EN VIVO</Text>
+              </View>
+            )}
             
-            <View style={styles.compactRight}>
-              <IconSymbol name="clock.fill" size={14} color={colors.white} />
-              <Text style={styles.compactTime}>{timeRemaining}</Text>
+            <View style={styles.compactContent}>
+              <View style={styles.compactLeft}>
+                <IconSymbol name="calendar" size={16} color={colors.white} />
+                <Text style={styles.compactTitle} numberOfLines={1}>
+                  {evento.titulo}
+                </Text>
+              </View>
+              
+              <View style={styles.compactRight}>
+                <IconSymbol name="clock.fill" size={14} color={colors.white} />
+                <Text style={styles.compactTime}>{timeRemaining}</Text>
+              </View>
             </View>
-          </View>
-        </LinearGradient>
-      </TouchableOpacity>
+          </LinearGradient>
+        </TouchableOpacity>
+      </Animated.View>
     );
   }
 
   return (
-    <TouchableOpacity 
-      style={styles.banner} 
-      onPress={handlePress}
-      activeOpacity={0.9}
+    <Animated.View
+      style={[
+        styles.bannerContainer,
+        {
+          transform: [{ scale: Animated.multiply(scaleAnim, pulseAnim) }],
+        },
+      ]}
     >
-      <View style={styles.bannerContent}>
-        {evento.imagen_url ? (
-          <Image 
-            source={{ uri: evento.imagen_url }} 
-            style={styles.bannerImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={[styles.bannerImage, styles.bannerImagePlaceholder]}>
-            <LinearGradient
-              colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={StyleSheet.absoluteFill}
+      <TouchableOpacity 
+        style={styles.banner} 
+        onPress={handlePress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={0.9}
+      >
+        <View style={styles.bannerContent}>
+          {evento.imagen_url ? (
+            <Image 
+              source={{ uri: evento.imagen_url }} 
+              style={styles.bannerImage}
+              resizeMode="cover"
             />
-            <IconSymbol name="music.note" size={40} color="rgba(255,255,255,0.3)" />
-          </View>
-        )}
-        
-        <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.8)']}
-          style={styles.bannerOverlay}
-        />
-        
-        {isLive && (
-          <View style={styles.liveBadgeLarge}>
-            <View style={styles.liveDot} />
-            <Text style={styles.liveTextLarge}>EN VIVO</Text>
-          </View>
-        )}
-        
-        <View style={styles.bannerInfo}>
-          <Text style={styles.bannerTitle} numberOfLines={2}>
-            {evento.titulo}
-          </Text>
+          ) : (
+            <View style={[styles.bannerImage, styles.bannerImagePlaceholder]}>
+              <LinearGradient
+                colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+              <IconSymbol name="music.note" size={40} color="rgba(255,255,255,0.3)" />
+            </View>
+          )}
           
-          <View style={styles.bannerMeta}>
-            <View style={styles.bannerMetaItem}>
-              <IconSymbol name="calendar" size={14} color={colors.white} />
-              <Text style={styles.bannerMetaText}>
-                {formatDate(evento.fecha)}
-              </Text>
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.8)']}
+            style={styles.bannerOverlay}
+          />
+          
+          {isLive && (
+            <View style={styles.liveBadgeLarge}>
+              <View style={styles.liveDot} />
+              <Text style={styles.liveTextLarge}>EN VIVO</Text>
             </View>
+          )}
+          
+          <View style={styles.bannerInfo}>
+            <Text style={styles.bannerTitle} numberOfLines={2}>
+              {evento.titulo}
+            </Text>
             
-            <View style={styles.bannerMetaItem}>
-              <IconSymbol name="clock.fill" size={14} color={colors.white} />
-              <Text style={styles.bannerMetaText}>
-                {formatTime(evento.hora)}
-              </Text>
-            </View>
-            
-            {evento.precio !== null && evento.precio !== undefined && (
+            <View style={styles.bannerMeta}>
               <View style={styles.bannerMetaItem}>
-                <IconSymbol name="ticket" size={14} color={colors.white} />
+                <IconSymbol name="calendar" size={14} color={colors.white} />
                 <Text style={styles.bannerMetaText}>
-                  {evento.precio === 0 ? 'Gratis' : `${evento.precio}€`}
+                  {formatDate(evento.fecha)}
                 </Text>
               </View>
-            )}
-          </View>
-          
-          <View style={styles.countdownContainer}>
-            <LinearGradient
-              colors={isLive ? ['#EF4444', '#DC2626'] : ['#FACC15', '#F59E0B']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.countdownGradient}
-            >
-              <IconSymbol 
-                name={isLive ? 'bolt.fill' : 'clock.fill'} 
-                size={16} 
-                color={colors.white} 
-              />
-              <Text style={styles.countdownText}>{timeRemaining}</Text>
-            </LinearGradient>
+              
+              <View style={styles.bannerMetaItem}>
+                <IconSymbol name="clock.fill" size={14} color={colors.white} />
+                <Text style={styles.bannerMetaText}>
+                  {formatTime(evento.hora)}
+                </Text>
+              </View>
+              
+              {evento.precio !== null && evento.precio !== undefined && (
+                <View style={styles.bannerMetaItem}>
+                  <IconSymbol name="ticket" size={14} color={colors.white} />
+                  <Text style={styles.bannerMetaText}>
+                    {evento.precio === 0 ? 'Gratis' : `${evento.precio}€`}
+                  </Text>
+                </View>
+              )}
+            </View>
+            
+            <View style={styles.countdownContainer}>
+              <LinearGradient
+                colors={isLive ? ['#EF4444', '#DC2626'] : ['#FACC15', '#F59E0B']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.countdownGradient}
+              >
+                <IconSymbol 
+                  name={isLive ? 'bolt.fill' : 'clock.fill'} 
+                  size={16} 
+                  color={colors.white} 
+                />
+                <Text style={styles.countdownText}>{timeRemaining}</Text>
+              </LinearGradient>
+            </View>
           </View>
         </View>
-      </View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  banner: {
+  bannerContainer: {
     marginBottom: 16,
+  },
+  banner: {
     borderRadius: 16,
     overflow: 'hidden',
     ...Platform.select({
@@ -393,8 +463,10 @@ const styles = StyleSheet.create({
   },
   
   // Compact banner styles
-  compactBanner: {
+  compactBannerContainer: {
     marginBottom: 12,
+  },
+  compactBanner: {
     borderRadius: 12,
     overflow: 'hidden',
     ...Platform.select({
