@@ -11,6 +11,7 @@ import {
   Dimensions,
   Alert,
   RefreshControl,
+  Modal,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -30,6 +31,8 @@ interface AnalyticsData {
     seguidores: number;
     check_ins: number;
     rating: number;
+    tipo: string;
+    provincia: string;
   };
   subscription: {
     plan_nombre: string;
@@ -97,6 +100,8 @@ export default function PanelAnalisisScreen() {
   const [recommendations, setRecommendations] = useState<AIRecommendation[]>([]);
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('30d');
   const [generatingRecommendations, setGeneratingRecommendations] = useState(false);
+  const [selectedRecommendation, setSelectedRecommendation] = useState<AIRecommendation | null>(null);
+  const [showRecommendationModal, setShowRecommendationModal] = useState(false);
 
   useEffect(() => {
     if (!localId) {
@@ -119,7 +124,7 @@ export default function PanelAnalisisScreen() {
       // 1. Verify local ownership
       const { data: localData, error: localError } = await supabase
         .from('locales')
-        .select('id, nombre, imagen_url, propietario_id, seguidores, check_ins, rating')
+        .select('id, nombre, imagen_url, propietario_id, seguidores, check_ins, rating, tipo, provincia')
         .eq('id', localId)
         .single();
 
@@ -483,6 +488,24 @@ export default function PanelAnalisisScreen() {
     }
   };
 
+  const getPriorityIcon = (prioridad: string) => {
+    switch (prioridad) {
+      case 'urgente':
+        return 'exclamationmark.triangle.fill';
+      case 'alta':
+        return 'exclamationmark.circle.fill';
+      case 'media':
+        return 'info.circle.fill';
+      default:
+        return 'checkmark.circle.fill';
+    }
+  };
+
+  const openRecommendationModal = (recommendation: AIRecommendation) => {
+    setSelectedRecommendation(recommendation);
+    setShowRecommendationModal(true);
+  };
+
   const renderCompactStat = (icon: string, value: string | number, label: string, color: string) => (
     <View style={styles.compactStat}>
       <View style={[styles.compactStatIcon, { backgroundColor: color + '20' }]}>
@@ -572,6 +595,22 @@ export default function PanelAnalisisScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
       >
+        {/* Local Info Card */}
+        <View style={styles.localInfoCard}>
+          <View style={styles.localInfoHeader}>
+            <View style={styles.localInfoContent}>
+              <Text style={styles.localInfoName}>{analyticsData.local.nombre}</Text>
+              <Text style={styles.localInfoDetails}>
+                {analyticsData.local.tipo} • {analyticsData.local.provincia}
+              </Text>
+            </View>
+            <View style={styles.planBadge}>
+              <IconSymbol name="star.fill" size={12} color="#FFFFFF" />
+              <Text style={styles.planBadgeText}>{analyticsData.subscription.plan_nombre.toUpperCase()}</Text>
+            </View>
+          </View>
+        </View>
+
         {/* Hero Stats - 2x2 Grid */}
         <View style={styles.heroGrid}>
           <View style={[styles.heroCard, { backgroundColor: '#3B82F6' }]}>
@@ -596,24 +635,46 @@ export default function PanelAnalisisScreen() {
           </View>
         </View>
 
-        {/* AI Recommendations - Compact */}
+        {/* AI Recommendations - Clickable Cards */}
         {recommendations.length > 0 && (
           <View style={styles.compactSection}>
             <View style={styles.compactSectionHeader}>
               <IconSymbol name="sparkles" size={18} color="#F59E0B" />
-              <Text style={styles.compactSectionTitle}>IA Recomienda</Text>
+              <Text style={styles.compactSectionTitle}>Recomendaciones de IA</Text>
               <TouchableOpacity onPress={generateRecommendations} disabled={generatingRecommendations}>
                 <IconSymbol name="arrow.clockwise" size={16} color={colors.primary} />
               </TouchableOpacity>
             </View>
-            {recommendations.slice(0, 2).map((rec) => (
-              <View key={rec.id} style={styles.compactRecommendation}>
-                <View style={[styles.priorityIndicator, { backgroundColor: getPriorityColor(rec.prioridad) }]} />
-                <View style={styles.compactRecommendationContent}>
-                  <Text style={styles.compactRecommendationTitle} numberOfLines={1}>{rec.titulo}</Text>
-                  <Text style={styles.compactRecommendationDesc} numberOfLines={2}>{rec.descripcion}</Text>
+            {recommendations.map((rec) => (
+              <TouchableOpacity 
+                key={rec.id} 
+                style={styles.recommendationCard}
+                onPress={() => openRecommendationModal(rec)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.priorityIndicator, { backgroundColor: getPriorityColor(rec.prioridad) }]}>
+                  <IconSymbol name={getPriorityIcon(rec.prioridad) as any} size={16} color="#FFFFFF" />
                 </View>
-              </View>
+                <View style={styles.recommendationContent}>
+                  <View style={styles.recommendationHeader}>
+                    <Text style={styles.recommendationTitle}>{rec.titulo}</Text>
+                    <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(rec.prioridad) }]}>
+                      <Text style={styles.priorityBadgeText}>{rec.prioridad.toUpperCase()}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.recommendationDesc} numberOfLines={2}>{rec.descripcion}</Text>
+                  <View style={styles.recommendationFooter}>
+                    <View style={styles.impactBadge}>
+                      <IconSymbol name="chart.bar.fill" size={12} color="#10B981" />
+                      <Text style={styles.impactText}>{rec.impacto_estimado}</Text>
+                    </View>
+                    <View style={styles.confidenceBadge}>
+                      <Text style={styles.confidenceText}>{Math.round(rec.confianza * 100)}% confianza</Text>
+                    </View>
+                  </View>
+                </View>
+                <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
             ))}
           </View>
         )}
@@ -704,6 +765,85 @@ export default function PanelAnalisisScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Recommendation Detail Modal */}
+      <Modal
+        visible={showRecommendationModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowRecommendationModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            {selectedRecommendation && (
+              <>
+                <View style={styles.modalHeader}>
+                  <View style={[styles.modalPriorityBadge, { backgroundColor: getPriorityColor(selectedRecommendation.prioridad) }]}>
+                    <IconSymbol name={getPriorityIcon(selectedRecommendation.prioridad) as any} size={20} color="#FFFFFF" />
+                    <Text style={styles.modalPriorityText}>{selectedRecommendation.prioridad.toUpperCase()}</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => setShowRecommendationModal(false)} style={styles.modalCloseButton}>
+                    <IconSymbol name="xmark.circle.fill" size={28} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                </View>
+
+                <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+                  <Text style={styles.modalTitle}>{selectedRecommendation.titulo}</Text>
+                  <Text style={styles.modalDescription}>{selectedRecommendation.descripcion}</Text>
+
+                  <View style={styles.modalMetrics}>
+                    <View style={styles.modalMetric}>
+                      <IconSymbol name="chart.bar.fill" size={18} color="#10B981" />
+                      <Text style={styles.modalMetricLabel}>Impacto Estimado</Text>
+                      <Text style={styles.modalMetricValue}>{selectedRecommendation.impacto_estimado}</Text>
+                    </View>
+                    <View style={styles.modalMetric}>
+                      <IconSymbol name="checkmark.seal.fill" size={18} color="#3B82F6" />
+                      <Text style={styles.modalMetricLabel}>Confianza</Text>
+                      <Text style={styles.modalMetricValue}>{Math.round(selectedRecommendation.confianza * 100)}%</Text>
+                    </View>
+                  </View>
+
+                  {selectedRecommendation.acciones_sugeridas && selectedRecommendation.acciones_sugeridas.length > 0 && (
+                    <View style={styles.modalSection}>
+                      <Text style={styles.modalSectionTitle}>Acciones Sugeridas</Text>
+                      {selectedRecommendation.acciones_sugeridas.map((accion, index) => (
+                        <View key={index} style={styles.modalActionItem}>
+                          <View style={styles.modalActionBullet}>
+                            <Text style={styles.modalActionBulletText}>{index + 1}</Text>
+                          </View>
+                          <Text style={styles.modalActionText}>{accion}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
+                  {selectedRecommendation.datos_soporte && Object.keys(selectedRecommendation.datos_soporte).length > 0 && (
+                    <View style={styles.modalSection}>
+                      <Text style={styles.modalSectionTitle}>Datos de Soporte</Text>
+                      <View style={styles.modalDataCard}>
+                        <Text style={styles.modalDataText}>{JSON.stringify(selectedRecommendation.datos_soporte, null, 2)}</Text>
+                      </View>
+                    </View>
+                  )}
+                </ScrollView>
+
+                <TouchableOpacity 
+                  style={styles.modalActionButton}
+                  onPress={() => setShowRecommendationModal(false)}
+                >
+                  <LinearGradient
+                    colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+                    style={styles.modalActionButtonGradient}
+                  >
+                    <Text style={styles.modalActionButtonText}>Entendido</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -791,6 +931,46 @@ const styles = StyleSheet.create({
     padding: 12,
     paddingBottom: 100,
   },
+  localInfoCard: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  localInfoHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  localInfoContent: {
+    flex: 1,
+  },
+  localInfoName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  localInfoDetails: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  planBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F59E0B',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  planBadgeText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
   heroGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -837,31 +1017,85 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.text,
   },
-  compactRecommendation: {
+  recommendationCard: {
     flexDirection: 'row',
     backgroundColor: colors.background,
-    borderRadius: 8,
-    padding: 10,
+    borderRadius: 12,
+    padding: 12,
     marginBottom: 8,
-    gap: 10,
+    gap: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
   priorityIndicator: {
-    width: 4,
-    borderRadius: 2,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  compactRecommendationContent: {
+  recommendationContent: {
     flex: 1,
   },
-  compactRecommendationTitle: {
-    fontSize: 13,
+  recommendationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  recommendationTitle: {
+    flex: 1,
+    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
-    marginBottom: 2,
+    marginRight: 8,
   },
-  compactRecommendationDesc: {
-    fontSize: 11,
+  priorityBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  priorityBadgeText: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  recommendationDesc: {
+    fontSize: 12,
     color: colors.textSecondary,
-    lineHeight: 16,
+    lineHeight: 18,
+    marginBottom: 8,
+  },
+  recommendationFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  impactBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#D1FAE5',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  impactText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#065F46',
+  },
+  confidenceBadge: {
+    backgroundColor: colors.cardBorder,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  confidenceText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: colors.text,
   },
   dualSection: {
     flexDirection: 'row',
@@ -994,5 +1228,147 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: colors.text,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '90%',
+    paddingTop: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalPriorityBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  modalPriorityText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  modalCloseButton: {
+    padding: 4,
+  },
+  modalScroll: {
+    maxHeight: '70%',
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  modalDescription: {
+    fontSize: 15,
+    color: colors.textSecondary,
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+  modalMetrics: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  modalMetric: {
+    flex: 1,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  modalMetricLabel: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    marginTop: 6,
+    textAlign: 'center',
+  },
+  modalMetricValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginTop: 4,
+  },
+  modalSection: {
+    marginBottom: 20,
+  },
+  modalSectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  modalActionItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 12,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  modalActionBullet: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalActionBulletText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  modalActionText: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 20,
+  },
+  modalDataCard: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  modalDataText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+  },
+  modalActionButton: {
+    marginTop: 16,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  modalActionButtonGradient: {
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  modalActionButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
   },
 });
