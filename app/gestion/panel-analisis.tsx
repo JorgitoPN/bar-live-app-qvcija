@@ -657,8 +657,8 @@ export default function PanelAnalisisScreen() {
         <IconSymbol name={icon as any} size={20} color={color} />
       </View>
       <View style={styles.compactStatContent}>
-        <Text style={styles.compactStatValue}>{value}</Text>
-        <Text style={styles.compactStatLabel}>{label}</Text>
+        <Text style={styles.compactStatValue} numberOfLines={1}>{value}</Text>
+        <Text style={styles.compactStatLabel} numberOfLines={1}>{label}</Text>
       </View>
     </View>
   );
@@ -744,8 +744,8 @@ export default function PanelAnalisisScreen() {
         <View style={styles.localInfoCard}>
           <View style={styles.localInfoHeader}>
             <View style={styles.localInfoContent}>
-              <Text style={styles.localInfoName}>{analyticsData.local.nombre}</Text>
-              <Text style={styles.localInfoDetails}>
+              <Text style={styles.localInfoName} numberOfLines={2}>{analyticsData.local.nombre}</Text>
+              <Text style={styles.localInfoDetails} numberOfLines={1}>
                 {analyticsData.local.tipo} • {analyticsData.local.provincia}
               </Text>
             </View>
@@ -760,23 +760,23 @@ export default function PanelAnalisisScreen() {
         <View style={styles.heroGrid}>
           <View style={[styles.heroCard, { backgroundColor: '#3B82F6' }]}>
             <IconSymbol name="eye.fill" size={24} color="#FFFFFF" />
-            <Text style={styles.heroValue}>{analyticsData.stats.total_views.toLocaleString()}</Text>
-            <Text style={styles.heroLabel}>Vistas</Text>
+            <Text style={styles.heroValue} numberOfLines={1}>{analyticsData.stats.total_views.toLocaleString()}</Text>
+            <Text style={styles.heroLabel} numberOfLines={1}>Vistas</Text>
           </View>
           <View style={[styles.heroCard, { backgroundColor: '#EF4444' }]}>
             <IconSymbol name="heart.fill" size={24} color="#FFFFFF" />
-            <Text style={styles.heroValue}>{analyticsData.stats.total_likes.toLocaleString()}</Text>
-            <Text style={styles.heroLabel}>Me Gusta</Text>
+            <Text style={styles.heroValue} numberOfLines={1}>{analyticsData.stats.total_likes.toLocaleString()}</Text>
+            <Text style={styles.heroLabel} numberOfLines={1}>Me Gusta</Text>
           </View>
           <View style={[styles.heroCard, { backgroundColor: '#10B981' }]}>
             <IconSymbol name="person.2.badge.plus" size={24} color="#FFFFFF" />
-            <Text style={styles.heroValue}>{analyticsData.stats.nuevos_seguidores.toLocaleString()}</Text>
-            <Text style={styles.heroLabel}>Seguidores</Text>
+            <Text style={styles.heroValue} numberOfLines={1}>{analyticsData.stats.nuevos_seguidores.toLocaleString()}</Text>
+            <Text style={styles.heroLabel} numberOfLines={1}>Seguidores</Text>
           </View>
           <View style={[styles.heroCard, { backgroundColor: '#F59E0B' }]}>
             <IconSymbol name="chart.line.uptrend.xyaxis" size={24} color="#FFFFFF" />
-            <Text style={styles.heroValue}>{analyticsData.stats.engagement_rate.toFixed(1)}%</Text>
-            <Text style={styles.heroLabel}>Engagement</Text>
+            <Text style={styles.heroValue} numberOfLines={1}>{analyticsData.stats.engagement_rate.toFixed(1)}%</Text>
+            <Text style={styles.heroLabel} numberOfLines={1}>Engagement</Text>
           </View>
         </View>
 
@@ -802,19 +802,19 @@ export default function PanelAnalisisScreen() {
                 </View>
                 <View style={styles.recommendationContent}>
                   <View style={styles.recommendationHeader}>
-                    <Text style={styles.recommendationTitle}>{rec.titulo}</Text>
+                    <Text style={styles.recommendationTitle} numberOfLines={2}>{rec.titulo}</Text>
                     <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(rec.prioridad) }]}>
-                      <Text style={styles.priorityBadgeText}>{rec.prioridad.toUpperCase()}</Text>
+                      <Text style={styles.priorityBadgeText} numberOfLines={1}>{rec.prioridad.toUpperCase()}</Text>
                     </View>
                   </View>
                   <Text style={styles.recommendationDesc} numberOfLines={2}>{rec.descripcion}</Text>
                   <View style={styles.recommendationFooter}>
                     <View style={styles.impactBadge}>
                       <IconSymbol name="chart.bar.fill" size={12} color="#10B981" />
-                      <Text style={styles.impactText}>{rec.impacto_estimado}</Text>
+                      <Text style={styles.impactText} numberOfLines={1}>{rec.impacto_estimado}</Text>
                     </View>
                     <View style={styles.confidenceBadge}>
-                      <Text style={styles.confidenceText}>{Math.round(rec.confianza * 100)}% confianza</Text>
+                      <Text style={styles.confidenceText} numberOfLines={1}>{Math.round(rec.confianza * 100)}% confianza</Text>
                     </View>
                   </View>
                 </View>
@@ -835,29 +835,29 @@ export default function PanelAnalisisScreen() {
               <View style={[styles.platformMetricIcon, { backgroundColor: '#3B82F6' + '20' }]}>
                 <IconSymbol name="eye.fill" size={20} color="#3B82F6" />
               </View>
-              <Text style={styles.platformMetricValue}>{analyticsData.stats.total_profile_views?.toLocaleString() || 0}</Text>
-              <Text style={styles.platformMetricLabel}>Visitas al Perfil</Text>
+              <Text style={styles.platformMetricValue} numberOfLines={1}>{analyticsData.stats.total_profile_views?.toLocaleString() || 0}</Text>
+              <Text style={styles.platformMetricLabel} numberOfLines={2}>Visitas al Perfil</Text>
             </View>
             <View style={styles.platformMetric}>
               <View style={[styles.platformMetricIcon, { backgroundColor: '#10B981' + '20' }]}>
                 <IconSymbol name="map.fill" size={20} color="#10B981" />
               </View>
-              <Text style={styles.platformMetricValue}>{analyticsData.stats.total_map_views?.toLocaleString() || 0}</Text>
-              <Text style={styles.platformMetricLabel}>Vistas en Mapa</Text>
+              <Text style={styles.platformMetricValue} numberOfLines={1}>{analyticsData.stats.total_map_views?.toLocaleString() || 0}</Text>
+              <Text style={styles.platformMetricLabel} numberOfLines={2}>Vistas en Mapa</Text>
             </View>
             <View style={styles.platformMetric}>
               <View style={[styles.platformMetricIcon, { backgroundColor: '#F59E0B' + '20' }]}>
                 <IconSymbol name="magnifyingglass" size={20} color="#F59E0B" />
               </View>
-              <Text style={styles.platformMetricValue}>{analyticsData.stats.total_search_appearances?.toLocaleString() || 0}</Text>
-              <Text style={styles.platformMetricLabel}>Búsquedas</Text>
+              <Text style={styles.platformMetricValue} numberOfLines={1}>{analyticsData.stats.total_search_appearances?.toLocaleString() || 0}</Text>
+              <Text style={styles.platformMetricLabel} numberOfLines={2}>Búsquedas</Text>
             </View>
             <View style={styles.platformMetric}>
               <View style={[styles.platformMetricIcon, { backgroundColor: '#8B5CF6' + '20' }]}>
                 <IconSymbol name="calendar" size={20} color="#8B5CF6" />
               </View>
-              <Text style={styles.platformMetricValue}>{analyticsData.stats.total_event_interactions?.toLocaleString() || 0}</Text>
-              <Text style={styles.platformMetricLabel}>Interacciones Eventos</Text>
+              <Text style={styles.platformMetricValue} numberOfLines={1}>{analyticsData.stats.total_event_interactions?.toLocaleString() || 0}</Text>
+              <Text style={styles.platformMetricLabel} numberOfLines={2}>Interacciones Eventos</Text>
             </View>
           </View>
         </View>
@@ -1128,10 +1128,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 4,
+    flexShrink: 1,
   },
   localInfoDetails: {
     fontSize: 13,
     color: colors.textSecondary,
+    flexShrink: 1,
   },
   planBadge: {
     flexDirection: 'row',
@@ -1172,6 +1174,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     opacity: 0.9,
     marginTop: 4,
+    textAlign: 'center',
   },
   compactSection: {
     backgroundColor: colors.cardBackground,
@@ -1226,6 +1229,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.text,
     marginRight: 8,
+    flexShrink: 1,
   },
   priorityBadge: {
     paddingHorizontal: 8,
@@ -1435,6 +1439,8 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.textSecondary,
     textAlign: 'center',
+    flexWrap: 'wrap',
+    maxWidth: '100%',
   },
   modalOverlay: {
     flex: 1,

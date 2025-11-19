@@ -12,7 +12,12 @@ export type ActivityType =
   | 'view_local'
   | 'view_event'
   | 'ad_click'
-  | 'ad_view';
+  | 'ad_view'
+  | 'profile_view'
+  | 'map_view'
+  | 'map_interaction'
+  | 'search_appearance'
+  | 'event_interaction';
 
 export type EntityType = 'post' | 'story' | 'user' | 'local' | 'event' | 'ad';
 
@@ -51,6 +56,112 @@ export async function trackActivity({
     }
   } catch (error) {
     console.error('Error tracking activity:', error);
+  }
+}
+
+/**
+ * Track profile view in Explore page
+ */
+export async function trackProfileView(
+  localId: string,
+  usuarioId?: string,
+  source: 'explore' | 'search' | 'map' | 'social' | 'direct' = 'explore'
+): Promise<void> {
+  try {
+    const { error } = await supabase.from('profile_views').insert({
+      local_id: localId,
+      usuario_id: usuarioId || null,
+      source,
+    });
+
+    if (error) {
+      console.error('[ActivityTracker] Error tracking profile view:', error);
+    } else {
+      console.log('[ActivityTracker] ✅ Profile view tracked:', { localId, source });
+    }
+  } catch (error) {
+    console.error('[ActivityTracker] Error tracking profile view:', error);
+  }
+}
+
+/**
+ * Track map interaction (view, click, zoom, pan)
+ */
+export async function trackMapInteraction(
+  localId: string,
+  interactionType: 'view' | 'click' | 'zoom' | 'pan',
+  usuarioId?: string
+): Promise<void> {
+  try {
+    const { error } = await supabase.from('map_interactions').insert({
+      local_id: localId,
+      usuario_id: usuarioId || null,
+      interaction_type: interactionType,
+    });
+
+    if (error) {
+      console.error('[ActivityTracker] Error tracking map interaction:', error);
+    } else {
+      console.log('[ActivityTracker] ✅ Map interaction tracked:', { localId, interactionType });
+    }
+  } catch (error) {
+    console.error('[ActivityTracker] Error tracking map interaction:', error);
+  }
+}
+
+/**
+ * Track search appearance
+ */
+export async function trackSearchAppearance(
+  localId: string,
+  searchQuery: string,
+  position: number,
+  clicked: boolean = false,
+  usuarioId?: string
+): Promise<void> {
+  try {
+    const { error } = await supabase.from('search_results').insert({
+      local_id: localId,
+      usuario_id: usuarioId || null,
+      search_query: searchQuery,
+      position,
+      clicked,
+    });
+
+    if (error) {
+      console.error('[ActivityTracker] Error tracking search appearance:', error);
+    } else {
+      console.log('[ActivityTracker] ✅ Search appearance tracked:', { localId, searchQuery, position });
+    }
+  } catch (error) {
+    console.error('[ActivityTracker] Error tracking search appearance:', error);
+  }
+}
+
+/**
+ * Track event interaction
+ */
+export async function trackEventInteraction(
+  eventoId: string,
+  localId: string,
+  tipo: 'view' | 'click' | 'share' | 'save' | 'ticket_view' | 'attendance',
+  usuarioId?: string
+): Promise<void> {
+  try {
+    const { error } = await supabase.from('evento_interacciones').insert({
+      evento_id: eventoId,
+      local_id: localId,
+      usuario_id: usuarioId || null,
+      tipo,
+    });
+
+    if (error) {
+      console.error('[ActivityTracker] Error tracking event interaction:', error);
+    } else {
+      console.log('[ActivityTracker] ✅ Event interaction tracked:', { eventoId, tipo });
+    }
+  } catch (error) {
+    console.error('[ActivityTracker] Error tracking event interaction:', error);
   }
 }
 

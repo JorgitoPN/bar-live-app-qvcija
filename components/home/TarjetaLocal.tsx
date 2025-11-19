@@ -10,6 +10,7 @@ import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { getCategoryIcon } from '@/utils/categoryIcons';
 import { localPreloader } from '@/utils/localPreloader';
+import { trackProfileView } from '@/utils/activityTracker';
 
 const { width } = Dimensions.get('window');
 
@@ -127,11 +128,15 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
   }, [user, checkIfFavorite]);
 
   const handlePress = () => {
+    // Track profile view when user clicks on the card
+    trackProfileView(local.id, user?.id, 'explore');
     router.push(`/detalle/local?id=${local.id}`);
   };
 
   const handlePerfilSocial = (e: any) => {
     e.stopPropagation();
+    // Track profile view when user clicks on social profile
+    trackProfileView(local.id, user?.id, 'social');
     router.push(`/perfil/local?localId=${local.id}`);
   };
 
@@ -331,7 +336,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
           { backgroundColor: getBadgeColor() + 'E6' },
           isDestacado && styles.badgeEstadoSuperiorConDestacado
         ]}>
-          <Text style={styles.badgeEstadoSuperiorText}>{getBadgeText()}</Text>
+          <Text style={styles.badgeEstadoSuperiorText} numberOfLines={1}>{getBadgeText()}</Text>
         </View>
 
         {/* Valoración - Esquina superior derecha - SAME HEIGHT AS STATUS BADGE */}
@@ -386,7 +391,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
             {categoriasAMostrar.map((categoria, index) => (
               <View key={index} style={styles.categoriaBadge}>
                 <Text style={styles.categoriaIcon}>{getCategoryIcon(categoria)}</Text>
-                <Text style={styles.categoriaText}>{categoria}</Text>
+                <Text style={styles.categoriaText} numberOfLines={1}>{categoria}</Text>
               </View>
             ))}
           </View>
@@ -534,6 +539,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
     zIndex: 10,
+    maxWidth: '70%',
   },
   badgeEstadoSuperiorConDestacado: {
     top: 52,
@@ -638,6 +644,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 6,
     gap: 4,
+    maxWidth: '48%',
   },
   categoriaIcon: {
     fontSize: 12,
@@ -647,6 +654,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.primary,
     textTransform: 'capitalize',
+    flexShrink: 1,
   },
   actionButtonsContainer: {
     flexDirection: 'row',

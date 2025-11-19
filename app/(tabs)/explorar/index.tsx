@@ -28,6 +28,7 @@ import * as Location from 'expo-location';
 import { filterAndSortLocals } from '@/utils/filterLocals';
 import { useGlobalData } from '@/contexts/GlobalDataContext';
 import InitialLoadingScreen from '@/components/common/InitialLoadingScreen';
+import { trackSearchAppearance } from '@/utils/activityTracker';
 
 type ModoUsuario = 'cliente' | 'propietario' | 'admin';
 
@@ -155,7 +156,14 @@ export default function ExplorarScreen() {
     
     const localIdsToPreload = newVisibleLocals.slice(0, 10).map(l => l.id);
     localPreloader.preloadMultiple(localIdsToPreload);
-  }, [localesFiltradosCompletos]);
+
+    // Track search appearances for visible locals
+    if (busqueda && newVisibleLocals.length > 0) {
+      newVisibleLocals.forEach((local, index) => {
+        trackSearchAppearance(local.id, busqueda, index + 1, false, user?.id);
+      });
+    }
+  }, [localesFiltradosCompletos, busqueda, user]);
 
   useEffect(() => {
     obtenerUbicacionUsuario();

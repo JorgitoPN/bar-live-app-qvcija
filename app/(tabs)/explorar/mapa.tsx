@@ -23,6 +23,8 @@ import FiltrosAvanzadosSheet from '@/components/home/FiltrosAvanzadosSheet';
 import { supabase } from '@/utils/supabase';
 import { getEstadoLocal } from '@/utils/timeUtils';
 import { performanceOptimizer } from '@/utils/performanceOptimizer';
+import { trackMapInteraction } from '@/utils/activityTracker';
+import { useAuth } from '@/contexts/AuthContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -53,6 +55,7 @@ const getIconForCategory = (category: string): string => {
 
 export default function MapaScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const webViewRef = useRef<WebView>(null);
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>('todos');
   const [filtroEstado, setFiltroEstado] = useState<'todos' | 'abiertos'>('todos');
@@ -184,6 +187,13 @@ export default function MapaScreen() {
   useEffect(() => {
     const CATEGORIAS_EXCLUIDAS = ['terrazas', 'rooftops', 'lounge'];
     
+    // Track map view for all visible locals
+    if (todosLosLocales.length > 0) {
+      todosLosLocales.forEach(local => {
+        trackMapInteraction(local.id, 'view', user?.id);
+      });
+    }
+    
     const filtrados = todosLosLocales.filter(local => {
       // Get all categories for this local
       const localCategories = local.barlive_types || (local.barlive_type ? [local.barlive_type] : []);
@@ -256,6 +266,8 @@ export default function MapaScreen() {
 
   const handleVerDetalles = (localId: string) => {
     console.log('[MAP] Navigating to local details:', localId);
+    // Track map interaction when user clicks on a marker
+    trackMapInteraction(localId, 'click', user?.id);
     router.push(`/detalle/local?id=${localId}`);
   };
 
