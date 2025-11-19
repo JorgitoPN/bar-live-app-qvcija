@@ -46,6 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (currentSession) {
           console.log('[AuthContext] ✅ Sesión existente encontrada para:', currentSession.user.email);
           console.log('[AuthContext] Session expires at:', new Date(currentSession.expires_at! * 1000).toISOString());
+          console.log('[AuthContext] Access token (primeros 20 chars):', currentSession.access_token.substring(0, 20) + '...');
           setSession(currentSession);
           
           // Load user profile
@@ -90,6 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (currentSession) {
           console.log('[AuthContext] Session expires at:', new Date(currentSession.expires_at! * 1000).toISOString());
+          console.log('[AuthContext] Access token (primeros 20 chars):', currentSession.access_token.substring(0, 20) + '...');
         }
         
         setSession(currentSession);
@@ -219,6 +221,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       console.log('[AuthContext] ✅ Sesión encontrada:', currentSession.user.email);
+      console.log('[AuthContext] Access token (primeros 20 chars):', currentSession.access_token.substring(0, 20) + '...');
       setSession(currentSession);
       
       const { user: userData } = await getCurrentUser();

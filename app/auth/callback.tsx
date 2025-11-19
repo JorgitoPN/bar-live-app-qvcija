@@ -1,12 +1,14 @@
 
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Platform, ScrollView } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { colors } from '@/styles/commonStyles';
 import { supabase, manuallyRestoreSession } from '@/utils/supabase';
 import { getCurrentUser } from '@/utils/auth';
 import { registerForPushNotifications, savePushToken } from '@/utils/notifications';
 import { useAuth } from '@/contexts/AuthContext';
+import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function AuthCallbackScreen() {
   const router = useRouter();
@@ -47,6 +49,74 @@ export default function AuthCallbackScreen() {
       }, delay);
     };
 
+    // NEW: Function to inspect storage contents
+    const inspectStorage = async () => {
+      try {
+        addDebugInfo('🔍 === INSPECCIÓN DE STORAGE ===');
+        
+        const storageKey = 'supabase.auth.token';
+        
+        // Try SecureStore
+        if (Platform.OS !== 'web') {
+          try {
+            const secureValue = await SecureStore.getItemAsync(storageKey);
+            if (secureValue) {
+              const parsed = JSON.parse(secureValue);
+              addDebugInfo(`✅ SecureStore: Sesión encontrada`);
+              addDebugInfo(`   - access_token: ${parsed.access_token ? 'presente' : 'ausente'}`);
+              addDebugInfo(`   - refresh_token: ${parsed.refresh_token ? 'presente' : 'ausente'}`);
+              addDebugInfo(`   - expires_at: ${parsed.expires_at ? new Date(parsed.expires_at * 1000).toISOString() : 'ausente'}`);
+              addDebugInfo(`   - user.email: ${parsed.user?.email || 'ausente'}`);
+            } else {
+              addDebugInfo('⚠️ SecureStore: No hay sesión almacenada');
+            }
+          } catch (e: any) {
+            addDebugInfo(`❌ SecureStore: Error - ${e.message}`);
+          }
+        }
+        
+        // Try AsyncStorage
+        try {
+          const asyncValue = await AsyncStorage.getItem(storageKey);
+          if (asyncValue) {
+            const parsed = JSON.parse(asyncValue);
+            addDebugInfo(`✅ AsyncStorage: Sesión encontrada`);
+            addDebugInfo(`   - access_token: ${parsed.access_token ? 'presente' : 'ausente'}`);
+            addDebugInfo(`   - refresh_token: ${parsed.refresh_token ? 'presente' : 'ausente'}`);
+            addDebugInfo(`   - expires_at: ${parsed.expires_at ? new Date(parsed.expires_at * 1000).toISOString() : 'ausente'}`);
+            addDebugInfo(`   - user.email: ${parsed.user?.email || 'ausente'}`);
+          } else {
+            addDebugInfo('⚠️ AsyncStorage: No hay sesión almacenada');
+          }
+        } catch (e: any) {
+          addDebugInfo(`❌ AsyncStorage: Error - ${e.message}`);
+        }
+        
+        // Try localStorage (web only)
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          try {
+            const localValue = localStorage.getItem(storageKey);
+            if (localValue) {
+              const parsed = JSON.parse(localValue);
+              addDebugInfo(`✅ localStorage: Sesión encontrada`);
+              addDebugInfo(`   - access_token: ${parsed.access_token ? 'presente' : 'ausente'}`);
+              addDebugInfo(`   - refresh_token: ${parsed.refresh_token ? 'presente' : 'ausente'}`);
+              addDebugInfo(`   - expires_at: ${parsed.expires_at ? new Date(parsed.expires_at * 1000).toISOString() : 'ausente'}`);
+              addDebugInfo(`   - user.email: ${parsed.user?.email || 'ausente'}`);
+            } else {
+              addDebugInfo('⚠️ localStorage: No hay sesión almacenada');
+            }
+          } catch (e: any) {
+            addDebugInfo(`❌ localStorage: Error - ${e.message}`);
+          }
+        }
+        
+        addDebugInfo('🔍 === FIN INSPECCIÓN ===');
+      } catch (error: any) {
+        addDebugInfo(`❌ Error inspeccionando storage: ${error.message}`);
+      }
+    };
+
     const handleCallback = async () => {
       try {
         addDebugInfo('🔄 Procesando callback de autenticación...');
@@ -83,15 +153,18 @@ export default function AuthCallbackScreen() {
         }
         
         // STRATEGY 1: Wait for Supabase to automatically detect and process the OAuth callback
-        addDebugInfo('⏳ Esperando detección automática de sesión (2s)...');
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        addDebugInfo('⏳ Esperando detección automática de sesión (3s)...');
+        await new Promise(resolve => setTimeout(resolve, 3000)); // Increased from 2s to 3s
+        
+        // NEW: Inspect storage after waiting
+        await inspectStorage();
         
         // STRATEGY 2: Try to get session with multiple retries
         addDebugInfo('🔍 Verificando sesión con reintentos...');
         
         let session = null;
-        let retries = 8; // Increased retries
-        let delay = 500; // Start with shorter delay
+        let retries = 10; // Increased from 8 to 10
+        let delay = 500;
         
         while (retries > 0 && !session) {
           const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
@@ -103,17 +176,23 @@ export default function AuthCallbackScreen() {
           session = currentSession;
           
           if (session) {
-            addDebugInfo(`✅ Sesión encontrada en intento ${9 - retries}`);
+            addDebugInfo(`✅ Sesión encontrada en intento ${11 - retries}`);
             break;
           }
           
           if (retries > 1) {
-            addDebugInfo(`⏳ Sesión no encontrada, reintentando en ${delay}ms... (${9 - retries}/8)`);
+            addDebugInfo(`⏳ Sesión no encontrada, reintentando en ${delay}ms... (${11 - retries}/10)`);
             await new Promise(resolve => setTimeout(resolve, delay));
-            delay = Math.min(delay * 1.5, 2000); // Exponential backoff
+            delay = Math.min(delay * 1.5, 3000); // Increased max delay
           }
           
           retries--;
+        }
+
+        // NEW: If still no session, inspect storage again
+        if (!session) {
+          addDebugInfo('⚠️ No se encontró sesión después de reintentos, inspeccionando storage nuevamente...');
+          await inspectStorage();
         }
 
         // STRATEGY 3: If still no session, try manual restoration from storage
@@ -150,29 +229,85 @@ export default function AuthCallbackScreen() {
             } else if (data.session) {
               addDebugInfo('✅ Sesión establecida desde tokens de URL');
               session = data.session;
+              
+              // NEW: Wait a bit for storage to persist
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              await inspectStorage();
             }
           } else {
             addDebugInfo('⚠️ No se encontraron tokens en URL');
+            addDebugInfo(`   - Hash params: ${window.location.hash}`);
+          }
+        }
+
+        // NEW: STRATEGY 5: Try refreshing the session if we have a refresh token in storage
+        if (!session) {
+          addDebugInfo('🔧 ESTRATEGIA 5: Intentando refrescar sesión desde storage...');
+          
+          try {
+            const storageKey = 'supabase.auth.token';
+            let storedData = null;
+            
+            // Try to get from storage
+            if (Platform.OS === 'web' && typeof window !== 'undefined') {
+              const localValue = localStorage.getItem(storageKey);
+              if (localValue) storedData = JSON.parse(localValue);
+            } else {
+              const secureValue = await SecureStore.getItemAsync(storageKey);
+              if (secureValue) storedData = JSON.parse(secureValue);
+            }
+            
+            if (storedData && storedData.refresh_token) {
+              addDebugInfo('✅ Refresh token encontrado en storage, intentando refrescar...');
+              
+              const { data, error } = await supabase.auth.refreshSession({
+                refresh_token: storedData.refresh_token,
+              });
+              
+              if (error) {
+                addDebugInfo(`❌ Error refrescando sesión: ${error.message}`);
+              } else if (data.session) {
+                addDebugInfo('✅ Sesión refrescada exitosamente');
+                session = data.session;
+                
+                // Wait for storage to persist
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                await inspectStorage();
+              }
+            } else {
+              addDebugInfo('⚠️ No se encontró refresh token en storage');
+            }
+          } catch (error: any) {
+            addDebugInfo(`❌ Error en estrategia 5: ${error.message}`);
           }
         }
 
         // Final check: If we still don't have a session, show error
         if (!session) {
           addDebugInfo('❌ No se pudo obtener la sesión después de todos los intentos');
-          addDebugInfo('💡 Sugerencia: Verifica que Google OAuth esté configurado correctamente en Supabase');
+          addDebugInfo('💡 Sugerencias:');
+          addDebugInfo('   1. Verifica que Google OAuth esté configurado correctamente en Supabase');
+          addDebugInfo('   2. Verifica que las URLs de redirección estén configuradas');
+          addDebugInfo('   3. Verifica que el almacenamiento del dispositivo funcione correctamente');
+          
+          // Final storage inspection
+          await inspectStorage();
           
           if (isMounted) {
             setStatus('error');
             setErrorMessage('No se pudo completar la autenticación');
             setErrorDetails('La sesión no se estableció correctamente. Por favor, intenta de nuevo o contacta con soporte si el problema persiste.');
           }
-          safeRedirect('/(tabs)/explorar', 4000);
+          safeRedirect('/(tabs)/explorar', 5000);
           return;
         }
 
         addDebugInfo(`✅ Sesión encontrada para: ${session.user.email}`);
         addDebugInfo(`User ID: ${session.user.id}`);
         addDebugInfo(`Session expires at: ${new Date(session.expires_at! * 1000).toISOString()}`);
+        
+        // Final storage inspection with session
+        await inspectStorage();
         
         // Register push notifications (non-blocking)
         registerForPushNotifications()
@@ -288,12 +423,12 @@ export default function AuthCallbackScreen() {
       
       {/* Debug info - always show in development */}
       {__DEV__ && debugInfo.length > 0 && (
-        <View style={styles.debugContainer}>
-          <Text style={styles.debugTitle}>Debug Info (últimos 15):</Text>
-          {debugInfo.slice(-15).map((info, index) => (
+        <ScrollView style={styles.debugContainer}>
+          <Text style={styles.debugTitle}>Debug Info (últimos 20):</Text>
+          {debugInfo.slice(-20).map((info, index) => (
             <Text key={index} style={styles.debugText}>{info}</Text>
           ))}
-        </View>
+        </ScrollView>
       )}
     </View>
   );
@@ -357,10 +492,10 @@ const styles = StyleSheet.create({
     bottom: 20,
     left: 10,
     right: 10,
-    backgroundColor: 'rgba(0,0,0,0.9)',
+    backgroundColor: 'rgba(0,0,0,0.95)',
     padding: 10,
     borderRadius: 8,
-    maxHeight: 300,
+    maxHeight: 400,
   },
   debugTitle: {
     color: '#FFD700',
@@ -370,8 +505,8 @@ const styles = StyleSheet.create({
   },
   debugText: {
     color: '#FFFFFF',
-    fontSize: 9,
+    fontSize: 8,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    lineHeight: 12,
+    lineHeight: 11,
   },
 });
