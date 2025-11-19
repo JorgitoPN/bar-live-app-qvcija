@@ -93,19 +93,10 @@ export default function CrearEventoScreen() {
 
       console.log('[CrearEvento] Local loaded:', localInfo.nombre);
 
-      // Fetch subscription with plan details
+      // ✅ FIX: Fetch subscription and plan separately to avoid cardinality issues
       const { data: suscripcion, error: suscripcionError } = await supabase
         .from('suscripciones_locales')
-        .select(`
-          id,
-          eventos_usados_mes,
-          creditos_eventos_restantes,
-          plan_id,
-          planes_suscripcion (
-            nombre,
-            eventos_mes
-          )
-        `)
+        .select('id, eventos_usados_mes, creditos_eventos_restantes, plan_id')
         .eq('local_id', localInfo.id)
         .eq('estado', 'activa')
         .single();
@@ -114,11 +105,42 @@ export default function CrearEventoScreen() {
 
       if (suscripcionError) {
         console.error('[CrearEvento] Error fetching subscription:', suscripcionError);
+        Alert.alert(
+          'Sin Suscripción Activa',
+          'El local seleccionado no tiene una suscripción activa. Activa un plan para crear eventos.',
+          [
+            { text: 'Cancelar', style: 'cancel', onPress: () => router.back() },
+            {
+              text: 'Ver Planes',
+              onPress: () => {
+                router.back();
+                router.push(`/gestion/planes-suscripcion?localId=${selectedLocalId}`);
+              },
+            },
+          ]
+        );
+        return;
       }
 
-      // Extract plan details
-      const planNombre = (suscripcion?.planes_suscripcion as any)?.nombre || 'basico';
-      const eventosDisponibles = (suscripcion?.planes_suscripcion as any)?.eventos_mes || 0;
+      // Fetch plan details separately
+      let planNombre = 'basico';
+      let eventosDisponibles = 0;
+
+      if (suscripcion?.plan_id) {
+        const { data: plan, error: planError } = await supabase
+          .from('planes_suscripcion')
+          .select('nombre, eventos_mes')
+          .eq('id', suscripcion.plan_id)
+          .single();
+
+        if (planError) {
+          console.error('[CrearEvento] Error fetching plan:', planError);
+        } else if (plan) {
+          planNombre = plan.nombre || 'basico';
+          eventosDisponibles = plan.eventos_mes || 0;
+        }
+      }
+
       const eventosUsados = suscripcion?.eventos_usados_mes || 0;
       
       // ✅ FIX: Get creditos_eventos_restantes, if null or undefined, use eventos_mes from plan
