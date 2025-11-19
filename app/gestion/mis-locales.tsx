@@ -252,86 +252,91 @@ export default function MisLocalesScreen() {
                     styles.localCard,
                     selectedLocalId === local.id && styles.localCardActive
                   ]}>
-                    {/* Compact Header */}
+                    {/* Compact Header with Image and Info */}
                     <View style={styles.cardHeader}>
                       {/* Image */}
                       {local.imagen_url ? (
                         <Image source={{ uri: local.imagen_url }} style={styles.localImage} />
                       ) : (
                         <View style={[styles.localImage, styles.localImagePlaceholder]}>
-                          <IconSymbol name="building.2" size={28} color={colors.textSecondary} />
+                          <IconSymbol name="building.2" size={24} color={colors.textSecondary} />
                         </View>
                       )}
                       
-                      {/* Info */}
+                      {/* Info - Compact Layout */}
                       <View style={styles.cardInfo}>
+                        {/* Title Row with Active Indicator */}
                         <View style={styles.titleRow}>
                           <Text style={styles.localNombre} numberOfLines={1}>{local.nombre}</Text>
                           {selectedLocalId === local.id && (
-                            <View style={styles.activeDot} />
+                            <View style={styles.activeBadge}>
+                              <Text style={styles.activeBadgeText}>ACTIVO</Text>
+                            </View>
                           )}
                         </View>
                         
+                        {/* Meta Info - Single Line */}
                         <View style={styles.metaRow}>
                           <Text style={styles.localTipo}>{local.tipo}</Text>
-                          <View style={styles.separator} />
-                          <View style={styles.followers}>
-                            <IconSymbol name="person.2" size={12} color={colors.textSecondary} />
-                            <Text style={styles.followersText}>{local.seguidores}</Text>
+                          <View style={styles.dot} />
+                          <IconSymbol name="person.2" size={11} color={colors.textSecondary} />
+                          <Text style={styles.followersText}>{local.seguidores}</Text>
+                          <View style={styles.dot} />
+                          <View style={[
+                            styles.planBadge,
+                            local.plan_nombre === 'premium' && styles.planBadgePremium
+                          ]}>
+                            <Text style={[
+                              styles.planText,
+                              local.plan_nombre === 'premium' && styles.planTextPremium
+                            ]}>
+                              {local.plan_nombre.toUpperCase()}
+                            </Text>
                           </View>
                         </View>
 
-                        <View style={[
-                          styles.planBadge,
-                          local.plan_nombre === 'premium' && styles.planBadgePremium
-                        ]}>
-                          <Text style={[
-                            styles.planText,
-                            local.plan_nombre === 'premium' && styles.planTextPremium
-                          ]}>
-                            {local.plan_nombre.toUpperCase()}
-                          </Text>
+                        {/* Destacado Status - Inline */}
+                        <View style={styles.statusRow}>
+                          <TouchableOpacity
+                            style={styles.destacadoToggle}
+                            onPress={() => handleToggleDestacado(local)}
+                            disabled={updatingDestacado === local.id}
+                          >
+                            {updatingDestacado === local.id ? (
+                              <ActivityIndicator size="small" color={colors.primary} />
+                            ) : (
+                              <>
+                                <IconSymbol
+                                  name={local.destacado ? 'star.fill' : 'star'}
+                                  size={14}
+                                  color={local.destacado ? colors.badgeDestacado : colors.textSecondary}
+                                />
+                                <Text style={[
+                                  styles.destacadoText,
+                                  local.destacado && styles.destacadoTextActive
+                                ]}>
+                                  {local.destacado ? 'Destacado' : 'Destacar'}
+                                </Text>
+                              </>
+                            )}
+                          </TouchableOpacity>
+                          {local.destacados_restantes > 0 && !local.destacado && (
+                            <Text style={styles.creditosText}>
+                              {local.destacados_restantes} crédito{local.destacados_restantes > 1 ? 's' : ''}
+                            </Text>
+                          )}
                         </View>
                       </View>
-
-                      {/* Destacado Toggle - Compact */}
-                      <TouchableOpacity
-                        style={[
-                          styles.destacadoButton,
-                          local.destacado && styles.destacadoButtonActive
-                        ]}
-                        onPress={() => handleToggleDestacado(local)}
-                        disabled={updatingDestacado === local.id}
-                      >
-                        {updatingDestacado === local.id ? (
-                          <ActivityIndicator size="small" color={colors.primary} />
-                        ) : (
-                          <IconSymbol
-                            name={local.destacado ? 'star.fill' : 'star'}
-                            size={18}
-                            color={local.destacado ? colors.badgeDestacado : colors.textSecondary}
-                          />
-                        )}
-                      </TouchableOpacity>
                     </View>
 
-                    {/* Destacado Info - Only if active or has credits */}
-                    {(local.destacado || local.destacados_restantes > 0) && (
-                      <View style={styles.destacadoInfo}>
-                        <Text style={styles.destacadoText}>
-                          {local.destacado ? '✨ Destacado activo' : `${local.destacados_restantes} crédito${local.destacados_restantes > 1 ? 's' : ''} disponible${local.destacados_restantes > 1 ? 's' : ''}`}
-                        </Text>
-                      </View>
-                    )}
-
-                    {/* Compact Action Buttons */}
+                    {/* Compact Action Buttons - Single Row */}
                     <View style={styles.actions}>
                       {selectedLocalId !== local.id && (
                         <TouchableOpacity
                           style={styles.actionButtonPrimary}
                           onPress={() => handleSelectLocal(local.id)}
                         >
-                          <IconSymbol name="checkmark.circle" size={16} color="#FFFFFF" />
+                          <IconSymbol name="checkmark.circle" size={14} color="#FFFFFF" />
                           <Text style={styles.actionTextPrimary}>Activar</Text>
                         </TouchableOpacity>
                       )}
@@ -339,21 +344,21 @@ export default function MisLocalesScreen() {
                         style={styles.actionButton}
                         onPress={() => router.push(`/editar/local?id=${local.id}`)}
                       >
-                        <IconSymbol name="pencil" size={16} color={colors.primary} />
+                        <IconSymbol name="pencil" size={14} color={colors.primary} />
                         <Text style={styles.actionText}>Editar</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={styles.actionButton}
                         onPress={() => router.push(`/gestion/panel-analisis?localId=${local.id}`)}
                       >
-                        <IconSymbol name="chart.bar.fill" size={16} color={colors.primary} />
+                        <IconSymbol name="chart.bar.fill" size={14} color={colors.primary} />
                         <Text style={styles.actionText}>Análisis</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={styles.actionButton}
                         onPress={() => router.push(`/gestion/planes-suscripcion?localId=${local.id}`)}
                       >
-                        <IconSymbol name="creditcard" size={16} color={colors.primary} />
+                        <IconSymbol name="creditcard" size={14} color={colors.primary} />
                         <Text style={styles.actionText}>Plan</Text>
                       </TouchableOpacity>
                     </View>
@@ -366,7 +371,7 @@ export default function MisLocalesScreen() {
                 style={styles.addNewButton}
                 onPress={() => router.push('/crear/local')}
               >
-                <IconSymbol name="plus.circle" size={20} color={colors.primary} />
+                <IconSymbol name="plus.circle" size={18} color={colors.primary} />
                 <Text style={styles.addNewText}>Añadir Nuevo Local</Text>
               </TouchableOpacity>
             </>
@@ -413,7 +418,8 @@ const styles = StyleSheet.create({
     maxWidth: CONTENT_MAX_WIDTH,
     width: '100%',
     alignSelf: 'center',
-    padding: 12,
+    paddingHorizontal: 16,
+    paddingTop: 12,
   },
   loadingContainer: {
     flex: 1,
@@ -484,7 +490,7 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   localesGrid: {
-    gap: 12,
+    gap: 10,
   },
   localCard: {
     backgroundColor: colors.cardBackground,
@@ -492,19 +498,26 @@ const styles = StyleSheet.create({
     padding: 12,
     borderWidth: 1,
     borderColor: colors.cardBorder,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
   localCardActive: {
     borderColor: colors.primary,
     borderWidth: 2,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.15,
   },
   cardHeader: {
     flexDirection: 'row',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   localImage: {
-    width: 64,
-    height: 64,
-    borderRadius: 10,
+    width: 56,
+    height: 56,
+    borderRadius: 8,
   },
   localImagePlaceholder: {
     backgroundColor: colors.cardBorder,
@@ -513,7 +526,7 @@ const styles = StyleSheet.create({
   },
   cardInfo: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 10,
     justifyContent: 'space-between',
   },
   titleRow: {
@@ -524,88 +537,96 @@ const styles = StyleSheet.create({
   },
   localNombre: {
     flex: 1,
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 15,
+    fontWeight: '700',
     color: colors.text,
   },
-  activeDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  activeBadge: {
     backgroundColor: colors.primary,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  activeBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: colors.white,
+    letterSpacing: 0.5,
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   localTipo: {
-    fontSize: 13,
+    fontSize: 12,
     color: colors.textSecondary,
     textTransform: 'capitalize',
   },
-  separator: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
+  dot: {
+    width: 2.5,
+    height: 2.5,
+    borderRadius: 1.25,
     backgroundColor: colors.textSecondary,
-    marginHorizontal: 8,
-  },
-  followers: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
+    marginHorizontal: 6,
   },
   followersText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: colors.text,
+    marginLeft: 2,
   },
   planBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 5,
-    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    backgroundColor: '#E5E7EB',
   },
   planBadgePremium: {
     backgroundColor: '#DBEAFE',
   },
   planText: {
-    fontSize: 10,
-    fontWeight: 'bold',
+    fontSize: 9,
+    fontWeight: '800',
     color: '#6B7280',
+    letterSpacing: 0.3,
   },
   planTextPremium: {
     color: '#1E40AF',
   },
-  destacadoButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.cardBorder,
-    justifyContent: 'center',
+  statusRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: 8,
+    gap: 8,
   },
-  destacadoButtonActive: {
-    backgroundColor: colors.badgeDestacado + '25',
-  },
-  destacadoInfo: {
+  destacadoToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
     backgroundColor: colors.background,
-    borderRadius: 8,
-    padding: 8,
-    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
   destacadoText: {
-    fontSize: 12,
+    fontSize: 11,
+    fontWeight: '600',
     color: colors.textSecondary,
-    textAlign: 'center',
+  },
+  destacadoTextActive: {
+    color: colors.badgeDestacado,
+  },
+  creditosText: {
+    fontSize: 10,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
   },
   actions: {
     flexDirection: 'row',
-    gap: 8,
-    paddingTop: 8,
+    gap: 6,
+    paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
   },
@@ -614,10 +635,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
-    paddingVertical: 8,
+    gap: 3,
+    paddingVertical: 7,
     backgroundColor: colors.background,
-    borderRadius: 8,
+    borderRadius: 7,
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
@@ -626,21 +647,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
-    paddingVertical: 8,
+    gap: 3,
+    paddingVertical: 7,
     backgroundColor: colors.primary,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.primary,
+    borderRadius: 7,
   },
   actionText: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
     color: colors.primary,
   },
   actionTextPrimary: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
     color: '#FFFFFF',
   },
   addNewButton: {
