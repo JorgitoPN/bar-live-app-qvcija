@@ -56,7 +56,7 @@ export default function AuthCallbackScreen() {
               setStatus('error');
               setErrorMessage(errorDescription || errorParam);
             }
-            safeRedirect('/(tabs)/explorar', 2000);
+            safeRedirect('/(tabs)/explorar', 1500);
             return;
           }
 
@@ -74,15 +74,12 @@ export default function AuthCallbackScreen() {
                 setStatus('error');
                 setErrorMessage('Error al establecer la sesión');
               }
-              safeRedirect('/(tabs)/explorar', 2000);
+              safeRedirect('/(tabs)/explorar', 1500);
               return;
             }
 
             if (data.user) {
               console.log('[Callback] ✅ Sesión establecida para usuario:', data.user.email);
-              
-              // Wait a bit for session to propagate
-              await new Promise(resolve => setTimeout(resolve, 500));
               
               // Register push notifications (non-blocking)
               registerForPushNotifications()
@@ -114,30 +111,30 @@ export default function AuthCallbackScreen() {
                 if (!userData.ha_aceptado_terminos) {
                   console.log('[Callback] 📋 Usuario debe aceptar términos');
                   if (isMounted) setStatus('success');
-                  safeRedirect(`/auth/terms-acceptance?userId=${userData.id}`, 300);
+                  safeRedirect(`/auth/terms-acceptance?userId=${userData.id}`, 100);
                   return;
                 }
                 
-                // FIXED: Check if user needs to complete profile (username and name are mandatory)
+                // Check if user needs to complete profile (username and name are mandatory)
                 // New users (without username or nombre) should go to /editar/perfil
                 if (!userData.username || !userData.nombre) {
                   console.log('[Callback] 📝 Usuario nuevo - redirigiendo a editar perfil');
                   if (isMounted) setStatus('success');
-                  safeRedirect('/editar/perfil', 300);
+                  safeRedirect('/editar/perfil', 100);
                   return;
                 }
                 
-                // FIXED: Existing users (with username and nombre) go to explorar
-                console.log('[Callback] ✅ Usuario existente - redirigiendo a explorar');
+                // Existing users go to home/explorar (the main feed - "barlive")
+                console.log('[Callback] ✅ Usuario existente - redirigiendo a explorar (barlive)');
                 if (isMounted) setStatus('success');
-                safeRedirect('/(tabs)/explorar', 300);
+                safeRedirect('/(tabs)/explorar', 100);
                 return;
               }
               
               // If no user data, redirect to explorar
               console.log('[Callback] ⚠️ No se pudo obtener datos del usuario, redirigiendo a explorar');
               if (isMounted) setStatus('success');
-              safeRedirect('/(tabs)/explorar', 300);
+              safeRedirect('/(tabs)/explorar', 100);
               return;
             }
           }
@@ -154,15 +151,12 @@ export default function AuthCallbackScreen() {
             setStatus('error');
             setErrorMessage('Error al verificar la sesión');
           }
-          safeRedirect('/(tabs)/explorar', 2000);
+          safeRedirect('/(tabs)/explorar', 1500);
           return;
         }
 
         if (session?.user) {
           console.log('[Callback] ✅ Sesión encontrada para:', session.user.email);
-          
-          // Wait a bit for session to propagate
-          await new Promise(resolve => setTimeout(resolve, 500));
           
           // Register push notifications (non-blocking)
           registerForPushNotifications()
@@ -194,33 +188,33 @@ export default function AuthCallbackScreen() {
             if (!userData.ha_aceptado_terminos) {
               console.log('[Callback] 📋 Usuario debe aceptar términos');
               if (isMounted) setStatus('success');
-              safeRedirect(`/auth/terms-acceptance?userId=${userData.id}`, 300);
+              safeRedirect(`/auth/terms-acceptance?userId=${userData.id}`, 100);
               return;
             }
             
-            // FIXED: Check if user needs to complete profile (username and name are mandatory)
+            // Check if user needs to complete profile (username and name are mandatory)
             // New users (without username or nombre) should go to /editar/perfil
             if (!userData.username || !userData.nombre) {
               console.log('[Callback] 📝 Usuario nuevo - redirigiendo a editar perfil');
               if (isMounted) setStatus('success');
-              safeRedirect('/editar/perfil', 300);
+              safeRedirect('/editar/perfil', 100);
               return;
             }
             
-            // FIXED: Existing users (with username and nombre) go to explorar
-            console.log('[Callback] ✅ Usuario existente - redirigiendo a explorar');
+            // Existing users go to home/explorar (the main feed - "barlive")
+            console.log('[Callback] ✅ Usuario existente - redirigiendo a explorar (barlive)');
             if (isMounted) setStatus('success');
-            safeRedirect('/(tabs)/explorar', 300);
+            safeRedirect('/(tabs)/explorar', 100);
             return;
           }
           
           // If no user data, redirect to explorar
           console.log('[Callback] ⚠️ No se pudo obtener datos del usuario, redirigiendo a explorar');
           if (isMounted) setStatus('success');
-          safeRedirect('/(tabs)/explorar', 300);
+          safeRedirect('/(tabs)/explorar', 100);
         } else {
           console.log('[Callback] ℹ️ No hay sesión activa, redirigiendo a explorar');
-          safeRedirect('/(tabs)/explorar', 500);
+          safeRedirect('/(tabs)/explorar', 300);
         }
       } catch (error: any) {
         console.error('[Callback] ❌ Error en callback:', error);
@@ -228,7 +222,7 @@ export default function AuthCallbackScreen() {
           setStatus('error');
           setErrorMessage(error.message || 'Error inesperado');
         }
-        safeRedirect('/(tabs)/explorar', 2000);
+        safeRedirect('/(tabs)/explorar', 1500);
       }
     };
 
@@ -249,7 +243,7 @@ export default function AuthCallbackScreen() {
         <>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.text}>Completando autenticación...</Text>
-          <Text style={styles.subText}>Por favor espera un momento</Text>
+          <Text style={styles.subText}>Un momento por favor</Text>
         </>
       )}
       
@@ -259,7 +253,7 @@ export default function AuthCallbackScreen() {
             <Text style={styles.successIconText}>✓</Text>
           </View>
           <Text style={styles.text}>¡Autenticación exitosa!</Text>
-          <Text style={styles.subText}>Redirigiendo...</Text>
+          <Text style={styles.subText}>Redirigiendo a BarLive...</Text>
         </>
       )}
       
