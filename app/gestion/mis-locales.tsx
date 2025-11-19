@@ -431,51 +431,64 @@ export default function MisLocalesScreen() {
                       </TouchableOpacity>
                     </View>
 
-                    {/* COMPACT ACTIONS */}
-                    <View style={styles.actionsCompact}>
-                      {selectedLocalId !== local.id && (
+                    {/* SINGLE ROW ACTIONS - ALL 4 BUTTONS IN ONE ROW */}
+                    <View style={styles.actionsRow}>
+                      <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={() => router.push(`/perfil/local?localId=${local.id}`)}
+                      >
+                        <IconSymbol ios_icon_name="person.2" android_material_icon_name="people" size={18} color={colors.primary} />
+                        <Text style={styles.actionButtonText}>Perfil</Text>
+                      </TouchableOpacity>
+                      
+                      <View style={styles.actionDivider} />
+                      
+                      <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={() => router.push(`/editar/local?id=${local.id}`)}
+                      >
+                        <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={18} color={colors.primary} />
+                        <Text style={styles.actionButtonText}>Editar</Text>
+                      </TouchableOpacity>
+                      
+                      <View style={styles.actionDivider} />
+                      
+                      <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={() => router.push(`/crear/evento?localId=${local.id}`)}
+                      >
+                        <IconSymbol ios_icon_name="calendar.badge.plus" android_material_icon_name="event" size={18} color={colors.primary} />
+                        <Text style={styles.actionButtonText}>Evento</Text>
+                      </TouchableOpacity>
+                      
+                      <View style={styles.actionDivider} />
+                      
+                      <TouchableOpacity
+                        style={styles.actionButton}
+                        onPress={() => router.push(`/gestion/panel-analisis?localId=${local.id}`)}
+                      >
+                        <IconSymbol ios_icon_name="chart.bar.fill" android_material_icon_name="bar_chart" size={18} color={colors.primary} />
+                        <Text style={styles.actionButtonText}>Análisis</Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* ACTIVATE BUTTON (if not selected) */}
+                    {selectedLocalId !== local.id && (
+                      <View style={styles.activateContainer}>
                         <TouchableOpacity
-                          style={styles.actionPrimary}
+                          style={styles.activateButton}
                           onPress={() => handleSelectLocal(local.id)}
                         >
                           <LinearGradient
                             colors={[colors.primary, colors.secondary]}
-                            style={styles.actionPrimaryGradient}
+                            style={styles.activateGradient}
                           >
-                            <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={16} color="#FFFFFF" />
-                            <Text style={styles.actionPrimaryText}>Activar</Text>
+                            <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={18} color="#FFFFFF" />
+                            <Text style={styles.activateButtonText}>Activar Local</Text>
                           </LinearGradient>
                         </TouchableOpacity>
-                      )}
-                      <TouchableOpacity
-                        style={styles.actionSecondary}
-                        onPress={() => router.push(`/perfil/local?localId=${local.id}`)}
-                      >
-                        <IconSymbol ios_icon_name="person.2" android_material_icon_name="people" size={16} color={colors.primary} />
-                        <Text style={styles.actionSecondaryText}>Perfil</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.actionSecondary}
-                        onPress={() => router.push(`/editar/local?id=${local.id}`)}
-                      >
-                        <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={16} color={colors.primary} />
-                        <Text style={styles.actionSecondaryText}>Editar</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.actionSecondary}
-                        onPress={() => router.push(`/crear/evento?localId=${local.id}`)}
-                      >
-                        <IconSymbol ios_icon_name="calendar.badge.plus" android_material_icon_name="event" size={16} color={colors.primary} />
-                        <Text style={styles.actionSecondaryText}>Evento</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.actionSecondary}
-                        onPress={() => router.push(`/gestion/panel-analisis?localId=${local.id}`)}
-                      >
-                        <IconSymbol ios_icon_name="chart.bar.fill" android_material_icon_name="bar_chart" size={16} color={colors.primary} />
-                        <Text style={styles.actionSecondaryText}>Análisis</Text>
-                      </TouchableOpacity>
-                    </View>
+                      </View>
+                    )}
 
                     {/* PLAN MANAGEMENT */}
                     <View style={styles.planManagement}>
@@ -827,52 +840,59 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
 
-  // COMPACT ACTIONS
-  actionsCompact: {
+  // SINGLE ROW ACTIONS - ALL 4 BUTTONS IN ONE ROW
+  actionsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    padding: 12,
+    alignItems: 'center',
+    backgroundColor: colors.cardBackground,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 6,
+  },
+  actionButtonText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.primary,
+    textAlign: 'center',
+  },
+  actionDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: colors.cardBorder,
+  },
+
+  // ACTIVATE BUTTON
+  activateContainer: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     backgroundColor: colors.cardBackground,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
   },
-  actionPrimary: {
-    flex: 1,
-    minWidth: '100%',
+  activateButton: {
     borderRadius: 8,
     overflow: 'hidden',
   },
-  actionPrimaryGradient: {
+  activateGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
+    gap: 8,
+    paddingVertical: 12,
   },
-  actionPrimaryText: {
-    fontSize: 13,
+  activateButtonText: {
+    fontSize: 14,
     fontWeight: '700',
     color: '#FFFFFF',
-  },
-  actionSecondary: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    backgroundColor: colors.background,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    flex: 1,
-    minWidth: '22%',
-  },
-  actionSecondaryText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.primary,
   },
 
   // PLAN MANAGEMENT
