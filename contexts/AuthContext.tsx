@@ -38,9 +38,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         console.log('[AuthContext] 🔍 Obteniendo sesión actual...');
         
-        // ENHANCED: Add retry logic with storage verification
+        // ENHANCED: Add retry logic with exponential backoff
         let currentSession = null;
-        let retries = 5; // Increased retries
+        let retries = 6; // Increased retries
+        let delay = 500; // Start with 500ms
         
         while (retries > 0 && !currentSession) {
           const { data: { session: sessionData }, error } = await supabase.auth.getSession();
@@ -52,13 +53,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           currentSession = sessionData;
           
           if (!currentSession && retries > 1) {
-            console.log('[AuthContext] ⏳ Sesión no encontrada, verificando storage...');
+            console.log(`[AuthContext] ⏳ Sesión no encontrada, reintentando en ${delay}ms... (${6 - retries + 1}/6)`);
             
             // Check if session exists in storage
             try {
               if (Platform.OS !== 'web') {
                 const storedSession = await SecureStore.getItemAsync('supabase.auth.token');
                 console.log('[AuthContext] SecureStore session:', storedSession ? 'PRESENTE' : 'AUSENTE');
+                
+                // If session exists in storage but not in memory, try to restore it
+                if (storedSession) {
+                  console.log('[AuthContext] 🔧 Intentando restaurar sesión desde storage...');
+                  try {
+                    const parsed = JSON.parse(storedSession);
+                    if (parsed.access_token && parsed.refresh_token) {
+                      const { data, error: setError } = await supabase.auth.setSession({
+                        access_token: parsed.access_token,
+                        refresh_token: parsed.refresh_token,
+                      });
+                      
+                      if (!setError && data.session) {
+                        console.log('[AuthContext] ✅ Sesión restaurada desde storage');
+                        currentSession = data.session;
+                        break;
+                      }
+                    }
+                  } catch (e) {
+                    console.error('[AuthContext] Error restaurando sesión:', e);
+                  }
+                }
               } else {
                 const storedSession = localStorage.getItem('supabase.auth.token');
                 console.log('[AuthContext] localStorage session:', storedSession ? 'PRESENTE' : 'AUSENTE');
@@ -67,8 +90,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               console.error('[AuthContext] Error verificando storage:', e);
             }
             
-            console.log('[AuthContext] ⏳ Reintentando en 700ms...');
-            await new Promise(resolve => setTimeout(resolve, 700));
+            await new Promise(resolve => setTimeout(resolve, delay));
+            delay = Math.min(delay * 1.5, 2000); // Exponential backoff, max 2s
           }
           
           retries--;
@@ -98,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             console.log('[AuthContext] ⚠️ No se pudo cargar el perfil del usuario');
           }
         } else {
-          console.log('[AuthContext] ℹ️ No hay sesión activa después de', 5 - retries, 'intentos');
+          console.log('[AuthContext] ℹ️ No hay sesión activa después de 6 intentos');
         }
       } catch (error) {
         console.error('[AuthContext] ❌ Error inicializando:', error);
@@ -131,7 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Load user profile
           try {
             // Wait a bit for the database trigger to create the profile
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise(resolve => setTimeout(resolve, 1500));
             
             const { user: userData } = await getCurrentUser();
             if (userData) {
@@ -236,9 +259,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       console.log('[AuthContext] 🔄 Refrescando usuario...');
       
-      // ENHANCED: Add retry logic with storage verification
+      // ENHANCED: Add retry logic with exponential backoff
       let currentSession = null;
-      let retries = 5; // Increased retries
+      let retries = 6; // Increased retries
+      let delay = 500; // Start with 500ms
       
       while (retries > 0 && !currentSession) {
         const { data: { session: sessionData }, error } = await supabase.auth.getSession();
@@ -250,7 +274,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         currentSession = sessionData;
         
         if (!currentSession && retries > 1) {
-          console.log('[AuthContext] ⏳ Sesión no encontrada en refresh, verificando storage...');
+          console.log(`[AuthContext] ⏳ Sesión no encontrada en refresh, reintentando en ${delay}ms... (${6 - retries + 1}/6)`);
           
           // Check if session exists in storage
           try {
@@ -287,15 +311,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             console.error('[AuthContext] Error verificando storage:', e);
           }
           
-          console.log('[AuthContext] ⏳ Reintentando en 700ms...');
-          await new Promise(resolve => setTimeout(resolve, 700));
+          await new Promise(resolve => setTimeout(resolve, delay));
+          delay = Math.min(delay * 1.5, 2000); // Exponential backoff, max 2s
         }
         
         retries--;
       }
       
       if (!currentSession) {
-        console.log('[AuthContext] ⚠️ No hay sesión activa para refrescar después de', 5 - retries, 'intentos');
+        console.log('[AuthContext] ⚠️ No hay sesión activa para refrescar después de 6 intentos');
         setUser(null);
         setSession(null);
         return;

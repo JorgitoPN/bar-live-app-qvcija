@@ -50,7 +50,7 @@ export default function AuthCallbackScreen() {
 
     const verifyStoredSession = async () => {
       try {
-        addDebugInfo('🔍 Verificando sesión almacenada en SecureStore...');
+        addDebugInfo('🔍 Verificando sesión almacenada...');
         
         if (Platform.OS !== 'web') {
           const storedSession = await SecureStore.getItemAsync('supabase.auth.token');
@@ -140,19 +140,32 @@ export default function AuthCallbackScreen() {
               addDebugInfo(`User ID: ${data.user.id}`);
               addDebugInfo(`Session expires at: ${data.session.expires_at}`);
               
-              // CRITICAL: Wait for the session to be persisted to storage
-              addDebugInfo('⏳ Esperando persistencia en storage (2000ms)...');
-              await new Promise(resolve => setTimeout(resolve, 2000));
+              // CRITICAL: Wait longer for the session to be persisted to storage
+              addDebugInfo('⏳ Esperando persistencia en storage (3000ms)...');
+              await new Promise(resolve => setTimeout(resolve, 3000));
               
               // Verify storage
               await verifyStoredSession();
               
-              // Verify the session was persisted
+              // Verify the session was persisted with retries
               addDebugInfo('🔍 Verificando sesión persistida...');
-              const { data: { session: verifySession } } = await supabase.auth.getSession();
+              let verifySession = null;
+              let verifyRetries = 3;
+              
+              while (verifyRetries > 0 && !verifySession) {
+                const { data: { session: checkSession } } = await supabase.auth.getSession();
+                verifySession = checkSession;
+                
+                if (!verifySession && verifyRetries > 1) {
+                  addDebugInfo(`⏳ Sesión no verificada, reintentando... (${4 - verifyRetries}/3)`);
+                  await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                
+                verifyRetries--;
+              }
               
               if (!verifySession) {
-                addDebugInfo('❌ La sesión no se persistió correctamente');
+                addDebugInfo('❌ La sesión no se persistió correctamente después de 3 intentos');
                 
                 // Try one more time to set the session
                 addDebugInfo('🔄 Reintentando establecer sesión...');
@@ -173,7 +186,7 @@ export default function AuthCallbackScreen() {
                 }
                 
                 addDebugInfo('✅ Sesión establecida en segundo intento');
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                await new Promise(resolve => setTimeout(resolve, 1500));
               }
               
               addDebugInfo('✅ Sesión verificada y persistida correctamente');
@@ -191,19 +204,21 @@ export default function AuthCallbackScreen() {
                   addDebugInfo('Failed to register push notifications');
                 });
               
-              // Force multiple refreshes to ensure AuthContext picks up the session
+              // Force multiple refreshes with longer delays to ensure AuthContext picks up the session
               addDebugInfo('🔄 Refrescando usuario en AuthContext (intento 1)...');
               await refreshUser();
               
-              await new Promise(resolve => setTimeout(resolve, 800));
+              await new Promise(resolve => setTimeout(resolve, 1000));
               
               addDebugInfo('🔄 Refrescando usuario en AuthContext (intento 2)...');
               await refreshUser();
               
-              await new Promise(resolve => setTimeout(resolve, 500));
+              await new Promise(resolve => setTimeout(resolve, 800));
               
               addDebugInfo('🔄 Refrescando usuario en AuthContext (intento 3)...');
               await refreshUser();
+              
+              await new Promise(resolve => setTimeout(resolve, 500));
               
               // Get user profile to check if needs profile completion
               addDebugInfo('🔍 Obteniendo perfil de usuario...');
@@ -292,21 +307,23 @@ export default function AuthCallbackScreen() {
           
           // Wait for the session to be fully established
           addDebugInfo('⏳ Esperando establecimiento completo de sesión...');
-          await new Promise(resolve => setTimeout(resolve, 1500));
+          await new Promise(resolve => setTimeout(resolve, 2000));
           
-          // Force refresh user in AuthContext multiple times
+          // Force refresh user in AuthContext multiple times with longer delays
           addDebugInfo('🔄 Refrescando usuario en AuthContext (intento 1)...');
           await refreshUser();
           
-          await new Promise(resolve => setTimeout(resolve, 800));
+          await new Promise(resolve => setTimeout(resolve, 1000));
           
           addDebugInfo('🔄 Refrescando usuario en AuthContext (intento 2)...');
           await refreshUser();
           
-          await new Promise(resolve => setTimeout(resolve, 500));
+          await new Promise(resolve => setTimeout(resolve, 800));
           
           addDebugInfo('🔄 Refrescando usuario en AuthContext (intento 3)...');
           await refreshUser();
+          
+          await new Promise(resolve => setTimeout(resolve, 500));
           
           // Get user profile to check if needs profile completion
           addDebugInfo('🔍 Obteniendo perfil de usuario...');

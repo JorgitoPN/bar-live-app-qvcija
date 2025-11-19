@@ -9,23 +9,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 
-// Flag to track if app is ready for SecureStore access
-let isAppReady = false;
-
-// Set app as ready after a short delay to ensure full initialization
-setTimeout(() => {
-  isAppReady = true;
-  console.log('[Supabase] ✅ App ready for SecureStore access');
-}, 1000);
-
-// Custom storage implementation for React Native with fallback
+// Custom storage implementation for React Native with improved error handling
 const ExpoSecureStoreAdapter = {
   getItem: async (key: string) => {
     try {
-      // On iOS, check if app is ready before accessing SecureStore
-      if (Platform.OS === 'ios' && !isAppReady) {
-        console.log('[SecureStore] ⏳ App not ready yet, using AsyncStorage fallback');
-        return await AsyncStorage.getItem(key);
+      if (Platform.OS === 'web') {
+        return localStorage.getItem(key);
       }
       
       const value = await SecureStore.getItemAsync(key);
@@ -45,10 +34,8 @@ const ExpoSecureStoreAdapter = {
   },
   setItem: async (key: string, value: string) => {
     try {
-      // On iOS, check if app is ready before accessing SecureStore
-      if (Platform.OS === 'ios' && !isAppReady) {
-        console.log('[SecureStore] ⏳ App not ready yet, using AsyncStorage fallback');
-        await AsyncStorage.setItem(key, value);
+      if (Platform.OS === 'web') {
+        localStorage.setItem(key, value);
         return;
       }
       
@@ -67,10 +54,8 @@ const ExpoSecureStoreAdapter = {
   },
   removeItem: async (key: string) => {
     try {
-      // On iOS, check if app is ready before accessing SecureStore
-      if (Platform.OS === 'ios' && !isAppReady) {
-        console.log('[SecureStore] ⏳ App not ready yet, using AsyncStorage fallback');
-        await AsyncStorage.removeItem(key);
+      if (Platform.OS === 'web') {
+        localStorage.removeItem(key);
         return;
       }
       
@@ -97,10 +82,8 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     persistSession: true,
     detectSessionInUrl: Platform.OS === 'web', // Enable URL detection on web for OAuth callback
     flowType: 'pkce', // Use PKCE flow for better security
-    // CRITICAL FIX: Increase storage key to avoid conflicts
     storageKey: 'supabase.auth.token',
-    // CRITICAL FIX: Enable debug mode to see what's happening
-    debug: false, // Set to true only for debugging
+    debug: __DEV__, // Enable debug mode in development
   },
 });
 
