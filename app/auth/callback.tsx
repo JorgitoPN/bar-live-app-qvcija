@@ -52,7 +52,7 @@ export default function AuthCallbackScreen() {
         addDebugInfo('🔄 Procesando callback de autenticación...');
         addDebugInfo(`Platform: ${Platform.OS}`);
         
-        // For web, check for OAuth errors in URL
+        // For web, check for OAuth tokens in URL
         if (Platform.OS === 'web' && typeof window !== 'undefined') {
           addDebugInfo('🌐 Detectando OAuth callback en web...');
           addDebugInfo(`URL: ${window.location.href}`);
@@ -86,78 +86,116 @@ export default function AuthCallbackScreen() {
           const refreshToken = hashParams.get('refresh_token');
           
           if (accessToken && refreshToken) {
-            addDebugInfo('✅ Tokens encontrados en URL, estableciendo sesión inmediatamente...');
+            addDebugInfo('✅ Tokens encontrados en URL');
+            addDebugInfo(`Access token (primeros 20 chars): ${accessToken.substring(0, 20)}...`);
+            addDebugInfo(`Refresh token (primeros 20 chars): ${refreshToken.substring(0, 20)}...`);
             
             try {
-              const { data, error } = await supabase.auth.setSession({
+              // CRITICAL: Set the session explicitly with the tokens from URL
+              addDebugInfo('🔐 Estableciendo sesión con tokens de URL...');
+              const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
                 access_token: accessToken,
                 refresh_token: refreshToken,
               });
               
-              if (error) {
-                addDebugInfo(`❌ Error estableciendo sesión: ${error.message}`);
-                throw error;
+              if (sessionError) {
+                addDebugInfo(`❌ Error estableciendo sesión: ${sessionError.message}`);
+                throw sessionError;
               }
               
-              if (data.session) {
-                addDebugInfo('✅ Sesión establecida exitosamente desde URL');
-                addDebugInfo(`User: ${data.session.user.email}`);
+              if (!sessionData.session) {
+                addDebugInfo('❌ setSession no devolvió sesión');
+                throw new Error('No se pudo establecer la sesión');
+              }
+              
+              addDebugInfo('✅ Sesión establecida exitosamente');
+              addDebugInfo(`User: ${sessionData.session.user.email}`);
+              addDebugInfo(`Session expires at: ${new Date(sessionData.session.expires_at! * 1000).toISOString()}`);
+              
+              // CRITICAL: Wait for storage to persist the session
+              addDebugInfo('⏳ Esperando persistencia en storage (2s)...');
+              await new Promise(resolve => setTimeout(resolve, 2000));
+              
+              // Verify session was persisted
+              addDebugInfo('🔍 Verificando sesión persistida...');
+              const { data: { session: verifiedSession }, error: verifyError } = await supabase.auth.getSession();
+              
+              if (verifyError) {
+                addDebugInfo(`❌ Error verificando sesión: ${verifyError.message}`);
+              }
+              
+              if (!verifiedSession) {
+                addDebugInfo('❌ Sesión no se persistió correctamente');
+                throw new Error('La sesión no se guardó en el almacenamiento');
+              }
+              
+              addDebugInfo('✅ Sesión verificada en storage');
+              addDebugInfo(`Verified user: ${verifiedSession.user.email}`);
+              
+              // Force refresh user in AuthContext
+              addDebugInfo('🔄 Refrescando usuario en AuthContext...');
+              await refreshUser();
+              
+              // Get user profile
+              addDebugInfo('🔍 Obteniendo perfil de usuario...');
+              const { user: userData } = await getCurrentUser();
+              
+              if (userData) {
+                addDebugInfo(`✅ Perfil obtenido: ${userData.email}`);
                 
-                // Wait for storage to persist
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                // Register push notifications (non-blocking)
+                registerForPushNotifications()
+                  .then(pushToken => {
+                    if (pushToken) {
+                      savePushToken(userData.id, pushToken).catch(() => {});
+                    }
+                  })
+                  .catch(() => {});
                 
-                // Force refresh user in AuthContext
-                addDebugInfo('🔄 Refrescando usuario en AuthContext...');
-                await refreshUser();
+                if (isMounted) setStatus('success');
                 
-                // Get user profile
-                addDebugInfo('🔍 Obteniendo perfil de usuario...');
-                const { user: userData } = await getCurrentUser();
-                
-                if (userData) {
-                  addDebugInfo(`✅ Perfil obtenido: ${userData.email}`);
-                  
-                  // Register push notifications (non-blocking)
-                  registerForPushNotifications()
-                    .then(pushToken => {
-                      if (pushToken) {
-                        savePushToken(userData.id, pushToken).catch(() => {});
-                      }
-                    })
-                    .catch(() => {});
-                  
-                  if (isMounted) setStatus('success');
-                  
-                  // Check if user needs to accept terms
-                  if (!userData.ha_aceptado_terminos) {
-                    addDebugInfo('📋 Usuario debe aceptar términos');
-                    safeRedirect(`/auth/terms-acceptance?userId=${userData.id}`, 500);
-                    return;
-                  }
-                  
-                  // Check if user needs to complete profile
-                  if (!userData.username || !userData.nombre) {
-                    addDebugInfo('📝 Usuario nuevo - redirigiendo a editar perfil');
-                    safeRedirect('/editar/perfil', 500);
-                    return;
-                  }
-                  
-                  // Existing users go to explorar
-                  addDebugInfo('✅ Usuario existente - redirigiendo a explorar');
-                  safeRedirect('/(tabs)/explorar', 500);
+                // Check if user needs to accept terms
+                if (!userData.ha_aceptado_terminos) {
+                  addDebugInfo('📋 Usuario debe aceptar términos');
+                  safeRedirect(`/auth/terms-acceptance?userId=${userData.id}`, 500);
                   return;
                 }
+                
+                // Check if user needs to complete profile
+                if (!userData.username || !userData.nombre) {
+                  addDebugInfo('📝 Usuario nuevo - redirigiendo a editar perfil');
+                  safeRedirect('/editar/perfil', 500);
+                  return;
+                }
+                
+                // Existing users go to explorar
+                addDebugInfo('✅ Usuario existente - redirigiendo a explorar');
+                safeRedirect('/(tabs)/explorar', 500);
+                return;
+              } else {
+                addDebugInfo('⚠️ No se pudo obtener perfil de usuario');
+                throw new Error('No se pudo cargar el perfil del usuario');
               }
             } catch (error: any) {
-              addDebugInfo(`❌ Error en setSession: ${error.message}`);
-              // Continue to fallback strategies
+              addDebugInfo(`❌ Error en proceso de sesión: ${error.message}`);
+              console.error('[Callback] ❌ Error:', error);
+              
+              if (isMounted) {
+                setStatus('error');
+                setErrorMessage('No se pudo completar la autenticación');
+                setErrorDetails(error.message || 'Error al establecer la sesión');
+              }
+              safeRedirect('/(tabs)/explorar', 3000);
+              return;
             }
+          } else {
+            addDebugInfo('⚠️ No se encontraron tokens en URL');
           }
         }
         
-        // FALLBACK: Wait for Supabase to automatically detect the session
-        addDebugInfo('⏳ Esperando detección automática de sesión (2s)...');
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // FALLBACK: For native or if no tokens in URL
+        addDebugInfo('⏳ Esperando detección automática de sesión (3s)...');
+        await new Promise(resolve => setTimeout(resolve, 3000));
         
         // Try to get session
         addDebugInfo('🔍 Verificando sesión...');
@@ -284,8 +322,8 @@ export default function AuthCallbackScreen() {
       {/* Debug info - always show in development */}
       {__DEV__ && debugInfo.length > 0 && (
         <ScrollView style={styles.debugContainer}>
-          <Text style={styles.debugTitle}>Debug Info (últimos 20):</Text>
-          {debugInfo.slice(-20).map((info, index) => (
+          <Text style={styles.debugTitle}>Debug Info (últimos 30):</Text>
+          {debugInfo.slice(-30).map((info, index) => (
             <Text key={index} style={styles.debugText}>{info}</Text>
           ))}
         </ScrollView>
