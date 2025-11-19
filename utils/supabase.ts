@@ -3,88 +3,33 @@ import 'react-native-url-polyfill/auto';
 import { createClient } from '@supabase/supabase-js';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Configuración de Supabase usando variables de entorno
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 
-// Flag to track if app is ready for SecureStore access
-let isAppReady = false;
-
-// Set app as ready after a short delay to ensure full initialization
-setTimeout(() => {
-  isAppReady = true;
-  console.log('[Supabase] ✅ App ready for SecureStore access');
-}, 1000);
-
-// Custom storage implementation for React Native with fallback
+// Custom storage implementation for React Native using SecureStore
 const ExpoSecureStoreAdapter = {
   getItem: async (key: string) => {
     try {
-      // On iOS, check if app is ready before accessing SecureStore
-      if (Platform.OS === 'ios' && !isAppReady) {
-        console.log('[SecureStore] ⏳ App not ready yet, using AsyncStorage fallback');
-        return await AsyncStorage.getItem(key);
-      }
-      
-      const value = await SecureStore.getItemAsync(key);
-      return value;
-    } catch (error: any) {
-      console.error('[SecureStore] ❌ Error getting item:', error?.message || error);
-      
-      // Fallback to AsyncStorage if SecureStore fails
-      try {
-        console.log('[SecureStore] 🔄 Falling back to AsyncStorage');
-        return await AsyncStorage.getItem(key);
-      } catch (fallbackError) {
-        console.error('[SecureStore] ❌ AsyncStorage fallback also failed:', fallbackError);
-        return null;
-      }
+      return await SecureStore.getItemAsync(key);
+    } catch (error) {
+      console.error('Error getting item from SecureStore:', error);
+      return null;
     }
   },
   setItem: async (key: string, value: string) => {
     try {
-      // On iOS, check if app is ready before accessing SecureStore
-      if (Platform.OS === 'ios' && !isAppReady) {
-        console.log('[SecureStore] ⏳ App not ready yet, using AsyncStorage fallback');
-        await AsyncStorage.setItem(key, value);
-        return;
-      }
-      
       await SecureStore.setItemAsync(key, value);
-    } catch (error: any) {
-      console.error('[SecureStore] ❌ Error setting item:', error?.message || error);
-      
-      // Fallback to AsyncStorage if SecureStore fails
-      try {
-        console.log('[SecureStore] 🔄 Falling back to AsyncStorage');
-        await AsyncStorage.setItem(key, value);
-      } catch (fallbackError) {
-        console.error('[SecureStore] ❌ AsyncStorage fallback also failed:', fallbackError);
-      }
+    } catch (error) {
+      console.error('Error setting item in SecureStore:', error);
     }
   },
   removeItem: async (key: string) => {
     try {
-      // On iOS, check if app is ready before accessing SecureStore
-      if (Platform.OS === 'ios' && !isAppReady) {
-        console.log('[SecureStore] ⏳ App not ready yet, using AsyncStorage fallback');
-        await AsyncStorage.removeItem(key);
-        return;
-      }
-      
       await SecureStore.deleteItemAsync(key);
-    } catch (error: any) {
-      console.error('[SecureStore] ❌ Error removing item:', error?.message || error);
-      
-      // Fallback to AsyncStorage if SecureStore fails
-      try {
-        console.log('[SecureStore] 🔄 Falling back to AsyncStorage');
-        await AsyncStorage.removeItem(key);
-      } catch (fallbackError) {
-        console.error('[SecureStore] ❌ AsyncStorage fallback also failed:', fallbackError);
-      }
+    } catch (error) {
+      console.error('Error removing item from SecureStore:', error);
     }
   },
 };

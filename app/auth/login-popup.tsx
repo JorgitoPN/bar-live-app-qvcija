@@ -47,18 +47,6 @@ export default function LoginPopupScreen() {
     }
   }, [user, router]);
 
-  // Add timeout to reset Google loading state if it takes too long
-  useEffect(() => {
-    if (googleLoading) {
-      const timeout = setTimeout(() => {
-        console.log('[LoginPopup] ⏱️ Timeout de Google loading, reseteando estado');
-        setGoogleLoading(false);
-      }, 30000); // 30 seconds timeout
-
-      return () => clearTimeout(timeout);
-    }
-  }, [googleLoading]);
-
   const handleBarLiveAuth = async () => {
     if (!email || !password) {
       Alert.alert('Error', 'Por favor, completa todos los campos');
@@ -141,44 +129,38 @@ export default function LoginPopupScreen() {
       console.log('[LoginPopup] 🔐 Iniciando Google Sign-In...');
       const result = await signInWithGoogle();
 
-      // On web, signInWithGoogle will redirect to Google OAuth
-      // The page will reload and come back through the callback
-      // So we don't need to handle the result here for web
-      if (Platform.OS === 'web') {
-        console.log('[LoginPopup] 🌐 Redirigiendo a Google OAuth...');
-        // The loading state will be reset when the page reloads
-        // or by the timeout if something goes wrong
-        return;
-      }
-
+      // On web, signInWithGoogle will redirect to callback page
       // On native, we handle the result here
-      const { user: userData, error } = result;
+      if (Platform.OS !== 'web') {
+        const { user: userData, error } = result;
 
-      if (error) {
-        console.log('[LoginPopup] ❌ Error en Google sign-in:', error);
-        
-        if (error.includes('cancelled') || error.includes('canceled')) {
-          // User cancelled, no need to show error
-          console.log('[LoginPopup] ℹ️ Usuario canceló');
-        } else {
-          Alert.alert('Error', error);
+        if (error) {
+          console.log('[LoginPopup] ❌ Error en Google sign-in:', error);
+          
+          if (error.includes('cancelled') || error.includes('canceled')) {
+            // User cancelled, no need to show error
+            console.log('[LoginPopup] ℹ️ Usuario canceló');
+          } else {
+            Alert.alert('Error', error);
+          }
+          setGoogleLoading(false);
+          return;
         }
-        setGoogleLoading(false);
-        return;
-      }
 
-      if (userData) {
-        console.log('[LoginPopup] ✅ Google Sign-In exitoso');
+        if (userData) {
+          console.log('[LoginPopup] ✅ Google Sign-In exitoso');
+          
+          // Wait for auth context to update
+          await new Promise(resolve => setTimeout(resolve, 500));
+          await refreshUser();
+          
+          // Close modal and let AuthContext handle navigation
+          router.back();
+        }
         
-        // Wait for auth context to update
-        await new Promise(resolve => setTimeout(resolve, 500));
-        await refreshUser();
-        
-        // Close modal and let AuthContext handle navigation
-        router.back();
+        setGoogleLoading(false);
       }
-      
-      setGoogleLoading(false);
+      // On web, the page will redirect, so we keep the loading state
     } catch (error: any) {
       console.error('[LoginPopup] ❌ Error:', error);
       Alert.alert('Error', error.message || 'Error al iniciar sesión con Google');
