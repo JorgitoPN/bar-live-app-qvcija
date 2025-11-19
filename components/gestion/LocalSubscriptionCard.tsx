@@ -691,8 +691,8 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
               onPress={() => router.push(`/editar/local?id=${local.id}`)}
             >
               <View style={styles.actionButtonContent}>
-                <View style={[styles.iconCircle, { backgroundColor: '#EDE9FE' }]}>
-                  <IconSymbol name="pencil" size={18} color="#8B5CF6" />
+                <View style={[styles.iconCircle, { backgroundColor: '#E0F2FE' }]}>
+                  <IconSymbol name="pencil" size={16} color="#0EA5E9" />
                 </View>
                 <Text style={styles.actionButtonText}>Editar</Text>
               </View>
@@ -704,7 +704,7 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
             >
               <View style={styles.actionButtonContent}>
                 <View style={[styles.iconCircle, { backgroundColor: '#FEF3C7' }]}>
-                  <IconSymbol name="calendar.badge.plus" size={18} color="#F59E0B" />
+                  <IconSymbol name="calendar.badge.plus" size={16} color="#F59E0B" />
                 </View>
                 <Text style={styles.actionButtonText}>Evento</Text>
               </View>
@@ -724,7 +724,7 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
                 ]}>
                   <IconSymbol 
                     name="chart.bar.fill" 
-                    size={18} 
+                    size={16} 
                     color={hasPremiumAccess() ? '#10B981' : '#9CA3AF'}
                   />
                 </View>
@@ -734,11 +734,6 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
                 ]}>
                   Análisis
                 </Text>
-                {hasPremiumAccess() && (
-                  <View style={styles.premiumBadge}>
-                    <IconSymbol name="star.fill" size={8} color="#F59E0B" />
-                  </View>
-                )}
               </View>
             </TouchableOpacity>
           </View>
@@ -1080,7 +1075,7 @@ const styles = StyleSheet.create({
   actionsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 8,
+    gap: 10,
     marginBottom: 12,
   },
   actionButton: {
@@ -1088,11 +1083,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.background,
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 6,
     borderWidth: 1,
     borderColor: colors.cardBorder,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   actionButtonDisabled: {
     opacity: 0.6,
@@ -1100,34 +1100,24 @@ const styles = StyleSheet.create({
   actionButtonContent: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 8,
     position: 'relative',
   },
   iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
   actionButtonText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: colors.text,
     textAlign: 'center',
   },
   actionButtonTextDisabled: {
     color: colors.textSecondary,
-  },
-  premiumBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    backgroundColor: '#FEF3C7',
-    borderRadius: 8,
-    padding: 3,
-    borderWidth: 1,
-    borderColor: '#F59E0B',
   },
   selectButton: {
     borderRadius: 12,
