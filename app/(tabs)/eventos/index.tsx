@@ -291,7 +291,7 @@ export default function EventosScreen() {
               </Text>
               <Text style={styles.eventoLocal}>{evento.localNombre}</Text>
             </View>
-            {evento.precio && (
+            {evento.precio !== null && evento.precio !== undefined && evento.precio > 0 && (
               <View style={styles.precioContainer}>
                 <Text style={styles.precioTexto}>{evento.precio}€</Text>
               </View>

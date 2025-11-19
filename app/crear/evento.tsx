@@ -12,6 +12,10 @@ import {
   ActivityIndicator,
   Platform,
   Switch,
+  Modal,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -22,7 +26,7 @@ import { useSelectedLocal } from '@/contexts/SelectedLocalContext';
 import { supabase } from '@/utils/supabase';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 interface LocalConPlan {
@@ -93,11 +97,6 @@ export default function CrearEventoScreen() {
 
       console.log('[CrearEvento] Local loaded:', localInfo.nombre);
 
-      // ✅ FIX: Fetch subscription separately (no embed) to avoid multiple relationship error
-      // The suscripciones_locales table has TWO foreign keys to planes_suscripcion:
-      // - plan_id (current active plan)
-      // - plan_pendiente_id (pending plan for downgrades)
-      // This causes PGRST201 error when trying to embed planes_suscripcion
       const { data: suscripcion, error: suscripcionError } = await supabase
         .from('suscripciones_locales')
         .select('id, eventos_usados_mes, creditos_eventos_restantes, plan_id')
@@ -126,7 +125,6 @@ export default function CrearEventoScreen() {
         return;
       }
 
-      // Fetch plan details separately
       let planNombre = 'basico';
       let eventosDisponibles = 0;
 
@@ -146,19 +144,15 @@ export default function CrearEventoScreen() {
       }
 
       const eventosUsados = suscripcion?.eventos_usados_mes || 0;
-      
-      // ✅ FIX: Get creditos_eventos_restantes, if null or undefined, use eventos_mes from plan
       let creditosEventosRestantes = suscripcion?.creditos_eventos_restantes;
       
       console.log('[CrearEvento] Raw creditos_eventos_restantes:', creditosEventosRestantes);
       console.log('[CrearEvento] Type:', typeof creditosEventosRestantes);
       
-      // If credits are null/undefined, initialize from plan
       if (creditosEventosRestantes === null || creditosEventosRestantes === undefined) {
         console.log('[CrearEvento] ⚠️ Credits are null/undefined, initializing from plan...');
         creditosEventosRestantes = eventosDisponibles;
         
-        // Update the database with the correct credits
         if (suscripcion?.id) {
           const { error: updateError } = await supabase
             .from('suscripciones_locales')
@@ -182,8 +176,6 @@ export default function CrearEventoScreen() {
       console.log('[CrearEvento] - Eventos usados este mes:', eventosUsados);
       console.log('[CrearEvento] - Créditos eventos restantes (final):', creditosEventosRestantes);
       
-      // ✅ FIXED: Check if can create events based on credits
-      // Premium and estandar plans should have credits > 0
       const puedeCrearEventos =
         planNombre !== 'basico' && creditosEventosRestantes > 0;
 
@@ -279,17 +271,29 @@ export default function CrearEventoScreen() {
   };
 
   const onDateChange = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(Platform.OS === 'ios');
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+    }
     if (selectedDate) {
       setFecha(selectedDate);
     }
   };
 
   const onTimeChange = (event: any, selectedTime?: Date) => {
-    setShowTimePicker(Platform.OS === 'ios');
+    if (Platform.OS === 'android') {
+      setShowTimePicker(false);
+    }
     if (selectedTime) {
       setHora(selectedTime);
     }
+  };
+
+  const closeDatePicker = () => {
+    setShowDatePicker(false);
+  };
+
+  const closeTimePicker = () => {
+    setShowTimePicker(false);
   };
 
   const formatDate = (date: Date): string => {
@@ -374,7 +378,6 @@ export default function CrearEventoScreen() {
 
       console.log('[CrearEvento] Event created successfully:', data.id);
 
-      // ✅ FIXED: Update subscription - decrement creditos_eventos_restantes
       const newCredits = Math.max(0, localData.suscripcion.creditos_eventos_restantes - 1);
       const newEventosUsados = (localData.suscripcion.eventos_usados_mes || 0) + 1;
 
@@ -460,164 +463,241 @@ export default function CrearEventoScreen() {
         <View style={{ width: 40 }} />
       </LinearGradient>
 
-      <ScrollView style={styles.content}>
-        <View style={styles.form}>
-          {localData && localData.suscripcion && (
-            <View style={styles.planInfoBanner}>
-              <IconSymbol name="info.circle.fill" size={20} color={colors.primary} />
-              <View style={styles.planInfoText}>
-                <Text style={styles.planInfoTitle}>
-                  Local: {localData.nombre}
-                </Text>
-                <Text style={styles.planInfoSubtitle}>
-                  Plan: {localData.suscripcion.plan_nombre.toUpperCase()} • Créditos eventos: {' '}
-                  {localData.suscripcion.creditos_eventos_restantes} restantes
-                </Text>
-              </View>
-            </View>
-          )}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView 
+            style={styles.content}
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={styles.form}>
+              {localData && localData.suscripcion && (
+                <View style={styles.planInfoBanner}>
+                  <IconSymbol name="info.circle.fill" size={20} color={colors.primary} />
+                  <View style={styles.planInfoText}>
+                    <Text style={styles.planInfoTitle}>
+                      Local: {localData.nombre}
+                    </Text>
+                    <Text style={styles.planInfoSubtitle}>
+                      Plan: {localData.suscripcion.plan_nombre.toUpperCase()} • Créditos eventos: {' '}
+                      {localData.suscripcion.creditos_eventos_restantes} restantes
+                    </Text>
+                  </View>
+                </View>
+              )}
 
-          <TouchableOpacity style={styles.imagenContainer} onPress={seleccionarImagen}>
-            {imagen ? (
-              <Image source={{ uri: imagen }} style={styles.imagen} />
-            ) : (
-              <View style={styles.imagenPlaceholder}>
-                <IconSymbol name="photo" size={48} color={colors.textSecondary} />
-                <Text style={styles.imagenText}>Añadir imagen del evento</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-
-          {localData && (
-            <View style={styles.addressContainer}>
-              <View style={styles.addressHeader}>
-                <IconSymbol name="location.fill" size={18} color={colors.primary} />
-                <Text style={styles.addressLabel}>Ubicación del evento</Text>
-              </View>
-              <Text style={styles.addressText}>{getLocalAddress()}</Text>
-            </View>
-          )}
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Título del evento *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Ej: Noche de Jazz en vivo"
-              placeholderTextColor={colors.textSecondary}
-              value={titulo}
-              onChangeText={setTitulo}
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Descripción *</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Describe el evento..."
-              placeholderTextColor={colors.textSecondary}
-              value={descripcion}
-              onChangeText={setDescripcion}
-              multiline
-              numberOfLines={6}
-            />
-          </View>
-
-          <View style={styles.row}>
-            <View style={[styles.inputContainer, { flex: 1 }]}>
-              <Text style={styles.label}>Fecha *</Text>
-              <TouchableOpacity
-                style={styles.dateTimeButton}
-                onPress={() => setShowDatePicker(true)}
-              >
-                <IconSymbol name="calendar" size={20} color={colors.primary} />
-                <Text style={styles.dateTimeText}>{formatDisplayDate(fecha)}</Text>
+              <TouchableOpacity style={styles.imagenContainer} onPress={seleccionarImagen}>
+                {imagen ? (
+                  <Image source={{ uri: imagen }} style={styles.imagen} />
+                ) : (
+                  <View style={styles.imagenPlaceholder}>
+                    <IconSymbol name="photo" size={48} color={colors.textSecondary} />
+                    <Text style={styles.imagenText}>Añadir imagen del evento</Text>
+                  </View>
+                )}
               </TouchableOpacity>
-              {showDatePicker && (
+
+              {localData && (
+                <View style={styles.addressContainer}>
+                  <View style={styles.addressHeader}>
+                    <IconSymbol name="location.fill" size={18} color={colors.primary} />
+                    <Text style={styles.addressLabel}>Ubicación del evento</Text>
+                  </View>
+                  <Text style={styles.addressText}>{getLocalAddress()}</Text>
+                </View>
+              )}
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Título del evento *</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Ej: Noche de Jazz en vivo"
+                  placeholderTextColor={colors.textSecondary}
+                  value={titulo}
+                  onChangeText={setTitulo}
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Descripción *</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  placeholder="Describe el evento..."
+                  placeholderTextColor={colors.textSecondary}
+                  value={descripcion}
+                  onChangeText={setDescripcion}
+                  multiline
+                  numberOfLines={6}
+                />
+              </View>
+
+              <View style={styles.row}>
+                <View style={[styles.inputContainer, { flex: 1 }]}>
+                  <Text style={styles.label}>Fecha *</Text>
+                  <TouchableOpacity
+                    style={styles.dateTimeButton}
+                    onPress={() => setShowDatePicker(true)}
+                  >
+                    <IconSymbol name="calendar" size={20} color={colors.primary} />
+                    <Text style={styles.dateTimeText}>{formatDisplayDate(fecha)}</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={[styles.inputContainer, { flex: 1 }]}>
+                  <Text style={styles.label}>Hora *</Text>
+                  <TouchableOpacity
+                    style={styles.dateTimeButton}
+                    onPress={() => setShowTimePicker(true)}
+                  >
+                    <IconSymbol name="clock.fill" size={20} color={colors.primary} />
+                    <Text style={styles.dateTimeText}>{formatTime(hora)}</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={styles.inputContainer}>
+                <View style={styles.switchContainer}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.label}>Evento Gratis</Text>
+                    <Text style={styles.switchDescription}>
+                      Activa esta opción si el evento es gratuito
+                    </Text>
+                  </View>
+                  <Switch
+                    value={esGratis}
+                    onValueChange={(value) => {
+                      setEsGratis(value);
+                      if (value) {
+                        setPrecio('');
+                      }
+                    }}
+                    trackColor={{ false: colors.cardBorder, true: colors.primary }}
+                    thumbColor={colors.white}
+                  />
+                </View>
+              </View>
+
+              {!esGratis && (
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Precio (€) *</Text>
+                  <Text style={styles.priceNote}>
+                    Este precio es informativo. No se venderán entradas a través de la app.
+                  </Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="0.00"
+                    placeholderTextColor={colors.textSecondary}
+                    value={precio}
+                    onChangeText={setPrecio}
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+              )}
+
+              <TouchableOpacity
+                style={styles.submitButton}
+                onPress={handlePublicar}
+                disabled={loading}
+              >
+                <LinearGradient
+                  colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+                  style={styles.submitGradient}
+                >
+                  {loading ? (
+                    <ActivityIndicator color={colors.headerText} />
+                  ) : (
+                    <Text style={styles.submitText}>Publicar Evento</Text>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
+
+      {/* Date Picker Modal */}
+      <Modal
+        visible={showDatePicker}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={closeDatePicker}
+      >
+        <TouchableWithoutFeedback onPress={closeDatePicker}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={styles.pickerContainer}>
+                <View style={styles.pickerHeader}>
+                  <Text style={styles.pickerTitle}>Seleccionar Fecha</Text>
+                  <TouchableOpacity onPress={closeDatePicker} style={styles.closeButton}>
+                    <IconSymbol name="xmark.circle.fill" size={28} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                </View>
                 <DateTimePicker
                   value={fecha}
                   mode="date"
                   display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                   onChange={onDateChange}
                   minimumDate={new Date()}
+                  textColor={colors.text}
+                  style={styles.picker}
                 />
-              )}
-            </View>
+                {Platform.OS === 'ios' && (
+                  <TouchableOpacity
+                    style={styles.confirmButton}
+                    onPress={closeDatePicker}
+                  >
+                    <Text style={styles.confirmButtonText}>Confirmar</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
 
-            <View style={[styles.inputContainer, { flex: 1 }]}>
-              <Text style={styles.label}>Hora *</Text>
-              <TouchableOpacity
-                style={styles.dateTimeButton}
-                onPress={() => setShowTimePicker(true)}
-              >
-                <IconSymbol name="clock.fill" size={20} color={colors.primary} />
-                <Text style={styles.dateTimeText}>{formatTime(hora)}</Text>
-              </TouchableOpacity>
-              {showTimePicker && (
+      {/* Time Picker Modal */}
+      <Modal
+        visible={showTimePicker}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={closeTimePicker}
+      >
+        <TouchableWithoutFeedback onPress={closeTimePicker}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={styles.pickerContainer}>
+                <View style={styles.pickerHeader}>
+                  <Text style={styles.pickerTitle}>Seleccionar Hora</Text>
+                  <TouchableOpacity onPress={closeTimePicker} style={styles.closeButton}>
+                    <IconSymbol name="xmark.circle.fill" size={28} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                </View>
                 <DateTimePicker
                   value={hora}
                   mode="time"
                   display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                   onChange={onTimeChange}
                   is24Hour={true}
+                  textColor={colors.text}
+                  style={styles.picker}
                 />
-              )}
-            </View>
-          </View>
-
-          <View style={styles.inputContainer}>
-            <View style={styles.switchContainer}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.label}>Evento Gratis</Text>
-                <Text style={styles.switchDescription}>
-                  Activa esta opción si el evento es gratuito
-                </Text>
+                {Platform.OS === 'ios' && (
+                  <TouchableOpacity
+                    style={styles.confirmButton}
+                    onPress={closeTimePicker}
+                  >
+                    <Text style={styles.confirmButtonText}>Confirmar</Text>
+                  </TouchableOpacity>
+                )}
               </View>
-              <Switch
-                value={esGratis}
-                onValueChange={(value) => {
-                  setEsGratis(value);
-                  if (value) {
-                    setPrecio('');
-                  }
-                }}
-                trackColor={{ false: colors.cardBorder, true: colors.primary }}
-                thumbColor={colors.white}
-              />
-            </View>
+            </TouchableWithoutFeedback>
           </View>
-
-          {!esGratis && (
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Precio (€) *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="0.00"
-                placeholderTextColor={colors.textSecondary}
-                value={precio}
-                onChangeText={setPrecio}
-                keyboardType="decimal-pad"
-              />
-            </View>
-          )}
-
-          <TouchableOpacity
-            style={styles.submitButton}
-            onPress={handlePublicar}
-            disabled={loading}
-          >
-            <LinearGradient
-              colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-              style={styles.submitGradient}
-            >
-              {loading ? (
-                <ActivityIndicator color={colors.headerText} />
-              ) : (
-                <Text style={styles.submitText}>Publicar Evento</Text>
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+        </TouchableWithoutFeedback>
+      </Modal>
     </View>
   );
 }
@@ -645,6 +725,9 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 40,
   },
   form: {
     padding: 20,
@@ -715,6 +798,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.text,
     marginBottom: 8,
+  },
+  priceNote: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginBottom: 8,
+    fontStyle: 'italic',
   },
   input: {
     backgroundColor: colors.cardBackground,
@@ -803,5 +892,57 @@ const styles = StyleSheet.create({
     color: colors.headerText,
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pickerContainer: {
+    backgroundColor: colors.white,
+    borderRadius: 20,
+    padding: 20,
+    width: '85%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  pickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  pickerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  closeButton: {
+    padding: 4,
+  },
+  picker: {
+    width: '100%',
+    backgroundColor: colors.white,
+  },
+  confirmButton: {
+    marginTop: 16,
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  confirmButtonText: {
+    color: colors.white,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
