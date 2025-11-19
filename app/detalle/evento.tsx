@@ -417,8 +417,7 @@ export default function DetalleEventoScreen() {
                 style={StyleSheet.absoluteFill}
               />
               <IconSymbol 
-                ios_icon_name="music.note" 
-                android_material_icon_name="music_note"
+                name="music.note" 
                 size={80} 
                 color="rgba(255,255,255,0.3)" 
               />
@@ -431,7 +430,7 @@ export default function DetalleEventoScreen() {
             style={styles.coverOverlay}
           />
 
-          {/* Back Button - WHITE ICON with HIGH CONTRAST */}
+          {/* Back Button - Matching BarLive style (no white border) */}
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
@@ -439,9 +438,8 @@ export default function DetalleEventoScreen() {
           >
             <View style={styles.backButtonContainer}>
               <IconSymbol 
-                ios_icon_name="chevron.left" 
-                android_material_icon_name="arrow_back"
-                size={32} 
+                name="chevron.left" 
+                size={28} 
                 color="#FFFFFF"
               />
             </View>
@@ -451,8 +449,7 @@ export default function DetalleEventoScreen() {
           {evento.destacado && (
             <View style={styles.destacadoBadge}>
               <IconSymbol 
-                ios_icon_name="star.fill" 
-                android_material_icon_name="star" 
+                name="star.fill" 
                 size={14} 
                 color="#92400E" 
               />
@@ -493,8 +490,7 @@ export default function DetalleEventoScreen() {
               <View style={styles.timeLocationInfo}>
                 <View style={styles.infoRow}>
                   <IconSymbol 
-                    ios_icon_name="clock.fill" 
-                    android_material_icon_name="schedule"
+                    name="clock.fill" 
                     size={18} 
                     color={colors.white} 
                   />
@@ -504,8 +500,7 @@ export default function DetalleEventoScreen() {
                 {evento.local_nombre && (
                   <View style={styles.infoRow}>
                     <IconSymbol 
-                      ios_icon_name="location.fill" 
-                      android_material_icon_name="location_on"
+                      name="location.fill" 
                       size={18} 
                       color={colors.white} 
                     />
@@ -540,8 +535,7 @@ export default function DetalleEventoScreen() {
                 {evento.precio === 0 ? (
                   <React.Fragment>
                     <IconSymbol 
-                      ios_icon_name="gift.fill" 
-                      android_material_icon_name="card_giftcard"
+                      name="gift.fill" 
                       size={28} 
                       color={colors.white} 
                     />
@@ -590,8 +584,7 @@ export default function DetalleEventoScreen() {
                     {distance !== null && (
                       <View style={styles.distanceRow}>
                         <IconSymbol 
-                          ios_icon_name="location.circle.fill" 
-                          android_material_icon_name="my_location"
+                          name="location.circle.fill" 
                           size={16} 
                           color={colors.secondary} 
                         />
@@ -622,8 +615,7 @@ export default function DetalleEventoScreen() {
                 style={styles.buttonGradient}
               >
                 <IconSymbol 
-                  ios_icon_name="map.fill" 
-                  android_material_icon_name="directions"
+                  name="map.fill" 
                   size={20} 
                   color={colors.white} 
                 />
@@ -643,8 +635,7 @@ export default function DetalleEventoScreen() {
                 style={styles.buttonGradient}
               >
                 <IconSymbol 
-                  ios_icon_name="building.2.fill" 
-                  android_material_icon_name="store"
+                  name="building.2.fill" 
                   size={20} 
                   color={colors.white} 
                 />
@@ -656,8 +647,7 @@ export default function DetalleEventoScreen() {
           {/* Full Date - More Compact */}
           <View style={styles.infoCard}>
             <IconSymbol 
-              ios_icon_name="calendar" 
-              android_material_icon_name="calendar_today"
+              name="calendar" 
               size={20} 
               color={colors.primary} 
             />
@@ -668,8 +658,7 @@ export default function DetalleEventoScreen() {
           {getLocalAddress() && (
             <View style={styles.infoCard}>
               <IconSymbol 
-                ios_icon_name="mappin.circle.fill" 
-                android_material_icon_name="place"
+                name="mappin.circle.fill" 
                 size={20} 
                 color={colors.primary} 
               />
@@ -754,7 +743,7 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   
-  // Back Button - WHITE ICON with HIGH CONTRAST
+  // Back Button - Matching BarLive style (no white border, semi-transparent black background)
   backButton: {
     position: 'absolute',
     top: Platform.OS === 'android' ? 48 : 60,
@@ -762,23 +751,21 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   backButtonContainer: {
-    backgroundColor: 'rgba(0,0,0,0.75)',
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2.5,
-    borderColor: 'rgba(255,255,255,0.9)',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.6,
-        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
       },
       android: {
-        elevation: 12,
+        elevation: 8,
       },
     }),
   },
