@@ -264,36 +264,84 @@ export default function DetalleEventoScreen() {
     }
 
     try {
-      let url = '';
-      
-      // Use coordinates if available, otherwise use address
-      if (evento.local_latitud && evento.local_longitud) {
-        if (Platform.OS === 'ios') {
-          url = `maps://app?daddr=${evento.local_latitud},${evento.local_longitud}`;
-        } else {
-          url = `google.navigation:q=${evento.local_latitud},${evento.local_longitud}`;
-        }
-      } else {
-        const encodedAddress = encodeURIComponent(address);
-        if (Platform.OS === 'ios') {
-          url = `maps://app?daddr=${encodedAddress}`;
-        } else {
-          url = `google.navigation:q=${encodedAddress}`;
-        }
-      }
+      // Build URLs for different map applications
+      const destination = evento.local_latitud && evento.local_longitud
+        ? `${evento.local_latitud},${evento.local_longitud}`
+        : encodeURIComponent(address);
 
-      const canOpen = await Linking.canOpenURL(url);
-      
-      if (canOpen) {
-        await Linking.openURL(url);
-      } else {
-        // Fallback to web maps
-        const webUrl = evento.local_latitud && evento.local_longitud
-          ? `https://www.google.com/maps/dir/?api=1&destination=${evento.local_latitud},${evento.local_longitud}`
-          : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
-        
-        await Linking.openURL(webUrl);
-      }
+      const googleMapsUrl = evento.local_latitud && evento.local_longitud
+        ? `https://www.google.com/maps/dir/?api=1&destination=${destination}`
+        : `https://www.google.com/maps/search/?api=1&query=${destination}`;
+
+      const appleMapsUrl = evento.local_latitud && evento.local_longitud
+        ? `http://maps.apple.com/?daddr=${destination}`
+        : `http://maps.apple.com/?q=${destination}`;
+
+      const wazeUrl = evento.local_latitud && evento.local_longitud
+        ? `https://waze.com/ul?ll=${destination}&navigate=yes`
+        : `https://waze.com/ul?q=${destination}&navigate=yes`;
+
+      // Show options to user
+      Alert.alert(
+        'Cómo Llegar',
+        'Selecciona tu aplicación de mapas preferida:',
+        [
+          {
+            text: 'Google Maps',
+            onPress: async () => {
+              try {
+                const canOpen = await Linking.canOpenURL(googleMapsUrl);
+                if (canOpen) {
+                  await Linking.openURL(googleMapsUrl);
+                } else {
+                  Alert.alert('Error', 'No se pudo abrir Google Maps');
+                }
+              } catch (error) {
+                console.error('[DetalleEvento] Error opening Google Maps:', error);
+                Alert.alert('Error', 'No se pudo abrir Google Maps');
+              }
+            },
+          },
+          ...(Platform.OS === 'ios' ? [{
+            text: 'Apple Maps',
+            onPress: async () => {
+              try {
+                const canOpen = await Linking.canOpenURL(appleMapsUrl);
+                if (canOpen) {
+                  await Linking.openURL(appleMapsUrl);
+                } else {
+                  Alert.alert('Error', 'No se pudo abrir Apple Maps');
+                }
+              } catch (error) {
+                console.error('[DetalleEvento] Error opening Apple Maps:', error);
+                Alert.alert('Error', 'No se pudo abrir Apple Maps');
+              }
+            },
+          }] : []),
+          {
+            text: 'Waze',
+            onPress: async () => {
+              try {
+                const canOpen = await Linking.canOpenURL(wazeUrl);
+                if (canOpen) {
+                  await Linking.openURL(wazeUrl);
+                } else {
+                  // If Waze app is not installed, open in browser
+                  await Linking.openURL(wazeUrl);
+                }
+              } catch (error) {
+                console.error('[DetalleEvento] Error opening Waze:', error);
+                Alert.alert('Error', 'No se pudo abrir Waze');
+              }
+            },
+          },
+          {
+            text: 'Cancelar',
+            style: 'cancel',
+          },
+        ],
+        { cancelable: true }
+      );
     } catch (error) {
       console.error('[DetalleEvento] Error opening maps:', error);
       Alert.alert(
@@ -383,7 +431,7 @@ export default function DetalleEventoScreen() {
             style={styles.coverOverlay}
           />
 
-          {/* Back Button - WHITE and Highly Visible */}
+          {/* Back Button - WHITE ICON with HIGH CONTRAST */}
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
@@ -393,7 +441,7 @@ export default function DetalleEventoScreen() {
               <IconSymbol 
                 ios_icon_name="chevron.left" 
                 android_material_icon_name="arrow_back"
-                size={28} 
+                size={32} 
                 color="#FFFFFF"
               />
             </View>
@@ -706,7 +754,7 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   
-  // Back Button - WHITE and Highly Visible
+  // Back Button - WHITE ICON with HIGH CONTRAST
   backButton: {
     position: 'absolute',
     top: Platform.OS === 'android' ? 48 : 60,
@@ -714,23 +762,23 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   backButtonContainer: {
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.4)',
+    borderWidth: 2.5,
+    borderColor: 'rgba(255,255,255,0.9)',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.5,
-        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.6,
+        shadowRadius: 10,
       },
       android: {
-        elevation: 8,
+        elevation: 12,
       },
     }),
   },
