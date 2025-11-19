@@ -4,6 +4,7 @@ import { supabase, isSupabaseConfigured } from '@/utils/supabase';
 import { AuthUser, getCurrentUser } from '@/utils/auth';
 import { registerForPushNotifications, savePushToken } from '@/utils/notifications';
 import { Session } from '@supabase/supabase-js';
+import { Platform } from 'react-native';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -80,6 +81,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const { data } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
         console.log('[AuthContext] 🔄 Auth state cambió:', event);
+        console.log('[AuthContext] Session:', currentSession ? 'presente' : 'ausente');
+        console.log('[AuthContext] User:', currentSession?.user?.email || 'ninguno');
         
         setSession(currentSession);
         
@@ -116,7 +119,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setSession(null);
         } else if (event === 'TOKEN_REFRESHED') {
           console.log('[AuthContext] 🔄 Token refrescado');
-          // Session is already updated, just log
+          // Session is already updated, reload user profile to ensure it's current
+          try {
+            const { user: userData } = await getCurrentUser();
+            if (userData) {
+              console.log('[AuthContext] ✅ Perfil actualizado después de refresh:', userData.email);
+              setUser(userData);
+            }
+          } catch (error) {
+            console.error('[AuthContext] ❌ Error actualizando usuario después de refresh:', error);
+          }
         } else if (event === 'USER_UPDATED') {
           console.log('[AuthContext] 🔄 Usuario actualizado');
           try {
@@ -126,6 +138,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
           } catch (error) {
             console.error('[AuthContext] ❌ Error actualizando usuario:', error);
+          }
+        } else if (event === 'INITIAL_SESSION') {
+          console.log('[AuthContext] 🔄 Sesión inicial detectada');
+          // This event fires when the session is first loaded from storage
+          if (currentSession) {
+            try {
+              const { user: userData } = await getCurrentUser();
+              if (userData) {
+                console.log('[AuthContext] ✅ Perfil cargado desde sesión inicial:', userData.email);
+                setUser(userData);
+              }
+            } catch (error) {
+              console.error('[AuthContext] ❌ Error cargando perfil desde sesión inicial:', error);
+            }
           }
         }
       });
@@ -170,6 +196,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshUser = async () => {
     try {
       console.log('[AuthContext] 🔄 Refrescando usuario...');
+      
+      // First, check if we have a session
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      
+      if (!currentSession) {
+        console.log('[AuthContext] ⚠️ No hay sesión activa para refrescar');
+        setUser(null);
+        setSession(null);
+        return;
+      }
+      
+      console.log('[AuthContext] ✅ Sesión encontrada:', currentSession.user.email);
+      setSession(currentSession);
       
       const { user: userData } = await getCurrentUser();
       

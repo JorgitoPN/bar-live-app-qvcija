@@ -95,7 +95,8 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     storage: Platform.OS !== 'web' ? ExpoSecureStoreAdapter : undefined,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false,
+    detectSessionInUrl: Platform.OS === 'web', // ✅ FIXED: Enable URL detection on web for OAuth callback
+    flowType: 'pkce', // Use PKCE flow for better security
   },
 });
 

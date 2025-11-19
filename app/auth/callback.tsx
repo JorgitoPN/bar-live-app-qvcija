@@ -47,7 +47,12 @@ export default function AuthCallbackScreen() {
         console.log('[Callback] Params:', params);
         
         // For web, check URL hash for tokens
-        if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location.hash) {
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          console.log('[Callback] 🌐 Detectando tokens en URL...');
+          console.log('[Callback] URL completa:', window.location.href);
+          console.log('[Callback] Hash:', window.location.hash);
+          console.log('[Callback] Search:', window.location.search);
+          
           const hashParams = new URLSearchParams(window.location.hash.substring(1));
           const accessToken = hashParams.get('access_token');
           const refreshToken = hashParams.get('refresh_token');
@@ -58,10 +63,11 @@ export default function AuthCallbackScreen() {
             hasAccessToken: !!accessToken,
             hasRefreshToken: !!refreshToken,
             error: errorParam,
+            errorDescription: errorDescription,
           });
 
           if (errorParam) {
-            console.error('[Callback] ❌ Error en OAuth:', errorParam);
+            console.error('[Callback] ❌ Error en OAuth:', errorParam, errorDescription);
             if (isMounted) {
               setStatus('error');
               setErrorMessage(errorDescription || errorParam);
@@ -71,7 +77,7 @@ export default function AuthCallbackScreen() {
           }
 
           if (accessToken && refreshToken) {
-            console.log('[Callback] ✅ Tokens encontrados, estableciendo sesión...');
+            console.log('[Callback] ✅ Tokens encontrados en URL, estableciendo sesión...');
             
             const { data, error: sessionError } = await supabase.auth.setSession({
               access_token: accessToken,
@@ -90,6 +96,7 @@ export default function AuthCallbackScreen() {
 
             if (data.user) {
               console.log('[Callback] ✅ Sesión establecida para usuario:', data.user.email);
+              console.log('[Callback] User ID:', data.user.id);
               
               // Register push notifications (non-blocking)
               registerForPushNotifications()
@@ -104,15 +111,21 @@ export default function AuthCallbackScreen() {
                   console.log('[Callback] Failed to register push notifications');
                 });
               
-              // Wait a bit for the session to be fully established
+              // Wait for the session to be fully established and persisted
               console.log('[Callback] ⏳ Esperando a que la sesión se establezca completamente...');
-              await new Promise(resolve => setTimeout(resolve, 1500));
+              await new Promise(resolve => setTimeout(resolve, 2000));
               
-              // Force refresh user in AuthContext
-              console.log('[Callback] 🔄 Refrescando usuario en AuthContext...');
+              // Force refresh user in AuthContext multiple times to ensure it picks up the session
+              console.log('[Callback] 🔄 Refrescando usuario en AuthContext (intento 1)...');
               await refreshUser();
               
-              // Wait a bit more for AuthContext to update
+              // Wait a bit more
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              
+              console.log('[Callback] 🔄 Refrescando usuario en AuthContext (intento 2)...');
+              await refreshUser();
+              
+              // Wait a bit more
               await new Promise(resolve => setTimeout(resolve, 500));
               
               // Get user profile to check if needs profile completion
@@ -158,6 +171,8 @@ export default function AuthCallbackScreen() {
               safeRedirect('/(tabs)/explorar', 500);
               return;
             }
+          } else {
+            console.log('[Callback] ℹ️ No se encontraron tokens en URL hash');
           }
         }
         
@@ -192,15 +207,19 @@ export default function AuthCallbackScreen() {
               console.log('[Callback] Failed to register push notifications');
             });
           
-          // Wait a bit for the session to be fully established
+          // Wait for the session to be fully established
           console.log('[Callback] ⏳ Esperando a que la sesión se establezca completamente...');
-          await new Promise(resolve => setTimeout(resolve, 1500));
+          await new Promise(resolve => setTimeout(resolve, 2000));
           
-          // Force refresh user in AuthContext
-          console.log('[Callback] 🔄 Refrescando usuario en AuthContext...');
+          // Force refresh user in AuthContext multiple times
+          console.log('[Callback] 🔄 Refrescando usuario en AuthContext (intento 1)...');
           await refreshUser();
           
-          // Wait a bit more for AuthContext to update
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          console.log('[Callback] 🔄 Refrescando usuario en AuthContext (intento 2)...');
+          await refreshUser();
+          
           await new Promise(resolve => setTimeout(resolve, 500));
           
           // Get user profile to check if needs profile completion
