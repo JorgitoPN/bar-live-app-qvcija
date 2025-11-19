@@ -169,14 +169,14 @@ export default function MisLocalesScreen() {
         >
           <View style={styles.headerRow}>
             <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-              <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
+              <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Mis Locales</Text>
             <TouchableOpacity
               style={styles.addButton}
               onPress={() => router.push('/crear/local')}
             >
-              <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={24} color={colors.headerText} />
+              <IconSymbol name="plus" size={24} color={colors.headerText} />
             </TouchableOpacity>
           </View>
         </LinearGradient>
@@ -197,14 +197,14 @@ export default function MisLocalesScreen() {
       >
         <View style={styles.headerRow}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
+            <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Mis Locales</Text>
           <TouchableOpacity
             style={styles.addButton}
             onPress={() => router.push('/crear/local')}
           >
-            <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={24} color={colors.headerText} />
+            <IconSymbol name="plus" size={24} color={colors.headerText} />
           </TouchableOpacity>
         </View>
       </LinearGradient>
@@ -213,7 +213,7 @@ export default function MisLocalesScreen() {
         <View style={styles.centeredContainer}>
           {locales.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <IconSymbol ios_icon_name="building.2" android_material_icon_name="business" size={64} color={colors.textSecondary} />
+              <IconSymbol name="building.2" size={64} color={colors.textSecondary} />
               <Text style={styles.emptyTitle}>No tienes locales</Text>
               <Text style={styles.emptyText}>
                 Crea tu primer local para gestionar eventos y promociones
@@ -226,17 +226,17 @@ export default function MisLocalesScreen() {
                   colors={[colors.headerGradientStart, colors.headerGradientEnd]}
                   style={styles.createGradient}
                 >
-                  <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={20} color={colors.headerText} />
+                  <IconSymbol name="plus" size={20} color={colors.headerText} />
                   <Text style={styles.createButtonText}>Crear Local</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </View>
           ) : (
-            <React.Fragment>
+            <>
               {/* Active Local Indicator - More Compact */}
               {locales.length > 1 && selectedLocalId && (
                 <View style={styles.activeLocalBanner}>
-                  <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={16} color={colors.primary} />
+                  <IconSymbol name="checkmark.circle.fill" size={16} color={colors.primary} />
                   <Text style={styles.activeLocalText}>
                     Activo: <Text style={styles.activeLocalName}>
                       {locales.find(l => l.id === selectedLocalId)?.nombre || 'Ninguno'}
@@ -247,8 +247,8 @@ export default function MisLocalesScreen() {
 
               {/* Compact Local Cards */}
               <View style={styles.localesGrid}>
-                {locales.map((local, index) => (
-                  <View key={index} style={[
+                {locales.map((local) => (
+                  <View key={local.id} style={[
                     styles.localCard,
                     selectedLocalId === local.id && styles.localCardActive
                   ]}>
@@ -259,7 +259,7 @@ export default function MisLocalesScreen() {
                         <Image source={{ uri: local.imagen_url }} style={styles.localImage} />
                       ) : (
                         <View style={[styles.localImage, styles.localImagePlaceholder]}>
-                          <IconSymbol ios_icon_name="building.2" android_material_icon_name="business" size={28} color={colors.textSecondary} />
+                          <IconSymbol name="building.2" size={24} color={colors.textSecondary} />
                         </View>
                       )}
                       
@@ -279,7 +279,7 @@ export default function MisLocalesScreen() {
                         <View style={styles.metaRow}>
                           <Text style={styles.localTipo}>{local.tipo}</Text>
                           <View style={styles.dot} />
-                          <IconSymbol ios_icon_name="person.2" android_material_icon_name="people" size={12} color={colors.textSecondary} />
+                          <IconSymbol name="person.2" size={11} color={colors.textSecondary} />
                           <Text style={styles.followersText}>{local.seguidores}</Text>
                           <View style={styles.dot} />
                           <View style={[
@@ -305,10 +305,9 @@ export default function MisLocalesScreen() {
                             {updatingDestacado === local.id ? (
                               <ActivityIndicator size="small" color={colors.primary} />
                             ) : (
-                              <React.Fragment>
+                              <>
                                 <IconSymbol
-                                  ios_icon_name={local.destacado ? 'star.fill' : 'star'}
-                                  android_material_icon_name={local.destacado ? 'star' : 'star_border'}
+                                  name={local.destacado ? 'star.fill' : 'star'}
                                   size={14}
                                   color={local.destacado ? colors.badgeDestacado : colors.textSecondary}
                                 />
@@ -318,7 +317,7 @@ export default function MisLocalesScreen() {
                                 ]}>
                                   {local.destacado ? 'Destacado' : 'Destacar'}
                                 </Text>
-                              </React.Fragment>
+                              </>
                             )}
                           </TouchableOpacity>
                           {local.destacados_restantes > 0 && !local.destacado && (
@@ -337,7 +336,7 @@ export default function MisLocalesScreen() {
                           style={styles.actionButtonPrimary}
                           onPress={() => handleSelectLocal(local.id)}
                         >
-                          <IconSymbol ios_icon_name="checkmark.circle" android_material_icon_name="check_circle" size={14} color="#FFFFFF" />
+                          <IconSymbol name="checkmark.circle" size={14} color="#FFFFFF" />
                           <Text style={styles.actionTextPrimary}>Activar</Text>
                         </TouchableOpacity>
                       )}
@@ -345,21 +344,21 @@ export default function MisLocalesScreen() {
                         style={styles.actionButton}
                         onPress={() => router.push(`/editar/local?id=${local.id}`)}
                       >
-                        <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={14} color={colors.primary} />
+                        <IconSymbol name="pencil" size={14} color={colors.primary} />
                         <Text style={styles.actionText}>Editar</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={styles.actionButton}
                         onPress={() => router.push(`/gestion/panel-analisis?localId=${local.id}`)}
                       >
-                        <IconSymbol ios_icon_name="chart.bar.fill" android_material_icon_name="bar_chart" size={14} color={colors.primary} />
+                        <IconSymbol name="chart.bar.fill" size={14} color={colors.primary} />
                         <Text style={styles.actionText}>Análisis</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={styles.actionButton}
                         onPress={() => router.push(`/gestion/planes-suscripcion?localId=${local.id}`)}
                       >
-                        <IconSymbol ios_icon_name="creditcard" android_material_icon_name="credit_card" size={14} color={colors.primary} />
+                        <IconSymbol name="creditcard" size={14} color={colors.primary} />
                         <Text style={styles.actionText}>Plan</Text>
                       </TouchableOpacity>
                     </View>
@@ -372,10 +371,10 @@ export default function MisLocalesScreen() {
                 style={styles.addNewButton}
                 onPress={() => router.push('/crear/local')}
               >
-                <IconSymbol ios_icon_name="plus.circle" android_material_icon_name="add_circle" size={18} color={colors.primary} />
+                <IconSymbol name="plus.circle" size={18} color={colors.primary} />
                 <Text style={styles.addNewText}>Añadir Nuevo Local</Text>
               </TouchableOpacity>
-            </React.Fragment>
+            </>
           )}
         </View>
       </ScrollView>
@@ -390,7 +389,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingTop: Platform.OS === 'ios' ? 50 : 40,
-    paddingBottom: 14,
+    paddingBottom: 12,
     paddingHorizontal: 16,
   },
   headerRow: {
@@ -399,15 +398,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   backButton: {
-    padding: 6,
+    padding: 4,
   },
   headerTitle: {
-    fontSize: 19,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: 'bold',
     color: colors.headerText,
   },
   addButton: {
-    padding: 6,
+    padding: 4,
   },
   content: {
     flex: 1,
@@ -420,7 +419,7 @@ const styles = StyleSheet.create({
     width: '100%',
     alignSelf: 'center',
     paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingTop: 12,
   },
   loadingContainer: {
     flex: 1,
@@ -474,54 +473,52 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: colors.primary + '15',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 16,
+    backgroundColor: colors.primary + '10',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 12,
     borderWidth: 1,
-    borderColor: colors.primary + '30',
+    borderColor: colors.primary + '20',
   },
   activeLocalText: {
     flex: 1,
     fontSize: 13,
     color: colors.text,
-    fontWeight: '500',
   },
   activeLocalName: {
     fontWeight: '700',
     color: colors.primary,
   },
   localesGrid: {
-    gap: 12,
+    gap: 10,
   },
   localCard: {
     backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 14,
+    padding: 14,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 3,
   },
   localCardActive: {
     borderColor: colors.primary,
     borderWidth: 2,
     shadowColor: colors.primary,
-    shadowOpacity: 0.25,
-    elevation: 6,
-    backgroundColor: colors.primary + '05',
+    shadowOpacity: 0.2,
+    elevation: 5,
   },
   cardHeader: {
     flexDirection: 'row',
-    marginBottom: 14,
+    marginBottom: 12,
   },
   localImage: {
-    width: 70,
-    height: 70,
-    borderRadius: 12,
+    width: 64,
+    height: 64,
+    borderRadius: 10,
   },
   localImagePlaceholder: {
     backgroundColor: colors.cardBorder,
@@ -530,26 +527,26 @@ const styles = StyleSheet.create({
   },
   cardInfo: {
     flex: 1,
-    marginLeft: 14,
+    marginLeft: 12,
     justifyContent: 'space-between',
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 6,
+    marginBottom: 5,
   },
   localNombre: {
     flex: 1,
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '700',
     color: colors.text,
   },
   activeBadge: {
     backgroundColor: colors.primary,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 5,
   },
   activeBadgeText: {
     fontSize: 9,
@@ -560,38 +557,37 @@ const styles = StyleSheet.create({
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 5,
   },
   localTipo: {
-    fontSize: 13,
+    fontSize: 12,
     color: colors.textSecondary,
     textTransform: 'capitalize',
-    fontWeight: '500',
   },
   dot: {
     width: 3,
     height: 3,
     borderRadius: 1.5,
     backgroundColor: colors.textSecondary,
-    marginHorizontal: 7,
+    marginHorizontal: 6,
   },
   followersText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: colors.text,
-    marginLeft: 3,
+    marginLeft: 2,
   },
   planBadge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 7,
     paddingVertical: 3,
-    borderRadius: 6,
+    borderRadius: 5,
     backgroundColor: '#E5E7EB',
   },
   planBadgePremium: {
     backgroundColor: '#DBEAFE',
   },
   planText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
     color: '#6B7280',
     letterSpacing: 0.3,
@@ -608,31 +604,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 7,
     backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
   destacadoText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: colors.textSecondary,
   },
   destacadoTextActive: {
     color: colors.badgeDestacado,
-    fontWeight: '700',
   },
   creditosText: {
-    fontSize: 11,
+    fontSize: 10,
     color: colors.textSecondary,
     fontStyle: 'italic',
   },
   actions: {
     flexDirection: 'row',
-    gap: 8,
-    paddingTop: 14,
+    gap: 7,
+    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
   },
@@ -641,10 +636,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 5,
-    paddingVertical: 10,
+    gap: 4,
+    paddingVertical: 8,
     backgroundColor: colors.background,
-    borderRadius: 10,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
@@ -653,18 +648,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 5,
-    paddingVertical: 10,
+    gap: 4,
+    paddingVertical: 8,
     backgroundColor: colors.primary,
-    borderRadius: 10,
+    borderRadius: 8,
   },
   actionText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: colors.primary,
   },
   actionTextPrimary: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: '#FFFFFF',
   },
@@ -672,18 +667,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
-    paddingVertical: 16,
-    marginTop: 12,
+    gap: 8,
+    paddingVertical: 14,
+    marginTop: 10,
     backgroundColor: colors.cardBackground,
-    borderRadius: 14,
+    borderRadius: 12,
     borderWidth: 2,
     borderColor: colors.primary,
     borderStyle: 'dashed',
   },
   addNewText: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '600',
     color: colors.primary,
   },
 });
