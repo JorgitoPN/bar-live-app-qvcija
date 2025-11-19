@@ -125,6 +125,7 @@ export default function MisLocalesScreen() {
   const handleToggleDestacado = async (local: LocalWithPlan) => {
     if (updatingDestacado) return;
 
+    // Check if the local can be featured
     if (!local.destacado && local.destacados_restantes <= 0) {
       Alert.alert(
         'Sin Destacados Disponibles',
@@ -156,6 +157,7 @@ export default function MisLocalesScreen() {
         return;
       }
 
+      // Reload locales to reflect changes
       await loadLocales();
       await refreshLocales();
 
@@ -194,18 +196,6 @@ export default function MisLocalesScreen() {
     }
   };
 
-  const getPlanColor = (planNombre: string) => {
-    switch (planNombre?.toLowerCase()) {
-      case 'premium':
-        return ['#EF4444', '#DC2626'];
-      case 'estandar':
-      case 'estándar':
-        return ['#3B82F6', '#2563EB'];
-      default:
-        return ['#10B981', '#059669'];
-    }
-  };
-
   if (loading) {
     return (
       <View style={styles.container}>
@@ -236,6 +226,7 @@ export default function MisLocalesScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Header */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         style={styles.header}
@@ -278,165 +269,258 @@ export default function MisLocalesScreen() {
             </View>
           ) : (
             <React.Fragment>
+              {/* Compact Local Cards */}
               <View style={styles.localesGrid}>
                 {locales.map((local, index) => (
                   <View key={index} style={[
                     styles.localCard,
                     selectedLocalId === local.id && styles.localCardActive
                   ]}>
-                    {/* Compact Image Header */}
-                    <View style={styles.compactImageSection}>
-                      {local.imagen_url ? (
-                        <Image source={{ uri: local.imagen_url }} style={styles.compactImage} />
-                      ) : (
-                        <View style={[styles.compactImage, styles.compactImagePlaceholder]}>
-                          <IconSymbol ios_icon_name="building.2" android_material_icon_name="business" size={32} color={colors.textSecondary} />
-                        </View>
-                      )}
-                      
-                      {/* Plan Badge */}
-                      <View style={styles.planBadgeCompact}>
-                        <LinearGradient
-                          colors={getPlanColor(local.plan_nombre)}
-                          style={styles.planBadgeGradientCompact}
-                        >
-                          <Text style={styles.planBadgeTextCompact}>{local.plan_nombre.toUpperCase()}</Text>
-                        </LinearGradient>
+                    {/* Top Section: Image + Basic Info */}
+                    <View style={styles.topSection}>
+                      {/* Image */}
+                      <View style={styles.imageContainer}>
+                        {local.imagen_url ? (
+                          <Image source={{ uri: local.imagen_url }} style={styles.localImage} />
+                        ) : (
+                          <View style={[styles.localImage, styles.localImagePlaceholder]}>
+                            <IconSymbol ios_icon_name="building.2" android_material_icon_name="business" size={32} color={colors.textSecondary} />
+                          </View>
+                        )}
+                        {/* Premium Badge on Image */}
+                        {local.plan_nombre === 'premium' && (
+                          <View style={styles.premiumBadgeOnImage}>
+                            <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={10} color="#FFFFFF" />
+                            <Text style={styles.premiumBadgeText}>PREMIUM</Text>
+                          </View>
+                        )}
                       </View>
-
-                      {/* Active Badge */}
-                      {selectedLocalId === local.id && (
-                        <View style={styles.activeBadgeCompact}>
-                          <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={16} color="#FFFFFF" />
+                      
+                      {/* Info Column */}
+                      <View style={styles.infoColumn}>
+                        {/* Title + Location */}
+                        <View style={styles.titleSection}>
+                          <Text style={styles.localNombre} numberOfLines={1}>{local.nombre}</Text>
+                          <Text style={styles.localTipo} numberOfLines={1}>{local.tipo}</Text>
                         </View>
-                      )}
+
+                        {/* Active Badge */}
+                        {selectedLocalId === local.id && (
+                          <View style={styles.activeBadgeCompact}>
+                            <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={12} color={colors.primary} />
+                            <Text style={styles.activeBadgeTextCompact}>Activo</Text>
+                          </View>
+                        )}
+                      </View>
                     </View>
 
-                    {/* Content Section */}
-                    <View style={styles.compactContent}>
-                      {/* Title */}
-                      <View style={styles.titleRow}>
-                        <View style={styles.titleColumn}>
-                          <Text style={styles.localNameCompact} numberOfLines={1}>{local.nombre}</Text>
-                          <Text style={styles.localTypeCompact} numberOfLines={1}>{local.tipo}</Text>
-                        </View>
-                      </View>
-
-                      {/* Stats Row - Compact */}
-                      <View style={styles.statsRowCompact}>
-                        <View style={styles.statItemCompact}>
-                          <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={14} color={colors.primary} />
-                          <Text style={styles.statValueCompact}>{local.seguidores}</Text>
-                        </View>
-                        <View style={styles.statDividerCompact} />
-                        <View style={styles.statItemCompact}>
-                          <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={14} color={colors.badgeDestacado} />
-                          <Text style={styles.statValueCompact}>{local.destacados_restantes}</Text>
-                        </View>
-                        <View style={styles.statDividerCompact} />
-                        <View style={styles.statItemCompact}>
-                          <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={14} color="#8B5CF6" />
-                          <Text style={styles.statValueCompact}>{local.creditos_eventos_restantes || 0}</Text>
-                        </View>
-                      </View>
-
-                      {/* Destacado Toggle - Compact */}
-                      {local.destacado_activo && local.destacado_fecha_fin && (
-                        <View style={styles.destacadoActiveBar}>
-                          <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={12} color="#FFFFFF" />
-                          <Text style={styles.destacadoActiveText}>
-                            Destacado • {calculateTimeRemaining(local.destacado_fecha_fin) || 'N/A'}
-                          </Text>
+                    {/* Middle Section: Compact Info Grid */}
+                    <View style={styles.infoGrid}>
+                      {/* Plan Renewal */}
+                      {local.fecha_renovacion && (
+                        <View style={styles.infoBox}>
+                          <View style={styles.infoBoxHeader}>
+                            <IconSymbol ios_icon_name="clock" android_material_icon_name="schedule" size={14} color={colors.primary} />
+                            <Text style={styles.infoBoxLabel}>Renovación del Plan</Text>
+                          </View>
+                          <Text style={styles.infoBoxValue}>{calculateTimeRemaining(local.fecha_renovacion) || 'N/A'}</Text>
+                          <Text style={styles.infoBoxSubtext}>{new Date(local.fecha_renovacion).toLocaleDateString('es-ES')}</Text>
+                          <View style={styles.progressBar}>
+                            <View style={[styles.progressFill, { width: '75%', backgroundColor: colors.primary }]} />
+                          </View>
                         </View>
                       )}
 
-                      {/* Action Buttons - Single Row */}
-                      <View style={styles.actionsRowCompact}>
-                        <TouchableOpacity
-                          style={styles.actionButtonCompact}
-                          onPress={() => router.push(`/perfil/local?localId=${local.id}`)}
-                        >
-                          <IconSymbol ios_icon_name="person.2" android_material_icon_name="people" size={18} color="#3B82F6" />
-                        </TouchableOpacity>
-                        
-                        <TouchableOpacity
-                          style={styles.actionButtonCompact}
-                          onPress={() => router.push(`/editar/local?id=${local.id}`)}
-                        >
-                          <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={18} color="#10B981" />
-                        </TouchableOpacity>
-                        
-                        <TouchableOpacity
-                          style={styles.actionButtonCompact}
-                          onPress={() => router.push(`/crear/evento?localId=${local.id}`)}
-                        >
-                          <IconSymbol ios_icon_name="calendar.badge.plus" android_material_icon_name="event" size={18} color="#F59E0B" />
-                        </TouchableOpacity>
-                        
-                        <TouchableOpacity
-                          style={styles.actionButtonCompact}
-                          onPress={() => router.push(`/gestion/panel-analisis?localId=${local.id}`)}
-                        >
-                          <IconSymbol ios_icon_name="chart.bar.fill" android_material_icon_name="bar_chart" size={18} color="#8B5CF6" />
-                        </TouchableOpacity>
+                      {/* Featured Promotion */}
+                      {local.destacado_activo && local.destacado_fecha_fin && (
+                        <View style={styles.infoBox}>
+                          <View style={styles.infoBoxHeader}>
+                            <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={14} color={colors.badgeDestacado} />
+                            <Text style={styles.infoBoxLabel}>Promoción Destacada</Text>
+                          </View>
+                          <Text style={styles.infoBoxValue}>{calculateTimeRemaining(local.destacado_fecha_fin) || 'N/A'}</Text>
+                          <View style={styles.progressBar}>
+                            <View style={[styles.progressFill, { width: '60%', backgroundColor: colors.badgeDestacado }]} />
+                          </View>
+                        </View>
+                      )}
 
-                        <TouchableOpacity
-                          style={[
-                            styles.actionButtonCompact,
-                            local.destacado && styles.destacadoButtonActive,
-                          ]}
-                          onPress={() => handleToggleDestacado(local)}
-                          disabled={updatingDestacado === local.id}
-                        >
-                          {updatingDestacado === local.id ? (
-                            <ActivityIndicator size="small" color="#FFFFFF" />
-                          ) : (
-                            <IconSymbol
-                              ios_icon_name={local.destacado ? 'star.fill' : 'star'}
-                              android_material_icon_name={local.destacado ? 'star' : 'star_border'}
-                              size={18}
-                              color={local.destacado ? '#FFFFFF' : colors.badgeDestacado}
-                            />
-                          )}
-                        </TouchableOpacity>
+                      {/* Credits */}
+                      <View style={styles.infoBox}>
+                        <View style={styles.infoBoxHeader}>
+                          <IconSymbol ios_icon_name="creditcard" android_material_icon_name="credit_card" size={14} color={colors.primary} />
+                          <Text style={styles.infoBoxLabel}>Créditos Disponibles</Text>
+                        </View>
+                        <View style={styles.creditsRow}>
+                          <View style={styles.creditItem}>
+                            <Text style={styles.creditLabel}>Destacados</Text>
+                            <Text style={styles.creditValue}>{local.destacados_restantes} / {local.destacados_restantes + (local.destacado_activo ? 1 : 0)}</Text>
+                            <View style={styles.progressBar}>
+                              <View style={[
+                                styles.progressFill, 
+                                { 
+                                  width: `${Math.min(100, (local.destacados_restantes / Math.max(1, local.destacados_restantes + (local.destacado_activo ? 1 : 0))) * 100)}%`, 
+                                  backgroundColor: colors.badgeDestacado 
+                                }
+                              ]} />
+                            </View>
+                          </View>
+                          <View style={styles.creditItem}>
+                            <Text style={styles.creditLabel}>Eventos</Text>
+                            <Text style={styles.creditValue}>{local.creditos_eventos_restantes || 0} / {local.eventos_disponibles || 0}</Text>
+                            <View style={styles.progressBar}>
+                              <View style={[
+                                styles.progressFill, 
+                                { 
+                                  width: `${Math.min(100, ((local.creditos_eventos_restantes || 0) / Math.max(1, local.eventos_disponibles || 1)) * 100)}%`, 
+                                  backgroundColor: '#8B5CF6' 
+                                }
+                              ]} />
+                            </View>
+                          </View>
+                        </View>
+                        {local.fecha_renovacion && (
+                          <Text style={styles.renewalDate}>
+                            <IconSymbol ios_icon_name="arrow.clockwise" android_material_icon_name="refresh" size={10} color={colors.textSecondary} />
+                            {' '}Renovación: {new Date(local.fecha_renovacion).toLocaleDateString('es-ES')}
+                          </Text>
+                        )}
                       </View>
 
-                      {/* Activate Button */}
+                      {/* Featured Toggle */}
+                      <View style={styles.infoBox}>
+                        <View style={styles.infoBoxHeader}>
+                          <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={14} color={colors.badgeDestacado} />
+                          <Text style={styles.infoBoxLabel}>Local Destacado</Text>
+                        </View>
+                        <View style={styles.destacadoRow}>
+                          <View style={styles.destacadoInfo}>
+                            <Text style={styles.destacadoStatus}>
+                              {local.destacado && local.destacado_activo
+                                ? `Activo • ${calculateTimeRemaining(local.destacado_fecha_fin) || 'N/A'} restantes`
+                                : local.destacados_restantes > 0
+                                ? `${local.destacados_restantes} crédito${local.destacados_restantes > 1 ? 's' : ''} disponible${local.destacados_restantes > 1 ? 's' : ''}`
+                                : 'Sin créditos disponibles'}
+                            </Text>
+                          </View>
+                          <TouchableOpacity
+                            style={[
+                              styles.destacadoToggleBtn,
+                              local.destacado && styles.destacadoToggleBtnActive,
+                            ]}
+                            onPress={() => handleToggleDestacado(local)}
+                            disabled={updatingDestacado === local.id}
+                          >
+                            {updatingDestacado === local.id ? (
+                              <ActivityIndicator size="small" color={colors.headerText} />
+                            ) : (
+                              <React.Fragment>
+                                <IconSymbol
+                                  ios_icon_name={local.destacado ? 'star.fill' : 'star'}
+                                  android_material_icon_name={local.destacado ? 'star' : 'star_border'}
+                                  size={14}
+                                  color={local.destacado ? '#FFFFFF' : colors.primary}
+                                />
+                                <Text style={[
+                                  styles.destacadoToggleText,
+                                  local.destacado && styles.destacadoToggleTextActive
+                                ]}>
+                                  {local.destacado ? 'Activo' : 'Activar'}
+                                </Text>
+                              </React.Fragment>
+                            )}
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    </View>
+
+                    {/* Bottom Section: Action Buttons */}
+                    <View style={styles.actionsRow}>
                       {selectedLocalId !== local.id && (
                         <TouchableOpacity
-                          style={styles.activateButtonCompact}
+                          style={styles.actionBtnPrimary}
                           onPress={() => handleSelectLocal(local.id)}
                         >
-                          <LinearGradient
-                            colors={[colors.primary, colors.secondary]}
-                            style={styles.activateGradientCompact}
-                          >
-                            <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={16} color="#FFFFFF" />
-                            <Text style={styles.activateButtonTextCompact}>Activar</Text>
-                          </LinearGradient>
+                          <IconSymbol ios_icon_name="checkmark.circle" android_material_icon_name="check_circle" size={16} color="#FFFFFF" />
+                          <Text style={styles.actionTextPrimary}>Activar</Text>
                         </TouchableOpacity>
                       )}
+                      <TouchableOpacity
+                        style={styles.actionBtn}
+                        onPress={() => router.push(`/perfil/local?localId=${local.id}`)}
+                      >
+                        <IconSymbol ios_icon_name="person.2" android_material_icon_name="people" size={16} color={colors.primary} />
+                        <Text style={styles.actionText}>Perfil</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.actionBtn}
+                        onPress={() => router.push(`/editar/local?id=${local.id}`)}
+                      >
+                        <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={16} color={colors.primary} />
+                        <Text style={styles.actionText}>Editar</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.actionBtn}
+                        onPress={() => router.push(`/crear/evento?localId=${local.id}`)}
+                      >
+                        <IconSymbol ios_icon_name="calendar.badge.plus" android_material_icon_name="event" size={16} color={colors.primary} />
+                        <Text style={styles.actionText}>Evento</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.actionBtn}
+                        onPress={() => router.push(`/gestion/panel-analisis?localId=${local.id}`)}
+                      >
+                        <IconSymbol ios_icon_name="chart.bar.fill" android_material_icon_name="bar_chart" size={16} color={colors.primary} />
+                        <Text style={styles.actionText}>Análisis</Text>
+                      </TouchableOpacity>
+                    </View>
 
-                      {/* Footer Actions */}
-                      <View style={styles.footerActionsCompact}>
-                        <TouchableOpacity
-                          style={styles.footerButtonCompact}
-                          onPress={() => router.push(`/gestion/planes-suscripcion?localId=${local.id}`)}
+                    {/* Plan Management Buttons */}
+                    <View style={styles.planButtonsRow}>
+                      <TouchableOpacity
+                        style={styles.planBtn}
+                        onPress={() => router.push(`/gestion/planes-suscripcion?localId=${local.id}`)}
+                      >
+                        <LinearGradient
+                          colors={['#3B82F6', '#2563EB']}
+                          style={styles.planBtnGradient}
                         >
-                          <IconSymbol ios_icon_name="arrow.up.circle" android_material_icon_name="upgrade" size={14} color={colors.primary} />
-                          <Text style={styles.footerButtonTextCompact}>Cambiar Plan</Text>
-                        </TouchableOpacity>
-                      </View>
+                          <IconSymbol ios_icon_name="arrow.up.circle" android_material_icon_name="upgrade" size={16} color="#FFFFFF" />
+                          <Text style={styles.planBtnText}>Cambiar Plan</Text>
+                        </LinearGradient>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.planBtn}
+                        onPress={() => {
+                          Alert.alert(
+                            'Cancelar Plan',
+                            '¿Estás seguro de que deseas cancelar tu plan?',
+                            [
+                              { text: 'No', style: 'cancel' },
+                              { text: 'Sí, Cancelar', style: 'destructive', onPress: () => console.log('Plan cancelled') },
+                            ]
+                          );
+                        }}
+                      >
+                        <LinearGradient
+                          colors={['#EF4444', '#DC2626']}
+                          style={styles.planBtnGradient}
+                        >
+                          <IconSymbol ios_icon_name="xmark.circle" android_material_icon_name="cancel" size={16} color="#FFFFFF" />
+                          <Text style={styles.planBtnText}>Cancelar Plan</Text>
+                        </LinearGradient>
+                      </TouchableOpacity>
                     </View>
                   </View>
                 ))}
               </View>
 
+              {/* Add New Local Button */}
               <TouchableOpacity
                 style={styles.addNewButton}
                 onPress={() => router.push('/crear/local')}
               >
-                <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={24} color={colors.primary} />
+                <IconSymbol ios_icon_name="plus.circle" android_material_icon_name="add_circle" size={20} color={colors.primary} />
                 <Text style={styles.addNewText}>Añadir Nuevo Local</Text>
               </TouchableOpacity>
             </React.Fragment>
@@ -454,7 +538,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingTop: Platform.OS === 'ios' ? 50 : 40,
-    paddingBottom: 16,
+    paddingBottom: 14,
     paddingHorizontal: 16,
   },
   headerRow: {
@@ -463,17 +547,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   backButton: {
-    padding: 8,
+    padding: 6,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: '700',
     color: colors.headerText,
-    flex: 1,
-    textAlign: 'center',
   },
   addButton: {
-    padding: 8,
+    padding: 6,
   },
   content: {
     flex: 1,
@@ -506,19 +588,19 @@ const styles = StyleSheet.create({
     marginTop: 60,
   },
   emptyTitle: {
-    fontSize: 22,
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: 'bold',
     color: colors.text,
     marginTop: 16,
     marginBottom: 8,
     textAlign: 'center',
   },
   emptyText: {
-    fontSize: 15,
+    fontSize: 14,
     color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 24,
-    lineHeight: 22,
+    lineHeight: 20,
   },
   createButton: {
     borderRadius: 12,
@@ -528,13 +610,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingVertical: 14,
-    paddingHorizontal: 28,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
   },
   createButtonText: {
     color: colors.headerText,
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: 'bold',
   },
   localesGrid: {
     gap: 16,
@@ -543,185 +625,264 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBackground,
     borderRadius: 16,
     overflow: 'hidden',
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: colors.cardBorder,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 3,
+    elevation: 4,
   },
   localCardActive: {
     borderColor: colors.primary,
-    borderWidth: 3,
+    borderWidth: 2,
     shadowColor: colors.primary,
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
     elevation: 6,
   },
-  compactImageSection: {
+  topSection: {
+    flexDirection: 'row',
+    padding: 14,
+    gap: 12,
+    backgroundColor: colors.background,
+  },
+  imageContainer: {
     position: 'relative',
-    width: '100%',
-    height: 120,
   },
-  compactImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
+  localImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
   },
-  compactImagePlaceholder: {
+  localImagePlaceholder: {
     backgroundColor: colors.cardBorder,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  planBadgeCompact: {
+  premiumBadgeOnImage: {
     position: 'absolute',
-    top: 8,
-    left: 8,
+    top: 4,
+    right: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
     borderRadius: 6,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.3,
-    shadowRadius: 2,
-    elevation: 3,
   },
-  planBadgeGradientCompact: {
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-  },
-  planBadgeTextCompact: {
-    fontSize: 10,
+  premiumBadgeText: {
+    fontSize: 8,
     fontWeight: '800',
     color: '#FFFFFF',
     letterSpacing: 0.5,
   },
-  activeBadgeCompact: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: colors.primary,
-    borderRadius: 16,
-    padding: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.3,
-    shadowRadius: 2,
-    elevation: 3,
-  },
-  compactContent: {
-    padding: 12,
-    gap: 10,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  infoColumn: {
+    flex: 1,
     justifyContent: 'space-between',
   },
-  titleColumn: {
-    flex: 1,
+  titleSection: {
+    marginBottom: 8,
   },
-  localNameCompact: {
-    fontSize: 17,
+  localNombre: {
+    fontSize: 18,
     fontWeight: '700',
     color: colors.text,
+    marginBottom: 4,
   },
-  localTypeCompact: {
+  localTipo: {
     fontSize: 13,
     color: colors.textSecondary,
     textTransform: 'capitalize',
-    marginTop: 2,
   },
-  statsRowCompact: {
+  activeBadgeCompact: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.background,
+    gap: 5,
+    backgroundColor: colors.primary + '15',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: 8,
-    padding: 8,
+    alignSelf: 'flex-start',
   },
-  statItemCompact: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-  },
-  statValueCompact: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  statDividerCompact: {
-    width: 1,
-    height: 20,
-    backgroundColor: colors.cardBorder,
-  },
-  destacadoActiveBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: colors.badgeDestacado,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  destacadoActiveText: {
+  activeBadgeTextCompact: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.primary,
   },
-  actionsRowCompact: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  infoGrid: {
+    padding: 14,
+    gap: 12,
   },
-  actionButtonCompact: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
+  infoBox: {
     backgroundColor: colors.background,
-    borderRadius: 8,
-    borderWidth: 1.5,
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
     borderColor: colors.cardBorder,
   },
-  destacadoButtonActive: {
+  infoBoxHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  infoBoxLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  infoBoxValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  infoBoxSubtext: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginBottom: 8,
+  },
+  progressBar: {
+    height: 6,
+    backgroundColor: colors.cardBorder,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  creditsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 4,
+  },
+  creditItem: {
+    flex: 1,
+  },
+  creditLabel: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    marginBottom: 4,
+  },
+  creditValue: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 6,
+  },
+  renewalDate: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    marginTop: 8,
+    fontStyle: 'italic',
+  },
+  destacadoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  destacadoInfo: {
+    flex: 1,
+  },
+  destacadoStatus: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    lineHeight: 18,
+  },
+  destacadoToggleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  destacadoToggleBtnActive: {
     backgroundColor: colors.badgeDestacado,
     borderColor: colors.badgeDestacado,
   },
-  activateButtonCompact: {
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  activateGradientCompact: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-  },
-  activateButtonTextCompact: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  footerActionsCompact: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
-    paddingTop: 10,
-  },
-  footerButtonCompact: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 6,
-  },
-  footerButtonTextCompact: {
+  destacadoToggleText: {
     fontSize: 12,
     fontWeight: '700',
     color: colors.primary,
+  },
+  destacadoToggleTextActive: {
+    color: '#FFFFFF',
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingBottom: 14,
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+    paddingTop: 14,
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: colors.background,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    flex: 1,
+    minWidth: '22%',
+  },
+  actionBtnPrimary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    flex: 1,
+    minWidth: '22%',
+  },
+  actionText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  actionTextPrimary: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  planButtonsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingBottom: 14,
+  },
+  planBtn: {
+    flex: 1,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  planBtnGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+  },
+  planBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   addNewButton: {
     flexDirection: 'row',
@@ -731,7 +892,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     marginTop: 8,
     backgroundColor: colors.cardBackground,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 2,
     borderColor: colors.primary,
     borderStyle: 'dashed',
