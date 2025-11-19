@@ -683,7 +683,7 @@ export default function LocalSubscriptionCard({ local, onRefresh, isSelected, on
           </View>
         )}
 
-        {/* Quick Actions - 3 buttons in a row with soft design */}
+        {/* Quick Actions - 3 buttons in a single row with soft design */}
         <View style={styles.actionsContainer}>
           <View style={styles.actionsRow}>
             <TouchableOpacity
