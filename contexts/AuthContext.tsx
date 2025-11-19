@@ -170,7 +170,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshUser = async () => {
     try {
       console.log('[AuthContext] 🔄 Refrescando usuario...');
-      setLoading(true);
       
       const { user: userData } = await getCurrentUser();
       
@@ -182,8 +181,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error('[AuthContext] ❌ Error refrescando usuario:', error);
-    } finally {
-      setLoading(false);
     }
   };
 

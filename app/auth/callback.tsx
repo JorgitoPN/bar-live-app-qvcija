@@ -104,13 +104,16 @@ export default function AuthCallbackScreen() {
                   console.log('[Callback] Failed to register push notifications');
                 });
               
-              // Wait for AuthContext to update
-              console.log('[Callback] ⏳ Esperando a que AuthContext se actualice...');
-              await new Promise(resolve => setTimeout(resolve, 2000));
+              // Wait a bit for the session to be fully established
+              console.log('[Callback] ⏳ Esperando a que la sesión se establezca completamente...');
+              await new Promise(resolve => setTimeout(resolve, 1500));
               
               // Force refresh user in AuthContext
               console.log('[Callback] 🔄 Refrescando usuario en AuthContext...');
               await refreshUser();
+              
+              // Wait a bit more for AuthContext to update
+              await new Promise(resolve => setTimeout(resolve, 500));
               
               // Get user profile to check if needs profile completion
               console.log('[Callback] 🔍 Obteniendo perfil de usuario...');
@@ -189,13 +192,16 @@ export default function AuthCallbackScreen() {
               console.log('[Callback] Failed to register push notifications');
             });
           
-          // Wait for AuthContext to update
-          console.log('[Callback] ⏳ Esperando a que AuthContext se actualice...');
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          // Wait a bit for the session to be fully established
+          console.log('[Callback] ⏳ Esperando a que la sesión se establezca completamente...');
+          await new Promise(resolve => setTimeout(resolve, 1500));
           
           // Force refresh user in AuthContext
           console.log('[Callback] 🔄 Refrescando usuario en AuthContext...');
           await refreshUser();
+          
+          // Wait a bit more for AuthContext to update
+          await new Promise(resolve => setTimeout(resolve, 500));
           
           // Get user profile to check if needs profile completion
           console.log('[Callback] 🔍 Obteniendo perfil de usuario...');

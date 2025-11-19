@@ -26,7 +26,7 @@ export interface AuthUser {
 }
 
 // Helper function to wait for user profile to be created by trigger
-const waitForUserProfile = async (userId: string, maxRetries = 3): Promise<{ success: boolean; profile?: any; error?: string }> => {
+const waitForUserProfile = async (userId: string, maxRetries = 5): Promise<{ success: boolean; profile?: any; error?: string }> => {
   let retries = maxRetries;
   
   while (retries > 0) {
@@ -39,18 +39,18 @@ const waitForUserProfile = async (userId: string, maxRetries = 3): Promise<{ suc
       .maybeSingle();
 
     if (profile) {
-      console.log('[Auth] Perfil encontrado:', profile);
+      console.log('[Auth] ✅ Perfil encontrado:', profile.email);
       return { success: true, profile };
     }
     
     if (error) {
-      console.error('[Auth] Error verificando perfil:', error);
+      console.error('[Auth] ❌ Error verificando perfil:', error);
     }
     
     retries--;
     if (retries > 0) {
-      console.log('[Auth] Perfil no encontrado, esperando 500ms antes de reintentar...');
-      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('[Auth] ⏳ Perfil no encontrado, esperando 800ms antes de reintentar...');
+      await new Promise(resolve => setTimeout(resolve, 800));
     }
   }
   
@@ -60,7 +60,7 @@ const waitForUserProfile = async (userId: string, maxRetries = 3): Promise<{ suc
 // Helper function to create user profile manually if trigger fails
 const createUserProfileManually = async (userId: string, email: string, nombre: string, avatar?: string, provider: 'barlive' | 'google' = 'barlive'): Promise<{ success: boolean; profile?: any; error?: string }> => {
   try {
-    console.log('[Auth] Creando perfil de usuario manualmente...');
+    console.log('[Auth] 🔧 Creando perfil de usuario manualmente...');
     
     const { data: profile, error } = await supabase
       .from('usuarios')
@@ -79,14 +79,14 @@ const createUserProfileManually = async (userId: string, email: string, nombre: 
       .single();
 
     if (error) {
-      console.error('[Auth] Error creando perfil manualmente:', error);
+      console.error('[Auth] ❌ Error creando perfil manualmente:', error);
       return { success: false, error: error.message };
     }
 
-    console.log('[Auth] Perfil creado manualmente:', profile);
+    console.log('[Auth] ✅ Perfil creado manualmente:', profile.email);
     return { success: true, profile };
   } catch (error: any) {
-    console.error('[Auth] Excepción al crear perfil manualmente:', error);
+    console.error('[Auth] ❌ Excepción al crear perfil manualmente:', error);
     return { success: false, error: error.message };
   }
 };
@@ -253,14 +253,14 @@ export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error
       // For web, use the current origin + callback path
       if (typeof window !== 'undefined') {
         redirectUrl = `${window.location.origin}/auth/callback`;
-        console.log('[Google Auth] Web redirect URL:', redirectUrl);
+        console.log('[Google Auth] 🌐 Web redirect URL:', redirectUrl);
       } else {
         redirectUrl = 'http://localhost:19006/auth/callback';
       }
     } else {
       // For native apps, use the app scheme
       redirectUrl = 'natively://auth/callback';
-      console.log('[Google Auth] Native redirect URL:', redirectUrl);
+      console.log('[Google Auth] 📱 Native redirect URL:', redirectUrl);
     }
 
     console.log('[Google Auth] ✅ Redirect URL configurada:', redirectUrl);
@@ -346,7 +346,7 @@ export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error
             console.log('[Google Auth] ✅ Sesión establecida para usuario:', sessionData.user.id);
             console.log('[Google Auth] User metadata:', sessionData.user.user_metadata);
             
-            // Wait for trigger to create profile (reduced retries for faster response)
+            // Wait for trigger to create profile
             let profileResult = await waitForUserProfile(sessionData.user.id);
             
             // If profile not found, try to create it manually
