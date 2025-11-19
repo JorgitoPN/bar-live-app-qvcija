@@ -20,8 +20,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSelectedLocal } from '@/contexts/SelectedLocalContext';
 import { supabase } from '@/utils/supabase';
 
-// ✅ FORCE CACHE BUST - VERSION 4.0.0 - COMPLETE REDESIGN
-const SCREEN_VERSION = '4.0.0-REDESIGNED';
+// ✅✅✅ FORCE COMPLETE CACHE BUST - VERSION 5.0.0 - ULTRA REDESIGN ✅✅✅
+const SCREEN_VERSION = '5.0.0-ULTRA-REDESIGN';
+const BUILD_TIMESTAMP = Date.now();
 
 const { width } = Dimensions.get('window');
 const CONTENT_MAX_WIDTH = 600;
@@ -221,8 +222,9 @@ export default function MisLocalesScreen() {
               <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
             </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
-              <Text style={styles.headerTitle}>Gestión de Locales</Text>
+              <Text style={styles.headerTitle}>🔥 Gestión de Locales 🔥</Text>
               <Text style={styles.headerVersion}>v{SCREEN_VERSION}</Text>
+              <Text style={styles.headerBuildTime}>Build: {BUILD_TIMESTAMP}</Text>
             </View>
             <TouchableOpacity
               style={styles.addButton}
@@ -242,7 +244,7 @@ export default function MisLocalesScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header with VERSION MARKER */}
+      {/* ✅✅✅ ULTRA VISIBLE HEADER WITH DEBUG INFO ✅✅✅ */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         style={styles.header}
@@ -252,8 +254,9 @@ export default function MisLocalesScreen() {
             <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
           </TouchableOpacity>
           <View style={styles.headerTitleContainer}>
-            <Text style={styles.headerTitle}>Gestión de Locales</Text>
+            <Text style={styles.headerTitle}>🔥 Gestión de Locales 🔥</Text>
             <Text style={styles.headerVersion}>v{SCREEN_VERSION}</Text>
+            <Text style={styles.headerBuildTime}>Build: {BUILD_TIMESTAMP}</Text>
           </View>
           <TouchableOpacity
             style={styles.addButton}
@@ -266,6 +269,15 @@ export default function MisLocalesScreen() {
 
       <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
         <View style={styles.centeredContainer}>
+          {/* ✅ ULTRA VISIBLE DEBUG BANNER ✅ */}
+          <View style={styles.debugBanner}>
+            <Text style={styles.debugText}>
+              ✅ NUEVA VERSIÓN CARGADA ✅{'\n'}
+              Versión: {SCREEN_VERSION}{'\n'}
+              Timestamp: {new Date(BUILD_TIMESTAMP).toLocaleTimeString()}
+            </Text>
+          </View>
+
           {locales.length === 0 ? (
             <View style={styles.emptyContainer}>
               <IconSymbol ios_icon_name="building.2" android_material_icon_name="business" size={64} color={colors.textSecondary} />
@@ -288,7 +300,7 @@ export default function MisLocalesScreen() {
             </View>
           ) : (
             <React.Fragment>
-              {/* ✅ REDESIGNED LOCAL CARDS - ALL 4 BUTTONS IN ONE ROW */}
+              {/* ✅✅✅ ULTRA REDESIGNED LOCAL CARDS - ALL 4 BUTTONS IN ONE ROW ✅✅✅ */}
               <View style={styles.localesGrid}>
                 {locales.map((local, index) => (
                   <View key={index} style={[
@@ -408,14 +420,14 @@ export default function MisLocalesScreen() {
                         </TouchableOpacity>
                       </View>
 
-                      {/* ✅ ALL 4 ACTION BUTTONS IN ONE ROW - RESPONSIVE */}
+                      {/* ✅✅✅ ALL 4 ACTION BUTTONS IN ONE ROW - ULTRA VISIBLE ✅✅✅ */}
                       <View style={styles.actionsRow}>
                         <TouchableOpacity
                           style={styles.actionButton}
                           onPress={() => router.push(`/perfil/local?localId=${local.id}`)}
                         >
-                          <View style={[styles.actionIconWrapper, { backgroundColor: '#3B82F6' + '20' }]}>
-                            <IconSymbol ios_icon_name="person.2" android_material_icon_name="people" size={20} color="#3B82F6" />
+                          <View style={[styles.actionIconWrapper, { backgroundColor: '#3B82F6' + '30' }]}>
+                            <IconSymbol ios_icon_name="person.2" android_material_icon_name="people" size={22} color="#3B82F6" />
                           </View>
                           <Text style={styles.actionButtonText}>Perfil</Text>
                         </TouchableOpacity>
@@ -424,8 +436,8 @@ export default function MisLocalesScreen() {
                           style={styles.actionButton}
                           onPress={() => router.push(`/editar/local?id=${local.id}`)}
                         >
-                          <View style={[styles.actionIconWrapper, { backgroundColor: '#10B981' + '20' }]}>
-                            <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={20} color="#10B981" />
+                          <View style={[styles.actionIconWrapper, { backgroundColor: '#10B981' + '30' }]}>
+                            <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={22} color="#10B981" />
                           </View>
                           <Text style={styles.actionButtonText}>Editar</Text>
                         </TouchableOpacity>
@@ -434,8 +446,8 @@ export default function MisLocalesScreen() {
                           style={styles.actionButton}
                           onPress={() => router.push(`/crear/evento?localId=${local.id}`)}
                         >
-                          <View style={[styles.actionIconWrapper, { backgroundColor: '#F59E0B' + '20' }]}>
-                            <IconSymbol ios_icon_name="calendar.badge.plus" android_material_icon_name="event" size={20} color="#F59E0B" />
+                          <View style={[styles.actionIconWrapper, { backgroundColor: '#F59E0B' + '30' }]}>
+                            <IconSymbol ios_icon_name="calendar.badge.plus" android_material_icon_name="event" size={22} color="#F59E0B" />
                           </View>
                           <Text style={styles.actionButtonText}>Evento</Text>
                         </TouchableOpacity>
@@ -444,8 +456,8 @@ export default function MisLocalesScreen() {
                           style={styles.actionButton}
                           onPress={() => router.push(`/gestion/panel-analisis?localId=${local.id}`)}
                         >
-                          <View style={[styles.actionIconWrapper, { backgroundColor: '#8B5CF6' + '20' }]}>
-                            <IconSymbol ios_icon_name="chart.bar.fill" android_material_icon_name="bar_chart" size={20} color="#8B5CF6" />
+                          <View style={[styles.actionIconWrapper, { backgroundColor: '#8B5CF6' + '30' }]}>
+                            <IconSymbol ios_icon_name="chart.bar.fill" android_material_icon_name="bar_chart" size={22} color="#8B5CF6" />
                           </View>
                           <Text style={styles.actionButtonText}>Análisis</Text>
                         </TouchableOpacity>
@@ -545,11 +557,18 @@ const styles = StyleSheet.create({
     color: colors.headerText,
   },
   headerVersion: {
-    fontSize: 10,
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.headerText,
+    opacity: 0.95,
+    marginTop: 2,
+  },
+  headerBuildTime: {
+    fontSize: 9,
     fontWeight: '600',
     color: colors.headerText,
-    opacity: 0.7,
-    marginTop: 2,
+    opacity: 0.8,
+    marginTop: 1,
   },
   addButton: {
     padding: 8,
@@ -566,6 +585,21 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     paddingHorizontal: 16,
     paddingTop: 16,
+  },
+  debugBanner: {
+    backgroundColor: '#10B981',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 3,
+    borderColor: '#059669',
+  },
+  debugText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    lineHeight: 20,
   },
   loadingContainer: {
     flex: 1,
@@ -619,25 +653,25 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   
-  // REDESIGNED CARD STYLES
+  // ✅✅✅ ULTRA REDESIGNED CARD STYLES ✅✅✅
   localCard: {
     backgroundColor: colors.cardBackground,
     borderRadius: 16,
     overflow: 'hidden',
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: colors.cardBorder,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 5,
   },
   localCardActive: {
     borderColor: colors.primary,
-    borderWidth: 2,
+    borderWidth: 3,
     shadowColor: colors.primary,
-    shadowOpacity: 0.2,
-    elevation: 6,
+    shadowOpacity: 0.3,
+    elevation: 8,
   },
 
   // IMAGE SECTION
@@ -812,34 +846,34 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
 
-  // ✅ ALL 4 ACTION BUTTONS IN ONE ROW - RESPONSIVE
+  // ✅✅✅ ALL 4 ACTION BUTTONS IN ONE ROW - ULTRA VISIBLE ✅✅✅
   actionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 8,
+    gap: 10,
   },
   actionButton: {
     flex: 1,
     alignItems: 'center',
     gap: 8,
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 4,
     backgroundColor: colors.background,
     borderRadius: 12,
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: colors.cardBorder,
     minWidth: 0,
   },
   actionIconWrapper: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
   },
   actionButtonText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
     color: colors.text,
     textAlign: 'center',
