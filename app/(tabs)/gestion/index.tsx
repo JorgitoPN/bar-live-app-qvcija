@@ -250,8 +250,8 @@ export default function GestionScreen() {
           </Text>
         </View>
 
-        {/* Quick Actions */}
-        <View style={styles.quickActions}>
+        {/* Quick Actions - Now properly centered */}
+        <View style={styles.quickActionsContainer}>
           <TouchableOpacity
             style={styles.quickActionButton}
             onPress={() => router.push('/gestion/mis-eventos')}
@@ -311,7 +311,7 @@ export default function GestionScreen() {
               Añade tu primer local para empezar a gestionar tu negocio
             </Text>
             <TouchableOpacity
-              style={styles.emptyStateButton}
+              style={styles.emptyStateButtonContainer}
               onPress={() => router.push('/crear/local')}
             >
               <LinearGradient
@@ -355,37 +355,48 @@ const styles = StyleSheet.create({
   headerSection: {
     padding: 20,
     paddingBottom: 12,
+    alignItems: 'center',
   },
   sectionTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 4,
+    textAlign: 'center',
   },
   sectionSubtitle: {
     fontSize: 14,
     color: colors.textSecondary,
+    textAlign: 'center',
   },
-  quickActions: {
+  quickActionsContainer: {
     flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
     paddingHorizontal: 20,
     gap: 12,
     marginBottom: 20,
+    flexWrap: 'wrap',
   },
   quickActionButton: {
     flex: 1,
+    minWidth: 100,
+    maxWidth: 120,
     borderRadius: 12,
     overflow: 'hidden',
   },
   quickActionGradient: {
     padding: 16,
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
+    minHeight: 100,
   },
   quickActionText: {
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '600',
+    textAlign: 'center',
   },
   emptyState: {
     flex: 1,
@@ -407,19 +418,23 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
   },
-  emptyStateButton: {
+  emptyStateButtonContainer: {
     marginTop: 24,
     borderRadius: 12,
     overflow: 'hidden',
+    alignSelf: 'center',
   },
   emptyStateButtonGradient: {
     paddingVertical: 14,
     paddingHorizontal: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyStateButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
+    textAlign: 'center',
   },
   localesList: {
     padding: 20,

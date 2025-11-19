@@ -187,13 +187,6 @@ export default function MapaScreen() {
   useEffect(() => {
     const CATEGORIAS_EXCLUIDAS = ['terrazas', 'rooftops', 'lounge'];
     
-    // Track map view for all visible locals
-    if (todosLosLocales.length > 0) {
-      todosLosLocales.forEach(local => {
-        trackMapInteraction(local.id, 'view', user?.id);
-      });
-    }
-    
     const filtrados = todosLosLocales.filter(local => {
       // Get all categories for this local
       const localCategories = local.barlive_types || (local.barlive_type ? [local.barlive_type] : []);
@@ -269,6 +262,28 @@ export default function MapaScreen() {
     // Track map interaction when user clicks on a marker
     trackMapInteraction(localId, 'click', user?.id);
     router.push(`/detalle/local?id=${localId}`);
+  };
+
+  const handleWebViewMessage = (event: any) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      console.log('📨 [MAP] Received message from WebView:', data);
+      
+      if (data.type === 'navigate' && data.id) {
+        console.log('🗺️ [MAP] Navigating to local details:', data.id);
+        handleVerDetalles(data.id);
+      } else if (data.type === 'popup_opened' && data.id) {
+        // Track when popup is opened
+        console.log('📍 [MAP] Popup opened for local:', data.id);
+        trackMapInteraction(data.id, 'view', user?.id);
+      } else if (data.type === 'zoom_close' && data.id) {
+        // Track when user zooms close to a local
+        console.log('🔍 [MAP] Zoomed close to local:', data.id);
+        trackMapInteraction(data.id, 'zoom', user?.id);
+      }
+    } catch (error) {
+      console.error('❌ [MAP] Error parsing WebView message:', error);
+    }
   };
 
   const generateMapHTML = () => {
@@ -577,6 +592,26 @@ export default function MapaScreen() {
 
       var markersData = ${JSON.stringify(markersData)};
       
+      // Track zoom events to detect when user zooms close to a local
+      var lastZoom = map.getZoom();
+      map.on('zoomend', function() {
+        var currentZoom = map.getZoom();
+        // If zoom level is 16 or higher (close zoom), check which locals are in view
+        if (currentZoom >= 16 && currentZoom > lastZoom) {
+          var bounds = map.getBounds();
+          markersData.forEach(function(data) {
+            if (bounds.contains([data.lat, data.lng])) {
+              // Send message to React Native that user zoomed close to this local
+              window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'zoom_close',
+                id: data.id
+              }));
+            }
+          });
+        }
+        lastZoom = currentZoom;
+      });
+      
       markersData.forEach(function(data) {
         var markerClass = 'custom-marker marker-' + data.estado;
         if (data.destacado) {
@@ -626,6 +661,15 @@ export default function MapaScreen() {
           offset: [0, -10]
         });
 
+        // Track when popup is opened
+        marker.on('popupopen', function(e) {
+          // Send message to React Native that popup was opened
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            type: 'popup_opened',
+            id: data.id
+          }));
+        });
+
         marker.on('click', function(e) {
           marker.openPopup();
           
@@ -661,20 +705,6 @@ export default function MapaScreen() {
 </body>
 </html>
     `;
-  };
-
-  const handleWebViewMessage = (event: any) => {
-    try {
-      const data = JSON.parse(event.nativeEvent.data);
-      console.log('📨 [MAP] Received message from WebView:', data);
-      
-      if (data.type === 'navigate' && data.id) {
-        console.log('🗺️ [MAP] Navigating to local details:', data.id);
-        handleVerDetalles(data.id);
-      }
-    } catch (error) {
-      console.error('❌ [MAP] Error parsing WebView message:', error);
-    }
   };
 
   return (
