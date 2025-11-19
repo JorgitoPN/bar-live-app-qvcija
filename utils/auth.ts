@@ -270,7 +270,7 @@ export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error
       provider: 'google',
       options: {
         redirectTo: redirectUrl,
-        skipBrowserRedirect: Platform.OS === 'web', // Don't skip on web, let Supabase handle it
+        skipBrowserRedirect: false, // Let Supabase handle the redirect
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
@@ -297,6 +297,7 @@ export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error
       console.log('[Google Auth] 🌐 Redirigiendo a Google OAuth en web...');
       if (data?.url) {
         // Redirect to Google OAuth page
+        console.log('[Google Auth] 📍 URL de redirección:', data.url);
         window.location.href = data.url;
       }
       // Return null as the actual authentication will complete after redirect
