@@ -676,7 +676,7 @@ export default function PanelAnalisisScreen() {
               <Text style={styles.sectionTitle}>Recomendaciones IA</Text>
             </View>
             <Text style={styles.sectionSubtitle}>
-              Sugerencias personalizadas para mejorar el rendimiento de tu local
+              Sugerencias personalizadas para mejorar el rendimiento de tu local, incluyendo cuándo publicar eventos y destacar tu local
             </Text>
             {recommendations.map((rec) => (
               <View key={rec.id} style={styles.recommendationCard}>
@@ -811,7 +811,7 @@ export default function PanelAnalisisScreen() {
               <Text style={styles.sectionTitle}>Mejores Horarios para Publicar</Text>
             </View>
             <Text style={styles.sectionSubtitle}>
-              Horarios con mayor engagement basados en tu historial
+              Horarios con mayor engagement basados en tu historial. La IA recomienda publicar eventos y destacar tu local en estos momentos
             </Text>
             <View style={styles.timesContainer}>
               {analyticsData.bestPostingTimes.map((time, index) => (
@@ -839,7 +839,7 @@ export default function PanelAnalisisScreen() {
               <Text style={styles.sectionTitle}>Mejores Días de la Semana</Text>
             </View>
             <Text style={styles.sectionSubtitle}>
-              Días con mayor interacción de tu audiencia
+              Días con mayor interacción de tu audiencia. Ideal para programar eventos y promociones
             </Text>
             <View style={styles.daysContainer}>
               {analyticsData.bestDays.map((day, index) => (
@@ -980,7 +980,7 @@ export default function PanelAnalisisScreen() {
         <View style={styles.infoBanner}>
           <IconSymbol name="info.circle.fill" size={20} color={colors.primary} />
           <Text style={styles.infoBannerText}>
-            Las analíticas se actualizan en tiempo real. Las recomendaciones de IA se generan basándose en tus datos históricos y patrones de comportamiento de tu audiencia.
+            Las analíticas se actualizan en tiempo real. Las recomendaciones de IA se generan basándose en tus datos históricos y patrones de comportamiento de tu audiencia, incluyendo los mejores momentos para publicar eventos y destacar tu local.
           </Text>
         </View>
 

@@ -22,29 +22,6 @@ interface FiltrosAvanzadosSheetProps {
   onAplicarFiltros: (filtros: Filtros) => void;
 }
 
-const COMUNIDADES = [
-  'Todas las Comunidades',
-  'Andalucía',
-  'Aragón',
-  'Asturias',
-  'Baleares',
-  'Canarias',
-  'Cantabria',
-  'Castilla y León',
-  'Castilla-La Mancha',
-  'Cataluña',
-  'Comunidad de Madrid',
-  'Comunidad Valenciana',
-  'Extremadura',
-  'Galicia',
-  'La Rioja',
-  'Navarra',
-  'País Vasco',
-  'Región de Murcia',
-  'Ceuta',
-  'Melilla',
-];
-
 const PROVINCIAS = [
   'Todas las Provincias',
   'A Coruña',
@@ -165,7 +142,6 @@ export default function FiltrosAvanzadosSheet({
   onAplicarFiltros,
 }: FiltrosAvanzadosSheetProps) {
   const [filtrosTemp, setFiltrosTemp] = useState<Filtros>(filtros);
-  const [showComunidadModal, setShowComunidadModal] = useState(false);
   const [showProvinciaModal, setShowProvinciaModal] = useState(false);
 
   const toggleArrayItem = (array: string[] | undefined, item: string): string[] => {
@@ -223,19 +199,7 @@ export default function FiltrosAvanzadosSheet({
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>📍 Ubicación y Distancia</Text>
                 
-                {/* FIXED: Comunidad Autónoma as dropdown selector */}
-                <Text style={styles.subsectionTitle}>Comunidad Autónoma</Text>
-                <TouchableOpacity
-                  style={styles.selectButton}
-                  onPress={() => setShowComunidadModal(true)}
-                >
-                  <Text style={styles.selectButtonText}>
-                    {filtrosTemp.comunidad || 'Todas las Comunidades'}
-                  </Text>
-                  <IconSymbol name="chevron.down" size={20} color={colors.text} />
-                </TouchableOpacity>
-
-                {/* FIXED: Provincia as dropdown selector */}
+                {/* Provincia as dropdown selector */}
                 <Text style={styles.subsectionTitle}>Provincia</Text>
                 <TouchableOpacity
                   style={styles.selectButton}
@@ -408,58 +372,6 @@ export default function FiltrosAvanzadosSheet({
           </View>
         </Pressable>
       </Pressable>
-
-      {/* Modal Comunidad Autónoma */}
-      <Modal
-        visible={showComunidadModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowComunidadModal(false)}
-      >
-        <Pressable
-          style={styles.selectorModalOverlay}
-          onPress={() => setShowComunidadModal(false)}
-        >
-          <Pressable style={styles.selectorModalContent} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.selectorModalHeader}>
-              <Text style={styles.selectorModalTitle}>Comunidad Autónoma</Text>
-              <TouchableOpacity onPress={() => setShowComunidadModal(false)}>
-                <IconSymbol name="xmark" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-            <ScrollView style={styles.selectorModalBody}>
-              {COMUNIDADES.map((comunidad) => (
-                <TouchableOpacity
-                  key={comunidad}
-                  style={[
-                    styles.selectorModalOption,
-                    filtrosTemp.comunidad === comunidad && styles.selectorModalOptionActive,
-                  ]}
-                  onPress={() => {
-                    setFiltrosTemp({
-                      ...filtrosTemp,
-                      comunidad: filtrosTemp.comunidad === comunidad ? undefined : comunidad,
-                    });
-                    setShowComunidadModal(false);
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.selectorModalOptionText,
-                      filtrosTemp.comunidad === comunidad && styles.selectorModalOptionTextActive,
-                    ]}
-                  >
-                    {comunidad}
-                  </Text>
-                  {filtrosTemp.comunidad === comunidad && (
-                    <IconSymbol name="checkmark" size={20} color={colors.primary} />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </Pressable>
-        </Pressable>
-      </Modal>
 
       {/* Modal Provincia */}
       <Modal
