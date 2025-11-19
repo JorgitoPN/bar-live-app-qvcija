@@ -19,10 +19,6 @@ import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { colors } from '@/styles/commonStyles';
 
-// ✅✅✅ FORCE COMPLETE CACHE BUST - VERSION 5.0.0 - ULTRA REDESIGN ✅✅✅
-const SCREEN_VERSION = '5.0.0-ULTRA-REDESIGN';
-const BUILD_TIMESTAMP = Date.now();
-
 const { width } = Dimensions.get('window');
 const CONTENT_MAX_WIDTH = 600;
 
@@ -102,6 +98,15 @@ export default function PanelAnalisisScreen() {
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('30d');
   const [generatingRecommendations, setGeneratingRecommendations] = useState(false);
   const [expandedRecommendation, setExpandedRecommendation] = useState<string | null>(null);
+  const [renderTime, setRenderTime] = useState(new Date());
+
+  // Update render time every second to prove the component is live
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRenderTime(new Date());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const loadAnalyticsData = useCallback(async () => {
     if (!localId || !user) return;
@@ -110,7 +115,6 @@ export default function PanelAnalisisScreen() {
       setLoading(true);
       console.log('[PanelAnalisis] Loading analytics for local:', localId);
 
-      // 1. Verify local ownership
       const { data: localData, error: localError } = await supabase
         .from('locales')
         .select('id, nombre, imagen_url, propietario_id, seguidores, check_ins, rating')
@@ -127,7 +131,6 @@ export default function PanelAnalisisScreen() {
         return;
       }
 
-      // 2. Verify Premium subscription
       console.log('[PanelAnalisis] Checking subscription for local:', localId);
       
       const { data: subscriptionData, error: subError } = await supabase
@@ -201,7 +204,6 @@ export default function PanelAnalisisScreen() {
 
       console.log('[PanelAnalisis] Access granted! Loading analytics data...');
 
-      // 3. Load analytics data
       const daysAgo = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : 90;
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - daysAgo);
@@ -253,7 +255,6 @@ export default function PanelAnalisisScreen() {
         .eq('seguido_id', localId)
         .gte('created_at', startDate.toISOString());
 
-      // Calculate stats
       const totalPosts = postsData?.length || 0;
       const totalStories = storiesData?.length || 0;
       const totalLikes = (postsData?.reduce((sum, p) => sum + (p.likes || 0), 0) || 0) + (storyLikesData?.length || 0);
@@ -265,7 +266,6 @@ export default function PanelAnalisisScreen() {
       const totalInteractions = totalLikes + totalComments;
       const engagementRate = totalPosts + totalStories > 0 ? ((totalInteractions / (totalPosts + totalStories)) * 100) : 0;
 
-      // Build time series data
       const timeSeriesMap = new Map<string, { views: number; interactions: number }>();
       
       checkInsData?.forEach((checkIn) => {
@@ -307,7 +307,6 @@ export default function PanelAnalisisScreen() {
         created_at: post.created_at,
       })) || [];
 
-      // Best posting times
       const postsByHour = new Map<number, { count: number; engagement: number }>();
       postsData?.forEach((post) => {
         const hour = new Date(post.created_at).getHours();
@@ -327,7 +326,6 @@ export default function PanelAnalisisScreen() {
         .sort((a, b) => b.avgEngagement - a.avgEngagement)
         .slice(0, 3);
 
-      // Best days
       const postsByDay = new Map<number, { count: number; engagement: number }>();
       postsData?.forEach((post) => {
         const day = new Date(post.created_at).getDay();
@@ -542,7 +540,6 @@ export default function PanelAnalisisScreen() {
 
   return (
     <View style={styles.container}>
-      {/* ✅✅✅ ULTRA VISIBLE HEADER WITH DEBUG INFO ✅✅✅ */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         style={styles.header}
@@ -552,9 +549,9 @@ export default function PanelAnalisisScreen() {
             <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
           </TouchableOpacity>
           <View style={styles.headerContent}>
-            <Text style={styles.headerTitle}>📊 Panel de Análisis 📊</Text>
+            <Text style={styles.headerTitle}>Panel de Análisis</Text>
             <Text style={styles.headerSubtitle}>{analyticsData.local.nombre}</Text>
-            <Text style={styles.headerVersion}>v{SCREEN_VERSION}</Text>
+            <Text style={styles.liveIndicator}>🔴 LIVE: {renderTime.toLocaleTimeString()}</Text>
           </View>
           <View style={styles.headerActions}>
             <TouchableOpacity
@@ -571,7 +568,6 @@ export default function PanelAnalisisScreen() {
           </View>
         </View>
 
-        {/* Compact Time Range Selector */}
         <View style={styles.timeRangeContainer}>
           {(['7d', '30d', '90d'] as const).map((range) => (
             <TouchableOpacity
@@ -596,16 +592,6 @@ export default function PanelAnalisisScreen() {
         }
       >
         <View style={styles.centeredContainer}>
-          {/* ✅ ULTRA VISIBLE DEBUG BANNER ✅ */}
-          <View style={styles.debugBanner}>
-            <Text style={styles.debugText}>
-              ✅ NUEVA VERSIÓN CARGADA ✅{'\n'}
-              Versión: {SCREEN_VERSION}{'\n'}
-              Timestamp: {new Date(BUILD_TIMESTAMP).toLocaleTimeString()}
-            </Text>
-          </View>
-
-          {/* Compact Key Metrics - 2 rows of 3 */}
           <View style={styles.metricsGrid}>
             <View style={styles.metricCard}>
               <IconSymbol ios_icon_name="eye.fill" android_material_icon_name="visibility" size={20} color="#3B82F6" />
@@ -639,7 +625,6 @@ export default function PanelAnalisisScreen() {
             </View>
           </View>
 
-          {/* ✅✅✅ AI RECOMMENDATIONS - ULTRA PROMINENT SECTION ✅✅✅ */}
           <View style={styles.aiSection}>
             <View style={styles.aiHeader}>
               <View style={styles.aiTitleRow}>
@@ -649,7 +634,7 @@ export default function PanelAnalisisScreen() {
                 >
                   <IconSymbol ios_icon_name="sparkles" android_material_icon_name="auto_awesome" size={18} color="#FFFFFF" />
                 </LinearGradient>
-                <Text style={styles.aiTitle}>🤖 Recomendaciones IA 🤖</Text>
+                <Text style={styles.aiTitle}>Recomendaciones IA</Text>
                 {recommendations.length > 0 && (
                   <View style={styles.aiBadge}>
                     <Text style={styles.aiBadgeText}>{recommendations.length}</Text>
@@ -657,7 +642,7 @@ export default function PanelAnalisisScreen() {
                 )}
               </View>
               <Text style={styles.aiSubtitle}>
-                ⭐ Incluye cuándo publicar eventos y destacar tu local ⭐
+                Incluye cuándo publicar eventos y destacar tu local
               </Text>
             </View>
 
@@ -756,7 +741,6 @@ export default function PanelAnalisisScreen() {
             )}
           </View>
 
-          {/* Compact Best Times - Single Card */}
           <View style={styles.compactCard}>
             <View style={styles.compactCardHeader}>
               <IconSymbol ios_icon_name="clock.fill" android_material_icon_name="schedule" size={20} color="#F59E0B" />
@@ -789,7 +773,6 @@ export default function PanelAnalisisScreen() {
             </View>
           </View>
 
-          {/* Compact Content Summary */}
           <View style={styles.compactCard}>
             <View style={styles.compactCardHeader}>
               <IconSymbol ios_icon_name="square.grid.2x2.fill" android_material_icon_name="grid_view" size={20} color="#8B5CF6" />
@@ -814,7 +797,6 @@ export default function PanelAnalisisScreen() {
             </View>
           </View>
 
-          {/* Compact Audience */}
           <View style={styles.compactCard}>
             <View style={styles.compactCardHeader}>
               <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={20} color={colors.primary} />
@@ -839,7 +821,6 @@ export default function PanelAnalisisScreen() {
             </View>
           </View>
 
-          {/* Info Footer */}
           <View style={styles.infoFooter}>
             <IconSymbol ios_icon_name="lightbulb.fill" android_material_icon_name="lightbulb" size={18} color="#F59E0B" />
             <Text style={styles.infoText}>
@@ -892,7 +873,7 @@ const styles = StyleSheet.create({
     opacity: 0.9,
     marginTop: 2,
   },
-  headerVersion: {
+  liveIndicator: {
     fontSize: 10,
     fontWeight: '700',
     color: colors.headerText,
@@ -956,21 +937,6 @@ const styles = StyleSheet.create({
     width: '100%',
     alignSelf: 'center',
     padding: 12,
-  },
-  debugBanner: {
-    backgroundColor: '#10B981',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 3,
-    borderColor: '#059669',
-  },
-  debugText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    textAlign: 'center',
-    lineHeight: 20,
   },
   metricsGrid: {
     flexDirection: 'row',

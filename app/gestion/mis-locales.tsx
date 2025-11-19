@@ -20,10 +20,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSelectedLocal } from '@/contexts/SelectedLocalContext';
 import { supabase } from '@/utils/supabase';
 
-// ✅✅✅ FORCE COMPLETE CACHE BUST - VERSION 5.0.0 - ULTRA REDESIGN ✅✅✅
-const SCREEN_VERSION = '5.0.0-ULTRA-REDESIGN';
-const BUILD_TIMESTAMP = Date.now();
-
 const { width } = Dimensions.get('window');
 const CONTENT_MAX_WIDTH = 600;
 
@@ -50,6 +46,15 @@ export default function MisLocalesScreen() {
   const [locales, setLocales] = useState<LocalWithPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingDestacado, setUpdatingDestacado] = useState<string | null>(null);
+  const [renderTime, setRenderTime] = useState(new Date());
+
+  // Update render time every second to prove the component is live
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRenderTime(new Date());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const loadLocales = useCallback(async () => {
     if (!user) return;
@@ -222,9 +227,8 @@ export default function MisLocalesScreen() {
               <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
             </TouchableOpacity>
             <View style={styles.headerTitleContainer}>
-              <Text style={styles.headerTitle}>🔥 Gestión de Locales 🔥</Text>
-              <Text style={styles.headerVersion}>v{SCREEN_VERSION}</Text>
-              <Text style={styles.headerBuildTime}>Build: {BUILD_TIMESTAMP}</Text>
+              <Text style={styles.headerTitle}>Gestión de Locales</Text>
+              <Text style={styles.liveIndicator}>🔴 LIVE: {renderTime.toLocaleTimeString()}</Text>
             </View>
             <TouchableOpacity
               style={styles.addButton}
@@ -244,7 +248,6 @@ export default function MisLocalesScreen() {
 
   return (
     <View style={styles.container}>
-      {/* ✅✅✅ ULTRA VISIBLE HEADER WITH DEBUG INFO ✅✅✅ */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         style={styles.header}
@@ -254,9 +257,8 @@ export default function MisLocalesScreen() {
             <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
           </TouchableOpacity>
           <View style={styles.headerTitleContainer}>
-            <Text style={styles.headerTitle}>🔥 Gestión de Locales 🔥</Text>
-            <Text style={styles.headerVersion}>v{SCREEN_VERSION}</Text>
-            <Text style={styles.headerBuildTime}>Build: {BUILD_TIMESTAMP}</Text>
+            <Text style={styles.headerTitle}>Gestión de Locales</Text>
+            <Text style={styles.liveIndicator}>🔴 LIVE: {renderTime.toLocaleTimeString()}</Text>
           </View>
           <TouchableOpacity
             style={styles.addButton}
@@ -269,15 +271,6 @@ export default function MisLocalesScreen() {
 
       <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
         <View style={styles.centeredContainer}>
-          {/* ✅ ULTRA VISIBLE DEBUG BANNER ✅ */}
-          <View style={styles.debugBanner}>
-            <Text style={styles.debugText}>
-              ✅ NUEVA VERSIÓN CARGADA ✅{'\n'}
-              Versión: {SCREEN_VERSION}{'\n'}
-              Timestamp: {new Date(BUILD_TIMESTAMP).toLocaleTimeString()}
-            </Text>
-          </View>
-
           {locales.length === 0 ? (
             <View style={styles.emptyContainer}>
               <IconSymbol ios_icon_name="building.2" android_material_icon_name="business" size={64} color={colors.textSecondary} />
@@ -300,14 +293,12 @@ export default function MisLocalesScreen() {
             </View>
           ) : (
             <React.Fragment>
-              {/* ✅✅✅ ULTRA REDESIGNED LOCAL CARDS - ALL 4 BUTTONS IN ONE ROW ✅✅✅ */}
               <View style={styles.localesGrid}>
                 {locales.map((local, index) => (
                   <View key={index} style={[
                     styles.localCard,
                     selectedLocalId === local.id && styles.localCardActive
                   ]}>
-                    {/* HERO IMAGE SECTION */}
                     <View style={styles.imageSection}>
                       {local.imagen_url ? (
                         <Image source={{ uri: local.imagen_url }} style={styles.heroImage} />
@@ -317,9 +308,7 @@ export default function MisLocalesScreen() {
                         </View>
                       )}
                       
-                      {/* OVERLAY BADGES */}
                       <View style={styles.imageOverlay}>
-                        {/* Plan Badge */}
                         <View style={styles.planBadgeWrapper}>
                           <LinearGradient
                             colors={getPlanColor(local.plan_nombre)}
@@ -329,7 +318,6 @@ export default function MisLocalesScreen() {
                           </LinearGradient>
                         </View>
                         
-                        {/* Active Indicator */}
                         {selectedLocalId === local.id && (
                           <View style={styles.activeIndicatorBadge}>
                             <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color="#FFFFFF" />
@@ -338,7 +326,6 @@ export default function MisLocalesScreen() {
                         )}
                       </View>
 
-                      {/* Destacado Banner */}
                       {local.destacado_activo && local.destacado_fecha_fin && (
                         <View style={styles.destacadoBanner}>
                           <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={16} color="#FFFFFF" />
@@ -349,15 +336,12 @@ export default function MisLocalesScreen() {
                       )}
                     </View>
 
-                    {/* CONTENT SECTION */}
                     <View style={styles.contentSection}>
-                      {/* Title & Type */}
                       <View style={styles.titleSection}>
                         <Text style={styles.localName} numberOfLines={1}>{local.nombre}</Text>
                         <Text style={styles.localType} numberOfLines={1}>{local.tipo}</Text>
                       </View>
 
-                      {/* Stats Row */}
                       <View style={styles.statsRow}>
                         <View style={styles.statItem}>
                           <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={16} color={colors.primary} />
@@ -382,7 +366,6 @@ export default function MisLocalesScreen() {
                         </View>
                       </View>
 
-                      {/* Destacado Toggle */}
                       <View style={styles.destacadoSection}>
                         <View style={styles.destacadoInfo}>
                           <Text style={styles.destacadoTitle}>Destacar Local</Text>
@@ -420,7 +403,6 @@ export default function MisLocalesScreen() {
                         </TouchableOpacity>
                       </View>
 
-                      {/* ✅✅✅ ALL 4 ACTION BUTTONS IN ONE ROW - ULTRA VISIBLE ✅✅✅ */}
                       <View style={styles.actionsRow}>
                         <TouchableOpacity
                           style={styles.actionButton}
@@ -463,7 +445,6 @@ export default function MisLocalesScreen() {
                         </TouchableOpacity>
                       </View>
 
-                      {/* Activate Button (if not selected) */}
                       {selectedLocalId !== local.id && (
                         <TouchableOpacity
                           style={styles.activateButton}
@@ -479,7 +460,6 @@ export default function MisLocalesScreen() {
                         </TouchableOpacity>
                       )}
 
-                      {/* Plan Management Footer */}
                       <View style={styles.planFooter}>
                         <TouchableOpacity
                           style={styles.planFooterButton}
@@ -513,7 +493,6 @@ export default function MisLocalesScreen() {
                 ))}
               </View>
 
-              {/* Add New Local Button */}
               <TouchableOpacity
                 style={styles.addNewButton}
                 onPress={() => router.push('/crear/local')}
@@ -556,19 +535,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.headerText,
   },
-  headerVersion: {
+  liveIndicator: {
     fontSize: 11,
     fontWeight: '700',
     color: colors.headerText,
     opacity: 0.95,
-    marginTop: 2,
-  },
-  headerBuildTime: {
-    fontSize: 9,
-    fontWeight: '600',
-    color: colors.headerText,
-    opacity: 0.8,
-    marginTop: 1,
+    marginTop: 4,
   },
   addButton: {
     padding: 8,
@@ -585,21 +557,6 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     paddingHorizontal: 16,
     paddingTop: 16,
-  },
-  debugBanner: {
-    backgroundColor: '#10B981',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 3,
-    borderColor: '#059669',
-  },
-  debugText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    textAlign: 'center',
-    lineHeight: 20,
   },
   loadingContainer: {
     flex: 1,
@@ -652,8 +609,6 @@ const styles = StyleSheet.create({
   localesGrid: {
     gap: 20,
   },
-  
-  // ✅✅✅ ULTRA REDESIGNED CARD STYLES ✅✅✅
   localCard: {
     backgroundColor: colors.cardBackground,
     borderRadius: 16,
@@ -673,8 +628,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     elevation: 8,
   },
-
-  // IMAGE SECTION
   imageSection: {
     position: 'relative',
     width: '100%',
@@ -755,8 +708,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-
-  // CONTENT SECTION
   contentSection: {
     padding: 16,
     gap: 16,
@@ -774,8 +725,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textTransform: 'capitalize',
   },
-
-  // STATS ROW
   statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -803,8 +752,6 @@ const styles = StyleSheet.create({
     height: 40,
     backgroundColor: colors.cardBorder,
   },
-
-  // DESTACADO SECTION
   destacadoSection: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -845,8 +792,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-
-  // ✅✅✅ ALL 4 ACTION BUTTONS IN ONE ROW - ULTRA VISIBLE ✅✅✅
   actionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -878,8 +823,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     textAlign: 'center',
   },
-
-  // ACTIVATE BUTTON
   activateButton: {
     borderRadius: 12,
     overflow: 'hidden',
@@ -896,8 +839,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-
-  // PLAN FOOTER
   planFooter: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -924,8 +865,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.primary,
   },
-
-  // ADD NEW BUTTON
   addNewButton: {
     flexDirection: 'row',
     alignItems: 'center',
