@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { colors } from '@/styles/commonStyles';
-import { supabase } from '@/utils/supabase';
+import { supabase, manuallyRestoreSession } from '@/utils/supabase';
 import { getCurrentUser } from '@/utils/auth';
 import { registerForPushNotifications, savePushToken } from '@/utils/notifications';
 import { useAuth } from '@/contexts/AuthContext';
@@ -52,10 +52,7 @@ export default function AuthCallbackScreen() {
         addDebugInfo('🔄 Procesando callback de autenticación...');
         addDebugInfo(`Platform: ${Platform.OS}`);
         
-        // For web, Supabase will automatically detect and process the OAuth callback
-        // because we have detectSessionInUrl: true in the client config
-        // We just need to wait for it to complete
-        
+        // For web, check for OAuth errors in URL
         if (Platform.OS === 'web' && typeof window !== 'undefined') {
           addDebugInfo('🌐 Detectando OAuth callback en web...');
           addDebugInfo(`URL: ${window.location.href}`);
@@ -85,16 +82,16 @@ export default function AuthCallbackScreen() {
           }
         }
         
-        // Wait for Supabase to process the OAuth callback and persist the session
-        addDebugInfo('⏳ Esperando que Supabase procese el callback...');
+        // STRATEGY 1: Wait for Supabase to automatically detect and process the OAuth callback
+        addDebugInfo('⏳ Esperando detección automática de sesión (2s)...');
         await new Promise(resolve => setTimeout(resolve, 2000));
         
-        // Now check for the session with retries
-        addDebugInfo('🔍 Verificando sesión...');
+        // STRATEGY 2: Try to get session with multiple retries
+        addDebugInfo('🔍 Verificando sesión con reintentos...');
         
         let session = null;
-        let retries = 5;
-        let delay = 1000;
+        let retries = 8; // Increased retries
+        let delay = 500; // Start with shorter delay
         
         while (retries > 0 && !session) {
           const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
@@ -105,28 +102,77 @@ export default function AuthCallbackScreen() {
           
           session = currentSession;
           
-          if (!session && retries > 1) {
-            addDebugInfo(`⏳ Sesión no encontrada, reintentando en ${delay}ms... (${6 - retries}/5)`);
+          if (session) {
+            addDebugInfo(`✅ Sesión encontrada en intento ${9 - retries}`);
+            break;
+          }
+          
+          if (retries > 1) {
+            addDebugInfo(`⏳ Sesión no encontrada, reintentando en ${delay}ms... (${9 - retries}/8)`);
             await new Promise(resolve => setTimeout(resolve, delay));
-            delay = Math.min(delay * 1.2, 2000);
+            delay = Math.min(delay * 1.5, 2000); // Exponential backoff
           }
           
           retries--;
         }
 
+        // STRATEGY 3: If still no session, try manual restoration from storage
         if (!session) {
-          addDebugInfo('❌ No se pudo obtener la sesión después de 5 intentos');
+          addDebugInfo('🔧 Intentando restauración manual de sesión desde storage...');
+          const { success, session: restoredSession } = await manuallyRestoreSession();
+          
+          if (success && restoredSession) {
+            addDebugInfo('✅ Sesión restaurada manualmente desde storage');
+            session = restoredSession;
+          } else {
+            addDebugInfo('❌ No se pudo restaurar sesión desde storage');
+          }
+        }
+
+        // STRATEGY 4: If still no session, check if we're on web and have tokens in URL
+        if (!session && Platform.OS === 'web' && typeof window !== 'undefined') {
+          addDebugInfo('🔧 Intentando extraer tokens de URL...');
+          
+          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          const accessToken = hashParams.get('access_token');
+          const refreshToken = hashParams.get('refresh_token');
+          
+          if (accessToken && refreshToken) {
+            addDebugInfo('✅ Tokens encontrados en URL, estableciendo sesión...');
+            
+            const { data, error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+            
+            if (error) {
+              addDebugInfo(`❌ Error estableciendo sesión desde URL: ${error.message}`);
+            } else if (data.session) {
+              addDebugInfo('✅ Sesión establecida desde tokens de URL');
+              session = data.session;
+            }
+          } else {
+            addDebugInfo('⚠️ No se encontraron tokens en URL');
+          }
+        }
+
+        // Final check: If we still don't have a session, show error
+        if (!session) {
+          addDebugInfo('❌ No se pudo obtener la sesión después de todos los intentos');
+          addDebugInfo('💡 Sugerencia: Verifica que Google OAuth esté configurado correctamente en Supabase');
+          
           if (isMounted) {
             setStatus('error');
             setErrorMessage('No se pudo completar la autenticación');
-            setErrorDetails('La sesión no se estableció correctamente. Por favor, intenta de nuevo.');
+            setErrorDetails('La sesión no se estableció correctamente. Por favor, intenta de nuevo o contacta con soporte si el problema persiste.');
           }
-          safeRedirect('/(tabs)/explorar', 3000);
+          safeRedirect('/(tabs)/explorar', 4000);
           return;
         }
 
         addDebugInfo(`✅ Sesión encontrada para: ${session.user.email}`);
         addDebugInfo(`User ID: ${session.user.id}`);
+        addDebugInfo(`Session expires at: ${new Date(session.expires_at! * 1000).toISOString()}`);
         
         // Register push notifications (non-blocking)
         registerForPushNotifications()
@@ -240,11 +286,11 @@ export default function AuthCallbackScreen() {
         </>
       )}
       
-      {/* Debug info - only show in development */}
+      {/* Debug info - always show in development */}
       {__DEV__ && debugInfo.length > 0 && (
         <View style={styles.debugContainer}>
-          <Text style={styles.debugTitle}>Debug Info:</Text>
-          {debugInfo.slice(-10).map((info, index) => (
+          <Text style={styles.debugTitle}>Debug Info (últimos 15):</Text>
+          {debugInfo.slice(-15).map((info, index) => (
             <Text key={index} style={styles.debugText}>{info}</Text>
           ))}
         </View>
@@ -309,12 +355,12 @@ const styles = StyleSheet.create({
   debugContainer: {
     position: 'absolute',
     bottom: 20,
-    left: 20,
-    right: 20,
-    backgroundColor: 'rgba(0,0,0,0.8)',
+    left: 10,
+    right: 10,
+    backgroundColor: 'rgba(0,0,0,0.9)',
     padding: 10,
     borderRadius: 8,
-    maxHeight: 200,
+    maxHeight: 300,
   },
   debugTitle: {
     color: '#FFD700',
@@ -324,7 +370,8 @@ const styles = StyleSheet.create({
   },
   debugText: {
     color: '#FFFFFF',
-    fontSize: 10,
+    fontSize: 9,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    lineHeight: 12,
   },
 });

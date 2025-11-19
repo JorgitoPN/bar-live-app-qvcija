@@ -12,62 +12,79 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 const ExpoSecureStoreAdapter = {
   getItem: async (key: string) => {
     try {
+      console.log('[SecureStore/integrations] 📥 Getting item:', key);
+      
       if (Platform.OS === 'web') {
-        return localStorage.getItem(key);
+        const value = localStorage.getItem(key);
+        console.log('[SecureStore/integrations] ✅ Web localStorage get:', value ? 'found' : 'not found');
+        return value;
       }
       
       const value = await SecureStore.getItemAsync(key);
+      console.log('[SecureStore/integrations] ✅ SecureStore get:', value ? 'found' : 'not found');
       return value;
     } catch (error: any) {
-      console.error('[SecureStore] ❌ Error getting item:', error?.message || error);
+      console.error('[SecureStore/integrations] ❌ Error getting item:', error?.message || error);
       
       // Fallback to AsyncStorage if SecureStore fails
       try {
-        console.log('[SecureStore] 🔄 Falling back to AsyncStorage');
-        return await AsyncStorage.getItem(key);
+        console.log('[SecureStore/integrations] 🔄 Falling back to AsyncStorage');
+        const value = await AsyncStorage.getItem(key);
+        console.log('[SecureStore/integrations] ✅ AsyncStorage get:', value ? 'found' : 'not found');
+        return value;
       } catch (fallbackError) {
-        console.error('[SecureStore] ❌ AsyncStorage fallback also failed:', fallbackError);
+        console.error('[SecureStore/integrations] ❌ AsyncStorage fallback also failed:', fallbackError);
         return null;
       }
     }
   },
   setItem: async (key: string, value: string) => {
     try {
+      console.log('[SecureStore/integrations] 💾 Setting item:', key, 'length:', value.length);
+      
       if (Platform.OS === 'web') {
         localStorage.setItem(key, value);
+        console.log('[SecureStore/integrations] ✅ Web localStorage set successful');
         return;
       }
       
       await SecureStore.setItemAsync(key, value);
+      console.log('[SecureStore/integrations] ✅ SecureStore set successful');
     } catch (error: any) {
-      console.error('[SecureStore] ❌ Error setting item:', error?.message || error);
+      console.error('[SecureStore/integrations] ❌ Error setting item:', error?.message || error);
       
       // Fallback to AsyncStorage if SecureStore fails
       try {
-        console.log('[SecureStore] 🔄 Falling back to AsyncStorage');
+        console.log('[SecureStore/integrations] 🔄 Falling back to AsyncStorage');
         await AsyncStorage.setItem(key, value);
+        console.log('[SecureStore/integrations] ✅ AsyncStorage set successful');
       } catch (fallbackError) {
-        console.error('[SecureStore] ❌ AsyncStorage fallback also failed:', fallbackError);
+        console.error('[SecureStore/integrations] ❌ AsyncStorage fallback also failed:', fallbackError);
       }
     }
   },
   removeItem: async (key: string) => {
     try {
+      console.log('[SecureStore/integrations] 🗑️ Removing item:', key);
+      
       if (Platform.OS === 'web') {
         localStorage.removeItem(key);
+        console.log('[SecureStore/integrations] ✅ Web localStorage remove successful');
         return;
       }
       
       await SecureStore.deleteItemAsync(key);
+      console.log('[SecureStore/integrations] ✅ SecureStore remove successful');
     } catch (error: any) {
-      console.error('[SecureStore] ❌ Error removing item:', error?.message || error);
+      console.error('[SecureStore/integrations] ❌ Error removing item:', error?.message || error);
       
       // Fallback to AsyncStorage if SecureStore fails
       try {
-        console.log('[SecureStore] 🔄 Falling back to AsyncStorage');
+        console.log('[SecureStore/integrations] 🔄 Falling back to AsyncStorage');
         await AsyncStorage.removeItem(key);
+        console.log('[SecureStore/integrations] ✅ AsyncStorage remove successful');
       } catch (fallbackError) {
-        console.error('[SecureStore] ❌ AsyncStorage fallback also failed:', fallbackError);
+        console.error('[SecureStore/integrations] ❌ AsyncStorage fallback also failed:', fallbackError);
       }
     }
   },
