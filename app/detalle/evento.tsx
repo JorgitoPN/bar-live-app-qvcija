@@ -400,7 +400,7 @@ export default function DetalleEventoScreen() {
         showsVerticalScrollIndicator={false}
         bounces={true}
       >
-        {/* Full Width Cover Image - More Compact */}
+        {/* Full Width Cover Image */}
         <View style={styles.coverImageContainer}>
           {evento.imagen_url ? (
             <Image 
@@ -430,7 +430,7 @@ export default function DetalleEventoScreen() {
             style={styles.coverOverlay}
           />
 
-          {/* Back Button - Matching BarLive style (no white border) */}
+          {/* Back Button - Clearly visible with white icon on semi-transparent black background */}
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
@@ -457,7 +457,7 @@ export default function DetalleEventoScreen() {
             </View>
           )}
 
-          {/* Event Title Overlay - More Compact */}
+          {/* Event Title Overlay */}
           <View style={styles.titleOverlay}>
             <Animated.View 
               style={[
@@ -472,7 +472,7 @@ export default function DetalleEventoScreen() {
               <View style={styles.titleUnderline} />
             </Animated.View>
 
-            {/* Date and Time Info - More Compact */}
+            {/* Date and Time Info */}
             <Animated.View 
               style={[
                 styles.dateTimeContainer,
@@ -514,7 +514,7 @@ export default function DetalleEventoScreen() {
           </View>
         </View>
 
-        {/* Content Section - More Compact */}
+        {/* Content Section */}
         <Animated.View 
           style={[
             styles.contentSection,
@@ -523,7 +523,7 @@ export default function DetalleEventoScreen() {
             }
           ]}
         >
-          {/* Price Card - More Compact */}
+          {/* Price Card */}
           {evento.precio !== null && (
             <View style={styles.priceCard}>
               <LinearGradient
@@ -551,7 +551,7 @@ export default function DetalleEventoScreen() {
             </View>
           )}
 
-          {/* Local Info Card - More Compact */}
+          {/* Local Info Card */}
           {evento.local_nombre && (
             <View style={styles.localCard}>
               <View style={styles.localCardContent}>
@@ -601,7 +601,7 @@ export default function DetalleEventoScreen() {
             </View>
           )}
 
-          {/* Action Buttons - More Compact */}
+          {/* Action Buttons */}
           <View style={styles.actionButtons}>
             <TouchableOpacity
               style={styles.actionButton}
@@ -644,7 +644,7 @@ export default function DetalleEventoScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Full Date - More Compact */}
+          {/* Full Date */}
           <View style={styles.infoCard}>
             <IconSymbol 
               name="calendar" 
@@ -654,7 +654,7 @@ export default function DetalleEventoScreen() {
             <Text style={styles.infoCardText}>{formatFecha(evento.fecha)}</Text>
           </View>
 
-          {/* Address - More Compact */}
+          {/* Address */}
           {getLocalAddress() && (
             <View style={styles.infoCard}>
               <IconSymbol 
@@ -666,7 +666,7 @@ export default function DetalleEventoScreen() {
             </View>
           )}
 
-          {/* Description - More Compact */}
+          {/* Description */}
           {evento.descripcion && (
             <View style={styles.descriptionSection}>
               <View style={styles.sectionHeader}>
@@ -720,7 +720,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   
-  // Full Width Cover Image - More Compact (reduced from 60% to 45%)
+  // Full Width Cover Image
   coverImageContainer: {
     width: width,
     height: height * 0.45,
@@ -743,7 +743,7 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   
-  // Back Button - Matching BarLive style (no white border, semi-transparent black background)
+  // Back Button - Clearly visible (no white border, semi-transparent black background)
   backButton: {
     position: 'absolute',
     top: Platform.OS === 'android' ? 48 : 60,
@@ -801,7 +801,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   
-  // Title Overlay - More Compact
+  // Title Overlay
   titleOverlay: {
     position: 'absolute',
     bottom: 0,
@@ -888,12 +888,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   
-  // Content Section - More Compact
+  // Content Section
   contentSection: {
     padding: 16,
   },
   
-  // Price Card - More Compact
+  // Price Card
   priceCard: {
     marginBottom: 14,
     borderRadius: 14,
@@ -935,7 +935,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
   },
   
-  // Local Card - More Compact
+  // Local Card
   localCard: {
     backgroundColor: colors.cardBackground,
     borderRadius: 14,
@@ -1014,7 +1014,7 @@ const styles = StyleSheet.create({
     color: colors.secondary,
   },
   
-  // Action Buttons - More Compact
+  // Action Buttons
   actionButtons: {
     flexDirection: 'row',
     gap: 10,
@@ -1051,7 +1051,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   
-  // Info Cards - More Compact
+  // Info Cards
   infoCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1071,7 +1071,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   
-  // Description Section - More Compact
+  // Description Section
   descriptionSection: {
     marginBottom: 14,
   },
