@@ -35,8 +35,8 @@ import PerfilProfesionalCard from '@/components/empleo/PerfilProfesionalCard';
 import StoryStatsModal from '@/components/social/StoryStatsModal';
 import { PROVINCIAS, getProvinceVariations, filterByProvincia } from '@/utils/provinceNormalizer';
 
-// ✅ VERSION MARKER - Force cache bust: v3.2.0 - Fixed Followers/Following Modals Design + Navigation
-const SCREEN_VERSION = '3.2.0';
+// ✅ VERSION MARKER - Force cache bust: v3.3.0 - Improved button alignment and design
+const SCREEN_VERSION = '3.3.0';
 
 const { width, height } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -754,6 +754,23 @@ export default function LocalPerfilScreen() {
     router.push(`/editar/local?id=${localId}`);
   };
 
+  const handleVerAnalisis = async () => {
+    if (!user) {
+      Alert.alert('Error', 'Debes iniciar sesión');
+      return;
+    }
+    if (!isOwner) {
+      Alert.alert('Error', 'Solo el propietario puede ver el análisis');
+      return;
+    }
+    
+    console.log('[LocalPerfil] Navigating to analytics panel');
+    await switchToLocalProfile(localId);
+    await setCurrentMode('propietario');
+    
+    router.push(`/gestion/panel-analisis?localId=${localId}`);
+  };
+
   const handleGoBack = () => {
     try {
       if (router.canGoBack()) {
@@ -1275,17 +1292,56 @@ export default function LocalPerfilScreen() {
               </TouchableOpacity>
             </View>
 
+            {/* ✅ IMPROVED: Better aligned and centered action buttons */}
             <View style={styles.actionsContainer}>
               {isOwner ? (
                 <>
-                  <TouchableOpacity style={styles.actionButton} onPress={handleEditarLocal}>
-                    <IconSymbol name="pencil" size={18} color={colors.headerText} />
-                    <Text style={styles.actionButtonText}>Editar</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[styles.actionButton, styles.createButton]} onPress={() => setShowCreateOptions(true)}>
-                    <IconSymbol name="plus.circle.fill" size={18} color={colors.white} />
-                    <Text style={[styles.actionButtonText, { color: colors.white }]}>Publicar</Text>
-                  </TouchableOpacity>
+                  {/* ✅ Owner buttons - 2x2 grid layout */}
+                  <View style={styles.ownerButtonsGrid}>
+                    <TouchableOpacity 
+                      style={styles.ownerGridButton} 
+                      onPress={() => router.push(`/perfil/local?localId=${localId}`)}
+                      activeOpacity={0.8}
+                    >
+                      <View style={styles.ownerButtonContent}>
+                        <IconSymbol name="person.2.fill" size={22} color={colors.primary} />
+                        <Text style={styles.ownerButtonText}>Perfil</Text>
+                      </View>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity 
+                      style={styles.ownerGridButton} 
+                      onPress={handleEditarLocal}
+                      activeOpacity={0.8}
+                    >
+                      <View style={styles.ownerButtonContent}>
+                        <IconSymbol name="pencil" size={22} color={colors.primary} />
+                        <Text style={styles.ownerButtonText}>Editar</Text>
+                      </View>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity 
+                      style={styles.ownerGridButton} 
+                      onPress={handleCrearEvento}
+                      activeOpacity={0.8}
+                    >
+                      <View style={styles.ownerButtonContent}>
+                        <IconSymbol name="calendar" size={22} color={colors.primary} />
+                        <Text style={styles.ownerButtonText}>Evento</Text>
+                      </View>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity 
+                      style={[styles.ownerGridButton, styles.ownerGridButtonHighlight]} 
+                      onPress={handleVerAnalisis}
+                      activeOpacity={0.8}
+                    >
+                      <View style={styles.ownerButtonContent}>
+                        <IconSymbol name="chart.bar.fill" size={22} color={colors.white} />
+                        <Text style={[styles.ownerButtonText, { color: colors.white }]}>Análisis</Text>
+                      </View>
+                    </TouchableOpacity>
+                  </View>
                 </>
               ) : (
                 <>
@@ -2354,9 +2410,47 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
   actionsContainer: {
-    flexDirection: 'row',
-    gap: 16,
+    width: '100%',
   },
+  // ✅ NEW: Owner buttons grid layout (2x2)
+  ownerButtonsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    justifyContent: 'center',
+  },
+  ownerGridButton: {
+    width: (width - 64) / 2, // 2 buttons per row with proper spacing
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  ownerGridButtonHighlight: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  ownerButtonContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  ownerButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.primary,
+    textAlign: 'center',
+  },
+  // Original action buttons for non-owners
   actionButton: {
     flex: 1,
     flexDirection: 'row',
