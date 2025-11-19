@@ -55,9 +55,23 @@ export default function LoginPopupScreen() {
     }
   }, [user, session, router]);
 
-  // Reset Google loading state on mount (in case we're coming back from a redirect)
+  // Reset Google loading state on mount and when coming back from redirect
   useEffect(() => {
     console.log('[LoginPopup] 🔄 Reseteando estado de Google loading');
+    
+    // Check if we're coming back from a Google OAuth redirect
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const hash = window.location.hash;
+      const search = window.location.search;
+      
+      // If there's a hash or search params, we might be coming back from OAuth
+      if (hash || search) {
+        console.log('[LoginPopup] 🔍 Detectado posible retorno de OAuth, limpiando estado');
+        setGoogleLoading(false);
+      }
+    }
+    
+    // Always reset on mount
     setGoogleLoading(false);
   }, []);
 

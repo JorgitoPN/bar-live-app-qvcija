@@ -28,6 +28,8 @@ export default function AuthCallbackScreen() {
           
           // For web, use window.location to ensure clean navigation
           if (Platform.OS === 'web' && typeof window !== 'undefined') {
+            // Clean up the URL hash before redirecting
+            window.history.replaceState({}, document.title, window.location.pathname);
             window.location.href = path;
           } else {
             router.replace(path as any);
@@ -104,7 +106,7 @@ export default function AuthCallbackScreen() {
               console.log('[Callback] 🔍 Obteniendo perfil de usuario...');
               
               // Wait a bit for the database trigger to create the profile
-              await new Promise(resolve => setTimeout(resolve, 1000));
+              await new Promise(resolve => setTimeout(resolve, 1500));
               
               const { user: userData } = await getCurrentUser();
               
@@ -122,7 +124,7 @@ export default function AuthCallbackScreen() {
                 // Check if user needs to accept terms
                 if (!userData.ha_aceptado_terminos) {
                   console.log('[Callback] 📋 Usuario debe aceptar términos');
-                  safeRedirect(`/auth/terms-acceptance?userId=${userData.id}`, 1000);
+                  safeRedirect(`/auth/terms-acceptance?userId=${userData.id}`, 500);
                   return;
                 }
                 
@@ -130,20 +132,20 @@ export default function AuthCallbackScreen() {
                 // New users (without username or nombre) should go to /editar/perfil
                 if (!userData.username || !userData.nombre) {
                   console.log('[Callback] 📝 Usuario nuevo - redirigiendo a editar perfil');
-                  safeRedirect('/editar/perfil', 1000);
+                  safeRedirect('/editar/perfil', 500);
                   return;
                 }
                 
                 // Existing users go to home/explorar (the main feed - "barlive")
                 console.log('[Callback] ✅ Usuario existente - redirigiendo a explorar (barlive)');
-                safeRedirect('/(tabs)/explorar', 1000);
+                safeRedirect('/(tabs)/explorar', 500);
                 return;
               }
               
               // If no user data, redirect to explorar
               console.log('[Callback] ⚠️ No se pudo obtener datos del usuario, redirigiendo a explorar');
               if (isMounted) setStatus('success');
-              safeRedirect('/(tabs)/explorar', 1000);
+              safeRedirect('/(tabs)/explorar', 500);
               return;
             }
           }
@@ -184,7 +186,7 @@ export default function AuthCallbackScreen() {
           console.log('[Callback] 🔍 Obteniendo perfil de usuario...');
           
           // Wait a bit for the database trigger to create the profile
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 1500));
           
           const { user: userData } = await getCurrentUser();
           
@@ -202,7 +204,7 @@ export default function AuthCallbackScreen() {
             // Check if user needs to accept terms
             if (!userData.ha_aceptado_terminos) {
               console.log('[Callback] 📋 Usuario debe aceptar términos');
-              safeRedirect(`/auth/terms-acceptance?userId=${userData.id}`, 1000);
+              safeRedirect(`/auth/terms-acceptance?userId=${userData.id}`, 500);
               return;
             }
             
@@ -210,22 +212,22 @@ export default function AuthCallbackScreen() {
             // New users (without username or nombre) should go to /editar/perfil
             if (!userData.username || !userData.nombre) {
               console.log('[Callback] 📝 Usuario nuevo - redirigiendo a editar perfil');
-              safeRedirect('/editar/perfil', 1000);
+              safeRedirect('/editar/perfil', 500);
               return;
             }
             
             // Existing users go to home/explorar (the main feed - "barlive")
             console.log('[Callback] ✅ Usuario existente - redirigiendo a explorar (barlive)');
-            safeRedirect('/(tabs)/explorar', 1000);
+            safeRedirect('/(tabs)/explorar', 500);
           } else {
             // If no user data, redirect to explorar
             console.log('[Callback] ⚠️ No se pudo obtener datos del usuario, redirigiendo a explorar');
             if (isMounted) setStatus('success');
-            safeRedirect('/(tabs)/explorar', 1000);
+            safeRedirect('/(tabs)/explorar', 500);
           }
         } else {
           console.log('[Callback] ℹ️ No hay sesión activa, redirigiendo a explorar');
-          safeRedirect('/(tabs)/explorar', 1000);
+          safeRedirect('/(tabs)/explorar', 500);
         }
       } catch (error: any) {
         console.error('[Callback] ❌ Error en callback:', error);

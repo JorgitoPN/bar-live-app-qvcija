@@ -93,25 +93,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (event === 'SIGNED_IN' && currentSession) {
           console.log('[AuthContext] ✅ Usuario inició sesión:', currentSession.user.email);
           
-          // Don't set loading here to avoid blocking the UI
-          // The callback page will handle the redirect
-          
-          // Load user profile in the background
-          const { user: userData } = await getCurrentUser();
-          if (userData) {
-            console.log('[AuthContext] ✅ Perfil cargado:', userData.email);
-            setUser(userData);
+          // Load user profile
+          try {
+            // Wait a bit for the database trigger to create the profile
+            await new Promise(resolve => setTimeout(resolve, 1000));
             
-            // Register push notifications (non-blocking)
-            registerForPushNotifications()
-              .then(pushToken => {
-                if (pushToken) {
-                  savePushToken(userData.id, pushToken).catch(() => {});
-                }
-              })
-              .catch(() => {});
-          } else {
-            console.log('[AuthContext] ⚠️ No se pudo cargar el perfil del usuario');
+            const { user: userData } = await getCurrentUser();
+            if (userData) {
+              console.log('[AuthContext] ✅ Perfil cargado:', userData.email);
+              setUser(userData);
+              
+              // Register push notifications (non-blocking)
+              registerForPushNotifications()
+                .then(pushToken => {
+                  if (pushToken) {
+                    savePushToken(userData.id, pushToken).catch(() => {});
+                  }
+                })
+                .catch(() => {});
+            } else {
+              console.log('[AuthContext] ⚠️ No se pudo cargar el perfil del usuario');
+            }
+          } catch (error) {
+            console.error('[AuthContext] ❌ Error cargando perfil:', error);
           }
         } else if (event === 'SIGNED_OUT') {
           console.log('[AuthContext] 🚪 Usuario cerró sesión');
@@ -122,9 +126,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Session is already updated, just log
         } else if (event === 'USER_UPDATED') {
           console.log('[AuthContext] 🔄 Usuario actualizado');
-          const { user: userData } = await getCurrentUser();
-          if (userData) {
-            setUser(userData);
+          try {
+            const { user: userData } = await getCurrentUser();
+            if (userData) {
+              setUser(userData);
+            }
+          } catch (error) {
+            console.error('[AuthContext] ❌ Error actualizando usuario:', error);
           }
         }
       });
