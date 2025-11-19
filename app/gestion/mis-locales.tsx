@@ -11,11 +11,9 @@ import {
   Alert,
   Platform,
   Dimensions,
-  Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,9 +22,9 @@ import { supabase } from '@/utils/supabase';
 
 const { width } = Dimensions.get('window');
 
-// ⚡⚡⚡ ULTRA MEGA REVOLUTIONARY DESIGN - IMPOSSIBLE TO MISS ⚡⚡⚡
-const ULTRA_VERSION = `ULTRA-MEGA-REVOLUTIONARY-${Date.now()}`;
-const TIMESTAMP = new Date().toISOString();
+// 🚨🚨🚨 COMPLETELY NEW REVOLUTIONARY DESIGN - HORIZONTAL CARDS 🚨🚨🚨
+const DESIGN_VERSION = `HORIZONTAL-MINIMALIST-${Date.now()}`;
+const BUILD_TIME = new Date().toLocaleString();
 
 interface LocalWithPlan {
   id: string;
@@ -39,8 +37,8 @@ interface LocalWithPlan {
   destacados_restantes: number;
 }
 
-// 🔥🔥🔥 ULTRA MODERN CARD WITH NEON GLOW 🔥🔥🔥
-const UltraModernLocalCard = ({ 
+// 🎨 REVOLUTIONARY HORIZONTAL CARD DESIGN
+const HorizontalLocalCard = ({ 
   local, 
   isActive, 
   onSelect, 
@@ -59,331 +57,170 @@ const UltraModernLocalCard = ({
   onToggleDestacado: () => void;
   isUpdating: boolean;
 }) => {
-  const [glowAnim] = useState(new Animated.Value(0));
-  const [scaleAnim] = useState(new Animated.Value(1));
-
-  useEffect(() => {
-    if (isActive) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(glowAnim, {
-            toValue: 1,
-            duration: 1500,
-            useNativeDriver: false,
-          }),
-          Animated.timing(glowAnim, {
-            toValue: 0,
-            duration: 1500,
-            useNativeDriver: false,
-          }),
-        ])
-      ).start();
-    } else {
-      glowAnim.setValue(0);
-    }
-  }, [isActive]);
-
-  const glowColor = glowAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['rgba(16, 185, 129, 0.3)', 'rgba(16, 185, 129, 0.8)'],
-  });
-
-  const handlePressIn = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 0.97,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      friction: 3,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const getPlanColors = () => {
+  const getPlanColor = () => {
     switch (local.plan_nombre) {
       case 'premium':
-        return {
-          gradient: ['#FF6B6B', '#FFD93D', '#6BCF7F'],
-          glow: '#FFD93D',
-          icon: 'crown.fill',
-          androidIcon: 'workspace_premium',
-        };
+        return '#FFD700';
       case 'profesional':
-        return {
-          gradient: ['#667eea', '#764ba2', '#f093fb'],
-          glow: '#764ba2',
-          icon: 'star.fill',
-          androidIcon: 'star',
-        };
+        return '#9333EA';
       default:
-        return {
-          gradient: ['#14B8A6', '#06B6D4', '#3B82F6'],
-          glow: '#14B8A6',
-          icon: 'circle.fill',
-          androidIcon: 'circle',
-        };
+        return '#14B8A6';
     }
   };
 
-  const planColors = getPlanColors();
+  const planColor = getPlanColor();
 
   return (
-    <Animated.View 
-      style={[
-        styles.ultraCard,
-        { transform: [{ scale: scaleAnim }] },
-        isActive && {
-          shadowColor: glowColor,
-          shadowOpacity: 1,
-          shadowRadius: 20,
-          elevation: 15,
-        }
-      ]}
-    >
-      <TouchableOpacity
-        activeOpacity={0.9}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        onPress={isActive ? undefined : onSelect}
-        disabled={isActive}
-        style={styles.cardTouchable}
-      >
-        {/* 🌈 NEON BORDER EFFECT */}
-        {isActive && (
-          <Animated.View 
-            style={[
-              styles.neonBorder,
-              { 
-                borderColor: glowColor,
-                shadowColor: glowColor,
-              }
-            ]} 
+    <View style={[
+      styles.horizontalCard,
+      isActive && { borderColor: '#10B981', borderWidth: 3 }
+    ]}>
+      {/* LEFT: IMAGE SECTION */}
+      <View style={styles.imageSection}>
+        {local.imagen_url ? (
+          <Image 
+            source={{ uri: local.imagen_url }} 
+            style={styles.horizontalImage}
+            resizeMode="cover"
           />
-        )}
-
-        {/* 🎨 MAIN CARD CONTAINER */}
-        <View style={[
-          styles.cardContainer,
-          isActive && styles.cardContainerActive
-        ]}>
-          {/* 🖼️ IMAGE SECTION WITH OVERLAY */}
-          <View style={styles.imageContainer}>
-            {local.imagen_url ? (
-              <Image 
-                source={{ uri: local.imagen_url }} 
-                style={styles.cardImage}
-                resizeMode="cover"
-              />
-            ) : (
-              <LinearGradient
-                colors={planColors.gradient}
-                style={styles.cardImage}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <IconSymbol 
-                  ios_icon_name="building.2.fill" 
-                  android_material_icon_name="business"
-                  size={60} 
-                  color="rgba(255,255,255,0.4)" 
-                />
-              </LinearGradient>
-            )}
-
-            {/* 🌟 GRADIENT OVERLAY */}
-            <LinearGradient
-              colors={['transparent', 'rgba(0,0,0,0.7)']}
-              style={styles.imageOverlay}
+        ) : (
+          <LinearGradient
+            colors={['#14B8A6', '#06B6D4']}
+            style={styles.horizontalImage}
+          >
+            <IconSymbol 
+              ios_icon_name="building.2.fill" 
+              android_material_icon_name="business"
+              size={40} 
+              color="rgba(255,255,255,0.5)" 
             />
+          </LinearGradient>
+        )}
+        
+        {/* PLAN BADGE */}
+        <View style={[styles.planBadge, { backgroundColor: planColor }]}>
+          <Text style={styles.planBadgeText}>
+            {local.plan_nombre.substring(0, 3).toUpperCase()}
+          </Text>
+        </View>
 
-            {/* 💎 FLOATING PLAN BADGE */}
-            <View style={styles.floatingBadge}>
+        {/* ACTIVE INDICATOR */}
+        {isActive && (
+          <View style={styles.activeIndicator}>
+            <View style={styles.activePulse} />
+          </View>
+        )}
+      </View>
+
+      {/* RIGHT: INFO & ACTIONS */}
+      <View style={styles.infoSection}>
+        {/* TOP: TITLE & STATUS */}
+        <View style={styles.topRow}>
+          <View style={styles.titleContainer}>
+            <Text style={styles.cardTitle} numberOfLines={1}>
+              {local.nombre}
+            </Text>
+            <View style={styles.metaRow}>
+              <Text style={styles.cardType}>{local.tipo}</Text>
+              <View style={styles.dot} />
+              <IconSymbol 
+                ios_icon_name="person.2.fill" 
+                android_material_icon_name="people"
+                size={12} 
+                color={colors.textSecondary} 
+              />
+              <Text style={styles.followers}>{local.seguidores}</Text>
+            </View>
+          </View>
+
+          {/* STATUS CHIP */}
+          <View style={[
+            styles.statusChip,
+            isActive ? styles.statusActive : styles.statusInactive
+          ]}>
+            <View style={[
+              styles.statusDot,
+              isActive ? styles.dotActive : styles.dotInactive
+            ]} />
+            <Text style={[
+              styles.statusText,
+              isActive ? styles.textActive : styles.textInactive
+            ]}>
+              {isActive ? 'ACTIVO' : 'INACTIVO'}
+            </Text>
+          </View>
+        </View>
+
+        {/* BOTTOM: ACTIONS IN SINGLE ROW */}
+        <View style={styles.actionsRow}>
+          {!isActive && (
+            <TouchableOpacity 
+              style={styles.activateButton}
+              onPress={onSelect}
+            >
               <LinearGradient
-                colors={planColors.gradient}
-                style={styles.badgeGradient}
+                colors={['#10B981', '#059669']}
+                style={styles.activateGradient}
                 start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
+                end={{ x: 1, y: 0 }}
               >
                 <IconSymbol 
-                  ios_icon_name={planColors.icon}
-                  android_material_icon_name={planColors.androidIcon}
-                  size={14} 
-                  color="#FFFFFF" 
-                />
-                <Text style={styles.badgeText}>
-                  {local.plan_nombre.toUpperCase()}
-                </Text>
-              </LinearGradient>
-            </View>
-
-            {/* ⚡ ACTIVE PULSE INDICATOR */}
-            {isActive && (
-              <View style={styles.activePulse}>
-                <Animated.View style={[
-                  styles.pulseRing,
-                  { backgroundColor: glowColor }
-                ]} />
-                <View style={styles.pulseCore} />
-              </View>
-            )}
-
-            {/* 📊 STATS OVERLAY */}
-            <View style={styles.statsOverlay}>
-              <View style={styles.statItem}>
-                <IconSymbol 
-                  ios_icon_name="person.2.fill" 
-                  android_material_icon_name="people"
+                  ios_icon_name="checkmark.circle.fill" 
+                  android_material_icon_name="check_circle"
                   size={16} 
                   color="#FFFFFF" 
                 />
-                <Text style={styles.statText}>{local.seguidores}</Text>
-              </View>
-              {local.destacado && (
-                <View style={styles.statItem}>
-                  <IconSymbol 
-                    ios_icon_name="star.fill"
-                    android_material_icon_name="star"
-                    size={16} 
-                    color="#FFD700" 
-                  />
-                  <Text style={styles.statText}>DESTACADO</Text>
-                </View>
-              )}
-            </View>
-          </View>
+                <Text style={styles.activateText}>ACTIVAR</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
 
-          {/* 📝 INFO SECTION */}
-          <View style={styles.infoContainer}>
-            {/* TITLE & STATUS */}
-            <View style={styles.titleSection}>
-              <View style={styles.titleLeft}>
-                <Text style={styles.localName} numberOfLines={1}>
-                  {local.nombre}
-                </Text>
-                <Text style={styles.localType}>{local.tipo}</Text>
-              </View>
+          <TouchableOpacity style={styles.actionBtn} onPress={onEdit}>
+            <IconSymbol 
+              ios_icon_name="pencil" 
+              android_material_icon_name="edit"
+              size={18} 
+              color={colors.primary} 
+            />
+          </TouchableOpacity>
 
-              {/* STATUS INDICATOR */}
-              <View style={[
-                styles.statusIndicator,
-                isActive ? styles.statusActive : styles.statusInactive
-              ]}>
-                <View style={[
-                  styles.statusDot,
-                  isActive ? styles.dotActive : styles.dotInactive
-                ]} />
-                <Text style={[
-                  styles.statusLabel,
-                  isActive ? styles.labelActive : styles.labelInactive
-                ]}>
-                  {isActive ? 'ACTIVO' : 'INACTIVO'}
-                </Text>
-              </View>
-            </View>
+          <TouchableOpacity style={styles.actionBtn} onPress={onAnalytics}>
+            <IconSymbol 
+              ios_icon_name="chart.bar.fill" 
+              android_material_icon_name="analytics"
+              size={18} 
+              color={colors.primary} 
+            />
+          </TouchableOpacity>
 
-            {/* 🎯 ACTION BUTTONS - ULTRA MODERN DESIGN */}
-            <View style={styles.actionsContainer}>
-              {!isActive && (
-                <TouchableOpacity 
-                  style={styles.primaryAction}
-                  onPress={onSelect}
-                >
-                  <LinearGradient
-                    colors={['#10B981', '#059669']}
-                    style={styles.primaryActionGradient}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                  >
-                    <IconSymbol 
-                      ios_icon_name="checkmark.circle.fill" 
-                      android_material_icon_name="check_circle"
-                      size={20} 
-                      color="#FFFFFF" 
-                    />
-                    <Text style={styles.primaryActionText}>ACTIVAR</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              )}
+          <TouchableOpacity style={styles.actionBtn} onPress={onPlan}>
+            <IconSymbol 
+              ios_icon_name="creditcard.fill" 
+              android_material_icon_name="credit_card"
+              size={18} 
+              color={colors.primary} 
+            />
+          </TouchableOpacity>
 
-              <View style={styles.secondaryActions}>
-                <TouchableOpacity 
-                  style={styles.iconAction}
-                  onPress={onEdit}
-                >
-                  <View style={styles.iconActionInner}>
-                    <IconSymbol 
-                      ios_icon_name="pencil" 
-                      android_material_icon_name="edit"
-                      size={20} 
-                      color={colors.primary} 
-                    />
-                  </View>
-                  <Text style={styles.iconActionLabel}>Editar</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity 
-                  style={styles.iconAction}
-                  onPress={onAnalytics}
-                >
-                  <View style={styles.iconActionInner}>
-                    <IconSymbol 
-                      ios_icon_name="chart.bar.fill" 
-                      android_material_icon_name="analytics"
-                      size={20} 
-                      color={colors.primary} 
-                    />
-                  </View>
-                  <Text style={styles.iconActionLabel}>Análisis</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity 
-                  style={styles.iconAction}
-                  onPress={onPlan}
-                >
-                  <View style={styles.iconActionInner}>
-                    <IconSymbol 
-                      ios_icon_name="creditcard.fill" 
-                      android_material_icon_name="credit_card"
-                      size={20} 
-                      color={colors.primary} 
-                    />
-                  </View>
-                  <Text style={styles.iconActionLabel}>Plan</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity 
-                  style={styles.iconAction}
-                  onPress={onToggleDestacado}
-                  disabled={isUpdating}
-                >
-                  {isUpdating ? (
-                    <ActivityIndicator size="small" color={colors.primary} />
-                  ) : (
-                    <>
-                      <View style={styles.iconActionInner}>
-                        <IconSymbol 
-                          ios_icon_name={local.destacado ? 'star.fill' : 'star'}
-                          android_material_icon_name={local.destacado ? 'star' : 'star_border'}
-                          size={20} 
-                          color={local.destacado ? '#FFD700' : colors.textSecondary} 
-                        />
-                      </View>
-                      <Text style={styles.iconActionLabel}>
-                        {local.destacado ? 'ON' : local.destacados_restantes}
-                      </Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
+          <TouchableOpacity 
+            style={styles.actionBtn} 
+            onPress={onToggleDestacado}
+            disabled={isUpdating}
+          >
+            {isUpdating ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <IconSymbol 
+                ios_icon_name={local.destacado ? 'star.fill' : 'star'}
+                android_material_icon_name={local.destacado ? 'star' : 'star_border'}
+                size={18} 
+                color={local.destacado ? '#FFD700' : colors.textSecondary} 
+              />
+            )}
+          </TouchableOpacity>
         </View>
-      </TouchableOpacity>
-    </Animated.View>
+      </View>
+    </View>
   );
 };
 
@@ -396,9 +233,9 @@ export default function MisLocalesScreen() {
   const [updatingDestacado, setUpdatingDestacado] = useState<string | null>(null);
 
   useEffect(() => {
-    console.log(`🚀🚀🚀 [ULTRA MEGA REVOLUTIONARY] VERSION: ${ULTRA_VERSION}`);
-    console.log(`⏰⏰⏰ TIMESTAMP: ${TIMESTAMP}`);
-    console.log('🔥🔥🔥 NEW DESIGN LOADED - IMPOSSIBLE TO MISS! 🔥🔥🔥');
+    console.log(`🚨🚨🚨 [HORIZONTAL DESIGN] VERSION: ${DESIGN_VERSION}`);
+    console.log(`⏰ BUILD TIME: ${BUILD_TIME}`);
+    console.log('🎨 COMPLETELY NEW HORIZONTAL CARD DESIGN LOADED!');
   }, []);
 
   const loadLocales = useCallback(async () => {
@@ -557,7 +394,7 @@ export default function MisLocalesScreen() {
 
   return (
     <View style={styles.container}>
-      {/* 🎨 ULTRA MODERN HEADER */}
+      {/* HEADER */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         style={styles.header}
@@ -572,9 +409,9 @@ export default function MisLocalesScreen() {
             />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>🔥 Gestión de Locales</Text>
+            <Text style={styles.headerTitle}>Gestión de Locales</Text>
             <Text style={styles.headerSubtitle}>
-              {locales.length} {locales.length === 1 ? 'local' : 'locales'} • ULTRA DESIGN
+              {locales.length} {locales.length === 1 ? 'local' : 'locales'}
             </Text>
           </View>
           <TouchableOpacity
@@ -637,25 +474,23 @@ export default function MisLocalesScreen() {
           </View>
         ) : (
           <View style={styles.cardsContainer}>
-            {/* 🌟 VERSION BANNER - IMPOSSIBLE TO MISS */}
-            <View style={styles.versionBanner}>
+            {/* 🚨 IMPOSSIBLE TO MISS BANNER */}
+            <View style={styles.designBanner}>
               <LinearGradient
-                colors={['#FF6B6B', '#FFD93D', '#6BCF7F']}
-                style={styles.versionGradient}
+                colors={['#FF0080', '#7928CA', '#FF0080']}
+                style={styles.bannerGradient}
                 start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
+                end={{ x: 1, y: 0 }}
               >
-                <Text style={styles.versionText}>
-                  ⚡ ULTRA MEGA REVOLUTIONARY DESIGN ⚡
+                <Text style={styles.bannerText}>
+                  🚨 NUEVO DISEÑO HORIZONTAL REVOLUCIONARIO 🚨
                 </Text>
-                <Text style={styles.versionTimestamp}>
-                  {TIMESTAMP}
-                </Text>
+                <Text style={styles.bannerTime}>{BUILD_TIME}</Text>
               </LinearGradient>
             </View>
 
             {locales.map((local) => (
-              <UltraModernLocalCard
+              <HorizontalLocalCard
                 key={local.id}
                 local={local}
                 isActive={selectedLocalId === local.id}
@@ -668,28 +503,23 @@ export default function MisLocalesScreen() {
               />
             ))}
 
-            {/* 🎯 ADD NEW CARD */}
+            {/* ADD NEW CARD */}
             <TouchableOpacity
               style={styles.addNewCard}
               onPress={() => router.push('/crear/local')}
             >
-              <LinearGradient
-                colors={['rgba(20, 184, 166, 0.1)', 'rgba(6, 182, 212, 0.1)']}
-                style={styles.addNewGradient}
-              >
-                <View style={styles.addNewIcon}>
-                  <IconSymbol 
-                    ios_icon_name="plus.circle.fill" 
-                    android_material_icon_name="add_circle"
-                    size={56} 
-                    color={colors.primary} 
-                  />
+              <View style={styles.addNewContent}>
+                <IconSymbol 
+                  ios_icon_name="plus.circle.fill" 
+                  android_material_icon_name="add_circle"
+                  size={48} 
+                  color={colors.primary} 
+                />
+                <View style={styles.addNewTextContainer}>
+                  <Text style={styles.addNewTitle}>Añadir Nuevo Local</Text>
+                  <Text style={styles.addNewSubtitle}>Expande tu presencia digital</Text>
                 </View>
-                <Text style={styles.addNewTitle}>Añadir Nuevo Local</Text>
-                <Text style={styles.addNewSubtitle}>
-                  Expande tu presencia digital
-                </Text>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           </View>
         )}
@@ -722,12 +552,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: 'bold',
     color: colors.headerText,
   },
   headerSubtitle: {
-    fontSize: 11,
+    fontSize: 12,
     color: 'rgba(255, 255, 255, 0.9)',
     marginTop: 2,
     fontWeight: '600',
@@ -807,202 +637,156 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   cardsContainer: {
-    gap: 20,
+    gap: 16,
   },
 
-  // 🌟 VERSION BANNER
-  versionBanner: {
+  // 🚨 DESIGN BANNER
+  designBanner: {
     borderRadius: 16,
     overflow: 'hidden',
     marginBottom: 8,
-    shadowColor: '#FFD93D',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowColor: '#FF0080',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.6,
+    shadowRadius: 16,
+    elevation: 12,
   },
-  versionGradient: {
-    paddingVertical: 16,
+  bannerGradient: {
+    paddingVertical: 20,
     paddingHorizontal: 20,
     alignItems: 'center',
   },
-  versionText: {
+  bannerText: {
     fontSize: 16,
     fontWeight: '900',
     color: '#FFFFFF',
     textAlign: 'center',
-    letterSpacing: 1,
+    letterSpacing: 1.5,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
-  versionTimestamp: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginTop: 4,
+  bannerTime: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: 'rgba(255, 255, 255, 0.95)',
+    marginTop: 6,
   },
   
-  // 🔥 ULTRA MODERN CARD STYLES
-  ultraCard: {
-    width: '100%',
-    borderRadius: 24,
-    overflow: 'hidden',
+  // 🎨 HORIZONTAL CARD STYLES
+  horizontalCard: {
+    flexDirection: 'row',
     backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  cardTouchable: {
-    width: '100%',
-  },
-  neonBorder: {
-    position: 'absolute',
-    top: -3,
-    left: -3,
-    right: -3,
-    bottom: -3,
-    borderRadius: 27,
-    borderWidth: 3,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 20,
-    elevation: 15,
-    zIndex: -1,
-  },
-  cardContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    overflow: 'hidden',
-  },
-  cardContainerActive: {
-    borderWidth: 2,
-    borderColor: '#10B981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    height: 120,
   },
   
-  // 🖼️ IMAGE SECTION
-  imageContainer: {
-    height: 180,
+  // LEFT: IMAGE SECTION
+  imageSection: {
+    width: 120,
     position: 'relative',
   },
-  cardImage: {
+  horizontalImage: {
     width: '100%',
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  imageOverlay: {
+  planBadge: {
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 100,
-  },
-  floatingBadge: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    borderRadius: 12,
-    overflow: 'hidden',
+    top: 8,
+    left: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
-  badgeGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  badgeText: {
-    fontSize: 11,
+  planBadgeText: {
+    fontSize: 10,
     fontWeight: '900',
     color: '#FFFFFF',
-    letterSpacing: 0.8,
+    letterSpacing: 0.5,
+  },
+  activeIndicator: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
   },
   activePulse: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-  },
-  pulseRing: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#10B981',
+    shadowColor: '#10B981',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 1,
-    shadowRadius: 12,
+    shadowRadius: 8,
     elevation: 8,
   },
-  pulseCore: {
-    position: 'absolute',
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#FFFFFF',
-    top: 7,
-    left: 7,
-  },
-  statsOverlay: {
-    position: 'absolute',
-    bottom: 12,
-    left: 12,
-    right: 12,
-    flexDirection: 'row',
-    gap: 12,
-  },
-  statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
-  },
-  statText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
   
-  // 📝 INFO SECTION
-  infoContainer: {
-    padding: 16,
+  // RIGHT: INFO SECTION
+  infoSection: {
+    flex: 1,
+    padding: 12,
+    justifyContent: 'space-between',
   },
-  titleSection: {
+  topRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: 8,
   },
-  titleLeft: {
+  titleContainer: {
     flex: 1,
-    marginRight: 12,
+    marginRight: 8,
   },
-  localName: {
-    fontSize: 20,
+  cardTitle: {
+    fontSize: 16,
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 4,
   },
-  localType: {
-    fontSize: 14,
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  cardType: {
+    fontSize: 12,
     color: colors.textSecondary,
     textTransform: 'capitalize',
     fontWeight: '600',
   },
-  statusIndicator: {
+  dot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: colors.textSecondary,
+  },
+  followers: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
+  statusChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
   statusActive: {
     backgroundColor: 'rgba(16, 185, 129, 0.15)',
@@ -1011,9 +795,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(107, 114, 128, 0.15)',
   },
   statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   dotActive: {
     backgroundColor: '#10B981',
@@ -1021,94 +805,85 @@ const styles = StyleSheet.create({
   dotInactive: {
     backgroundColor: '#6B7280',
   },
-  statusLabel: {
-    fontSize: 11,
+  statusText: {
+    fontSize: 10,
     fontWeight: '800',
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
-  labelActive: {
+  textActive: {
     color: '#10B981',
   },
-  labelInactive: {
+  textInactive: {
     color: '#6B7280',
   },
   
-  // 🎯 ACTIONS
-  actionsContainer: {
-    gap: 12,
+  // ACTIONS ROW
+  actionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
-  primaryAction: {
-    borderRadius: 14,
+  activateButton: {
+    flex: 1,
+    borderRadius: 10,
     overflow: 'hidden',
     shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
-  primaryActionGradient: {
+  activateGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
   },
-  primaryActionText: {
-    fontSize: 15,
+  activateText: {
+    fontSize: 13,
     fontWeight: '800',
     color: '#FFFFFF',
     letterSpacing: 0.5,
   },
-  secondaryActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  iconAction: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 6,
-  },
-  iconActionInner: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  actionBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: '#E5E7EB',
   },
-  iconActionLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.textSecondary,
-  },
   
-  // 🎯 ADD NEW CARD
+  // ADD NEW CARD
   addNewCard: {
-    borderRadius: 24,
-    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     borderWidth: 3,
     borderColor: colors.primary,
     borderStyle: 'dashed',
+    padding: 20,
     marginTop: 8,
   },
-  addNewGradient: {
-    paddingVertical: 40,
+  addNewContent: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 16,
   },
-  addNewIcon: {
-    marginBottom: 16,
+  addNewTextContainer: {
+    flex: 1,
   },
   addNewTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: 'bold',
     color: colors.text,
-    marginBottom: 6,
+    marginBottom: 4,
   },
   addNewSubtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.textSecondary,
     fontWeight: '600',
   },
