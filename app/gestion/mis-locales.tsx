@@ -171,7 +171,7 @@ export default function MisLocalesScreen() {
             <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
               <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Gestión de Locales</Text>
+            <Text style={styles.headerTitle}>Mis Locales</Text>
             <TouchableOpacity
               style={styles.addButton}
               onPress={() => router.push('/crear/local')}
@@ -190,7 +190,7 @@ export default function MisLocalesScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Centered Header */}
+      {/* Compact Header */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         style={styles.header}
@@ -199,7 +199,7 @@ export default function MisLocalesScreen() {
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Gestión de Locales</Text>
+          <Text style={styles.headerTitle}>Mis Locales</Text>
           <TouchableOpacity
             style={styles.addButton}
             onPress={() => router.push('/crear/local')}
@@ -213,10 +213,10 @@ export default function MisLocalesScreen() {
         <View style={styles.centeredContainer}>
           {locales.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <IconSymbol name="building.2" size={80} color={colors.textSecondary} />
-              <Text style={styles.emptyTitle}>No tienes locales registrados</Text>
+              <IconSymbol name="building.2" size={64} color={colors.textSecondary} />
+              <Text style={styles.emptyTitle}>No tienes locales</Text>
               <Text style={styles.emptyText}>
-                Crea tu primer local para empezar a gestionar eventos, promociones y analíticas
+                Crea tu primer local para gestionar eventos y promociones
               </Text>
               <TouchableOpacity
                 style={styles.createButton}
@@ -226,19 +226,19 @@ export default function MisLocalesScreen() {
                   colors={[colors.headerGradientStart, colors.headerGradientEnd]}
                   style={styles.createGradient}
                 >
-                  <IconSymbol name="plus" size={22} color={colors.headerText} />
-                  <Text style={styles.createButtonText}>Crear Mi Primer Local</Text>
+                  <IconSymbol name="plus" size={20} color={colors.headerText} />
+                  <Text style={styles.createButtonText}>Crear Local</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </View>
           ) : (
             <>
-              {/* Active Local Indicator */}
-              {locales.length > 1 && (
+              {/* Active Local Indicator - More Compact */}
+              {locales.length > 1 && selectedLocalId && (
                 <View style={styles.activeLocalBanner}>
-                  <IconSymbol name="checkmark.circle.fill" size={20} color={colors.primary} />
+                  <IconSymbol name="checkmark.circle.fill" size={16} color={colors.primary} />
                   <Text style={styles.activeLocalText}>
-                    Local activo: <Text style={styles.activeLocalName}>
+                    Activo: <Text style={styles.activeLocalName}>
                       {locales.find(l => l.id === selectedLocalId)?.nombre || 'Ninguno'}
                     </Text>
                   </Text>
@@ -248,88 +248,90 @@ export default function MisLocalesScreen() {
               {/* Compact Local Cards */}
               <View style={styles.localesGrid}>
                 {locales.map((local) => (
-                  <View key={local.id} style={styles.localCard}>
-                    {/* Card Header with Image and Info */}
+                  <View key={local.id} style={[
+                    styles.localCard,
+                    selectedLocalId === local.id && styles.localCardActive
+                  ]}>
+                    {/* Compact Header */}
                     <View style={styles.cardHeader}>
+                      {/* Image */}
                       {local.imagen_url ? (
                         <Image source={{ uri: local.imagen_url }} style={styles.localImage} />
                       ) : (
                         <View style={[styles.localImage, styles.localImagePlaceholder]}>
-                          <IconSymbol name="building.2" size={32} color={colors.textSecondary} />
+                          <IconSymbol name="building.2" size={28} color={colors.textSecondary} />
                         </View>
                       )}
                       
+                      {/* Info */}
                       <View style={styles.cardInfo}>
-                        <View style={styles.cardTitleRow}>
+                        <View style={styles.titleRow}>
                           <Text style={styles.localNombre} numberOfLines={1}>{local.nombre}</Text>
                           {selectedLocalId === local.id && (
-                            <View style={styles.activeBadge}>
-                              <IconSymbol name="checkmark.circle.fill" size={14} color="#FFFFFF" />
-                            </View>
+                            <View style={styles.activeDot} />
                           )}
                         </View>
-                        <Text style={styles.localTipo}>
-                          {local.tipo.charAt(0).toUpperCase() + local.tipo.slice(1)}
-                        </Text>
                         
-                        <View style={styles.statsRow}>
-                          <View style={styles.stat}>
-                            <IconSymbol name="person.2" size={14} color={colors.textSecondary} />
-                            <Text style={styles.statText}>{local.seguidores}</Text>
-                          </View>
-                          <View style={[styles.planBadge, { backgroundColor: local.plan_nombre === 'premium' ? '#DBEAFE' : '#F3F4F6' }]}>
-                            <Text style={[styles.planText, { color: local.plan_nombre === 'premium' ? '#1E40AF' : '#6B7280' }]}>
-                              {local.plan_nombre.toUpperCase()}
-                            </Text>
+                        <View style={styles.metaRow}>
+                          <Text style={styles.localTipo}>{local.tipo}</Text>
+                          <View style={styles.separator} />
+                          <View style={styles.followers}>
+                            <IconSymbol name="person.2" size={12} color={colors.textSecondary} />
+                            <Text style={styles.followersText}>{local.seguidores}</Text>
                           </View>
                         </View>
+
+                        <View style={[
+                          styles.planBadge,
+                          local.plan_nombre === 'premium' && styles.planBadgePremium
+                        ]}>
+                          <Text style={[
+                            styles.planText,
+                            local.plan_nombre === 'premium' && styles.planTextPremium
+                          ]}>
+                            {local.plan_nombre.toUpperCase()}
+                          </Text>
+                        </View>
                       </View>
+
+                      {/* Destacado Toggle - Compact */}
+                      <TouchableOpacity
+                        style={[
+                          styles.destacadoButton,
+                          local.destacado && styles.destacadoButtonActive
+                        ]}
+                        onPress={() => handleToggleDestacado(local)}
+                        disabled={updatingDestacado === local.id}
+                      >
+                        {updatingDestacado === local.id ? (
+                          <ActivityIndicator size="small" color={colors.primary} />
+                        ) : (
+                          <IconSymbol
+                            name={local.destacado ? 'star.fill' : 'star'}
+                            size={18}
+                            color={local.destacado ? colors.badgeDestacado : colors.textSecondary}
+                          />
+                        )}
+                      </TouchableOpacity>
                     </View>
 
-                    {/* Destacado Toggle */}
-                    <View style={styles.destacadoSection}>
+                    {/* Destacado Info - Only if active or has credits */}
+                    {(local.destacado || local.destacados_restantes > 0) && (
                       <View style={styles.destacadoInfo}>
-                        <IconSymbol name="star.fill" size={18} color={local.destacado ? colors.badgeDestacado : colors.textSecondary} />
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.destacadoTitle}>
-                            {local.destacado ? 'Destacado Activo' : 'Destacar Local'}
-                          </Text>
-                          <Text style={styles.destacadoSubtitle}>
-                            {local.destacados_restantes > 0
-                              ? `${local.destacados_restantes} crédito${local.destacados_restantes > 1 ? 's' : ''} disponible${local.destacados_restantes > 1 ? 's' : ''}`
-                              : 'Sin créditos disponibles'}
-                          </Text>
-                        </View>
-                        <TouchableOpacity
-                          style={[
-                            styles.destacadoToggle,
-                            local.destacado && styles.destacadoToggleActive,
-                            updatingDestacado === local.id && styles.destacadoToggleDisabled,
-                          ]}
-                          onPress={() => handleToggleDestacado(local)}
-                          disabled={updatingDestacado === local.id}
-                        >
-                          {updatingDestacado === local.id ? (
-                            <ActivityIndicator size="small" color={colors.primary} />
-                          ) : (
-                            <IconSymbol
-                              name={local.destacado ? 'star.fill' : 'star'}
-                              size={20}
-                              color={local.destacado ? colors.badgeDestacado : colors.textSecondary}
-                            />
-                          )}
-                        </TouchableOpacity>
+                        <Text style={styles.destacadoText}>
+                          {local.destacado ? '✨ Destacado activo' : `${local.destacados_restantes} crédito${local.destacados_restantes > 1 ? 's' : ''} disponible${local.destacados_restantes > 1 ? 's' : ''}`}
+                        </Text>
                       </View>
-                    </View>
+                    )}
 
-                    {/* Action Buttons */}
+                    {/* Compact Action Buttons */}
                     <View style={styles.actions}>
                       {selectedLocalId !== local.id && (
                         <TouchableOpacity
-                          style={[styles.actionButton, styles.actionButtonPrimary]}
+                          style={styles.actionButtonPrimary}
                           onPress={() => handleSelectLocal(local.id)}
                         >
-                          <IconSymbol name="checkmark.circle" size={18} color="#FFFFFF" />
+                          <IconSymbol name="checkmark.circle" size={16} color="#FFFFFF" />
                           <Text style={styles.actionTextPrimary}>Activar</Text>
                         </TouchableOpacity>
                       )}
@@ -337,21 +339,21 @@ export default function MisLocalesScreen() {
                         style={styles.actionButton}
                         onPress={() => router.push(`/editar/local?id=${local.id}`)}
                       >
-                        <IconSymbol name="pencil" size={18} color={colors.primary} />
+                        <IconSymbol name="pencil" size={16} color={colors.primary} />
                         <Text style={styles.actionText}>Editar</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={styles.actionButton}
                         onPress={() => router.push(`/gestion/panel-analisis?localId=${local.id}`)}
                       >
-                        <IconSymbol name="chart.bar.fill" size={18} color={colors.primary} />
+                        <IconSymbol name="chart.bar.fill" size={16} color={colors.primary} />
                         <Text style={styles.actionText}>Análisis</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={styles.actionButton}
                         onPress={() => router.push(`/gestion/planes-suscripcion?localId=${local.id}`)}
                       >
-                        <IconSymbol name="creditcard" size={18} color={colors.primary} />
+                        <IconSymbol name="creditcard" size={16} color={colors.primary} />
                         <Text style={styles.actionText}>Plan</Text>
                       </TouchableOpacity>
                     </View>
@@ -359,12 +361,12 @@ export default function MisLocalesScreen() {
                 ))}
               </View>
 
-              {/* Add New Local Button */}
+              {/* Add New Local Button - Compact */}
               <TouchableOpacity
                 style={styles.addNewButton}
                 onPress={() => router.push('/crear/local')}
               >
-                <IconSymbol name="plus.circle.fill" size={24} color={colors.primary} />
+                <IconSymbol name="plus.circle" size={20} color={colors.primary} />
                 <Text style={styles.addNewText}>Añadir Nuevo Local</Text>
               </TouchableOpacity>
             </>
@@ -382,7 +384,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingTop: Platform.OS === 'ios' ? 50 : 40,
-    paddingBottom: 16,
+    paddingBottom: 12,
     paddingHorizontal: 16,
   },
   headerRow: {
@@ -394,7 +396,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: colors.headerText,
   },
@@ -411,7 +413,7 @@ const styles = StyleSheet.create({
     maxWidth: CONTENT_MAX_WIDTH,
     width: '100%',
     alignSelf: 'center',
-    padding: 16,
+    padding: 12,
   },
   loadingContainer: {
     flex: 1,
@@ -420,85 +422,89 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   loadingText: {
-    fontSize: 16,
+    fontSize: 15,
     color: colors.textSecondary,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
-    marginTop: 80,
+    padding: 32,
+    marginTop: 60,
   },
   emptyTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
-    marginTop: 24,
-    marginBottom: 12,
+    marginTop: 16,
+    marginBottom: 8,
     textAlign: 'center',
   },
   emptyText: {
-    fontSize: 15,
+    fontSize: 14,
     color: colors.textSecondary,
     textAlign: 'center',
-    marginBottom: 32,
-    lineHeight: 22,
+    marginBottom: 24,
+    lineHeight: 20,
   },
   createButton: {
-    borderRadius: 14,
+    borderRadius: 12,
     overflow: 'hidden',
   },
   createGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingVertical: 16,
-    paddingHorizontal: 32,
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
   },
   createButtonText: {
     color: colors.headerText,
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: 'bold',
   },
   activeLocalBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    backgroundColor: colors.primary + '15',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
+    gap: 8,
+    backgroundColor: colors.primary + '10',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 12,
     borderWidth: 1,
-    borderColor: colors.primary + '30',
+    borderColor: colors.primary + '20',
   },
   activeLocalText: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 13,
     color: colors.text,
   },
   activeLocalName: {
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: colors.primary,
   },
   localesGrid: {
-    gap: 16,
+    gap: 12,
   },
   localCard: {
     backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 12,
+    padding: 12,
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
+  localCardActive: {
+    borderColor: colors.primary,
+    borderWidth: 2,
+  },
   cardHeader: {
     flexDirection: 'row',
-    marginBottom: 16,
+    marginBottom: 8,
   },
   localImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 12,
+    width: 64,
+    height: 64,
+    borderRadius: 10,
   },
   localImagePlaceholder: {
     backgroundColor: colors.cardBorder,
@@ -507,96 +513,99 @@ const styles = StyleSheet.create({
   },
   cardInfo: {
     flex: 1,
-    marginLeft: 14,
+    marginLeft: 12,
+    justifyContent: 'space-between',
   },
-  cardTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 6,
-  },
-  localNombre: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text,
-  },
-  activeBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  localTipo: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginBottom: 10,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  stat: {
+  titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    marginBottom: 4,
   },
-  statText: {
-    fontSize: 14,
+  localNombre: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  activeDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.primary,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  localTipo: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    textTransform: 'capitalize',
+  },
+  separator: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: colors.textSecondary,
+    marginHorizontal: 8,
+  },
+  followers: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  followersText: {
+    fontSize: 13,
     fontWeight: '600',
     color: colors.text,
   },
   planBadge: {
+    alignSelf: 'flex-start',
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingVertical: 3,
+    borderRadius: 5,
+    backgroundColor: '#F3F4F6',
+  },
+  planBadgePremium: {
+    backgroundColor: '#DBEAFE',
   },
   planText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: 'bold',
+    color: '#6B7280',
   },
-  destacadoSection: {
-    backgroundColor: colors.background,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
+  planTextPremium: {
+    color: '#1E40AF',
   },
-  destacadoInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  destacadoTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  destacadoSubtitle: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  destacadoToggle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  destacadoButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: colors.cardBorder,
     justifyContent: 'center',
     alignItems: 'center',
+    marginLeft: 8,
   },
-  destacadoToggleActive: {
-    backgroundColor: colors.badgeDestacado + '30',
+  destacadoButtonActive: {
+    backgroundColor: colors.badgeDestacado + '25',
   },
-  destacadoToggleDisabled: {
-    opacity: 0.5,
+  destacadoInfo: {
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    padding: 8,
+    marginBottom: 8,
+  },
+  destacadoText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    textAlign: 'center',
   },
   actions: {
     flexDirection: 'row',
-    gap: 10,
-    paddingTop: 16,
+    gap: 8,
+    paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
   },
@@ -605,24 +614,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
+    gap: 4,
+    paddingVertical: 8,
     backgroundColor: colors.background,
-    borderRadius: 10,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
   actionButtonPrimary: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 8,
     backgroundColor: colors.primary,
+    borderRadius: 8,
+    borderWidth: 1,
     borderColor: colors.primary,
   },
   actionText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
     color: colors.primary,
   },
   actionTextPrimary: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
     color: '#FFFFFF',
   },
@@ -630,17 +647,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
-    paddingVertical: 16,
+    gap: 8,
+    paddingVertical: 12,
     marginTop: 8,
     backgroundColor: colors.cardBackground,
-    borderRadius: 14,
-    borderWidth: 2,
+    borderRadius: 10,
+    borderWidth: 1.5,
     borderColor: colors.primary,
     borderStyle: 'dashed',
   },
   addNewText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: colors.primary,
   },
