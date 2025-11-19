@@ -1,7 +1,7 @@
 
-// @ts-expect-error - Deno edge runtime types
+// eslint-disable-next-line import/no-unresolved
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-// @ts-expect-error - Deno JSR import
+// eslint-disable-next-line import/no-unresolved
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const corsHeaders = {
