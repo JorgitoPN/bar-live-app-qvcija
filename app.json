@@ -25,7 +25,8 @@
             "CFBundleURLSchemes": ["natively", "com.barlive.app"]
           }
         ]
-      }
+      },
+      "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "adaptiveIcon": {
@@ -39,9 +40,12 @@
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE",
-        "android.permission.INTERNET"
+        "android.permission.INTERNET",
+        "android.permission.GET_ACCOUNTS",
+        "android.permission.USE_CREDENTIALS"
       ],
       "useNextNotificationsApi": true,
+      "googleServicesFile": "./google-services.json",
       "intentFilters": [
         {
           "action": "VIEW",
@@ -80,6 +84,12 @@
             "./assets/sounds/cheers.wav"
           ]
         }
+      ],
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.barlive.app"
+        }
       ]
     ],
     "scheme": "natively",
@@ -87,7 +97,10 @@
       "typedRoutes": true
     },
     "extra": {
-      "router": {}
+      "router": {},
+      "eas": {
+        "projectId": "REPLACE_WITH_YOUR_PROJECT_ID"
+      }
     },
     "notification": {
       "icon": "./assets/images/natively-dark.png",
