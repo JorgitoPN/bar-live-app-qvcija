@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { useRouter } from 'expo-router';
-import EventBanner from './EventBanner';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface EventoCardProps {
   evento: {
@@ -78,34 +78,50 @@ export default function EventoCard({ evento, onPress }: EventoCardProps) {
 
   const diasRestantes = calcularDiasRestantes();
 
+  // Use event image or fallback to a default event image
+  const imageUrl = evento.imagen_url || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800';
+
   return (
     <TouchableOpacity style={styles.card} onPress={handlePress} activeOpacity={0.7}>
-      {/* ✅ UPDATED: Show EventBanner with animation */}
-      <EventBanner 
-        evento={{
-          id: evento.id,
-          titulo: evento.titulo,
-          fecha: evento.fecha,
-          fecha_fin: evento.fecha_fin,
-          hora: evento.hora,
-          hora_fin: evento.hora_fin,
-          imagen_url: evento.imagen_url,
-          precio: evento.precio,
-        }}
-        compact={false}
-      />
-      
-      {evento.destacado && (
-        <View style={styles.badgeDestacado}>
-          <Text style={styles.badgeDestacadoText}>⭐ Destacado</Text>
-        </View>
-      )}
+      {/* Cover Photo */}
+      <View style={styles.imageContainer}>
+        {imageUrl ? (
+          <Image 
+            source={{ uri: imageUrl }} 
+            style={styles.coverImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={[styles.coverImage, styles.imagePlaceholder]}>
+            <LinearGradient
+              colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+            <IconSymbol name="music.note" size={48} color="rgba(255,255,255,0.3)" />
+          </View>
+        )}
+        
+        {/* Gradient overlay for better text visibility */}
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.7)']}
+          style={styles.imageOverlay}
+        />
+        
+        {evento.destacado && (
+          <View style={styles.badgeDestacado}>
+            <IconSymbol name="star.fill" size={12} color={colors.badgeDestacadoText} />
+            <Text style={styles.badgeDestacadoText}>Destacado</Text>
+          </View>
+        )}
+      </View>
 
       <View style={styles.content}>
         <Text style={styles.titulo} numberOfLines={2}>{evento.titulo}</Text>
         
         {evento.descripcion && (
-          <Text style={styles.descripcion} numberOfLines={3}>
+          <Text style={styles.descripcion} numberOfLines={2}>
             {evento.descripcion}
           </Text>
         )}
@@ -178,10 +194,34 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
+  imageContainer: {
+    width: '100%',
+    height: 200,
+    position: 'relative',
+  },
+  coverImage: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: colors.cardBorder,
+  },
+  imagePlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  imageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '50%',
+  },
   badgeDestacado: {
     position: 'absolute',
     top: 12,
     left: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     backgroundColor: colors.badgeDestacado,
     paddingHorizontal: 12,
     paddingVertical: 6,
