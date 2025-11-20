@@ -45,12 +45,17 @@ export default function ConversacionScreen() {
   const [loading, setLoading] = useState(true);
   const [chatId, setChatId] = useState<string | null>(null);
   const [otroUsuario, setOtroUsuario] = useState<any>(null);
+  const [localInfo, setLocalInfo] = useState<any>(null); // ✅ NEW: Store local info for local-specific chats
   const [mensajes, setMensajes] = useState<Message[]>([]);
   const [mensaje, setMensaje] = useState('');
   const [enviando, setEnviando] = useState(false);
 
   // Real-time subscription ref
   const channelRef = useRef<any>(null);
+
+  // ✅ NEW: Check if this is a local-specific chat
+  const isLocalChat = !!params.localId;
+  const localId = params.localId as string | undefined;
 
   const loadMessages = useCallback(async (chatIdToLoad: string) => {
     try {
@@ -95,6 +100,120 @@ export default function ConversacionScreen() {
     try {
       setLoading(true);
 
+      // ✅ CRITICAL: Handle local-specific chats
+      if (localId) {
+        console.log('[Conversacion] 🔥🔥🔥 Loading LOCAL-SPECIFIC chat for local:', localId);
+        
+        // Load local info
+        const { data: localData, error: localError } = await supabase
+          .from('locales')
+          .select('id, nombre, imagen_url, propietario_id')
+          .eq('id', localId)
+          .single();
+
+        if (localError || !localData) {
+          console.error('[Conversacion] Error loading local:', localError);
+          Alert.alert('Error', 'No se pudo cargar la información del local');
+          router.back();
+          return;
+        }
+
+        setLocalInfo(localData);
+
+        // Check if a local-specific chat already exists between this user and this local
+        const { data: existingChat, error: chatError } = await supabase
+          .from('chats')
+          .select('*')
+          .eq('local_id', localId)
+          .or(`and(usuario1_id.eq.${user.id},usuario2_id.eq.${localData.propietario_id}),and(usuario1_id.eq.${localData.propietario_id},usuario2_id.eq.${user.id})`)
+          .single();
+
+        if (existingChat) {
+          console.log('[Conversacion] ✅ Found existing local-specific chat:', existingChat.id);
+          setChatId(existingChat.id);
+          await loadMessages(existingChat.id);
+        } else {
+          // Create new local-specific chat
+          console.log('[Conversacion] 🆕 Creating new local-specific chat');
+          
+          const userId1 = user.id < localData.propietario_id ? user.id : localData.propietario_id;
+          const userId2 = user.id < localData.propietario_id ? localData.propietario_id : user.id;
+
+          const { data: newChat, error: createError } = await supabase
+            .from('chats')
+            .insert({
+              usuario1_id: userId1,
+              usuario2_id: userId2,
+              local_id: localId, // ✅ CRITICAL: Set local_id to isolate this chat
+              ultimo_mensaje: '',
+              ultimo_mensaje_fecha: new Date().toISOString(),
+            })
+            .select('*')
+            .single();
+
+          if (createError) {
+            console.error('[Conversacion] Error creating local chat:', createError);
+            Alert.alert('Error', 'No se pudo crear la conversación');
+            router.back();
+            return;
+          }
+
+          console.log('[Conversacion] ✅ Created local-specific chat:', newChat.id);
+          setChatId(newChat.id);
+        }
+
+        // ✅ If there's a story message to send, send it immediately
+        if (params.storyId && params.storyMessage) {
+          const storyMessage = decodeURIComponent(params.storyMessage as string);
+          const storyId = params.storyId as string;
+          
+          console.log('[Conversacion] 📨 Sending story message:', storyMessage);
+          
+          // Get story image
+          const { data: storyData } = await supabase
+            .from('historias')
+            .select('imagen')
+            .eq('id', storyId)
+            .single();
+
+          const chatIdToUse = existingChat?.id || (await supabase
+            .from('chats')
+            .select('id')
+            .eq('local_id', localId)
+            .or(`and(usuario1_id.eq.${user.id},usuario2_id.eq.${localData.propietario_id}),and(usuario1_id.eq.${localData.propietario_id},usuario2_id.eq.${user.id})`)
+            .single()).data?.id;
+
+          if (chatIdToUse) {
+            await supabase
+              .from('mensajes')
+              .insert({
+                chat_id: chatIdToUse,
+                remitente_id: user.id,
+                contenido: storyMessage,
+                historia_id: storyId,
+                historia_imagen: storyData?.imagen,
+                tipo_mensaje: 'texto',
+                leido: false,
+              });
+
+            // Send notification to local owner
+            await supabase.from('notificaciones').insert({
+              usuario_id: localData.propietario_id,
+              tipo: 'mensaje_privado',
+              titulo: 'Mensaje sobre tu historia',
+              mensaje: `${user.nombre} te envió un mensaje sobre tu historia`,
+              usuario_origen_id: user.id,
+              local_id: localId,
+            });
+
+            await loadMessages(chatIdToUse);
+          }
+        }
+
+        return;
+      }
+
+      // ✅ Standard user-to-user chat (non-local)
       if (params.chatId) {
         // Load existing chat
         const { data: chatData, error: chatError } = await supabase
@@ -131,6 +250,7 @@ export default function ConversacionScreen() {
         const { data: existingChat } = await supabase
           .from('chats')
           .select('*')
+          .is('local_id', null) // ✅ CRITICAL: Only get non-local chats
           .or(
             `and(usuario1_id.eq.${user.id},usuario2_id.eq.${params.userId}),and(usuario1_id.eq.${params.userId},usuario2_id.eq.${user.id})`
           )
@@ -144,13 +264,14 @@ export default function ConversacionScreen() {
           const userId1 = user.id < (params.userId as string) ? user.id : (params.userId as string);
           const userId2 = user.id < (params.userId as string) ? (params.userId as string) : user.id;
 
-          console.log('[Conversacion] Creating new chat with ordered IDs:', { userId1, userId2 });
+          console.log('[Conversacion] Creating new user-to-user chat with ordered IDs:', { userId1, userId2 });
 
           const { data: newChat, error: createError } = await supabase
             .from('chats')
             .insert({
               usuario1_id: userId1,
               usuario2_id: userId2,
+              local_id: null, // ✅ CRITICAL: No local_id for user-to-user chats
               ultimo_mensaje: '',
               ultimo_mensaje_fecha: new Date().toISOString(),
             })
@@ -182,7 +303,7 @@ export default function ConversacionScreen() {
     } finally {
       setLoading(false);
     }
-  }, [user, params.chatId, params.userId, loadMessages, router]);
+  }, [user, params.chatId, params.userId, params.localId, params.storyId, params.storyMessage, loadMessages, router, localId]);
 
   useEffect(() => {
     loadOrCreateChat();
@@ -318,14 +439,21 @@ export default function ConversacionScreen() {
         })
         .eq('id', chatId);
 
-      // Send notification
-      if (otroUsuario) {
+      // ✅ Send notification to the correct recipient
+      const recipientId = isLocalChat && localInfo 
+        ? localInfo.propietario_id 
+        : otroUsuario?.id;
+
+      if (recipientId) {
         await supabase.from('notificaciones').insert({
-          usuario_id: otroUsuario.id,
+          usuario_id: recipientId,
           tipo: 'mensaje_privado',
           titulo: 'Nuevo mensaje',
-          mensaje: `${user.nombre} te envió un mensaje`,
+          mensaje: isLocalChat 
+            ? `${user.nombre} te envió un mensaje sobre ${localInfo.nombre}`
+            : `${user.nombre} te envió un mensaje`,
           usuario_origen_id: user.id,
+          local_id: isLocalChat ? localId : null,
         });
       }
 
@@ -444,6 +572,10 @@ export default function ConversacionScreen() {
     );
   }
 
+  // ✅ Display local info for local-specific chats
+  const displayName = isLocalChat && localInfo ? localInfo.nombre : (otroUsuario?.nombre || 'Usuario');
+  const displayAvatar = isLocalChat && localInfo ? localInfo.imagen_url : otroUsuario?.avatar;
+
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -456,23 +588,26 @@ export default function ConversacionScreen() {
         <TouchableOpacity
           style={styles.headerCenter}
           onPress={() => {
-            if (otroUsuario) {
+            if (isLocalChat && localId) {
+              router.push(`/perfil/local?localId=${localId}`);
+            } else if (otroUsuario) {
               router.push(`/perfil/usuario?userId=${otroUsuario.id}`);
             }
           }}
         >
-          {otroUsuario?.avatar ? (
-            <Image source={{ uri: otroUsuario.avatar }} style={styles.headerAvatar} />
+          {displayAvatar ? (
+            <Image source={{ uri: displayAvatar }} style={styles.headerAvatar} />
           ) : (
             <View style={[styles.headerAvatar, styles.avatarPlaceholder]}>
               <Text style={styles.avatarText}>
-                {otroUsuario?.nombre?.charAt(0).toUpperCase() || 'U'}
+                {displayName?.charAt(0).toUpperCase() || 'U'}
               </Text>
             </View>
           )}
           <View style={styles.headerInfo}>
-            <Text style={styles.headerTitle}>{otroUsuario?.nombre || 'Usuario'}</Text>
-            {otroUsuario?.activo && <Text style={styles.headerStatus}>Activo ahora</Text>}
+            <Text style={styles.headerTitle}>{displayName}</Text>
+            {isLocalChat && <Text style={styles.headerStatus}>Perfil de local</Text>}
+            {!isLocalChat && otroUsuario?.activo && <Text style={styles.headerStatus}>Activo ahora</Text>}
           </View>
         </TouchableOpacity>
         <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteConversation}>
@@ -494,7 +629,7 @@ export default function ConversacionScreen() {
             <MessageBubble
               message={item}
               isOwn={item.remitente_id === user?.id}
-              otroUsuario={otroUsuario}
+              otroUsuario={isLocalChat && localInfo ? { ...localInfo, nombre: localInfo.nombre, avatar: localInfo.imagen_url } : otroUsuario}
               onLongPress={() => handleDeleteMessage(item.id)}
             />
           )}
@@ -502,7 +637,11 @@ export default function ConversacionScreen() {
             <View style={styles.emptyState}>
               <IconSymbol name="bubble.left.and.bubble.right" size={64} color={colors.textSecondary} />
               <Text style={styles.emptyText}>No hay mensajes aún</Text>
-              <Text style={styles.emptySubtext}>Envía un mensaje para iniciar la conversación</Text>
+              <Text style={styles.emptySubtext}>
+                {isLocalChat 
+                  ? `Envía un mensaje a ${displayName}` 
+                  : 'Envía un mensaje para iniciar la conversación'}
+              </Text>
             </View>
           }
         />

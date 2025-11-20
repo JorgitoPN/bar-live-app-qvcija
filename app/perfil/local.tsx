@@ -37,8 +37,8 @@ import { PROVINCIAS, getProvinceVariations, filterByProvincia } from '@/utils/pr
 import EventBanner from '@/components/eventos/EventBanner';
 import { useLocalEvent } from '@/hooks/useLocalEvent';
 
-// ✅ VERSION MARKER - Force cache bust: v3.6.0 - Employment tab improvements for local profiles
-const SCREEN_VERSION = '3.6.0';
+// ✅ VERSION MARKER - Force cache bust: v3.7.0 - Fixed local messaging isolation
+const SCREEN_VERSION = '3.7.0';
 
 const { width, height } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -699,6 +699,7 @@ export default function LocalPerfilScreen() {
     router.push(`/gestion/panel-analisis?localId=${localId}`);
   };
 
+  // ✅ FIXED: Route messages to local profile's independent messaging system
   const handleEnviarMensaje = async () => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para enviar mensajes');
@@ -711,37 +712,16 @@ export default function LocalPerfilScreen() {
     }
 
     try {
-      console.log('[LocalPerfil] Creating/opening chat with local owner');
+      console.log('[LocalPerfil] 🔥🔥🔥 FIXED: Opening chat with LOCAL PROFILE (isolated messaging)');
+      console.log('[LocalPerfil] Local ID:', localId);
+      console.log('[LocalPerfil] Local Owner ID:', local.propietario_id);
+      console.log('[LocalPerfil] Current User ID:', user.id);
       
-      // Check if chat already exists
-      const { data: chatExistente, error: chatError } = await supabase
-        .from('chats')
-        .select('id')
-        .or(`and(usuario1_id.eq.${user.id},usuario2_id.eq.${local.propietario_id}),and(usuario1_id.eq.${local.propietario_id},usuario2_id.eq.${user.id})`)
-        .single();
-
-      let chatId = chatExistente?.id;
-
-      if (!chatId) {
-        console.log('[LocalPerfil] Creating new chat...');
-        const { data: nuevoChat, error: nuevoChatError } = await supabase
-          .from('chats')
-          .insert({
-            usuario1_id: user.id,
-            usuario2_id: local.propietario_id,
-          })
-          .select()
-          .single();
-
-        if (nuevoChatError) throw nuevoChatError;
-        chatId = nuevoChat.id;
-        console.log('[LocalPerfil] Chat created:', chatId);
-      }
-
-      // Navigate to chat
-      router.push(`/chat/conversacion?chatId=${chatId}`);
+      // ✅ CRITICAL FIX: Navigate to a LOCAL-SPECIFIC chat page
+      // This ensures messages are isolated to the local profile
+      router.push(`/chat/conversacion?localId=${localId}&userId=${user.id}`);
     } catch (error) {
-      console.error('[LocalPerfil] Error creating/opening chat:', error);
+      console.error('[LocalPerfil] Error opening local chat:', error);
       Alert.alert('Error', 'No se pudo abrir el chat');
     }
   };
@@ -999,7 +979,7 @@ export default function LocalPerfilScreen() {
     }
   }, [user, currentStoryIndex, localStories]);
 
-  // ✅ NEW: Handle sending story message
+  // ✅ FIXED: Send story message to LOCAL PROFILE's independent messaging system
   const handleSendStoryMessage = useCallback(async () => {
     const currentStory = localStories[currentStoryIndex];
     
@@ -1008,63 +988,23 @@ export default function LocalPerfilScreen() {
     }
 
     try {
-      console.log('[LocalPerfil] Sending story message...');
+      console.log('[LocalPerfil] 🔥🔥🔥 FIXED: Sending story message to LOCAL PROFILE (isolated)');
+      console.log('[LocalPerfil] Story ID:', currentStory.id);
+      console.log('[LocalPerfil] Local ID:', localId);
+      console.log('[LocalPerfil] Sender User ID:', user.id);
       
-      // Get the local owner's user ID
-      const { data: chatExistente, error: chatError } = await supabase
-        .from('chats')
-        .select('id')
-        .or(`and(usuario1_id.eq.${user.id},usuario2_id.eq.${local.propietario_id}),and(usuario1_id.eq.${local.propietario_id},usuario2_id.eq.${user.id})`)
-        .single();
-
-      let chatId = chatExistente?.id;
-
-      if (!chatId) {
-        console.log('[LocalPerfil] Creating new chat...');
-        const { data: nuevoChat, error: nuevoChatError } = await supabase
-          .from('chats')
-          .insert({
-            usuario1_id: user.id,
-            usuario2_id: local.propietario_id,
-          })
-          .select()
-          .single();
-
-        if (nuevoChatError) throw nuevoChatError;
-        chatId = nuevoChat.id;
-        console.log('[LocalPerfil] Chat created:', chatId);
-      }
-
-      const { error: mensajeError } = await supabase
-        .from('mensajes')
-        .insert({
-          chat_id: chatId,
-          remitente_id: user.id,
-          contenido: storyMessage,
-          historia_id: currentStory.id,
-          historia_imagen: currentStory.imagen,
-          tipo_mensaje: 'texto',
-        });
-
-      if (mensajeError) throw mensajeError;
-
-      console.log('[LocalPerfil] Message sent successfully');
-
-      await supabase.from('notificaciones').insert({
-        usuario_id: local.propietario_id,
-        tipo: 'mensaje_privado',
-        titulo: 'Mensaje sobre tu historia',
-        mensaje: `${user.nombre} te envió un mensaje sobre tu historia`,
-        usuario_origen_id: user.id,
-      });
-
+      // ✅ CRITICAL FIX: Route to local-specific chat with story context
+      // This ensures the message goes to the local's independent messaging system
+      router.push(`/chat/conversacion?localId=${localId}&userId=${user.id}&storyId=${currentStory.id}&storyMessage=${encodeURIComponent(storyMessage)}`);
+      
       setStoryMessage('');
-      Alert.alert('Éxito', 'Mensaje enviado correctamente');
+      setShowStoryViewer(false);
+      stopStoryTimer();
     } catch (error) {
       console.error('[LocalPerfil] Error sending story message:', error);
       Alert.alert('Error', 'No se pudo enviar el mensaje');
     }
-  }, [user, currentStoryIndex, localStories, storyMessage, local]);
+  }, [user, currentStoryIndex, localStories, storyMessage, local, localId, router, stopStoryTimer]);
 
   // ✅ CRITICAL: Handle navigation from story viewer header (avatar/name press)
   const handleStoryAuthorPress = useCallback(() => {
