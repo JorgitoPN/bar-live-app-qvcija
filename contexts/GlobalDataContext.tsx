@@ -202,11 +202,19 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
         eventosResult,
         ofertasResult,
       ] = await Promise.all([
-        // Locales
+        // Locales - FIXED: Only show locales with active "estandar" or "premium" subscription
         supabase
           .from('locales')
-          .select('*')
+          .select(`
+            *,
+            suscripciones_locales!inner(
+              estado,
+              plan:planes_suscripcion!inner(nombre)
+            )
+          `)
           .eq('activo', true)
+          .eq('suscripciones_locales.estado', 'activa')
+          .in('suscripciones_locales.plan.nombre', ['estandar', 'premium'])
           .order('destacado', { ascending: false })
           .order('rating', { ascending: false }),
         
@@ -256,7 +264,9 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
       if (!localesResult.error && localesResult.data) {
         const transformedLocales = localesResult.data.map(transformarLocal);
         setLocales(transformedLocales);
-        console.log('[GlobalData] ✅ Locales loaded:', transformedLocales.length);
+        console.log('[GlobalData] ✅ Locales loaded (with active subscription):', transformedLocales.length);
+      } else if (localesResult.error) {
+        console.error('[GlobalData] ❌ Error loading locales:', localesResult.error);
       }
 
       // FIXED: Process posts - map autor field to use local info if tipo='local'
@@ -448,6 +458,23 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
       )
       .subscribe();
 
+    // Subscribe to subscription changes
+    const subscriptionsChannel = supabase
+      .channel('global-subscriptions-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'suscripciones_locales',
+        },
+        () => {
+          console.log('[GlobalData] 🔄 Subscriptions changed, refreshing locales...');
+          refreshData(true);
+        }
+      )
+      .subscribe();
+
     // Subscribe to posts changes
     const postsChannel = supabase
       .channel('global-posts-changes')
@@ -501,6 +528,7 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
 
     return () => {
       supabase.removeChannel(localesChannel);
+      supabase.removeChannel(subscriptionsChannel);
       supabase.removeChannel(postsChannel);
       supabase.removeChannel(likesChannel);
       supabase.removeChannel(storiesChannel);
