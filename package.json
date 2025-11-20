@@ -1,11 +1,12 @@
+
 {
   "name": "Natively",
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
-    "dev": "EXPO_NO_TELEMETRY=1 expo start --clear",
-    "android": "EXPO_NO_TELEMETRY=1 expo start --android",
-    "ios": "EXPO_NO_TELEMETRY=1 expo start --ios",
+    "dev": "EXPO_NO_TELEMETRY=1 expo start --clear --localhost",
+    "android": "EXPO_NO_TELEMETRY=1 expo start --android --localhost",
+    "ios": "EXPO_NO_TELEMETRY=1 expo start --ios --localhost",
     "web": "EXPO_NO_TELEMETRY=1 expo start --web",
     "tunnel": "EXPO_NO_TELEMETRY=1 expo start --tunnel",
     "build:web": "expo export -p web && npx workbox generateSW workbox-config.js",
