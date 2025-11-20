@@ -15,6 +15,8 @@ import {
   Modal,
   Pressable,
   Animated,
+  KeyboardAvoidingView,
+  TextInput,
 } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -63,6 +65,7 @@ export default function UsuarioPerfilScreen() {
   const [userStories, setUserStories] = useState<HistoriaConAutor[]>([]);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [storyMessage, setStoryMessage] = useState('');
   const storyTimerRef = useRef<NodeJS.Timeout | null>(null);
   const progressAnim = useRef(new Animated.Value(0)).current;
 
@@ -754,6 +757,7 @@ export default function UsuarioPerfilScreen() {
         )}
       </ScrollView>
 
+      {/* ✅ UPDATED: Story Viewer Modal with KeyboardAvoidingView */}
       <Modal
         visible={showStoryViewer}
         animationType="fade"
@@ -784,8 +788,14 @@ export default function UsuarioPerfilScreen() {
           setShowStoryViewer(false);
           stopStoryTimer();
         }}
+        statusBarTranslucent
       >
-        <View style={styles.storyViewerModal}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={0}
+        >
+          <View style={styles.storyViewerModal}>
           {currentStory && (
             <>
               <View style={styles.storyViewerHeader}>
@@ -859,21 +869,96 @@ export default function UsuarioPerfilScreen() {
                 />
               </View>
 
+              {/* ✅ NEW: Interaction bar for non-owners */}
+              {!isOwnProfile && (
+                <View style={styles.storyInteractionBar}>
+                  <TextInput
+                    style={styles.storyMessageInput}
+                    placeholder="Enviar mensaje..."
+                    placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                    value={storyMessage}
+                    onChangeText={setStoryMessage}
+                    onFocus={() => {
+                      setIsPaused(true);
+                      stopStoryTimer();
+                    }}
+                    onBlur={() => {
+                      setIsPaused(false);
+                      startStoryTimer();
+                    }}
+                  />
+
+                  {storyMessage.trim().length > 0 && (
+                    <TouchableOpacity
+                      style={styles.storySendButton}
+                      onPress={async () => {
+                        if (!currentUser || !storyMessage.trim()) return;
+
+                        try {
+                          console.log('[UsuarioPerfil] Sending story message...');
+                          
+                          const { data: chatExistente } = await supabase
+                            .from('chats')
+                            .select('id')
+                            .or(`and(usuario1_id.eq.${currentUser.id},usuario2_id.eq.${userId}),and(usuario1_id.eq.${userId},usuario2_id.eq.${currentUser.id})`)
+                            .single();
+
+                          let chatId = chatExistente?.id;
+
+                          if (!chatId) {
+                            const { data: nuevoChat, error: nuevoChatError } = await supabase
+                              .from('chats')
+                              .insert({
+                                usuario1_id: currentUser.id,
+                                usuario2_id: userId,
+                              })
+                              .select()
+                              .single();
+
+                            if (nuevoChatError) throw nuevoChatError;
+                            chatId = nuevoChat.id;
+                          }
+
+                          const { error: mensajeError } = await supabase
+                            .from('mensajes')
+                            .insert({
+                              chat_id: chatId,
+                              remitente_id: currentUser.id,
+                              contenido: storyMessage,
+                              historia_id: currentStory.id,
+                              historia_imagen: currentStory.imagen,
+                              tipo_mensaje: 'texto',
+                            });
+
+                          if (mensajeError) throw mensajeError;
+
+                          await supabase.from('notificaciones').insert({
+                            usuario_id: userId,
+                            tipo: 'mensaje_privado',
+                            titulo: 'Mensaje sobre tu historia',
+                            mensaje: `${currentUser.nombre} te envió un mensaje sobre tu historia`,
+                            usuario_origen_id: currentUser.id,
+                          });
+
+                          setStoryMessage('');
+                          Alert.alert('Éxito', 'Mensaje enviado correctamente');
+                        } catch (error) {
+                          console.error('[UsuarioPerfil] Error sending story message:', error);
+                          Alert.alert('Error', 'No se pudo enviar el mensaje');
+                        }
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <IconSymbol name="paperplane.fill" size={20} color="#fff" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+
               <View style={styles.storyTouchZones}>
                 <Pressable
                   style={styles.storyTouchZone}
                   onPress={handlePreviousStory}
-                />
-                <Pressable
-                  style={styles.storyTouchZone}
-                  onPressIn={() => {
-                    setIsPaused(true);
-                    stopStoryTimer();
-                  }}
-                  onPressOut={() => {
-                    setIsPaused(false);
-                    startStoryTimer();
-                  }}
                 />
                 <Pressable
                   style={styles.storyTouchZone}
@@ -883,6 +968,7 @@ export default function UsuarioPerfilScreen() {
             </>
           )}
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -1130,6 +1216,37 @@ const styles = StyleSheet.create({
   storyImage: {
     width: width,
     height: height,
+  },
+  storyInteractionBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    zIndex: 10,
+  },
+  storyMessageInput: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    color: '#fff',
+    fontSize: 14,
+  },
+  storySendButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   storyTouchZones: {
     position: 'absolute',

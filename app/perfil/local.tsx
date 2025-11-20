@@ -18,6 +18,7 @@ import {
   Linking,
   TextInput,
   FlatList,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -1922,7 +1923,7 @@ export default function LocalPerfilScreen() {
         </View>
       </ScrollView>
 
-      {/* Story Viewer Modal */}
+      {/* ✅ UPDATED: Story Viewer Modal with KeyboardAvoidingView */}
       <Modal
         visible={showStoryViewer}
         animationType="fade"
@@ -1953,8 +1954,14 @@ export default function LocalPerfilScreen() {
           setShowStoryViewer(false);
           stopStoryTimer();
         }}
+        statusBarTranslucent
       >
-        <View style={styles.storyViewerModal}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={0}
+        >
+          <View style={styles.storyViewerModal}>
           {currentStory && (
             <>
               <View style={styles.storyViewerHeader}>
@@ -2123,6 +2130,7 @@ export default function LocalPerfilScreen() {
             </>
           )}
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Create Options Modal */}

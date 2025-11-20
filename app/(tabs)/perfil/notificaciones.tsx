@@ -126,20 +126,31 @@ export default function NotificacionesScreen() {
     }
   };
 
-  // NEW: Handle notification click with navigation
+  // ✅ UPDATED: Handle notification click with navigation
   const handleNotificationClick = async (notif: Notificacion) => {
-    // Mark as read
+    // Mark as read first
     await marcarComoLeida(notif.id);
 
     // Navigate based on notification type
     try {
+      console.log('[Notificaciones] 🔔 Handling notification click:', {
+        tipo: notif.tipo,
+        post_id: notif.post_id,
+        evento_id: notif.evento_id,
+        local_id: notif.local_id,
+        usuario_origen_id: notif.usuario_origen_id,
+      });
+
       switch (notif.tipo) {
         case 'like':
         case 'comentario':
         case 'mencion':
           // Navigate to post detail
           if (notif.post_id) {
+            console.log('[Notificaciones] ✅ Navigating to post:', notif.post_id);
             router.push(`/social/post?id=${notif.post_id}`);
+          } else {
+            console.log('[Notificaciones] ⚠️ No post_id for notification');
           }
           break;
 
@@ -147,47 +158,84 @@ export default function NotificacionesScreen() {
           // Navigate to user profile
           if (notif.usuario_origen_id) {
             if (notif.usuario_origen_id === user?.id) {
+              console.log('[Notificaciones] ✅ Navigating to own profile');
               router.push('/(tabs)/perfil');
             } else {
+              console.log('[Notificaciones] ✅ Navigating to user profile:', notif.usuario_origen_id);
               router.push(`/perfil/usuario?userId=${notif.usuario_origen_id}`);
             }
+          } else {
+            console.log('[Notificaciones] ⚠️ No usuario_origen_id for follower notification');
           }
           break;
 
         case 'evento':
           // Navigate to event detail
           if (notif.evento_id) {
+            console.log('[Notificaciones] ✅ Navigating to event:', notif.evento_id);
             router.push(`/detalle/evento?id=${notif.evento_id}`);
+          } else {
+            console.log('[Notificaciones] ⚠️ No evento_id for event notification');
           }
           break;
 
         case 'local':
           // Navigate to local detail
           if (notif.local_id) {
-            router.push(`/detalle/local?id=${notif.local_id}`);
+            console.log('[Notificaciones] ✅ Navigating to local:', notif.local_id);
+            router.push(`/perfil/local?localId=${notif.local_id}`);
+          } else {
+            console.log('[Notificaciones] ⚠️ No local_id for local notification');
           }
           break;
 
         case 'mensaje_privado':
         case 'mensaje':
-          // Navigate to chats
-          router.push('/(tabs)/perfil/chats');
+          // Navigate to specific chat if we have usuario_origen_id
+          if (notif.usuario_origen_id) {
+            console.log('[Notificaciones] ✅ Navigating to chat with user:', notif.usuario_origen_id);
+            // Try to find existing chat
+            const { data: chatData } = await supabase
+              .from('chats')
+              .select('id')
+              .or(`and(usuario1_id.eq.${user?.id},usuario2_id.eq.${notif.usuario_origen_id}),and(usuario1_id.eq.${notif.usuario_origen_id},usuario2_id.eq.${user?.id})`)
+              .single();
+
+            if (chatData) {
+              router.push(`/chat/conversacion?chatId=${chatData.id}`);
+            } else {
+              // If no chat exists, go to chats list
+              router.push('/(tabs)/perfil/chats');
+            }
+          } else {
+            console.log('[Notificaciones] ✅ Navigating to chats list');
+            router.push('/(tabs)/perfil/chats');
+          }
           break;
 
         case 'solicitud':
           // Navigate to admin solicitudes if user is admin
           if (user?.rol_app === 'admin') {
+            console.log('[Notificaciones] ✅ Navigating to admin solicitudes');
             router.push('/admin/solicitudes-propietario');
+          } else {
+            console.log('[Notificaciones] ⚠️ User is not admin, cannot view solicitudes');
           }
+          break;
+
+        case 'sistema':
+          // System notifications - just mark as read
+          console.log('[Notificaciones] ℹ️ System notification, no navigation');
           break;
 
         default:
           // For other types, just mark as read
-          console.log('[Notificaciones] Unknown notification type:', notif.tipo);
+          console.log('[Notificaciones] ⚠️ Unknown notification type:', notif.tipo);
           break;
       }
     } catch (error) {
-      console.error('[Notificaciones] Error navigating from notification:', error);
+      console.error('[Notificaciones] ❌ Error navigating from notification:', error);
+      Alert.alert('Error', 'No se pudo abrir el contenido de la notificación');
     }
   };
 
