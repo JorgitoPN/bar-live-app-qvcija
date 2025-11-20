@@ -19,13 +19,14 @@ import {
   extraerMetodosPagoCompletos as extraerMetodosPagoCompletosNuevo,
   extraerAnalisisReviews,
 } from './enrichmentServicesExtraction';
-import { LocalCatalogo, EnrichmentResult, GooglePlaceDetails } from '@/types';
+import { LocalCatalogo, EnrichmentResult, GooglePlaceDetails, LocalCategory } from '@/types';
 import {
   googlePlacesTextSearch,
   googlePlacesNearby,
   googlePlacesDetails,
 } from './googlePlacesApi';
 import { mapGoogleTypesToBarlive, categorizarPorHorarios, mapearNivelPrecio } from './enrichmentMapping';
+import { addPubCategoryIfNeeded } from './categorizeLocal';
 
 /**
  * Interfaz para datos enriquecidos de un local
@@ -232,13 +233,22 @@ export async function buscarYEnriquecerLocal(
 
     // 🧠 MAPEAR TIPOS
     console.log('[Enrichment] Mapping types...');
-    let barliveTypes = mapGoogleTypesToBarlive(placeDetails.types || []);
+    let barliveTypes = mapGoogleTypesToBarlive(placeDetails.types || [], placeDetails.name);
 
     // 🧠 CATEGORIZAR POR HORARIOS
     if (placeDetails.opening_hours) {
       console.log('[Enrichment] Categorizing by schedules...');
       barliveTypes = categorizarPorHorarios(placeDetails.opening_hours, barliveTypes);
     }
+
+    // 📅 CONVERTIR HORARIOS (necesario para la lógica de PUB)
+    console.log('[Enrichment] Converting schedules...');
+    const horarios = convertirHorarios(placeDetails.opening_hours);
+    
+    // 🍺 AÑADIR CATEGORÍA PUB SI CIERRA DESPUÉS DE LAS 2:00 AM
+    console.log('[Enrichment] Checking if PUB category should be added...');
+    barliveTypes = addPubCategoryIfNeeded(barliveTypes as LocalCategory[], horarios) as string[];
+    console.log('[Enrichment] Final types after PUB check:', barliveTypes);
 
     // 🏷️ TIPO PRINCIPAL
     const barliveType = barliveTypes[0] || 'bar';
@@ -252,9 +262,7 @@ export async function buscarYEnriquecerLocal(
     const plusCode = placeDetails.plus_code?.global_code;
     const plusCodeCompound = placeDetails.plus_code?.compound_code;
 
-    // 📅 CONVERTIR HORARIOS
-    console.log('[Enrichment] Converting schedules...');
-    const horarios = convertirHorarios(placeDetails.opening_hours);
+    // 📅 HORARIOS (ya convertidos anteriormente)
     const horariosTexto = placeDetails.opening_hours?.weekday_text || [];
     const abiertoAhora = estaAbiertoAhora(horarios);
     

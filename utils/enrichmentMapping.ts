@@ -1,5 +1,6 @@
 
 import { GooglePlaceDetails } from '@/types';
+import { addPubCategoryIfNeeded } from './categorizeLocal';
 
 /**
  * 🧠 MAPEO INTELIGENTE DE TIPOS (SISTEMA BARLIVE)
@@ -158,6 +159,7 @@ export function mapGoogleTypesToBarlive(googleTypes: string[], nombreLocal?: str
  * - Apertura 22:00+ y cierre 04:00–07:00 → ['discoteca','lounge']
  * - Apertura 08:00–14:00 y cierre ≤03:00 → ['restaurante','bar']
  * - Apertura 05:00–10:00 y cierre ≤02:00 → ['cafe','bar']
+ * - Cierre después de 02:00 → Añadir 'pub' automáticamente
  * - Si no hay horarios, conservar tipos base de Google
  */
 export function categorizarPorHorarios(
@@ -218,6 +220,18 @@ export function categorizarPorHorarios(
     // Si solo tiene 'bar', reemplazar por 'cafe'
     if (tiposFinales.length === 1 && tiposFinales[0] === 'bar') {
       tiposFinales[0] = 'cafe';
+    }
+  }
+  
+  // 4️⃣ PUB: Cierre después de 02:00 AM
+  // Esta regla se aplica independientemente de las anteriores
+  if (cierreMedia > 2 && cierreMedia < 8) {
+    console.log('[Categorization] 📋 Pattern detected: PUB (closes after 02:00)');
+    console.log('[Categorization] → Closes after 2 AM, adding PUB category');
+    
+    if (!tiposFinales.includes('pub')) {
+      // Añadir pub al principio para darle prioridad
+      tiposFinales.unshift('pub');
     }
   }
   
@@ -333,4 +347,69 @@ function formatHora(hora: number): string {
   const h = Math.floor(hora);
   const m = Math.round((hora - h) * 60);
   return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+}
+
+/**
+ * Convert weekday_text format to horarios_completos format
+ * This allows us to use the addPubCategoryIfNeeded function
+ */
+export function convertWeekdayTextToHorariosCompletos(
+  weekdayText: string[]
+): Record<string, string[]> {
+  const horarios: Record<string, string[]> = {};
+  
+  const dayMap: Record<string, string> = {
+    'monday': 'lunes',
+    'tuesday': 'martes',
+    'wednesday': 'miercoles',
+    'thursday': 'jueves',
+    'friday': 'viernes',
+    'saturday': 'sabado',
+    'sunday': 'domingo',
+    'lunes': 'lunes',
+    'martes': 'martes',
+    'miércoles': 'miercoles',
+    'miercoles': 'miercoles',
+    'jueves': 'jueves',
+    'viernes': 'viernes',
+    'sábado': 'sabado',
+    'sabado': 'sabado',
+    'domingo': 'domingo',
+  };
+  
+  for (const dayText of weekdayText) {
+    // Extract day name and hours
+    const parts = dayText.split(':');
+    if (parts.length < 2) continue;
+    
+    const dayName = parts[0].trim().toLowerCase();
+    const hoursText = parts.slice(1).join(':').trim();
+    
+    // Map to Spanish day name
+    const spanishDay = dayMap[dayName];
+    if (!spanishDay) continue;
+    
+    // Check if closed
+    if (hoursText.toLowerCase().includes('cerrado') || hoursText.toLowerCase().includes('closed')) {
+      horarios[spanishDay] = ['Cerrado'];
+      continue;
+    }
+    
+    // Extract time ranges
+    const timeRanges: string[] = [];
+    
+    // Match 24h format: 09:00–23:00 or 09:00-23:00
+    const pattern24h = /(\d{1,2}:\d{2})\s*[–-]\s*(\d{1,2}:\d{2})/g;
+    let match;
+    
+    while ((match = pattern24h.exec(hoursText)) !== null) {
+      timeRanges.push(`${match[1]}–${match[2]}`);
+    }
+    
+    if (timeRanges.length > 0) {
+      horarios[spanishDay] = timeRanges;
+    }
+  }
+  
+  return horarios;
 }

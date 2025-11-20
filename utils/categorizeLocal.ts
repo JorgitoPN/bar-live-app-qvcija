@@ -41,8 +41,12 @@ export function autoCategorizeLocal(
     if (latestClose >= 1620 || latestClose <= 360) { // After 3 AM or before 6 AM
       // Very late closing → Discoteca, Pub, or Coctelería
       categories.push('pub', 'cocteleria', 'discoteca');
+    } else if (latestClose > 1560 || latestClose <= 120) { // After 2 AM (02:00) or before 2 AM next day
+      // Closes after 2:00 AM → Always add Pub category
+      // This allows venues to be both Bar and Pub, or Discoteca and Pub
+      categories.push('pub', 'bar', 'lounge');
     } else {
-      // Moderate late closing (midnight to 3 AM) → Bar, Lounge
+      // Moderate late closing (midnight to 2 AM) → Bar, Lounge
       categories.push('bar', 'lounge');
     }
   }
@@ -244,4 +248,47 @@ export function getCategoryLabel(category: LocalCategory): string {
     lounge: 'Lounge',
   };
   return labelMap[category] || category;
+}
+
+/**
+ * Check if a venue should have the PUB category based on closing time
+ * Returns true if the venue closes after 2:00 AM (02:00)
+ */
+export function shouldHavePubCategory(horarios_completos: Record<string, string[]> | null): boolean {
+  if (!horarios_completos || Object.keys(horarios_completos).length === 0) {
+    return false;
+  }
+
+  const { latestClose } = analyzeSchedule(horarios_completos);
+  
+  if (latestClose === null) {
+    return false;
+  }
+
+  // Check if closes after 2:00 AM (120 minutes = 02:00)
+  // latestClose > 1560 means after 2:00 AM same day (26:00 = 1560 minutes)
+  // latestClose <= 120 means before 2:00 AM next day (00:00 - 02:00)
+  return latestClose > 1560 || latestClose <= 120;
+}
+
+/**
+ * Add PUB category to existing categories if venue closes after 2:00 AM
+ * This ensures venues can have multiple categories like "Bar y Pub" or "Discoteca y Pub"
+ */
+export function addPubCategoryIfNeeded(
+  currentCategories: LocalCategory[],
+  horarios_completos: Record<string, string[]> | null
+): LocalCategory[] {
+  // If already has pub category, return as is
+  if (currentCategories.includes('pub')) {
+    return currentCategories;
+  }
+
+  // Check if should have pub category based on closing time
+  if (shouldHavePubCategory(horarios_completos)) {
+    // Add pub to the beginning of the array (higher priority)
+    return ['pub', ...currentCategories].slice(0, 3) as LocalCategory[];
+  }
+
+  return currentCategories;
 }
