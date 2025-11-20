@@ -336,15 +336,10 @@ export default function ComentarScreen() {
               </Text>
             </View>
           )}
-
-          {/* Spacer to ensure content is visible above keyboard */}
-          {keyboardHeight > 0 && (
-            <View style={{ height: keyboardHeight + 20 }} />
-          )}
         </ScrollView>
 
-        {/* Autocomplete Component - Positioned outside ScrollView for better visibility */}
-        <View style={styles.autocompleteContainer}>
+        {/* Autocomplete Component - Positioned above keyboard */}
+        <View style={[styles.autocompleteContainer, { bottom: keyboardHeight }]}>
           <MentionAutocomplete
             text={comentario}
             cursorPosition={cursorPosition}
@@ -541,7 +536,6 @@ const styles = StyleSheet.create({
   },
   autocompleteContainer: {
     position: 'absolute',
-    bottom: 0,
     left: 0,
     right: 0,
     paddingHorizontal: 16,

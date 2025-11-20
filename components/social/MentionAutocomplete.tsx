@@ -348,81 +348,85 @@ export default function MentionAutocomplete({
   });
 
   return (
-    <View style={[styles.container, style]}>
-      <View style={styles.header}>
-        <IconSymbol name="at" size={16} color={colors.primary} />
-        <Text style={styles.headerText}>
-          {loading ? 'Buscando...' : suggestions.length > 0 ? `${suggestions.length} resultados` : 'Sin resultados'}
-        </Text>
-      </View>
-      
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color={colors.primary} />
-          <Text style={styles.loadingText}>Buscando usuarios y locales...</Text>
+    <View style={[styles.container, style]} pointerEvents="box-none">
+      <View style={styles.innerContainer} pointerEvents="auto">
+        <View style={styles.header}>
+          <IconSymbol name="at" size={16} color={colors.primary} />
+          <Text style={styles.headerText}>
+            {loading ? 'Buscando...' : suggestions.length > 0 ? `${suggestions.length} resultados` : 'Sin resultados'}
+          </Text>
         </View>
-      ) : suggestions.length > 0 ? (
-        <ScrollView 
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={true}
-          nestedScrollEnabled={true}
-        >
-          {suggestions.map((item, index) => (
-            <TouchableOpacity
-              key={`${item.id}-${item.tipo}-${index}`}
-              style={[styles.suggestionItem, index === suggestions.length - 1 && styles.suggestionItemLast]}
-              onPress={() => handleSelectMention(item)}
-              activeOpacity={0.7}
-            >
-              {item.avatar ? (
-                <Image source={{ uri: item.avatar }} style={styles.avatar} />
-              ) : (
-                <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                  <IconSymbol
-                    name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
-                    size={20}
-                    color={colors.textSecondary}
-                  />
+        
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={styles.loadingText}>Buscando usuarios y locales...</Text>
+          </View>
+        ) : suggestions.length > 0 ? (
+          <ScrollView 
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={true}
+            nestedScrollEnabled={true}
+          >
+            {suggestions.map((item, index) => (
+              <TouchableOpacity
+                key={`${item.id}-${item.tipo}-${index}`}
+                style={[styles.suggestionItem, index === suggestions.length - 1 && styles.suggestionItemLast]}
+                onPress={() => handleSelectMention(item)}
+                activeOpacity={0.7}
+              >
+                {item.avatar ? (
+                  <Image source={{ uri: item.avatar }} style={styles.avatar} />
+                ) : (
+                  <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                    <IconSymbol
+                      name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
+                      size={20}
+                      color={colors.textSecondary}
+                    />
+                  </View>
+                )}
+                <View style={styles.suggestionInfo}>
+                  <Text style={styles.suggestionName}>{item.nombre}</Text>
+                  <Text style={styles.suggestionType}>
+                    {item.tipo === 'local' ? '🏢 Local' : `@${item.username}`}
+                  </Text>
                 </View>
-              )}
-              <View style={styles.suggestionInfo}>
-                <Text style={styles.suggestionName}>{item.nombre}</Text>
-                <Text style={styles.suggestionType}>
-                  {item.tipo === 'local' ? '🏢 Local' : `@${item.username}`}
-                </Text>
-              </View>
-              <IconSymbol name="chevron.right" size={16} color={colors.textSecondary} />
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      ) : currentMentionText.length > 0 ? (
-        <View style={styles.emptyContainer}>
-          <IconSymbol name="magnifyingglass" size={24} color={colors.textSecondary} />
-          <Text style={styles.emptyText}>No se encontraron resultados</Text>
-          <Text style={styles.emptySubtext}>para "{currentMentionText}"</Text>
-        </View>
-      ) : (
-        <View style={styles.emptyContainer}>
-          <IconSymbol name="at" size={24} color={colors.textSecondary} />
-          <Text style={styles.emptyText}>Escribe para buscar</Text>
-          <Text style={styles.emptySubtext}>usuarios o locales</Text>
-        </View>
-      )}
+                <IconSymbol name="chevron.right" size={16} color={colors.textSecondary} />
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        ) : currentMentionText.length > 0 ? (
+          <View style={styles.emptyContainer}>
+            <IconSymbol name="magnifyingglass" size={24} color={colors.textSecondary} />
+            <Text style={styles.emptyText}>No se encontraron resultados</Text>
+            <Text style={styles.emptySubtext}>para "{currentMentionText}"</Text>
+          </View>
+        ) : (
+          <View style={styles.emptyContainer}>
+            <IconSymbol name="at" size={24} color={colors.textSecondary} />
+            <Text style={styles.emptyText}>Escribe para buscar</Text>
+            <Text style={styles.emptySubtext}>usuarios o locales</Text>
+          </View>
+        )}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    width: '100%',
+  },
+  innerContainer: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     borderWidth: 2,
     borderColor: colors.primary,
     maxHeight: 300,
     overflow: 'hidden',
-    marginBottom: 12,
     ...Platform.select({
       ios: {
         shadowColor: colors.primary,
