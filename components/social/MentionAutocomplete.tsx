@@ -173,58 +173,38 @@ export default function MentionAutocomplete({
         })));
       }
 
-      // Search locals - FIXED: Only show locales with active "estandar" or "premium" subscription
-      console.log('[MentionAutocomplete] 🏢 Searching locals (with active subscription)...');
+      // Search locals
+      console.log('[MentionAutocomplete] 🏢 Searching locals...');
       
       let localsData: any[] = [];
       
       if (query.length > 0) {
         const { data: locals, error: localsError } = await supabase
           .from('locales')
-          .select(`
-            id,
-            nombre,
-            imagen_url,
-            suscripciones_locales!inner(
-              estado,
-              plan:planes_suscripcion!inner(nombre)
-            )
-          `)
+          .select('id, nombre, imagen_url')
           .eq('activo', true)
-          .eq('suscripciones_locales.estado', 'activa')
-          .in('suscripciones_locales.plan.nombre', ['estandar', 'premium'])
           .ilike('nombre', `%${query}%`)
           .limit(20);
 
         if (localsError) {
           console.error('[MentionAutocomplete] ❌ Error searching locals:', localsError);
         } else if (locals) {
-          console.log('[MentionAutocomplete] ✅ Found locals (with active subscription):', locals.length);
+          console.log('[MentionAutocomplete] ✅ Found locals:', locals.length);
           localsData = locals;
         }
       } else {
         // Show recent locals when query is empty
         const { data: recentLocals, error: recentError } = await supabase
           .from('locales')
-          .select(`
-            id,
-            nombre,
-            imagen_url,
-            suscripciones_locales!inner(
-              estado,
-              plan:planes_suscripcion!inner(nombre)
-            )
-          `)
+          .select('id, nombre, imagen_url')
           .eq('activo', true)
-          .eq('suscripciones_locales.estado', 'activa')
-          .in('suscripciones_locales.plan.nombre', ['estandar', 'premium'])
           .order('created_at', { ascending: false })
           .limit(10);
 
         if (recentError) {
           console.error('[MentionAutocomplete] ❌ Error fetching recent locals:', recentError);
         } else if (recentLocals) {
-          console.log('[MentionAutocomplete] ✅ Found recent locals (with active subscription):', recentLocals.length);
+          console.log('[MentionAutocomplete] ✅ Found recent locals:', recentLocals.length);
           localsData = recentLocals;
         }
       }
