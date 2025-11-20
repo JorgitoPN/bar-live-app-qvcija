@@ -91,45 +91,72 @@ export default function MentionAutocomplete({
     setLoading(true);
     
     try {
-      // Search users
-      console.log('[MentionAutocomplete] 👤 Searching users...');
-      const userSearchPattern = query.length > 0 ? `%${query}%` : '%';
-      
-      const { data: usersData, error: usersError } = await supabase
-        .from('usuarios')
-        .select('id, nombre, username, avatar, perfil_privado, permitir_etiquetas')
-        .eq('activo', true)
-        .eq('permitir_etiquetas', true)
-        .or(`nombre.ilike.${userSearchPattern},username.ilike.${userSearchPattern}`)
-        .limit(10);
-
-      if (usersError) {
-        console.error('[MentionAutocomplete] ❌ Error searching users:', usersError);
-      } else {
-        console.log('[MentionAutocomplete] ✅ Found users:', usersData?.length || 0, usersData);
-      }
-
-      // Search locals
-      console.log('[MentionAutocomplete] 🏢 Searching locals...');
-      const localSearchPattern = query.length > 0 ? `%${query}%` : '%';
-      
-      const { data: localsData, error: localsError } = await supabase
-        .from('locales')
-        .select('id, nombre, imagen_url')
-        .eq('activo', true)
-        .ilike('nombre', localSearchPattern)
-        .limit(20);
-
-      if (localsError) {
-        console.error('[MentionAutocomplete] ❌ Error searching locals:', localsError);
-      } else {
-        console.log('[MentionAutocomplete] ✅ Found locals:', localsData?.length || 0, localsData);
-      }
-
       const results: MentionSuggestion[] = [];
 
-      // Add users to results
-      if (!usersError && usersData && usersData.length > 0) {
+      // Search users - Use separate queries for better reliability
+      console.log('[MentionAutocomplete] 👤 Searching users...');
+      
+      let usersData: any[] = [];
+      
+      if (query.length > 0) {
+        // Search by username
+        const { data: usersByUsername, error: usernameError } = await supabase
+          .from('usuarios')
+          .select('id, nombre, username, avatar, perfil_privado, permitir_etiquetas')
+          .eq('activo', true)
+          .eq('permitir_etiquetas', true)
+          .ilike('username', `%${query}%`)
+          .limit(10);
+
+        if (usernameError) {
+          console.error('[MentionAutocomplete] ❌ Error searching users by username:', usernameError);
+        } else if (usersByUsername) {
+          console.log('[MentionAutocomplete] ✅ Found users by username:', usersByUsername.length);
+          usersData = [...usersByUsername];
+        }
+
+        // Search by name
+        const { data: usersByName, error: nameError } = await supabase
+          .from('usuarios')
+          .select('id, nombre, username, avatar, perfil_privado, permitir_etiquetas')
+          .eq('activo', true)
+          .eq('permitir_etiquetas', true)
+          .ilike('nombre', `%${query}%`)
+          .limit(10);
+
+        if (nameError) {
+          console.error('[MentionAutocomplete] ❌ Error searching users by name:', nameError);
+        } else if (usersByName) {
+          console.log('[MentionAutocomplete] ✅ Found users by name:', usersByName.length);
+          // Merge results, avoiding duplicates
+          for (const user of usersByName) {
+            if (!usersData.find(u => u.id === user.id)) {
+              usersData.push(user);
+            }
+          }
+        }
+      } else {
+        // Show recent users when query is empty
+        const { data: recentUsers, error: recentError } = await supabase
+          .from('usuarios')
+          .select('id, nombre, username, avatar, perfil_privado, permitir_etiquetas')
+          .eq('activo', true)
+          .eq('permitir_etiquetas', true)
+          .order('created_at', { ascending: false })
+          .limit(10);
+
+        if (recentError) {
+          console.error('[MentionAutocomplete] ❌ Error fetching recent users:', recentError);
+        } else if (recentUsers) {
+          console.log('[MentionAutocomplete] ✅ Found recent users:', recentUsers.length);
+          usersData = recentUsers;
+        }
+      }
+
+      console.log('[MentionAutocomplete] 📊 Total users found:', usersData.length);
+
+      // Add users to results with scoring
+      if (usersData && usersData.length > 0) {
         const scoredUsers = usersData.map(u => {
           const nombre = (u.nombre || '').toLowerCase();
           const username = (u.username || '').toLowerCase();
@@ -155,8 +182,46 @@ export default function MentionAutocomplete({
         })));
       }
 
-      // Add locals to results
-      if (!localsError && localsData && localsData.length > 0) {
+      // Search locals
+      console.log('[MentionAutocomplete] 🏢 Searching locals...');
+      
+      let localsData: any[] = [];
+      
+      if (query.length > 0) {
+        const { data: locals, error: localsError } = await supabase
+          .from('locales')
+          .select('id, nombre, imagen_url')
+          .eq('activo', true)
+          .ilike('nombre', `%${query}%`)
+          .limit(20);
+
+        if (localsError) {
+          console.error('[MentionAutocomplete] ❌ Error searching locals:', localsError);
+        } else if (locals) {
+          console.log('[MentionAutocomplete] ✅ Found locals:', locals.length);
+          localsData = locals;
+        }
+      } else {
+        // Show recent locals when query is empty
+        const { data: recentLocals, error: recentError } = await supabase
+          .from('locales')
+          .select('id, nombre, imagen_url')
+          .eq('activo', true)
+          .order('created_at', { ascending: false })
+          .limit(10);
+
+        if (recentError) {
+          console.error('[MentionAutocomplete] ❌ Error fetching recent locals:', recentError);
+        } else if (recentLocals) {
+          console.log('[MentionAutocomplete] ✅ Found recent locals:', recentLocals.length);
+          localsData = recentLocals;
+        }
+      }
+
+      console.log('[MentionAutocomplete] 📊 Total locals found:', localsData.length);
+
+      // Add locals to results with scoring
+      if (localsData && localsData.length > 0) {
         const scoredLocals = localsData.map(l => {
           const nombre = (l.nombre || '').toLowerCase();
           const search = query.toLowerCase();
