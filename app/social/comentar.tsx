@@ -11,7 +11,6 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
-  KeyboardAvoidingView,
   Keyboard,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -343,7 +342,7 @@ export default function ComentarScreen() {
             style={[
               styles.autocompleteContainer, 
               { 
-                bottom: keyboardHeight,
+                bottom: keyboardHeight + 8,
               }
             ]}
             pointerEvents="box-none"
@@ -549,7 +548,8 @@ const styles = StyleSheet.create({
     right: 0,
     paddingHorizontal: 16,
     paddingBottom: 8,
-    zIndex: 1000,
+    zIndex: 9999,
+    elevation: 9999,
   },
   contextIndicator: {
     flexDirection: 'row',

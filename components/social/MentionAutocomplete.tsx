@@ -402,7 +402,7 @@ export default function MentionAutocomplete({
           <View style={styles.emptyContainer}>
             <IconSymbol name="magnifyingglass" size={24} color={colors.textSecondary} />
             <Text style={styles.emptyText}>No se encontraron resultados</Text>
-            <Text style={styles.emptySubtext}>para "{currentMentionText}"</Text>
+            <Text style={styles.emptySubtext}>para &quot;{currentMentionText}&quot;</Text>
           </View>
         ) : (
           <View style={styles.emptyContainer}>
@@ -421,7 +421,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   innerContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
     borderRadius: 16,
     borderWidth: 2,
     borderColor: colors.primary,
@@ -429,16 +429,16 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     ...Platform.select({
       ios: {
-        shadowColor: '#000000',
+        shadowColor: colors.text,
         shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.25,
+        shadowOpacity: 0.3,
         shadowRadius: 16,
       },
       android: {
         elevation: 16,
       },
       web: {
-        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)',
+        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
       },
     }),
   },
@@ -448,9 +448,9 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: colors.primary + '10',
+    backgroundColor: colors.primary + '20',
     borderBottomWidth: 1,
-    borderBottomColor: colors.primary + '20',
+    borderBottomColor: colors.primary + '30',
   },
   headerText: {
     fontSize: 13,
@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
     padding: 14,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardBackground,
   },
   suggestionItemLast: {
     borderBottomWidth: 0,
@@ -482,7 +482,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     marginRight: 12,
     borderWidth: 2,
-    borderColor: colors.primary + '20',
+    borderColor: colors.primary + '30',
   },
   avatarPlaceholder: {
     backgroundColor: colors.background,
@@ -495,12 +495,12 @@ const styles = StyleSheet.create({
   suggestionName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#000000',
+    color: colors.text,
     marginBottom: 3,
   },
   suggestionType: {
     fontSize: 14,
-    color: '#666666',
+    color: colors.textSecondary,
     fontWeight: '500',
   },
   loadingContainer: {
@@ -512,7 +512,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: '#666666',
+    color: colors.textSecondary,
     fontWeight: '500',
   },
   emptyContainer: {
@@ -524,12 +524,12 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.text,
     textAlign: 'center',
   },
   emptySubtext: {
     fontSize: 13,
-    color: '#666666',
+    color: colors.textSecondary,
     textAlign: 'center',
   },
 });
