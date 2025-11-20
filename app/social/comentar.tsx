@@ -184,11 +184,7 @@ export default function ComentarScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={commonStyles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-    >
+    <View style={commonStyles.container}>
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         start={{ x: 0, y: 0 }}
@@ -219,99 +215,111 @@ export default function ComentarScreen() {
         </View>
       </LinearGradient>
 
-      <ScrollView 
-        style={styles.content} 
-        contentContainerStyle={styles.contentContainer}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
-        {post && (
-          <View style={styles.postPreview}>
-            <View style={styles.postHeader}>
-              {post.autor?.avatar ? (
-                <Image source={{ uri: post.autor.avatar }} style={styles.postAvatar} />
-              ) : (
-                <View style={[styles.postAvatar, styles.avatarPlaceholder]}>
-                  <IconSymbol name="person.fill" size={20} color={colors.textSecondary} />
+        <ScrollView 
+          style={styles.content} 
+          contentContainerStyle={styles.contentContainer}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {post && (
+            <View style={styles.postPreview}>
+              <View style={styles.postHeader}>
+                {post.autor?.avatar ? (
+                  <Image source={{ uri: post.autor.avatar }} style={styles.postAvatar} />
+                ) : (
+                  <View style={[styles.postAvatar, styles.avatarPlaceholder]}>
+                    <IconSymbol name="person.fill" size={20} color={colors.textSecondary} />
+                  </View>
+                )}
+                <View style={styles.postAutorInfo}>
+                  <Text style={styles.postAutorNombre}>{post.autor?.nombre || 'Usuario'}</Text>
+                  <Text style={styles.postAutorUsername}>@{post.autor?.username || 'usuario'}</Text>
                 </View>
-              )}
-              <View style={styles.postAutorInfo}>
-                <Text style={styles.postAutorNombre}>{post.autor?.nombre || 'Usuario'}</Text>
-                <Text style={styles.postAutorUsername}>@{post.autor?.username || 'usuario'}</Text>
               </View>
+              {post.contenido && (
+                <Text style={styles.postContenido} numberOfLines={3}>
+                  {post.contenido}
+                </Text>
+              )}
             </View>
-            {post.contenido && (
-              <Text style={styles.postContenido} numberOfLines={3}>
-                {post.contenido}
+          )}
+
+          {parentComment && (
+            <View style={styles.parentCommentPreview}>
+              <Text style={styles.replyingToLabel}>Respondiendo a</Text>
+              <View style={styles.commentHeader}>
+                {parentComment.autor?.avatar ? (
+                  <Image source={{ uri: parentComment.autor.avatar }} style={styles.commentAvatar} />
+                ) : (
+                  <View style={[styles.commentAvatar, styles.avatarPlaceholder]}>
+                    <IconSymbol name="person.fill" size={16} color={colors.textSecondary} />
+                  </View>
+                )}
+                <View style={styles.commentAutorInfo}>
+                  <Text style={styles.commentAutorNombre}>{parentComment.autor?.nombre || 'Usuario'}</Text>
+                  <Text style={styles.commentAutorUsername}>@{parentComment.autor?.username || 'usuario'}</Text>
+                </View>
+              </View>
+              <Text style={styles.commentTexto} numberOfLines={2}>
+                {parentComment.texto}
               </Text>
-            )}
-          </View>
-        )}
-
-        {parentComment && (
-          <View style={styles.parentCommentPreview}>
-            <Text style={styles.replyingToLabel}>Respondiendo a</Text>
-            <View style={styles.commentHeader}>
-              {parentComment.autor?.avatar ? (
-                <Image source={{ uri: parentComment.autor.avatar }} style={styles.commentAvatar} />
-              ) : (
-                <View style={[styles.commentAvatar, styles.avatarPlaceholder]}>
-                  <IconSymbol name="person.fill" size={16} color={colors.textSecondary} />
-                </View>
-              )}
-              <View style={styles.commentAutorInfo}>
-                <Text style={styles.commentAutorNombre}>{parentComment.autor?.nombre || 'Usuario'}</Text>
-                <Text style={styles.commentAutorUsername}>@{parentComment.autor?.username || 'usuario'}</Text>
-              </View>
             </View>
-            <Text style={styles.commentTexto} numberOfLines={2}>
-              {parentComment.texto}
+          )}
+
+          <View style={styles.inputSection}>
+            <Text style={styles.inputLabel}>Tu comentario</Text>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.textInput}
+                placeholder={parentComment ? 'Escribe tu respuesta...' : 'Escribe tu comentario...'}
+                placeholderTextColor={colors.textSecondary}
+                value={comentario}
+                onChangeText={(text) => {
+                  console.log('[Comentar] Text changed:', text);
+                  setComentario(text);
+                }}
+                onSelectionChange={(event) => {
+                  const newPosition = event.nativeEvent.selection.start;
+                  console.log('[Comentar] Cursor position changed to:', newPosition);
+                  setCursorPosition(newPosition);
+                }}
+                multiline
+                maxLength={500}
+                editable={!publishing}
+                autoFocus
+              />
+              <Text style={styles.charCount}>{comentario.length}/500</Text>
+            </View>
+            <Text style={styles.helperText}>
+              Usa @ para mencionar usuarios o locales
             </Text>
           </View>
-        )}
 
-        <View style={styles.inputSection}>
-          <Text style={styles.inputLabel}>Tu comentario</Text>
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.textInput}
-              placeholder={parentComment ? 'Escribe tu respuesta...' : 'Escribe tu comentario...'}
-              placeholderTextColor={colors.textSecondary}
-              value={comentario}
-              onChangeText={setComentario}
-              onSelectionChange={(event) => {
-                setCursorPosition(event.nativeEvent.selection.start);
-              }}
-              multiline
-              maxLength={500}
-              editable={!publishing}
-              autoFocus
+          {/* Autocomplete Component - Positioned right after input */}
+          <View style={styles.autocompleteWrapper}>
+            <MentionAutocomplete
+              text={comentario}
+              cursorPosition={cursorPosition}
+              onSelectMention={handleSelectMention}
             />
-            <Text style={styles.charCount}>{comentario.length}/500</Text>
           </View>
-          <Text style={styles.helperText}>
-            Usa @ para mencionar usuarios o locales
-          </Text>
-        </View>
 
-        {/* Autocomplete Component - Positioned right after input */}
-        <MentionAutocomplete
-          text={comentario}
-          cursorPosition={cursorPosition}
-          onSelectMention={handleSelectMention}
-          style={styles.mentionAutocomplete}
-        />
-
-        {isInteractingAsLocal && activeLocalProfileId && (
-          <View style={styles.contextIndicator}>
-            <IconSymbol name="building.2.fill" size={16} color={colors.primary} />
-            <Text style={styles.contextText}>
-              Comentando como local
-            </Text>
-          </View>
-        )}
-      </ScrollView>
-    </KeyboardAvoidingView>
+          {isInteractingAsLocal && activeLocalProfileId && (
+            <View style={styles.contextIndicator}>
+              <IconSymbol name="building.2.fill" size={16} color={colors.primary} />
+              <Text style={styles.contextText}>
+                Comentando como local
+              </Text>
+            </View>
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -488,10 +496,10 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontStyle: 'italic',
   },
-  mentionAutocomplete: {
-    marginHorizontal: 16,
+  autocompleteWrapper: {
+    paddingHorizontal: 16,
     marginTop: 8,
-    marginBottom: 8,
+    zIndex: 1000,
   },
   contextIndicator: {
     flexDirection: 'row',

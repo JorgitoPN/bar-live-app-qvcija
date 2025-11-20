@@ -679,9 +679,14 @@ export default function CrearPublicacionScreen() {
               placeholder="¿Qué estás pensando?"
               placeholderTextColor={colors.textSecondary}
               value={contenido}
-              onChangeText={setContenido}
+              onChangeText={(text) => {
+                console.log('[CrearPublicacion] Text changed:', text);
+                setContenido(text);
+              }}
               onSelectionChange={(event) => {
-                setCursorPosition(event.nativeEvent.selection.start);
+                const newPosition = event.nativeEvent.selection.start;
+                console.log('[CrearPublicacion] Cursor position changed to:', newPosition);
+                setCursorPosition(newPosition);
               }}
               multiline
               maxLength={2200}
@@ -694,19 +699,19 @@ export default function CrearPublicacionScreen() {
           </View>
 
           {/* Autocomplete Components - Positioned right after text input */}
-          <MentionAutocomplete
-            text={contenido}
-            cursorPosition={cursorPosition}
-            onSelectMention={handleSelectInlineMention}
-            style={styles.mentionAutocomplete}
-          />
+          <View style={styles.autocompleteWrapper}>
+            <MentionAutocomplete
+              text={contenido}
+              cursorPosition={cursorPosition}
+              onSelectMention={handleSelectInlineMention}
+            />
 
-          <HashtagAutocomplete
-            text={contenido}
-            cursorPosition={cursorPosition}
-            onSelectHashtag={handleSelectInlineHashtag}
-            style={styles.hashtagAutocomplete}
-          />
+            <HashtagAutocomplete
+              text={contenido}
+              cursorPosition={cursorPosition}
+              onSelectHashtag={handleSelectInlineHashtag}
+            />
+          </View>
 
           {/* Images Preview */}
           {imagenes.length > 0 && (
@@ -1063,15 +1068,10 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontStyle: 'italic',
   },
-  mentionAutocomplete: {
-    marginHorizontal: 16,
+  autocompleteWrapper: {
+    paddingHorizontal: 16,
     marginTop: 8,
-    marginBottom: 8,
-  },
-  hashtagAutocomplete: {
-    marginHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 8,
+    zIndex: 1000,
   },
   imagesPreviewSection: {
     backgroundColor: colors.cardBackground,
