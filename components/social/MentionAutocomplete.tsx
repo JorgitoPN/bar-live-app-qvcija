@@ -173,12 +173,13 @@ export default function MentionAutocomplete({
         })));
       }
 
-      // Search locals
-      console.log('[MentionAutocomplete] 🏢 Searching locals...');
+      // Search locals with active estandar or premium subscriptions
+      console.log('[MentionAutocomplete] 🏢 Searching locals with active subscriptions...');
       
       let localsData: any[] = [];
       
       if (query.length > 0) {
+        // First, get all locals matching the search
         const { data: locals, error: localsError } = await supabase
           .from('locales')
           .select('id, nombre, imagen_url')
@@ -188,28 +189,86 @@ export default function MentionAutocomplete({
 
         if (localsError) {
           console.error('[MentionAutocomplete] ❌ Error searching locals:', localsError);
-        } else if (locals) {
+        } else if (locals && locals.length > 0) {
           console.log('[MentionAutocomplete] ✅ Found locals:', locals.length);
-          localsData = locals;
+          
+          // Now filter by active subscriptions with estandar or premium plans
+          const localIds = locals.map(l => l.id);
+          
+          const { data: subscriptionsData, error: subscriptionsError } = await supabase
+            .from('suscripciones_locales')
+            .select(`
+              local_id,
+              estado,
+              plan_id,
+              planes_suscripcion!suscripciones_locales_plan_id_fkey(nombre)
+            `)
+            .in('local_id', localIds)
+            .eq('estado', 'activa');
+
+          if (subscriptionsError) {
+            console.error('[MentionAutocomplete] ❌ Error fetching subscriptions:', subscriptionsError);
+          } else if (subscriptionsData) {
+            // Filter to only include locals with estandar or premium plans
+            const validLocalIds = subscriptionsData
+              .filter(sub => {
+                const planName = (sub.planes_suscripcion as any)?.nombre;
+                return planName === 'estandar' || planName === 'premium';
+              })
+              .map(sub => sub.local_id);
+
+            localsData = locals.filter(local => validLocalIds.includes(local.id));
+            
+            console.log('[MentionAutocomplete] ✅ Found locals with estandar/premium subscriptions:', localsData.length);
+          }
         }
       } else {
-        // Show recent locals when query is empty
+        // Show recent locals with active subscriptions when query is empty
         const { data: recentLocals, error: recentError } = await supabase
           .from('locales')
           .select('id, nombre, imagen_url')
           .eq('activo', true)
           .order('created_at', { ascending: false })
-          .limit(10);
+          .limit(20);
 
         if (recentError) {
           console.error('[MentionAutocomplete] ❌ Error fetching recent locals:', recentError);
-        } else if (recentLocals) {
+        } else if (recentLocals && recentLocals.length > 0) {
           console.log('[MentionAutocomplete] ✅ Found recent locals:', recentLocals.length);
-          localsData = recentLocals;
+          
+          // Filter by active subscriptions with estandar or premium plans
+          const localIds = recentLocals.map(l => l.id);
+          
+          const { data: subscriptionsData, error: subscriptionsError } = await supabase
+            .from('suscripciones_locales')
+            .select(`
+              local_id,
+              estado,
+              plan_id,
+              planes_suscripcion!suscripciones_locales_plan_id_fkey(nombre)
+            `)
+            .in('local_id', localIds)
+            .eq('estado', 'activa');
+
+          if (subscriptionsError) {
+            console.error('[MentionAutocomplete] ❌ Error fetching subscriptions:', subscriptionsError);
+          } else if (subscriptionsData) {
+            // Filter to only include locals with estandar or premium plans
+            const validLocalIds = subscriptionsData
+              .filter(sub => {
+                const planName = (sub.planes_suscripcion as any)?.nombre;
+                return planName === 'estandar' || planName === 'premium';
+              })
+              .map(sub => sub.local_id);
+
+            localsData = recentLocals.filter(local => validLocalIds.includes(local.id));
+            
+            console.log('[MentionAutocomplete] ✅ Found recent locals with estandar/premium subscriptions:', localsData.length);
+          }
         }
       }
 
-      console.log('[MentionAutocomplete] 📊 Total locals found:', localsData.length);
+      console.log('[MentionAutocomplete] 📊 Total locals with valid subscriptions found:', localsData.length);
 
       // Add locals to results with scoring
       if (localsData && localsData.length > 0) {
