@@ -1,3 +1,4 @@
+
 {
   "expo": {
     "name": "BarLive",
@@ -18,13 +19,10 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSUserTrackingUsageDescription": "Esta app necesita tu permiso para enviarte notificaciones sobre eventos, ofertas y actividad social.",
-        "NSLocationWhenInUseUsageDescription": "BarLive necesita tu ubicaci\u00f3n para mostrarte locales cercanos.",
+        "NSLocationWhenInUseUsageDescription": "BarLive necesita tu ubicación para mostrarte locales cercanos.",
         "CFBundleURLTypes": [
           {
-            "CFBundleURLSchemes": [
-              "natively",
-              "com.barlive.app"
-            ]
+            "CFBundleURLSchemes": ["natively", "com.barlive.app"]
           }
         ]
       },
@@ -65,10 +63,7 @@
               "scheme": "com.barlive.app"
             }
           ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
+          "category": ["BROWSABLE", "DEFAULT"]
         }
       ]
     },
@@ -113,6 +108,5 @@
       "androidMode": "default",
       "androidCollapsedTitle": "BarLive"
     }
-  },
-  "scheme": "BarLive"
+  }
 }
