@@ -1325,10 +1325,15 @@ export default function SocialScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      console.log('[Social] ⚡ Screen focused');
-      loadData();
+      console.log('[Social] ⚡ Screen focused - refreshing data');
+      
+      // ENHANCED: Force refresh from global data to sync like counts
+      refreshData(false).then(() => {
+        loadData();
+      });
+      
       loadUnreadCounts();
-    }, [loadData, loadUnreadCounts])
+    }, [loadData, loadUnreadCounts, refreshData])
   );
 
   const onRefresh = useCallback(async () => {
@@ -1338,7 +1343,7 @@ export default function SocialScreen() {
     setRefreshing(false);
   }, [loadData, refreshData]);
 
-  // ENHANCED: Search with hashtag support
+  // ENHANCED: Search with hashtag support - ONLY from posts (not comments)
   const handleSearch = useCallback(async (query: string) => {
     setSearchQuery(query);
     
@@ -1357,16 +1362,36 @@ export default function SocialScreen() {
       if (searchTerm.startsWith('#')) {
         const hashtagTerm = searchTerm.substring(1).toLowerCase();
         
-        // Search hashtags
+        // ENHANCED: Search hashtags - only count usage from posts (not comments)
+        // Get hashtags with their post count
         const { data: hashtagsData, error: hashtagsError } = await supabase
           .from('hashtags')
-          .select('id, tag, uso_count')
+          .select(`
+            id, 
+            tag,
+            post_hashtags!inner(post_id)
+          `)
           .ilike('tag', `%${hashtagTerm}%`)
-          .order('uso_count', { ascending: false })
-          .limit(10);
+          .limit(50);
 
         if (!hashtagsError && hashtagsData) {
-          results.push(...hashtagsData.map(h => ({
+          // Count unique posts for each hashtag
+          const hashtagsWithCounts = hashtagsData.map((h: any) => {
+            const postCount = h.post_hashtags?.length || 0;
+            return {
+              id: h.id,
+              tag: h.tag,
+              uso_count: postCount,
+            };
+          }).filter((h: any) => h.uso_count > 0); // Only show hashtags that have posts
+
+          // Sort by usage count
+          hashtagsWithCounts.sort((a: any, b: any) => b.uso_count - a.uso_count);
+
+          // Take top 10
+          const topHashtags = hashtagsWithCounts.slice(0, 10);
+
+          results.push(...topHashtags.map((h: any) => ({
             id: h.id,
             nombre: `#${h.tag}`,
             tipo: 'hashtag' as const,

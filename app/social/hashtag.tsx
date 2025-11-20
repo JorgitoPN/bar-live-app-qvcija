@@ -57,7 +57,7 @@ export default function HashtagScreen() {
       // Get hashtag info
       const { data: hashtagData } = await supabase
         .from('hashtags')
-        .select('uso_count')
+        .select('id, uso_count')
         .eq('tag', hashtag.toLowerCase())
         .single();
 
@@ -65,8 +65,17 @@ export default function HashtagScreen() {
         setHashtagInfo(hashtagData);
       }
 
-      // FIXED: Get posts with this hashtag - properly select all needed fields including imagenes
-      const { data: postHashtags, error } = await supabase
+      if (!hashtagData) {
+        console.log('[Hashtag] Hashtag not found');
+        setPosts([]);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
+      // ENHANCED: Get posts with this hashtag - ONLY from post_hashtags (not comment_hashtags)
+      // Also filter by privacy: only public profiles or followed users
+      let query = supabase
         .from('post_hashtags')
         .select(`
           post_id,
@@ -78,10 +87,20 @@ export default function HashtagScreen() {
             likes,
             comentarios,
             created_at,
-            autor:usuarios!posts_autor_id_fkey(nombre, avatar)
+            tipo,
+            autor_id,
+            local_id,
+            autor:usuarios!posts_autor_id_fkey(
+              nombre, 
+              avatar, 
+              perfil_privado
+            ),
+            local:locales(nombre, imagen_url)
           )
         `)
-        .eq('hashtag_id', hashtagData?.id);
+        .eq('hashtag_id', hashtagData.id);
+
+      const { data: postHashtags, error } = await query;
 
       if (error) {
         console.error('[Hashtag] Error loading posts:', error);
@@ -89,9 +108,64 @@ export default function HashtagScreen() {
       }
 
       // Extract posts from the junction table
-      const postsData = postHashtags?.map((ph: any) => ph.posts).filter(Boolean) || [];
+      let postsData = postHashtags?.map((ph: any) => ph.posts).filter(Boolean) || [];
       
-      console.log('[Hashtag] Loaded posts:', postsData.length);
+      console.log('[Hashtag] Loaded posts before privacy filter:', postsData.length);
+
+      // ENHANCED: Privacy filtering - only show posts from public profiles or followed users
+      if (user) {
+        // Get list of users the current user follows
+        const { data: followedUsers } = await supabase
+          .from('seguidores')
+          .select('seguido_id')
+          .eq('seguidor_id', user.id);
+
+        const followedUserIds = new Set(followedUsers?.map(f => f.seguido_id) || []);
+
+        // Filter posts based on privacy
+        postsData = postsData.filter((post: any) => {
+          // If it's a local post, always show it (locals don't have privacy settings)
+          if (post.tipo === 'local') {
+            return true;
+          }
+
+          // If it's a user post
+          if (post.tipo === 'usuario') {
+            // Show if profile is public
+            if (!post.autor?.perfil_privado) {
+              return true;
+            }
+
+            // Show if it's the current user's own post
+            if (post.autor_id === user.id) {
+              return true;
+            }
+
+            // Show if the current user follows this user
+            if (followedUserIds.has(post.autor_id)) {
+              return true;
+            }
+
+            // Otherwise, hide private profile posts
+            return false;
+          }
+
+          return true;
+        });
+
+        console.log('[Hashtag] Posts after privacy filter:', postsData.length);
+      } else {
+        // Not logged in - only show public user posts and all local posts
+        postsData = postsData.filter((post: any) => {
+          if (post.tipo === 'local') {
+            return true;
+          }
+          return !post.autor?.perfil_privado;
+        });
+
+        console.log('[Hashtag] Posts after public-only filter:', postsData.length);
+      }
+      
       setPosts(postsData);
     } catch (error) {
       console.error('[Hashtag] Error:', error);
@@ -99,7 +173,7 @@ export default function HashtagScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [hashtag]);
+  }, [hashtag, user]);
 
   useEffect(() => {
     loadHashtagPosts();
@@ -117,6 +191,14 @@ export default function HashtagScreen() {
       : item.imagen 
         ? [item.imagen] 
         : [];
+
+    // ENHANCED: Get display name and avatar based on post type
+    const displayName = item.tipo === 'local' && item.local 
+      ? item.local.nombre 
+      : item.autor?.nombre || 'Usuario';
+    const displayAvatar = item.tipo === 'local' && item.local 
+      ? item.local.imagen_url 
+      : item.autor?.avatar;
 
     return (
       <TouchableOpacity
@@ -139,6 +221,23 @@ export default function HashtagScreen() {
           </View>
         )}
         <View style={styles.postInfo}>
+          <View style={styles.postAuthorInfo}>
+            {displayAvatar ? (
+              <Image 
+                source={{ uri: displayAvatar }} 
+                style={styles.postAuthorAvatar}
+              />
+            ) : (
+              <View style={[styles.postAuthorAvatar, styles.avatarPlaceholder]}>
+                <Text style={styles.avatarText}>
+                  {displayName.charAt(0).toUpperCase()}
+                </Text>
+              </View>
+            )}
+            <Text style={styles.postAuthorName} numberOfLines={1}>
+              {displayName}
+            </Text>
+          </View>
           <Text style={styles.postContent} numberOfLines={2}>
             {item.contenido}
           </Text>
@@ -269,6 +368,33 @@ const styles = StyleSheet.create({
   },
   postInfo: {
     padding: 12,
+  },
+  postAuthorInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 8,
+  },
+  postAuthorAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+  },
+  avatarPlaceholder: {
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: colors.headerText,
+  },
+  postAuthorName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text,
+    flex: 1,
   },
   postContent: {
     fontSize: 15,

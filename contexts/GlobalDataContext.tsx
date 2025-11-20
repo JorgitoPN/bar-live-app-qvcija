@@ -465,6 +465,23 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
       )
       .subscribe();
 
+    // ENHANCED: Subscribe to likes changes to update post like counts in real-time
+    const likesChannel = supabase
+      .channel('global-likes-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'likes',
+        },
+        () => {
+          console.log('[GlobalData] 🔄 Likes changed, refreshing posts...');
+          refreshData(true);
+        }
+      )
+      .subscribe();
+
     // Subscribe to stories changes
     const storiesChannel = supabase
       .channel('global-stories-changes')
@@ -485,6 +502,7 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
     return () => {
       supabase.removeChannel(localesChannel);
       supabase.removeChannel(postsChannel);
+      supabase.removeChannel(likesChannel);
       supabase.removeChannel(storiesChannel);
     };
   }, [refreshData]);
