@@ -209,16 +209,30 @@ export default function EventosScreen() {
   };
 
   const onChangeDateInicio = (event: any, selectedDate?: Date) => {
-    setShowDatePickerInicio(false);
-    if (selectedDate) {
+    if (Platform.OS === 'android') {
+      setShowDatePickerInicio(false);
+    }
+    if (event.type === 'set' && selectedDate) {
       setFechaInicio(selectedDate);
+      if (Platform.OS === 'ios') {
+        setShowDatePickerInicio(false);
+      }
+    } else if (event.type === 'dismissed') {
+      setShowDatePickerInicio(false);
     }
   };
 
   const onChangeDateFin = (event: any, selectedDate?: Date) => {
-    setShowDatePickerFin(false);
-    if (selectedDate) {
+    if (Platform.OS === 'android') {
+      setShowDatePickerFin(false);
+    }
+    if (event.type === 'set' && selectedDate) {
       setFechaFin(selectedDate);
+      if (Platform.OS === 'ios') {
+        setShowDatePickerFin(false);
+      }
+    } else if (event.type === 'dismissed') {
+      setShowDatePickerFin(false);
     }
   };
 

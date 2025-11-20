@@ -125,24 +125,26 @@ export default function EventoCard({ evento, onPress, showBanner = true }: Event
 
   return (
     <View style={styles.cardContainer}>
-      {/* Event Banner - Compact Mode */}
-      {showBanner && (
-        <EventBanner 
-          evento={{
-            id: evento.id,
-            titulo: evento.titulo,
-            fecha: evento.fecha,
-            fecha_fin: evento.fecha_fin,
-            hora: evento.hora,
-            hora_fin: evento.hora_fin,
-            imagen_url: evento.imagen_url,
-            precio: evento.precio,
-          }}
-          compact={true}
-        />
-      )}
-
       <TouchableOpacity style={styles.card} onPress={handlePress} activeOpacity={0.7}>
+        {/* Event Banner - Compact Mode - INSIDE THE CARD */}
+        {showBanner && (
+          <View style={styles.bannerWrapper}>
+            <EventBanner 
+              evento={{
+                id: evento.id,
+                titulo: evento.titulo,
+                fecha: evento.fecha,
+                fecha_fin: evento.fecha_fin,
+                hora: evento.hora,
+                hora_fin: evento.hora_fin,
+                imagen_url: evento.imagen_url,
+                precio: evento.precio,
+              }}
+              compact={true}
+            />
+          </View>
+        )}
+
         {/* Cover Photo */}
         <View style={styles.imageContainer}>
           {imageUrl ? (
@@ -266,6 +268,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
+  },
+  bannerWrapper: {
+    padding: 12,
+    paddingBottom: 0,
   },
   imageContainer: {
     width: '100%',
