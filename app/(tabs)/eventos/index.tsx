@@ -25,6 +25,7 @@ import { useMode } from '@/contexts/ModeContext';
 import { supabase } from '@/utils/supabase';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import EventoCard from '@/components/eventos/EventoCard';
+import { cleanupExpiredEvents, filterExpiredEvents } from '@/utils/eventCleanup';
 
 const { width } = Dimensions.get('window');
 
@@ -84,12 +85,45 @@ export default function EventosScreen() {
   const canCreateEvents = (userRole === 'propietario' && currentMode === 'propietario') || 
                           (userRole === 'admin' && currentMode === 'propietario');
 
+  // Run cleanup on mount and periodically
+  useEffect(() => {
+    // Run cleanup immediately
+    runCleanup();
+    
+    // Run cleanup every hour
+    const interval = setInterval(() => {
+      runCleanup();
+    }, 60 * 60 * 1000); // 1 hour
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  const runCleanup = async () => {
+    try {
+      console.log('[Eventos] Running automatic cleanup of expired events...');
+      const result = await cleanupExpiredEvents();
+      
+      if (result.success) {
+        console.log(`[Eventos] Cleanup successful: ${result.deleted} deleted, ${result.marked_inactive} marked inactive`);
+        
+        // Reload events if any were cleaned up
+        if (result.deleted > 0 || result.marked_inactive > 0) {
+          cargarEventos();
+        }
+      } else {
+        console.error('[Eventos] Cleanup failed:', result.error);
+      }
+    } catch (error) {
+      console.error('[Eventos] Error running cleanup:', error);
+    }
+  };
+
   const cargarEventos = useCallback(async () => {
     try {
       setLoading(true);
       console.log('[Eventos] Cargando eventos...');
 
-      // FIXED: Filter out expired events
+      // Get today's date at midnight for comparison
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const todayStr = today.toISOString().split('T')[0];
@@ -145,7 +179,11 @@ export default function EventosScreen() {
         propietario_id: evento.propietario_id,
       }));
 
-      setEventos(eventosTransformados);
+      // Filter out any expired events (additional client-side check)
+      const eventosActivos = filterExpiredEvents(eventosTransformados);
+      console.log('[Eventos] Eventos activos después de filtrar:', eventosActivos.length);
+
+      setEventos(eventosActivos);
     } catch (error) {
       console.error('[Eventos] Error:', error);
     } finally {
@@ -160,6 +198,8 @@ export default function EventosScreen() {
 
   const onRefresh = () => {
     setRefreshing(true);
+    // Run cleanup on refresh
+    runCleanup();
     cargarEventos();
   };
 
