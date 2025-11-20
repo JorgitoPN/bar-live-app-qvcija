@@ -203,8 +203,8 @@ export default function EventosScreen() {
   const formatDate = (date: Date | null): string => {
     if (!date) return 'Seleccionar';
     return date.toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
+      day: 'numeric',
+      month: 'long',
       year: 'numeric',
     });
   };

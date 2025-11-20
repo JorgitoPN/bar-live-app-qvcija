@@ -1127,8 +1127,26 @@ export default function SocialScreen() {
           filteredPosts = globalPosts.filter(p => p.tipo === 'local' && p.local_id === activeLocalProfileId);
           console.log('[Social] 🏢 Owner mode - Filtered posts for local:', activeLocalProfileId, 'Count:', filteredPosts.length);
         } else {
-          filteredPosts = globalPosts.filter(p => p.tipo === 'usuario');
-          console.log('[Social] 👤 User mode - Filtered user posts, Count:', filteredPosts.length);
+          // ✅ UPDATED: Include posts from followed locals with active profiles
+          if (user) {
+            // Get followed locals
+            const { data: followedLocals } = await supabase
+              .from('locales_favoritos')
+              .select('local_id')
+              .eq('usuario_id', user.id);
+
+            const followedLocalIds = new Set(followedLocals?.map(f => f.local_id) || []);
+            
+            // Filter to include user posts AND posts from followed locals
+            filteredPosts = globalPosts.filter(p => 
+              p.tipo === 'usuario' || 
+              (p.tipo === 'local' && p.local_id && followedLocalIds.has(p.local_id))
+            );
+            console.log('[Social] 👤 User mode - Filtered user posts + followed locals, Count:', filteredPosts.length);
+          } else {
+            filteredPosts = globalPosts.filter(p => p.tipo === 'usuario');
+            console.log('[Social] 👤 User mode - Filtered user posts only (not logged in), Count:', filteredPosts.length);
+          }
         }
         
         if (user && filteredPosts.length > 0) {
@@ -1184,9 +1202,20 @@ export default function SocialScreen() {
           otherStories = globalStories.filter(s => s.tipo === 'usuario');
           console.log('[Social] 🏢 Owner mode - Filtered stories for local:', activeLocalProfileId, 'Own:', userOwnStories.length, 'Others:', otherStories.length);
         } else if (user) {
+          // ✅ UPDATED: Include stories from followed locals with active profiles
+          const { data: followedLocals } = await supabase
+            .from('locales_favoritos')
+            .select('local_id')
+            .eq('usuario_id', user.id);
+
+          const followedLocalIds = new Set(followedLocals?.map(f => f.local_id) || []);
+          
           userOwnStories = globalStories.filter(s => s.tipo === 'usuario' && s.autor_id === user.id);
-          otherStories = globalStories.filter(s => s.tipo === 'usuario' && s.autor_id !== user.id);
-          console.log('[Social] 👤 User mode - Own stories:', userOwnStories.length, 'Others:', otherStories.length);
+          otherStories = globalStories.filter(s => 
+            (s.tipo === 'usuario' && s.autor_id !== user.id) ||
+            (s.tipo === 'local' && s.local_id && followedLocalIds.has(s.local_id))
+          );
+          console.log('[Social] 👤 User mode - Own stories:', userOwnStories.length, 'Others (users + followed locals):', otherStories.length);
         } else {
           otherStories = globalStories.filter(s => s.tipo === 'usuario');
           console.log('[Social] 🔓 Not logged in - Showing all user stories:', otherStories.length);

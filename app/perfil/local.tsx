@@ -781,6 +781,53 @@ export default function LocalPerfilScreen() {
     router.push(`/gestion/panel-analisis?localId=${localId}`);
   };
 
+  const handleEnviarMensaje = async () => {
+    if (!user) {
+      Alert.alert('Error', 'Debes iniciar sesión para enviar mensajes');
+      return;
+    }
+
+    if (!local?.propietario_id) {
+      Alert.alert('Error', 'No se puede enviar mensaje a este local');
+      return;
+    }
+
+    try {
+      console.log('[LocalPerfil] Creating/opening chat with local owner');
+      
+      // Check if chat already exists
+      const { data: chatExistente, error: chatError } = await supabase
+        .from('chats')
+        .select('id')
+        .or(`and(usuario1_id.eq.${user.id},usuario2_id.eq.${local.propietario_id}),and(usuario1_id.eq.${local.propietario_id},usuario2_id.eq.${user.id})`)
+        .single();
+
+      let chatId = chatExistente?.id;
+
+      if (!chatId) {
+        console.log('[LocalPerfil] Creating new chat...');
+        const { data: nuevoChat, error: nuevoChatError } = await supabase
+          .from('chats')
+          .insert({
+            usuario1_id: user.id,
+            usuario2_id: local.propietario_id,
+          })
+          .select()
+          .single();
+
+        if (nuevoChatError) throw nuevoChatError;
+        chatId = nuevoChat.id;
+        console.log('[LocalPerfil] Chat created:', chatId);
+      }
+
+      // Navigate to chat
+      router.push(`/chat/conversacion?chatId=${chatId}`);
+    } catch (error) {
+      console.error('[LocalPerfil] Error creating/opening chat:', error);
+      Alert.alert('Error', 'No se pudo abrir el chat');
+    }
+  };
+
   const handleGoBack = () => {
     try {
       if (router.canGoBack()) {
@@ -1412,7 +1459,7 @@ export default function LocalPerfilScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* ✅ UPDATED: 3 buttons in a single row with soft design - NO PERFIL BUTTON */}
+            {/* ✅ UPDATED: 3 buttons in a single row with soft design */}
             <View style={styles.actionsContainer}>
               {isOwner ? (
                 <View style={styles.ownerButtonsRow}>
@@ -1450,27 +1497,42 @@ export default function LocalPerfilScreen() {
                   </TouchableOpacity>
                 </View>
               ) : (
-                <>
+                <View style={styles.visitorButtonsRow}>
                   <TouchableOpacity 
-                    style={[styles.actionButton, isFavorito && styles.actionButtonFollowing]} 
+                    style={[styles.visitorRowButton, isFavorito && styles.visitorRowButtonFollowing]} 
                     onPress={toggleFavorito}
+                    activeOpacity={0.7}
                   >
                     <IconSymbol 
                       name={isFavorito ? 'heart.fill' : 'heart'} 
                       size={18} 
-                      color={colors.headerText} 
+                      color={isFavorito ? colors.headerText : colors.primary} 
                     />
-                    <Text style={styles.actionButtonText}>
+                    <Text style={[styles.visitorRowButtonText, isFavorito && styles.visitorRowButtonTextFollowing]}>
                       {isFavorito ? 'Siguiendo' : 'Seguir'}
                     </Text>
                   </TouchableOpacity>
+                  
                   {local.telefono && (
-                    <TouchableOpacity style={styles.actionButton} onPress={handleLlamar}>
-                      <IconSymbol name="phone.fill" size={18} color={colors.headerText} />
-                      <Text style={styles.actionButtonText}>Llamar</Text>
+                    <TouchableOpacity 
+                      style={styles.visitorRowButton} 
+                      onPress={handleLlamar}
+                      activeOpacity={0.7}
+                    >
+                      <IconSymbol name="phone.fill" size={18} color={colors.primary} />
+                      <Text style={styles.visitorRowButtonText}>Llamar</Text>
                     </TouchableOpacity>
                   )}
-                </>
+                  
+                  <TouchableOpacity 
+                    style={styles.visitorRowButton} 
+                    onPress={handleEnviarMensaje}
+                    activeOpacity={0.7}
+                  >
+                    <IconSymbol name="message.fill" size={18} color={colors.primary} />
+                    <Text style={styles.visitorRowButtonText}>Mensaje</Text>
+                  </TouchableOpacity>
+                </View>
               )}
             </View>
           </Animated.View>
@@ -2574,26 +2636,39 @@ const styles = StyleSheet.create({
     color: colors.primary,
     textAlign: 'center',
   },
-  // Original action buttons for non-owners
-  actionButton: {
+  // ✅ NEW: Visitor buttons in a single row with soft design
+  visitorButtonsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  visitorRowButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    borderRadius: 16,
-    paddingVertical: 14,
-    gap: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    gap: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
   },
-  createButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+  visitorRowButtonFollowing: {
+    backgroundColor: colors.primary,
   },
-  actionButtonFollowing: {
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
-  },
-  actionButtonText: {
-    fontSize: 15,
+  visitorRowButtonText: {
+    fontSize: 13,
     fontWeight: '600',
+    color: colors.primary,
+    textAlign: 'center',
+  },
+  visitorRowButtonTextFollowing: {
     color: colors.headerText,
   },
   tabsContainer: {
