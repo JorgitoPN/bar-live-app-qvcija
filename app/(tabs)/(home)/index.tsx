@@ -27,6 +27,7 @@ import { colors, commonStyles } from '@/styles/commonStyles';
 import { useGlobalData } from '@/contexts/GlobalDataContext';
 import { useScrollPosition } from '@/hooks/useScrollPosition';
 import InitialLoadingScreen from '@/components/common/InitialLoadingScreen';
+import { addPubCategoryIfNeeded } from '@/utils/categorizeLocal';
 
 type ModoUsuario = 'todos' | 'cercanos' | 'destacados' | 'nuevos';
 
@@ -255,19 +256,28 @@ export default function ExplorarScreen() {
     }
   };
 
-
-
   const aplicarFiltrosYOrdenamiento = useCallback(() => {
     console.log('[Explorar] ⚡ Applying filters...');
     
     let localesFiltrados = [...todosLosLocales];
 
+    // ✅ FIXED: Filter by category with dynamic PUB category support
     if (categoriaSeleccionada !== 'todos') {
-      localesFiltrados = localesFiltrados.filter((local) =>
-        local.barlive_types?.some(
+      localesFiltrados = localesFiltrados.filter((local) => {
+        // Get all categories for this local
+        let localCategories = local.barlive_types || [];
+        if (localCategories.length === 0 && local.barlive_type) {
+          localCategories = [local.barlive_type];
+        }
+        
+        // Add PUB category dynamically if venue closes after 2 AM
+        localCategories = addPubCategoryIfNeeded(localCategories, local.horarios_completos);
+        
+        // Check if any category matches the selected category
+        return localCategories.some(
           (tipo: string) => tipo.toLowerCase() === categoriaSeleccionada.toLowerCase()
-        )
-      );
+        );
+      });
     }
 
     if (busqueda.trim()) {

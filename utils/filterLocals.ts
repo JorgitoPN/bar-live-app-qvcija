@@ -3,8 +3,9 @@
  * Utility functions for filtering and sorting locals
  */
 
-import { Local, Filtros } from '@/types';
+import { Local, Filtros, LocalCategory } from '@/types';
 import { getEstadoLocal } from './timeUtils';
+import { addPubCategoryIfNeeded } from './categorizeLocal';
 
 /**
  * Calculate distance between two coordinates using Haversine formula
@@ -99,12 +100,13 @@ function esDestacado(local: Local, activePromotions: Set<string>): boolean {
 
 /**
  * Check if local matches category filter
+ * ✅ FIXED: Now dynamically adds PUB category if venue closes after 2 AM
  */
 function matchesCategory(local: Local, categorias: string[]): boolean {
   if (!categorias || categorias.length === 0) return true;
   
   // Obtener todas las categorías del local
-  const localCategories: string[] = [];
+  let localCategories: LocalCategory[] = [];
   
   // Agregar barlive_types si existe (array)
   if (local.barlive_types && Array.isArray(local.barlive_types)) {
@@ -120,6 +122,9 @@ function matchesCategory(local: Local, categorias: string[]): boolean {
   if (local.tipo) {
     localCategories.push(local.tipo);
   }
+  
+  // ✅ FIXED: Add PUB category dynamically if venue closes after 2 AM
+  localCategories = addPubCategoryIfNeeded(localCategories, local.horarios_completos);
   
   // Verificar si alguna categoría del local coincide con las categorías filtradas
   const hasMatch = categorias.some(categoria => 
@@ -178,7 +183,7 @@ export function filterAndSortLocals(
 
   // PASO 2: Filtrar por criterios
   filteredLocals = filteredLocals.filter((local) => {
-    // Filtro por tipo (ahora soporta múltiples categorías)
+    // Filtro por tipo (ahora soporta múltiples categorías y PUB dinámico)
     if (filtros.tipo && filtros.tipo.length > 0) {
       const hasMatchingType = matchesCategory(local, filtros.tipo);
       if (!hasMatchingType) {

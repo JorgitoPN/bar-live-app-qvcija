@@ -13,6 +13,7 @@ import { localPreloader } from '@/utils/localPreloader';
 import { trackProfileView } from '@/utils/activityTracker';
 import EventBanner from '@/components/eventos/EventBanner';
 import { useLocalEvent } from '@/hooks/useLocalEvent';
+import { addPubCategoryIfNeeded } from '@/utils/categorizeLocal';
 
 const { width } = Dimensions.get('window');
 
@@ -256,13 +257,17 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
     return estado.estaAbierto === false || estado.estaAbierto === null;
   };
 
-  // Formatear categorías para mostrar - Filter out unwanted categories
+  // Formatear categorías para mostrar - Filter out unwanted categories AND add PUB if needed
   const formatCategories = () => {
     const CATEGORIAS_EXCLUIDAS = ['terrazas', 'rooftops', 'lounge'];
     let categories = local.barlive_types || [];
     if (categories.length === 0 && local.barlive_type) {
       categories = [local.barlive_type];
     }
+    
+    // ✅ FIXED: Add PUB category dynamically if venue closes after 2 AM
+    categories = addPubCategoryIfNeeded(categories, local.horarios_completos);
+    
     // Filter out excluded categories (case-insensitive)
     return categories.filter((cat: string) => 
       !CATEGORIAS_EXCLUIDAS.includes(cat.toLowerCase())
