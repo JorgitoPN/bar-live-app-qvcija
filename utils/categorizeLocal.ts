@@ -37,16 +37,21 @@ export function autoCategorizeLocal(
 
   // CASE 3: Closes after midnight → Nightlife venue
   if (latestClose > 1440 || latestClose < 360) { // After midnight or before 6 AM
-    // Determine specific nightlife category based on closing time
-    if (latestClose >= 1620 || latestClose <= 360) { // After 3 AM or before 6 AM
-      // Very late closing → Discoteca, Pub, or Coctelería
-      categories.push('pub', 'cocteleria', 'discoteca');
-    } else if (latestClose > 1560 || latestClose <= 120) { // After 2 AM (02:00) or before 2 AM next day
-      // Closes after 2:00 AM → Always add Pub category
-      // This allows venues to be both Bar and Pub, or Discoteca and Pub
+    // ✅ UPDATED: Spanish regulations for pub categorization
+    // Pubs: Close between 3:00 AM and 5:00 AM (180-300 minutes or 1620-1740 minutes)
+    // Discotecas: Close between 5:00 AM and 6:00 AM (300-360 minutes or 1740-1800 minutes)
+    
+    if (latestClose >= 1740 || latestClose <= 360) { // After 5:00 AM (29:00) or before 6:00 AM
+      // Very late closing (5:00-6:00 AM) → Discoteca
+      categories.push('discoteca', 'pub', 'cocteleria');
+    } else if (latestClose >= 1620 || latestClose <= 300) { // After 3:00 AM (27:00) or before 5:00 AM
+      // Late closing (3:00-5:00 AM) → Pub, Coctelería
+      categories.push('pub', 'cocteleria', 'bar');
+    } else if (latestClose > 1560 || latestClose <= 150) { // After 2:30 AM (26:00) or before 2:30 AM
+      // Moderate late closing (2:30-3:00 AM) → Pub, Bar
       categories.push('pub', 'bar', 'lounge');
     } else {
-      // Moderate late closing (midnight to 2 AM) → Bar, Lounge
+      // Closes between midnight and 2:30 AM → Bar, Lounge
       categories.push('bar', 'lounge');
     }
   }
@@ -251,8 +256,14 @@ export function getCategoryLabel(category: LocalCategory): string {
 }
 
 /**
- * Check if a venue should have the PUB category based on closing time
- * Returns true if the venue closes after 2:00 AM (02:00)
+ * ✅ UPDATED: Check if a venue should have the PUB category based on Spanish regulations
+ * 
+ * Spanish Hospitality Closing Time Regulations:
+ * - Bares y cafeterías: Close between 1:30 AM and 2:30 AM
+ * - Pubs (Bares Especiales): Close between 3:00 AM and 5:00 AM (can extend to 5:00 AM on weekends)
+ * - Discotecas: Close between 5:00 AM and 6:00 AM
+ * 
+ * Returns true if the venue closes after 2:30 AM, which qualifies it as a "Pub"
  */
 export function shouldHavePubCategory(horarios_completos: Record<string, string[]> | null): boolean {
   if (!horarios_completos || Object.keys(horarios_completos).length === 0) {
@@ -265,14 +276,15 @@ export function shouldHavePubCategory(horarios_completos: Record<string, string[
     return false;
   }
 
-  // Check if closes after 2:00 AM (120 minutes = 02:00)
-  // latestClose > 1560 means after 2:00 AM same day (26:00 = 1560 minutes)
-  // latestClose <= 120 means before 2:00 AM next day (00:00 - 02:00)
-  return latestClose > 1560 || latestClose <= 120;
+  // ✅ UPDATED: Check if closes after 2:30 AM (150 minutes = 02:30)
+  // This aligns with Spanish regulations where pubs close later than bars/cafeterías
+  // latestClose > 1590 means after 2:30 AM same day (26:30 = 1590 minutes)
+  // latestClose <= 150 means before 2:30 AM next day (00:00 - 02:30)
+  return latestClose > 1590 || latestClose <= 150;
 }
 
 /**
- * Add PUB category to existing categories if venue closes after 2:00 AM
+ * Add PUB category to existing categories if venue closes after 2:30 AM
  * This ensures venues can have multiple categories like "Bar y Pub" or "Discoteca y Pub"
  */
 export function addPubCategoryIfNeeded(
