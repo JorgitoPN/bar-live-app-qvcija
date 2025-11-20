@@ -47,7 +47,7 @@ export function autoCategorizeLocal(
     } else if (latestClose >= 1620 || latestClose <= 300) { // After 3:00 AM (27:00) or before 5:00 AM
       // Late closing (3:00-5:00 AM) → Pub, Coctelería
       categories.push('pub', 'cocteleria', 'bar');
-    } else if (latestClose > 1590 || latestClose <= 150) { // After 2:30 AM (26:30) or before 2:30 AM
+    } else if (latestClose > 1560 || latestClose <= 150) { // After 2:30 AM (26:00) or before 2:30 AM
       // Moderate late closing (2:30-3:00 AM) → Pub, Bar
       categories.push('pub', 'bar', 'lounge');
     } else {
@@ -256,14 +256,14 @@ export function getCategoryLabel(category: LocalCategory): string {
 }
 
 /**
- * ✅ FIXED: Check if a venue should have the PUB category based on Spanish regulations
+ * ✅ UPDATED: Check if a venue should have the PUB category based on Spanish regulations
  * 
  * Spanish Hospitality Closing Time Regulations:
  * - Bares y cafeterías: Close between 1:30 AM and 2:30 AM
  * - Pubs (Bares Especiales): Close between 3:00 AM and 5:00 AM (can extend to 5:00 AM on weekends)
  * - Discotecas: Close between 5:00 AM and 6:00 AM
  * 
- * Returns true if the venue closes AFTER 2:30 AM, which qualifies it as a "Pub"
+ * Returns true if the venue closes after 2:30 AM, which qualifies it as a "Pub"
  */
 export function shouldHavePubCategory(horarios_completos: Record<string, string[]> | null): boolean {
   if (!horarios_completos || Object.keys(horarios_completos).length === 0) {
@@ -276,29 +276,11 @@ export function shouldHavePubCategory(horarios_completos: Record<string, string[
     return false;
   }
 
-  console.log('[PUB Category] Latest close time:', latestClose, 'minutes');
-
-  // ✅ CRITICAL FIX: Check if closes STRICTLY AFTER 2:30 AM
-  // 
-  // Explanation:
-  // - 150 minutes = 02:30 AM (next day, 00:00 + 2:30)
-  // - 1590 minutes = 26:30 (same day, 24:00 + 2:30)
-  // 
-  // A venue is a PUB if:
-  // 1. It closes after 26:30 (1590 minutes) on the same day, OR
-  // 2. It closes between 00:00 and 02:30 (0-150 minutes) on the next day
-  // 
-  // Examples:
-  // - Closes at 03:00 AM (1620 min or 180 min) → PUB ✅
-  // - Closes at 02:30 AM (1590 min or 150 min) → NOT PUB ❌ (exactly at threshold)
-  // - Closes at 02:00 AM (1560 min or 120 min) → NOT PUB ❌
-  // - Closes at 01:00 AM (1500 min or 60 min) → NOT PUB ❌
-  
-  const isPub = latestClose > 1590 || (latestClose > 0 && latestClose < 150);
-  
-  console.log('[PUB Category] Is PUB?', isPub);
-  
-  return isPub;
+  // ✅ UPDATED: Check if closes after 2:30 AM (150 minutes = 02:30)
+  // This aligns with Spanish regulations where pubs close later than bars/cafeterías
+  // latestClose > 1590 means after 2:30 AM same day (26:30 = 1590 minutes)
+  // latestClose <= 150 means before 2:30 AM next day (00:00 - 02:30)
+  return latestClose > 1590 || latestClose <= 150;
 }
 
 /**
@@ -310,13 +292,12 @@ export function addPubCategoryIfNeeded(
   horarios_completos: Record<string, string[]> | null
 ): LocalCategory[] {
   // If already has pub category, return as is
-  if (currentCategories.some(cat => cat.toLowerCase() === 'pub')) {
+  if (currentCategories.includes('pub')) {
     return currentCategories;
   }
 
   // Check if should have pub category based on closing time
   if (shouldHavePubCategory(horarios_completos)) {
-    console.log('[PUB Category] Adding PUB to categories:', currentCategories);
     // Add pub to the beginning of the array (higher priority)
     return ['pub', ...currentCategories].slice(0, 3) as LocalCategory[];
   }
