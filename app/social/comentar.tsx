@@ -73,7 +73,7 @@ export default function ComentarScreen() {
   };
 
   const handleSelectMention = (mention: MentionSuggestion, mentionText: string) => {
-    console.log('[Comentar] Selected mention:', mention);
+    console.log('[Comentar] ✅ Selected mention:', mention);
     
     const textBeforeCursor = comentario.substring(0, cursorPosition);
     const lastAtIndex = textBeforeCursor.lastIndexOf('@');
@@ -280,12 +280,12 @@ export default function ComentarScreen() {
                 placeholderTextColor={colors.textSecondary}
                 value={comentario}
                 onChangeText={(text) => {
-                  console.log('[Comentar] Text changed:', text);
+                  console.log('[Comentar] 📝 Text changed:', text);
                   setComentario(text);
                 }}
                 onSelectionChange={(event) => {
                   const newPosition = event.nativeEvent.selection.start;
-                  console.log('[Comentar] Cursor position changed to:', newPosition);
+                  console.log('[Comentar] 📍 Cursor position changed to:', newPosition);
                   setCursorPosition(newPosition);
                 }}
                 multiline
@@ -295,9 +295,12 @@ export default function ComentarScreen() {
               />
               <Text style={styles.charCount}>{comentario.length}/500</Text>
             </View>
-            <Text style={styles.helperText}>
-              Usa @ para mencionar usuarios o locales
-            </Text>
+            <View style={styles.helperContainer}>
+              <IconSymbol name="info.circle" size={14} color={colors.primary} />
+              <Text style={styles.helperText}>
+                Escribe @ para mencionar usuarios o locales
+              </Text>
+            </View>
           </View>
 
           {/* Autocomplete Component - Positioned right after input */}
@@ -491,14 +494,24 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'right',
   },
+  helperContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.primary + '10',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
   helperText: {
     fontSize: 12,
-    color: colors.textSecondary,
-    fontStyle: 'italic',
+    color: colors.primary,
+    fontWeight: '600',
+    flex: 1,
   },
   autocompleteWrapper: {
     paddingHorizontal: 16,
-    marginTop: 8,
+    marginTop: 12,
     zIndex: 1000,
   },
   contextIndicator: {

@@ -45,6 +45,7 @@ export default function MentionAutocomplete({
     const lastAtIndex = textBeforeCursor.lastIndexOf('@');
 
     console.log('[MentionAutocomplete] 🔍 Detecting mention...');
+    console.log('[MentionAutocomplete] Text:', text);
     console.log('[MentionAutocomplete] Text before cursor:', textBeforeCursor);
     console.log('[MentionAutocomplete] Last @ index:', lastAtIndex);
     console.log('[MentionAutocomplete] Cursor position:', cursorPosition);
@@ -71,16 +72,6 @@ export default function MentionAutocomplete({
       return;
     }
 
-    // Check if @ is at the start or preceded by space/newline (relaxed check)
-    if (lastAtIndex > 0) {
-      const charBeforeAt = textBeforeCursor[lastAtIndex - 1];
-      // Allow @ at start of text or after space/newline
-      if (charBeforeAt !== ' ' && charBeforeAt !== '\n' && lastAtIndex !== 0) {
-        console.log('[MentionAutocomplete] ⚠️ @ not at valid position, but continuing anyway');
-        // Don't return here - let's be more permissive
-      }
-    }
-
     console.log('[MentionAutocomplete] ✅ Valid mention detected:', textAfterAt);
     setCurrentMentionText(textAfterAt);
     setIsVisible(true);
@@ -93,16 +84,16 @@ export default function MentionAutocomplete({
     try {
       const results: MentionSuggestion[] = [];
 
-      // Search users - Use separate queries for better reliability
+      // Search users
       console.log('[MentionAutocomplete] 👤 Searching users...');
       
       let usersData: any[] = [];
       
       if (query.length > 0) {
-        // Search by username
+        // Search by username first
         const { data: usersByUsername, error: usernameError } = await supabase
           .from('usuarios')
-          .select('id, nombre, username, avatar, perfil_privado, permitir_etiquetas')
+          .select('id, nombre, username, avatar')
           .eq('activo', true)
           .eq('permitir_etiquetas', true)
           .ilike('username', `%${query}%`)
@@ -118,7 +109,7 @@ export default function MentionAutocomplete({
         // Search by name
         const { data: usersByName, error: nameError } = await supabase
           .from('usuarios')
-          .select('id, nombre, username, avatar, perfil_privado, permitir_etiquetas')
+          .select('id, nombre, username, avatar')
           .eq('activo', true)
           .eq('permitir_etiquetas', true)
           .ilike('nombre', `%${query}%`)
@@ -139,7 +130,7 @@ export default function MentionAutocomplete({
         // Show recent users when query is empty
         const { data: recentUsers, error: recentError } = await supabase
           .from('usuarios')
-          .select('id, nombre, username, avatar, perfil_privado, permitir_etiquetas')
+          .select('id, nombre, username, avatar')
           .eq('activo', true)
           .eq('permitir_etiquetas', true)
           .order('created_at', { ascending: false })
@@ -299,10 +290,17 @@ export default function MentionAutocomplete({
 
   return (
     <View style={[styles.container, style]}>
+      <View style={styles.header}>
+        <IconSymbol name="at" size={16} color={colors.primary} />
+        <Text style={styles.headerText}>
+          {loading ? 'Buscando...' : suggestions.length > 0 ? `${suggestions.length} resultados` : 'Sin resultados'}
+        </Text>
+      </View>
+      
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color={colors.primary} />
-          <Text style={styles.loadingText}>Buscando...</Text>
+          <Text style={styles.loadingText}>Buscando usuarios y locales...</Text>
         </View>
       ) : suggestions.length > 0 ? (
         <ScrollView 
@@ -341,13 +339,15 @@ export default function MentionAutocomplete({
         </ScrollView>
       ) : currentMentionText.length > 0 ? (
         <View style={styles.emptyContainer}>
-          <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
-          <Text style={styles.emptyText}>No se encontraron resultados para "{currentMentionText}"</Text>
+          <IconSymbol name="magnifyingglass" size={24} color={colors.textSecondary} />
+          <Text style={styles.emptyText}>No se encontraron resultados</Text>
+          <Text style={styles.emptySubtext}>para "{currentMentionText}"</Text>
         </View>
       ) : (
         <View style={styles.emptyContainer}>
-          <IconSymbol name="at" size={20} color={colors.textSecondary} />
-          <Text style={styles.emptyText}>Escribe para buscar usuarios o locales</Text>
+          <IconSymbol name="at" size={24} color={colors.textSecondary} />
+          <Text style={styles.emptyText}>Escribe para buscar</Text>
+          <Text style={styles.emptySubtext}>usuarios o locales</Text>
         </View>
       )}
     </View>
@@ -357,26 +357,43 @@ export default function MentionAutocomplete({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    maxHeight: 240,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    maxHeight: 300,
     overflow: 'hidden',
-    marginBottom: 8,
+    marginBottom: 12,
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
+        shadowOpacity: 0.3,
         shadowRadius: 12,
       },
       android: {
-        elevation: 8,
+        elevation: 12,
       },
       web: {
-        boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+        boxShadow: `0 4px 20px ${colors.primary}40`,
       },
     }),
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: colors.primary + '10',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.primary + '20',
+  },
+  headerText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   list: {
     flex: 1,
@@ -384,60 +401,68 @@ const styles = StyleSheet.create({
   suggestionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
+    padding: 14,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
+    backgroundColor: '#FFFFFF',
   },
   suggestionItemLast: {
     borderBottomWidth: 0,
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     marginRight: 12,
+    borderWidth: 2,
+    borderColor: colors.primary + '20',
   },
   avatarPlaceholder: {
     backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
   },
   suggestionInfo: {
     flex: 1,
   },
   suggestionName: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
     color: '#000000',
-    marginBottom: 2,
+    marginBottom: 3,
   },
   suggestionType: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#666666',
+    fontWeight: '500',
   },
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 16,
-    gap: 8,
+    padding: 24,
+    gap: 12,
   },
   loadingText: {
     fontSize: 14,
     color: '#666666',
+    fontWeight: '500',
   },
   emptyContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 16,
+    padding: 24,
     gap: 8,
   },
   emptyText: {
-    fontSize: 14,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#000000',
+    textAlign: 'center',
+  },
+  emptySubtext: {
+    fontSize: 13,
     color: '#666666',
-    flex: 1,
+    textAlign: 'center',
   },
 });

@@ -270,7 +270,7 @@ export default function CrearPublicacionScreen() {
   }, [tagSearchQuery, showTagModal, buscarUsuariosYLocales]);
 
   const handleSelectInlineMention = (mention: MentionSuggestion, mentionText: string) => {
-    console.log('[CrearPublicacion] Selected inline mention:', mention);
+    console.log('[CrearPublicacion] ✅ Selected inline mention:', mention);
     
     const textBeforeCursor = contenido.substring(0, cursorPosition);
     const lastAtIndex = textBeforeCursor.lastIndexOf('@');
@@ -680,12 +680,12 @@ export default function CrearPublicacionScreen() {
               placeholderTextColor={colors.textSecondary}
               value={contenido}
               onChangeText={(text) => {
-                console.log('[CrearPublicacion] Text changed:', text);
+                console.log('[CrearPublicacion] 📝 Text changed:', text);
                 setContenido(text);
               }}
               onSelectionChange={(event) => {
                 const newPosition = event.nativeEvent.selection.start;
-                console.log('[CrearPublicacion] Cursor position changed to:', newPosition);
+                console.log('[CrearPublicacion] 📍 Cursor position changed to:', newPosition);
                 setCursorPosition(newPosition);
               }}
               multiline
@@ -693,9 +693,12 @@ export default function CrearPublicacionScreen() {
               editable={!publishing}
             />
             <Text style={styles.charCount}>{contenido.length}/2200</Text>
-            <Text style={styles.helperText}>
-              Usa @ para mencionar y # para hashtags
-            </Text>
+            <View style={styles.helperContainer}>
+              <IconSymbol name="info.circle" size={14} color={colors.primary} />
+              <Text style={styles.helperText}>
+                Escribe @ para mencionar usuarios o locales
+              </Text>
+            </View>
           </View>
 
           {/* Autocomplete Components - Positioned right after text input */}
@@ -1061,16 +1064,26 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
     textAlign: 'right',
-    marginBottom: 4,
+    marginBottom: 8,
+  },
+  helperContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.primary + '10',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
   },
   helperText: {
     fontSize: 12,
-    color: colors.textSecondary,
-    fontStyle: 'italic',
+    color: colors.primary,
+    fontWeight: '600',
+    flex: 1,
   },
   autocompleteWrapper: {
     paddingHorizontal: 16,
-    marginTop: 8,
+    marginTop: 12,
     zIndex: 1000,
   },
   imagesPreviewSection: {
