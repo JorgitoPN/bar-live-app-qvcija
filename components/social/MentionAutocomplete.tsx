@@ -304,9 +304,10 @@ export default function MentionAutocomplete({
         </View>
       ) : suggestions.length > 0 ? (
         <ScrollView 
-          style={styles.list}
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
+          showsVerticalScrollIndicator={true}
           nestedScrollEnabled={true}
         >
           {suggestions.map((item, index) => (
@@ -395,8 +396,11 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  list: {
-    flex: 1,
+  scrollView: {
+    maxHeight: 240,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   suggestionItem: {
     flexDirection: 'row',
