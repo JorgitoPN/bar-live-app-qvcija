@@ -6,7 +6,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
   TextInput,
   Dimensions,
   Modal,
@@ -19,15 +18,14 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
-import { Evento } from '@/types';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
 import { supabase } from '@/utils/supabase';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import EventoCard from '@/components/eventos/EventoCard';
 
 const { width } = Dimensions.get('window');
-const cardWidth = width - 32;
 
 const PROVINCIAS = [
   'Todas',
@@ -39,6 +37,28 @@ const PROVINCIAS = [
   'Pontevedra', 'Salamanca', 'Santa Cruz de Tenerife', 'Segovia', 'Sevilla', 'Soria',
   'Tarragona', 'Teruel', 'Toledo', 'Valencia', 'Valladolid', 'Vizcaya', 'Zamora', 'Zaragoza'
 ];
+
+interface Evento {
+  id: string;
+  titulo: string;
+  descripcion?: string | null;
+  fecha: string;
+  fecha_fin?: string | null;
+  hora: string;
+  hora_fin?: string | null;
+  precio?: number | null;
+  imagen_url?: string | null;
+  local_id?: string | null;
+  provincia?: string | null;
+  destacado?: boolean;
+  activo?: boolean;
+  propietario_id?: string;
+  local_nombre?: string;
+  local_direccion?: string;
+  local_ciudad?: string;
+  local_latitud?: number;
+  local_longitud?: number;
+}
 
 export default function EventosScreen() {
   const router = useRouter();
@@ -79,7 +99,11 @@ export default function EventosScreen() {
           *,
           locales:local_id (
             nombre,
-            provincia
+            provincia,
+            direccion,
+            ciudad,
+            latitud,
+            longitud
           ),
           usuarios:propietario_id (
             nombre,
@@ -101,14 +125,20 @@ export default function EventosScreen() {
 
       const eventosTransformados: Evento[] = (data || []).map((evento: any) => ({
         id: evento.id,
-        localId: evento.local_id,
+        local_id: evento.local_id,
         titulo: evento.titulo,
         descripcion: evento.descripcion || '',
         fecha: evento.fecha,
+        fecha_fin: evento.fecha_fin,
         hora: evento.hora,
+        hora_fin: evento.hora_fin,
         precio: evento.precio,
-        imagen: evento.imagen_url || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819',
-        localNombre: evento.locales?.nombre || 'Local',
+        imagen_url: evento.imagen_url || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819',
+        local_nombre: evento.locales?.nombre || 'Local',
+        local_direccion: evento.locales?.direccion,
+        local_ciudad: evento.locales?.ciudad,
+        local_latitud: evento.locales?.latitud,
+        local_longitud: evento.locales?.longitud,
         provincia: evento.provincia || evento.locales?.provincia || '',
         destacado: evento.destacado || false,
         propietario_id: evento.propietario_id,
@@ -162,13 +192,6 @@ export default function EventosScreen() {
     
     return matchBusqueda && matchProvincia && matchFecha && matchTab;
   });
-
-  const calcularDiasRestantes = (fecha: string): number => {
-    const fechaEvento = new Date(fecha);
-    const hoy = new Date();
-    const diff = fechaEvento.getTime() - hoy.getTime();
-    return Math.ceil(diff / (1000 * 60 * 60 * 24));
-  };
 
   const limpiarFiltros = () => {
     setProvinciaSeleccionada('Todas');
@@ -263,82 +286,6 @@ export default function EventosScreen() {
     );
   }, [user, currentMode, cargarEventos]);
 
-  const renderEvento = (evento: Evento) => {
-    const diasRestantes = calcularDiasRestantes(evento.fecha);
-    const canDelete = canDeleteEvent(evento.id, evento.propietario_id!);
-
-    return (
-      <TouchableOpacity
-        key={evento.id}
-        style={[styles.eventoCard, commonStyles.cardShadow]}
-        onPress={() => router.push(`/detalle/evento?id=${evento.id}`)}
-        activeOpacity={0.8}
-      >
-        <Image source={{ uri: evento.imagen }} style={styles.eventoImagen} />
-        
-        {evento.destacado && (
-          <View style={[styles.badgeDestacado, commonStyles.badgeDestacado]}>
-            <Text style={commonStyles.badgeDestacadoText}>⭐ Destacado</Text>
-          </View>
-        )}
-
-        {canDelete && (
-          <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={(e) => {
-              e.stopPropagation();
-              handleDeleteEvent(evento.id, evento.propietario_id!);
-            }}
-          >
-            <IconSymbol name="trash.fill" size={20} color="#FFFFFF" />
-          </TouchableOpacity>
-        )}
-
-        <View style={styles.eventoInfo}>
-          <View style={styles.eventoHeader}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.eventoTitulo} numberOfLines={2}>
-                {evento.titulo}
-              </Text>
-              <Text style={styles.eventoLocal}>{evento.localNombre}</Text>
-            </View>
-            {evento.precio !== null && evento.precio !== undefined && evento.precio > 0 && (
-              <View style={styles.precioContainer}>
-                <Text style={styles.precioTexto}>{evento.precio}€</Text>
-              </View>
-            )}
-          </View>
-
-          <View style={styles.eventoDetalles}>
-            <View style={styles.detalleItem}>
-              <IconSymbol name="calendar" size={16} color={colors.primary} />
-              <Text style={styles.detalleTexto}>
-                {new Date(evento.fecha).toLocaleDateString('es-ES', {
-                  day: 'numeric',
-                  month: 'short',
-                })}
-              </Text>
-            </View>
-            <View style={styles.detalleItem}>
-              <IconSymbol name="clock" size={16} color={colors.primary} />
-              <Text style={styles.detalleTexto}>{evento.hora}</Text>
-            </View>
-            <View style={styles.detalleItem}>
-              <IconSymbol name="mappin" size={16} color={colors.primary} />
-              <Text style={styles.detalleTexto}>{evento.provincia}</Text>
-            </View>
-          </View>
-
-          <View style={styles.diasRestantesContainer}>
-            <Text style={styles.diasRestantesTexto}>
-              {diasRestantes > 0 ? `${diasRestantes} días restantes` : 'Hoy'}
-            </Text>
-          </View>
-        </View>
-      </TouchableOpacity>
-    );
-  };
-
   return (
     <View style={commonStyles.container}>
       <LinearGradient
@@ -417,7 +364,13 @@ export default function EventosScreen() {
               </Text>
             </View>
           ) : (
-            eventosFiltrados.map(renderEvento)
+            eventosFiltrados.map((evento) => (
+              <EventoCard
+                key={evento.id}
+                evento={evento}
+                showBanner={true}
+              />
+            ))
           )}
         </ScrollView>
       )}
@@ -614,7 +567,6 @@ const styles = StyleSheet.create({
   },
   eventosContainer: {
     padding: 16,
-    gap: 16,
     paddingBottom: 100,
   },
   loadingContainer: {
@@ -639,92 +591,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 16,
     textAlign: 'center',
-  },
-  eventoCard: {
-    width: cardWidth,
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  eventoImagen: {
-    width: '100%',
-    height: 200,
-    backgroundColor: colors.cardBorder,
-  },
-  badgeDestacado: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  deleteButton: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(239, 68, 68, 0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  eventoInfo: {
-    padding: 16,
-  },
-  eventoHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  eventoTitulo: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  eventoLocal: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  precioContainer: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  precioTexto: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.white,
-  },
-  eventoDetalles: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-    marginBottom: 12,
-  },
-  detalleItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  detalleTexto: {
-    fontSize: 14,
-    color: colors.text,
-    fontWeight: '500',
-  },
-  diasRestantesContainer: {
-    marginTop: 8,
-  },
-  diasRestantesTexto: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    fontWeight: '500',
   },
   fab: {
     position: 'absolute',
