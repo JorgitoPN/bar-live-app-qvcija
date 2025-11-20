@@ -53,6 +53,20 @@ const getIconForCategory = (category: string): string => {
   return iconMap[category] || '📍';
 };
 
+interface LocalWithEvent extends Local {
+  evento?: {
+    id: string;
+    titulo: string;
+    fecha: string;
+    fecha_fin?: string | null;
+    hora: string;
+    hora_fin?: string | null;
+    imagen_url?: string | null;
+    precio?: number | null;
+  } | null;
+  plan?: string | null;
+}
+
 export default function MapaScreen() {
   const router = useRouter();
   const { user } = useAuth();
@@ -62,8 +76,8 @@ export default function MapaScreen() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [selectedLocal, setSelectedLocal] = useState<Local | null>(null);
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
-  const [todosLosLocales, setTodosLosLocales] = useState<Local[]>([]);
-  const [localesFiltrados, setLocalesFiltrados] = useState<Local[]>([]);
+  const [todosLosLocales, setTodosLosLocales] = useState<LocalWithEvent[]>([]);
+  const [localesFiltrados, setLocalesFiltrados] = useState<LocalWithEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -85,10 +99,10 @@ export default function MapaScreen() {
 
   const cargarTodosLosLocalesEnriquecidos = useCallback(async () => {
     try {
-      console.log('🔄 [MAP] Loading enriched locals with cache...');
+      console.log('🔄 [MAP] Loading enriched locals with events and subscriptions...');
 
       // Try cache first for INSTANT loading
-      const cachedLocales = await performanceOptimizer.getCache<Local[]>('map_enriched_locales');
+      const cachedLocales = await performanceOptimizer.getCache<LocalWithEvent[]>('map_enriched_locales_with_events');
       if (cachedLocales && cachedLocales.length > 0) {
         console.log('⚡ [MAP] INSTANT load from cache:', cachedLocales.length);
         setTodosLosLocales(cachedLocales);
@@ -98,9 +112,19 @@ export default function MapaScreen() {
         setIsLoading(true);
       }
 
+      // ✅ NEW: Load locals with their active events and subscription plans
       const { data, error, count } = await supabase
         .from('locales')
-        .select('*', { count: 'exact' })
+        .select(`
+          *,
+          suscripciones_locales!suscripciones_locales_local_id_fkey (
+            plan_id,
+            estado,
+            planes_suscripcion!suscripciones_locales_plan_id_fkey (
+              nombre
+            )
+          )
+        `, { count: 'exact' })
         .eq('enriquecido', true)
         .eq('activo', true)
         .not('latitud', 'is', null)
@@ -114,64 +138,112 @@ export default function MapaScreen() {
 
       console.log(`✅ [MAP] Loaded ${data?.length || 0} enriched locals from DB (total: ${count})`);
 
-      const localesTransformados: Local[] = (data || []).map((local) => ({
-        id: local.id,
-        nombre: local.nombre,
-        tipo: local.tipo,
-        descripcion: local.descripcion || '',
-        direccion: local.direccion,
-        ciudad: local.ciudad || '',
-        provincia: local.provincia,
-        coordenadas: {
-          lat: parseFloat(local.latitud),
-          lng: parseFloat(local.longitud),
-        },
-        imagenes: local.galeria_urls || (local.imagen_url ? [local.imagen_url] : []),
-        rating: parseFloat(local.google_rating || local.rating || 0),
-        precioMedio: local.precio_medio || 0,
-        horarios: [],
-        ambiente: local.ambiente || [],
-        musica: local.musica || [],
-        servicios: local.servicios || [],
-        metodosPago: local.metodos_pago || [],
-        destacado: local.destacado || false,
-        nuevo: local.nuevo || false,
-        abierto: local.abierto || false,
-        popularidad: local.popularidad || 0,
-        checkIns: local.check_ins || 0,
-        seguidores: local.seguidores || 0,
-        telefono: local.telefono,
-        web: local.website,
-        google_place_id: local.google_place_id,
-        valoracion_google: parseFloat(local.google_rating || 0),
-        numero_reviews_google: local.google_user_ratings_total || 0,
-        website_url: local.website,
-        tipos_google: local.tipos_google || [],
-        nivel_precio_google: local.nivel_precio_google,
-        google_maps_url: local.google_maps_url,
-        descripcion_google: local.descripcion_google,
-        horarios_completos: local.horarios_completos,
-        estado_actual: local.estado_actual,
-        servicios_disponibles: local.servicios_disponibles,
-        ambiente_google: local.ambiente_completo,
-        clientela: local.clientela,
-        imagen_url: local.imagen_url,
-        galeria_urls: local.galeria_urls || [],
-        reviews_google: local.reviews_google,
-        activo: local.activo,
-        source_type: local.source_type,
-        source_id: local.source_id,
-        comunidad: local.comunidad,
-        fecha_importacion_google: local.fecha_actualizacion,
-        enriquecido: local.enriquecido,
-        barlive_type: local.barlive_type,
-        barlive_types: local.barlive_types || [],
-      }));
+      // ✅ NEW: Fetch active events for all locals
+      const now = new Date();
+      const currentDate = now.toISOString().split('T')[0];
+      
+      const { data: allEvents } = await supabase
+        .from('eventos')
+        .select('id, titulo, fecha, fecha_fin, hora, hora_fin, imagen_url, precio, local_id')
+        .eq('activo', true)
+        .gte('fecha', currentDate)
+        .order('fecha', { ascending: true })
+        .order('hora', { ascending: true });
+
+      console.log(`✅ [MAP] Loaded ${allEvents?.length || 0} active events`);
+
+      // Create a map of local_id to active event
+      const eventsByLocal = new Map<string, any>();
+      if (allEvents) {
+        for (const event of allEvents) {
+          if (!eventsByLocal.has(event.local_id)) {
+            // Check if event is live or upcoming
+            const eventStartDate = new Date(`${event.fecha}T${event.hora}`);
+            let eventEndDate: Date;
+            if (event.fecha_fin && event.hora_fin) {
+              eventEndDate = new Date(`${event.fecha_fin}T${event.hora_fin}`);
+            } else {
+              eventEndDate = new Date(eventStartDate.getTime() + 4 * 60 * 60 * 1000);
+            }
+
+            // Only include live or upcoming events
+            if (now <= eventEndDate) {
+              eventsByLocal.set(event.local_id, event);
+            }
+          }
+        }
+      }
+
+      const localesTransformados: LocalWithEvent[] = (data || []).map((local) => {
+        // Get subscription plan
+        const suscripcion = local.suscripciones_locales?.[0];
+        const plan = suscripcion?.estado === 'activa' ? suscripcion.planes_suscripcion?.nombre : null;
+
+        // Get active event
+        const evento = eventsByLocal.get(local.id) || null;
+
+        return {
+          id: local.id,
+          nombre: local.nombre,
+          tipo: local.tipo,
+          descripcion: local.descripcion || '',
+          direccion: local.direccion,
+          ciudad: local.ciudad || '',
+          provincia: local.provincia,
+          coordenadas: {
+            lat: parseFloat(local.latitud),
+            lng: parseFloat(local.longitud),
+          },
+          imagenes: local.galeria_urls || (local.imagen_url ? [local.imagen_url] : []),
+          rating: parseFloat(local.google_rating || local.rating || 0),
+          precioMedio: local.precio_medio || 0,
+          horarios: [],
+          ambiente: local.ambiente || [],
+          musica: local.musica || [],
+          servicios: local.servicios || [],
+          metodosPago: local.metodos_pago || [],
+          destacado: local.destacado || false,
+          nuevo: local.nuevo || false,
+          abierto: local.abierto || false,
+          popularidad: local.popularidad || 0,
+          checkIns: local.check_ins || 0,
+          seguidores: local.seguidores || 0,
+          telefono: local.telefono,
+          web: local.website,
+          google_place_id: local.google_place_id,
+          valoracion_google: parseFloat(local.google_rating || 0),
+          numero_reviews_google: local.google_user_ratings_total || 0,
+          website_url: local.website,
+          tipos_google: local.tipos_google || [],
+          nivel_precio_google: local.nivel_precio_google,
+          google_maps_url: local.google_maps_url,
+          descripcion_google: local.descripcion_google,
+          horarios_completos: local.horarios_completos,
+          estado_actual: local.estado_actual,
+          servicios_disponibles: local.servicios_disponibles,
+          ambiente_google: local.ambiente_completo,
+          clientela: local.clientela,
+          imagen_url: local.imagen_url,
+          galeria_urls: local.galeria_urls || [],
+          reviews_google: local.reviews_google,
+          activo: local.activo,
+          source_type: local.source_type,
+          source_id: local.source_id,
+          comunidad: local.comunidad,
+          fecha_importacion_google: local.fecha_actualizacion,
+          enriquecido: local.enriquecido,
+          barlive_type: local.barlive_type,
+          barlive_types: local.barlive_types || [],
+          // ✅ NEW: Add event and plan data
+          evento: evento,
+          plan: plan,
+        };
+      });
 
       setTodosLosLocales(localesTransformados);
       
       // Cache for next time (10 minutes TTL)
-      await performanceOptimizer.setCache('map_enriched_locales', localesTransformados, 10 * 60 * 1000);
+      await performanceOptimizer.setCache('map_enriched_locales_with_events', localesTransformados, 10 * 60 * 1000);
       
       setIsLoading(false);
     } catch (error) {
@@ -305,6 +377,20 @@ export default function MapaScreen() {
       } else if (estadoCompleto.overlayIcon === 'clock') {
         overlayIcon = '🕐';
       }
+
+      // ✅ NEW: Check if event is live
+      let isEventLive = false;
+      if (local.evento) {
+        const now = new Date();
+        const eventStartDate = new Date(`${local.evento.fecha}T${local.evento.hora}`);
+        let eventEndDate: Date;
+        if (local.evento.fecha_fin && local.evento.hora_fin) {
+          eventEndDate = new Date(`${local.evento.fecha_fin}T${local.evento.hora_fin}`);
+        } else {
+          eventEndDate = new Date(eventStartDate.getTime() + 4 * 60 * 60 * 1000);
+        }
+        isEventLive = now >= eventStartDate && now <= eventEndDate;
+      }
       
       return {
         id: local.id,
@@ -320,6 +406,13 @@ export default function MapaScreen() {
         imagen: local.imagen_url || local.imagenes?.[0] || 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400',
         distancia: local.distancia || 0.5,
         destacado: local.destacado || false,
+        // ✅ NEW: Event data
+        hasEvent: !!local.evento,
+        isEventLive: isEventLive,
+        eventTitulo: local.evento?.titulo || '',
+        eventImagen: local.evento?.imagen_url || '',
+        // ✅ NEW: Plan data
+        isPremium: local.plan === 'premium',
       };
     });
 
@@ -355,6 +448,7 @@ export default function MapaScreen() {
       border: 3px solid #FFFFFF;
       transition: transform 0.2s;
       cursor: pointer;
+      position: relative;
     }
     .custom-marker-destacado {
       width: 52px;
@@ -382,6 +476,40 @@ export default function MapaScreen() {
     .marker-sin_info { 
       background-color: #9CA3AF;
       box-shadow: 0 2px 8px rgba(156, 163, 175, 0.3);
+    }
+    
+    /* ✅ NEW: Event indicator badge */
+    .event-indicator {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      width: 20px;
+      height: 20px;
+      background-color: #FACC15;
+      border-radius: 50%;
+      border: 2px solid #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      z-index: 10;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* ✅ NEW: Pulsing animation for live events */
+    .event-indicator-live {
+      animation: pulse-event 1.5s infinite;
+    }
+    
+    @keyframes pulse-event {
+      0%, 100% { 
+        transform: scale(1);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+      50% { 
+        transform: scale(1.15);
+        box-shadow: 0 2px 8px rgba(250, 204, 21, 0.6);
+      }
     }
     
     .leaflet-popup-content-wrapper {
@@ -440,12 +568,47 @@ export default function MapaScreen() {
       z-index: 11;
       border: 2px solid #FFFFFF;
     }
+    
+    /* ✅ NEW: Event banner in popup */
+    .popup-event-banner {
+      background: linear-gradient(135deg, #14B8A6 0%, #0D9488 100%);
+      padding: 12px;
+      color: white;
+      margin-bottom: 12px;
+    }
+    .popup-event-banner-live {
+      background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+    }
+    .popup-event-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .popup-event-live-badge {
+      background-color: rgba(255, 255, 255, 0.3);
+      padding: 2px 8px;
+      border-radius: 8px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+    .popup-event-image {
+      width: 100%;
+      height: 80px;
+      object-fit: cover;
+      border-radius: 6px;
+      margin-top: 8px;
+    }
+    
     .popup-info {
       padding: 12px;
     }
     .popup-title {
       font-size: 16px;
-      font-weight: 500;
+      fontWeight: 500;
       margin-bottom: 6px;
       color: #202124;
       line-height: 20px;
@@ -618,9 +781,22 @@ export default function MapaScreen() {
           markerClass += ' custom-marker-destacado';
         }
         
+        // ✅ NEW: Create marker HTML with event indicator
+        var markerHtml = data.icon;
+        if (data.hasEvent) {
+          var eventIndicatorClass = 'event-indicator';
+          if (data.isEventLive) {
+            eventIndicatorClass += ' event-indicator-live';
+          }
+          markerHtml = '<div style="position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">' +
+            data.icon +
+            '<div class="' + eventIndicatorClass + '">🎵</div>' +
+          '</div>';
+        }
+        
         var markerIcon = L.divIcon({
           className: markerClass,
-          html: data.icon,
+          html: markerHtml,
           iconSize: data.destacado ? [52, 52] : [44, 44]
         });
 
@@ -638,6 +814,23 @@ export default function MapaScreen() {
         var destacadoBadge = data.destacado ? 
           '<div class="popup-badge-destacado">⭐ Destacado</div>' : '';
         
+        // ✅ NEW: Event banner for premium locals
+        var eventBannerHtml = '';
+        if (data.isPremium && data.hasEvent) {
+          var eventBannerClass = 'popup-event-banner';
+          if (data.isEventLive) {
+            eventBannerClass += ' popup-event-banner-live';
+          }
+          var liveBadge = data.isEventLive ? '<span class="popup-event-live-badge">EN VIVO</span>' : '';
+          var eventImageHtml = data.eventImagen ? 
+            '<img src="' + data.eventImagen + '" class="popup-event-image" onerror="this.style.display=\\'none\\'" />' : '';
+          
+          eventBannerHtml = '<div class="' + eventBannerClass + '">' +
+            '<div class="popup-event-title">🎵 ' + data.eventTitulo + ' ' + liveBadge + '</div>' +
+            eventImageHtml +
+          '</div>';
+        }
+        
         var popupContent = '<div class="popup-content">' +
           '<div class="popup-image-container">' +
             '<img src="' + data.imagen + '" class="' + imageClass + '" onerror="this.src=\\'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400\\'" />' +
@@ -645,6 +838,7 @@ export default function MapaScreen() {
             overlayIconHtml +
           '</div>' +
           '<div class="popup-info">' +
+            eventBannerHtml +
             '<div class="popup-title">' + data.nombre + '</div>' +
             '<span class="popup-estado estado-' + data.estado + '">' + estadoText + '</span>' +
             '<div class="popup-rating">⭐ ' + data.rating.toFixed(1) + ' • ' + data.distancia.toFixed(1) + ' km</div>' +

@@ -87,9 +87,12 @@ export default function PerfilScreen() {
   const [taggedPosts, setTaggedPosts] = useState<Post[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
   
-  // ✅ NEW: Employment profile state
+  // ✅ Employment profile state
   const [perfilProfesional, setPerfilProfesional] = useState<PerfilProfesional | null>(null);
   const [loadingEmpleo, setLoadingEmpleo] = useState(false);
+
+  // ✅ NEW: User stories state
+  const [userStories, setUserStories] = useState<any[]>([]);
 
   const userRole = user?.rol_app || 'cliente';
   const isPropietario = userRole === 'propietario' || (userRole === 'admin' && currentMode === 'propietario');
@@ -318,7 +321,7 @@ export default function PerfilScreen() {
     }
   }, [user]);
 
-  // ✅ NEW: Load employment profile
+  // ✅ Load employment profile
   const cargarPerfilProfesional = useCallback(async () => {
     if (!user) return;
 
@@ -347,6 +350,27 @@ export default function PerfilScreen() {
       console.error('[Perfil] Error loading professional profile:', error);
     } finally {
       setLoadingEmpleo(false);
+    }
+  }, [user]);
+
+  // ✅ NEW: Load user stories
+  const cargarHistorias = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      const { data: userStoriesData } = await supabase
+        .from('historias')
+        .select('id, autor_id, tipo, imagen, created_at, expires_at, visto')
+        .eq('autor_id', user.id)
+        .eq('tipo', 'usuario')
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: true });
+
+      if (userStoriesData) {
+        setUserStories(userStoriesData);
+      }
+    } catch (error) {
+      console.error('[Perfil] Error loading stories:', error);
     }
   }, [user]);
 
@@ -380,14 +404,17 @@ export default function PerfilScreen() {
       setSeguidos(seguidosCount || 0);
       setPublicaciones(publicacionesCount || 0);
 
-      await cargarPosts();
+      await Promise.all([
+        cargarPosts(),
+        cargarHistorias(),
+      ]);
     } catch (error) {
       console.error('[Perfil] Error cargando datos:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user, loadUnreadCounts, cargarPosts]);
+  }, [user, loadUnreadCounts, cargarPosts, cargarHistorias]);
 
   useEffect(() => {
     if (!authLoading) {
@@ -479,7 +506,7 @@ export default function PerfilScreen() {
     }
   };
 
-  // ✅ NEW: Handle creating/editing professional profile
+  // ✅ Handle creating/editing professional profile
   const handleCrearPerfilProfesional = () => {
     if (!user) {
       setShowLoginModal(true);
@@ -491,6 +518,15 @@ export default function PerfilScreen() {
   const handleVerPerfilProfesional = () => {
     if (!user || !perfilProfesional) return;
     router.push(`/empleo/perfil-detalle?id=${perfilProfesional.id}`);
+  };
+
+  // ✅ NEW: Handle adding story from avatar
+  const handleAddStory = () => {
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+    router.push('/crear/historia');
   };
 
   const renderGridPost = (post: Post) => {
@@ -522,13 +558,21 @@ export default function PerfilScreen() {
   };
 
   const renderProfileHeader = () => {
+    const hasStories = userStories.length > 0;
+
     return (
       <View style={styles.profileSection}>
         <View style={styles.profileHeader}>
-          <TouchableOpacity 
-            style={styles.avatarContainer}
-            activeOpacity={0.8}
-          >
+          <View style={styles.avatarContainer}>
+            {/* ✅ NEW: Story ring if user has stories */}
+            {hasStories && (
+              <LinearGradient
+                colors={[colors.primary, colors.secondary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.storyRing}
+              />
+            )}
             {displayAvatar ? (
               <Image source={{ uri: displayAvatar }} style={styles.avatar} />
             ) : (
@@ -536,7 +580,22 @@ export default function PerfilScreen() {
                 <IconSymbol name="person.fill" size={40} color={colors.headerText} />
               </View>
             )}
-          </TouchableOpacity>
+            {/* ✅ NEW: '+' button to add story */}
+            <TouchableOpacity 
+              style={styles.addStoryButton}
+              onPress={handleAddStory}
+              activeOpacity={0.8}
+            >
+              <LinearGradient
+                colors={[colors.primary, colors.secondary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.addStoryGradient}
+              >
+                <IconSymbol name="plus" size={14} color={colors.white} />
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
           <View style={styles.profileInfo}>
             <Text style={styles.profileName}>{displayName}</Text>
             {user?.username && (
@@ -737,7 +796,6 @@ export default function PerfilScreen() {
               color={activeTab === 'etiquetados' ? colors.primary : colors.textSecondary} 
             />
           </TouchableOpacity>
-          {/* ✅ NEW: Employment tab */}
           <TouchableOpacity
             style={[styles.tab, activeTab === 'empleo' && styles.tabActive]}
             onPress={() => setActiveTab('empleo')}
@@ -752,7 +810,6 @@ export default function PerfilScreen() {
 
         <View style={styles.content}>
           {activeTab === 'empleo' ? (
-            // ✅ NEW: Employment tab content
             <View style={styles.empleoContainer}>
               {loadingEmpleo ? (
                 <View style={styles.loadingContainer}>
@@ -1067,6 +1124,16 @@ const styles = StyleSheet.create({
     position: 'relative',
     marginRight: 20,
   },
+  // ✅ NEW: Story ring styles
+  storyRing: {
+    position: 'absolute',
+    top: -4,
+    left: -4,
+    right: -4,
+    bottom: -4,
+    borderRadius: 48,
+    zIndex: 0,
+  },
   avatar: {
     width: 88,
     height: 88,
@@ -1077,6 +1144,25 @@ const styles = StyleSheet.create({
   },
   avatarPlaceholder: {
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // ✅ NEW: Add story button styles
+  addStoryButton: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    overflow: 'hidden',
+    borderWidth: 3,
+    borderColor: colors.headerGradientStart,
+    zIndex: 2,
+  },
+  addStoryGradient: {
+    width: '100%',
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1248,7 +1334,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.white,
   },
-  // ✅ NEW: Employment tab styles
+  // Employment tab styles
   empleoContainer: {
     padding: 20,
   },
