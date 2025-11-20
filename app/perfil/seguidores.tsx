@@ -23,6 +23,7 @@ interface Seguidor {
   username?: string;
   avatar?: string;
   bio?: string;
+  tipo: 'usuario' | 'local'; // ✅ NEW: Distinguish between users and locals
 }
 
 const styles = StyleSheet.create({
@@ -90,6 +91,18 @@ const styles = StyleSheet.create({
     color: colors.text,
     lineHeight: 18,
   },
+  typeBadge: {
+    backgroundColor: colors.primary + '20',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: 8,
+  },
+  typeBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.primary,
+  },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -114,14 +127,15 @@ export default function SeguidoresScreen() {
 
   const userId = params.userId as string || user?.id;
 
+  // ✅ UPDATED: Load both user followers and local followers
   const loadSeguidores = useCallback(async () => {
     if (!userId) return;
 
     try {
-      console.log('[Seguidores] ⚡ Loading followers for user:', userId);
+      console.log('[Seguidores] ⚡ Loading followers (users + locals) for user:', userId);
 
-      // FIXED: Use the same query pattern as profile page for consistency
-      const { data, error } = await supabase
+      // Load user followers (from seguidores table)
+      const { data: userFollowers, error: userError } = await supabase
         .from('seguidores')
         .select(`
           seguidor_id,
@@ -135,25 +149,79 @@ export default function SeguidoresScreen() {
         `)
         .eq('seguido_id', userId);
 
-      if (error) {
-        console.error('[Seguidores] Error loading followers:', error);
-        return;
+      if (userError) {
+        console.error('[Seguidores] Error loading user followers:', userError);
       }
 
-      if (data) {
-        const formattedSeguidores = data
+      // ✅ NEW: Load local followers (users who favorited locals owned by this user)
+      const { data: ownedLocals, error: localsError } = await supabase
+        .from('locales')
+        .select('id')
+        .eq('propietario_id', userId);
+
+      let localFollowers: any[] = [];
+      if (!localsError && ownedLocals && ownedLocals.length > 0) {
+        const localIds = ownedLocals.map(l => l.id);
+        
+        const { data: localFavs, error: localFavsError } = await supabase
+          .from('locales_favoritos')
+          .select(`
+            usuario_id,
+            usuarios!locales_favoritos_usuario_id_fkey(
+              id,
+              nombre,
+              username,
+              avatar,
+              bio
+            )
+          `)
+          .in('local_id', localIds);
+
+        if (!localFavsError && localFavs) {
+          localFollowers = localFavs;
+        }
+      }
+
+      // Combine and deduplicate followers
+      const allFollowers = new Map<string, Seguidor>();
+
+      // Add user followers
+      if (userFollowers) {
+        userFollowers
           .filter(s => s.usuarios)
-          .map((s: any) => ({
-            id: s.usuarios.id,
-            nombre: s.usuarios.nombre,
-            username: s.usuarios.username,
-            avatar: s.usuarios.avatar,
-            bio: s.usuarios.bio,
-          }));
-
-        setSeguidores(formattedSeguidores);
-        console.log('[Seguidores] ⚡ Loaded followers:', formattedSeguidores.length);
+          .forEach((s: any) => {
+            allFollowers.set(s.usuarios.id, {
+              id: s.usuarios.id,
+              nombre: s.usuarios.nombre,
+              username: s.usuarios.username,
+              avatar: s.usuarios.avatar,
+              bio: s.usuarios.bio,
+              tipo: 'usuario',
+            });
+          });
       }
+
+      // Add local followers (deduplicate if user already follows directly)
+      if (localFollowers) {
+        localFollowers
+          .filter(s => s.usuarios)
+          .forEach((s: any) => {
+            if (!allFollowers.has(s.usuarios.id)) {
+              allFollowers.set(s.usuarios.id, {
+                id: s.usuarios.id,
+                nombre: s.usuarios.nombre,
+                username: s.usuarios.username,
+                avatar: s.usuarios.avatar,
+                bio: s.usuarios.bio,
+                tipo: 'usuario',
+              });
+            }
+          });
+      }
+
+      const formattedSeguidores = Array.from(allFollowers.values());
+      setSeguidores(formattedSeguidores);
+      console.log('[Seguidores] ⚡ Loaded followers:', formattedSeguidores.length);
     } catch (error) {
       console.error('[Seguidores] Error:', error);
     } finally {
@@ -164,7 +232,7 @@ export default function SeguidoresScreen() {
   useEffect(() => {
     loadSeguidores();
 
-    // FIXED: Subscribe to real-time changes for INSTANT updates
+    // ✅ Subscribe to real-time changes for INSTANT updates
     if (userId) {
       const channel = supabase
         .channel(`seguidores-changes-${userId}`)
@@ -178,6 +246,18 @@ export default function SeguidoresScreen() {
           },
           () => {
             console.log('[Seguidores] ⚡ INSTANT update - followers changed');
+            loadSeguidores();
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'locales_favoritos',
+          },
+          () => {
+            console.log('[Seguidores] ⚡ INSTANT update - local favorites changed');
             loadSeguidores();
           }
         )
@@ -195,8 +275,10 @@ export default function SeguidoresScreen() {
     setRefreshing(false);
   };
 
-  const handleUserPress = (userId: string) => {
-    if (user && userId === user.id) {
+  const handleUserPress = (userId: string, tipo: 'usuario' | 'local') => {
+    if (tipo === 'local') {
+      router.push(`/perfil/local?localId=${userId}`);
+    } else if (user && userId === user.id) {
       router.push('/(tabs)/perfil');
     } else {
       router.push(`/perfil/usuario?userId=${userId}`);
@@ -242,7 +324,7 @@ export default function SeguidoresScreen() {
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.userItem}
-            onPress={() => handleUserPress(item.id)}
+            onPress={() => handleUserPress(item.id, item.tipo)}
             activeOpacity={0.7}
           >
             {item.avatar ? (
@@ -255,7 +337,9 @@ export default function SeguidoresScreen() {
               </View>
             )}
             <View style={styles.userInfo}>
-              <Text style={styles.userName}>{item.nombre}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={styles.userName}>{item.nombre}</Text>
+              </View>
               {item.username && (
                 <Text style={styles.userUsername}>@{item.username}</Text>
               )}

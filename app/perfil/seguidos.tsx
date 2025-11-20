@@ -23,6 +23,7 @@ interface Seguido {
   username?: string;
   avatar?: string;
   bio?: string;
+  tipo: 'usuario' | 'local'; // ✅ NEW: Distinguish between users and locals
 }
 
 const styles = StyleSheet.create({
@@ -90,6 +91,18 @@ const styles = StyleSheet.create({
     color: colors.text,
     lineHeight: 18,
   },
+  typeBadge: {
+    backgroundColor: colors.primary + '20',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: 8,
+  },
+  typeBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.primary,
+  },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -114,14 +127,15 @@ export default function SeguidosScreen() {
 
   const userId = params.userId as string || user?.id;
 
+  // ✅ UPDATED: Load both user following and local following
   const loadSeguidos = useCallback(async () => {
     if (!userId) return;
 
     try {
-      console.log('[Seguidos] ⚡ Loading following for user:', userId);
+      console.log('[Seguidos] ⚡ Loading following (users + locals) for user:', userId);
 
-      // FIXED: Use the same query pattern as profile page for consistency
-      const { data, error } = await supabase
+      // Load user following (from seguidores table)
+      const { data: userFollowing, error: userError } = await supabase
         .from('seguidores')
         .select(`
           seguido_id,
@@ -135,25 +149,64 @@ export default function SeguidosScreen() {
         `)
         .eq('seguidor_id', userId);
 
-      if (error) {
-        console.error('[Seguidos] Error loading following:', error);
-        return;
+      if (userError) {
+        console.error('[Seguidos] Error loading user following:', userError);
       }
 
-      if (data) {
-        const formattedSeguidos = data
+      // ✅ NEW: Load local following (locals favorited by this user)
+      const { data: localFollowing, error: localError } = await supabase
+        .from('locales_favoritos')
+        .select(`
+          local_id,
+          locales!locales_favoritos_local_id_fkey(
+            id,
+            nombre,
+            imagen_url,
+            descripcion
+          )
+        `)
+        .eq('usuario_id', userId);
+
+      if (localError) {
+        console.error('[Seguidos] Error loading local following:', localError);
+      }
+
+      // Combine users and locals
+      const allSeguidos: Seguido[] = [];
+
+      // Add user following
+      if (userFollowing) {
+        userFollowing
           .filter(s => s.usuarios)
-          .map((s: any) => ({
-            id: s.usuarios.id,
-            nombre: s.usuarios.nombre,
-            username: s.usuarios.username,
-            avatar: s.usuarios.avatar,
-            bio: s.usuarios.bio,
-          }));
-
-        setSeguidos(formattedSeguidos);
-        console.log('[Seguidos] ⚡ Loaded following:', formattedSeguidos.length);
+          .forEach((s: any) => {
+            allSeguidos.push({
+              id: s.usuarios.id,
+              nombre: s.usuarios.nombre,
+              username: s.usuarios.username,
+              avatar: s.usuarios.avatar,
+              bio: s.usuarios.bio,
+              tipo: 'usuario',
+            });
+          });
       }
+
+      // ✅ NEW: Add local following
+      if (localFollowing) {
+        localFollowing
+          .filter(s => s.locales)
+          .forEach((s: any) => {
+            allSeguidos.push({
+              id: s.locales.id,
+              nombre: s.locales.nombre,
+              avatar: s.locales.imagen_url,
+              bio: s.locales.descripcion,
+              tipo: 'local',
+            });
+          });
+      }
+
+      setSeguidos(allSeguidos);
+      console.log('[Seguidos] ⚡ Loaded following:', allSeguidos.length, '(users + locals)');
     } catch (error) {
       console.error('[Seguidos] Error:', error);
     } finally {
@@ -164,7 +217,7 @@ export default function SeguidosScreen() {
   useEffect(() => {
     loadSeguidos();
 
-    // FIXED: Subscribe to real-time changes for INSTANT updates
+    // ✅ Subscribe to real-time changes for INSTANT updates
     if (userId) {
       const channel = supabase
         .channel(`seguidos-changes-${userId}`)
@@ -178,6 +231,19 @@ export default function SeguidosScreen() {
           },
           () => {
             console.log('[Seguidos] ⚡ INSTANT update - following changed');
+            loadSeguidos();
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'locales_favoritos',
+            filter: `usuario_id=eq.${userId}`,
+          },
+          () => {
+            console.log('[Seguidos] ⚡ INSTANT update - local favorites changed');
             loadSeguidos();
           }
         )
@@ -195,11 +261,13 @@ export default function SeguidosScreen() {
     setRefreshing(false);
   };
 
-  const handleUserPress = (userId: string) => {
-    if (user && userId === user.id) {
+  const handleItemPress = (id: string, tipo: 'usuario' | 'local') => {
+    if (tipo === 'local') {
+      router.push(`/perfil/local?localId=${id}`);
+    } else if (user && id === user.id) {
       router.push('/(tabs)/perfil');
     } else {
-      router.push(`/perfil/usuario?userId=${userId}`);
+      router.push(`/perfil/usuario?userId=${id}`);
     }
   };
 
@@ -238,11 +306,11 @@ export default function SeguidosScreen() {
 
       <FlatList
         data={seguidos}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => `${item.tipo}-${item.id}`}
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.userItem}
-            onPress={() => handleUserPress(item.id)}
+            onPress={() => handleItemPress(item.id, item.tipo)}
             activeOpacity={0.7}
           >
             {item.avatar ? (
@@ -255,7 +323,14 @@ export default function SeguidosScreen() {
               </View>
             )}
             <View style={styles.userInfo}>
-              <Text style={styles.userName}>{item.nombre}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={styles.userName}>{item.nombre}</Text>
+                {item.tipo === 'local' && (
+                  <View style={styles.typeBadge}>
+                    <Text style={styles.typeBadgeText}>Local</Text>
+                  </View>
+                )}
+              </View>
               {item.username && (
                 <Text style={styles.userUsername}>@{item.username}</Text>
               )}
