@@ -202,14 +202,15 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
         eventosResult,
         ofertasResult,
       ] = await Promise.all([
-        // Locales - FIXED: Only show locales with active "estandar" or "premium" subscription
+        // FIXED: Locales - Explicitly specify which foreign key to use with !plan_id_fkey
+        // This tells PostgREST to use the plan_id foreign key, not plan_pendiente_id
         supabase
           .from('locales')
           .select(`
             *,
             suscripciones_locales!inner(
               estado,
-              plan:planes_suscripcion!inner(nombre)
+              plan:planes_suscripcion!suscripciones_locales_plan_id_fkey(nombre)
             )
           `)
           .eq('activo', true)
