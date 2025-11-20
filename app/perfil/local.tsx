@@ -14,11 +14,11 @@ import {
   Alert,
   Modal,
   Pressable,
-  Animated,
   Linking,
   TextInput,
   FlatList,
   KeyboardAvoidingView,
+  Animated,
 } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -37,8 +37,8 @@ import { PROVINCIAS, getProvinceVariations, filterByProvincia } from '@/utils/pr
 import EventBanner from '@/components/eventos/EventBanner';
 import { useLocalEvent } from '@/hooks/useLocalEvent';
 
-// ✅ VERSION MARKER - Force cache bust: v3.7.0 - Fixed local messaging isolation
-const SCREEN_VERSION = '3.7.0';
+// ✅ VERSION MARKER - Force cache bust: v3.9.0 - Added + icon to story avatar for local profiles
+const SCREEN_VERSION = '3.9.0';
 
 const { width, height } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -837,16 +837,19 @@ export default function LocalPerfilScreen() {
     }
   }, [currentStoryIndex, startStoryTimer, stopStoryTimer, progressAnim]);
 
+  // ✅ UPDATED: Handle avatar press - view stories or create new story
   const handleAvatarPress = useCallback(async () => {
     if (localStories.length > 0) {
+      // View existing stories
       setCurrentStoryIndex(0);
       setShowStoryViewer(true);
       setIsPaused(false);
       startStoryTimer();
     } else if (isOwner) {
+      // Create new story
       handleCrearHistoria();
     }
-  }, [localStories, startStoryTimer, isOwner]);
+  }, [localStories, startStoryTimer, isOwner, handleCrearHistoria]);
 
   const handleViewStoryStats = useCallback(async () => {
     const currentStory = localStories[currentStoryIndex];
@@ -1259,10 +1262,22 @@ export default function LocalPerfilScreen() {
                     <IconSymbol name="building.2" size={40} color={colors.headerText} />
                   </View>
                 )}
-                {!hasActiveStory && isOwner && (
-                  <View style={styles.addStoryIcon}>
-                    <IconSymbol name="plus" size={18} color={colors.white} />
-                  </View>
+                {/* ✅ NEW: Always show '+' icon for owners to add stories */}
+                {isOwner && (
+                  <TouchableOpacity 
+                    style={styles.addStoryButton}
+                    onPress={handleCrearHistoria}
+                    activeOpacity={0.8}
+                  >
+                    <LinearGradient
+                      colors={[colors.primary, colors.secondary]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.addStoryGradient}
+                    >
+                      <IconSymbol name="plus" size={14} color={colors.white} />
+                    </LinearGradient>
+                  </TouchableOpacity>
                 )}
               </TouchableOpacity>
               <View style={styles.profileInfo}>
@@ -2188,19 +2203,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  addStoryIcon: {
+  // ✅ NEW: Add story button styles (matching user profile)
+  addStoryButton: {
     position: 'absolute',
     bottom: 0,
     right: 0,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 4,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    overflow: 'hidden',
+    borderWidth: 3,
     borderColor: colors.headerGradientStart,
     zIndex: 2,
+  },
+  addStoryGradient: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   profileInfo: {
     flex: 1,

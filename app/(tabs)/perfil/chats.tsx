@@ -304,7 +304,6 @@ export default function ChatsScreen() {
                   </Text>
                 </View>
               )}
-              {chat.otro_usuario.activo && <View style={styles.onlineIndicator} />}
             </View>
 
             <View style={styles.chatContent}>
@@ -439,17 +438,6 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: 'bold',
     color: colors.headerText,
-  },
-  onlineIndicator: {
-    position: 'absolute',
-    bottom: 2,
-    right: 2,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#34C759',
-    borderWidth: 2,
-    borderColor: colors.cardBackground,
   },
   chatContent: {
     flex: 1,
