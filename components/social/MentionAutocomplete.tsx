@@ -265,7 +265,7 @@ export default function MentionAutocomplete({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.cardBackground,
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.cardBorder,
@@ -316,12 +316,12 @@ const styles = StyleSheet.create({
   suggestionName: {
     fontSize: 15,
     fontWeight: '600',
-    color: colors.text,
+    color: '#000000',
     marginBottom: 2,
   },
   suggestionType: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: '#666666',
   },
   loadingContainer: {
     flexDirection: 'row',
@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: '#666666',
   },
   emptyContainer: {
     padding: 16,
@@ -340,6 +340,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: '#666666',
   },
 });

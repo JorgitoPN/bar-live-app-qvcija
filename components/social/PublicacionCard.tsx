@@ -44,14 +44,12 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
   const [showTagsOverlay, setShowTagsOverlay] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // Get images array - prioritize imagenes array, fallback to imagen field
   const images = post.imagenes && post.imagenes.length > 0 
     ? post.imagenes 
     : post.imagen 
       ? [post.imagen] 
       : [];
 
-  // Load mentioned users from post content
   useEffect(() => {
     const loadMentions = async () => {
       try {
@@ -101,7 +99,6 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
     loadMentions();
   }, [post.id]);
 
-  // Load tagged users
   useEffect(() => {
     const loadTags = async () => {
       try {
@@ -114,7 +111,7 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
             usuarios:usuario_id(nombre, username, avatar)
           `)
           .eq('post_id', post.id)
-          .eq('estado', 'aceptado');
+          .in('estado', ['aceptado', 'pendiente']);
 
         if (error) {
           console.error('[PublicacionCard] Error loading tags:', error);
@@ -185,7 +182,6 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
 
   return (
     <View style={styles.card}>
-      {/* Header */}
       <TouchableOpacity
         style={styles.header}
         onPress={() => {
@@ -212,7 +208,6 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
         </TouchableOpacity>
       </TouchableOpacity>
 
-      {/* "Con [@usuario/local]" - Show mentioned users */}
       {mentionedUsers.length > 0 && (
         <View style={styles.mentionsContainer}>
           <Text style={styles.mentionsText}>
@@ -220,11 +215,12 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
             {mentionedUsers.slice(0, 3).map((user, index) => (
               <React.Fragment key={user.id}>
                 {index > 0 && ', '}
-                <TouchableOpacity onPress={() => navigateToProfile(user)} activeOpacity={0.7}>
-                  <Text style={styles.mentionedUsername}>
-                    @{user.username || user.nombre}
-                  </Text>
-                </TouchableOpacity>
+                <Text
+                  style={styles.mentionedUsername}
+                  onPress={() => navigateToProfile(user)}
+                >
+                  @{user.username || user.nombre}
+                </Text>
               </React.Fragment>
             ))}
             {mentionedUsers.length > 3 && (
@@ -234,7 +230,6 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
         </View>
       )}
 
-      {/* "Foto etiquetada de..." - Show tagged users */}
       {taggedUsers.length > 0 && (
         <View style={styles.taggedContainer}>
           <IconSymbol name="person.crop.circle.badge.checkmark" size={16} color={colors.primary} />
@@ -243,11 +238,12 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
             {taggedUsers.slice(0, 2).map((user, index) => (
               <React.Fragment key={user.id}>
                 {index > 0 && ' y '}
-                <TouchableOpacity onPress={() => navigateToProfile(user, 'usuario')} activeOpacity={0.7}>
-                  <Text style={styles.taggedUsername}>
-                    @{user.username || user.nombre}
-                  </Text>
-                </TouchableOpacity>
+                <Text
+                  style={styles.taggedUsername}
+                  onPress={() => navigateToProfile(user, 'usuario')}
+                >
+                  @{user.username || user.nombre}
+                </Text>
               </React.Fragment>
             ))}
             {taggedUsers.length > 2 && (
@@ -257,14 +253,12 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
         </View>
       )}
 
-      {/* Contenido */}
       {post.contenido && (
         <View style={styles.contenidoContainer}>
           <ParsedText text={post.contenido} style={styles.contenido} />
         </View>
       )}
 
-      {/* Images Carousel with Swipe Support */}
       {images.length > 0 && (
         <View style={styles.imageCarouselContainer}>
           <ScrollView
@@ -293,7 +287,6 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
                   style={styles.imagen} 
                   resizeMode="cover" 
                 />
-                {/* Show tag icon if there are tagged users */}
                 {taggedUsers.length > 0 && (
                   <View style={styles.tagIconBadge}>
                     <IconSymbol name="person.crop.circle" size={20} color={colors.headerText} />
@@ -303,7 +296,6 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
             ))}
           </ScrollView>
           
-          {/* Image indicator dots */}
           {images.length > 1 && (
             <View style={styles.imageIndicatorContainer}>
               {images.map((_, index) => (
@@ -318,7 +310,6 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
             </View>
           )}
 
-          {/* Image counter badge */}
           {images.length > 1 && (
             <View style={styles.imageCountBadge}>
               <Text style={styles.imageCountText}>
@@ -329,7 +320,6 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
         </View>
       )}
 
-      {/* Location Display */}
       {post.ubicacion && (
         <View style={styles.locationContainer}>
           <IconSymbol name="mappin.circle.fill" size={16} color={colors.primary} />
@@ -337,7 +327,6 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
         </View>
       )}
 
-      {/* Acciones */}
       <View style={styles.acciones}>
         <TouchableOpacity style={styles.accionButton} onPress={handleLike}>
           <IconSymbol
@@ -364,7 +353,6 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
         </TouchableOpacity>
       </View>
 
-      {/* Tags Overlay Modal */}
       <Modal
         visible={showTagsOverlay}
         transparent={true}
@@ -381,7 +369,6 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
               style={styles.tagsImage} 
               resizeMode="contain" 
             />
-            {/* Show tagged users on the image */}
             {taggedUsers.map((user) => {
               if (user.position_x !== undefined && user.position_y !== undefined) {
                 return (

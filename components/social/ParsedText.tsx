@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors } from '@/styles/commonStyles';
 import { parseText, ParsedSegment } from '@/utils/textParser';
@@ -22,7 +22,6 @@ export default function ParsedText({ text, style, onHashtagPress, onMentionPress
     if (onHashtagPress) {
       onHashtagPress(hashtag);
     } else {
-      // Default: navigate to hashtag search page
       router.push(`/social/hashtag?tag=${encodeURIComponent(hashtag)}`);
     }
   };
@@ -34,9 +33,7 @@ export default function ParsedText({ text, style, onHashtagPress, onMentionPress
       return;
     }
 
-    // Default: try to find and navigate to user or local profile
     try {
-      // First, try to find user by username
       const { data: user } = await supabase
         .from('usuarios')
         .select('id')
@@ -50,7 +47,6 @@ export default function ParsedText({ text, style, onHashtagPress, onMentionPress
         return;
       }
 
-      // If not found as user, try to find local by name
       const { data: localsWithSubs } = await supabase
         .from('locales')
         .select(`
@@ -72,7 +68,6 @@ export default function ParsedText({ text, style, onHashtagPress, onMentionPress
         const local = localsWithSubs[0];
         const subscription = local.suscripciones_locales;
         
-        // Only navigate to locals with active Estándar or Premium plans
         if (subscription && subscription.estado === 'activa') {
           const planName = subscription.planes_suscripcion?.nombre;
           if (planName === 'estandar' || planName === 'premium') {
@@ -94,26 +89,26 @@ export default function ParsedText({ text, style, onHashtagPress, onMentionPress
       {segments.map((segment: ParsedSegment, index: number) => {
         if (segment.type === 'hashtag') {
           return (
-            <TouchableOpacity
+            <Text
               key={index}
+              style={[style, styles.hashtag]}
               onPress={() => handleHashtagPress(segment.value!)}
-              activeOpacity={0.7}
             >
-              <Text style={[style, styles.hashtag]}>{segment.content}</Text>
-            </TouchableOpacity>
+              {segment.content}
+            </Text>
           );
         } else if (segment.type === 'mention') {
           return (
-            <TouchableOpacity
+            <Text
               key={index}
+              style={[style, styles.mention]}
               onPress={() => handleMentionPress(segment.value!)}
-              activeOpacity={0.7}
             >
-              <Text style={[style, styles.mention]}>{segment.content}</Text>
-            </TouchableOpacity>
+              {segment.content}
+            </Text>
           );
         } else {
-          return <Text key={index}>{segment.content}</Text>;
+          return <Text key={index} style={style}>{segment.content}</Text>;
         }
       })}
     </Text>
