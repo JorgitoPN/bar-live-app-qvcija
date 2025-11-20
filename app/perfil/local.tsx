@@ -37,8 +37,8 @@ import { PROVINCIAS, getProvinceVariations, filterByProvincia } from '@/utils/pr
 import EventBanner from '@/components/eventos/EventBanner';
 import { useLocalEvent } from '@/hooks/useLocalEvent';
 
-// ✅ VERSION MARKER - Force cache bust: v3.4.0 - Removed Perfil button, 3 buttons in row with soft design
-const SCREEN_VERSION = '3.4.0';
+// ✅ VERSION MARKER - Force cache bust: v3.5.0 - Added like and comment functionality to story viewer
+const SCREEN_VERSION = '3.5.0';
 
 const { width, height } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -171,6 +171,9 @@ export default function LocalPerfilScreen() {
   const [storyViews, setStoryViews] = useState<any[]>([]);
   const [storyLikes, setStoryLikes] = useState<any[]>([]);
   const [loadingStats, setLoadingStats] = useState(false);
+
+  // ✅ NEW: Story interaction state
+  const [storyMessage, setStoryMessage] = useState('');
 
   // ✅ Followers/Following modals state
   const [showSeguidoresModal, setShowSeguidoresModal] = useState(false);
@@ -994,6 +997,109 @@ export default function LocalPerfilScreen() {
       ]
     );
   }, [localStories, currentStoryIndex, user, isOwner, stopStoryTimer]);
+
+  // ✅ NEW: Handle story like
+  const handleStoryLike = useCallback(async () => {
+    const currentStory = localStories[currentStoryIndex];
+    
+    if (!currentStory || !user) {
+      Alert.alert('Error', 'Debes iniciar sesión para dar me gusta');
+      return;
+    }
+
+    const isLiked = currentStory.liked_by_user;
+
+    try {
+      if (isLiked) {
+        await supabase
+          .from('historia_likes')
+          .delete()
+          .eq('historia_id', currentStory.id)
+          .eq('usuario_id', user.id);
+      } else {
+        await supabase.from('historia_likes').insert({
+          historia_id: currentStory.id,
+          usuario_id: user.id,
+        });
+      }
+
+      // Update local state
+      setLocalStories(prev => prev.map((s, i) => 
+        i === currentStoryIndex 
+          ? { ...s, liked_by_user: !isLiked, likes_count: (s.likes_count || 0) + (isLiked ? -1 : 1) }
+          : s
+      ));
+    } catch (error) {
+      console.error('[LocalPerfil] Error toggling story like:', error);
+    }
+  }, [user, currentStoryIndex, localStories]);
+
+  // ✅ NEW: Handle sending story message
+  const handleSendStoryMessage = useCallback(async () => {
+    const currentStory = localStories[currentStoryIndex];
+    
+    if (!currentStory || !user || !storyMessage.trim()) {
+      return;
+    }
+
+    try {
+      console.log('[LocalPerfil] Sending story message...');
+      
+      // Get the local owner's user ID
+      const { data: chatExistente, error: chatError } = await supabase
+        .from('chats')
+        .select('id')
+        .or(`and(usuario1_id.eq.${user.id},usuario2_id.eq.${local.propietario_id}),and(usuario1_id.eq.${local.propietario_id},usuario2_id.eq.${user.id})`)
+        .single();
+
+      let chatId = chatExistente?.id;
+
+      if (!chatId) {
+        console.log('[LocalPerfil] Creating new chat...');
+        const { data: nuevoChat, error: nuevoChatError } = await supabase
+          .from('chats')
+          .insert({
+            usuario1_id: user.id,
+            usuario2_id: local.propietario_id,
+          })
+          .select()
+          .single();
+
+        if (nuevoChatError) throw nuevoChatError;
+        chatId = nuevoChat.id;
+        console.log('[LocalPerfil] Chat created:', chatId);
+      }
+
+      const { error: mensajeError } = await supabase
+        .from('mensajes')
+        .insert({
+          chat_id: chatId,
+          remitente_id: user.id,
+          contenido: storyMessage,
+          historia_id: currentStory.id,
+          historia_imagen: currentStory.imagen,
+          tipo_mensaje: 'texto',
+        });
+
+      if (mensajeError) throw mensajeError;
+
+      console.log('[LocalPerfil] Message sent successfully');
+
+      await supabase.from('notificaciones').insert({
+        usuario_id: local.propietario_id,
+        tipo: 'mensaje_privado',
+        titulo: 'Mensaje sobre tu historia',
+        mensaje: `${user.nombre} te envió un mensaje sobre tu historia`,
+        usuario_origen_id: user.id,
+      });
+
+      setStoryMessage('');
+      Alert.alert('Éxito', 'Mensaje enviado correctamente');
+    } catch (error) {
+      console.error('[LocalPerfil] Error sending story message:', error);
+      Alert.alert('Error', 'No se pudo enviar el mensaje');
+    }
+  }, [user, currentStoryIndex, localStories, storyMessage, local]);
 
   // ✅ CRITICAL: Handle navigation from story viewer header (avatar/name press)
   const handleStoryAuthorPress = useCallback(() => {
@@ -1884,21 +1990,47 @@ export default function LocalPerfilScreen() {
                 </View>
               )}
 
+              {/* ✅ NEW: Interaction bar for non-owners */}
+              {!isOwner && (
+                <View style={styles.storyInteractionBar}>
+                  <TouchableOpacity
+                    style={styles.storyInteractionButton}
+                    onPress={handleStoryLike}
+                    activeOpacity={0.7}
+                  >
+                    <IconSymbol
+                      name={currentStory.liked_by_user ? 'heart.fill' : 'heart'}
+                      size={20}
+                      color={currentStory.liked_by_user ? '#EF4444' : '#fff'}
+                    />
+                  </TouchableOpacity>
+
+                  <TextInput
+                    style={styles.storyMessageInput}
+                    placeholder="Enviar mensaje..."
+                    placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                    value={storyMessage}
+                    onChangeText={setStoryMessage}
+                    onFocus={() => setIsPaused(true)}
+                    onBlur={() => setIsPaused(false)}
+                  />
+
+                  {storyMessage.trim().length > 0 && (
+                    <TouchableOpacity
+                      style={styles.storySendButton}
+                      onPress={handleSendStoryMessage}
+                      activeOpacity={0.7}
+                    >
+                      <IconSymbol name="paperplane.fill" size={20} color="#fff" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+
               <View style={styles.storyTouchZones}>
                 <Pressable
                   style={styles.storyTouchZone}
                   onPress={handlePreviousStory}
-                />
-                <Pressable
-                  style={styles.storyTouchZone}
-                  onPressIn={() => {
-                    setIsPaused(true);
-                    stopStoryTimer();
-                  }}
-                  onPressOut={() => {
-                    setIsPaused(false);
-                    startStoryTimer();
-                  }}
                 />
                 <Pressable
                   style={styles.storyTouchZone}
@@ -2886,6 +3018,47 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 24,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // ✅ NEW: Story interaction bar styles
+  storyInteractionBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    zIndex: 10,
+  },
+  storyInteractionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  storyMessageInput: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    color: '#fff',
+    fontSize: 14,
+  },
+  storySendButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },

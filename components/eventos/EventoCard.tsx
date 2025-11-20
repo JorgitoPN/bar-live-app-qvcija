@@ -4,6 +4,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { useRouter } from 'expo-router';
+import EventBanner from './EventBanner';
 
 interface EventoCardProps {
   evento: {
@@ -79,13 +80,20 @@ export default function EventoCard({ evento, onPress }: EventoCardProps) {
 
   return (
     <TouchableOpacity style={styles.card} onPress={handlePress} activeOpacity={0.7}>
-      {evento.imagen_url ? (
-        <Image source={{ uri: evento.imagen_url }} style={styles.image} />
-      ) : (
-        <View style={[styles.image, styles.imagePlaceholder]}>
-          <IconSymbol name="photo" size={48} color={colors.textSecondary} />
-        </View>
-      )}
+      {/* ✅ UPDATED: Show EventBanner with animation */}
+      <EventBanner 
+        evento={{
+          id: evento.id,
+          titulo: evento.titulo,
+          fecha: evento.fecha,
+          fecha_fin: evento.fecha_fin,
+          hora: evento.hora,
+          hora_fin: evento.hora_fin,
+          imagen_url: evento.imagen_url,
+          precio: evento.precio,
+        }}
+        compact={false}
+      />
       
       {evento.destacado && (
         <View style={styles.badgeDestacado}>
@@ -96,11 +104,29 @@ export default function EventoCard({ evento, onPress }: EventoCardProps) {
       <View style={styles.content}>
         <Text style={styles.titulo} numberOfLines={2}>{evento.titulo}</Text>
         
-        {evento.local_nombre && (
-          <Text style={styles.localNombre} numberOfLines={1}>
-            <IconSymbol name="location.fill" size={12} color={colors.textSecondary} />
-            {' '}{evento.local_nombre}
+        {evento.descripcion && (
+          <Text style={styles.descripcion} numberOfLines={3}>
+            {evento.descripcion}
           </Text>
+        )}
+        
+        {evento.local_nombre && (
+          <View style={styles.localInfo}>
+            <IconSymbol name="building.2.fill" size={14} color={colors.primary} />
+            <Text style={styles.localNombre} numberOfLines={1}>
+              {evento.local_nombre}
+            </Text>
+          </View>
+        )}
+
+        {evento.local_direccion && (
+          <View style={styles.localInfo}>
+            <IconSymbol name="mappin.circle.fill" size={14} color={colors.textSecondary} />
+            <Text style={styles.localDireccion} numberOfLines={1}>
+              {evento.local_direccion}
+              {evento.local_ciudad && `, ${evento.local_ciudad}`}
+            </Text>
+          </View>
         )}
 
         <View style={styles.infoRow}>
@@ -152,15 +178,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
-  image: {
-    width: '100%',
-    height: 200,
-    backgroundColor: colors.cardBorder,
-  },
-  imagePlaceholder: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   badgeDestacado: {
     position: 'absolute',
     top: 12,
@@ -169,6 +186,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
+    zIndex: 10,
   },
   badgeDestacadoText: {
     color: colors.badgeDestacadoText,
@@ -184,10 +202,28 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 8,
   },
-  localNombre: {
+  descripcion: {
     fontSize: 14,
     color: colors.textSecondary,
+    lineHeight: 20,
     marginBottom: 12,
+  },
+  localInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  localNombre: {
+    fontSize: 14,
+    color: colors.text,
+    fontWeight: '600',
+    flex: 1,
+  },
+  localDireccion: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    flex: 1,
   },
   infoRow: {
     flexDirection: 'row',
