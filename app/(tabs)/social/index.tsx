@@ -1324,6 +1324,7 @@ export default function SocialScreen() {
       
       const searchTerm = query.trim();
       
+      // Search users
       const { data: usersData, error: usersError } = await supabase
         .from('usuarios')
         .select('id, nombre, username, avatar')
@@ -1337,6 +1338,8 @@ export default function SocialScreen() {
 
       console.log('[Social] 📊 Users found:', usersData?.length || 0);
 
+      // Search locals with active Estándar or Premium subscriptions
+      // FIX: Explicitly specify the foreign key column to avoid ambiguity
       const { data: localsWithSubs, error: localsError } = await supabase
         .from('locales')
         .select(`
@@ -1345,30 +1348,36 @@ export default function SocialScreen() {
           imagen_url,
           tipo,
           provincia,
-          suscripciones_locales!inner(
+          suscripciones_locales!suscripciones_locales_local_id_fkey(
             estado,
-            planes_suscripcion!inner(
+            plan_id,
+            planes_suscripcion!suscripciones_locales_plan_id_fkey(
               nombre
             )
           )
         `)
         .ilike('nombre', `%${searchTerm}%`)
         .eq('activo', true)
-        .eq('suscripciones_locales.estado', 'activa')
         .limit(20);
 
       if (localsError) {
         console.error('[Social] ❌ Error searching locals:', localsError);
+        console.error('[Social] ❌ Error details:', JSON.stringify(localsError, null, 2));
       }
 
       console.log('[Social] 📊 Locals with subscriptions found:', localsWithSubs?.length || 0);
 
+      // Filter locals to only include those with active Estándar or Premium plans
       const localsData = localsWithSubs?.filter((local: any) => {
-        const planName = local.suscripciones_locales?.planes_suscripcion?.nombre;
+        const subscription = local.suscripciones_locales;
+        if (!subscription || subscription.estado !== 'activa') {
+          return false;
+        }
+        const planName = subscription.planes_suscripcion?.nombre;
         return planName === 'estandar' || planName === 'premium';
       }) || [];
 
-      console.log('[Social] 📊 Locals with estandar/premium plans:', localsData.length);
+      console.log('[Social] 📊 Locals with active estandar/premium plans:', localsData.length);
 
       const results: SearchResult[] = [];
 
@@ -1965,7 +1974,6 @@ export default function SocialScreen() {
     }
   }, [currentStoryIndex, viewingOwnStories, userStories, historias, user, router, stopStoryTimer]);
 
-  // ✅ CRITICAL FIX: Callback to close story viewer when navigating from stats modal
   const handleCloseStoryViewerAndNavigate = useCallback(() => {
     console.log('[Social] ✅ Closing story viewer before navigation from stats modal');
     setShowStoryStats(false);
