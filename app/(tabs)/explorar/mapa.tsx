@@ -25,6 +25,7 @@ import { getEstadoLocal } from '@/utils/timeUtils';
 import { performanceOptimizer } from '@/utils/performanceOptimizer';
 import { trackMapInteraction } from '@/utils/activityTracker';
 import { useAuth } from '@/contexts/AuthContext';
+import { addPubCategoryIfNeeded } from '@/utils/categorizeLocal';
 
 const { width, height } = Dimensions.get('window');
 
@@ -367,7 +368,12 @@ export default function MapaScreen() {
       const estaAbierto = estadoCompleto.estaAbierto;
       const estado = estaAbierto === true ? 'abierto' : 
                      estaAbierto === false ? 'cerrado' : 'sin_info';
-      const icon = getIconForCategory(local.barlive_type || local.tipo);
+      
+      // ✅ FIXED: Get categories with PUB added dynamically
+      let localCategories = local.barlive_types || (local.barlive_type ? [local.barlive_type] : []);
+      localCategories = addPubCategoryIfNeeded(localCategories, local.horarios_completos);
+      
+      const icon = getIconForCategory(localCategories[0] || local.tipo);
       
       let overlayIcon = null;
       if (estadoCompleto.overlayIcon === 'lock') {
@@ -397,7 +403,8 @@ export default function MapaScreen() {
         lat: local.coordenadas.lat,
         lng: local.coordenadas.lng,
         nombre: local.nombre,
-        tipo: local.barlive_type || local.tipo,
+        tipo: localCategories[0] || local.tipo,
+        categorias: localCategories, // ✅ FIXED: Include all categories for popup display
         estado: estado,
         estadoBadge: estadoCompleto.badge,
         icon: icon,
@@ -831,6 +838,30 @@ export default function MapaScreen() {
           '</div>';
         }
         
+        // ✅ FIXED: Display categories (including PUB) in popup
+        var categoriasHtml = '';
+        if (data.categorias && data.categorias.length > 0) {
+          categoriasHtml = '<div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">';
+          data.categorias.forEach(function(cat) {
+            var catIcon = '';
+            if (cat.toLowerCase() === 'cafe') catIcon = '☕';
+            else if (cat.toLowerCase() === 'restaurante') catIcon = '🍽️';
+            else if (cat.toLowerCase() === 'bar') catIcon = '🍷';
+            else if (cat.toLowerCase() === 'pub') catIcon = '🍺';
+            else if (cat.toLowerCase() === 'cocteleria') catIcon = '🍸';
+            else if (cat.toLowerCase() === 'discoteca') catIcon = '🎵';
+            else if (cat.toLowerCase() === 'terraza') catIcon = '☀️';
+            else if (cat.toLowerCase() === 'rooftop') catIcon = '🏢';
+            else if (cat.toLowerCase() === 'lounge') catIcon = '🛋️';
+            else catIcon = '📍';
+            
+            categoriasHtml += '<span style="background-color: rgba(20, 184, 166, 0.15); color: #14B8A6; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">' +
+              catIcon + ' ' + cat.charAt(0).toUpperCase() + cat.slice(1) +
+            '</span>';
+          });
+          categoriasHtml += '</div>';
+        }
+        
         var popupContent = '<div class="popup-content">' +
           '<div class="popup-image-container">' +
             '<img src="' + data.imagen + '" class="' + imageClass + '" onerror="this.src=\\'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400\\'" />' +
@@ -840,6 +871,7 @@ export default function MapaScreen() {
           '<div class="popup-info">' +
             eventBannerHtml +
             '<div class="popup-title">' + data.nombre + '</div>' +
+            categoriasHtml +
             '<span class="popup-estado estado-' + data.estado + '">' + estadoText + '</span>' +
             '<div class="popup-rating">⭐ ' + data.rating.toFixed(1) + ' • ' + data.distancia.toFixed(1) + ' km</div>' +
             '<a href="#" class="popup-button" onclick="window.ReactNativeWebView.postMessage(JSON.stringify({type: \\'navigate\\', id: \\'' + data.id + '\\'})); return false;">' +
