@@ -45,7 +45,7 @@ export default function ConversacionScreen() {
   const [loading, setLoading] = useState(true);
   const [chatId, setChatId] = useState<string | null>(null);
   const [otroUsuario, setOtroUsuario] = useState<any>(null);
-  const [localInfo, setLocalInfo] = useState<any>(null); // ✅ NEW: Store local info for local-specific chats
+  const [localInfo, setLocalInfo] = useState<any>(null); // ✅ Store local info for local-specific chats
   const [mensajes, setMensajes] = useState<Message[]>([]);
   const [mensaje, setMensaje] = useState('');
   const [enviando, setEnviando] = useState(false);
@@ -53,7 +53,7 @@ export default function ConversacionScreen() {
   // Real-time subscription ref
   const channelRef = useRef<any>(null);
 
-  // ✅ NEW: Check if this is a local-specific chat
+  // ✅ Check if this is a local-specific chat
   const isLocalChat = !!params.localId;
   const localId = params.localId as string | undefined;
 
@@ -120,12 +120,17 @@ export default function ConversacionScreen() {
 
         setLocalInfo(localData);
 
-        // Check if a local-specific chat already exists between this user and this local
+        // ✅ CRITICAL: Check if a local-specific chat already exists between this user and this local
+        // This ensures all messages go to the SAME conversation
+        const userId1 = user.id < localData.propietario_id ? user.id : localData.propietario_id;
+        const userId2 = user.id < localData.propietario_id ? localData.propietario_id : user.id;
+
         const { data: existingChat, error: chatError } = await supabase
           .from('chats')
           .select('*')
           .eq('local_id', localId)
-          .or(`and(usuario1_id.eq.${user.id},usuario2_id.eq.${localData.propietario_id}),and(usuario1_id.eq.${localData.propietario_id},usuario2_id.eq.${user.id})`)
+          .eq('usuario1_id', userId1)
+          .eq('usuario2_id', userId2)
           .single();
 
         if (existingChat) {
@@ -135,9 +140,6 @@ export default function ConversacionScreen() {
         } else {
           // Create new local-specific chat
           console.log('[Conversacion] 🆕 Creating new local-specific chat');
-          
-          const userId1 = user.id < localData.propietario_id ? user.id : localData.propietario_id;
-          const userId2 = user.id < localData.propietario_id ? localData.propietario_id : user.id;
 
           const { data: newChat, error: createError } = await supabase
             .from('chats')
@@ -154,15 +156,16 @@ export default function ConversacionScreen() {
           if (createError) {
             console.error('[Conversacion] Error creating local chat:', createError);
             
-            // Check if it's a duplicate key error
+            // Check if it's a duplicate key error (race condition)
             if (createError.code === '23505') {
-              console.log('[Conversacion] Chat already exists, fetching it...');
+              console.log('[Conversacion] Chat already exists (race condition), fetching it...');
               // Try to fetch the existing chat again
               const { data: retryChat, error: retryError } = await supabase
                 .from('chats')
                 .select('*')
                 .eq('local_id', localId)
-                .or(`and(usuario1_id.eq.${user.id},usuario2_id.eq.${localData.propietario_id}),and(usuario1_id.eq.${localData.propietario_id},usuario2_id.eq.${user.id})`)
+                .eq('usuario1_id', userId1)
+                .eq('usuario2_id', userId2)
                 .single();
               
               if (retryChat) {
@@ -205,7 +208,8 @@ export default function ConversacionScreen() {
             .from('chats')
             .select('id')
             .eq('local_id', localId)
-            .or(`and(usuario1_id.eq.${user.id},usuario2_id.eq.${localData.propietario_id}),and(usuario1_id.eq.${localData.propietario_id},usuario2_id.eq.${user.id})`)
+            .eq('usuario1_id', userId1)
+            .eq('usuario2_id', userId2)
             .single()).data?.id;
 
           if (chatIdToUse) {
@@ -271,24 +275,24 @@ export default function ConversacionScreen() {
         // Load messages
         await loadMessages(chatData.id);
       } else if (params.userId) {
-        // Check if chat exists
+        // ✅ CRITICAL: Check if chat exists - ensure we use the SAME conversation
+        const userId1 = user.id < (params.userId as string) ? user.id : (params.userId as string);
+        const userId2 = user.id < (params.userId as string) ? (params.userId as string) : user.id;
+
         const { data: existingChat } = await supabase
           .from('chats')
           .select('*')
           .is('local_id', null) // ✅ CRITICAL: Only get non-local chats
-          .or(
-            `and(usuario1_id.eq.${user.id},usuario2_id.eq.${params.userId}),and(usuario1_id.eq.${params.userId},usuario2_id.eq.${user.id})`
-          )
+          .eq('usuario1_id', userId1)
+          .eq('usuario2_id', userId2)
           .single();
 
         if (existingChat) {
+          console.log('[Conversacion] ✅ Found existing user-to-user chat:', existingChat.id);
           setChatId(existingChat.id);
           await loadMessages(existingChat.id);
         } else {
           // Create new chat - IMPORTANT: Ensure usuario1_id < usuario2_id to satisfy constraint
-          const userId1 = user.id < (params.userId as string) ? user.id : (params.userId as string);
-          const userId2 = user.id < (params.userId as string) ? (params.userId as string) : user.id;
-
           console.log('[Conversacion] Creating new user-to-user chat with ordered IDs:', { userId1, userId2 });
 
           const { data: newChat, error: createError } = await supabase
@@ -306,17 +310,16 @@ export default function ConversacionScreen() {
           if (createError) {
             console.error('[Conversacion] Error creating chat:', createError);
             
-            // Check if it's a duplicate key error
+            // Check if it's a duplicate key error (race condition)
             if (createError.code === '23505') {
-              console.log('[Conversacion] Chat already exists, fetching it...');
+              console.log('[Conversacion] Chat already exists (race condition), fetching it...');
               // Try to fetch the existing chat again
               const { data: retryChat, error: retryError } = await supabase
                 .from('chats')
                 .select('*')
                 .is('local_id', null)
-                .or(
-                  `and(usuario1_id.eq.${user.id},usuario2_id.eq.${params.userId}),and(usuario1_id.eq.${params.userId},usuario2_id.eq.${user.id})`
-                )
+                .eq('usuario1_id', userId1)
+                .eq('usuario2_id', userId2)
                 .single();
               
               if (retryChat) {
@@ -658,8 +661,7 @@ export default function ConversacionScreen() {
           )}
           <View style={styles.headerInfo}>
             <Text style={styles.headerTitle}>{displayName}</Text>
-            {isLocalChat && <Text style={styles.headerStatus}>Perfil de local</Text>}
-            {!isLocalChat && otroUsuario?.activo && <Text style={styles.headerStatus}>Activo ahora</Text>}
+            {/* ✅ REMOVED: "Activo ahora" text - no longer displayed */}
           </View>
         </TouchableOpacity>
         <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteConversation}>
@@ -770,10 +772,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: colors.headerText,
-  },
-  headerStatus: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
   },
   deleteButton: {
     padding: 8,

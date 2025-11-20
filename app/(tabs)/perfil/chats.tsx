@@ -25,6 +25,7 @@ interface Chat {
   id: string;
   usuario1_id: string;
   usuario2_id: string;
+  local_id?: string | null;
   ultimo_mensaje: string;
   ultimo_mensaje_fecha: string;
   updated_at: string;
@@ -62,6 +63,7 @@ export default function ChatsScreen() {
           id,
           usuario1_id,
           usuario2_id,
+          local_id,
           ultimo_mensaje,
           ultimo_mensaje_fecha,
           updated_at
@@ -74,17 +76,40 @@ export default function ChatsScreen() {
         return;
       }
 
-      // Get other user info and unread count for each chat
+      // Get other user/local info and unread count for each chat
       const chatsWithInfo = await Promise.all(
         (chatsData || []).map(async (chat) => {
           const otroUsuarioId = chat.usuario1_id === user.id ? chat.usuario2_id : chat.usuario1_id;
 
-          // Get other user info
-          const { data: userData } = await supabase
-            .from('usuarios')
-            .select('id, nombre, username, avatar, activo')
-            .eq('id', otroUsuarioId)
-            .single();
+          // ✅ FIXED: If this is a local-specific chat, get local info instead of user info
+          let userData;
+          if (chat.local_id) {
+            // This is a local-specific chat - get local info
+            const { data: localData } = await supabase
+              .from('locales')
+              .select('id, nombre, imagen_url')
+              .eq('id', chat.local_id)
+              .single();
+
+            if (localData) {
+              userData = {
+                id: localData.id,
+                nombre: localData.nombre,
+                username: '',
+                avatar: localData.imagen_url,
+                activo: false, // Locals don't have "active" status
+              };
+            }
+          } else {
+            // Regular user-to-user chat
+            const { data: userDataResult } = await supabase
+              .from('usuarios')
+              .select('id, nombre, username, avatar, activo')
+              .eq('id', otroUsuarioId)
+              .single();
+
+            userData = userDataResult;
+          }
 
           // Count unread messages
           const { count } = await supabase
