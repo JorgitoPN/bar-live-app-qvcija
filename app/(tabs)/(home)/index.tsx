@@ -33,12 +33,12 @@ type ModoUsuario = 'todos' | 'cercanos' | 'destacados' | 'nuevos';
 
 const CATEGORIAS_LOCALES = [
   { id: 'todos', nombre: 'Todos', emoji: '🌟' },
-  { id: 'bares', nombre: 'Bares', emoji: '🍺' },
-  { id: 'restaurantes', nombre: 'Restaurantes', emoji: '🍽️' },
-  { id: 'discotecas', nombre: 'Discotecas', emoji: '💃' },
-  { id: 'cafeterias', nombre: 'Cafeterías', emoji: '☕' },
-  { id: 'pubs', nombre: 'Pubs', emoji: '🍻' },
-  { id: 'coctelerias', nombre: 'Coctelerías', emoji: '🍸' },
+  { id: 'bar', nombre: 'Bares', emoji: '🍺' },
+  { id: 'restaurante', nombre: 'Restaurantes', emoji: '🍽️' },
+  { id: 'discoteca', nombre: 'Discotecas', emoji: '💃' },
+  { id: 'cafe', nombre: 'Cafeterías', emoji: '☕' },
+  { id: 'pub', nombre: 'Pubs', emoji: '🍻' },
+  { id: 'cocteleria', nombre: 'Coctelerías', emoji: '🍸' },
 ];
 
 const CATEGORIAS_EXCLUIDAS = ['terrazas', 'rooftops', 'lounge'];
@@ -258,6 +258,7 @@ export default function ExplorarScreen() {
 
   const aplicarFiltrosYOrdenamiento = useCallback(() => {
     console.log('[Explorar] ⚡ Applying filters...');
+    console.log('[Explorar] 🔍 Selected category:', categoriaSeleccionada);
     
     let localesFiltrados = [...todosLosLocales];
 
@@ -270,14 +271,27 @@ export default function ExplorarScreen() {
           localCategories = [local.barlive_type];
         }
         
-        // Add PUB category dynamically if venue closes after 2 AM
+        // ✅ CRITICAL FIX: Add PUB category dynamically if venue closes after 2:30 AM
         localCategories = addPubCategoryIfNeeded(localCategories, local.horarios_completos);
         
-        // Check if any category matches the selected category
-        return localCategories.some(
+        // Debug log for PUB category
+        if (categoriaSeleccionada === 'pub') {
+          console.log(`[Explorar] 🍺 Checking ${local.nombre}:`, {
+            originalCategories: local.barlive_types || local.barlive_type,
+            withPubAdded: localCategories,
+            horarios: local.horarios_completos,
+          });
+        }
+        
+        // Check if any category matches the selected category (case-insensitive)
+        const matches = localCategories.some(
           (tipo: string) => tipo.toLowerCase() === categoriaSeleccionada.toLowerCase()
         );
+        
+        return matches;
       });
+      
+      console.log(`[Explorar] ✅ Filtered to ${localesFiltrados.length} locales for category "${categoriaSeleccionada}"`);
     }
 
     if (busqueda.trim()) {
@@ -310,7 +324,7 @@ export default function ExplorarScreen() {
         break;
     }
 
-    console.log('[Explorar] ⚡ Filtered locals:', localesFiltrados.length);
+    console.log('[Explorar] ⚡ Final filtered locals:', localesFiltrados.length);
     setLocalesFiltradosCompletos(localesFiltrados);
     setPaginaActual(1);
   }, [todosLosLocales, categoriaSeleccionada, busqueda, filtros, modoSeleccionado, userLocation]);

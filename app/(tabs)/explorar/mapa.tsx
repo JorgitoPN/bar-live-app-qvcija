@@ -260,6 +260,8 @@ export default function MapaScreen() {
   useEffect(() => {
     const CATEGORIAS_EXCLUIDAS = ['terrazas', 'rooftops', 'lounge'];
     
+    console.log('[MAP] 🔍 Filtering for category:', categoriaSeleccionada);
+    
     const filtrados = todosLosLocales.filter(local => {
       // ✅ FIXED: Get all categories for this local AND add PUB dynamically
       let localCategories = local.barlive_types || (local.barlive_type ? [local.barlive_type] : []);
@@ -267,18 +269,27 @@ export default function MapaScreen() {
       // ✅ CRITICAL FIX: Add PUB category dynamically based on closing time
       localCategories = addPubCategoryIfNeeded(localCategories, local.horarios_completos);
       
+      // Debug log for PUB category
+      if (categoriaSeleccionada === 'pub') {
+        console.log(`[MAP] 🍺 Checking ${local.nombre}:`, {
+          originalCategories: local.barlive_types || local.barlive_type,
+          withPubAdded: localCategories,
+          horarios: local.horarios_completos,
+        });
+      }
+      
       // Exclude locales with excluded categories
       const hasExcludedCategory = localCategories.some((cat: string) => 
         CATEGORIAS_EXCLUIDAS.includes(cat.toLowerCase())
       );
       if (hasExcludedCategory) return false;
       
-      // FIXED: Strict category filtering
+      // ✅ FIXED: Strict category filtering
       let matchCategoria = false;
       if (categoriaSeleccionada === 'todos') {
         matchCategoria = true;
       } else {
-        // Check if the selected category is in the local's categories array
+        // Check if the selected category is in the local's categories array (case-insensitive)
         matchCategoria = localCategories.some((cat: string) => 
           cat.toLowerCase() === categoriaSeleccionada.toLowerCase()
         );
@@ -294,7 +305,7 @@ export default function MapaScreen() {
       return matchCategoria && matchEstado;
     });
     
-    console.log(`[MAP] Filtered locals for category "${categoriaSeleccionada}": ${filtrados.length} of ${todosLosLocales.length}`);
+    console.log(`[MAP] ✅ Filtered locals for category "${categoriaSeleccionada}": ${filtrados.length} of ${todosLosLocales.length}`);
     setLocalesFiltrados(filtrados);
   }, [todosLosLocales, categoriaSeleccionada, filtroEstado]);
 
