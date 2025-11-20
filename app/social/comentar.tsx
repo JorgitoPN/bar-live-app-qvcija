@@ -328,15 +328,6 @@ export default function ComentarScreen() {
             </View>
           </View>
 
-          {/* Autocomplete Component - Positioned right after input */}
-          <View style={styles.autocompleteWrapper}>
-            <MentionAutocomplete
-              text={comentario}
-              cursorPosition={cursorPosition}
-              onSelectMention={handleSelectMention}
-            />
-          </View>
-
           {isInteractingAsLocal && activeLocalProfileId && (
             <View style={styles.contextIndicator}>
               <IconSymbol name="building.2.fill" size={16} color={colors.primary} />
@@ -351,6 +342,15 @@ export default function ComentarScreen() {
             <View style={{ height: keyboardHeight + 20 }} />
           )}
         </ScrollView>
+
+        {/* Autocomplete Component - Positioned outside ScrollView for better visibility */}
+        <View style={styles.autocompleteContainer}>
+          <MentionAutocomplete
+            text={comentario}
+            cursorPosition={cursorPosition}
+            onSelectMention={handleSelectMention}
+          />
+        </View>
       </KeyboardAvoidingView>
     </View>
   );
@@ -539,10 +539,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     flex: 1,
   },
-  autocompleteWrapper: {
+  autocompleteContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     paddingHorizontal: 16,
-    marginTop: 12,
+    paddingBottom: 16,
     zIndex: 1000,
+    pointerEvents: 'box-none',
   },
   contextIndicator: {
     flexDirection: 'row',
