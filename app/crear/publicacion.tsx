@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,6 @@ import {
   ScrollView,
   Platform,
   Alert,
-  FlatList,
   ActivityIndicator,
   Modal,
   Pressable,
@@ -28,6 +27,7 @@ import { useMode } from '@/contexts/ModeContext';
 import { useGlobalData } from '@/contexts/GlobalDataContext';
 import UploadProgressModal from '@/components/common/UploadProgressModal';
 import { processPostHashtags, processPostMentions } from '@/utils/postHelpers';
+import MentionAutocomplete, { MentionSuggestion } from '@/components/social/MentionAutocomplete';
 
 interface UserSuggestion {
   id: string;
@@ -94,6 +94,7 @@ export default function CrearPublicacionScreen() {
   const localId = params.localId as string | undefined;
   
   const [contenido, setContenido] = useState('');
+  const [cursorPosition, setCursorPosition] = useState(0);
   const [imagenes, setImagenes] = useState<string[]>([]);
   const [ubicacion, setUbicacion] = useState<{
     nombre: string;
@@ -275,6 +276,29 @@ export default function CrearPublicacionScreen() {
       setTagSuggestions([]);
     }
   }, [tagSearchQuery, showTagModal, buscarUsuariosYLocales]);
+
+  const handleSelectInlineMention = (mention: MentionSuggestion, mentionText: string) => {
+    console.log('[CrearPublicacion] Selected inline mention:', mention);
+    
+    // Find the @ position before cursor
+    const textBeforeCursor = contenido.substring(0, cursorPosition);
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+    
+    if (lastAtIndex === -1) return;
+
+    // Replace the partial mention with the full mention
+    const mentionUsername = mention.tipo === 'local' ? mention.nombre : mention.username;
+    const newText = 
+      contenido.substring(0, lastAtIndex) + 
+      `@${mentionUsername} ` + 
+      contenido.substring(cursorPosition);
+    
+    setContenido(newText);
+    
+    // Update cursor position to after the mention
+    const newCursorPosition = lastAtIndex + mentionUsername.length + 2; // +2 for @ and space
+    setCursorPosition(newCursorPosition);
+  };
 
   const seleccionarImagenes = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -644,15 +668,29 @@ export default function CrearPublicacionScreen() {
           contentContainerStyle={styles.contentContainer}
           keyboardShouldPersistTaps="handled"
         >
-          <TextInput
-            style={styles.textInput}
-            placeholder="¿Qué estás pensando?"
-            placeholderTextColor={colors.textSecondary}
-            value={contenido}
-            onChangeText={setContenido}
-            multiline
-            maxLength={500}
-            editable={!publishing}
+          <View style={styles.textInputContainer}>
+            <TextInput
+              style={styles.textInput}
+              placeholder="¿Qué estás pensando? (usa @ para mencionar y # para hashtags)"
+              placeholderTextColor={colors.textSecondary}
+              value={contenido}
+              onChangeText={setContenido}
+              onSelectionChange={(event) => {
+                setCursorPosition(event.nativeEvent.selection.start);
+              }}
+              multiline
+              maxLength={500}
+              editable={!publishing}
+            />
+            <Text style={styles.charCount}>{contenido.length}/500</Text>
+          </View>
+
+          {/* Inline mention autocomplete */}
+          <MentionAutocomplete
+            text={contenido}
+            cursorPosition={cursorPosition}
+            onSelectMention={handleSelectInlineMention}
+            style={styles.mentionAutocomplete}
           />
 
           {usuariosEtiquetados.length > 0 && (
@@ -953,12 +991,28 @@ const styles = StyleSheet.create({
   contentContainer: {
     padding: 16,
   },
+  textInputContainer: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    marginBottom: 12,
+  },
   textInput: {
     fontSize: 16,
     color: colors.text,
-    minHeight: 150,
+    minHeight: 120,
     textAlignVertical: 'top',
-    marginBottom: 20,
+    marginBottom: 8,
+  },
+  charCount: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    textAlign: 'right',
+  },
+  mentionAutocomplete: {
+    marginBottom: 16,
   },
   taggedUsersContainer: {
     marginBottom: 16,

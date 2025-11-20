@@ -20,6 +20,7 @@ import { colors, commonStyles } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
+import MentionAutocomplete, { MentionSuggestion } from '@/components/social/MentionAutocomplete';
 
 export default function ComentarScreen() {
   const router = useRouter();
@@ -30,6 +31,7 @@ export default function ComentarScreen() {
   const parentCommentId = params.parentCommentId as string | undefined;
   
   const [comentario, setComentario] = useState('');
+  const [cursorPosition, setCursorPosition] = useState(0);
   const [publishing, setPublishing] = useState(false);
   const [post, setPost] = useState<any>(null);
   const [parentComment, setParentComment] = useState<any>(null);
@@ -69,6 +71,29 @@ export default function ComentarScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSelectMention = (mention: MentionSuggestion, mentionText: string) => {
+    console.log('[Comentar] Selected mention:', mention);
+    
+    // Find the @ position before cursor
+    const textBeforeCursor = comentario.substring(0, cursorPosition);
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+    
+    if (lastAtIndex === -1) return;
+
+    // Replace the partial mention with the full mention
+    const mentionUsername = mention.tipo === 'local' ? mention.nombre : mention.username;
+    const newText = 
+      comentario.substring(0, lastAtIndex) + 
+      `@${mentionUsername} ` + 
+      comentario.substring(cursorPosition);
+    
+    setComentario(newText);
+    
+    // Update cursor position to after the mention
+    const newCursorPosition = lastAtIndex + mentionUsername.length + 2; // +2 for @ and space
+    setCursorPosition(newCursorPosition);
   };
 
   const publicarComentario = async () => {
@@ -197,7 +222,11 @@ export default function ComentarScreen() {
         </View>
       </LinearGradient>
 
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+      <ScrollView 
+        style={styles.content} 
+        contentContainerStyle={styles.contentContainer}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Post preview */}
         {post && (
           <View style={styles.postPreview}>
@@ -249,10 +278,13 @@ export default function ComentarScreen() {
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.textInput}
-            placeholder={parentComment ? 'Escribe tu respuesta...' : 'Escribe tu comentario...'}
+            placeholder={parentComment ? 'Escribe tu respuesta... (usa @ para mencionar)' : 'Escribe tu comentario... (usa @ para mencionar)'}
             placeholderTextColor={colors.textSecondary}
             value={comentario}
             onChangeText={setComentario}
+            onSelectionChange={(event) => {
+              setCursorPosition(event.nativeEvent.selection.start);
+            }}
             multiline
             maxLength={500}
             editable={!publishing}
@@ -260,6 +292,14 @@ export default function ComentarScreen() {
           />
           <Text style={styles.charCount}>{comentario.length}/500</Text>
         </View>
+
+        {/* Inline mention autocomplete */}
+        <MentionAutocomplete
+          text={comentario}
+          cursorPosition={cursorPosition}
+          onSelectMention={handleSelectMention}
+          style={styles.mentionAutocomplete}
+        />
 
         {/* Context indicator */}
         {isInteractingAsLocal && activeLocalProfileId && (
@@ -419,6 +459,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
     textAlign: 'right',
+  },
+  mentionAutocomplete: {
+    marginBottom: 16,
   },
   contextIndicator: {
     flexDirection: 'row',
