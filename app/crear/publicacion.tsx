@@ -28,6 +28,7 @@ import { useGlobalData } from '@/contexts/GlobalDataContext';
 import UploadProgressModal from '@/components/common/UploadProgressModal';
 import { processPostHashtags, processPostMentions } from '@/utils/postHelpers';
 import MentionAutocomplete, { MentionSuggestion } from '@/components/social/MentionAutocomplete';
+import HashtagAutocomplete from '@/components/social/HashtagAutocomplete';
 
 interface UserSuggestion {
   id: string;
@@ -281,6 +282,25 @@ export default function CrearPublicacionScreen() {
     setContenido(newText);
     
     const newCursorPosition = lastAtIndex + mentionUsername.length + 2;
+    setCursorPosition(newCursorPosition);
+  };
+
+  const handleSelectInlineHashtag = (hashtag: string, hashtagText: string) => {
+    console.log('[CrearPublicacion] Selected inline hashtag:', hashtag);
+    
+    const textBeforeCursor = contenido.substring(0, cursorPosition);
+    const lastHashIndex = textBeforeCursor.lastIndexOf('#');
+    
+    if (lastHashIndex === -1) return;
+
+    const newText = 
+      contenido.substring(0, lastHashIndex) + 
+      `#${hashtag} ` + 
+      contenido.substring(cursorPosition);
+    
+    setContenido(newText);
+    
+    const newCursorPosition = lastHashIndex + hashtag.length + 2;
     setCursorPosition(newCursorPosition);
   };
 
@@ -666,6 +686,13 @@ export default function CrearPublicacionScreen() {
             style={styles.mentionAutocomplete}
           />
 
+          <HashtagAutocomplete
+            text={contenido}
+            cursorPosition={cursorPosition}
+            onSelectHashtag={handleSelectInlineHashtag}
+            style={styles.hashtagAutocomplete}
+          />
+
           {usuariosEtiquetados.length > 0 && (
             <View style={styles.taggedUsersContainer}>
               <Text style={styles.taggedUsersTitle}>Etiquetados:</Text>
@@ -977,6 +1004,10 @@ const styles = StyleSheet.create({
   mentionAutocomplete: {
     marginBottom: 16,
     zIndex: 1000,
+  },
+  hashtagAutocomplete: {
+    marginBottom: 16,
+    zIndex: 999,
   },
   taggedUsersContainer: {
     marginBottom: 16,

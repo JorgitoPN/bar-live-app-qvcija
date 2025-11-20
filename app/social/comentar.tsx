@@ -21,6 +21,7 @@ import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
 import MentionAutocomplete, { MentionSuggestion } from '@/components/social/MentionAutocomplete';
+import { processCommentMentions } from '@/utils/postHelpers';
 
 export default function ComentarScreen() {
   const router = useRouter();
@@ -131,6 +132,13 @@ export default function ComentarScreen() {
       if (commentError) throw commentError;
 
       console.log('[Comentar] Comment created successfully');
+
+      // Process mentions in the comment
+      if (commentData && comentario) {
+        console.log('[Comentar] 🏷️ Processing mentions in comment...');
+        await processCommentMentions(commentData.id, comentario, postId);
+        console.log('[Comentar] ✅ Mentions processed');
+      }
 
       await supabase.rpc('increment_post_comments', { post_id: postId });
 
