@@ -240,11 +240,7 @@ export default function ComentarScreen() {
         </View>
       </LinearGradient>
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-      >
+      <View style={{ flex: 1 }}>
         <ScrollView 
           style={styles.content} 
           contentContainerStyle={styles.contentContainer}
@@ -336,17 +332,30 @@ export default function ComentarScreen() {
               </Text>
             </View>
           )}
+
+          {/* Add extra padding at bottom to ensure content is visible above keyboard */}
+          <View style={{ height: keyboardHeight > 0 ? 320 : 40 }} />
         </ScrollView>
 
-        {/* Autocomplete Component - Positioned above keyboard */}
-        <View style={[styles.autocompleteContainer, { bottom: keyboardHeight }]}>
-          <MentionAutocomplete
-            text={comentario}
-            cursorPosition={cursorPosition}
-            onSelectMention={handleSelectMention}
-          />
-        </View>
-      </KeyboardAvoidingView>
+        {/* Autocomplete Component - Fixed position above keyboard */}
+        {keyboardHeight > 0 && (
+          <View 
+            style={[
+              styles.autocompleteContainer, 
+              { 
+                bottom: keyboardHeight,
+              }
+            ]}
+            pointerEvents="box-none"
+          >
+            <MentionAutocomplete
+              text={comentario}
+              cursorPosition={cursorPosition}
+              onSelectMention={handleSelectMention}
+            />
+          </View>
+        )}
+      </View>
     </View>
   );
 }
@@ -398,7 +407,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    paddingBottom: 40,
+    flexGrow: 1,
   },
   postPreview: {
     backgroundColor: colors.cardBackground,
@@ -539,9 +548,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingBottom: 8,
     zIndex: 1000,
-    pointerEvents: 'box-none',
   },
   contextIndicator: {
     flexDirection: 'row',

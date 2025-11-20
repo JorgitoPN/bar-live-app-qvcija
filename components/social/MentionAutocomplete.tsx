@@ -348,8 +348,8 @@ export default function MentionAutocomplete({
   });
 
   return (
-    <View style={[styles.container, style]} pointerEvents="box-none">
-      <View style={styles.innerContainer} pointerEvents="auto">
+    <View style={[styles.container, style]} pointerEvents="auto">
+      <View style={styles.innerContainer}>
         <View style={styles.header}>
           <IconSymbol name="at" size={16} color={colors.primary} />
           <Text style={styles.headerText}>
@@ -429,16 +429,16 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     ...Platform.select({
       ios: {
-        shadowColor: colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 12,
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.25,
+        shadowRadius: 16,
       },
       android: {
-        elevation: 12,
+        elevation: 16,
       },
       web: {
-        boxShadow: `0 4px 20px ${colors.primary}40`,
+        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)',
       },
     }),
   },
