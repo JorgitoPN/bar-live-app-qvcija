@@ -38,9 +38,7 @@ export default function MentionAutocomplete({
   const [loading, setLoading] = useState(false);
   const [currentMentionText, setCurrentMentionText] = useState<string | null>(null);
 
-  // Detect if user is typing a mention
   const detectMention = useCallback(() => {
-    // Find the last @ before cursor position
     const textBeforeCursor = text.substring(0, cursorPosition);
     const lastAtIndex = textBeforeCursor.lastIndexOf('@');
 
@@ -50,7 +48,6 @@ export default function MentionAutocomplete({
       return;
     }
 
-    // Check if there's a space between @ and cursor (mention ended)
     const textAfterAt = textBeforeCursor.substring(lastAtIndex + 1);
     if (textAfterAt.includes(' ') || textAfterAt.includes('\n')) {
       setCurrentMentionText(null);
@@ -58,7 +55,6 @@ export default function MentionAutocomplete({
       return;
     }
 
-    // Check if @ is at start or preceded by space/newline (valid mention start)
     if (lastAtIndex > 0) {
       const charBeforeAt = textBeforeCursor[lastAtIndex - 1];
       if (charBeforeAt !== ' ' && charBeforeAt !== '\n') {
@@ -68,11 +64,9 @@ export default function MentionAutocomplete({
       }
     }
 
-    // Valid mention detected
     setCurrentMentionText(textAfterAt);
   }, [text, cursorPosition]);
 
-  // Search for users and locals
   const searchMentions = useCallback(async (query: string) => {
     if (query.length === 0) {
       setSuggestions([]);
@@ -83,10 +77,8 @@ export default function MentionAutocomplete({
     try {
       console.log('[MentionAutocomplete] 🔍 Searching for:', query);
 
-      // Create fuzzy search pattern
       const fuzzyPattern = query.split('').join('%');
 
-      // Search users
       const { data: usersData, error: usersError } = await supabase
         .from('usuarios')
         .select('id, nombre, username, avatar, perfil_privado, permitir_etiquetas')
@@ -99,12 +91,8 @@ export default function MentionAutocomplete({
         console.error('[MentionAutocomplete] ❌ Error searching users:', usersError);
       }
 
-      // FIXED: Search locals with active subscriptions using explicit relationship naming
-      // The issue was the ambiguous relationship between suscripciones_locales and planes_suscripcion
-      // We need to explicitly specify which foreign key to use: plan_id (not plan_pendiente_id)
       console.log('[MentionAutocomplete] 🏢 Searching locals with active subscriptions...');
       
-      // Step 1: Get locals matching the search query
       const { data: localsData, error: localsError } = await supabase
         .from('locales')
         .select('id, nombre, imagen_url')
@@ -116,12 +104,10 @@ export default function MentionAutocomplete({
         console.error('[MentionAutocomplete] ❌ Error searching locals:', localsError);
       }
 
-      // Step 2: Filter locals by active subscription with estandar or premium plan
       let filteredLocals: any[] = [];
       if (localsData && localsData.length > 0) {
         const localIds = localsData.map(l => l.id);
         
-        // Get subscriptions for these locals
         const { data: subscriptionsData, error: subscriptionsError } = await supabase
           .from('suscripciones_locales')
           .select(`
@@ -136,7 +122,6 @@ export default function MentionAutocomplete({
         if (subscriptionsError) {
           console.error('[MentionAutocomplete] ❌ Error fetching subscriptions:', subscriptionsError);
         } else if (subscriptionsData) {
-          // Filter subscriptions with estandar or premium plans
           const validLocalIds = subscriptionsData
             .filter(sub => {
               const planName = (sub.planes_suscripcion as any)?.nombre;
@@ -144,7 +129,6 @@ export default function MentionAutocomplete({
             })
             .map(sub => sub.local_id);
 
-          // Filter locals to only include those with valid subscriptions
           filteredLocals = localsData.filter(local => validLocalIds.includes(local.id));
           
           console.log('[MentionAutocomplete] ✅ Found locals with valid subscriptions:', filteredLocals.length);
@@ -153,7 +137,6 @@ export default function MentionAutocomplete({
 
       const results: MentionSuggestion[] = [];
 
-      // Add users with relevance scoring
       if (!usersError && usersData) {
         const scoredUsers = usersData.map(u => {
           const nombre = u.nombre.toLowerCase();
@@ -180,7 +163,6 @@ export default function MentionAutocomplete({
         })));
       }
 
-      // Add locals with relevance scoring (only those with active estandar or premium plans)
       if (filteredLocals.length > 0) {
         const scoredLocals = filteredLocals.map(l => {
           const nombre = l.nombre.toLowerCase();
@@ -216,19 +198,16 @@ export default function MentionAutocomplete({
     }
   }, []);
 
-  // Detect mention when text or cursor changes
   useEffect(() => {
     detectMention();
   }, [detectMention]);
 
-  // Search when mention text changes
   useEffect(() => {
     if (currentMentionText !== null) {
       searchMentions(currentMentionText);
     }
   }, [currentMentionText, searchMentions]);
 
-  // Don't render if no active mention
   if (currentMentionText === null) {
     return null;
   }
@@ -294,15 +273,17 @@ const styles = StyleSheet.create({
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        zIndex: 9999,
       },
       android: {
-        elevation: 4,
+        elevation: 16,
       },
       web: {
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+        zIndex: 9999,
       },
     }),
   },

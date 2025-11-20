@@ -43,7 +43,6 @@ export default function ComentarScreen() {
 
   const loadData = async () => {
     try {
-      // Load post
       const { data: postData, error: postError } = await supabase
         .from('posts')
         .select('*, autor:usuarios(nombre, avatar, username)')
@@ -53,7 +52,6 @@ export default function ComentarScreen() {
       if (postError) throw postError;
       setPost(postData);
 
-      // Load parent comment if replying
       if (parentCommentId) {
         const { data: commentData, error: commentError } = await supabase
           .from('comentarios')
@@ -76,13 +74,11 @@ export default function ComentarScreen() {
   const handleSelectMention = (mention: MentionSuggestion, mentionText: string) => {
     console.log('[Comentar] Selected mention:', mention);
     
-    // Find the @ position before cursor
     const textBeforeCursor = comentario.substring(0, cursorPosition);
     const lastAtIndex = textBeforeCursor.lastIndexOf('@');
     
     if (lastAtIndex === -1) return;
 
-    // Replace the partial mention with the full mention
     const mentionUsername = mention.tipo === 'local' ? mention.nombre : mention.username;
     const newText = 
       comentario.substring(0, lastAtIndex) + 
@@ -91,8 +87,7 @@ export default function ComentarScreen() {
     
     setComentario(newText);
     
-    // Update cursor position to after the mention
-    const newCursorPosition = lastAtIndex + mentionUsername.length + 2; // +2 for @ and space
+    const newCursorPosition = lastAtIndex + mentionUsername.length + 2;
     setCursorPosition(newCursorPosition);
   };
 
@@ -114,9 +109,7 @@ export default function ComentarScreen() {
       console.log('[Comentar] Active local profile:', activeLocalProfileId);
       console.log('[Comentar] Is interacting as local:', isInteractingAsLocal);
 
-      // FIXED: Use correct author ID based on context
-      // If interacting as local, use the local's owner ID but mark it as local comment
-      const authorId = user.id; // Always the logged-in user
+      const authorId = user.id;
       
       const { data: commentData, error: commentError } = await supabase
         .from('comentarios')
@@ -125,7 +118,6 @@ export default function ComentarScreen() {
           autor_id: authorId,
           texto: comentario,
           parent_comment_id: parentCommentId || null,
-          // FIXED: Add tipo and local_id fields if commenting as local
           ...(isInteractingAsLocal && activeLocalProfileId ? {
             tipo: 'local',
             local_id: activeLocalProfileId,
@@ -140,10 +132,8 @@ export default function ComentarScreen() {
 
       console.log('[Comentar] Comment created successfully');
 
-      // Update post comment count
       await supabase.rpc('increment_post_comments', { post_id: postId });
 
-      // Create notification for post author
       if (post.autor_id !== user.id) {
         await supabase.from('notificaciones').insert({
           usuario_id: post.autor_id,
@@ -155,7 +145,6 @@ export default function ComentarScreen() {
         });
       }
 
-      // Create notification for parent comment author if replying
       if (parentComment && parentComment.autor_id !== user.id) {
         await supabase.from('notificaciones').insert({
           usuario_id: parentComment.autor_id,
@@ -227,7 +216,6 @@ export default function ComentarScreen() {
         contentContainerStyle={styles.contentContainer}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Post preview */}
         {post && (
           <View style={styles.postPreview}>
             <View style={styles.postHeader}>
@@ -252,7 +240,6 @@ export default function ComentarScreen() {
           </View>
         )}
 
-        {/* Parent comment preview if replying */}
         {parentComment && (
           <View style={styles.parentCommentPreview}>
             <Text style={styles.replyingToLabel}>Respondiendo a:</Text>
@@ -274,7 +261,6 @@ export default function ComentarScreen() {
           </View>
         )}
 
-        {/* Comment input */}
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.textInput}
@@ -293,7 +279,6 @@ export default function ComentarScreen() {
           <Text style={styles.charCount}>{comentario.length}/500</Text>
         </View>
 
-        {/* Inline mention autocomplete */}
         <MentionAutocomplete
           text={comentario}
           cursorPosition={cursorPosition}
@@ -301,7 +286,6 @@ export default function ComentarScreen() {
           style={styles.mentionAutocomplete}
         />
 
-        {/* Context indicator */}
         {isInteractingAsLocal && activeLocalProfileId && (
           <View style={styles.contextIndicator}>
             <IconSymbol name="building.2" size={16} color={colors.primary} />
@@ -360,6 +344,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: 16,
+    paddingBottom: 40,
   },
   postPreview: {
     backgroundColor: colors.cardBackground,
@@ -462,6 +447,7 @@ const styles = StyleSheet.create({
   },
   mentionAutocomplete: {
     marginBottom: 16,
+    zIndex: 1000,
   },
   contextIndicator: {
     flexDirection: 'row',

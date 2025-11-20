@@ -111,10 +111,9 @@ export default function CrearPublicacionScreen() {
   const [tagSuggestions, setTagSuggestions] = useState<UserSuggestion[]>([]);
   const [searchingTags, setSearchingTags] = useState(false);
 
-  const MAX_IMAGES = 10; // Instagram allows up to 10 images
+  const MAX_IMAGES = 10;
 
   const buscarUsuariosYLocales = useCallback(async (texto: string) => {
-    // ENHANCED: Allow search with just 1 character and remove @ if present
     const cleanTexto = texto.replace('@', '').trim();
     
     if (cleanTexto.length < 1) {
@@ -126,17 +125,8 @@ export default function CrearPublicacionScreen() {
     try {
       console.log('[CrearPublicacion] 🔍 Searching for users and locals with query:', cleanTexto);
       
-      // ENHANCED: Fuzzy search with multiple strategies
-      // 1. Exact match (highest priority)
-      // 2. Starts with (high priority)
-      // 3. Contains (medium priority)
-      // 4. Fuzzy match with typos (lower priority)
-      
-      // Create fuzzy search patterns
-      // Allow for 1 character difference per 4 characters
       const fuzzyPattern = cleanTexto.split('').join('%');
       
-      // Search users with enhanced fuzzy matching
       const { data: usersData, error: usersError } = await supabase
         .from('usuarios')
         .select('id, nombre, username, avatar, perfil_privado, permitir_etiquetas')
@@ -150,11 +140,8 @@ export default function CrearPublicacionScreen() {
         console.log('[CrearPublicacion] ✅ Found users:', usersData?.length || 0);
       }
 
-      // FIXED: Search locals with enhanced fuzzy matching AND filter by active subscription
-      // Only show locals with active 'estandar' or 'premium' plans
       console.log('[CrearPublicacion] 🏢 Searching locals with active subscriptions...');
       
-      // Step 1: Get locals matching the search query
       const { data: localsData, error: localsError } = await supabase
         .from('locales')
         .select('id, nombre, imagen_url')
@@ -166,12 +153,10 @@ export default function CrearPublicacionScreen() {
         console.error('[CrearPublicacion] ❌ Error searching locals:', localsError);
       }
 
-      // Step 2: Filter locals by active subscription with estandar or premium plan
       let filteredLocalsData: any[] = [];
       if (localsData && localsData.length > 0) {
         const localIds = localsData.map(l => l.id);
         
-        // Get subscriptions for these locals with explicit relationship naming
         const { data: subscriptionsData, error: subscriptionsError } = await supabase
           .from('suscripciones_locales')
           .select(`
@@ -186,7 +171,6 @@ export default function CrearPublicacionScreen() {
         if (subscriptionsError) {
           console.error('[CrearPublicacion] ❌ Error fetching subscriptions:', subscriptionsError);
         } else if (subscriptionsData) {
-          // Filter subscriptions with estandar or premium plans
           const validLocalIds = subscriptionsData
             .filter(sub => {
               const planName = (sub.planes_suscripcion as any)?.nombre;
@@ -194,7 +178,6 @@ export default function CrearPublicacionScreen() {
             })
             .map(sub => sub.local_id);
 
-          // Filter locals to only include those with valid subscriptions
           filteredLocalsData = localsData.filter(local => validLocalIds.includes(local.id));
           
           console.log('[CrearPublicacion] ✅ Found locals with valid subscriptions:', filteredLocalsData.length);
@@ -203,13 +186,11 @@ export default function CrearPublicacionScreen() {
 
       const suggestions: UserSuggestion[] = [];
 
-      // Add users with relevance scoring
       if (!usersError && usersData) {
         const filteredUsers = usersData.filter(
           (u) => u.permitir_etiquetas && !usuariosEtiquetados.find((ue) => ue.id === u.id && ue.tipo === 'usuario')
         );
         
-        // Sort by relevance
         const scoredUsers = filteredUsers.map(u => {
           const nombre = u.nombre.toLowerCase();
           const username = (u.username || '').toLowerCase();
@@ -217,13 +198,9 @@ export default function CrearPublicacionScreen() {
           
           let score = 0;
           
-          // Exact match (highest score)
           if (nombre === search || username === search) score += 100;
-          // Starts with (high score)
           else if (nombre.startsWith(search) || username.startsWith(search)) score += 50;
-          // Contains (medium score)
           else if (nombre.includes(search) || username.includes(search)) score += 25;
-          // Fuzzy match (lower score)
           else score += 10;
           
           return { ...u, score };
@@ -240,26 +217,20 @@ export default function CrearPublicacionScreen() {
         })));
       }
 
-      // Add locals with relevance scoring (only those with active estandar or premium plans)
       if (filteredLocalsData.length > 0) {
         const filteredLocals = filteredLocalsData.filter(
           (l) => !usuariosEtiquetados.find((ue) => ue.id === l.id && ue.tipo === 'local')
         );
         
-        // Sort by relevance
         const scoredLocals = filteredLocals.map(l => {
           const nombre = l.nombre.toLowerCase();
           const search = cleanTexto.toLowerCase();
           
           let score = 0;
           
-          // Exact match (highest score)
           if (nombre === search) score += 100;
-          // Starts with (high score)
           else if (nombre.startsWith(search)) score += 50;
-          // Contains (medium score)
           else if (nombre.includes(search)) score += 25;
-          // Fuzzy match (lower score)
           else score += 10;
           
           return { ...l, score };
@@ -285,7 +256,6 @@ export default function CrearPublicacionScreen() {
     }
   }, [usuariosEtiquetados]);
 
-  // ENHANCED: Real-time predictive search as user types
   useEffect(() => {
     if (showTagModal && tagSearchQuery.length > 0) {
       buscarUsuariosYLocales(tagSearchQuery);
@@ -297,13 +267,11 @@ export default function CrearPublicacionScreen() {
   const handleSelectInlineMention = (mention: MentionSuggestion, mentionText: string) => {
     console.log('[CrearPublicacion] Selected inline mention:', mention);
     
-    // Find the @ position before cursor
     const textBeforeCursor = contenido.substring(0, cursorPosition);
     const lastAtIndex = textBeforeCursor.lastIndexOf('@');
     
     if (lastAtIndex === -1) return;
 
-    // Replace the partial mention with the full mention
     const mentionUsername = mention.tipo === 'local' ? mention.nombre : mention.username;
     const newText = 
       contenido.substring(0, lastAtIndex) + 
@@ -312,8 +280,7 @@ export default function CrearPublicacionScreen() {
     
     setContenido(newText);
     
-    // Update cursor position to after the mention
-    const newCursorPosition = lastAtIndex + mentionUsername.length + 2; // +2 for @ and space
+    const newCursorPosition = lastAtIndex + mentionUsername.length + 2;
     setCursorPosition(newCursorPosition);
   };
 
@@ -502,7 +469,6 @@ export default function CrearPublicacionScreen() {
       if (imagenes.length > 0) {
         console.log('[CrearPublicacion] Uploading', imagenes.length, 'images...');
         
-        // Upload images with progress tracking
         for (let i = 0; i < imagenes.length; i++) {
           const progressStart = 10 + (i * 60 / imagenes.length);
           setUploadProgress(progressStart);
@@ -525,7 +491,6 @@ export default function CrearPublicacionScreen() {
         setUploadProgress(70);
       }
 
-      // Determine the correct author based on active profile
       let effectiveLocalId: string | null = null;
       let postTipo: 'usuario' | 'local' = 'usuario';
 
@@ -547,8 +512,6 @@ export default function CrearPublicacionScreen() {
 
       setUploadProgress(75);
 
-      // Create post with correct author context
-      // Keep backward compatibility: if only one image, also set 'imagen' field
       const postData: any = {
         autor_id: user.id,
         tipo: postTipo,
@@ -560,7 +523,6 @@ export default function CrearPublicacionScreen() {
         ubicacion_lng: ubicacion?.lng,
       };
 
-      // Backward compatibility: set imagen field if only one image
       if (imagenesUrls.length === 1) {
         postData.imagen = imagenesUrls[0];
       }
@@ -580,7 +542,6 @@ export default function CrearPublicacionScreen() {
 
       setUploadProgress(80);
 
-      // Process hashtags and mentions in the content
       if (postData2 && contenido) {
         console.log('[CrearPublicacion] 🏷️ Processing hashtags and mentions...');
         await Promise.all([
@@ -592,7 +553,6 @@ export default function CrearPublicacionScreen() {
 
       setUploadProgress(85);
 
-      // Handle tags - only for users (not locals)
       if (usuariosEtiquetados.length > 0 && postData2) {
         const userTags = usuariosEtiquetados.filter(u => u.tipo === 'usuario');
         
@@ -609,7 +569,6 @@ export default function CrearPublicacionScreen() {
 
           if (tagsError) console.error('Error adding tags:', tagsError);
 
-          // Send notifications to tagged users
           const notifications = userTags.map((u) => ({
             usuario_id: u.id,
             tipo: 'mencion',
@@ -625,13 +584,11 @@ export default function CrearPublicacionScreen() {
 
       setUploadProgress(90);
 
-      // Refresh global data to show new post immediately
       console.log('[CrearPublicacion] 🔄 Refreshing global data...');
       await refreshData(true);
 
       setUploadProgress(100);
 
-      // Small delay to show 100% before closing
       setTimeout(() => {
         setShowUploadProgress(false);
         Alert.alert('Éxito', 'Publicación creada correctamente', [
@@ -702,7 +659,6 @@ export default function CrearPublicacionScreen() {
             <Text style={styles.charCount}>{contenido.length}/500</Text>
           </View>
 
-          {/* Inline mention autocomplete */}
           <MentionAutocomplete
             text={contenido}
             cursorPosition={cursorPosition}
@@ -824,7 +780,6 @@ export default function CrearPublicacionScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* ENHANCED Tag Modal - Fixed layout with search at top and results below */}
       <Modal
         visible={showTagModal}
         animationType="slide"
@@ -835,20 +790,12 @@ export default function CrearPublicacionScreen() {
           setTagSuggestions([]);
         }}
       >
-        <Pressable 
-          style={styles.modalOverlay}
-          onPress={() => {
-            setShowTagModal(false);
-            setTagSearchQuery('');
-            setTagSuggestions([]);
-          }}
-        >
+        <View style={styles.modalOverlay}>
           <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={styles.tagModalKeyboardView}
           >
-            <Pressable style={styles.tagModal} onPress={(e) => e.stopPropagation()}>
-              {/* Fixed Header */}
+            <View style={styles.tagModal}>
               <View style={styles.tagModalHeader}>
                 <Text style={styles.tagModalTitle}>Etiquetar Usuarios y Locales</Text>
                 <TouchableOpacity 
@@ -863,7 +810,6 @@ export default function CrearPublicacionScreen() {
                 </TouchableOpacity>
               </View>
 
-              {/* Fixed Search Bar at Top */}
               <View style={styles.tagSearchContainer}>
                 <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
                 <TextInput
@@ -889,7 +835,6 @@ export default function CrearPublicacionScreen() {
                 )}
               </View>
 
-              {/* Scrollable Results Below */}
               <ScrollView 
                 style={styles.tagSuggestionsContainer}
                 keyboardShouldPersistTaps="handled"
@@ -951,9 +896,9 @@ export default function CrearPublicacionScreen() {
                   </View>
                 )}
               </ScrollView>
-            </Pressable>
+            </View>
           </KeyboardAvoidingView>
-        </Pressable>
+        </View>
       </Modal>
 
       <UploadProgressModal
@@ -1007,6 +952,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: 16,
+    paddingBottom: 120,
   },
   textInputContainer: {
     backgroundColor: colors.cardBackground,
@@ -1030,6 +976,7 @@ const styles = StyleSheet.create({
   },
   mentionAutocomplete: {
     marginBottom: 16,
+    zIndex: 1000,
   },
   taggedUsersContainer: {
     marginBottom: 16,
@@ -1160,15 +1107,14 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   tagModalKeyboardView: {
-    flex: 1,
-    justifyContent: 'flex-end',
+    width: '100%',
   },
   tagModal: {
     backgroundColor: colors.background,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: '85%',
-    minHeight: '60%',
+    maxHeight: '90%',
+    minHeight: '70%',
   },
   tagModalHeader: {
     flexDirection: 'row',
@@ -1205,7 +1151,7 @@ const styles = StyleSheet.create({
   },
   tagSuggestionsContent: {
     paddingHorizontal: 16,
-    paddingBottom: 20,
+    paddingBottom: 40,
   },
   tagLoadingContainer: {
     paddingVertical: 60,
