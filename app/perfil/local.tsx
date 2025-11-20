@@ -32,14 +32,13 @@ import { getCategoryIcon } from '@/utils/categoryIcons';
 import FloatingTabBar, { TabBarItem } from '@/components/FloatingTabBar';
 import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
 import OfertaTrabajoCard from '@/components/empleo/OfertaTrabajoCard';
-import PerfilProfesionalCard from '@/components/empleo/PerfilProfesionalCard';
 import StoryStatsModal from '@/components/social/StoryStatsModal';
 import { PROVINCIAS, getProvinceVariations, filterByProvincia } from '@/utils/provinceNormalizer';
 import EventBanner from '@/components/eventos/EventBanner';
 import { useLocalEvent } from '@/hooks/useLocalEvent';
 
-// ✅ VERSION MARKER - Force cache bust: v3.5.0 - Added like and comment functionality to story viewer
-const SCREEN_VERSION = '3.5.0';
+// ✅ VERSION MARKER - Force cache bust: v3.6.0 - Employment tab improvements for local profiles
+const SCREEN_VERSION = '3.6.0';
 
 const { width, height } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -102,20 +101,6 @@ interface OfertaTrabajo {
   };
 }
 
-interface PerfilProfesional {
-  id: string;
-  usuario_id?: string;
-  nombre_completo: string;
-  puesto_deseado: string;
-  experiencia: string;
-  habilidades?: string;
-  disponibilidad?: string;
-  foto_url?: string;
-  provincia?: string;
-  activo: boolean;
-  created_at: string;
-}
-
 interface Seguidor {
   id: string;
   nombre: string;
@@ -147,16 +132,9 @@ export default function LocalPerfilScreen() {
   const [isOwner, setIsOwner] = useState(false);
   const [activeTab, setActiveTab] = useState<'posts' | 'eventos' | 'empleo' | 'info'>('posts');
 
-  // Employment tab state
-  const [empleoSubTab, setEmpleoSubTab] = useState<'ofertas' | 'demandantes'>('ofertas');
+  // Employment tab state - SIMPLIFIED for local profiles
   const [ofertasTrabajo, setOfertasTrabajo] = useState<OfertaTrabajo[]>([]);
-  const [perfilesProfesionales, setPerfilesProfesionales] = useState<PerfilProfesional[]>([]);
   const [loadingEmpleo, setLoadingEmpleo] = useState(false);
-  
-  // Filters for employment
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedProvincia, setSelectedProvincia] = useState<string | null>(null);
-  const [showProvinciaModal, setShowProvinciaModal] = useState(false);
 
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [localStories, setLocalStories] = useState<LocalStory[]>([]);
@@ -494,19 +472,16 @@ export default function LocalPerfilScreen() {
     }
   }, [localId, user, router]);
 
-  // Load employment data with province normalization
+  // ✅ UPDATED: Load employment data - ONLY job offers for this specific local
   const loadEmpleoData = useCallback(async () => {
     if (!localId) return;
     
     setLoadingEmpleo(true);
     try {
-      console.log('[LocalPerfil] Loading employment data with filters:', {
-        searchQuery,
-        selectedProvincia
-      });
+      console.log('[LocalPerfil] Loading job offers for local:', localId);
 
-      // Load ALL job offers first (we'll filter by province in memory)
-      let ofertasQuery = supabase
+      // Load ONLY job offers for THIS specific local
+      const { data: ofertasData, error: ofertasError } = await supabase
         .from('ofertas_trabajo')
         .select(`
           *,
@@ -515,60 +490,13 @@ export default function LocalPerfilScreen() {
             imagen_url
           )
         `)
+        .eq('local_id', localId)
         .eq('activo', true)
         .order('created_at', { ascending: false });
-
-      // Apply search filter at database level
-      if (searchQuery) {
-        ofertasQuery = ofertasQuery.or(`titulo.ilike.%${searchQuery}%,descripcion.ilike.%${searchQuery}%`);
-      }
-
-      const { data: ofertasData, error: ofertasError } = await ofertasQuery;
 
       if (!ofertasError && ofertasData) {
-        // Filter by province in memory using the normalizer
-        let filteredOfertas = ofertasData;
-        if (selectedProvincia) {
-          filteredOfertas = filterByProvincia(ofertasData, selectedProvincia);
-          console.log('[LocalPerfil] ✅ Filtered job offers by province:', {
-            selectedProvincia,
-            totalOffers: ofertasData.length,
-            filteredOffers: filteredOfertas.length
-          });
-        }
-        
-        console.log('[LocalPerfil] ✅ Loaded', filteredOfertas.length, 'job offers');
-        setOfertasTrabajo(filteredOfertas);
-      }
-
-      // Load ALL professional profiles first (we'll filter by province in memory)
-      let perfilesQuery = supabase
-        .from('perfiles_profesionales')
-        .select('*')
-        .eq('activo', true)
-        .order('created_at', { ascending: false });
-
-      // Apply search filter at database level
-      if (searchQuery) {
-        perfilesQuery = perfilesQuery.or(`nombre_completo.ilike.%${searchQuery}%,puesto_deseado.ilike.%${searchQuery}%`);
-      }
-
-      const { data: perfilesData, error: perfilesError } = await perfilesQuery;
-
-      if (!perfilesError && perfilesData) {
-        // Filter by province in memory using the normalizer
-        let filteredPerfiles = perfilesData;
-        if (selectedProvincia) {
-          filteredPerfiles = filterByProvincia(perfilesData, selectedProvincia);
-          console.log('[LocalPerfil] ✅ Filtered professional profiles by province:', {
-            selectedProvincia,
-            totalProfiles: perfilesData.length,
-            filteredProfiles: filteredPerfiles.length
-          });
-        }
-        
-        console.log('[LocalPerfil] ✅ Loaded', filteredPerfiles.length, 'professional profiles');
-        setPerfilesProfesionales(filteredPerfiles);
+        console.log('[LocalPerfil] ✅ Loaded', ofertasData.length, 'job offers for this local');
+        setOfertasTrabajo(ofertasData);
       }
 
       setContentLoaded(prev => ({ ...prev, empleo: true }));
@@ -577,7 +505,7 @@ export default function LocalPerfilScreen() {
     } finally {
       setLoadingEmpleo(false);
     }
-  }, [localId, searchQuery, selectedProvincia]);
+  }, [localId]);
 
   useEffect(() => {
     loadLocalData();
@@ -589,13 +517,6 @@ export default function LocalPerfilScreen() {
       loadEmpleoData();
     }
   }, [activeTab, contentLoaded.empleo, loadEmpleoData]);
-
-  // Reload employment data when filters change
-  useEffect(() => {
-    if (activeTab === 'empleo') {
-      loadEmpleoData();
-    }
-  }, [searchQuery, selectedProvincia, activeTab, loadEmpleoData]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -674,10 +595,6 @@ export default function LocalPerfilScreen() {
 
   const handleVerOferta = (ofertaId: string) => {
     router.push(`/empleo/oferta-detalle?id=${ofertaId}`);
-  };
-
-  const handleVerPerfil = (perfilId: string) => {
-    router.push(`/empleo/perfil-detalle?id=${perfilId}`);
   };
 
   const handleCrearPost = async () => {
@@ -1668,92 +1585,20 @@ export default function LocalPerfilScreen() {
             </View>
           )}
 
+          {/* ✅ UPDATED: Simplified Employment Tab - Only Job Offers */}
           {activeTab === 'empleo' && (
             <View style={styles.empleoContainer}>
-              {/* Sub-tabs for Empleo */}
-              <View style={styles.empleoSubTabs}>
-                <TouchableOpacity
-                  style={[styles.empleoSubTab, empleoSubTab === 'ofertas' && styles.empleoSubTabActive]}
-                  onPress={() => setEmpleoSubTab('ofertas')}
-                >
-                  <Text style={[styles.empleoSubTabText, empleoSubTab === 'ofertas' && styles.empleoSubTabTextActive]}>
-                    Ofertas de Empleo
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.empleoSubTab, empleoSubTab === 'demandantes' && styles.empleoSubTabActive]}
-                  onPress={() => setEmpleoSubTab('demandantes')}
-                >
-                  <Text style={[styles.empleoSubTabText, empleoSubTab === 'demandantes' && styles.empleoSubTabTextActive]}>
-                    Demandantes
-                  </Text>
-                </TouchableOpacity>
+              {/* ✅ Title section */}
+              <View style={styles.empleoHeader}>
+                <Text style={styles.empleoHeaderTitle}>
+                  {isOwner ? 'Mis Ofertas de Empleo' : 'Ofertas de Empleo'}
+                </Text>
+                <Text style={styles.empleoHeaderSubtitle}>
+                  {isOwner 
+                    ? 'Gestiona las ofertas de trabajo de tu local' 
+                    : 'Ofertas de trabajo publicadas por este local'}
+                </Text>
               </View>
-
-              {/* Filters */}
-              <View style={styles.filtersContainer}>
-                <View style={styles.searchContainer}>
-                  <IconSymbol name="magnifyingglass" size={18} color={colors.textSecondary} />
-                  <TextInput
-                    style={styles.searchInput}
-                    placeholder={empleoSubTab === 'ofertas' ? 'Buscar por puesto...' : 'Buscar por nombre o puesto...'}
-                    placeholderTextColor={colors.textSecondary}
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                  />
-                  {searchQuery.length > 0 && (
-                    <TouchableOpacity onPress={() => setSearchQuery('')}>
-                      <IconSymbol name="xmark.circle.fill" size={18} color={colors.textSecondary} />
-                    </TouchableOpacity>
-                  )}
-                </View>
-
-                <TouchableOpacity
-                  style={styles.provinciaFilter}
-                  onPress={() => {
-                    console.log('[LocalPerfil] Opening provincia modal, PROVINCIAS count:', PROVINCIAS.length);
-                    setShowProvinciaModal(true);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <IconSymbol name="location.fill" size={18} color={selectedProvincia ? colors.primary : colors.textSecondary} />
-                  <Text style={[styles.provinciaFilterText, selectedProvincia && styles.provinciaFilterTextActive]}>
-                    {selectedProvincia || 'Provincia'}
-                  </Text>
-                  <IconSymbol name="chevron.down" size={14} color={colors.textSecondary} />
-                </TouchableOpacity>
-              </View>
-
-              {/* Active filters display */}
-              {(searchQuery || selectedProvincia) && (
-                <View style={styles.activeFilters}>
-                  {searchQuery && (
-                    <View style={styles.activeFilterChip}>
-                      <Text style={styles.activeFilterText}>Búsqueda: {searchQuery}</Text>
-                      <TouchableOpacity onPress={() => setSearchQuery('')}>
-                        <IconSymbol name="xmark" size={12} color={colors.text} />
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                  {selectedProvincia && (
-                    <View style={styles.activeFilterChip}>
-                      <Text style={styles.activeFilterText}>{selectedProvincia}</Text>
-                      <TouchableOpacity onPress={() => setSelectedProvincia(null)}>
-                        <IconSymbol name="xmark" size={12} color={colors.text} />
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                  <TouchableOpacity
-                    style={styles.clearFiltersButton}
-                    onPress={() => {
-                      setSearchQuery('');
-                      setSelectedProvincia(null);
-                    }}
-                  >
-                    <Text style={styles.clearFiltersText}>Limpiar filtros</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
 
               {/* Content */}
               {loadingEmpleo ? (
@@ -1762,71 +1607,39 @@ export default function LocalPerfilScreen() {
                   <Text style={styles.loadingText}>Cargando...</Text>
                 </View>
               ) : (
-                <>
-                  {empleoSubTab === 'ofertas' && (
-                    <View style={styles.empleoList}>
-                      {ofertasTrabajo.length > 0 ? (
-                        ofertasTrabajo.map((oferta) => (
-                          <OfertaTrabajoCard
-                            key={oferta.id}
-                            empleo={{
-                              id: oferta.id,
-                              localId: oferta.local_id || '',
-                              titulo: oferta.titulo,
-                              descripcion: oferta.descripcion,
-                              tipo: oferta.tipo,
-                              salario: oferta.salario,
-                              localNombre: oferta.locales?.nombre || 'Local',
-                              fechaPublicacion: oferta.created_at,
-                              provincia: oferta.provincia || '',
-                            }}
-                            onPress={() => handleVerOferta(oferta.id)}
-                          />
-                        ))
-                      ) : (
-                        <View style={styles.emptyState}>
-                          <IconSymbol name="briefcase" size={48} color={colors.textSecondary} />
-                          <Text style={styles.emptyText}>
-                            {isOwner ? 'Publica tu primera oferta de empleo' : 'No hay ofertas disponibles'}
-                          </Text>
-                          {isOwner && (
-                            <TouchableOpacity style={styles.emptyButton} onPress={handleCrearOferta}>
-                              <Text style={styles.emptyButtonText}>Crear Oferta</Text>
-                            </TouchableOpacity>
-                          )}
-                        </View>
+                <View style={styles.empleoList}>
+                  {ofertasTrabajo.length > 0 ? (
+                    ofertasTrabajo.map((oferta) => (
+                      <OfertaTrabajoCard
+                        key={oferta.id}
+                        empleo={{
+                          id: oferta.id,
+                          localId: oferta.local_id || '',
+                          titulo: oferta.titulo,
+                          descripcion: oferta.descripcion,
+                          tipo: oferta.tipo,
+                          salario: oferta.salario,
+                          localNombre: oferta.locales?.nombre || local.nombre,
+                          fechaPublicacion: oferta.created_at,
+                          provincia: oferta.provincia || local.provincia || '',
+                        }}
+                        onPress={() => handleVerOferta(oferta.id)}
+                      />
+                    ))
+                  ) : (
+                    <View style={styles.emptyState}>
+                      <IconSymbol name="briefcase" size={48} color={colors.textSecondary} />
+                      <Text style={styles.emptyText}>
+                        {isOwner ? 'Publica tu primera oferta de empleo' : 'No hay ofertas disponibles'}
+                      </Text>
+                      {isOwner && (
+                        <TouchableOpacity style={styles.emptyButton} onPress={handleCrearOferta}>
+                          <Text style={styles.emptyButtonText}>Crear Oferta</Text>
+                        </TouchableOpacity>
                       )}
                     </View>
                   )}
-
-                  {empleoSubTab === 'demandantes' && (
-                    <View style={styles.empleoList}>
-                      {perfilesProfesionales.length > 0 ? (
-                        perfilesProfesionales.map((perfil) => (
-                          <PerfilProfesionalCard
-                            key={perfil.id}
-                            perfil={{
-                              id: perfil.id,
-                              nombre: perfil.nombre_completo,
-                              avatar: perfil.foto_url,
-                              puesto: perfil.puesto_deseado,
-                              experiencia: perfil.experiencia,
-                              ubicacion: perfil.provincia || 'No especificada',
-                              habilidades: perfil.habilidades ? perfil.habilidades.split(',').map(h => h.trim()) : [],
-                              disponibilidad: perfil.disponibilidad || 'Disponible',
-                            }}
-                            onPress={() => handleVerPerfil(perfil.id)}
-                          />
-                        ))
-                      ) : (
-                        <View style={styles.emptyState}>
-                          <IconSymbol name="person.2" size={48} color={colors.textSecondary} />
-                          <Text style={styles.emptyText}>No hay demandantes de empleo</Text>
-                        </View>
-                      )}
-                    </View>
-                  )}
-                </>
+                </View>
               )}
             </View>
           )}
@@ -2191,78 +2004,6 @@ export default function LocalPerfilScreen() {
             </View>
           </Pressable>
         </Pressable>
-      </Modal>
-
-      {/* Provincia Filter Modal */}
-      <Modal
-        visible={showProvinciaModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowProvinciaModal(false)}
-      >
-        <View style={styles.provinciaModalOverlay}>
-          <Pressable 
-            style={styles.provinciaModalBackdrop}
-            onPress={() => setShowProvinciaModal(false)}
-          />
-          <View style={styles.provinciaModalContent}>
-            <View style={styles.provinciaModalHeader}>
-              <Text style={styles.provinciaModalTitle}>Seleccionar Provincia</Text>
-              <TouchableOpacity 
-                onPress={() => setShowProvinciaModal(false)} 
-                activeOpacity={0.8}
-              >
-                <IconSymbol name="xmark" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-            
-            {selectedProvincia && (
-              <TouchableOpacity
-                style={styles.clearProvinciaButton}
-                onPress={() => {
-                  setSelectedProvincia(null);
-                  setShowProvinciaModal(false);
-                }}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.clearProvinciaText}>Limpiar filtro</Text>
-              </TouchableOpacity>
-            )}
-
-            <ScrollView 
-              style={styles.provinciaList}
-              contentContainerStyle={styles.provinciaListContent}
-              showsVerticalScrollIndicator={true}
-              nestedScrollEnabled={true}
-            >
-              {PROVINCIAS.map((provincia, index) => (
-                <TouchableOpacity
-                  key={`provincia-${index}-${provincia}`}
-                  style={[
-                    styles.provinciaItem,
-                    selectedProvincia === provincia && styles.provinciaItemSelected
-                  ]}
-                  onPress={() => {
-                    console.log('[LocalPerfil] Selected provincia:', provincia);
-                    setSelectedProvincia(provincia);
-                    setShowProvinciaModal(false);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[
-                    styles.provinciaItemText,
-                    selectedProvincia === provincia && styles.provinciaItemTextSelected
-                  ]}>
-                    {provincia}
-                  </Text>
-                  {selectedProvincia === provincia && (
-                    <IconSymbol name="checkmark" size={20} color={colors.primary} />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </View>
       </Modal>
 
       {/* ✅ UPDATED: Seguidores Modal with LinearGradient header matching user profile design */}
@@ -2781,101 +2522,24 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.primary,
   },
+  // ✅ UPDATED: Simplified employment container styles
   empleoContainer: {
     flex: 1,
-  },
-  empleoSubTabs: {
-    flexDirection: 'row',
-    backgroundColor: colors.cardBackground,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  empleoSubTab: {
-    flex: 1,
-    paddingVertical: 14,
-    alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  empleoSubTabActive: {
-    borderBottomColor: colors.primary,
-  },
-  empleoSubTabText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  empleoSubTabTextActive: {
-    color: colors.primary,
-  },
-  filtersContainer: {
     padding: 16,
-    backgroundColor: colors.cardBackground,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-    gap: 12,
   },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 8,
+  empleoHeader: {
+    marginBottom: 20,
   },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
+  empleoHeaderTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
     color: colors.text,
+    marginBottom: 8,
   },
-  provinciaFilter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 8,
-  },
-  provinciaFilterText: {
-    flex: 1,
-    fontSize: 15,
+  empleoHeaderSubtitle: {
+    fontSize: 14,
     color: colors.textSecondary,
-  },
-  provinciaFilterTextActive: {
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  activeFilters: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    padding: 16,
-    paddingTop: 0,
-    gap: 8,
-  },
-  activeFilterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary + '20',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 6,
-  },
-  activeFilterText: {
-    fontSize: 13,
-    color: colors.text,
-    fontWeight: '600',
-  },
-  clearFiltersButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  clearFiltersText: {
-    fontSize: 13,
-    color: colors.primary,
-    fontWeight: '600',
+    lineHeight: 20,
   },
   loadingContainer: {
     padding: 40,
@@ -2887,7 +2551,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   empleoList: {
-    padding: 16,
+    flex: 1,
   },
   infoContainer: {
     padding: 16,
@@ -3206,78 +2870,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.textSecondary,
     lineHeight: 20,
-  },
-  provinciaModalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  provinciaModalBackdrop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  provinciaModalContent: {
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    height: height * 0.75,
-    paddingBottom: 34,
-  },
-  provinciaModalHeader: {
-    paddingTop: 24,
-    paddingBottom: 16,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  provinciaModalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.text,
-  },
-  clearProvinciaButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  clearProvinciaText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.primary,
-    textAlign: 'center',
-  },
-  provinciaList: {
-    flex: 1,
-  },
-  provinciaListContent: {
-    paddingBottom: 20,
-  },
-  provinciaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  provinciaItemSelected: {
-    backgroundColor: colors.primary + '10',
-  },
-  provinciaItemText: {
-    fontSize: 16,
-    color: colors.text,
-  },
-  provinciaItemTextSelected: {
-    fontWeight: '600',
-    color: colors.primary,
   },
   // ✅ UPDATED: Followers/Following modal styles matching user profile design
   followModalHeader: {
