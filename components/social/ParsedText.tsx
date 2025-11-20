@@ -4,6 +4,7 @@ import { Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors } from '@/styles/commonStyles';
 import { parseText, ParsedSegment } from '@/utils/textParser';
+import { supabase } from '@/utils/supabase';
 
 interface ParsedTextProps {
   text: string;
@@ -30,10 +31,61 @@ export default function ParsedText({ text, style, onHashtagPress, onMentionPress
     console.log('[ParsedText] Mention pressed:', mention);
     if (onMentionPress) {
       onMentionPress(mention);
-    } else {
-      // Default: try to find and navigate to user profile
-      // For now, we'll just log it - you can implement user lookup here
-      console.log('[ParsedText] Navigate to user:', mention);
+      return;
+    }
+
+    // Default: try to find and navigate to user or local profile
+    try {
+      // First, try to find user by username
+      const { data: user } = await supabase
+        .from('usuarios')
+        .select('id')
+        .eq('username', mention)
+        .eq('activo', true)
+        .single();
+
+      if (user) {
+        console.log('[ParsedText] Found user, navigating to profile:', user.id);
+        router.push(`/perfil/usuario?userId=${user.id}`);
+        return;
+      }
+
+      // If not found as user, try to find local by name
+      const { data: localsWithSubs } = await supabase
+        .from('locales')
+        .select(`
+          id,
+          nombre,
+          suscripciones_locales!suscripciones_locales_local_id_fkey(
+            estado,
+            plan_id,
+            planes_suscripcion!suscripciones_locales_plan_id_fkey(
+              nombre
+            )
+          )
+        `)
+        .ilike('nombre', mention)
+        .eq('activo', true)
+        .limit(1);
+
+      if (localsWithSubs && localsWithSubs.length > 0) {
+        const local = localsWithSubs[0];
+        const subscription = local.suscripciones_locales;
+        
+        // Only navigate to locals with active Estándar or Premium plans
+        if (subscription && subscription.estado === 'activa') {
+          const planName = subscription.planes_suscripcion?.nombre;
+          if (planName === 'estandar' || planName === 'premium') {
+            console.log('[ParsedText] Found local, navigating to profile:', local.id);
+            router.push(`/perfil/local?localId=${local.id}`);
+            return;
+          }
+        }
+      }
+
+      console.log('[ParsedText] User/local not found for mention:', mention);
+    } catch (error) {
+      console.error('[ParsedText] Error finding mentioned user/local:', error);
     }
   };
 
