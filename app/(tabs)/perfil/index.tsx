@@ -49,6 +49,17 @@ interface Post {
   comentarios?: number;
 }
 
+interface PerfilProfesional {
+  id: string;
+  nombre_completo: string;
+  puesto_deseado: string;
+  experiencia: string;
+  habilidades?: string;
+  disponibilidad?: string;
+  provincia?: string;
+  activo: boolean;
+}
+
 export default function PerfilScreen() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
@@ -70,11 +81,15 @@ export default function PerfilScreen() {
   const [seguidos, setSeguidos] = useState(0);
   const [publicaciones, setPublicaciones] = useState(0);
   
-  const [activeTab, setActiveTab] = useState<'posts' | 'favoritos' | 'etiquetados'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'favoritos' | 'etiquetados' | 'empleo'>('posts');
   const [posts, setPosts] = useState<Post[]>([]);
   const [savedPosts, setSavedPosts] = useState<Post[]>([]);
   const [taggedPosts, setTaggedPosts] = useState<Post[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
+  
+  // ✅ NEW: Employment profile state
+  const [perfilProfesional, setPerfilProfesional] = useState<PerfilProfesional | null>(null);
+  const [loadingEmpleo, setLoadingEmpleo] = useState(false);
 
   const userRole = user?.rol_app || 'cliente';
   const isPropietario = userRole === 'propietario' || (userRole === 'admin' && currentMode === 'propietario');
@@ -303,6 +318,38 @@ export default function PerfilScreen() {
     }
   }, [user]);
 
+  // ✅ NEW: Load employment profile
+  const cargarPerfilProfesional = useCallback(async () => {
+    if (!user) return;
+
+    setLoadingEmpleo(true);
+    try {
+      console.log('[Perfil] Loading professional profile for user:', user.id);
+
+      const { data, error } = await supabase
+        .from('perfiles_profesionales')
+        .select('*')
+        .eq('usuario_id', user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('[Perfil] Error loading professional profile:', error);
+      }
+
+      if (data) {
+        console.log('[Perfil] ✅ Professional profile loaded');
+        setPerfilProfesional(data);
+      } else {
+        console.log('[Perfil] No professional profile found');
+        setPerfilProfesional(null);
+      }
+    } catch (error) {
+      console.error('[Perfil] Error loading professional profile:', error);
+    } finally {
+      setLoadingEmpleo(false);
+    }
+  }, [user]);
+
   const cargarDatosPerfil = useCallback(async () => {
     if (!user) return;
 
@@ -362,9 +409,11 @@ export default function PerfilScreen() {
         cargarFavoritos().finally(() => setLoadingPosts(false));
       } else if (activeTab === 'etiquetados') {
         cargarEtiquetados().finally(() => setLoadingPosts(false));
+      } else if (activeTab === 'empleo') {
+        cargarPerfilProfesional().finally(() => setLoadingPosts(false));
       }
     }
-  }, [activeTab, user, cargarPosts, cargarFavoritos, cargarEtiquetados]);
+  }, [activeTab, user, cargarPosts, cargarFavoritos, cargarEtiquetados, cargarPerfilProfesional]);
 
   const displayName = user?.nombre || 'Usuario';
   const displayAvatar = user?.avatar;
@@ -428,6 +477,20 @@ export default function PerfilScreen() {
     if (user?.sitio_web) {
       Linking.openURL(user.sitio_web);
     }
+  };
+
+  // ✅ NEW: Handle creating/editing professional profile
+  const handleCrearPerfilProfesional = () => {
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+    router.push('/crear/perfil-profesional');
+  };
+
+  const handleVerPerfilProfesional = () => {
+    if (!user || !perfilProfesional) return;
+    router.push(`/empleo/perfil-detalle?id=${perfilProfesional.id}`);
   };
 
   const renderGridPost = (post: Post) => {
@@ -674,10 +737,124 @@ export default function PerfilScreen() {
               color={activeTab === 'etiquetados' ? colors.primary : colors.textSecondary} 
             />
           </TouchableOpacity>
+          {/* ✅ NEW: Employment tab */}
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'empleo' && styles.tabActive]}
+            onPress={() => setActiveTab('empleo')}
+          >
+            <IconSymbol 
+              name="briefcase.fill" 
+              size={24} 
+              color={activeTab === 'empleo' ? colors.primary : colors.textSecondary} 
+            />
+          </TouchableOpacity>
         </View>
 
         <View style={styles.content}>
-          {loadingPosts ? (
+          {activeTab === 'empleo' ? (
+            // ✅ NEW: Employment tab content
+            <View style={styles.empleoContainer}>
+              {loadingEmpleo ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color={colors.primary} />
+                </View>
+              ) : perfilProfesional ? (
+                <View style={styles.perfilProfesionalCard}>
+                  <View style={styles.perfilProfesionalHeader}>
+                    <View style={styles.perfilProfesionalInfo}>
+                      <Text style={styles.perfilProfesionalNombre}>
+                        {perfilProfesional.nombre_completo}
+                      </Text>
+                      <Text style={styles.perfilProfesionalPuesto}>
+                        {perfilProfesional.puesto_deseado}
+                      </Text>
+                      {perfilProfesional.provincia && (
+                        <View style={styles.perfilProfesionalLocation}>
+                          <IconSymbol name="mappin" size={14} color={colors.textSecondary} />
+                          <Text style={styles.perfilProfesionalLocationText}>
+                            {perfilProfesional.provincia}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    <View style={[
+                      styles.perfilProfesionalStatus,
+                      perfilProfesional.activo ? styles.perfilProfesionalStatusActive : styles.perfilProfesionalStatusInactive
+                    ]}>
+                      <Text style={[
+                        styles.perfilProfesionalStatusText,
+                        perfilProfesional.activo ? styles.perfilProfesionalStatusTextActive : styles.perfilProfesionalStatusTextInactive
+                      ]}>
+                        {perfilProfesional.activo ? 'Activo' : 'Inactivo'}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.perfilProfesionalDetails}>
+                    <View style={styles.perfilProfesionalDetailItem}>
+                      <Text style={styles.perfilProfesionalDetailLabel}>Experiencia:</Text>
+                      <Text style={styles.perfilProfesionalDetailValue}>
+                        {perfilProfesional.experiencia}
+                      </Text>
+                    </View>
+                    {perfilProfesional.disponibilidad && (
+                      <View style={styles.perfilProfesionalDetailItem}>
+                        <Text style={styles.perfilProfesionalDetailLabel}>Disponibilidad:</Text>
+                        <Text style={styles.perfilProfesionalDetailValue}>
+                          {perfilProfesional.disponibilidad}
+                        </Text>
+                      </View>
+                    )}
+                    {perfilProfesional.habilidades && (
+                      <View style={styles.perfilProfesionalDetailItem}>
+                        <Text style={styles.perfilProfesionalDetailLabel}>Habilidades:</Text>
+                        <Text style={styles.perfilProfesionalDetailValue}>
+                          {perfilProfesional.habilidades}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+
+                  <View style={styles.perfilProfesionalActions}>
+                    <TouchableOpacity
+                      style={styles.perfilProfesionalButton}
+                      onPress={handleCrearPerfilProfesional}
+                      activeOpacity={0.7}
+                    >
+                      <IconSymbol name="pencil" size={18} color={colors.white} />
+                      <Text style={styles.perfilProfesionalButtonText}>Editar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.perfilProfesionalButton, styles.perfilProfesionalButtonSecondary]}
+                      onPress={handleVerPerfilProfesional}
+                      activeOpacity={0.7}
+                    >
+                      <IconSymbol name="eye.fill" size={18} color={colors.primary} />
+                      <Text style={[styles.perfilProfesionalButtonText, styles.perfilProfesionalButtonTextSecondary]}>
+                        Ver Perfil
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.emptyState}>
+                  <IconSymbol name="briefcase" size={64} color={colors.textSecondary} />
+                  <Text style={styles.emptyStateTitle}>Crea tu perfil profesional</Text>
+                  <Text style={styles.emptyStateText}>
+                    Crea tu demanda de empleo para que los propietarios de locales puedan encontrarte
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.emptyStateButton}
+                    onPress={handleCrearPerfilProfesional}
+                    activeOpacity={0.7}
+                  >
+                    <IconSymbol name="plus.circle.fill" size={20} color={colors.white} />
+                    <Text style={styles.emptyStateButtonText}>Crear Perfil Profesional</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          ) : loadingPosts ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={colors.primary} />
             </View>
@@ -1039,6 +1216,15 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
     alignItems: 'center',
     width: '100%',
+    paddingHorizontal: 20,
+  },
+  emptyStateTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: 'center',
   },
   emptyStateText: {
     fontSize: 15,
@@ -1049,6 +1235,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   emptyStateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     backgroundColor: colors.primary,
     paddingHorizontal: 28,
     paddingVertical: 14,
@@ -1058,6 +1247,112 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: colors.white,
+  },
+  // ✅ NEW: Employment tab styles
+  empleoContainer: {
+    padding: 20,
+  },
+  perfilProfesionalCard: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  perfilProfesionalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 20,
+  },
+  perfilProfesionalInfo: {
+    flex: 1,
+  },
+  perfilProfesionalNombre: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 6,
+  },
+  perfilProfesionalPuesto: {
+    fontSize: 16,
+    color: colors.primary,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  perfilProfesionalLocation: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  perfilProfesionalLocationText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  perfilProfesionalStatus: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  perfilProfesionalStatusActive: {
+    backgroundColor: '#22C55E15',
+  },
+  perfilProfesionalStatusInactive: {
+    backgroundColor: '#EF444415',
+  },
+  perfilProfesionalStatusText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  perfilProfesionalStatusTextActive: {
+    color: '#22C55E',
+  },
+  perfilProfesionalStatusTextInactive: {
+    color: '#EF4444',
+  },
+  perfilProfesionalDetails: {
+    gap: 16,
+    marginBottom: 20,
+  },
+  perfilProfesionalDetailItem: {
+    gap: 4,
+  },
+  perfilProfesionalDetailLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  perfilProfesionalDetailValue: {
+    fontSize: 15,
+    color: colors.text,
+    lineHeight: 22,
+  },
+  perfilProfesionalActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  perfilProfesionalButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.primary,
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  perfilProfesionalButtonSecondary: {
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  perfilProfesionalButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.white,
+  },
+  perfilProfesionalButtonTextSecondary: {
+    color: colors.primary,
   },
   createOptionsModal: {
     flex: 1,
