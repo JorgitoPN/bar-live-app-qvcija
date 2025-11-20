@@ -153,7 +153,32 @@ export default function ConversacionScreen() {
 
           if (createError) {
             console.error('[Conversacion] Error creating local chat:', createError);
-            Alert.alert('Error', 'No se pudo crear la conversación');
+            
+            // Check if it's a duplicate key error
+            if (createError.code === '23505') {
+              console.log('[Conversacion] Chat already exists, fetching it...');
+              // Try to fetch the existing chat again
+              const { data: retryChat, error: retryError } = await supabase
+                .from('chats')
+                .select('*')
+                .eq('local_id', localId)
+                .or(`and(usuario1_id.eq.${user.id},usuario2_id.eq.${localData.propietario_id}),and(usuario1_id.eq.${localData.propietario_id},usuario2_id.eq.${user.id})`)
+                .single();
+              
+              if (retryChat) {
+                console.log('[Conversacion] ✅ Found existing chat on retry:', retryChat.id);
+                setChatId(retryChat.id);
+                await loadMessages(retryChat.id);
+                setLoading(false);
+                return;
+              }
+              
+              if (retryError) {
+                console.error('[Conversacion] Error fetching chat on retry:', retryError);
+              }
+            }
+            
+            Alert.alert('Error', 'No se pudo crear la conversación. Por favor, inténtalo de nuevo.');
             router.back();
             return;
           }
@@ -280,7 +305,34 @@ export default function ConversacionScreen() {
 
           if (createError) {
             console.error('[Conversacion] Error creating chat:', createError);
-            Alert.alert('Error', 'No se pudo crear la conversación');
+            
+            // Check if it's a duplicate key error
+            if (createError.code === '23505') {
+              console.log('[Conversacion] Chat already exists, fetching it...');
+              // Try to fetch the existing chat again
+              const { data: retryChat, error: retryError } = await supabase
+                .from('chats')
+                .select('*')
+                .is('local_id', null)
+                .or(
+                  `and(usuario1_id.eq.${user.id},usuario2_id.eq.${params.userId}),and(usuario1_id.eq.${params.userId},usuario2_id.eq.${user.id})`
+                )
+                .single();
+              
+              if (retryChat) {
+                console.log('[Conversacion] ✅ Found existing chat on retry:', retryChat.id);
+                setChatId(retryChat.id);
+                await loadMessages(retryChat.id);
+                setLoading(false);
+                return;
+              }
+              
+              if (retryError) {
+                console.error('[Conversacion] Error fetching chat on retry:', retryError);
+              }
+            }
+            
+            Alert.alert('Error', 'No se pudo crear la conversación. Por favor, inténtalo de nuevo.');
             router.back();
             return;
           }
