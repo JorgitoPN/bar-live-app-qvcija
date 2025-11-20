@@ -225,12 +225,12 @@ export default function ConversacionScreen() {
                 leido: false,
               });
 
-            // Send notification to local owner
+            // ✅ CRITICAL: Send notification to LOCAL OWNER, not the user
             await supabase.from('notificaciones').insert({
               usuario_id: localData.propietario_id,
               tipo: 'mensaje_privado',
               titulo: 'Mensaje sobre tu historia',
-              mensaje: `${user.nombre} te envió un mensaje sobre tu historia`,
+              mensaje: `${user.nombre} te envió un mensaje sobre la historia de ${localData.nombre}`,
               usuario_origen_id: user.id,
               local_id: localId,
             });
@@ -494,12 +494,14 @@ export default function ConversacionScreen() {
         })
         .eq('id', chatId);
 
-      // ✅ Send notification to the correct recipient
+      // ✅ CRITICAL: Send notification to the correct recipient
+      // If this is a local chat, send to the local owner
+      // Otherwise, send to the other user
       const recipientId = isLocalChat && localInfo 
         ? localInfo.propietario_id 
         : otroUsuario?.id;
 
-      if (recipientId) {
+      if (recipientId && recipientId !== user.id) {
         await supabase.from('notificaciones').insert({
           usuario_id: recipientId,
           tipo: 'mensaje_privado',
