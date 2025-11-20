@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,8 @@ import {
   Alert,
   Animated,
   Dimensions,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -22,6 +24,7 @@ import { colors, commonStyles } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { getCategoryIcon } from '@/utils/categoryIcons';
 import EventBanner from '@/components/eventos/EventBanner';
+import QRCode from 'react-native-qrcode-svg';
 
 const { width, height } = Dimensions.get('window');
 
@@ -56,11 +59,12 @@ export default function DetalleEventoScreen() {
   const [distance, setDistance] = useState<number | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<string>('');
   const [isLive, setIsLive] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
 
   // Animations
-  const fadeAnim = React.useRef(new Animated.Value(0)).current;
-  const scaleAnim = React.useRef(new Animated.Value(0.95)).current;
-  const slideAnim = React.useRef(new Animated.Value(30)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.95)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
 
   useEffect(() => {
     cargarEvento();
@@ -436,6 +440,10 @@ export default function DetalleEventoScreen() {
     router.push(`/detalle/local?id=${evento.local_id}`);
   };
 
+  const handleShowQR = () => {
+    setShowQRModal(true);
+  };
+
   const { dia, mes } = evento ? formatDiaMes(evento.fecha) : { dia: '', mes: '' };
 
   if (loading) {
@@ -464,6 +472,16 @@ export default function DetalleEventoScreen() {
       </View>
     );
   }
+
+  // Generate QR code data - includes event ID and basic info
+  const qrData = JSON.stringify({
+    type: 'event',
+    id: evento.id,
+    title: evento.titulo,
+    date: evento.fecha,
+    time: evento.hora,
+    local: evento.local_nombre,
+  });
 
   return (
     <View style={styles.container}>
@@ -512,6 +530,21 @@ export default function DetalleEventoScreen() {
               <IconSymbol 
                 name="chevron.left" 
                 size={28} 
+                color="#FFFFFF"
+              />
+            </View>
+          </TouchableOpacity>
+
+          {/* QR Code Button */}
+          <TouchableOpacity
+            style={styles.qrButton}
+            onPress={handleShowQR}
+            activeOpacity={0.7}
+          >
+            <View style={styles.qrButtonContainer}>
+              <IconSymbol 
+                name="qrcode" 
+                size={24} 
                 color="#FFFFFF"
               />
             </View>
@@ -793,6 +826,72 @@ export default function DetalleEventoScreen() {
           )}
         </Animated.View>
       </ScrollView>
+
+      {/* QR Code Modal */}
+      <Modal
+        visible={showQRModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowQRModal(false)}
+      >
+        <Pressable 
+          style={styles.qrModalOverlay}
+          onPress={() => setShowQRModal(false)}
+        >
+          <Pressable 
+            style={styles.qrModalContent}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.qrModalHeader}>
+              <Text style={styles.qrModalTitle}>Código QR del Evento</Text>
+              <TouchableOpacity
+                onPress={() => setShowQRModal(false)}
+                style={styles.qrModalCloseButton}
+              >
+                <IconSymbol name="xmark.circle.fill" size={28} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.qrCodeContainer}>
+              <View style={styles.qrCodeWrapper}>
+                <QRCode
+                  value={qrData}
+                  size={250}
+                  color={colors.text}
+                  backgroundColor={colors.white}
+                  logo={require('@/assets/images/final_quest_240x240.png')}
+                  logoSize={50}
+                  logoBackgroundColor={colors.white}
+                  logoMargin={5}
+                  logoBorderRadius={10}
+                />
+              </View>
+            </View>
+
+            <View style={styles.qrInfoSection}>
+              <Text style={styles.qrInfoTitle}>{evento.titulo}</Text>
+              <View style={styles.qrInfoRow}>
+                <IconSymbol name="calendar" size={16} color={colors.textSecondary} />
+                <Text style={styles.qrInfoText}>{formatFecha(evento.fecha)}</Text>
+              </View>
+              <View style={styles.qrInfoRow}>
+                <IconSymbol name="clock.fill" size={16} color={colors.textSecondary} />
+                <Text style={styles.qrInfoText}>{formatHora(evento.hora)}</Text>
+              </View>
+              {evento.local_nombre && (
+                <View style={styles.qrInfoRow}>
+                  <IconSymbol name="location.fill" size={16} color={colors.textSecondary} />
+                  <Text style={styles.qrInfoText}>{evento.local_nombre}</Text>
+                </View>
+              )}
+            </View>
+
+            <Text style={styles.qrHelpText}>
+              Muestra este código QR en la entrada del evento para un acceso rápido
+            </Text>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -882,6 +981,33 @@ const styles = StyleSheet.create({
     }),
   },
   
+  // QR Code Button
+  qrButton: {
+    position: 'absolute',
+    top: Platform.OS === 'android' ? 48 : 60,
+    left: 72,
+    zIndex: 100,
+  },
+  qrButtonContainer: {
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
+  },
+  
   countdownBadge: {
     position: 'absolute',
     top: Platform.OS === 'android' ? 48 : 60,
@@ -946,9 +1072,6 @@ const styles = StyleSheet.create({
         elevation: 6,
       },
     }),
-  },
-  destacadoBadgeWithCountdown: {
-    top: Platform.OS === 'android' ? 88 : 100,
   },
   destacadoBadgeWithCountdown: {
     top: Platform.OS === 'android' ? 88 : 100,
@@ -1310,5 +1433,88 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.text,
     lineHeight: 23,
+  },
+  
+  // QR Code Modal
+  qrModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  qrModalContent: {
+    backgroundColor: colors.background,
+    borderRadius: 24,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    alignItems: 'center',
+  },
+  qrModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 24,
+  },
+  qrModalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+    flex: 1,
+  },
+  qrModalCloseButton: {
+    padding: 4,
+  },
+  qrCodeContainer: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  qrCodeWrapper: {
+    padding: 20,
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
+  },
+  qrInfoSection: {
+    width: '100%',
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    gap: 10,
+  },
+  qrInfoTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  qrInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  qrInfoText: {
+    fontSize: 14,
+    color: colors.text,
+    flex: 1,
+  },
+  qrHelpText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 18,
   },
 });
