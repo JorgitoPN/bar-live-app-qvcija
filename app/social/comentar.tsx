@@ -12,6 +12,7 @@ import {
   Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
+  Keyboard,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -37,10 +38,34 @@ export default function ComentarScreen() {
   const [post, setPost] = useState<any>(null);
   const [parentComment, setParentComment] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   useEffect(() => {
     loadData();
   }, [postId, parentCommentId]);
+
+  useEffect(() => {
+    const keyboardWillShowListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        console.log('[Comentar] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
+        setKeyboardHeight(e.endCoordinates.height);
+      }
+    );
+
+    const keyboardWillHideListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        console.log('[Comentar] ⌨️ Keyboard hidden');
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      keyboardWillShowListener.remove();
+      keyboardWillHideListener.remove();
+    };
+  }, []);
 
   const loadData = async () => {
     try {
@@ -319,6 +344,11 @@ export default function ComentarScreen() {
                 Comentando como local
               </Text>
             </View>
+          )}
+
+          {/* Spacer to ensure content is visible above keyboard */}
+          {keyboardHeight > 0 && (
+            <View style={{ height: keyboardHeight + 20 }} />
           )}
         </ScrollView>
       </KeyboardAvoidingView>
