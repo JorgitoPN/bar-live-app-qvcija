@@ -29,6 +29,7 @@ import { filterAndSortLocals } from '@/utils/filterLocals';
 import { useGlobalData } from '@/contexts/GlobalDataContext';
 import InitialLoadingScreen from '@/components/common/InitialLoadingScreen';
 import { trackSearchAppearance } from '@/utils/activityTracker';
+import { shouldHavePubCategory } from '@/utils/categorizeLocal';
 
 type ModoUsuario = 'cliente' | 'propietario' | 'admin';
 
@@ -94,13 +95,15 @@ export default function ExplorarScreen() {
     }, [])
   );
 
-  // FIXED: Implement the same category filtering logic as the map page
+  // ✅ FIXED: Apply category filter with dynamic PUB category support
   const localesFiltradosCompletos = useMemo(() => {
     console.log('[ExplorarScreen] ⚡ Applying filters...');
+    console.log('[ExplorarScreen] 📊 Total locales:', todosLosLocales.length);
+    console.log('[ExplorarScreen] 🔍 Selected category:', categoriaSeleccionada);
 
     let localesFiltrados = [...todosLosLocales];
 
-    // FIXED: Apply category filter using the same logic as mapa.tsx
+    // ✅ FIXED: Apply category filter with dynamic PUB category support
     if (categoriaSeleccionada !== 'todos') {
       console.log('[ExplorarScreen] 🔍 Filtering by category:', categoriaSeleccionada);
       
@@ -108,10 +111,32 @@ export default function ExplorarScreen() {
         // Get barlive_types array
         const barliveTypes = local.barlive_types || [];
         
-        // FIXED: For "discoteca" category, only show locales with "discoteca" or "sala_conciertos"
+        // ✅ CRITICAL FIX: For "pub" category, check if venue should have pub category based on closing time
+        if (categoriaSeleccionada === 'pub') {
+          // Check if venue already has "pub" in barlive_types
+          const hasPubInTypes = barliveTypes.includes('pub');
+          
+          // Check if venue should have pub category based on closing time (closes after 2:30 AM)
+          const shouldBePub = shouldHavePubCategory(local.horarios_completos);
+          
+          console.log(`[ExplorarScreen] 🍺 Checking "${local.nombre}":`, {
+            barliveTypes,
+            hasPubInTypes,
+            shouldBePub,
+            horarios: local.horarios_completos,
+          });
+          
+          // Include venue if it has "pub" in types OR if it should be categorized as pub based on closing time
+          return hasPubInTypes || shouldBePub;
+        }
+        
+        // ✅ FIXED: For "discoteca" category, only show locales with "discoteca" or "sala_conciertos"
         if (categoriaSeleccionada === 'discoteca') {
           const hasDiscoteca = barliveTypes.includes('discoteca') || barliveTypes.includes('sala_conciertos');
-          console.log(`[ExplorarScreen] Local "${local.nombre}" - barlive_types:`, barliveTypes, '- hasDiscoteca:', hasDiscoteca);
+          console.log(`[ExplorarScreen] 💃 Checking "${local.nombre}":`, {
+            barliveTypes,
+            hasDiscoteca,
+          });
           return hasDiscoteca;
         }
         
@@ -131,9 +156,10 @@ export default function ExplorarScreen() {
         local.direccion?.toLowerCase().includes(searchLower) ||
         local.provincia?.toLowerCase().includes(searchLower)
       );
+      console.log(`[ExplorarScreen] 🔍 After search filter: ${localesFiltrados.length} locales`);
     }
 
-    // Apply advanced filters
+    // Apply advanced filters and sorting
     const filtrosCombinados: Filtros = {
       ...filtrosActivos,
     };
@@ -145,7 +171,7 @@ export default function ExplorarScreen() {
       activePromotions
     );
 
-    console.log(`[ExplorarScreen] ⚡ Final filtered locals: ${localesOrdenados.length}`);
+    console.log(`[ExplorarScreen] ⚡ Final filtered and sorted locals: ${localesOrdenados.length}`);
     return localesOrdenados;
   }, [todosLosLocales, busqueda, categoriaSeleccionada, filtrosActivos, userLocation, activePromotions]);
 
@@ -401,7 +427,6 @@ export default function ExplorarScreen() {
                 </TouchableOpacity>
               )}
               
-              {/* FIXED: Remove round background from map button */}
               <TouchableOpacity
                 style={styles.headerIconButton}
                 onPress={() => router.push('/explorar/mapa')}
@@ -633,7 +658,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.headerText,
   },
-  // FIXED: Remove round background styling
   headerIconButton: {
     padding: 8,
   },
