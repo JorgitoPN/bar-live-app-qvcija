@@ -294,14 +294,13 @@ export default function ComentarScreen() {
           </Text>
         </View>
 
-        <View style={styles.autocompleteContainer}>
-          <MentionAutocomplete
-            text={comentario}
-            cursorPosition={cursorPosition}
-            onSelectMention={handleSelectMention}
-            style={styles.mentionAutocomplete}
-          />
-        </View>
+        {/* Autocomplete Component - Positioned right after input */}
+        <MentionAutocomplete
+          text={comentario}
+          cursorPosition={cursorPosition}
+          onSelectMention={handleSelectMention}
+          style={styles.mentionAutocomplete}
+        />
 
         {isInteractingAsLocal && activeLocalProfileId && (
           <View style={styles.contextIndicator}>
@@ -455,8 +454,6 @@ const styles = StyleSheet.create({
   inputSection: {
     backgroundColor: colors.cardBackground,
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
   },
   inputLabel: {
     fontSize: 13,
@@ -491,14 +488,10 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontStyle: 'italic',
   },
-  autocompleteContainer: {
-    position: 'relative',
-    zIndex: 10000,
-    paddingHorizontal: 16,
-    paddingTop: 8,
-  },
   mentionAutocomplete: {
-    zIndex: 10001,
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 8,
   },
   contextIndicator: {
     flexDirection: 'row',

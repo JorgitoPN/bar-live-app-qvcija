@@ -693,22 +693,20 @@ export default function CrearPublicacionScreen() {
             </Text>
           </View>
 
-          {/* Autocomplete Components */}
-          <View style={styles.autocompleteContainer}>
-            <MentionAutocomplete
-              text={contenido}
-              cursorPosition={cursorPosition}
-              onSelectMention={handleSelectInlineMention}
-              style={styles.mentionAutocomplete}
-            />
+          {/* Autocomplete Components - Positioned right after text input */}
+          <MentionAutocomplete
+            text={contenido}
+            cursorPosition={cursorPosition}
+            onSelectMention={handleSelectInlineMention}
+            style={styles.mentionAutocomplete}
+          />
 
-            <HashtagAutocomplete
-              text={contenido}
-              cursorPosition={cursorPosition}
-              onSelectHashtag={handleSelectInlineHashtag}
-              style={styles.hashtagAutocomplete}
-            />
-          </View>
+          <HashtagAutocomplete
+            text={contenido}
+            cursorPosition={cursorPosition}
+            onSelectHashtag={handleSelectInlineHashtag}
+            style={styles.hashtagAutocomplete}
+          />
 
           {/* Images Preview */}
           {imagenes.length > 0 && (
@@ -1046,8 +1044,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
   },
   textInput: {
     fontSize: 16,
@@ -1067,19 +1063,15 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontStyle: 'italic',
   },
-  autocompleteContainer: {
-    position: 'relative',
-    zIndex: 10000,
-  },
   mentionAutocomplete: {
     marginHorizontal: 16,
     marginTop: 8,
-    zIndex: 10001,
+    marginBottom: 8,
   },
   hashtagAutocomplete: {
     marginHorizontal: 16,
     marginTop: 8,
-    zIndex: 10000,
+    marginBottom: 8,
   },
   imagesPreviewSection: {
     backgroundColor: colors.cardBackground,

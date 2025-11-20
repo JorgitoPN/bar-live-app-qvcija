@@ -101,34 +101,8 @@ export default function MentionAutocomplete({
           console.error('[MentionAutocomplete] ❌ Error fetching default locals:', localsError);
         }
 
-        let filteredLocals: any[] = [];
-        if (localsData && localsData.length > 0) {
-          const localIds = localsData.map(l => l.id);
-          
-          const { data: subscriptionsData, error: subscriptionsError } = await supabase
-            .from('suscripciones_locales')
-            .select(`
-              local_id,
-              estado,
-              plan_id,
-              planes_suscripcion!suscripciones_locales_plan_id_fkey(nombre)
-            `)
-            .in('local_id', localIds)
-            .eq('estado', 'activa');
-
-          if (subscriptionsError) {
-            console.error('[MentionAutocomplete] ❌ Error fetching subscriptions:', subscriptionsError);
-          } else if (subscriptionsData) {
-            const validLocalIds = subscriptionsData
-              .filter(sub => {
-                const planName = (sub.planes_suscripcion as any)?.nombre;
-                return planName === 'estandar' || planName === 'premium';
-              })
-              .map(sub => sub.local_id);
-
-            filteredLocals = localsData.filter(local => validLocalIds.includes(local.id));
-          }
-        }
+        // For mentions, show all active locals
+        const filteredLocals: any[] = localsData || [];
 
         const results: MentionSuggestion[] = [];
 
@@ -158,67 +132,45 @@ export default function MentionAutocomplete({
         return;
       }
 
-      const fuzzyPattern = query.split('').join('%');
+      // Search with simpler pattern for better results
+      const searchPattern = `%${query}%`;
 
+      console.log('[MentionAutocomplete] 👤 Searching users...');
       const { data: usersData, error: usersError } = await supabase
         .from('usuarios')
         .select('id, nombre, username, avatar, perfil_privado, permitir_etiquetas')
-        .or(`nombre.ilike.%${query}%,username.ilike.%${query}%,nombre.ilike.%${fuzzyPattern}%,username.ilike.%${fuzzyPattern}%`)
+        .or(`nombre.ilike.${searchPattern},username.ilike.${searchPattern}`)
         .eq('activo', true)
         .eq('permitir_etiquetas', true)
-        .limit(5);
+        .limit(10);
 
       if (usersError) {
         console.error('[MentionAutocomplete] ❌ Error searching users:', usersError);
+      } else {
+        console.log('[MentionAutocomplete] ✅ Found users:', usersData?.length || 0);
       }
 
-      console.log('[MentionAutocomplete] 🏢 Searching locals with active subscriptions...');
-      
+      console.log('[MentionAutocomplete] 🏢 Searching locals...');
       const { data: localsData, error: localsError } = await supabase
         .from('locales')
         .select('id, nombre, imagen_url')
-        .or(`nombre.ilike.%${query}%,nombre.ilike.%${fuzzyPattern}%`)
+        .ilike('nombre', searchPattern)
         .eq('activo', true)
-        .limit(10);
+        .limit(20);
 
       if (localsError) {
         console.error('[MentionAutocomplete] ❌ Error searching locals:', localsError);
+      } else {
+        console.log('[MentionAutocomplete] ✅ Found locals:', localsData?.length || 0);
       }
 
-      let filteredLocals: any[] = [];
-      if (localsData && localsData.length > 0) {
-        const localIds = localsData.map(l => l.id);
-        
-        const { data: subscriptionsData, error: subscriptionsError } = await supabase
-          .from('suscripciones_locales')
-          .select(`
-            local_id,
-            estado,
-            plan_id,
-            planes_suscripcion!suscripciones_locales_plan_id_fkey(nombre)
-          `)
-          .in('local_id', localIds)
-          .eq('estado', 'activa');
-
-        if (subscriptionsError) {
-          console.error('[MentionAutocomplete] ❌ Error fetching subscriptions:', subscriptionsError);
-        } else if (subscriptionsData) {
-          const validLocalIds = subscriptionsData
-            .filter(sub => {
-              const planName = (sub.planes_suscripcion as any)?.nombre;
-              return planName === 'estandar' || planName === 'premium';
-            })
-            .map(sub => sub.local_id);
-
-          filteredLocals = localsData.filter(local => validLocalIds.includes(local.id));
-          
-          console.log('[MentionAutocomplete] ✅ Found locals with valid subscriptions:', filteredLocals.length);
-        }
-      }
+      // For mentions, we'll show all active locals regardless of subscription
+      // The subscription check is only for creating posts as a local
+      let filteredLocals: any[] = localsData || [];
 
       const results: MentionSuggestion[] = [];
 
-      if (!usersError && usersData) {
+      if (!usersError && usersData && usersData.length > 0) {
         const scoredUsers = usersData.map(u => {
           const nombre = u.nombre.toLowerCase();
           const username = (u.username || '').toLowerCase();
@@ -235,7 +187,7 @@ export default function MentionAutocomplete({
 
         scoredUsers.sort((a, b) => b.score - a.score);
 
-        results.push(...scoredUsers.map(u => ({
+        results.push(...scoredUsers.slice(0, 5).map(u => ({
           id: u.id,
           nombre: u.nombre,
           username: u.username || u.nombre,
@@ -269,7 +221,7 @@ export default function MentionAutocomplete({
         })));
       }
 
-      console.log('[MentionAutocomplete] ✅ Total suggestions:', results.length);
+      console.log('[MentionAutocomplete] ✅ Total suggestions:', results.length, '(Users:', results.filter(r => r.tipo === 'usuario').length, ', Locals:', results.filter(r => r.tipo === 'local').length, ')');
       setSuggestions(results);
     } catch (error) {
       console.error('[MentionAutocomplete] ❌ Error searching:', error);
@@ -285,17 +237,30 @@ export default function MentionAutocomplete({
 
   useEffect(() => {
     if (currentMentionText !== null) {
-      searchMentions(currentMentionText);
+      // Debounce the search to avoid too many API calls
+      const timeoutId = setTimeout(() => {
+        searchMentions(currentMentionText);
+      }, 300);
+
+      return () => clearTimeout(timeoutId);
     } else {
       setSuggestions([]);
     }
   }, [currentMentionText, searchMentions]);
 
   if (currentMentionText === null) {
+    console.log('[MentionAutocomplete] 🚫 Not showing - currentMentionText is null');
     return null;
   }
 
+  console.log('[MentionAutocomplete] 📊 Render state:', {
+    currentMentionText,
+    loading,
+    suggestionsCount: suggestions.length,
+  });
+
   const handleSelectMention = (mention: MentionSuggestion) => {
+    console.log('[MentionAutocomplete] ✅ Mention selected:', mention);
     onSelectMention(mention, currentMentionText);
   };
 
@@ -358,6 +323,7 @@ const styles = StyleSheet.create({
     borderColor: colors.cardBorder,
     maxHeight: 240,
     overflow: 'hidden',
+    marginBottom: 8,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
