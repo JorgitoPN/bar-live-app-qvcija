@@ -14,6 +14,7 @@ import {
   Pressable,
   Platform,
   Alert,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -214,8 +215,9 @@ export default function EventosScreen() {
     }
     if (event.type === 'set' && selectedDate) {
       setFechaInicio(selectedDate);
-      if (Platform.OS === 'ios') {
-        setShowDatePickerInicio(false);
+      // Auto-adjust end date if it's before start date
+      if (fechaFin && fechaFin < selectedDate) {
+        setFechaFin(selectedDate);
       }
     } else if (event.type === 'dismissed') {
       setShowDatePickerInicio(false);
@@ -227,13 +229,25 @@ export default function EventosScreen() {
       setShowDatePickerFin(false);
     }
     if (event.type === 'set' && selectedDate) {
-      setFechaFin(selectedDate);
-      if (Platform.OS === 'ios') {
-        setShowDatePickerFin(false);
+      // Ensure end date is not before start date
+      if (fechaInicio && selectedDate >= fechaInicio) {
+        setFechaFin(selectedDate);
+      } else if (!fechaInicio) {
+        setFechaFin(selectedDate);
+      } else {
+        Alert.alert('Error', 'La fecha de fin no puede ser anterior a la fecha de inicio');
       }
     } else if (event.type === 'dismissed') {
       setShowDatePickerFin(false);
     }
+  };
+
+  const closeDateInicioPicker = () => {
+    setShowDatePickerInicio(false);
+  };
+
+  const closeDateFinPicker = () => {
+    setShowDatePickerFin(false);
   };
 
   // Check if user can delete an event
@@ -461,6 +475,92 @@ export default function EventosScreen() {
                     </Text>
                   </View>
                 )}
+
+                {/* Date Picker Inicio - INSIDE MODAL */}
+                {showDatePickerInicio && (
+                  <Modal
+                    visible={showDatePickerInicio}
+                    transparent={true}
+                    animationType="fade"
+                    onRequestClose={closeDateInicioPicker}
+                  >
+                    <TouchableWithoutFeedback onPress={closeDateInicioPicker}>
+                      <View style={styles.datePickerModalOverlay}>
+                        <TouchableWithoutFeedback>
+                          <View style={styles.datePickerContainer}>
+                            <View style={styles.datePickerHeader}>
+                              <Text style={styles.datePickerTitle}>Fecha de Inicio</Text>
+                              <TouchableOpacity onPress={closeDateInicioPicker}>
+                                <IconSymbol name="xmark.circle.fill" size={28} color={colors.textSecondary} />
+                              </TouchableOpacity>
+                            </View>
+                            <DateTimePicker
+                              value={fechaInicio || new Date()}
+                              mode="date"
+                              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                              onChange={onChangeDateInicio}
+                              minimumDate={new Date()}
+                              textColor={colors.text}
+                              style={styles.datePicker}
+                              themeVariant="light"
+                            />
+                            {Platform.OS === 'ios' && (
+                              <TouchableOpacity
+                                style={styles.datePickerConfirmButton}
+                                onPress={closeDateInicioPicker}
+                              >
+                                <Text style={styles.datePickerConfirmText}>Confirmar</Text>
+                              </TouchableOpacity>
+                            )}
+                          </View>
+                        </TouchableWithoutFeedback>
+                      </View>
+                    </TouchableWithoutFeedback>
+                  </Modal>
+                )}
+
+                {/* Date Picker Fin - INSIDE MODAL */}
+                {showDatePickerFin && (
+                  <Modal
+                    visible={showDatePickerFin}
+                    transparent={true}
+                    animationType="fade"
+                    onRequestClose={closeDateFinPicker}
+                  >
+                    <TouchableWithoutFeedback onPress={closeDateFinPicker}>
+                      <View style={styles.datePickerModalOverlay}>
+                        <TouchableWithoutFeedback>
+                          <View style={styles.datePickerContainer}>
+                            <View style={styles.datePickerHeader}>
+                              <Text style={styles.datePickerTitle}>Fecha de Fin</Text>
+                              <TouchableOpacity onPress={closeDateFinPicker}>
+                                <IconSymbol name="xmark.circle.fill" size={28} color={colors.textSecondary} />
+                              </TouchableOpacity>
+                            </View>
+                            <DateTimePicker
+                              value={fechaFin || fechaInicio || new Date()}
+                              mode="date"
+                              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                              onChange={onChangeDateFin}
+                              minimumDate={fechaInicio || new Date()}
+                              textColor={colors.text}
+                              style={styles.datePicker}
+                              themeVariant="light"
+                            />
+                            {Platform.OS === 'ios' && (
+                              <TouchableOpacity
+                                style={styles.datePickerConfirmButton}
+                                onPress={closeDateFinPicker}
+                              >
+                                <Text style={styles.datePickerConfirmText}>Confirmar</Text>
+                              </TouchableOpacity>
+                            )}
+                          </View>
+                        </TouchableWithoutFeedback>
+                      </View>
+                    </TouchableWithoutFeedback>
+                  </Modal>
+                )}
               </View>
 
               <View style={styles.filterSection}>
@@ -513,26 +613,6 @@ export default function EventosScreen() {
           </Pressable>
         </Pressable>
       </Modal>
-
-      {showDatePickerInicio && (
-        <DateTimePicker
-          value={fechaInicio || new Date()}
-          mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={onChangeDateInicio}
-          minimumDate={new Date()}
-        />
-      )}
-
-      {showDatePickerFin && (
-        <DateTimePicker
-          value={fechaFin || new Date()}
-          mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={onChangeDateFin}
-          minimumDate={fechaInicio || new Date()}
-        />
-      )}
     </View>
   );
 }
@@ -757,5 +837,54 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: colors.white,
+  },
+  // Date Picker Modal Styles
+  datePickerModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  datePickerContainer: {
+    backgroundColor: colors.white,
+    borderRadius: 20,
+    padding: 20,
+    width: '85%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  datePickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  datePickerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  datePicker: {
+    width: '100%',
+    backgroundColor: colors.white,
+  },
+  datePickerConfirmButton: {
+    marginTop: 16,
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  datePickerConfirmText: {
+    color: colors.white,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
