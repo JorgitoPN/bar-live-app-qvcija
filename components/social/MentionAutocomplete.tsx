@@ -5,9 +5,7 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  TextInput,
   Image,
-  FlatList,
   ActivityIndicator,
   Platform,
 } from 'react-native';
@@ -101,26 +99,56 @@ export default function MentionAutocomplete({
         console.error('[MentionAutocomplete] ❌ Error searching users:', usersError);
       }
 
-      // Search locals with active subscriptions (estandar or premium)
+      // FIXED: Search locals with active subscriptions using explicit relationship naming
+      // The issue was the ambiguous relationship between suscripciones_locales and planes_suscripcion
+      // We need to explicitly specify which foreign key to use: plan_id (not plan_pendiente_id)
+      console.log('[MentionAutocomplete] 🏢 Searching locals with active subscriptions...');
+      
+      // Step 1: Get locals matching the search query
       const { data: localsData, error: localsError } = await supabase
         .from('locales')
-        .select(`
-          id, 
-          nombre, 
-          imagen_url,
-          suscripciones_locales!inner(
-            estado,
-            planes_suscripcion!inner(nombre)
-          )
-        `)
+        .select('id, nombre, imagen_url')
         .or(`nombre.ilike.%${query}%,nombre.ilike.%${fuzzyPattern}%`)
         .eq('activo', true)
-        .eq('suscripciones_locales.estado', 'activa')
-        .in('suscripciones_locales.planes_suscripcion.nombre', ['estandar', 'premium'])
-        .limit(5);
+        .limit(10);
 
       if (localsError) {
         console.error('[MentionAutocomplete] ❌ Error searching locals:', localsError);
+      }
+
+      // Step 2: Filter locals by active subscription with estandar or premium plan
+      let filteredLocals: any[] = [];
+      if (localsData && localsData.length > 0) {
+        const localIds = localsData.map(l => l.id);
+        
+        // Get subscriptions for these locals
+        const { data: subscriptionsData, error: subscriptionsError } = await supabase
+          .from('suscripciones_locales')
+          .select(`
+            local_id,
+            estado,
+            plan_id,
+            planes_suscripcion!suscripciones_locales_plan_id_fkey(nombre)
+          `)
+          .in('local_id', localIds)
+          .eq('estado', 'activa');
+
+        if (subscriptionsError) {
+          console.error('[MentionAutocomplete] ❌ Error fetching subscriptions:', subscriptionsError);
+        } else if (subscriptionsData) {
+          // Filter subscriptions with estandar or premium plans
+          const validLocalIds = subscriptionsData
+            .filter(sub => {
+              const planName = (sub.planes_suscripcion as any)?.nombre;
+              return planName === 'estandar' || planName === 'premium';
+            })
+            .map(sub => sub.local_id);
+
+          // Filter locals to only include those with valid subscriptions
+          filteredLocals = localsData.filter(local => validLocalIds.includes(local.id));
+          
+          console.log('[MentionAutocomplete] ✅ Found locals with valid subscriptions:', filteredLocals.length);
+        }
       }
 
       const results: MentionSuggestion[] = [];
@@ -152,9 +180,9 @@ export default function MentionAutocomplete({
         })));
       }
 
-      // Add locals with relevance scoring
-      if (!localsError && localsData) {
-        const scoredLocals = localsData.map(l => {
+      // Add locals with relevance scoring (only those with active estandar or premium plans)
+      if (filteredLocals.length > 0) {
+        const scoredLocals = filteredLocals.map(l => {
           const nombre = l.nombre.toLowerCase();
           const search = query.toLowerCase();
 
@@ -169,7 +197,7 @@ export default function MentionAutocomplete({
 
         scoredLocals.sort((a, b) => b.score - a.score);
 
-        results.push(...scoredLocals.map(l => ({
+        results.push(...scoredLocals.slice(0, 5).map(l => ({
           id: l.id,
           nombre: l.nombre,
           username: l.nombre,
@@ -178,7 +206,7 @@ export default function MentionAutocomplete({
         })));
       }
 
-      console.log('[MentionAutocomplete] ✅ Found', results.length, 'suggestions');
+      console.log('[MentionAutocomplete] ✅ Total suggestions:', results.length);
       setSuggestions(results);
     } catch (error) {
       console.error('[MentionAutocomplete] ❌ Error searching:', error);
@@ -209,8 +237,9 @@ export default function MentionAutocomplete({
     onSelectMention(mention, currentMentionText);
   };
 
-  const renderSuggestion = ({ item }: { item: MentionSuggestion }) => (
+  const renderSuggestion = ({ item, index }: { item: MentionSuggestion; index: number }) => (
     <TouchableOpacity
+      key={`${item.id}-${item.tipo}-${index}`}
       style={styles.suggestionItem}
       onPress={() => handleSelectMention(item)}
       activeOpacity={0.7}
@@ -243,14 +272,9 @@ export default function MentionAutocomplete({
           <Text style={styles.loadingText}>Buscando...</Text>
         </View>
       ) : suggestions.length > 0 ? (
-        <FlatList
-          data={suggestions}
-          renderItem={renderSuggestion}
-          keyExtractor={(item) => `${item.id}-${item.tipo}`}
-          style={styles.list}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        />
+        <View style={styles.list}>
+          {suggestions.map((item, index) => renderSuggestion({ item, index }))}
+        </View>
       ) : currentMentionText.length > 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>No se encontraron resultados</Text>

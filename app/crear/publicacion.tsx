@@ -154,33 +154,50 @@ export default function CrearPublicacionScreen() {
       // Only show locals with active 'estandar' or 'premium' plans
       console.log('[CrearPublicacion] 🏢 Searching locals with active subscriptions...');
       
+      // Step 1: Get locals matching the search query
       const { data: localsData, error: localsError } = await supabase
         .from('locales')
-        .select(`
-          id, 
-          nombre, 
-          imagen_url,
-          suscripciones_locales!inner(
-            estado,
-            planes_suscripcion!inner(nombre)
-          )
-        `)
+        .select('id, nombre, imagen_url')
         .or(`nombre.ilike.%${cleanTexto}%,nombre.ilike.%${fuzzyPattern}%`)
         .eq('activo', true)
-        .eq('suscripciones_locales.estado', 'activa')
-        .in('suscripciones_locales.planes_suscripcion.nombre', ['estandar', 'premium'])
-        .limit(10);
+        .limit(20);
 
       if (localsError) {
         console.error('[CrearPublicacion] ❌ Error searching locals:', localsError);
-      } else {
-        console.log('[CrearPublicacion] ✅ Found locals with active subscriptions:', localsData?.length || 0);
-        if (localsData && localsData.length > 0) {
-          console.log('[CrearPublicacion] 📋 Locals found:', localsData.map(l => ({
-            nombre: l.nombre,
-            plan: l.suscripciones_locales?.[0]?.planes_suscripcion?.nombre,
-            estado: l.suscripciones_locales?.[0]?.estado
-          })));
+      }
+
+      // Step 2: Filter locals by active subscription with estandar or premium plan
+      let filteredLocalsData: any[] = [];
+      if (localsData && localsData.length > 0) {
+        const localIds = localsData.map(l => l.id);
+        
+        // Get subscriptions for these locals with explicit relationship naming
+        const { data: subscriptionsData, error: subscriptionsError } = await supabase
+          .from('suscripciones_locales')
+          .select(`
+            local_id,
+            estado,
+            plan_id,
+            planes_suscripcion!suscripciones_locales_plan_id_fkey(nombre)
+          `)
+          .in('local_id', localIds)
+          .eq('estado', 'activa');
+
+        if (subscriptionsError) {
+          console.error('[CrearPublicacion] ❌ Error fetching subscriptions:', subscriptionsError);
+        } else if (subscriptionsData) {
+          // Filter subscriptions with estandar or premium plans
+          const validLocalIds = subscriptionsData
+            .filter(sub => {
+              const planName = (sub.planes_suscripcion as any)?.nombre;
+              return planName === 'estandar' || planName === 'premium';
+            })
+            .map(sub => sub.local_id);
+
+          // Filter locals to only include those with valid subscriptions
+          filteredLocalsData = localsData.filter(local => validLocalIds.includes(local.id));
+          
+          console.log('[CrearPublicacion] ✅ Found locals with valid subscriptions:', filteredLocalsData.length);
         }
       }
 
@@ -224,8 +241,8 @@ export default function CrearPublicacionScreen() {
       }
 
       // Add locals with relevance scoring (only those with active estandar or premium plans)
-      if (!localsError && localsData) {
-        const filteredLocals = localsData.filter(
+      if (filteredLocalsData.length > 0) {
+        const filteredLocals = filteredLocalsData.filter(
           (l) => !usuariosEtiquetados.find((ue) => ue.id === l.id && ue.tipo === 'local')
         );
         
