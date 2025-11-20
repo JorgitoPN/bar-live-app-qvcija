@@ -204,7 +204,7 @@ export default function ComentarScreen() {
           </Text>
           <TouchableOpacity 
             onPress={publicarComentario} 
-            style={styles.publishButton}
+            style={[styles.publishButton, !comentario.trim() && styles.publishButtonDisabled]}
             disabled={publishing || !comentario.trim()}
             activeOpacity={0.7}
           >
@@ -223,6 +223,7 @@ export default function ComentarScreen() {
         style={styles.content} 
         contentContainerStyle={styles.contentContainer}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
         {post && (
           <View style={styles.postPreview}>
@@ -231,13 +232,12 @@ export default function ComentarScreen() {
                 <Image source={{ uri: post.autor.avatar }} style={styles.postAvatar} />
               ) : (
                 <View style={[styles.postAvatar, styles.avatarPlaceholder]}>
-                  <Text style={styles.avatarText}>
-                    {post.autor?.nombre?.charAt(0).toUpperCase() || 'U'}
-                  </Text>
+                  <IconSymbol name="person.fill" size={20} color={colors.textSecondary} />
                 </View>
               )}
               <View style={styles.postAutorInfo}>
                 <Text style={styles.postAutorNombre}>{post.autor?.nombre || 'Usuario'}</Text>
+                <Text style={styles.postAutorUsername}>@{post.autor?.username || 'usuario'}</Text>
               </View>
             </View>
             {post.contenido && (
@@ -250,18 +250,19 @@ export default function ComentarScreen() {
 
         {parentComment && (
           <View style={styles.parentCommentPreview}>
-            <Text style={styles.replyingToLabel}>Respondiendo a:</Text>
+            <Text style={styles.replyingToLabel}>Respondiendo a</Text>
             <View style={styles.commentHeader}>
               {parentComment.autor?.avatar ? (
                 <Image source={{ uri: parentComment.autor.avatar }} style={styles.commentAvatar} />
               ) : (
                 <View style={[styles.commentAvatar, styles.avatarPlaceholder]}>
-                  <Text style={styles.avatarText}>
-                    {parentComment.autor?.nombre?.charAt(0).toUpperCase() || 'U'}
-                  </Text>
+                  <IconSymbol name="person.fill" size={16} color={colors.textSecondary} />
                 </View>
               )}
-              <Text style={styles.commentAutorNombre}>{parentComment.autor?.nombre || 'Usuario'}</Text>
+              <View style={styles.commentAutorInfo}>
+                <Text style={styles.commentAutorNombre}>{parentComment.autor?.nombre || 'Usuario'}</Text>
+                <Text style={styles.commentAutorUsername}>@{parentComment.autor?.username || 'usuario'}</Text>
+              </View>
             </View>
             <Text style={styles.commentTexto} numberOfLines={2}>
               {parentComment.texto}
@@ -269,34 +270,42 @@ export default function ComentarScreen() {
           </View>
         )}
 
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.textInput}
-            placeholder={parentComment ? 'Escribe tu respuesta... (usa @ para mencionar)' : 'Escribe tu comentario... (usa @ para mencionar)'}
-            placeholderTextColor={colors.textSecondary}
-            value={comentario}
-            onChangeText={setComentario}
-            onSelectionChange={(event) => {
-              setCursorPosition(event.nativeEvent.selection.start);
-            }}
-            multiline
-            maxLength={500}
-            editable={!publishing}
-            autoFocus
-          />
-          <Text style={styles.charCount}>{comentario.length}/500</Text>
+        <View style={styles.inputSection}>
+          <Text style={styles.inputLabel}>Tu comentario</Text>
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.textInput}
+              placeholder={parentComment ? 'Escribe tu respuesta...' : 'Escribe tu comentario...'}
+              placeholderTextColor={colors.textSecondary}
+              value={comentario}
+              onChangeText={setComentario}
+              onSelectionChange={(event) => {
+                setCursorPosition(event.nativeEvent.selection.start);
+              }}
+              multiline
+              maxLength={500}
+              editable={!publishing}
+              autoFocus
+            />
+            <Text style={styles.charCount}>{comentario.length}/500</Text>
+          </View>
+          <Text style={styles.helperText}>
+            Usa @ para mencionar usuarios o locales
+          </Text>
         </View>
 
-        <MentionAutocomplete
-          text={comentario}
-          cursorPosition={cursorPosition}
-          onSelectMention={handleSelectMention}
-          style={styles.mentionAutocomplete}
-        />
+        <View style={styles.autocompleteContainer}>
+          <MentionAutocomplete
+            text={comentario}
+            cursorPosition={cursorPosition}
+            onSelectMention={handleSelectMention}
+            style={styles.mentionAutocomplete}
+          />
+        </View>
 
         {isInteractingAsLocal && activeLocalProfileId && (
           <View style={styles.contextIndicator}>
-            <IconSymbol name="building.2" size={16} color={colors.primary} />
+            <IconSymbol name="building.2.fill" size={16} color={colors.primary} />
             <Text style={styles.contextText}>
               Comentando como local
             </Text>
@@ -310,7 +319,7 @@ export default function ComentarScreen() {
 const styles = StyleSheet.create({
   header: {
     paddingTop: Platform.OS === 'ios' ? 60 : 50,
-    paddingBottom: 20,
+    paddingBottom: 16,
     paddingHorizontal: 16,
   },
   headerTop: {
@@ -325,42 +334,42 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '700',
     color: colors.headerText,
     flex: 1,
     textAlign: 'center',
   },
   publishButton: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingVertical: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 8,
-    minWidth: 80,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 20,
+    minWidth: 90,
     alignItems: 'center',
   },
+  publishButtonDisabled: {
+    opacity: 0.5,
+  },
   publishButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
     color: colors.headerText,
   },
   publishButtonTextDisabled: {
-    opacity: 0.5,
+    opacity: 0.6,
   },
   content: {
     flex: 1,
   },
   contentContainer: {
-    padding: 16,
     paddingBottom: 40,
   },
   postPreview: {
     backgroundColor: colors.cardBackground,
-    borderRadius: 12,
     padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
   },
   postHeader: {
     flexDirection: 'row',
@@ -374,22 +383,24 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   avatarPlaceholder: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.headerText,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
   postAutorInfo: {
     flex: 1,
   },
   postAutorNombre: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
     color: colors.text,
+  },
+  postAutorUsername: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginTop: 2,
   },
   postContenido: {
     fontSize: 14,
@@ -397,13 +408,11 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   parentCommentPreview: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
+    backgroundColor: colors.background,
     padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderLeftWidth: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+    borderLeftWidth: 3,
     borderLeftColor: colors.primary,
   },
   replyingToLabel: {
@@ -411,6 +420,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.primary,
     marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   commentHeader: {
     flexDirection: 'row',
@@ -423,28 +434,50 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginRight: 8,
   },
+  commentAutorInfo: {
+    flex: 1,
+  },
   commentAutorNombre: {
     fontSize: 14,
     fontWeight: '600',
     color: colors.text,
+  },
+  commentAutorUsername: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 2,
   },
   commentTexto: {
     fontSize: 14,
     color: colors.text,
     lineHeight: 20,
   },
-  inputContainer: {
+  inputSection: {
     backgroundColor: colors.cardBackground,
-    borderRadius: 12,
     padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  inputLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  inputContainer: {
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    padding: 12,
     borderWidth: 1,
     borderColor: colors.cardBorder,
-    marginBottom: 16,
+    marginBottom: 8,
   },
   textInput: {
     fontSize: 16,
     color: colors.text,
-    minHeight: 120,
+    minHeight: 100,
     textAlignVertical: 'top',
     marginBottom: 8,
   },
@@ -453,18 +486,30 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'right',
   },
+  helperText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+  },
+  autocompleteContainer: {
+    position: 'relative',
+    zIndex: 10000,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+  },
   mentionAutocomplete: {
-    marginBottom: 16,
-    zIndex: 1000,
+    zIndex: 10001,
   },
   contextIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     backgroundColor: colors.primary + '15',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 12,
   },
   contextText: {
     fontSize: 13,

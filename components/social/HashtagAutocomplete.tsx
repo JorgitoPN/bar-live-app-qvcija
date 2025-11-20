@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Platform,
+  ScrollView,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -118,25 +119,6 @@ export default function HashtagAutocomplete({
     onSelectHashtag(hashtag.tag, currentHashtagText);
   };
 
-  const renderSuggestion = ({ item, index }: { item: HashtagSuggestion; index: number }) => (
-    <TouchableOpacity
-      key={`${item.id}-${index}`}
-      style={styles.suggestionItem}
-      onPress={() => handleSelectHashtag(item)}
-      activeOpacity={0.7}
-    >
-      <View style={styles.hashtagIcon}>
-        <IconSymbol name="number" size={20} color={colors.primary} />
-      </View>
-      <View style={styles.suggestionInfo}>
-        <Text style={styles.suggestionTag}>#{item.tag}</Text>
-        <Text style={styles.suggestionCount}>
-          {item.uso_count} {item.uso_count === 1 ? 'publicación' : 'publicaciones'}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
-
   return (
     <View style={[styles.container, style]}>
       {loading ? (
@@ -145,13 +127,38 @@ export default function HashtagAutocomplete({
           <Text style={styles.loadingText}>Buscando hashtags...</Text>
         </View>
       ) : suggestions.length > 0 ? (
-        <View style={styles.list}>
-          {suggestions.map((item, index) => renderSuggestion({ item, index }))}
-        </View>
+        <ScrollView 
+          style={styles.list}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {suggestions.map((item, index) => (
+            <TouchableOpacity
+              key={`${item.id}-${index}`}
+              style={[styles.suggestionItem, index === suggestions.length - 1 && styles.suggestionItemLast]}
+              onPress={() => handleSelectHashtag(item)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.hashtagIcon}>
+                <IconSymbol name="number" size={20} color={colors.primary} />
+              </View>
+              <View style={styles.suggestionInfo}>
+                <Text style={styles.suggestionTag}>#{item.tag}</Text>
+                <Text style={styles.suggestionCount}>
+                  {item.uso_count} {item.uso_count === 1 ? 'publicación' : 'publicaciones'}
+                </Text>
+              </View>
+              <IconSymbol name="chevron.right" size={16} color={colors.textSecondary} />
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       ) : currentHashtagText.length > 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No se encontraron hashtags</Text>
-          <Text style={styles.emptySubtext}>Sé el primero en usar #{currentHashtagText}</Text>
+          <IconSymbol name="number" size={20} color={colors.textSecondary} />
+          <View style={styles.emptyTextContainer}>
+            <Text style={styles.emptyText}>Sé el primero en usar</Text>
+            <Text style={styles.emptyHashtag}>#{currentHashtagText}</Text>
+          </View>
         </View>
       ) : null}
     </View>
@@ -164,21 +171,20 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.cardBorder,
-    maxHeight: 200,
+    maxHeight: 240,
+    overflow: 'hidden',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        zIndex: 9999,
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
       },
       android: {
-        elevation: 16,
+        elevation: 8,
       },
       web: {
-        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-        zIndex: 9999,
+        boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
       },
     }),
   },
@@ -191,6 +197,9 @@ const styles = StyleSheet.create({
     padding: 12,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
+  },
+  suggestionItemLast: {
+    borderBottomWidth: 0,
   },
   hashtagIcon: {
     width: 40,
@@ -226,17 +235,22 @@ const styles = StyleSheet.create({
     color: '#666666',
   },
   emptyContainer: {
-    padding: 16,
+    flexDirection: 'row',
     alignItems: 'center',
+    padding: 16,
+    gap: 12,
+  },
+  emptyTextContainer: {
+    flex: 1,
   },
   emptyText: {
     fontSize: 14,
-    fontWeight: '600',
     color: '#666666',
-    marginBottom: 4,
+    marginBottom: 2,
   },
-  emptySubtext: {
-    fontSize: 13,
-    color: '#999999',
+  emptyHashtag: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.primary,
   },
 });

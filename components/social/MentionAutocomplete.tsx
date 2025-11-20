@@ -8,6 +8,7 @@ import {
   Image,
   ActivityIndicator,
   Platform,
+  ScrollView,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -216,33 +217,6 @@ export default function MentionAutocomplete({
     onSelectMention(mention, currentMentionText);
   };
 
-  const renderSuggestion = ({ item, index }: { item: MentionSuggestion; index: number }) => (
-    <TouchableOpacity
-      key={`${item.id}-${item.tipo}-${index}`}
-      style={styles.suggestionItem}
-      onPress={() => handleSelectMention(item)}
-      activeOpacity={0.7}
-    >
-      {item.avatar ? (
-        <Image source={{ uri: item.avatar }} style={styles.avatar} />
-      ) : (
-        <View style={[styles.avatar, styles.avatarPlaceholder]}>
-          <IconSymbol
-            name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
-            size={20}
-            color={colors.textSecondary}
-          />
-        </View>
-      )}
-      <View style={styles.suggestionInfo}>
-        <Text style={styles.suggestionName}>{item.nombre}</Text>
-        <Text style={styles.suggestionType}>
-          {item.tipo === 'local' ? '🏢 Local' : `👤 @${item.username}`}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
-
   return (
     <View style={[styles.container, style]}>
       {loading ? (
@@ -251,11 +225,42 @@ export default function MentionAutocomplete({
           <Text style={styles.loadingText}>Buscando...</Text>
         </View>
       ) : suggestions.length > 0 ? (
-        <View style={styles.list}>
-          {suggestions.map((item, index) => renderSuggestion({ item, index }))}
-        </View>
+        <ScrollView 
+          style={styles.list}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {suggestions.map((item, index) => (
+            <TouchableOpacity
+              key={`${item.id}-${item.tipo}-${index}`}
+              style={[styles.suggestionItem, index === suggestions.length - 1 && styles.suggestionItemLast]}
+              onPress={() => handleSelectMention(item)}
+              activeOpacity={0.7}
+            >
+              {item.avatar ? (
+                <Image source={{ uri: item.avatar }} style={styles.avatar} />
+              ) : (
+                <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                  <IconSymbol
+                    name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
+                    size={20}
+                    color={colors.textSecondary}
+                  />
+                </View>
+              )}
+              <View style={styles.suggestionInfo}>
+                <Text style={styles.suggestionName}>{item.nombre}</Text>
+                <Text style={styles.suggestionType}>
+                  {item.tipo === 'local' ? '🏢 Local' : `@${item.username}`}
+                </Text>
+              </View>
+              <IconSymbol name="chevron.right" size={16} color={colors.textSecondary} />
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       ) : currentMentionText.length > 0 ? (
         <View style={styles.emptyContainer}>
+          <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
           <Text style={styles.emptyText}>No se encontraron resultados</Text>
         </View>
       ) : null}
@@ -269,21 +274,20 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.cardBorder,
-    maxHeight: 200,
+    maxHeight: 240,
+    overflow: 'hidden',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        zIndex: 9999,
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
       },
       android: {
-        elevation: 16,
+        elevation: 8,
       },
       web: {
-        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-        zIndex: 9999,
+        boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
       },
     }),
   },
@@ -296,6 +300,9 @@ const styles = StyleSheet.create({
     padding: 12,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
+  },
+  suggestionItemLast: {
+    borderBottomWidth: 0,
   },
   avatar: {
     width: 40,
@@ -335,8 +342,11 @@ const styles = StyleSheet.create({
     color: '#666666',
   },
   emptyContainer: {
-    padding: 16,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    gap: 8,
   },
   emptyText: {
     fontSize: 14,

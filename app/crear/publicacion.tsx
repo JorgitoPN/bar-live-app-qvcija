@@ -14,6 +14,7 @@ import {
   Modal,
   Pressable,
   KeyboardAvoidingView,
+  Dimensions,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -29,6 +30,8 @@ import UploadProgressModal from '@/components/common/UploadProgressModal';
 import { processPostHashtags, processPostMentions } from '@/utils/postHelpers';
 import MentionAutocomplete, { MentionSuggestion } from '@/components/social/MentionAutocomplete';
 import HashtagAutocomplete from '@/components/social/HashtagAutocomplete';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface UserSuggestion {
   id: string;
@@ -111,6 +114,7 @@ export default function CrearPublicacionScreen() {
   const [tagSearchQuery, setTagSearchQuery] = useState('');
   const [tagSuggestions, setTagSuggestions] = useState<UserSuggestion[]>([]);
   const [searchingTags, setSearchingTags] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const MAX_IMAGES = 10;
 
@@ -365,6 +369,9 @@ export default function CrearPublicacionScreen() {
     const newImagenes = [...imagenes];
     newImagenes.splice(index, 1);
     setImagenes(newImagenes);
+    if (currentImageIndex >= newImagenes.length && newImagenes.length > 0) {
+      setCurrentImageIndex(newImagenes.length - 1);
+    }
   };
 
   const obtenerUbicacion = async () => {
@@ -639,14 +646,16 @@ export default function CrearPublicacionScreen() {
           <Text style={styles.headerTitle}>Nueva Publicación</Text>
           <TouchableOpacity 
             onPress={publicar} 
-            style={styles.publishButton}
-            disabled={publishing}
+            style={[styles.publishButton, (!contenido.trim() && imagenes.length === 0) && styles.publishButtonDisabled]}
+            disabled={publishing || (!contenido.trim() && imagenes.length === 0)}
             activeOpacity={0.7}
           >
             {publishing ? (
               <ActivityIndicator size="small" color={colors.headerText} />
             ) : (
-              <Text style={styles.publishButtonText}>Publicar</Text>
+              <Text style={[styles.publishButtonText, (!contenido.trim() && imagenes.length === 0) && styles.publishButtonTextDisabled]}>
+                Publicar
+              </Text>
             )}
           </TouchableOpacity>
         </View>
@@ -661,11 +670,13 @@ export default function CrearPublicacionScreen() {
           style={styles.content} 
           contentContainerStyle={styles.contentContainer}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <View style={styles.textInputContainer}>
+          {/* Text Input Section */}
+          <View style={styles.textInputSection}>
             <TextInput
               style={styles.textInput}
-              placeholder="¿Qué estás pensando? (usa @ para mencionar y # para hashtags)"
+              placeholder="¿Qué estás pensando?"
               placeholderTextColor={colors.textSecondary}
               value={contenido}
               onChangeText={setContenido}
@@ -673,81 +684,61 @@ export default function CrearPublicacionScreen() {
                 setCursorPosition(event.nativeEvent.selection.start);
               }}
               multiline
-              maxLength={500}
+              maxLength={2200}
               editable={!publishing}
             />
-            <Text style={styles.charCount}>{contenido.length}/500</Text>
+            <Text style={styles.charCount}>{contenido.length}/2200</Text>
+            <Text style={styles.helperText}>
+              Usa @ para mencionar y # para hashtags
+            </Text>
           </View>
 
-          <MentionAutocomplete
-            text={contenido}
-            cursorPosition={cursorPosition}
-            onSelectMention={handleSelectInlineMention}
-            style={styles.mentionAutocomplete}
-          />
+          {/* Autocomplete Components */}
+          <View style={styles.autocompleteContainer}>
+            <MentionAutocomplete
+              text={contenido}
+              cursorPosition={cursorPosition}
+              onSelectMention={handleSelectInlineMention}
+              style={styles.mentionAutocomplete}
+            />
 
-          <HashtagAutocomplete
-            text={contenido}
-            cursorPosition={cursorPosition}
-            onSelectHashtag={handleSelectInlineHashtag}
-            style={styles.hashtagAutocomplete}
-          />
+            <HashtagAutocomplete
+              text={contenido}
+              cursorPosition={cursorPosition}
+              onSelectHashtag={handleSelectInlineHashtag}
+              style={styles.hashtagAutocomplete}
+            />
+          </View>
 
-          {usuariosEtiquetados.length > 0 && (
-            <View style={styles.taggedUsersContainer}>
-              <Text style={styles.taggedUsersTitle}>Etiquetados:</Text>
-              <View style={styles.taggedUsersList}>
-                {usuariosEtiquetados.map((item) => (
-                  <View key={`${item.id}-${item.tipo}`} style={styles.taggedUserChip}>
-                    <IconSymbol 
-                      name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'} 
-                      size={12} 
-                      color={colors.text} 
-                    />
-                    <Text style={styles.taggedUserName}>
-                      {item.username || item.nombre}
-                    </Text>
-                    <TouchableOpacity onPress={() => eliminarEtiqueta(item.id, item.tipo!)} activeOpacity={0.7}>
-                      <IconSymbol name="xmark.circle.fill" size={16} color={colors.textSecondary} />
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
-
-          {ubicacion && (
-            <View style={styles.locationContainer}>
-              <IconSymbol name="mappin.circle.fill" size={20} color={colors.primary} />
-              <Text style={styles.locationText}>{ubicacion.nombre}</Text>
-              <TouchableOpacity onPress={() => setUbicacion(null)} activeOpacity={0.7}>
-                <IconSymbol name="xmark.circle.fill" size={20} color={colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-          )}
-
+          {/* Images Preview */}
           {imagenes.length > 0 && (
-            <View style={styles.imagesContainer}>
-              <View style={styles.imagesHeader}>
-                <Text style={styles.imagesCount}>
+            <View style={styles.imagesPreviewSection}>
+              <View style={styles.imagesSectionHeader}>
+                <Text style={styles.imagesSectionTitle}>
                   {imagenes.length} {imagenes.length === 1 ? 'imagen' : 'imágenes'}
                 </Text>
                 {imagenes.length < MAX_IMAGES && (
-                  <Text style={styles.imagesLimit}>
-                    (máximo {MAX_IMAGES})
-                  </Text>
+                  <TouchableOpacity onPress={seleccionarImagenes} activeOpacity={0.7}>
+                    <Text style={styles.addMoreText}>+ Añadir más</Text>
+                  </TouchableOpacity>
                 )}
               </View>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagesScroll}>
+              
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false} 
+                style={styles.imagesScroll}
+                contentContainerStyle={styles.imagesScrollContent}
+              >
                 {imagenes.map((uri, index) => (
-                  <View key={index} style={styles.imageWrapper}>
-                    <Image source={{ uri }} style={styles.selectedImage} />
+                  <View key={index} style={styles.imagePreviewWrapper}>
+                    <Image source={{ uri }} style={styles.imagePreview} />
                     <TouchableOpacity
                       style={styles.removeImageButton}
                       onPress={() => eliminarImagen(index)}
                       activeOpacity={0.7}
                     >
-                      <IconSymbol name="xmark.circle.fill" size={28} color={colors.badgeNuevo} />
+                      <IconSymbol name="xmark.circle.fill" size={28} color="#FFFFFF" />
                     </TouchableOpacity>
                     <View style={styles.imageIndexBadge}>
                       <Text style={styles.imageIndexText}>{index + 1}</Text>
@@ -758,55 +749,122 @@ export default function CrearPublicacionScreen() {
             </View>
           )}
 
-          <View style={styles.options}>
-            <TouchableOpacity 
-              style={styles.optionButton} 
-              onPress={seleccionarImagenes}
-              disabled={publishing || imagenes.length >= MAX_IMAGES}
-              activeOpacity={0.7}
-            >
-              <IconSymbol name="photo" size={28} color={imagenes.length >= MAX_IMAGES ? colors.textSecondary : colors.primary} />
-              <Text style={[styles.optionText, imagenes.length >= MAX_IMAGES && styles.optionTextDisabled]}>
-                Galería
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.optionButton} 
-              onPress={tomarFoto}
-              disabled={publishing || imagenes.length >= MAX_IMAGES}
-              activeOpacity={0.7}
-            >
-              <IconSymbol name="camera" size={28} color={imagenes.length >= MAX_IMAGES ? colors.textSecondary : colors.secondary} />
-              <Text style={[styles.optionText, imagenes.length >= MAX_IMAGES && styles.optionTextDisabled]}>
-                Cámara
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.optionButton}
-              onPress={obtenerUbicacion}
-              disabled={loadingLocation || publishing}
-              activeOpacity={0.7}
-            >
-              {loadingLocation ? (
-                <ActivityIndicator size="small" color={colors.badgeDestacado} />
-              ) : (
-                <IconSymbol name="mappin.and.ellipse" size={28} color={colors.badgeDestacado} />
-              )}
-              <Text style={styles.optionText}>Ubicación</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.optionButton}
-              onPress={() => setShowTagModal(true)}
-              disabled={publishing}
-              activeOpacity={0.7}
-            >
-              <IconSymbol name="person.crop.circle.badge.plus" size={28} color={colors.badgeNuevo} />
-              <Text style={styles.optionText}>Etiquetar</Text>
-            </TouchableOpacity>
+          {/* Tagged Users */}
+          {usuariosEtiquetados.length > 0 && (
+            <View style={styles.taggedSection}>
+              <Text style={styles.sectionLabel}>Personas etiquetadas</Text>
+              <View style={styles.taggedList}>
+                {usuariosEtiquetados.map((item) => (
+                  <View key={`${item.id}-${item.tipo}`} style={styles.taggedChip}>
+                    {item.avatar ? (
+                      <Image source={{ uri: item.avatar }} style={styles.taggedAvatar} />
+                    ) : (
+                      <View style={[styles.taggedAvatar, styles.taggedAvatarPlaceholder]}>
+                        <IconSymbol 
+                          name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'} 
+                          size={14} 
+                          color={colors.textSecondary} 
+                        />
+                      </View>
+                    )}
+                    <Text style={styles.taggedName} numberOfLines={1}>
+                      {item.username || item.nombre}
+                    </Text>
+                    <TouchableOpacity 
+                      onPress={() => eliminarEtiqueta(item.id, item.tipo!)} 
+                      activeOpacity={0.7}
+                      style={styles.removeTagButton}
+                    >
+                      <IconSymbol name="xmark.circle.fill" size={18} color={colors.textSecondary} />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Location */}
+          {ubicacion && (
+            <View style={styles.locationSection}>
+              <View style={styles.locationContent}>
+                <IconSymbol name="mappin.circle.fill" size={20} color={colors.primary} />
+                <Text style={styles.locationText} numberOfLines={1}>{ubicacion.nombre}</Text>
+              </View>
+              <TouchableOpacity onPress={() => setUbicacion(null)} activeOpacity={0.7}>
+                <IconSymbol name="xmark.circle.fill" size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Action Buttons */}
+          <View style={styles.actionsSection}>
+            <Text style={styles.actionsSectionTitle}>Añadir a tu publicación</Text>
+            <View style={styles.actionsGrid}>
+              <TouchableOpacity 
+                style={[styles.actionButton, imagenes.length >= MAX_IMAGES && styles.actionButtonDisabled]} 
+                onPress={seleccionarImagenes}
+                disabled={publishing || imagenes.length >= MAX_IMAGES}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.actionIconContainer, { backgroundColor: colors.primary + '15' }]}>
+                  <IconSymbol name="photo" size={24} color={imagenes.length >= MAX_IMAGES ? colors.textSecondary : colors.primary} />
+                </View>
+                <Text style={[styles.actionButtonText, imagenes.length >= MAX_IMAGES && styles.actionButtonTextDisabled]}>
+                  Fotos/Videos
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.actionButton, imagenes.length >= MAX_IMAGES && styles.actionButtonDisabled]} 
+                onPress={tomarFoto}
+                disabled={publishing || imagenes.length >= MAX_IMAGES}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.actionIconContainer, { backgroundColor: colors.secondary + '15' }]}>
+                  <IconSymbol name="camera" size={24} color={imagenes.length >= MAX_IMAGES ? colors.textSecondary : colors.secondary} />
+                </View>
+                <Text style={[styles.actionButtonText, imagenes.length >= MAX_IMAGES && styles.actionButtonTextDisabled]}>
+                  Cámara
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => setShowTagModal(true)}
+                disabled={publishing}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.actionIconContainer, { backgroundColor: '#8B5CF6' + '15' }]}>
+                  <IconSymbol name="person.crop.circle.badge.plus" size={24} color="#8B5CF6" />
+                </View>
+                <Text style={styles.actionButtonText}>
+                  Etiquetar
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={obtenerUbicacion}
+                disabled={loadingLocation || publishing}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.actionIconContainer, { backgroundColor: '#EF4444' + '15' }]}>
+                  {loadingLocation ? (
+                    <ActivityIndicator size="small" color="#EF4444" />
+                  ) : (
+                    <IconSymbol name="mappin.and.ellipse" size={24} color="#EF4444" />
+                  )}
+                </View>
+                <Text style={styles.actionButtonText}>
+                  Ubicación
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
 
+      {/* Tag Modal */}
       <Modal
         visible={showTagModal}
         animationType="slide"
@@ -824,7 +882,7 @@ export default function CrearPublicacionScreen() {
           >
             <View style={styles.tagModal}>
               <View style={styles.tagModalHeader}>
-                <Text style={styles.tagModalTitle}>Etiquetar Usuarios y Locales</Text>
+                <Text style={styles.tagModalTitle}>Etiquetar personas</Text>
                 <TouchableOpacity 
                   onPress={() => {
                     setShowTagModal(false);
@@ -841,7 +899,7 @@ export default function CrearPublicacionScreen() {
                 <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
                 <TextInput
                   style={styles.tagSearchInput}
-                  placeholder="Buscar usuarios o locales..."
+                  placeholder="Buscar..."
                   placeholderTextColor={colors.textSecondary}
                   value={tagSearchQuery}
                   onChangeText={setTagSearchQuery}
@@ -874,9 +932,6 @@ export default function CrearPublicacionScreen() {
                   </View>
                 ) : tagSuggestions.length > 0 ? (
                   <React.Fragment>
-                    <Text style={styles.tagResultsHeader}>
-                      {tagSuggestions.length} {tagSuggestions.length === 1 ? 'resultado' : 'resultados'}
-                    </Text>
                     {tagSuggestions.map((item) => (
                       <TouchableOpacity
                         key={`${item.id}-${item.tipo}`}
@@ -898,7 +953,7 @@ export default function CrearPublicacionScreen() {
                         <View style={styles.tagSuggestionInfo}>
                           <Text style={styles.tagSuggestionName}>{item.nombre}</Text>
                           <Text style={styles.tagSuggestionType}>
-                            {item.tipo === 'local' ? '🏢 Local' : `👤 @${item.username}`}
+                            {item.tipo === 'local' ? '🏢 Local' : `@${item.username}`}
                           </Text>
                         </View>
                         <IconSymbol name="plus.circle.fill" size={24} color={colors.primary} />
@@ -910,15 +965,15 @@ export default function CrearPublicacionScreen() {
                     <IconSymbol name="magnifyingglass" size={48} color={colors.textSecondary} />
                     <Text style={styles.tagEmptyText}>No se encontraron resultados</Text>
                     <Text style={styles.tagEmptySubtext}>
-                      Intenta con otro nombre o verifica la ortografía
+                      Intenta con otro nombre
                     </Text>
                   </View>
                 ) : (
                   <View style={styles.tagEmptyState}>
                     <IconSymbol name="person.2.fill" size={48} color={colors.textSecondary} />
-                    <Text style={styles.tagEmptyText}>Busca usuarios o locales</Text>
+                    <Text style={styles.tagEmptyText}>Busca personas o locales</Text>
                     <Text style={styles.tagEmptySubtext}>
-                      Escribe el nombre para ver resultados en tiempo real
+                      Escribe para ver resultados
                     </Text>
                   </View>
                 )}
@@ -940,7 +995,7 @@ export default function CrearPublicacionScreen() {
 const styles = StyleSheet.create({
   header: {
     paddingTop: Platform.OS === 'ios' ? 60 : 50,
-    paddingBottom: 20,
+    paddingBottom: 16,
     paddingHorizontal: 16,
   },
   headerTop: {
@@ -955,44 +1010,49 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '700',
     color: colors.headerText,
     flex: 1,
     textAlign: 'center',
   },
   publishButton: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingVertical: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 8,
-    minWidth: 80,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 20,
+    minWidth: 90,
     alignItems: 'center',
   },
+  publishButtonDisabled: {
+    opacity: 0.5,
+  },
   publishButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
     color: colors.headerText,
+  },
+  publishButtonTextDisabled: {
+    opacity: 0.6,
   },
   content: {
     flex: 1,
   },
   contentContainer: {
-    padding: 16,
     paddingBottom: 120,
   },
-  textInputContainer: {
+  textInputSection: {
     backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    marginBottom: 12,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
   },
   textInput: {
     fontSize: 16,
     color: colors.text,
-    minHeight: 120,
+    minHeight: 100,
     textAlignVertical: 'top',
     marginBottom: 8,
   },
@@ -1000,88 +1060,63 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
     textAlign: 'right',
+    marginBottom: 4,
+  },
+  helperText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+  },
+  autocompleteContainer: {
+    position: 'relative',
+    zIndex: 10000,
   },
   mentionAutocomplete: {
-    marginBottom: 16,
-    zIndex: 1000,
+    marginHorizontal: 16,
+    marginTop: 8,
+    zIndex: 10001,
   },
   hashtagAutocomplete: {
-    marginBottom: 16,
-    zIndex: 999,
+    marginHorizontal: 16,
+    marginTop: 8,
+    zIndex: 10000,
   },
-  taggedUsersContainer: {
-    marginBottom: 16,
-  },
-  taggedUsersTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  taggedUsersList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  taggedUserChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  imagesPreviewSection: {
     backgroundColor: colors.cardBackground,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 6,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
   },
-  taggedUserName: {
-    fontSize: 14,
-    color: colors.text,
-  },
-  locationContainer: {
+  imagesSectionHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: colors.cardBackground,
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 16,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  locationText: {
-    flex: 1,
-    fontSize: 14,
-    color: colors.text,
-  },
-  imagesContainer: {
-    marginBottom: 20,
-  },
-  imagesHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    paddingHorizontal: 16,
     marginBottom: 12,
-    gap: 8,
   },
-  imagesCount: {
-    fontSize: 16,
+  imagesSectionTitle: {
+    fontSize: 15,
     fontWeight: '600',
     color: colors.text,
   },
-  imagesLimit: {
+  addMoreText: {
     fontSize: 14,
-    color: colors.textSecondary,
+    fontWeight: '600',
+    color: colors.primary,
   },
   imagesScroll: {
-    flexDirection: 'row',
+    paddingLeft: 16,
   },
-  imageWrapper: {
+  imagesScrollContent: {
+    paddingRight: 16,
+  },
+  imagePreviewWrapper: {
     position: 'relative',
     marginRight: 12,
   },
-  selectedImage: {
-    width: 200,
-    height: 200,
+  imagePreview: {
+    width: 160,
+    height: 160,
     borderRadius: 12,
     backgroundColor: colors.cardBorder,
   },
@@ -1089,7 +1124,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     right: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     borderRadius: 14,
   },
   imageIndexBadge: {
@@ -1106,30 +1141,125 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.headerText,
   },
-  options: {
+  taggedSection: {
+    backgroundColor: colors.cardBackground,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  sectionLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  taggedList: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
-    marginTop: 20,
-  },
-  optionButton: {
-    flex: 1,
-    minWidth: '45%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
     gap: 8,
   },
-  optionText: {
+  taggedChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    paddingLeft: 4,
+    paddingRight: 8,
+    paddingVertical: 4,
+    borderRadius: 20,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    maxWidth: SCREEN_WIDTH - 64,
+  },
+  taggedAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+  },
+  taggedAvatarPlaceholder: {
+    backgroundColor: colors.cardBorder,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  taggedName: {
     fontSize: 14,
     fontWeight: '600',
     color: colors.text,
+    flex: 1,
   },
-  optionTextDisabled: {
+  removeTagButton: {
+    padding: 2,
+  },
+  locationSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.cardBackground,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  locationContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  locationText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.text,
+  },
+  actionsSection: {
+    backgroundColor: colors.cardBackground,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    marginTop: 8,
+  },
+  actionsSectionTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 16,
+  },
+  actionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  actionButton: {
+    flex: 1,
+    minWidth: '47%',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  actionButtonDisabled: {
+    opacity: 0.5,
+  },
+  actionIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  actionButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text,
+    textAlign: 'center',
+  },
+  actionButtonTextDisabled: {
     color: colors.textSecondary,
   },
   modalOverlay: {
@@ -1144,7 +1274,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: '90%',
+    maxHeight: '85%',
     minHeight: '70%',
   },
   tagModalHeader: {
@@ -1157,7 +1287,7 @@ const styles = StyleSheet.create({
   },
   tagModalTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: colors.text,
   },
   tagSearchContainer: {
@@ -1192,13 +1322,6 @@ const styles = StyleSheet.create({
   tagLoadingText: {
     fontSize: 14,
     color: colors.textSecondary,
-  },
-  tagResultsHeader: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    marginBottom: 12,
-    paddingHorizontal: 4,
   },
   tagSuggestionItem: {
     flexDirection: 'row',
