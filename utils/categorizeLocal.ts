@@ -256,7 +256,7 @@ export function getCategoryLabel(category: LocalCategory): string {
 }
 
 /**
- * ✅ UPDATED: Check if a venue should have the PUB category based on Spanish regulations
+ * ✅ FIXED: Check if a venue should have the PUB category based on Spanish regulations
  * 
  * Spanish Hospitality Closing Time Regulations:
  * - Bares y cafeterías: Close between 1:30 AM and 2:30 AM
@@ -276,11 +276,27 @@ export function shouldHavePubCategory(horarios_completos: Record<string, string[
     return false;
   }
 
-  // ✅ UPDATED: Check if closes after 2:30 AM (150 minutes = 02:30)
-  // This aligns with Spanish regulations where pubs close later than bars/cafeterías
-  // latestClose > 1590 means after 2:30 AM same day (26:30 = 1590 minutes)
-  // latestClose <= 150 means before 2:30 AM next day (00:00 - 02:30)
-  return latestClose > 1590 || latestClose <= 150;
+  // ✅ FIXED: Check if closes after 2:30 AM
+  // latestClose is in minutes from midnight
+  // If closing time is after midnight (e.g., 03:00 = 180 minutes), it will be > 1440 (e.g., 1620 for 03:00)
+  // If closing time is before 6 AM (e.g., 03:00 = 180 minutes), it will be < 360
+  
+  // Case 1: Closes after 2:30 AM same day (26:30 = 1590 minutes)
+  // Example: 16:00–03:00 → latestClose = 1620 (03:00 next day)
+  if (latestClose > 1590) {
+    console.log(`[shouldHavePubCategory] ✅ Venue closes after 2:30 AM (${latestClose} minutes)`);
+    return true;
+  }
+  
+  // Case 2: Closes before 6:00 AM next day (but after midnight)
+  // Example: 03:00 = 180 minutes (before 6 AM)
+  if (latestClose <= 360 && latestClose > 150) {
+    console.log(`[shouldHavePubCategory] ✅ Venue closes between 2:30 AM and 6:00 AM (${latestClose} minutes)`);
+    return true;
+  }
+  
+  console.log(`[shouldHavePubCategory] ❌ Venue does NOT qualify as pub (closes at ${latestClose} minutes)`);
+  return false;
 }
 
 /**
@@ -298,6 +314,7 @@ export function addPubCategoryIfNeeded(
 
   // Check if should have pub category based on closing time
   if (shouldHavePubCategory(horarios_completos)) {
+    console.log(`[addPubCategoryIfNeeded] ✅ Adding PUB category to:`, currentCategories);
     // Add pub to the beginning of the array (higher priority)
     return ['pub', ...currentCategories].slice(0, 3) as LocalCategory[];
   }

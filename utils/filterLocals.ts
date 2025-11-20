@@ -99,39 +99,58 @@ function esDestacado(local: Local, activePromotions: Set<string>): boolean {
 }
 
 /**
- * Check if local matches category filter
- * ✅ FIXED: Now dynamically adds PUB category if venue closes after 2 AM
+ * ✅ FIXED: Check if local matches category filter with proper PUB category support
+ * Now correctly handles all category fields and dynamically adds PUB category
  */
 function matchesCategory(local: Local, categorias: string[]): boolean {
   if (!categorias || categorias.length === 0) return true;
   
-  // Obtener todas las categorías del local
-  let localCategories: LocalCategory[] = [];
+  // Collect all categories from the local
+  let localCategories: string[] = [];
   
-  // Agregar barlive_types si existe (array)
+  // 1. Add barlive_types if exists (array)
   if (local.barlive_types && Array.isArray(local.barlive_types)) {
     localCategories.push(...local.barlive_types);
   }
   
-  // Agregar barlive_type si existe (string)
-  if (local.barlive_type) {
+  // 2. Add barlive_type if exists (string)
+  if (local.barlive_type && typeof local.barlive_type === 'string') {
     localCategories.push(local.barlive_type);
   }
   
-  // Agregar tipo si existe (fallback)
-  if (local.tipo) {
+  // 3. Add tipo if exists (legacy field - string)
+  if (local.tipo && typeof local.tipo === 'string') {
     localCategories.push(local.tipo);
   }
   
-  // ✅ FIXED: Add PUB category dynamically if venue closes after 2 AM
-  localCategories = addPubCategoryIfNeeded(localCategories, local.horarios_completos);
+  // Remove duplicates
+  localCategories = Array.from(new Set(localCategories));
   
-  // Verificar si alguna categoría del local coincide con las categorías filtradas
+  // ✅ CRITICAL FIX: Add PUB category dynamically if venue closes after 2:30 AM
+  // Convert to LocalCategory[] for addPubCategoryIfNeeded
+  const categoriesAsLocalCategory = localCategories as LocalCategory[];
+  const categoriesWithPub = addPubCategoryIfNeeded(categoriesAsLocalCategory, local.horarios_completos);
+  
+  // Debug logging for PUB category
+  if (categorias.includes('pub')) {
+    console.log(`[matchesCategory] 🍺 Checking ${local.nombre}:`, {
+      originalCategories: localCategories,
+      withPubAdded: categoriesWithPub,
+      closingTimes: local.horarios_completos,
+      searchingFor: categorias,
+    });
+  }
+  
+  // Check if any category matches (case-insensitive)
   const hasMatch = categorias.some(categoria => 
-    localCategories.some(localCat => 
+    categoriesWithPub.some(localCat => 
       localCat.toLowerCase() === categoria.toLowerCase()
     )
   );
+  
+  if (categorias.includes('pub')) {
+    console.log(`[matchesCategory] 🍺 ${local.nombre} matches pub filter: ${hasMatch}`);
+  }
   
   return hasMatch;
 }
@@ -187,7 +206,11 @@ export function filterAndSortLocals(
     if (filtros.tipo && filtros.tipo.length > 0) {
       const hasMatchingType = matchesCategory(local, filtros.tipo);
       if (!hasMatchingType) {
-        console.log('❌ [SORTING] Rechazado por categoría:', local.nombre, 'Categorías del local:', local.barlive_types || local.barlive_type || local.tipo);
+        console.log('❌ [SORTING] Rechazado por categoría:', local.nombre, 'Categorías del local:', {
+          barlive_types: local.barlive_types,
+          barlive_type: local.barlive_type,
+          tipo: local.tipo,
+        });
         return false;
       }
     }

@@ -264,29 +264,50 @@ export default function ExplorarScreen() {
 
     // ✅ FIXED: Filter by category with dynamic PUB category support
     if (categoriaSeleccionada !== 'todos') {
+      console.log(`[Explorar] 🍺 Filtering for category: ${categoriaSeleccionada}`);
+      
       localesFiltrados = localesFiltrados.filter((local) => {
-        // Get all categories for this local
-        let localCategories = local.barlive_types || [];
-        if (localCategories.length === 0 && local.barlive_type) {
-          localCategories = [local.barlive_type];
+        // Collect all categories for this local
+        let localCategories: string[] = [];
+        
+        // Add barlive_types if exists (array)
+        if (local.barlive_types && Array.isArray(local.barlive_types)) {
+          localCategories.push(...local.barlive_types);
         }
         
+        // Add barlive_type if exists (string)
+        if (local.barlive_type && typeof local.barlive_type === 'string') {
+          localCategories.push(local.barlive_type);
+        }
+        
+        // Add tipo if exists (legacy field)
+        if (local.tipo && typeof local.tipo === 'string') {
+          localCategories.push(local.tipo);
+        }
+        
+        // Remove duplicates
+        localCategories = Array.from(new Set(localCategories));
+        
         // ✅ CRITICAL FIX: Add PUB category dynamically if venue closes after 2:30 AM
-        localCategories = addPubCategoryIfNeeded(localCategories, local.horarios_completos);
+        const categoriesWithPub = addPubCategoryIfNeeded(localCategories as any, local.horarios_completos);
         
         // Debug log for PUB category
         if (categoriaSeleccionada === 'pub') {
           console.log(`[Explorar] 🍺 Checking ${local.nombre}:`, {
-            originalCategories: local.barlive_types || local.barlive_type,
-            withPubAdded: localCategories,
+            originalCategories: localCategories,
+            withPubAdded: categoriesWithPub,
             horarios: local.horarios_completos,
           });
         }
         
         // Check if any category matches the selected category (case-insensitive)
-        const matches = localCategories.some(
+        const matches = categoriesWithPub.some(
           (tipo: string) => tipo.toLowerCase() === categoriaSeleccionada.toLowerCase()
         );
+        
+        if (categoriaSeleccionada === 'pub' && matches) {
+          console.log(`[Explorar] ✅ ${local.nombre} MATCHES pub filter!`);
+        }
         
         return matches;
       });
