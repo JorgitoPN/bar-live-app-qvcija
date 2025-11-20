@@ -261,8 +261,11 @@ export default function MapaScreen() {
     const CATEGORIAS_EXCLUIDAS = ['terrazas', 'rooftops', 'lounge'];
     
     const filtrados = todosLosLocales.filter(local => {
-      // Get all categories for this local
-      const localCategories = local.barlive_types || (local.barlive_type ? [local.barlive_type] : []);
+      // ✅ FIXED: Get all categories for this local AND add PUB dynamically
+      let localCategories = local.barlive_types || (local.barlive_type ? [local.barlive_type] : []);
+      
+      // ✅ CRITICAL FIX: Add PUB category dynamically based on closing time
+      localCategories = addPubCategoryIfNeeded(localCategories, local.horarios_completos);
       
       // Exclude locales with excluded categories
       const hasExcludedCategory = localCategories.some((cat: string) => 
@@ -270,8 +273,7 @@ export default function MapaScreen() {
       );
       if (hasExcludedCategory) return false;
       
-      // FIXED: Strict category filtering for "discoteca"
-      // When "discoteca" is selected, ONLY show locales that have "discoteca" in their categories
+      // FIXED: Strict category filtering
       let matchCategoria = false;
       if (categoriaSeleccionada === 'todos') {
         matchCategoria = true;
@@ -369,7 +371,7 @@ export default function MapaScreen() {
       const estado = estaAbierto === true ? 'abierto' : 
                      estaAbierto === false ? 'cerrado' : 'sin_info';
       
-      // ✅ FIXED: Get categories with PUB added dynamically
+      // ✅ CRITICAL FIX: Get categories with PUB added dynamically
       let localCategories = local.barlive_types || (local.barlive_type ? [local.barlive_type] : []);
       localCategories = addPubCategoryIfNeeded(localCategories, local.horarios_completos);
       
@@ -404,7 +406,7 @@ export default function MapaScreen() {
         lng: local.coordenadas.lng,
         nombre: local.nombre,
         tipo: localCategories[0] || local.tipo,
-        categorias: localCategories, // ✅ FIXED: Include all categories for popup display
+        categorias: localCategories, // ✅ FIXED: Include all categories (with PUB) for popup display
         estado: estado,
         estadoBadge: estadoCompleto.badge,
         icon: icon,
@@ -838,7 +840,7 @@ export default function MapaScreen() {
           '</div>';
         }
         
-        // ✅ FIXED: Display categories (including PUB) in popup
+        // ✅ CRITICAL FIX: Display categories (including PUB) in popup
         var categoriasHtml = '';
         if (data.categorias && data.categorias.length > 0) {
           categoriasHtml = '<div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">';
