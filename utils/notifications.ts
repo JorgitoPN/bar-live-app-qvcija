@@ -30,8 +30,12 @@ export const registerForPushNotifications = async (): Promise<string | null> => 
   try {
     console.log('[Notifications] Iniciando registro...');
     
+    // IMPORTANT: Push notifications require a development build in Expo SDK 53+
+    // They are not available in Expo Go
     if (!Device.isDevice) {
-      console.log('[Notifications] Las notificaciones push solo funcionan en dispositivos físicos');
+      console.log('[Notifications] ⚠️ Las notificaciones push solo funcionan en dispositivos físicos');
+      console.log('[Notifications] ℹ️ En Expo SDK 53+, necesitas un development build');
+      console.log('[Notifications] ℹ️ Ejecuta: eas build -p android --profile development');
       return null;
     }
 
@@ -64,49 +68,66 @@ export const registerForPushNotifications = async (): Promise<string | null> => 
       console.warn('[Notifications] ⚠️ EAS Project ID no configurado');
       console.warn('[Notifications] Las notificaciones push no estarán disponibles');
       console.warn('[Notifications] Para habilitar notificaciones push:');
-      console.warn('[Notifications] 1. Ejecuta: npx expo config --type public');
-      console.warn('[Notifications] 2. O ejecuta: eas project:init');
-      console.warn('[Notifications] 3. Copia el projectId a app.json en extra.eas.projectId');
+      console.warn('[Notifications] 1. Ejecuta: eas project:init');
+      console.warn('[Notifications] 2. Crea un development build: eas build -p android --profile development');
+      console.warn('[Notifications] 3. Instala el build en tu dispositivo');
+      console.warn('[Notifications] 4. Las notificaciones push funcionarán en el development build');
       return null;
     }
 
     // Get push token
-    const tokenData = await Notifications.getExpoPushTokenAsync({
-      projectId: projectId,
-    });
-
-    const token = tokenData.data;
-    console.log('[Notifications] Push token obtenido:', token);
-
-    // Configure Android channel with custom sound
-    if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('default', {
-        name: 'BarLive Notificaciones',
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#14B8A6',
-        sound: 'cheers.wav', // Custom sound file
-        enableVibrate: true,
-        enableLights: true,
-        showBadge: true,
+    // NOTE: This will fail in Expo Go with SDK 53+
+    // You need a development build for push notifications
+    try {
+      const tokenData = await Notifications.getExpoPushTokenAsync({
+        projectId: projectId,
       });
 
-      // Create a special channel for cheers notifications
-      await Notifications.setNotificationChannelAsync('cheers', {
-        name: 'BarLive Brindis',
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 500, 250, 500],
-        lightColor: '#FACC15',
-        sound: 'cheers.wav',
-        enableVibrate: true,
-        enableLights: true,
-        showBadge: true,
-      });
+      const token = tokenData.data;
+      console.log('[Notifications] ✅ Push token obtenido:', token);
 
-      console.log('[Notifications] Canales de Android configurados');
+      // Configure Android channel with custom sound
+      if (Platform.OS === 'android') {
+        await Notifications.setNotificationChannelAsync('default', {
+          name: 'BarLive Notificaciones',
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: '#14B8A6',
+          sound: 'cheers.wav', // Custom sound file
+          enableVibrate: true,
+          enableLights: true,
+          showBadge: true,
+        });
+
+        // Create a special channel for cheers notifications
+        await Notifications.setNotificationChannelAsync('cheers', {
+          name: 'BarLive Brindis',
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 500, 250, 500],
+          lightColor: '#FACC15',
+          sound: 'cheers.wav',
+          enableVibrate: true,
+          enableLights: true,
+          showBadge: true,
+        });
+
+        console.log('[Notifications] Canales de Android configurados');
+      }
+
+      return token;
+    } catch (tokenError: any) {
+      console.error('[Notifications] ❌ Error obteniendo push token:', tokenError);
+      
+      if (tokenError.message?.includes('Expo Go')) {
+        console.error('[Notifications] ⚠️ IMPORTANTE: Las notificaciones push no funcionan en Expo Go con SDK 53+');
+        console.error('[Notifications] 📱 Necesitas crear un development build:');
+        console.error('[Notifications]    1. Ejecuta: eas build -p android --profile development');
+        console.error('[Notifications]    2. Instala el .apk en tu dispositivo Android');
+        console.error('[Notifications]    3. Las notificaciones push funcionarán en el build');
+      }
+      
+      return null;
     }
-
-    return token;
   } catch (error: any) {
     console.error('[Notifications] Error registrando notificaciones:', error);
     
@@ -114,10 +135,8 @@ export const registerForPushNotifications = async (): Promise<string | null> => 
     if (error.message?.includes('projectId')) {
       console.error('[Notifications] ❌ Error: Project ID inválido o no configurado');
       console.error('[Notifications] Para configurar el Project ID:');
-      console.error('[Notifications] 1. Ejecuta: npx expo config --type public');
-      console.error('[Notifications] 2. O ejecuta: eas project:init');
-      console.error('[Notifications] 3. Agrega el projectId a app.json:');
-      console.error('[Notifications]    "extra": { "eas": { "projectId": "tu-project-id" } }');
+      console.error('[Notifications] 1. Ejecuta: eas project:init');
+      console.error('[Notifications] 2. Crea un development build: eas build -p android --profile development');
     }
     
     return null;

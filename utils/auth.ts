@@ -2,6 +2,7 @@
 import { supabase, isSupabaseConfigured } from './supabase';
 import { Alert, Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 
 export interface AuthUser {
   id: string;
@@ -258,7 +259,8 @@ export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error
         redirectUrl = 'http://localhost:19006/auth/callback';
       }
     } else {
-      // For native apps, use the app scheme
+      // For native apps, use the app scheme with proper deep link
+      // This matches the intent filter in app.json
       redirectUrl = 'natively://auth/callback';
       console.log('[Google Auth] Native redirect URL:', redirectUrl);
     }
@@ -270,7 +272,7 @@ export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error
       provider: 'google',
       options: {
         redirectTo: redirectUrl,
-        skipBrowserRedirect: Platform.OS === 'web', // Don't skip on web, let Supabase handle it
+        skipBrowserRedirect: false, // Let Supabase handle the redirect
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
@@ -285,7 +287,7 @@ export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error
       if (error.message.includes('Provider') || error.message.includes('not enabled')) {
         return { 
           user: null, 
-          error: 'Google Sign-In no está configurado en Supabase. Por favor, habilita el proveedor de Google en tu Dashboard de Supabase (Authentication > Providers > Google).' 
+          error: 'Google Sign-In no está configurado en Supabase. Por favor, habilita el proveedor de Google en tu Dashboard de Supabase (Authentication > Providers > Google) y configura el Client ID para Android.' 
         };
       }
       
@@ -306,6 +308,7 @@ export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error
     // For native apps, open the auth URL in a browser
     if (data?.url) {
       console.log('[Google Auth] Abriendo navegador para autenticación');
+      console.log('[Google Auth] OAuth URL:', data.url);
       
       const result = await WebBrowser.openAuthSessionAsync(
         data.url,
@@ -320,12 +323,31 @@ export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error
       if (result.type === 'success') {
         // Extract the URL from the result
         const url = result.url;
-        console.log('[Google Auth] URL de callback recibida');
+        console.log('[Google Auth] URL de callback recibida:', url);
         
-        // Parse the URL to get the tokens from hash
-        const hashParams = new URLSearchParams(url.split('#')[1]);
-        const accessToken = hashParams.get('access_token');
-        const refreshToken = hashParams.get('refresh_token');
+        // Parse the URL to get the tokens
+        // The URL can have tokens in either hash (#) or query (?) parameters
+        let accessToken: string | null = null;
+        let refreshToken: string | null = null;
+        
+        // Try to get from hash first
+        if (url.includes('#')) {
+          const hashParams = new URLSearchParams(url.split('#')[1]);
+          accessToken = hashParams.get('access_token');
+          refreshToken = hashParams.get('refresh_token');
+        }
+        
+        // If not in hash, try query params
+        if (!accessToken && url.includes('?')) {
+          const queryParams = new URLSearchParams(url.split('?')[1]);
+          accessToken = queryParams.get('access_token');
+          refreshToken = queryParams.get('refresh_token');
+        }
+
+        console.log('[Google Auth] Tokens encontrados:', {
+          hasAccessToken: !!accessToken,
+          hasRefreshToken: !!refreshToken,
+        });
 
         if (accessToken && refreshToken) {
           console.log('[Google Auth] Tokens obtenidos, estableciendo sesión');
@@ -344,7 +366,6 @@ export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error
           if (sessionData.user) {
             console.log('[Google Auth] Sesión establecida para usuario:', sessionData.user.id);
             console.log('[Google Auth] User metadata:', sessionData.user.user_metadata);
-            console.log('[Google Auth] App metadata:', sessionData.user.app_metadata);
             
             // Wait for trigger to create profile
             let profileResult = await waitForUserProfile(sessionData.user.id);
@@ -392,9 +413,15 @@ export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error
             console.log('[Google Auth] Google Sign-In completado exitosamente');
             return { user, error: null, isNewUser };
           }
+        } else {
+          console.error('[Google Auth] No se encontraron tokens en la URL de callback');
+          return { user: null, error: 'No se pudieron obtener los tokens de autenticación' };
         }
       } else if (result.type === 'cancel') {
         console.log('[Google Auth] Usuario canceló la autenticación');
+        return { user: null, error: 'Autenticación cancelada' };
+      } else if (result.type === 'dismiss') {
+        console.log('[Google Auth] Usuario cerró el navegador');
         return { user: null, error: 'Autenticación cancelada' };
       }
     }
