@@ -7,6 +7,7 @@ import { socialCache } from '@/utils/socialCache';
 import InitialLoadingScreen from '@/components/common/InitialLoadingScreen';
 import { LinearGradient } from 'expo-linear-gradient';
 import StoryStatsModal from '@/components/social/StoryStatsModal';
+import ParsedText from '@/components/social/ParsedText';
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
@@ -978,7 +979,7 @@ function PostCardWithSwipe({ post, user, activeLocalProfileId, router, toggleLik
         <View style={styles.postDescripcion}>
           <Text style={styles.postDescripcionText}>
             <Text style={{ fontWeight: '600' }}>{post.autor?.nombre || 'Usuario'}</Text>{' '}
-            {post.contenido}
+            <ParsedText text={post.contenido} style={styles.postDescripcionText} />
           </Text>
         </View>
       )}

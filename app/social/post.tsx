@@ -25,6 +25,8 @@ import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
+import ParsedText from '@/components/social/ParsedText';
+import { processCommentHashtags, processCommentMentions } from '@/utils/postHelpers';
 
 const { width } = Dimensions.get('window');
 
@@ -1112,6 +1114,16 @@ export default function PostDetailScreen() {
 
       console.log('[PostDetail] Comment inserted successfully');
       
+      // Process hashtags and mentions in the comment
+      if (data && comentarioTexto) {
+        console.log('[PostDetail] 🏷️ Processing hashtags and mentions in comment...');
+        await Promise.all([
+          processCommentHashtags(data.id, comentarioTexto),
+          processCommentMentions(data.id, comentarioTexto, params.id as string),
+        ]);
+        console.log('[PostDetail] ✅ Comment hashtags and mentions processed');
+      }
+      
       const mappedComment = {
         ...data,
         autor: data.tipo === 'local' && data.local 
@@ -1272,7 +1284,7 @@ export default function PostDetailScreen() {
                 </TouchableOpacity>
               )}
             </View>
-            <Text style={styles.comentarioTexto}>{comentario.texto}</Text>
+            <ParsedText text={comentario.texto} style={styles.comentarioTexto} />
             <View style={styles.comentarioActions}>
               <TouchableOpacity 
                 style={styles.comentarioActionButton}
@@ -1523,7 +1535,8 @@ export default function PostDetailScreen() {
             {post.contenido && (
               <View style={styles.postDescripcion}>
                 <Text style={styles.postDescripcionText}>
-                  <Text style={{ fontWeight: '600' }}>{post.autorNombre}</Text> {post.contenido}
+                  <Text style={{ fontWeight: '600' }}>{post.autorNombre}</Text>{' '}
+                  <ParsedText text={post.contenido} style={styles.postDescripcionText} />
                 </Text>
               </View>
             )}

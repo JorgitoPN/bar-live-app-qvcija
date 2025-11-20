@@ -27,6 +27,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
 import { useGlobalData } from '@/contexts/GlobalDataContext';
 import UploadProgressModal from '@/components/common/UploadProgressModal';
+import { processPostHashtags, processPostMentions } from '@/utils/postHelpers';
 
 interface UserSuggestion {
   id: string;
@@ -535,6 +536,18 @@ export default function CrearPublicacionScreen() {
       }
 
       console.log('[CrearPublicacion] ✅ Post created successfully:', postData2);
+
+      setUploadProgress(80);
+
+      // Process hashtags and mentions in the content
+      if (postData2 && contenido) {
+        console.log('[CrearPublicacion] 🏷️ Processing hashtags and mentions...');
+        await Promise.all([
+          processPostHashtags(postData2.id, contenido),
+          processPostMentions(postData2.id, contenido),
+        ]);
+        console.log('[CrearPublicacion] ✅ Hashtags and mentions processed');
+      }
 
       setUploadProgress(85);
 
