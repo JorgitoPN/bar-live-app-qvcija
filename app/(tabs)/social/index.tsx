@@ -76,9 +76,10 @@ interface SearchResult {
   nombre: string;
   username?: string;
   avatar?: string;
-  tipo: 'usuario' | 'local';
+  tipo: 'usuario' | 'local' | 'hashtag';
   bio?: string;
   seguidores?: number;
+  uso_count?: number;
 }
 
 interface ChatUser {
@@ -1128,9 +1129,7 @@ export default function SocialScreen() {
           filteredPosts = globalPosts.filter(p => p.tipo === 'local' && p.local_id === activeLocalProfileId);
           console.log('[Social] 🏢 Owner mode - Filtered posts for local:', activeLocalProfileId, 'Count:', filteredPosts.length);
         } else {
-          // ✅ UPDATED: Include posts from followed locals with active profiles
           if (user) {
-            // Get followed locals
             const { data: followedLocals } = await supabase
               .from('locales_favoritos')
               .select('local_id')
@@ -1138,7 +1137,6 @@ export default function SocialScreen() {
 
             const followedLocalIds = new Set(followedLocals?.map(f => f.local_id) || []);
             
-            // Filter to include user posts AND posts from followed locals
             filteredPosts = globalPosts.filter(p => 
               p.tipo === 'usuario' || 
               (p.tipo === 'local' && p.local_id && followedLocalIds.has(p.local_id))
@@ -1203,7 +1201,6 @@ export default function SocialScreen() {
           otherStories = globalStories.filter(s => s.tipo === 'usuario');
           console.log('[Social] 🏢 Owner mode - Filtered stories for local:', activeLocalProfileId, 'Own:', userOwnStories.length, 'Others:', otherStories.length);
         } else if (user) {
-          // ✅ UPDATED: Include stories from followed locals with active profiles
           const { data: followedLocals } = await supabase
             .from('locales_favoritos')
             .select('local_id')
@@ -1341,6 +1338,7 @@ export default function SocialScreen() {
     setRefreshing(false);
   }, [loadData, refreshData]);
 
+  // ENHANCED: Search with hashtag support
   const handleSearch = useCallback(async (query: string) => {
     setSearchQuery(query);
     
@@ -1353,82 +1351,86 @@ export default function SocialScreen() {
       console.log('[Social] 🔍 Searching for:', query);
       
       const searchTerm = query.trim();
-      
-      // Search users
-      const { data: usersData, error: usersError } = await supabase
-        .from('usuarios')
-        .select('id, nombre, username, avatar')
-        .or(`nombre.ilike.%${searchTerm}%,username.ilike.%${searchTerm}%`)
-        .eq('activo', true)
-        .limit(10);
-
-      if (usersError) {
-        console.error('[Social] ❌ Error searching users:', usersError);
-      }
-
-      console.log('[Social] 📊 Users found:', usersData?.length || 0);
-
-      // Search locals with active Estándar or Premium subscriptions
-      // FIX: Explicitly specify the foreign key column to avoid ambiguity
-      const { data: localsWithSubs, error: localsError } = await supabase
-        .from('locales')
-        .select(`
-          id,
-          nombre,
-          imagen_url,
-          tipo,
-          provincia,
-          suscripciones_locales!suscripciones_locales_local_id_fkey(
-            estado,
-            plan_id,
-            planes_suscripcion!suscripciones_locales_plan_id_fkey(
-              nombre
-            )
-          )
-        `)
-        .ilike('nombre', `%${searchTerm}%`)
-        .eq('activo', true)
-        .limit(20);
-
-      if (localsError) {
-        console.error('[Social] ❌ Error searching locals:', localsError);
-        console.error('[Social] ❌ Error details:', JSON.stringify(localsError, null, 2));
-      }
-
-      console.log('[Social] 📊 Locals with subscriptions found:', localsWithSubs?.length || 0);
-
-      // Filter locals to only include those with active Estándar or Premium plans
-      const localsData = localsWithSubs?.filter((local: any) => {
-        const subscription = local.suscripciones_locales;
-        if (!subscription || subscription.estado !== 'activa') {
-          return false;
-        }
-        const planName = subscription.planes_suscripcion?.nombre;
-        return planName === 'estandar' || planName === 'premium';
-      }) || [];
-
-      console.log('[Social] 📊 Locals with active estandar/premium plans:', localsData.length);
-
       const results: SearchResult[] = [];
+      
+      // Check if searching for hashtag
+      if (searchTerm.startsWith('#')) {
+        const hashtagTerm = searchTerm.substring(1).toLowerCase();
+        
+        // Search hashtags
+        const { data: hashtagsData, error: hashtagsError } = await supabase
+          .from('hashtags')
+          .select('id, tag, uso_count')
+          .ilike('tag', `%${hashtagTerm}%`)
+          .order('uso_count', { ascending: false })
+          .limit(10);
 
-      if (usersData) {
-        results.push(...usersData.map(u => ({
-          id: u.id,
-          nombre: u.nombre,
-          username: u.username,
-          avatar: u.avatar,
-          tipo: 'usuario' as const,
-        })));
-      }
+        if (!hashtagsError && hashtagsData) {
+          results.push(...hashtagsData.map(h => ({
+            id: h.id,
+            nombre: `#${h.tag}`,
+            tipo: 'hashtag' as const,
+            uso_count: h.uso_count,
+          })));
+        }
+      } else {
+        // Search users
+        const { data: usersData, error: usersError } = await supabase
+          .from('usuarios')
+          .select('id, nombre, username, avatar')
+          .or(`nombre.ilike.%${searchTerm}%,username.ilike.%${searchTerm}%`)
+          .eq('activo', true)
+          .limit(10);
 
-      if (localsData) {
-        results.push(...localsData.map((l: any) => ({
-          id: l.id,
-          nombre: l.nombre,
-          avatar: l.imagen_url,
-          tipo: 'local' as const,
-          bio: `${l.tipo} • ${l.provincia}`,
-        })));
+        if (!usersError && usersData) {
+          results.push(...usersData.map(u => ({
+            id: u.id,
+            nombre: u.nombre,
+            username: u.username,
+            avatar: u.avatar,
+            tipo: 'usuario' as const,
+          })));
+        }
+
+        // Search locals with active subscriptions
+        const { data: localsWithSubs, error: localsError } = await supabase
+          .from('locales')
+          .select(`
+            id,
+            nombre,
+            imagen_url,
+            tipo,
+            provincia,
+            suscripciones_locales!suscripciones_locales_local_id_fkey(
+              estado,
+              plan_id,
+              planes_suscripcion!suscripciones_locales_plan_id_fkey(
+                nombre
+              )
+            )
+          `)
+          .ilike('nombre', `%${searchTerm}%`)
+          .eq('activo', true)
+          .limit(20);
+
+        if (!localsError && localsWithSubs) {
+          const localsData = localsWithSubs.filter((local: any) => {
+            const subscription = local.suscripciones_locales;
+            if (!subscription || subscription.estado !== 'activa') {
+              return false;
+            }
+            const planName = subscription.planes_suscripcion?.nombre;
+            return planName === 'estandar' || planName === 'premium';
+          });
+
+          results.push(...localsData.map((l: any) => ({
+            id: l.id,
+            nombre: l.nombre,
+            avatar: l.imagen_url,
+            tipo: 'local' as const,
+            bio: `${l.tipo} • ${l.provincia}`,
+          })));
+        }
       }
 
       console.log('[Social] ✅ Total search results:', results.length);
@@ -2569,7 +2571,7 @@ export default function SocialScreen() {
               <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
               <TextInput
                 style={styles.searchInput}
-                placeholder="Buscar usuarios y locales..."
+                placeholder="Buscar usuarios, locales o #hashtags..."
                 placeholderTextColor={colors.textSecondary}
                 value={searchQuery}
                 onChangeText={handleSearch}
@@ -2587,7 +2589,10 @@ export default function SocialScreen() {
                   setSearchQuery('');
                   setSearchResults([]);
                   setShowSearchModal(false);
-                  if (result.tipo === 'local') {
+                  if (result.tipo === 'hashtag') {
+                    // Navigate to hashtag page
+                    router.push(`/social/hashtag?tag=${encodeURIComponent(result.nombre.substring(1))}`);
+                  } else if (result.tipo === 'local') {
                     router.push(`/perfil/local?localId=${result.id}`);
                   } else if (user && result.id === user.id) {
                     router.push('/(tabs)/perfil');
@@ -2597,7 +2602,11 @@ export default function SocialScreen() {
                 }}
                 activeOpacity={0.7}
               >
-                {result.avatar ? (
+                {result.tipo === 'hashtag' ? (
+                  <View style={[styles.searchResultAvatar, { backgroundColor: colors.primary + '20', justifyContent: 'center', alignItems: 'center' }]}>
+                    <IconSymbol name="number" size={24} color={colors.primary} />
+                  </View>
+                ) : result.avatar ? (
                   <Image source={{ uri: result.avatar }} style={styles.searchResultAvatar} />
                 ) : (
                   <View style={[styles.searchResultAvatar, styles.avatarPlaceholder]}>
@@ -2608,7 +2617,12 @@ export default function SocialScreen() {
                 )}
                 <View style={styles.searchResultInfo}>
                   <Text style={styles.searchResultName}>{result.nombre}</Text>
-                  {result.username && (
+                  {result.tipo === 'hashtag' && result.uso_count !== undefined && (
+                    <Text style={styles.searchResultUsername}>
+                      {result.uso_count} {result.uso_count === 1 ? 'publicación' : 'publicaciones'}
+                    </Text>
+                  )}
+                  {result.username && result.tipo !== 'hashtag' && (
                     <Text style={styles.searchResultUsername}>@{result.username}</Text>
                   )}
                   {result.bio && (

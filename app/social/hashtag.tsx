@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   RefreshControl,
   Platform,
+  Image,
+  Dimensions,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -17,10 +19,13 @@ import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
 interface Post {
   id: string;
   contenido: string;
   imagenes: string[];
+  imagen?: string;
   likes: number;
   comentarios: number;
   created_at: string;
@@ -60,7 +65,7 @@ export default function HashtagScreen() {
         setHashtagInfo(hashtagData);
       }
 
-      // Get posts with this hashtag
+      // FIXED: Get posts with this hashtag - properly select all needed fields including imagenes
       const { data: postHashtags, error } = await supabase
         .from('post_hashtags')
         .select(`
@@ -68,6 +73,7 @@ export default function HashtagScreen() {
           posts!inner(
             id,
             contenido,
+            imagen,
             imagenes,
             likes,
             comentarios,
@@ -75,7 +81,7 @@ export default function HashtagScreen() {
             autor:usuarios!posts_autor_id_fkey(nombre, avatar)
           )
         `)
-        .eq('hashtags.tag', hashtag.toLowerCase());
+        .eq('hashtag_id', hashtagData?.id);
 
       if (error) {
         console.error('[Hashtag] Error loading posts:', error);
@@ -104,43 +110,52 @@ export default function HashtagScreen() {
     loadHashtagPosts();
   }, [loadHashtagPosts]);
 
-  const renderPost = ({ item }: { item: Post }) => (
-    <TouchableOpacity
-      style={styles.postCard}
-      onPress={() => router.push(`/social/post?id=${item.id}`)}
-      activeOpacity={0.7}
-    >
-      {item.imagenes && item.imagenes.length > 0 && (
-        <View style={styles.postImageContainer}>
-          <img 
-            src={item.imagenes[0]} 
-            style={styles.postImage as any}
-            alt="Post"
-          />
-          {item.imagenes.length > 1 && (
-            <View style={styles.multipleImagesBadge}>
-              <IconSymbol name="square.on.square" size={16} color={colors.headerText} />
+  const renderPost = ({ item }: { item: Post }) => {
+    // Get images array - prioritize imagenes array, fallback to imagen field
+    const images = item.imagenes && item.imagenes.length > 0 
+      ? item.imagenes 
+      : item.imagen 
+        ? [item.imagen] 
+        : [];
+
+    return (
+      <TouchableOpacity
+        style={styles.postCard}
+        onPress={() => router.push(`/social/post?id=${item.id}`)}
+        activeOpacity={0.7}
+      >
+        {images.length > 0 && (
+          <View style={styles.postImageContainer}>
+            <Image 
+              source={{ uri: images[0] }} 
+              style={styles.postImage}
+              resizeMode="cover"
+            />
+            {images.length > 1 && (
+              <View style={styles.multipleImagesBadge}>
+                <IconSymbol name="square.on.square" size={16} color={colors.headerText} />
+              </View>
+            )}
+          </View>
+        )}
+        <View style={styles.postInfo}>
+          <Text style={styles.postContent} numberOfLines={2}>
+            {item.contenido}
+          </Text>
+          <View style={styles.postStats}>
+            <View style={styles.postStat}>
+              <IconSymbol name="heart.fill" size={14} color={colors.textSecondary} />
+              <Text style={styles.postStatText}>{item.likes}</Text>
             </View>
-          )}
-        </View>
-      )}
-      <View style={styles.postInfo}>
-        <Text style={styles.postContent} numberOfLines={2}>
-          {item.contenido}
-        </Text>
-        <View style={styles.postStats}>
-          <View style={styles.postStat}>
-            <IconSymbol name="heart.fill" size={14} color={colors.textSecondary} />
-            <Text style={styles.postStatText}>{item.likes}</Text>
-          </View>
-          <View style={styles.postStat}>
-            <IconSymbol name="message.fill" size={14} color={colors.textSecondary} />
-            <Text style={styles.postStatText}>{item.comentarios}</Text>
+            <View style={styles.postStat}>
+              <IconSymbol name="message.fill" size={14} color={colors.textSecondary} />
+              <Text style={styles.postStatText}>{item.comentarios}</Text>
+            </View>
           </View>
         </View>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -243,7 +258,6 @@ const styles = StyleSheet.create({
   postImage: {
     width: '100%',
     height: '100%',
-    objectFit: 'cover',
   },
   multipleImagesBadge: {
     position: 'absolute',
