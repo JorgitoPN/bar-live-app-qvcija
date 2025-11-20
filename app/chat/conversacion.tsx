@@ -118,12 +118,15 @@ export default function ConversacionScreen() {
           return;
         }
 
+        console.log('[Conversacion] ✅ Loaded local info:', localData.nombre);
         setLocalInfo(localData);
 
         // ✅ CRITICAL: Check if a local-specific chat already exists between this user and this local
         // This ensures all messages go to the SAME conversation
         const userId1 = user.id < localData.propietario_id ? user.id : localData.propietario_id;
         const userId2 = user.id < localData.propietario_id ? localData.propietario_id : user.id;
+
+        console.log('[Conversacion] 🔍 Checking for existing local chat:', { userId1, userId2, localId });
 
         const { data: existingChat, error: chatError } = await supabase
           .from('chats')
@@ -226,6 +229,7 @@ export default function ConversacionScreen() {
               });
 
             // ✅ CRITICAL: Send notification to LOCAL OWNER, not the user
+            console.log('[Conversacion] 📬 Sending notification to local owner:', localData.propietario_id);
             await supabase.from('notificaciones').insert({
               usuario_id: localData.propietario_id,
               tipo: 'mensaje_privado',
@@ -502,6 +506,7 @@ export default function ConversacionScreen() {
         : otroUsuario?.id;
 
       if (recipientId && recipientId !== user.id) {
+        console.log('[Conversacion] 📬 Sending notification to:', recipientId, isLocalChat ? '(local owner)' : '(user)');
         await supabase.from('notificaciones').insert({
           usuario_id: recipientId,
           tipo: 'mensaje_privado',
@@ -663,7 +668,13 @@ export default function ConversacionScreen() {
           )}
           <View style={styles.headerInfo}>
             <Text style={styles.headerTitle}>{displayName}</Text>
-            {/* ✅ REMOVED: "Activo ahora" text - no longer displayed */}
+            {/* ✅ Show "Local" badge for local chats */}
+            {isLocalChat && (
+              <View style={styles.localBadgeHeader}>
+                <IconSymbol name="building.2" size={12} color={colors.headerText} />
+                <Text style={styles.localBadgeText}>Local</Text>
+              </View>
+            )}
           </View>
         </TouchableOpacity>
         <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteConversation}>
@@ -774,6 +785,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: colors.headerText,
+  },
+  // ✅ NEW: Local badge in header
+  localBadgeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+  },
+  localBadgeText: {
+    fontSize: 12,
+    color: colors.headerText,
+    opacity: 0.8,
   },
   deleteButton: {
     padding: 8,

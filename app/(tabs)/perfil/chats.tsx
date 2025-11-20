@@ -56,6 +56,8 @@ export default function ChatsScreen() {
     }
 
     try {
+      console.log('[Chats] 🔍 Loading chats for user:', user.id);
+
       // Get all chats where user is participant
       const { data: chatsData, error: chatsError } = await supabase
         .from('chats')
@@ -76,14 +78,18 @@ export default function ChatsScreen() {
         return;
       }
 
+      console.log('[Chats] ✅ Loaded', chatsData?.length || 0, 'chats');
+
       // Get other user/local info and unread count for each chat
       const chatsWithInfo = await Promise.all(
         (chatsData || []).map(async (chat) => {
           const otroUsuarioId = chat.usuario1_id === user.id ? chat.usuario2_id : chat.usuario1_id;
 
-          // ✅ FIXED: If this is a local-specific chat, get local info instead of user info
+          // ✅ CRITICAL FIX: If this is a local-specific chat, get local info instead of user info
           let userData;
           if (chat.local_id) {
+            console.log('[Chats] 🏢 Chat', chat.id, 'is LOCAL-SPECIFIC, loading local info for:', chat.local_id);
+            
             // This is a local-specific chat - get local info
             const { data: localData } = await supabase
               .from('locales')
@@ -99,8 +105,13 @@ export default function ChatsScreen() {
                 avatar: localData.imagen_url,
                 activo: false, // Locals don't have "active" status
               };
+              console.log('[Chats] ✅ Loaded local info:', localData.nombre);
+            } else {
+              console.error('[Chats] ❌ Failed to load local info for:', chat.local_id);
             }
           } else {
+            console.log('[Chats] 👤 Chat', chat.id, 'is USER-TO-USER, loading user info for:', otroUsuarioId);
+            
             // Regular user-to-user chat
             const { data: userDataResult } = await supabase
               .from('usuarios')
@@ -109,6 +120,9 @@ export default function ChatsScreen() {
               .single();
 
             userData = userDataResult;
+            if (userData) {
+              console.log('[Chats] ✅ Loaded user info:', userData.nombre);
+            }
           }
 
           // Count unread messages
@@ -134,6 +148,7 @@ export default function ChatsScreen() {
       );
 
       setChats(chatsWithInfo);
+      console.log('[Chats] ✅ Processed all chats with info');
     } catch (error) {
       console.error('[Chats] Error:', error);
     } finally {
@@ -146,47 +161,53 @@ export default function ChatsScreen() {
   }, [loadChats]);
 
   // Handle navigation from notification or other screens
-  const handleOpenChat = useCallback(async (otroUsuarioId: string, chatId?: string) => {
+  const handleOpenChat = useCallback(async (chatId: string, isLocalChat: boolean, localId?: string) => {
     if (!user) {
       setShowLoginModal(true);
       return;
     }
 
+    console.log('[Chats] 🔥 Opening chat:', { chatId, isLocalChat, localId });
+
     // FIXED: Mark messages as read when opening chat
-    if (chatId) {
-      try {
-        await supabase
-          .from('mensajes')
-          .update({ leido: true })
-          .eq('chat_id', chatId)
-          .eq('leido', false)
-          .neq('remitente_id', user.id);
-      } catch (error) {
-        console.error('[Chats] Error marking messages as read:', error);
-      }
+    try {
+      await supabase
+        .from('mensajes')
+        .update({ leido: true })
+        .eq('chat_id', chatId)
+        .eq('leido', false)
+        .neq('remitente_id', user.id);
+    } catch (error) {
+      console.error('[Chats] Error marking messages as read:', error);
     }
 
-    // Find existing chat
-    const existingChat = chats.find(
-      (c) =>
-        (c.usuario1_id === user.id && c.usuario2_id === otroUsuarioId) ||
-        (c.usuario2_id === user.id && c.usuario1_id === otroUsuarioId)
-    );
-
-    if (existingChat) {
-      router.push(`/chat/conversacion?chatId=${existingChat.id}`);
+    // ✅ CRITICAL: Route to local-specific chat if this is a local chat
+    if (isLocalChat && localId) {
+      console.log('[Chats] 🏢 Navigating to LOCAL-SPECIFIC chat');
+      router.push(`/chat/conversacion?localId=${localId}&userId=${user.id}`);
     } else {
-      // Create new chat
-      router.push(`/chat/conversacion?userId=${otroUsuarioId}`);
+      console.log('[Chats] 👤 Navigating to USER-TO-USER chat');
+      router.push(`/chat/conversacion?chatId=${chatId}`);
     }
-  }, [user, chats, router]);
+  }, [user, router]);
 
   useEffect(() => {
     if (params.userId && user) {
       // Navigate to chat with specific user
-      handleOpenChat(params.userId as string);
+      const existingChat = chats.find(
+        (c) =>
+          !c.local_id && // Only user-to-user chats
+          ((c.usuario1_id === user.id && c.usuario2_id === params.userId) ||
+          (c.usuario2_id === user.id && c.usuario1_id === params.userId))
+      );
+
+      if (existingChat) {
+        handleOpenChat(existingChat.id, false);
+      } else {
+        router.push(`/chat/conversacion?userId=${params.userId}`);
+      }
     }
-  }, [params.userId, user, handleOpenChat]);
+  }, [params.userId, user, chats, handleOpenChat, router]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -317,7 +338,7 @@ export default function ChatsScreen() {
           <TouchableOpacity
             key={chat.id}
             style={styles.chatCard}
-            onPress={() => handleOpenChat(chat.otro_usuario.id, chat.id)}
+            onPress={() => handleOpenChat(chat.id, !!chat.local_id, chat.local_id || undefined)}
           >
             <View style={styles.avatarContainer}>
               {chat.otro_usuario.avatar ? (
@@ -327,6 +348,12 @@ export default function ChatsScreen() {
                   <Text style={styles.avatarText}>
                     {chat.otro_usuario.nombre.charAt(0).toUpperCase()}
                   </Text>
+                </View>
+              )}
+              {/* ✅ Show building icon for local chats */}
+              {chat.local_id && (
+                <View style={styles.localBadge}>
+                  <IconSymbol name="building.2" size={12} color={colors.white} />
                 </View>
               )}
             </View>
@@ -367,7 +394,7 @@ export default function ChatsScreen() {
               {busqueda ? 'No se encontraron conversaciones' : 'No tienes mensajes'}
             </Text>
             <Text style={styles.emptySubtext}>
-              Inicia una conversación con otros usuarios
+              Inicia una conversación con otros usuarios o locales
             </Text>
           </View>
         )}
@@ -463,6 +490,20 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: 'bold',
     color: colors.headerText,
+  },
+  // ✅ NEW: Badge to indicate local chats
+  localBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: colors.cardBackground,
   },
   chatContent: {
     flex: 1,
