@@ -65,18 +65,98 @@ export default function MentionAutocomplete({
       }
     }
 
+    console.log('[MentionAutocomplete] 🎯 Detected mention with text:', textAfterAt);
     setCurrentMentionText(textAfterAt);
   }, [text, cursorPosition]);
 
   const searchMentions = useCallback(async (query: string) => {
-    if (query.length === 0) {
-      setSuggestions([]);
-      return;
-    }
-
     setLoading(true);
     try {
-      console.log('[MentionAutocomplete] 🔍 Searching for:', query);
+      console.log('[MentionAutocomplete] 🔍 Searching for:', query, '(length:', query.length, ')');
+
+      // If query is empty, show recent/popular users and locals
+      if (query.length === 0) {
+        console.log('[MentionAutocomplete] 📋 Showing default suggestions...');
+        
+        const { data: usersData, error: usersError } = await supabase
+          .from('usuarios')
+          .select('id, nombre, username, avatar, perfil_privado, permitir_etiquetas')
+          .eq('activo', true)
+          .eq('permitir_etiquetas', true)
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        if (usersError) {
+          console.error('[MentionAutocomplete] ❌ Error fetching default users:', usersError);
+        }
+
+        const { data: localsData, error: localsError } = await supabase
+          .from('locales')
+          .select('id, nombre, imagen_url')
+          .eq('activo', true)
+          .order('created_at', { ascending: false })
+          .limit(10);
+
+        if (localsError) {
+          console.error('[MentionAutocomplete] ❌ Error fetching default locals:', localsError);
+        }
+
+        let filteredLocals: any[] = [];
+        if (localsData && localsData.length > 0) {
+          const localIds = localsData.map(l => l.id);
+          
+          const { data: subscriptionsData, error: subscriptionsError } = await supabase
+            .from('suscripciones_locales')
+            .select(`
+              local_id,
+              estado,
+              plan_id,
+              planes_suscripcion!suscripciones_locales_plan_id_fkey(nombre)
+            `)
+            .in('local_id', localIds)
+            .eq('estado', 'activa');
+
+          if (subscriptionsError) {
+            console.error('[MentionAutocomplete] ❌ Error fetching subscriptions:', subscriptionsError);
+          } else if (subscriptionsData) {
+            const validLocalIds = subscriptionsData
+              .filter(sub => {
+                const planName = (sub.planes_suscripcion as any)?.nombre;
+                return planName === 'estandar' || planName === 'premium';
+              })
+              .map(sub => sub.local_id);
+
+            filteredLocals = localsData.filter(local => validLocalIds.includes(local.id));
+          }
+        }
+
+        const results: MentionSuggestion[] = [];
+
+        if (!usersError && usersData) {
+          results.push(...usersData.map(u => ({
+            id: u.id,
+            nombre: u.nombre,
+            username: u.username || u.nombre,
+            avatar: u.avatar,
+            tipo: 'usuario' as const,
+          })));
+        }
+
+        if (filteredLocals.length > 0) {
+          results.push(...filteredLocals.slice(0, 5).map(l => ({
+            id: l.id,
+            nombre: l.nombre,
+            username: l.nombre,
+            avatar: l.imagen_url,
+            tipo: 'local' as const,
+          })));
+        }
+
+        console.log('[MentionAutocomplete] ✅ Default suggestions:', results.length);
+        setSuggestions(results);
+        setLoading(false);
+        return;
+      }
 
       const fuzzyPattern = query.split('').join('%');
 
@@ -206,6 +286,8 @@ export default function MentionAutocomplete({
   useEffect(() => {
     if (currentMentionText !== null) {
       searchMentions(currentMentionText);
+    } else {
+      setSuggestions([]);
     }
   }, [currentMentionText, searchMentions]);
 
