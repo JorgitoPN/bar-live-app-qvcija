@@ -41,15 +41,15 @@ function normalizeText(text: string): string {
 }
 
 /**
- * Remove duplicate locals by ID, keeping the first occurrence
+ * Remove duplicate entries by ID, keeping the first occurrence
  */
-function deduplicateLocals(locals: any[]): any[] {
+function deduplicateById(items: any[]): any[] {
   const seen = new Set<string>();
-  return locals.filter(local => {
-    if (seen.has(local.id)) {
+  return items.filter(item => {
+    if (seen.has(item.id)) {
       return false;
     }
-    seen.add(local.id);
+    seen.add(item.id);
     return true;
   });
 }
@@ -109,8 +109,8 @@ export default function MentionAutocomplete({
       const cleanQuery = query.trim();
       const normalizedQuery = normalizeText(cleanQuery);
 
-      // Create fuzzy pattern for better matching
-      const fuzzyPattern = cleanQuery.split('').join('%');
+      console.log('[MentionAutocomplete] 📝 Clean query:', cleanQuery);
+      console.log('[MentionAutocomplete] 📝 Normalized query:', normalizedQuery);
 
       // Search users
       console.log('[MentionAutocomplete] 👤 Searching users...');
@@ -118,13 +118,14 @@ export default function MentionAutocomplete({
       let usersData: any[] = [];
       
       if (cleanQuery.length > 0) {
-        // Search by username and name with fuzzy matching
+        // Search by username (handle null usernames)
         const { data: usersByUsername, error: usernameError } = await supabase
           .from('usuarios')
           .select('id, nombre, username, avatar')
           .eq('activo', true)
           .eq('permitir_etiquetas', true)
-          .or(`username.ilike.%${cleanQuery}%,username.ilike.%${fuzzyPattern}%`)
+          .not('username', 'is', null)
+          .ilike('username', `%${cleanQuery}%`)
           .limit(10);
 
         if (usernameError) {
@@ -140,7 +141,7 @@ export default function MentionAutocomplete({
           .select('id, nombre, username, avatar')
           .eq('activo', true)
           .eq('permitir_etiquetas', true)
-          .or(`nombre.ilike.%${cleanQuery}%,nombre.ilike.%${fuzzyPattern}%`)
+          .ilike('nombre', `%${cleanQuery}%`)
           .limit(10);
 
         if (nameError) {
@@ -187,7 +188,7 @@ export default function MentionAutocomplete({
           else if (nombre.startsWith(normalizedQuery) || username.startsWith(normalizedQuery)) score += 50;
           // Contains query gets third priority
           else if (nombre.includes(normalizedQuery) || username.includes(normalizedQuery)) score += 25;
-          // Fuzzy match gets lowest priority
+          // Default score
           else score += 10;
 
           return { ...u, score };
@@ -204,122 +205,46 @@ export default function MentionAutocomplete({
         })));
       }
 
-      // Search locals with active estandar or premium subscriptions
-      console.log('[MentionAutocomplete] 🏢 Searching locals with active subscriptions...');
+      // Search locals - SIMPLIFIED: Don't filter by subscription for now
+      console.log('[MentionAutocomplete] 🏢 Searching locals...');
       
       let localsData: any[] = [];
       
       if (cleanQuery.length > 0) {
-        // First, get all locals matching the search
-        // Use multiple search strategies to find locals
-        const searchPromises = [
-          // Exact and fuzzy name search
-          supabase
-            .from('locales')
-            .select('id, nombre, imagen_url')
-            .eq('activo', true)
-            .or(`nombre.ilike.%${cleanQuery}%,nombre.ilike.%${fuzzyPattern}%`)
-            .limit(30),
-        ];
+        // Search by name
+        const { data: localsByName, error: localsError } = await supabase
+          .from('locales')
+          .select('id, nombre, imagen_url')
+          .eq('activo', true)
+          .ilike('nombre', `%${cleanQuery}%`)
+          .limit(20);
 
-        const searchResults = await Promise.all(searchPromises);
-        
-        // Combine all results and deduplicate by ID
-        const allLocals: any[] = [];
-        for (const result of searchResults) {
-          if (!result.error && result.data) {
-            allLocals.push(...result.data);
-          }
-        }
-
-        // CRITICAL: Deduplicate locals by ID to prevent duplicates
-        const uniqueLocals = deduplicateLocals(allLocals);
-        
-        console.log('[MentionAutocomplete] ✅ Found unique locals:', uniqueLocals.length, '(before deduplication:', allLocals.length, ')');
-
-        if (uniqueLocals.length > 0) {
-          // Now filter by active subscriptions with estandar or premium plans
-          const localIds = uniqueLocals.map(l => l.id);
-          
-          const { data: subscriptionsData, error: subscriptionsError } = await supabase
-            .from('suscripciones_locales')
-            .select(`
-              local_id,
-              estado,
-              plan_id,
-              planes_suscripcion!suscripciones_locales_plan_id_fkey(nombre)
-            `)
-            .in('local_id', localIds)
-            .eq('estado', 'activa');
-
-          if (subscriptionsError) {
-            console.error('[MentionAutocomplete] ❌ Error fetching subscriptions:', subscriptionsError);
-          } else if (subscriptionsData) {
-            // Filter to only include locals with estandar or premium plans
-            const validLocalIds = subscriptionsData
-              .filter(sub => {
-                const planName = (sub.planes_suscripcion as any)?.nombre;
-                return planName === 'estandar' || planName === 'premium';
-              })
-              .map(sub => sub.local_id);
-
-            // CRITICAL: Filter locals to only include those with valid subscriptions
-            // This ensures we don't show duplicate locals
-            localsData = uniqueLocals.filter(local => validLocalIds.includes(local.id));
-            
-            console.log('[MentionAutocomplete] ✅ Found locals with estandar/premium subscriptions:', localsData.length);
-          }
+        if (localsError) {
+          console.error('[MentionAutocomplete] ❌ Error searching locals:', localsError);
+        } else if (localsByName) {
+          console.log('[MentionAutocomplete] ✅ Found locals by name:', localsByName.length);
+          localsData = localsByName;
         }
       } else {
-        // Show recent locals with active subscriptions when query is empty
+        // Show recent locals when query is empty
         const { data: recentLocals, error: recentError } = await supabase
           .from('locales')
           .select('id, nombre, imagen_url')
           .eq('activo', true)
           .order('created_at', { ascending: false })
-          .limit(30);
+          .limit(10);
 
         if (recentError) {
           console.error('[MentionAutocomplete] ❌ Error fetching recent locals:', recentError);
-        } else if (recentLocals && recentLocals.length > 0) {
-          // CRITICAL: Deduplicate recent locals by ID
-          const uniqueRecentLocals = deduplicateLocals(recentLocals);
-          
-          console.log('[MentionAutocomplete] ✅ Found unique recent locals:', uniqueRecentLocals.length);
-          
-          // Filter by active subscriptions with estandar or premium plans
-          const localIds = uniqueRecentLocals.map(l => l.id);
-          
-          const { data: subscriptionsData, error: subscriptionsError } = await supabase
-            .from('suscripciones_locales')
-            .select(`
-              local_id,
-              estado,
-              plan_id,
-              planes_suscripcion!suscripciones_locales_plan_id_fkey(nombre)
-            `)
-            .in('local_id', localIds)
-            .eq('estado', 'activa');
-
-          if (subscriptionsError) {
-            console.error('[MentionAutocomplete] ❌ Error fetching subscriptions:', subscriptionsError);
-          } else if (subscriptionsData) {
-            // Filter to only include locals with estandar or premium plans
-            const validLocalIds = subscriptionsData
-              .filter(sub => {
-                const planName = (sub.planes_suscripcion as any)?.nombre;
-                return planName === 'estandar' || planName === 'premium';
-              })
-              .map(sub => sub.local_id);
-
-            localsData = uniqueRecentLocals.filter(local => validLocalIds.includes(local.id));
-            
-            console.log('[MentionAutocomplete] ✅ Found recent locals with estandar/premium subscriptions:', localsData.length);
-          }
+        } else if (recentLocals) {
+          console.log('[MentionAutocomplete] ✅ Found recent locals:', recentLocals.length);
+          localsData = recentLocals;
         }
       }
 
-      console.log('[MentionAutocomplete] 📊 Total unique locals with valid subscriptions found:', localsData.length);
+      // Deduplicate locals
+      localsData = deduplicateById(localsData);
+      console.log('[MentionAutocomplete] 📊 Total unique locals found:', localsData.length);
 
       // Add locals to results with scoring
       if (localsData && localsData.length > 0) {
@@ -333,7 +258,7 @@ export default function MentionAutocomplete({
           else if (nombre.startsWith(normalizedQuery)) score += 50;
           // Contains query gets third priority
           else if (nombre.includes(normalizedQuery)) score += 25;
-          // Fuzzy match gets lowest priority
+          // Default score
           else score += 10;
 
           return { ...l, score };
@@ -341,11 +266,7 @@ export default function MentionAutocomplete({
 
         scoredLocals.sort((a, b) => b.score - a.score);
 
-        // CRITICAL: Final deduplication before adding to results
-        // This ensures absolutely no duplicates in the final list
-        const uniqueScoredLocals = deduplicateLocals(scoredLocals);
-
-        results.push(...uniqueScoredLocals.slice(0, 5).map(l => ({
+        results.push(...scoredLocals.slice(0, 5).map(l => ({
           id: l.id,
           nombre: l.nombre,
           username: l.nombre,
@@ -357,20 +278,20 @@ export default function MentionAutocomplete({
       console.log('[MentionAutocomplete] ✅ Total results:', results.length);
       console.log('[MentionAutocomplete] 📊 Users:', results.filter(r => r.tipo === 'usuario').length, 'Locals:', results.filter(r => r.tipo === 'local').length);
       
-      // FINAL CHECK: Ensure no duplicate IDs in the final results
-      const uniqueResults = results.filter((result, index, self) =>
-        index === self.findIndex((r) => r.id === result.id && r.tipo === result.tipo)
-      );
+      // Final deduplication
+      const uniqueResults = deduplicateById(results);
       
       if (uniqueResults.length !== results.length) {
         console.warn('[MentionAutocomplete] ⚠️ Removed', results.length - uniqueResults.length, 'duplicate results');
       }
       
+      console.log('[MentionAutocomplete] 🎯 Setting suggestions:', uniqueResults.length);
       setSuggestions(uniqueResults);
     } catch (error) {
       console.error('[MentionAutocomplete] ❌ Error in searchMentions:', error);
       setSuggestions([]);
     } finally {
+      console.log('[MentionAutocomplete] ✅ Search complete, setting loading to false');
       setLoading(false);
     }
   }, []);
@@ -404,8 +325,11 @@ export default function MentionAutocomplete({
 
   // Don't render if not visible
   if (!isVisible || currentMentionText === null) {
+    console.log('[MentionAutocomplete] 🚫 Not rendering - isVisible:', isVisible, 'currentMentionText:', currentMentionText);
     return null;
   }
+
+  console.log('[MentionAutocomplete] 🎨 Rendering - loading:', loading, 'suggestions:', suggestions.length);
 
   const renderItem = ({ item }: { item: MentionSuggestion }) => (
     <TouchableOpacity
@@ -474,6 +398,11 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
     maxHeight: 250,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
   },
   list: {
     flex: 1,
