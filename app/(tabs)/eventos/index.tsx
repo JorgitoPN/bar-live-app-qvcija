@@ -84,6 +84,20 @@ export default function EventosScreen() {
   const canCreateEvents = (userRole === 'propietario' && currentMode === 'propietario') || 
                           (userRole === 'admin' && currentMode === 'propietario');
 
+  // Check if user can delete an event
+  // Only owners in "propietario" mode can delete their own events
+  const canDeleteEvent = useCallback((eventoId: string, propietarioId: string): boolean => {
+    if (!user) return false;
+    
+    // Admin can always delete
+    if (user.rol_app === 'admin') return true;
+    
+    // Owner can only delete if they are in "propietario" mode
+    if (user.id === propietarioId && currentMode === 'propietario') return true;
+    
+    return false;
+  }, [user, currentMode]);
+
   const cargarEventos = useCallback(async () => {
     try {
       setLoading(true);
@@ -162,6 +176,56 @@ export default function EventosScreen() {
     setRefreshing(true);
     cargarEventos();
   };
+
+  const handleDeleteEvent = useCallback(async (eventoId: string, propietarioId: string) => {
+    if (!user) {
+      Alert.alert('Error', 'Debes iniciar sesión');
+      return;
+    }
+
+    // Check if user can delete
+    if (!canDeleteEvent(eventoId, propietarioId)) {
+      Alert.alert(
+        'Acción no permitida',
+        'Solo el propietario en modo propietario puede eliminar eventos. Cambia a modo propietario para gestionar tus eventos.'
+      );
+      return;
+    }
+
+    Alert.alert(
+      'Eliminar Evento',
+      '¿Estás seguro de que quieres eliminar este evento?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              console.log('[Eventos] Deleting event:', eventoId);
+              
+              // Mark as inactive
+              const { error } = await supabase
+                .from('eventos')
+                .update({ activo: false })
+                .eq('id', eventoId);
+
+              if (error) {
+                console.error('[Eventos] Error deleting event:', error);
+                throw error;
+              }
+
+              Alert.alert('Éxito', 'Evento eliminado correctamente');
+              await cargarEventos();
+            } catch (error: any) {
+              console.error('[Eventos] Error deleting event:', error);
+              Alert.alert('Error', error.message || 'No se pudo eliminar el evento');
+            }
+          },
+        },
+      ]
+    );
+  }, [user, currentMode, cargarEventos, canDeleteEvent]);
 
   const eventosFiltrados = eventos.filter((evento) => {
     const matchBusqueda = evento.titulo.toLowerCase().includes(busqueda.toLowerCase());
@@ -249,70 +313,6 @@ export default function EventosScreen() {
   const closeDateFinPicker = () => {
     setShowDatePickerFin(false);
   };
-
-  // Check if user can delete an event
-  // Only owners in "propietario" mode can delete their own events
-  const canDeleteEvent = (eventoId: string, propietarioId: string): boolean => {
-    if (!user) return false;
-    
-    // Admin can always delete
-    if (user.rol_app === 'admin') return true;
-    
-    // Owner can only delete if they are in "propietario" mode
-    if (user.id === propietarioId && currentMode === 'propietario') return true;
-    
-    return false;
-  };
-
-  const handleDeleteEvent = useCallback(async (eventoId: string, propietarioId: string) => {
-    if (!user) {
-      Alert.alert('Error', 'Debes iniciar sesión');
-      return;
-    }
-
-    // Check if user can delete
-    if (!canDeleteEvent(eventoId, propietarioId)) {
-      Alert.alert(
-        'Acción no permitida',
-        'Solo el propietario en modo propietario puede eliminar eventos. Cambia a modo propietario para gestionar tus eventos.'
-      );
-      return;
-    }
-
-    Alert.alert(
-      'Eliminar Evento',
-      '¿Estás seguro de que quieres eliminar este evento?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              console.log('[Eventos] Deleting event:', eventoId);
-              
-              // Mark as inactive
-              const { error } = await supabase
-                .from('eventos')
-                .update({ activo: false })
-                .eq('id', eventoId);
-
-              if (error) {
-                console.error('[Eventos] Error deleting event:', error);
-                throw error;
-              }
-
-              Alert.alert('Éxito', 'Evento eliminado correctamente');
-              await cargarEventos();
-            } catch (error: any) {
-              console.error('[Eventos] Error deleting event:', error);
-              Alert.alert('Error', error.message || 'No se pudo eliminar el evento');
-            }
-          },
-        },
-      ]
-    );
-  }, [user, currentMode, cargarEventos]);
 
   return (
     <View style={commonStyles.container}>

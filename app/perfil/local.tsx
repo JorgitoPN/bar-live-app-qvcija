@@ -198,7 +198,7 @@ export default function LocalPerfilScreen() {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [fadeAnim, scaleAnim]);
 
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
     const R = 6371;
@@ -614,7 +614,7 @@ export default function LocalPerfilScreen() {
     router.push(`/crear/publicacion?localId=${localId}`);
   };
 
-  const handleCrearHistoria = async () => {
+  const handleCrearHistoria = useCallback(async () => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión');
       return;
@@ -629,7 +629,7 @@ export default function LocalPerfilScreen() {
     await setCurrentMode('propietario');
     
     router.push(`/crear/historia?localId=${localId}`);
-  };
+  }, [user, isOwner, localId, switchToLocalProfile, setCurrentMode, router]);
 
   const handleCrearEvento = async () => {
     if (!user) {
@@ -1007,7 +1007,7 @@ export default function LocalPerfilScreen() {
       console.error('[LocalPerfil] Error sending story message:', error);
       Alert.alert('Error', 'No se pudo enviar el mensaje');
     }
-  }, [user, currentStoryIndex, localStories, storyMessage, local, localId, router, stopStoryTimer]);
+  }, [user, currentStoryIndex, localStories, storyMessage, localId, router, stopStoryTimer]);
 
   // ✅ CRITICAL: Handle navigation from story viewer header (avatar/name press)
   const handleStoryAuthorPress = useCallback(() => {
@@ -1028,7 +1028,7 @@ export default function LocalPerfilScreen() {
     };
   }, [showStoryViewer, currentStoryIndex, isPaused, startStoryTimer, stopStoryTimer]);
 
-  const getTabsForRole = (): TabBarItem[] => {
+  const getTabsForRole = useCallback((): TabBarItem[] => {
     const userRole = user?.rol_app || 'cliente';
 
     console.log('🔍🔍🔍 [getTabsForRole] Determining tabs:', {
@@ -1138,7 +1138,7 @@ export default function LocalPerfilScreen() {
         label: 'Perfil',
       },
     ];
-  };
+  }, [user, currentMode, isOwner]);
 
   if (loading) {
     return (

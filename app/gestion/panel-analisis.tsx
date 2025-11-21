@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -107,119 +107,7 @@ export default function PanelAnalisisScreen() {
   const [selectedRecommendation, setSelectedRecommendation] = useState<AIRecommendation | null>(null);
   const [showRecommendationModal, setShowRecommendationModal] = useState(false);
 
-  // ✅ AUTO-REFRESH: Load data and recommendations automatically when user accesses the page
-  useEffect(() => {
-    if (!localId) {
-      Alert.alert('Error', 'No se especificó el local');
-      router.back();
-      return;
-    }
-
-    console.log('[PanelAnalisis] 🔄 Auto-loading analytics and recommendations on page access');
-    loadAnalyticsData();
-    loadRecommendations();
-    // ✅ AUTO-GENERATE: If no recommendations exist, generate them automatically
-    checkAndGenerateRecommendations();
-
-    // Real-time synchronization for analytics
-    console.log('[PanelAnalisis] 🔄 Setting up real-time subscriptions for local:', localId);
-
-    const postsChannel = supabase
-      .channel(`analytics-posts-${localId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'posts',
-          filter: `local_id=eq.${localId}`,
-        },
-        (payload) => {
-          console.log('[PanelAnalisis] 📊 Posts changed, reloading analytics');
-          loadAnalyticsData();
-        }
-      )
-      .subscribe();
-
-    const storiesChannel = supabase
-      .channel(`analytics-stories-${localId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'historias',
-          filter: `local_id=eq.${localId}`,
-        },
-        (payload) => {
-          console.log('[PanelAnalisis] 📊 Stories changed, reloading analytics');
-          loadAnalyticsData();
-        }
-      )
-      .subscribe();
-
-    const eventsChannel = supabase
-      .channel(`analytics-events-${localId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'eventos',
-          filter: `local_id=eq.${localId}`,
-        },
-        (payload) => {
-          console.log('[PanelAnalisis] 📊 Events changed, reloading analytics');
-          loadAnalyticsData();
-        }
-      )
-      .subscribe();
-
-    const followersChannel = supabase
-      .channel(`analytics-followers-${localId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'locales_favoritos',
-          filter: `local_id=eq.${localId}`,
-        },
-        (payload) => {
-          console.log('[PanelAnalisis] 📊 Followers changed, reloading analytics');
-          loadAnalyticsData();
-        }
-      )
-      .subscribe();
-
-    const checkInsChannel = supabase
-      .channel(`analytics-checkins-${localId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'check_ins',
-          filter: `local_id=eq.${localId}`,
-        },
-        (payload) => {
-          console.log('[PanelAnalisis] 📊 Check-ins changed, reloading analytics');
-          loadAnalyticsData();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      console.log('[PanelAnalisis] 🧹 Cleaning up real-time subscriptions');
-      supabase.removeChannel(postsChannel);
-      supabase.removeChannel(storiesChannel);
-      supabase.removeChannel(eventsChannel);
-      supabase.removeChannel(followersChannel);
-      supabase.removeChannel(checkInsChannel);
-    };
-  }, [localId, timeRange]);
-
-  const loadAnalyticsData = async () => {
+  const loadAnalyticsData = useCallback(async () => {
     if (!localId || !user) return;
 
     try {
@@ -527,9 +415,9 @@ export default function PanelAnalisisScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [localId, user, timeRange, router]);
 
-  const loadRecommendations = async () => {
+  const loadRecommendations = useCallback(async () => {
     if (!localId) return;
 
     try {
@@ -550,10 +438,10 @@ export default function PanelAnalisisScreen() {
     } catch (error) {
       console.error('[PanelAnalisis] Error:', error);
     }
-  };
+  }, [localId]);
 
   // ✅ AUTO-GENERATE: Check if recommendations exist, if not, generate them automatically
-  const checkAndGenerateRecommendations = async () => {
+  const checkAndGenerateRecommendations = useCallback(async () => {
     if (!localId) return;
 
     try {
@@ -577,7 +465,119 @@ export default function PanelAnalisisScreen() {
     } catch (error) {
       console.error('[PanelAnalisis] Error checking recommendations:', error);
     }
-  };
+  }, [localId]);
+
+  // ✅ AUTO-REFRESH: Load data and recommendations automatically when user accesses the page
+  useEffect(() => {
+    if (!localId) {
+      Alert.alert('Error', 'No se especificó el local');
+      router.back();
+      return;
+    }
+
+    console.log('[PanelAnalisis] 🔄 Auto-loading analytics and recommendations on page access');
+    loadAnalyticsData();
+    loadRecommendations();
+    // ✅ AUTO-GENERATE: If no recommendations exist, generate them automatically
+    checkAndGenerateRecommendations();
+
+    // Real-time synchronization for analytics
+    console.log('[PanelAnalisis] 🔄 Setting up real-time subscriptions for local:', localId);
+
+    const postsChannel = supabase
+      .channel(`analytics-posts-${localId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'posts',
+          filter: `local_id=eq.${localId}`,
+        },
+        (payload) => {
+          console.log('[PanelAnalisis] 📊 Posts changed, reloading analytics');
+          loadAnalyticsData();
+        }
+      )
+      .subscribe();
+
+    const storiesChannel = supabase
+      .channel(`analytics-stories-${localId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'historias',
+          filter: `local_id=eq.${localId}`,
+        },
+        (payload) => {
+          console.log('[PanelAnalisis] 📊 Stories changed, reloading analytics');
+          loadAnalyticsData();
+        }
+      )
+      .subscribe();
+
+    const eventsChannel = supabase
+      .channel(`analytics-events-${localId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'eventos',
+          filter: `local_id=eq.${localId}`,
+        },
+        (payload) => {
+          console.log('[PanelAnalisis] 📊 Events changed, reloading analytics');
+          loadAnalyticsData();
+        }
+      )
+      .subscribe();
+
+    const followersChannel = supabase
+      .channel(`analytics-followers-${localId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'locales_favoritos',
+          filter: `local_id=eq.${localId}`,
+        },
+        (payload) => {
+          console.log('[PanelAnalisis] 📊 Followers changed, reloading analytics');
+          loadAnalyticsData();
+        }
+      )
+      .subscribe();
+
+    const checkInsChannel = supabase
+      .channel(`analytics-checkins-${localId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'check_ins',
+          filter: `local_id=eq.${localId}`,
+        },
+        (payload) => {
+          console.log('[PanelAnalisis] 📊 Check-ins changed, reloading analytics');
+          loadAnalyticsData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('[PanelAnalisis] 🧹 Cleaning up real-time subscriptions');
+      supabase.removeChannel(postsChannel);
+      supabase.removeChannel(storiesChannel);
+      supabase.removeChannel(eventsChannel);
+      supabase.removeChannel(followersChannel);
+      supabase.removeChannel(checkInsChannel);
+    };
+  }, [localId, timeRange, router, loadAnalyticsData, loadRecommendations, checkAndGenerateRecommendations]);
 
   const generateRecommendations = async () => {
     if (!localId || generatingRecommendations) return;
