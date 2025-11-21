@@ -242,7 +242,7 @@ export default function ComentarScreen() {
       <View style={{ flex: 1 }}>
         <ScrollView 
           style={styles.content} 
-          contentContainerStyle={[styles.contentContainer, { paddingBottom: keyboardHeight > 0 ? keyboardHeight + 200 : 100 }]}
+          contentContainerStyle={[styles.contentContainer, { paddingBottom: 100 }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -333,23 +333,21 @@ export default function ComentarScreen() {
         </ScrollView>
 
         {/* Autocomplete Component - Fixed position above keyboard */}
-        {keyboardHeight > 0 && (
-          <View 
-            style={[
-              styles.autocompleteContainer, 
-              { 
-                bottom: keyboardHeight,
-              }
-            ]}
-            pointerEvents="box-none"
-          >
-            <MentionAutocomplete
-              text={comentario}
-              cursorPosition={cursorPosition}
-              onSelectMention={handleSelectMention}
-            />
-          </View>
-        )}
+        <View 
+          style={[
+            styles.autocompleteContainer, 
+            { 
+              bottom: keyboardHeight > 0 ? keyboardHeight : -300,
+            }
+          ]}
+          pointerEvents="box-none"
+        >
+          <MentionAutocomplete
+            text={comentario}
+            cursorPosition={cursorPosition}
+            onSelectMention={handleSelectMention}
+          />
+        </View>
       </View>
     </View>
   );

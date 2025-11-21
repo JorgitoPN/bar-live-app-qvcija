@@ -187,7 +187,8 @@ export default function GestionarLocalesScreen() {
     console.log('[GestionarLocales] Initial load');
     cargarContadores();
     cargarLocales(true, 1);
-  }, [cargarContadores, cargarLocales]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Reload when filters change - with debounce to prevent rapid calls
   useEffect(() => {
@@ -198,7 +199,8 @@ export default function GestionarLocalesScreen() {
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [busqueda, filtroPropietario, filtroTipo, filtroEstado, filtroEnriquecido, filtroDestacado, cargarLocales, initialLoading]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [busqueda, filtroPropietario, filtroTipo, filtroEstado, filtroEnriquecido, filtroDestacado]);
 
   const toggleEstadoLocal = useCallback(async (localId: string, activo: boolean) => {
     try {
@@ -363,169 +365,179 @@ export default function GestionarLocalesScreen() {
     }
   }, [hasMore, loadingMore, initialLoading, paginaActual, cargarLocales]);
 
-  const renderLocalCard = useCallback(({ item: local }: { item: Local }) => (
-    <View style={styles.localCard}>
-      <Pressable
-        style={styles.localCardContent}
-        onPress={() => {
-          if (modoSeleccion) {
-            toggleSeleccionLocal(local.id);
-          } else {
-            router.push(`/detalle/local?id=${local.id}`);
-          }
-        }}
-        onLongPress={() => {
-          if (!modoSeleccion) {
-            setModoSeleccion(true);
-            toggleSeleccionLocal(local.id);
-          }
-        }}
-      >
-        {modoSeleccion && (
-          <View style={styles.checkboxContainer}>
-            <View style={[
-              styles.checkbox,
-              localesSeleccionados.has(local.id) && styles.checkboxChecked
-            ]}>
-              {localesSeleccionados.has(local.id) && (
-                <IconSymbol name="checkmark" size={16} color={colors.headerText} />
-              )}
-            </View>
-          </View>
-        )}
-
-        {local.imagen_url ? (
-          <Image source={{ uri: local.imagen_url }} style={styles.localImage} />
-        ) : (
-          <View style={[styles.localImage, styles.imagePlaceholder]}>
-            <IconSymbol name="photo" size={32} color={colors.textSecondary} />
-          </View>
-        )}
-
-        <View style={styles.localInfo}>
-          <View style={styles.localHeader}>
-            <View style={styles.localTitleContainer}>
-              <Text style={styles.localNombre} numberOfLines={1}>
-                {local.nombre}
-              </Text>
-              {local.enriquecido && (
-                <IconSymbol name="checkmark.seal.fill" size={16} color={colors.primary} />
-              )}
-            </View>
-          </View>
-
-          <View style={styles.statusRow}>
-            <View style={[
-              styles.statusBadge,
-              local.activo ? styles.statusActivo : styles.statusInactivo
-            ]}>
-              <Text style={styles.statusText}>
-                {local.activo ? 'Activo' : 'Inactivo'}
-              </Text>
-            </View>
-            {local.enriquecido && (
-              <View style={[styles.statusBadge, styles.statusEnriquecido]}>
-                <Text style={styles.statusText}>Enriquecido</Text>
+  const LocalCard = React.memo(({ local }: { local: Local }) => {
+    return (
+      <View style={styles.localCard}>
+        <Pressable
+          style={styles.localCardContent}
+          onPress={() => {
+            if (modoSeleccion) {
+              toggleSeleccionLocal(local.id);
+            } else {
+              router.push(`/detalle/local?id=${local.id}`);
+            }
+          }}
+          onLongPress={() => {
+            if (!modoSeleccion) {
+              setModoSeleccion(true);
+              toggleSeleccionLocal(local.id);
+            }
+          }}
+        >
+          {modoSeleccion && (
+            <View style={styles.checkboxContainer}>
+              <View style={[
+                styles.checkbox,
+                localesSeleccionados.has(local.id) && styles.checkboxChecked
+              ]}>
+                {localesSeleccionados.has(local.id) && (
+                  <IconSymbol name="checkmark" size={16} color={colors.headerText} />
+                )}
               </View>
-            )}
-          </View>
+            </View>
+          )}
 
-          <Text style={styles.localDireccion} numberOfLines={2}>
-            {local.direccion}
-          </Text>
+          {local.imagen_url ? (
+            <Image source={{ uri: local.imagen_url }} style={styles.localImage} />
+          ) : (
+            <View style={[styles.localImage, styles.imagePlaceholder]}>
+              <IconSymbol name="photo" size={32} color={colors.textSecondary} />
+            </View>
+          )}
 
-          <View style={styles.ownerInfo}>
-            {local.propietario ? (
-              <React.Fragment>
-                <IconSymbol name="envelope.fill" size={12} color={colors.textSecondary} />
-                <Text style={styles.ownerEmail} numberOfLines={1}>
-                  {local.propietario.email}
+          <View style={styles.localInfo}>
+            <View style={styles.localHeader}>
+              <View style={styles.localTitleContainer}>
+                <Text style={styles.localNombre} numberOfLines={1}>
+                  {local.nombre}
                 </Text>
-              </React.Fragment>
-            ) : (
-              <React.Fragment>
-                <IconSymbol name="person.crop.circle.badge.xmark" size={12} color={colors.textSecondary} />
-                <Text style={styles.ownerEmail}>Sin propietario</Text>
-              </React.Fragment>
-            )}
-          </View>
+                {local.enriquecido && (
+                  <IconSymbol name="checkmark.seal.fill" size={16} color={colors.primary} />
+                )}
+              </View>
+            </View>
 
-          <View style={styles.localMeta}>
-            <View style={styles.tipoBadge}>
-              <Text style={styles.tipoText}>{local.tipo}</Text>
+            <View style={styles.statusRow}>
+              <View style={[
+                styles.statusBadge,
+                local.activo ? styles.statusActivo : styles.statusInactivo
+              ]}>
+                <Text style={styles.statusText}>
+                  {local.activo ? 'Activo' : 'Inactivo'}
+                </Text>
+              </View>
+              {local.enriquecido && (
+                <View style={[styles.statusBadge, styles.statusEnriquecido]}>
+                  <Text style={styles.statusText}>Enriquecido</Text>
+                </View>
+              )}
+            </View>
+
+            <Text style={styles.localDireccion} numberOfLines={2}>
+              {local.direccion}
+            </Text>
+
+            <View style={styles.ownerInfo}>
+              {local.propietario ? (
+                <React.Fragment>
+                  <IconSymbol name="envelope.fill" size={12} color={colors.textSecondary} />
+                  <Text style={styles.ownerEmail} numberOfLines={1}>
+                    {local.propietario.email}
+                  </Text>
+                </React.Fragment>
+              ) : (
+                <React.Fragment>
+                  <IconSymbol name="person.crop.circle.badge.xmark" size={12} color={colors.textSecondary} />
+                  <Text style={styles.ownerEmail}>Sin propietario</Text>
+                </React.Fragment>
+              )}
+            </View>
+
+            <View style={styles.localMeta}>
+              <View style={styles.tipoBadge}>
+                <Text style={styles.tipoText}>{local.tipo}</Text>
+              </View>
             </View>
           </View>
-        </View>
-      </Pressable>
+        </Pressable>
 
-      {!modoSeleccion && (
-        <View style={styles.localActions}>
-          <View style={styles.toggleRow}>
-            <View style={styles.toggleItem}>
-              <Text style={styles.toggleLabel}>Activo:</Text>
-              <Switch
-                value={local.activo}
-                onValueChange={() => {
+        {!modoSeleccion && (
+          <View style={styles.localActions}>
+            <View style={styles.toggleRow}>
+              <View style={styles.toggleItem}>
+                <Text style={styles.toggleLabel}>Activo:</Text>
+                <Switch
+                  value={local.activo}
+                  onValueChange={() => {
+                    Alert.alert(
+                      local.activo ? 'Desactivar Local' : 'Activar Local',
+                      `¿Estás seguro de ${local.activo ? 'desactivar' : 'activar'} ${local.nombre}?`,
+                      [
+                        { text: 'Cancelar', style: 'cancel' },
+                        {
+                          text: local.activo ? 'Desactivar' : 'Activar',
+                          onPress: () => toggleEstadoLocal(local.id, local.activo),
+                        },
+                      ]
+                    );
+                  }}
+                  trackColor={{ false: colors.cardBorder, true: colors.primary }}
+                  thumbColor={colors.headerText}
+                />
+              </View>
+
+              <View style={styles.toggleItem}>
+                <Text style={styles.toggleLabel}>Destacado:</Text>
+                <Switch
+                  value={local.destacado}
+                  onValueChange={() => toggleDestacadoLocal(local.id, local.destacado)}
+                  trackColor={{ false: colors.cardBorder, true: colors.badgeDestacado }}
+                  thumbColor={colors.headerText}
+                />
+              </View>
+            </View>
+
+            <View style={styles.actionButtons}>
+              <TouchableOpacity
+                style={styles.editButton}
+                onPress={() => router.push(`/editar/local?id=${local.id}`)}
+              >
+                <IconSymbol name="pencil" size={18} color={colors.primary} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() =>
                   Alert.alert(
-                    local.activo ? 'Desactivar Local' : 'Activar Local',
-                    `¿Estás seguro de ${local.activo ? 'desactivar' : 'activar'} ${local.nombre}?`,
+                    'Eliminar Local',
+                    `¿Estás seguro de eliminar ${local.nombre}? Esta acción no se puede deshacer.`,
                     [
                       { text: 'Cancelar', style: 'cancel' },
                       {
-                        text: local.activo ? 'Desactivar' : 'Activar',
-                        onPress: () => toggleEstadoLocal(local.id, local.activo),
+                        text: 'Eliminar',
+                        onPress: () => eliminarLocal(local.id),
+                        style: 'destructive',
                       },
                     ]
-                  );
-                }}
-                trackColor={{ false: colors.cardBorder, true: colors.primary }}
-                thumbColor={colors.headerText}
-              />
-            </View>
-
-            <View style={styles.toggleItem}>
-              <Text style={styles.toggleLabel}>Destacado:</Text>
-              <Switch
-                value={local.destacado}
-                onValueChange={() => toggleDestacadoLocal(local.id, local.destacado)}
-                trackColor={{ false: colors.cardBorder, true: colors.badgeDestacado }}
-                thumbColor={colors.headerText}
-              />
+                  )
+                }
+              >
+                <IconSymbol name="trash" size={18} color={colors.badgeNuevo} />
+              </TouchableOpacity>
             </View>
           </View>
+        )}
+      </View>
+    );
+  }, (prevProps, nextProps) => {
+    return prevProps.local.id === nextProps.local.id &&
+           prevProps.local.activo === nextProps.local.activo &&
+           prevProps.local.destacado === nextProps.local.destacado;
+  });
 
-          <View style={styles.actionButtons}>
-            <TouchableOpacity
-              style={styles.editButton}
-              onPress={() => router.push(`/editar/local?id=${local.id}`)}
-            >
-              <IconSymbol name="pencil" size={18} color={colors.primary} />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.deleteButton}
-              onPress={() =>
-                Alert.alert(
-                  'Eliminar Local',
-                  `¿Estás seguro de eliminar ${local.nombre}? Esta acción no se puede deshacer.`,
-                  [
-                    { text: 'Cancelar', style: 'cancel' },
-                    {
-                      text: 'Eliminar',
-                      onPress: () => eliminarLocal(local.id),
-                      style: 'destructive',
-                    },
-                  ]
-                )
-              }
-            >
-              <IconSymbol name="trash" size={18} color={colors.badgeNuevo} />
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-    </View>
-  ), [modoSeleccion, localesSeleccionados, router, toggleEstadoLocal, toggleDestacadoLocal, eliminarLocal, toggleSeleccionLocal]);
+  const renderLocalCard = useCallback(({ item }: { item: Local }) => (
+    <LocalCard local={item} />
+  ), []);
 
   const renderHeader = useMemo(() => (
     <React.Fragment>
@@ -701,6 +713,10 @@ export default function GestionarLocalesScreen() {
         onEndReachedThreshold={0.5}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        updateCellsBatchingPeriod={50}
+        windowSize={10}
       />
 
       {/* Modal de Filtros */}

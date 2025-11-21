@@ -280,12 +280,18 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     position: 'absolute',
-    bottom: 0,
     left: 0,
     right: 0,
     backgroundColor: colors.cardBackground,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
+  },
+  autocompleteWrapper: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    zIndex: 9999,
+    elevation: 9999,
   },
   replyingToContainer: {
     flexDirection: 'row',
@@ -1458,7 +1464,7 @@ export default function PostDetailScreen() {
       <ScrollView 
         ref={scrollViewRef} 
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingBottom: keyboardHeight > 0 ? keyboardHeight + 60 : 60 }}
+        contentContainerStyle={{ paddingBottom: 60 }}
       >
         <View style={styles.postCard}>
           <View style={styles.postHeader}>
@@ -1625,14 +1631,22 @@ export default function PostDetailScreen() {
         </View>
       </ScrollView>
 
-      <View style={[styles.inputContainer, { paddingBottom: Platform.OS === 'ios' ? keyboardHeight : 0 }]}>
-        {keyboardHeight > 0 && (
+      <View style={[styles.inputContainer, { bottom: keyboardHeight > 0 ? keyboardHeight : 0 }]}>
+        <View 
+          style={[
+            styles.autocompleteWrapper,
+            { 
+              bottom: keyboardHeight > 0 ? 60 : -300,
+            }
+          ]}
+          pointerEvents="box-none"
+        >
           <MentionAutocomplete
             text={comentarioTexto}
             cursorPosition={cursorPosition}
             onSelectMention={handleSelectMention}
           />
-        )}
+        </View>
         
         {replyingTo && (
           <View style={styles.replyingToContainer}>
