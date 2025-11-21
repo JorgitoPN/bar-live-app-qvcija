@@ -25,7 +25,7 @@ import { getEstadoLocal } from '@/utils/timeUtils';
 import { performanceOptimizer } from '@/utils/performanceOptimizer';
 import { trackMapInteraction } from '@/utils/activityTracker';
 import { useAuth } from '@/contexts/AuthContext';
-import { addPubCategoryIfNeeded } from '@/utils/categorizeLocal';
+import { addPubCategoryIfNeeded, shouldHavePubCategory } from '@/utils/categorizeLocal';
 
 const { width, height } = Dimensions.get('window');
 
@@ -47,6 +47,7 @@ const getIconForCategory = (category: string): string => {
     pub: '🍺',
     cocteleria: '🍸',
     discoteca: '🎵',
+    sala_conciertos: '🎵',
     terraza: '☀️',
     rooftop: '🏢',
     lounge: '🛋️',
@@ -113,8 +114,8 @@ export default function MapaScreen() {
         setIsLoading(true);
       }
 
-      // ✅ FIXED: Load ALL active locals with location data (not just enriched ones)
-      // This ensures all locals from the list view appear on the map
+      // ✅ CRITICAL FIX: Load ALL active locals with location data
+      // This query matches EXACTLY what the list view uses
       const { data, error, count } = await supabase
         .from('locales')
         .select(`
@@ -138,6 +139,24 @@ export default function MapaScreen() {
       }
 
       console.log(`✅ [MAP] Loaded ${data?.length || 0} active locals with location data from DB (total: ${count})`);
+
+      // Log specific locals for debugging
+      const specificLocals = ['pelicano', 'blaster', 'santiago'];
+      specificLocals.forEach(searchTerm => {
+        const found = data?.filter(l => l.nombre.toLowerCase().includes(searchTerm));
+        if (found && found.length > 0) {
+          console.log(`🔍 [MAP] Found locals matching "${searchTerm}":`, found.map(l => ({
+            nombre: l.nombre,
+            latitud: l.latitud,
+            longitud: l.longitud,
+            activo: l.activo,
+            barlive_types: l.barlive_types,
+            horarios_completos: l.horarios_completos,
+          })));
+        } else {
+          console.log(`⚠️ [MAP] No locals found matching "${searchTerm}"`);
+        }
+      });
 
       // ✅ Fetch active events for all locals
       const now = new Date();
@@ -271,12 +290,15 @@ export default function MapaScreen() {
       // ✅ CRITICAL FIX: Add PUB category dynamically based on closing time
       localCategories = addPubCategoryIfNeeded(localCategories, local.horarios_completos);
       
-      // Debug log for PUB category
-      if (categoriaSeleccionada === 'pub') {
-        console.log(`[MAP] 🍺 Checking ${local.nombre}:`, {
+      // Debug log for specific locals
+      if (local.nombre.toLowerCase().includes('pelicano') || 
+          local.nombre.toLowerCase().includes('blaster') ||
+          local.nombre.toLowerCase().includes('santiago')) {
+        console.log(`[MAP] 🔍 Checking "${local.nombre}":`, {
           originalCategories: local.barlive_types || local.barlive_type,
           withPubAdded: localCategories,
           horarios: local.horarios_completos,
+          selectedCategory: categoriaSeleccionada,
         });
       }
       
@@ -304,10 +326,31 @@ export default function MapaScreen() {
         matchEstado = estado.estaAbierto === true;
       }
       
-      return matchCategoria && matchEstado;
+      const shouldShow = matchCategoria && matchEstado;
+      
+      // Debug log for specific locals
+      if (local.nombre.toLowerCase().includes('pelicano') || 
+          local.nombre.toLowerCase().includes('blaster') ||
+          local.nombre.toLowerCase().includes('santiago')) {
+        console.log(`[MAP] 🔍 "${local.nombre}" - Should show: ${shouldShow} (matchCategoria: ${matchCategoria}, matchEstado: ${matchEstado})`);
+      }
+      
+      return shouldShow;
     });
     
     console.log(`[MAP] ✅ Filtered locals for category "${categoriaSeleccionada}": ${filtrados.length} of ${todosLosLocales.length}`);
+    
+    // Log specific locals in filtered results
+    const specificLocals = ['pelicano', 'blaster', 'santiago'];
+    specificLocals.forEach(searchTerm => {
+      const found = filtrados.filter(l => l.nombre.toLowerCase().includes(searchTerm));
+      if (found.length > 0) {
+        console.log(`✅ [MAP] "${searchTerm}" found in filtered results:`, found.map(l => l.nombre));
+      } else {
+        console.log(`⚠️ [MAP] "${searchTerm}" NOT in filtered results`);
+      }
+    });
+    
     setLocalesFiltrados(filtrados);
   }, [todosLosLocales, categoriaSeleccionada, filtroEstado]);
 
@@ -435,6 +478,8 @@ export default function MapaScreen() {
         isPremium: local.plan === 'premium',
       };
     });
+
+    console.log(`[MAP] 🗺️ Generating map HTML with ${markersData.length} markers`);
 
     return `
 <!DOCTYPE html>
@@ -736,6 +781,8 @@ export default function MapaScreen() {
   <div id="map"></div>
   <script>
     try {
+      console.log('[MAP HTML] Initializing map with ${markersData.length} markers');
+      
       var map = L.map('map', {
         zoomControl: false,
         attributionControl: false
@@ -771,6 +818,8 @@ export default function MapaScreen() {
       ` : ''}
 
       var markersData = ${JSON.stringify(markersData)};
+      
+      console.log('[MAP HTML] Markers data loaded:', markersData.length);
       
       // Track zoom events to detect when user zooms close to a local
       var lastZoom = map.getZoom();
@@ -860,6 +909,7 @@ export default function MapaScreen() {
             else if (cat.toLowerCase() === 'pub') catIcon = '🍺';
             else if (cat.toLowerCase() === 'cocteleria') catIcon = '🍸';
             else if (cat.toLowerCase() === 'discoteca') catIcon = '🎵';
+            else if (cat.toLowerCase() === 'sala_conciertos') catIcon = '🎵';
             else if (cat.toLowerCase() === 'terraza') catIcon = '☀️';
             else if (cat.toLowerCase() === 'rooftop') catIcon = '🏢';
             else if (cat.toLowerCase() === 'lounge') catIcon = '🛋️';
@@ -930,12 +980,14 @@ export default function MapaScreen() {
 
       map.addLayer(markers);
       
+      console.log('[MAP HTML] Map initialized successfully with', markersData.length, 'markers');
+      
       setTimeout(function() {
         map.invalidateSize();
       }, 100);
       
     } catch (error) {
-      console.error('Map initialization error:', error);
+      console.error('[MAP HTML] Map initialization error:', error);
     }
   </script>
 </body>
