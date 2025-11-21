@@ -29,6 +29,31 @@ interface MentionAutocompleteProps {
   style?: any;
 }
 
+/**
+ * Normalize text for better matching (remove accents, lowercase, trim)
+ */
+function normalizeText(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+}
+
+/**
+ * Remove duplicate locals by ID, keeping the first occurrence
+ */
+function deduplicateLocals(locals: any[]): any[] {
+  const seen = new Set<string>();
+  return locals.filter(local => {
+    if (seen.has(local.id)) {
+      return false;
+    }
+    seen.add(local.id);
+    return true;
+  });
+}
+
 export default function MentionAutocomplete({
   text,
   cursorPosition,
@@ -82,6 +107,7 @@ export default function MentionAutocomplete({
     try {
       const results: MentionSuggestion[] = [];
       const cleanQuery = query.trim();
+      const normalizedQuery = normalizeText(cleanQuery);
 
       // Create fuzzy pattern for better matching
       const fuzzyPattern = cleanQuery.split('').join('%');
@@ -121,7 +147,7 @@ export default function MentionAutocomplete({
           console.error('[MentionAutocomplete] ❌ Error searching users by name:', nameError);
         } else if (usersByName) {
           console.log('[MentionAutocomplete] ✅ Found users by name:', usersByName.length);
-          // Merge results, avoiding duplicates
+          // Merge results, avoiding duplicates by ID
           for (const user of usersByName) {
             if (!usersData.find(u => u.id === user.id)) {
               usersData.push(user);
@@ -151,14 +177,17 @@ export default function MentionAutocomplete({
       // Add users to results with scoring
       if (usersData && usersData.length > 0) {
         const scoredUsers = usersData.map(u => {
-          const nombre = (u.nombre || '').toLowerCase();
-          const username = (u.username || '').toLowerCase();
-          const search = cleanQuery.toLowerCase();
+          const nombre = normalizeText(u.nombre || '');
+          const username = normalizeText(u.username || '');
 
           let score = 0;
-          if (nombre === search || username === search) score += 100;
-          else if (nombre.startsWith(search) || username.startsWith(search)) score += 50;
-          else if (nombre.includes(search) || username.includes(search)) score += 25;
+          // Exact match gets highest priority
+          if (nombre === normalizedQuery || username === normalizedQuery) score += 100;
+          // Starts with query gets second priority
+          else if (nombre.startsWith(normalizedQuery) || username.startsWith(normalizedQuery)) score += 50;
+          // Contains query gets third priority
+          else if (nombre.includes(normalizedQuery) || username.includes(normalizedQuery)) score += 25;
+          // Fuzzy match gets lowest priority
           else score += 10;
 
           return { ...u, score };
@@ -182,20 +211,35 @@ export default function MentionAutocomplete({
       
       if (cleanQuery.length > 0) {
         // First, get all locals matching the search
-        const { data: locals, error: localsError } = await supabase
-          .from('locales')
-          .select('id, nombre, imagen_url')
-          .eq('activo', true)
-          .or(`nombre.ilike.%${cleanQuery}%,nombre.ilike.%${fuzzyPattern}%`)
-          .limit(20);
+        // Use multiple search strategies to find locals
+        const searchPromises = [
+          // Exact and fuzzy name search
+          supabase
+            .from('locales')
+            .select('id, nombre, imagen_url')
+            .eq('activo', true)
+            .or(`nombre.ilike.%${cleanQuery}%,nombre.ilike.%${fuzzyPattern}%`)
+            .limit(30),
+        ];
 
-        if (localsError) {
-          console.error('[MentionAutocomplete] ❌ Error searching locals:', localsError);
-        } else if (locals && locals.length > 0) {
-          console.log('[MentionAutocomplete] ✅ Found locals:', locals.length);
-          
+        const searchResults = await Promise.all(searchPromises);
+        
+        // Combine all results and deduplicate by ID
+        const allLocals: any[] = [];
+        for (const result of searchResults) {
+          if (!result.error && result.data) {
+            allLocals.push(...result.data);
+          }
+        }
+
+        // CRITICAL: Deduplicate locals by ID to prevent duplicates
+        const uniqueLocals = deduplicateLocals(allLocals);
+        
+        console.log('[MentionAutocomplete] ✅ Found unique locals:', uniqueLocals.length, '(before deduplication:', allLocals.length, ')');
+
+        if (uniqueLocals.length > 0) {
           // Now filter by active subscriptions with estandar or premium plans
-          const localIds = locals.map(l => l.id);
+          const localIds = uniqueLocals.map(l => l.id);
           
           const { data: subscriptionsData, error: subscriptionsError } = await supabase
             .from('suscripciones_locales')
@@ -219,7 +263,9 @@ export default function MentionAutocomplete({
               })
               .map(sub => sub.local_id);
 
-            localsData = locals.filter(local => validLocalIds.includes(local.id));
+            // CRITICAL: Filter locals to only include those with valid subscriptions
+            // This ensures we don't show duplicate locals
+            localsData = uniqueLocals.filter(local => validLocalIds.includes(local.id));
             
             console.log('[MentionAutocomplete] ✅ Found locals with estandar/premium subscriptions:', localsData.length);
           }
@@ -231,15 +277,18 @@ export default function MentionAutocomplete({
           .select('id, nombre, imagen_url')
           .eq('activo', true)
           .order('created_at', { ascending: false })
-          .limit(20);
+          .limit(30);
 
         if (recentError) {
           console.error('[MentionAutocomplete] ❌ Error fetching recent locals:', recentError);
         } else if (recentLocals && recentLocals.length > 0) {
-          console.log('[MentionAutocomplete] ✅ Found recent locals:', recentLocals.length);
+          // CRITICAL: Deduplicate recent locals by ID
+          const uniqueRecentLocals = deduplicateLocals(recentLocals);
+          
+          console.log('[MentionAutocomplete] ✅ Found unique recent locals:', uniqueRecentLocals.length);
           
           // Filter by active subscriptions with estandar or premium plans
-          const localIds = recentLocals.map(l => l.id);
+          const localIds = uniqueRecentLocals.map(l => l.id);
           
           const { data: subscriptionsData, error: subscriptionsError } = await supabase
             .from('suscripciones_locales')
@@ -263,25 +312,28 @@ export default function MentionAutocomplete({
               })
               .map(sub => sub.local_id);
 
-            localsData = recentLocals.filter(local => validLocalIds.includes(local.id));
+            localsData = uniqueRecentLocals.filter(local => validLocalIds.includes(local.id));
             
             console.log('[MentionAutocomplete] ✅ Found recent locals with estandar/premium subscriptions:', localsData.length);
           }
         }
       }
 
-      console.log('[MentionAutocomplete] 📊 Total locals with valid subscriptions found:', localsData.length);
+      console.log('[MentionAutocomplete] 📊 Total unique locals with valid subscriptions found:', localsData.length);
 
       // Add locals to results with scoring
       if (localsData && localsData.length > 0) {
         const scoredLocals = localsData.map(l => {
-          const nombre = (l.nombre || '').toLowerCase();
-          const search = cleanQuery.toLowerCase();
+          const nombre = normalizeText(l.nombre || '');
 
           let score = 0;
-          if (nombre === search) score += 100;
-          else if (nombre.startsWith(search)) score += 50;
-          else if (nombre.includes(search)) score += 25;
+          // Exact match gets highest priority
+          if (nombre === normalizedQuery) score += 100;
+          // Starts with query gets second priority
+          else if (nombre.startsWith(normalizedQuery)) score += 50;
+          // Contains query gets third priority
+          else if (nombre.includes(normalizedQuery)) score += 25;
+          // Fuzzy match gets lowest priority
           else score += 10;
 
           return { ...l, score };
@@ -289,7 +341,11 @@ export default function MentionAutocomplete({
 
         scoredLocals.sort((a, b) => b.score - a.score);
 
-        results.push(...scoredLocals.slice(0, 5).map(l => ({
+        // CRITICAL: Final deduplication before adding to results
+        // This ensures absolutely no duplicates in the final list
+        const uniqueScoredLocals = deduplicateLocals(scoredLocals);
+
+        results.push(...uniqueScoredLocals.slice(0, 5).map(l => ({
           id: l.id,
           nombre: l.nombre,
           username: l.nombre,
@@ -300,7 +356,17 @@ export default function MentionAutocomplete({
 
       console.log('[MentionAutocomplete] ✅ Total results:', results.length);
       console.log('[MentionAutocomplete] 📊 Users:', results.filter(r => r.tipo === 'usuario').length, 'Locals:', results.filter(r => r.tipo === 'local').length);
-      setSuggestions(results);
+      
+      // FINAL CHECK: Ensure no duplicate IDs in the final results
+      const uniqueResults = results.filter((result, index, self) =>
+        index === self.findIndex((r) => r.id === result.id && r.tipo === result.tipo)
+      );
+      
+      if (uniqueResults.length !== results.length) {
+        console.warn('[MentionAutocomplete] ⚠️ Removed', results.length - uniqueResults.length, 'duplicate results');
+      }
+      
+      setSuggestions(uniqueResults);
     } catch (error) {
       console.error('[MentionAutocomplete] ❌ Error in searchMentions:', error);
       setSuggestions([]);
