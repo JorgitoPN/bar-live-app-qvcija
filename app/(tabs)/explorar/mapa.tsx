@@ -101,6 +101,7 @@ export default function MapaScreen() {
 
   const cargarTodosLosLocalesEnriquecidos = useCallback(async () => {
     try {
+      console.log('🔄 [MAP] ========================================');
       console.log('🔄 [MAP] Loading ALL active locals with location data...');
 
       // Try cache first for INSTANT loading
@@ -138,25 +139,20 @@ export default function MapaScreen() {
         return;
       }
 
-      console.log(`✅ [MAP] Loaded ${data?.length || 0} active locals with location data from DB (total: ${count})`);
+      console.log(`✅ [MAP] Loaded ${data?.length || 0} active locals with location data from DB (total count: ${count})`);
 
-      // Log specific locals for debugging
-      const specificLocals = ['pelicano', 'blaster', 'santiago'];
-      specificLocals.forEach(searchTerm => {
-        const found = data?.filter(l => l.nombre.toLowerCase().includes(searchTerm));
-        if (found && found.length > 0) {
-          console.log(`🔍 [MAP] Found locals matching "${searchTerm}":`, found.map(l => ({
-            nombre: l.nombre,
-            latitud: l.latitud,
-            longitud: l.longitud,
-            activo: l.activo,
-            barlive_types: l.barlive_types,
-            horarios_completos: l.horarios_completos,
-          })));
-        } else {
-          console.log(`⚠️ [MAP] No locals found matching "${searchTerm}"`);
-        }
+      // ✅ ENHANCED DEBUGGING: Log ALL locals loaded
+      console.log('📋 [MAP] ========================================');
+      console.log('📋 [MAP] ALL LOCALS LOADED FROM DATABASE:');
+      data?.forEach((local, index) => {
+        console.log(`  ${index + 1}. ${local.nombre}`);
+        console.log(`     - ID: ${local.id}`);
+        console.log(`     - Activo: ${local.activo}`);
+        console.log(`     - Lat/Lng: ${local.latitud}, ${local.longitud}`);
+        console.log(`     - barlive_types: ${JSON.stringify(local.barlive_types)}`);
+        console.log(`     - barlive_type: ${local.barlive_type}`);
       });
+      console.log('📋 [MAP] ========================================');
 
       // ✅ Fetch active events for all locals
       const now = new Date();
@@ -266,6 +262,7 @@ export default function MapaScreen() {
       await performanceOptimizer.setCache('map_all_locales_with_events', localesTransformados, 5 * 60 * 1000);
       
       console.log(`✅ [MAP] Successfully loaded and cached ${localesTransformados.length} locals`);
+      console.log('✅ [MAP] ========================================');
       setIsLoading(false);
     } catch (error) {
       console.error('❌ [MAP] Error in cargarTodosLosLocalesEnriquecidos:', error);
@@ -280,7 +277,10 @@ export default function MapaScreen() {
   useEffect(() => {
     const CATEGORIAS_EXCLUIDAS = ['terrazas', 'rooftops', 'lounge'];
     
-    console.log('[MAP] 🔍 Filtering for category:', categoriaSeleccionada);
+    console.log('[MAP] 🔍 ========================================');
+    console.log('[MAP] 🔍 FILTERING LOCALS FOR MAP DISPLAY');
+    console.log('[MAP] 🔍 Selected category:', categoriaSeleccionada);
+    console.log('[MAP] 🔍 Filter state:', filtroEstado);
     console.log('[MAP] 📊 Total locals to filter:', todosLosLocales.length);
     
     const filtrados = todosLosLocales.filter(local => {
@@ -290,23 +290,14 @@ export default function MapaScreen() {
       // ✅ CRITICAL FIX: Add PUB category dynamically based on closing time
       localCategories = addPubCategoryIfNeeded(localCategories, local.horarios_completos);
       
-      // Debug log for specific locals
-      if (local.nombre.toLowerCase().includes('pelicano') || 
-          local.nombre.toLowerCase().includes('blaster') ||
-          local.nombre.toLowerCase().includes('santiago')) {
-        console.log(`[MAP] 🔍 Checking "${local.nombre}":`, {
-          originalCategories: local.barlive_types || local.barlive_type,
-          withPubAdded: localCategories,
-          horarios: local.horarios_completos,
-          selectedCategory: categoriaSeleccionada,
-        });
-      }
-      
       // Exclude locales with excluded categories
       const hasExcludedCategory = localCategories.some((cat: string) => 
         CATEGORIAS_EXCLUIDAS.includes(cat.toLowerCase())
       );
-      if (hasExcludedCategory) return false;
+      if (hasExcludedCategory) {
+        console.log(`[MAP] ❌ Excluded "${local.nombre}" (has excluded category)`);
+        return false;
+      }
       
       // ✅ Category filtering
       let matchCategoria = false;
@@ -328,11 +319,13 @@ export default function MapaScreen() {
       
       const shouldShow = matchCategoria && matchEstado;
       
-      // Debug log for specific locals
-      if (local.nombre.toLowerCase().includes('pelicano') || 
-          local.nombre.toLowerCase().includes('blaster') ||
-          local.nombre.toLowerCase().includes('santiago')) {
-        console.log(`[MAP] 🔍 "${local.nombre}" - Should show: ${shouldShow} (matchCategoria: ${matchCategoria}, matchEstado: ${matchEstado})`);
+      // ✅ ENHANCED DEBUGGING: Log every local's filtering decision
+      if (!shouldShow) {
+        console.log(`[MAP] ❌ Filtered out "${local.nombre}"`);
+        console.log(`     - Categories: ${JSON.stringify(localCategories)}`);
+        console.log(`     - Selected category: ${categoriaSeleccionada}`);
+        console.log(`     - Match category: ${matchCategoria}`);
+        console.log(`     - Match state: ${matchEstado}`);
       }
       
       return shouldShow;
@@ -340,16 +333,19 @@ export default function MapaScreen() {
     
     console.log(`[MAP] ✅ Filtered locals for category "${categoriaSeleccionada}": ${filtrados.length} of ${todosLosLocales.length}`);
     
-    // Log specific locals in filtered results
-    const specificLocals = ['pelicano', 'blaster', 'santiago'];
-    specificLocals.forEach(searchTerm => {
-      const found = filtrados.filter(l => l.nombre.toLowerCase().includes(searchTerm));
-      if (found.length > 0) {
-        console.log(`✅ [MAP] "${searchTerm}" found in filtered results:`, found.map(l => l.nombre));
-      } else {
-        console.log(`⚠️ [MAP] "${searchTerm}" NOT in filtered results`);
-      }
+    // ✅ ENHANCED DEBUGGING: Log ALL filtered locals
+    console.log('[MAP] 📋 ========================================');
+    console.log('[MAP] 📋 ALL FILTERED LOCALS FOR MAP DISPLAY:');
+    filtrados.forEach((local, index) => {
+      const categories = addPubCategoryIfNeeded(
+        local.barlive_types || (local.barlive_type ? [local.barlive_type] : []),
+        local.horarios_completos
+      );
+      console.log(`  ${index + 1}. ${local.nombre}`);
+      console.log(`     - Categories: ${JSON.stringify(categories)}`);
+      console.log(`     - Lat/Lng: ${local.coordenadas.lat}, ${local.coordenadas.lng}`);
     });
+    console.log('[MAP] 📋 ========================================');
     
     setLocalesFiltrados(filtrados);
   }, [todosLosLocales, categoriaSeleccionada, filtroEstado]);
@@ -479,7 +475,11 @@ export default function MapaScreen() {
       };
     });
 
-    console.log(`[MAP] 🗺️ Generating map HTML with ${markersData.length} markers`);
+    console.log(`[MAP] 🗺️ ========================================`);
+    console.log(`[MAP] 🗺️ GENERATING MAP HTML`);
+    console.log(`[MAP] 🗺️ Total markers to display: ${markersData.length}`);
+    console.log(`[MAP] 🗺️ Center: ${centerLat}, ${centerLng}`);
+    console.log(`[MAP] 🗺️ ========================================`);
 
     return `
 <!DOCTYPE html>
@@ -781,6 +781,7 @@ export default function MapaScreen() {
   <div id="map"></div>
   <script>
     try {
+      console.log('[MAP HTML] ========================================');
       console.log('[MAP HTML] Initializing map with ${markersData.length} markers');
       
       var map = L.map('map', {
@@ -820,6 +821,15 @@ export default function MapaScreen() {
       var markersData = ${JSON.stringify(markersData)};
       
       console.log('[MAP HTML] Markers data loaded:', markersData.length);
+      console.log('[MAP HTML] ========================================');
+      console.log('[MAP HTML] ALL MARKERS TO BE DISPLAYED:');
+      markersData.forEach(function(data, index) {
+        console.log('  ' + (index + 1) + '. ' + data.nombre);
+        console.log('     - Lat/Lng: ' + data.lat + ', ' + data.lng);
+        console.log('     - Categories: ' + JSON.stringify(data.categorias));
+        console.log('     - Icon: ' + data.icon);
+      });
+      console.log('[MAP HTML] ========================================');
       
       // Track zoom events to detect when user zooms close to a local
       var lastZoom = map.getZoom();
@@ -841,6 +851,7 @@ export default function MapaScreen() {
         lastZoom = currentZoom;
       });
       
+      var markersCreated = 0;
       markersData.forEach(function(data) {
         var markerClass = 'custom-marker marker-' + data.estado;
         if (data.destacado) {
@@ -976,11 +987,15 @@ export default function MapaScreen() {
         });
 
         markers.addLayer(marker);
+        markersCreated++;
       });
 
       map.addLayer(markers);
       
-      console.log('[MAP HTML] Map initialized successfully with', markersData.length, 'markers');
+      console.log('[MAP HTML] ========================================');
+      console.log('[MAP HTML] Map initialized successfully');
+      console.log('[MAP HTML] Total markers created:', markersCreated);
+      console.log('[MAP HTML] ========================================');
       
       setTimeout(function() {
         map.invalidateSize();
