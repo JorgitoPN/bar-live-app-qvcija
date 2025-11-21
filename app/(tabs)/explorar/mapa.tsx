@@ -275,7 +275,9 @@ export default function MapaScreen() {
   }, [cargarTodosLosLocalesEnriquecidos]);
 
   useEffect(() => {
-    const CATEGORIAS_EXCLUIDAS = ['terrazas', 'rooftops', 'lounge'];
+    // ✅ CRITICAL FIX: Removed CATEGORIAS_EXCLUIDAS to allow all venues to be shown
+    // Previously, venues with "lounge", "terrazas", or "rooftops" were excluded
+    // Now we show ALL venues and let the category filter handle the display
     
     console.log('[MAP] 🔍 ========================================');
     console.log('[MAP] 🔍 FILTERING LOCALS FOR MAP DISPLAY');
@@ -289,15 +291,6 @@ export default function MapaScreen() {
       
       // ✅ CRITICAL FIX: Add PUB category dynamically based on closing time
       localCategories = addPubCategoryIfNeeded(localCategories, local.horarios_completos);
-      
-      // Exclude locales with excluded categories
-      const hasExcludedCategory = localCategories.some((cat: string) => 
-        CATEGORIAS_EXCLUIDAS.includes(cat.toLowerCase())
-      );
-      if (hasExcludedCategory) {
-        console.log(`[MAP] ❌ Excluded "${local.nombre}" (has excluded category)`);
-        return false;
-      }
       
       // ✅ Category filtering
       let matchCategoria = false;

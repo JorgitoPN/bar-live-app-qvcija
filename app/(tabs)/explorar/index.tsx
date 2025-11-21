@@ -43,7 +43,6 @@ const CATEGORIAS_LOCALES = [
   { id: 'discoteca', label: 'Discotecas', icon: 'music.note' },
 ];
 
-const CATEGORIAS_EXCLUIDAS = ['terrazas', 'rooftops', 'lounge'];
 const LOCALES_POR_PAGINA = 20;
 const HEADER_HEIGHT = Platform.OS === 'ios' ? 110 : 100;
 const CATEGORIAS_HEIGHT = 110;
