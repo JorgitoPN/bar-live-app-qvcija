@@ -101,7 +101,9 @@ export default function ExplorarScreen() {
     console.log('[ExplorarScreen] 📊 Total locales:', todosLosLocales.length);
     console.log('[ExplorarScreen] 🔍 Selected category:', categoriaSeleccionada);
 
-    let localesFiltrados = [...todosLosLocales];
+    // ✅ CRITICAL FIX: Filter by activo = true to match map behavior
+    let localesFiltrados = todosLosLocales.filter(local => local.activo === true);
+    console.log('[ExplorarScreen] ✅ After activo filter:', localesFiltrados.length);
 
     // ✅ FIXED: Apply category filter with dynamic PUB category support
     if (categoriaSeleccionada !== 'todos') {
