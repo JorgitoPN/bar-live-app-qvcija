@@ -337,7 +337,7 @@ export default function ComentarScreen() {
           style={[
             styles.autocompleteContainer, 
             { 
-              bottom: keyboardHeight > 0 ? keyboardHeight : -300,
+              bottom: keyboardHeight > 0 ? keyboardHeight : 0,
             }
           ]}
           pointerEvents="box-none"

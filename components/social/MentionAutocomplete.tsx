@@ -323,7 +323,7 @@ export default function MentionAutocomplete({
     setCurrentMentionText(null);
   };
 
-  // Don't render if not visible
+  // Don't render if not visible or no mention text
   if (!isVisible || currentMentionText === null) {
     console.log('[MentionAutocomplete] 🚫 Not rendering - isVisible:', isVisible, 'currentMentionText:', currentMentionText);
     return null;
@@ -397,12 +397,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBackground,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
     maxHeight: 250,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 5,
+    elevation: 8,
   },
   list: {
     flex: 1,

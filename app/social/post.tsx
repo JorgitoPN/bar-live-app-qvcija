@@ -1636,7 +1636,7 @@ export default function PostDetailScreen() {
           style={[
             styles.autocompleteWrapper,
             { 
-              bottom: keyboardHeight > 0 ? 60 : -300,
+              bottom: 60,
             }
           ]}
           pointerEvents="box-none"
