@@ -16,6 +16,7 @@ import {
   Platform,
   Pressable,
   FlatList,
+  Keyboard,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -26,6 +27,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 import ParsedText from '@/components/social/ParsedText';
+import MentionAutocomplete, { MentionSuggestion } from '@/components/social/MentionAutocomplete';
 import { processCommentHashtags, processCommentMentions } from '@/utils/postHelpers';
 
 const { width } = Dimensions.get('window');
@@ -201,22 +203,30 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   comentariosSection: {
-    padding: 16,
+    paddingTop: 8,
+    paddingBottom: 100,
+  },
+  comentariosSectionHeader: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
   },
   comentariosSectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '700',
     color: colors.text,
-    marginBottom: 16,
   },
   comentarioItem: {
     flexDirection: 'row',
-    marginBottom: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: colors.cardBackground,
   },
   comentarioAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     marginRight: 12,
   },
   comentarioContent: {
@@ -228,20 +238,20 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   comentarioAutor: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
     marginRight: 8,
   },
   comentarioFecha: {
-    fontSize: 13,
+    fontSize: 12,
     color: colors.textSecondary,
   },
   comentarioTexto: {
-    fontSize: 15,
+    fontSize: 14,
     color: colors.text,
-    lineHeight: 22,
-    marginBottom: 8,
+    lineHeight: 20,
+    marginBottom: 6,
   },
   comentarioActions: {
     flexDirection: 'row',
@@ -251,7 +261,7 @@ const styles = StyleSheet.create({
   comentarioActionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
   },
   comentarioActionText: {
     fontSize: 13,
@@ -263,58 +273,69 @@ const styles = StyleSheet.create({
     marginLeft: 'auto',
   },
   replyContainer: {
-    marginLeft: 48,
-    marginTop: 12,
-    paddingLeft: 12,
+    marginLeft: 44,
     borderLeftWidth: 2,
     borderLeftColor: colors.cardBorder,
+    paddingLeft: 12,
   },
-  comentarioInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    padding: 12,
+  inputContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: colors.cardBackground,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
-    backgroundColor: colors.cardBackground,
-  },
-  comentarioInput: {
-    flex: 1,
-    backgroundColor: colors.background,
-    borderRadius: 24,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    marginRight: 12,
-    fontSize: 15,
-    color: colors.text,
-    maxHeight: 100,
-  },
-  comentarioSendButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  comentarioSendButtonDisabled: {
-    opacity: 0.5,
   },
   replyingToContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     paddingVertical: 8,
     backgroundColor: colors.background,
-    borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
   },
   replyingToText: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 13,
     color: colors.textSecondary,
   },
   cancelReplyButton: {
     padding: 4,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 12,
+  },
+  inputAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginBottom: 4,
+  },
+  textInput: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.text,
+    maxHeight: 80,
+    paddingVertical: 8,
+  },
+  sendButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    marginBottom: 4,
+  },
+  sendButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  sendButtonDisabled: {
+    opacity: 0.4,
   },
   modalOverlay: {
     flex: 1,
@@ -439,12 +460,15 @@ export default function PostDetailScreen() {
   const { user } = useAuth();
   const { activeLocalProfileId, isInteractingAsLocal } = useMode();
   const scrollViewRef = useRef<ScrollView>(null);
+  const textInputRef = useRef<TextInput>(null);
   const [loading, setLoading] = useState(true);
   const [post, setPost] = useState<any>(null);
   const [comentarios, setComentarios] = useState<Comentario[]>([]);
   const [comentarioTexto, setComentarioTexto] = useState('');
+  const [cursorPosition, setCursorPosition] = useState(0);
   const [replyingTo, setReplyingTo] = useState<Comentario | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginMessage, setLoginMessage] = useState('');
@@ -452,6 +476,27 @@ export default function PostDetailScreen() {
   const [showUserList, setShowUserList] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<ChatUser[]>([]);
+
+  useEffect(() => {
+    const keyboardWillShowListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+      }
+    );
+
+    const keyboardWillHideListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      keyboardWillShowListener.remove();
+      keyboardWillHideListener.remove();
+    };
+  }, []);
 
   const loadPost = useCallback(async () => {
     try {
@@ -899,8 +944,33 @@ export default function PostDetailScreen() {
   };
 
   const handleCommentPress = () => {
-    console.log('[PostDetail] Comment button pressed, scrolling to bottom');
-    scrollViewRef.current?.scrollToEnd({ animated: true });
+    console.log('[PostDetail] Comment button pressed, focusing input');
+    textInputRef.current?.focus();
+  };
+
+  const handleSelectMention = (mention: MentionSuggestion, mentionText: string) => {
+    console.log('[PostDetail] ✅ Selected mention:', mention);
+    
+    const textBeforeCursor = comentarioTexto.substring(0, cursorPosition);
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+    
+    if (lastAtIndex === -1) return;
+
+    const mentionUsername = mention.tipo === 'local' ? mention.nombre : mention.username;
+    const newText = 
+      comentarioTexto.substring(0, lastAtIndex) + 
+      `@${mentionUsername} ` + 
+      comentarioTexto.substring(cursorPosition);
+    
+    setComentarioTexto(newText);
+    
+    const newCursorPosition = lastAtIndex + mentionUsername.length + 2;
+    setCursorPosition(newCursorPosition);
+    
+    // Refocus the input
+    setTimeout(() => {
+      textInputRef.current?.focus();
+    }, 100);
   };
 
   const searchUsers = async (query: string) => {
@@ -1280,7 +1350,7 @@ export default function PostDetailScreen() {
                   }}
                   activeOpacity={0.7}
                 >
-                  <IconSymbol name="trash" size={18} color={colors.textSecondary} />
+                  <IconSymbol name="trash" size={16} color={colors.textSecondary} />
                 </TouchableOpacity>
               )}
             </View>
@@ -1291,12 +1361,14 @@ export default function PostDetailScreen() {
                 onPress={() => toggleCommentLike(comentario.id)}
                 activeOpacity={0.7}
               >
-                <IconSymbol 
-                  name={comentario.liked ? 'heart.fill' : 'heart'} 
-                  size={24} 
-                  color={comentario.liked ? '#EF4444' : colors.textSecondary} 
-                />
-                <Text style={styles.comentarioActionText}>{comentario.likes || 0}</Text>
+                {comentario.likes > 0 && (
+                  <Text style={[styles.comentarioActionText, comentario.liked && { color: '#EF4444' }]}>
+                    {comentario.likes} me gusta
+                  </Text>
+                )}
+                {comentario.likes === 0 && (
+                  <Text style={styles.comentarioActionText}>Me gusta</Text>
+                )}
               </TouchableOpacity>
               {!isReply && (
                 <TouchableOpacity 
@@ -1308,7 +1380,7 @@ export default function PostDetailScreen() {
                       return;
                     }
                     setReplyingTo(comentario);
-                    scrollViewRef.current?.scrollToEnd({ animated: true });
+                    textInputRef.current?.focus();
                   }}
                   activeOpacity={0.7}
                 >
@@ -1383,173 +1455,185 @@ export default function PostDetailScreen() {
         <View style={{ width: 24 }} />
       </LinearGradient>
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      <ScrollView 
+        ref={scrollViewRef} 
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingBottom: keyboardHeight > 0 ? keyboardHeight + 60 : 60 }}
       >
-        <ScrollView ref={scrollViewRef} keyboardShouldPersistTaps="handled">
-          <View style={styles.postCard}>
-            <View style={styles.postHeader}>
-              <TouchableOpacity
-                style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
+        <View style={styles.postCard}>
+          <View style={styles.postHeader}>
+            <TouchableOpacity
+              style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
+              onPress={() => {
+                if (post.tipo === 'local' && post.local_id) {
+                  router.push(`/perfil/local?localId=${post.local_id}`);
+                } else if (user && post.autor_id === user.id) {
+                  router.push('/(tabs)/perfil');
+                } else {
+                  router.push(`/perfil/usuario?userId=${post.autor_id}`);
+                }
+              }}
+              activeOpacity={0.7}
+            >
+              {post.autorAvatar ? (
+                <Image source={{ uri: post.autorAvatar }} style={styles.postAvatar} />
+              ) : (
+                <View style={[styles.postAvatar, styles.avatarPlaceholder]}>
+                  <Text style={styles.avatarText}>
+                    {post.autorNombre?.charAt(0).toUpperCase() || 'U'}
+                  </Text>
+                </View>
+              )}
+              <View style={styles.postAutorInfo}>
+                <Text style={styles.postAutorNombre}>{post.autorNombre}</Text>
+                <Text style={styles.postFecha}>{formatearFecha(post.created_at)}</Text>
+              </View>
+            </TouchableOpacity>
+            {user && (
+              (post.tipo === 'usuario' && post.autor_id === user.id) ||
+              (post.tipo === 'local' && activeLocalProfileId === post.local_id)
+            ) && (
+              <TouchableOpacity 
+                style={styles.postOptionsButton} 
                 onPress={() => {
-                  if (post.tipo === 'local' && post.local_id) {
-                    router.push(`/perfil/local?localId=${post.local_id}`);
-                  } else if (user && post.autor_id === user.id) {
-                    router.push('/(tabs)/perfil');
-                  } else {
-                    router.push(`/perfil/usuario?userId=${post.autor_id}`);
-                  }
+                  Alert.alert(
+                    'Eliminar publicación',
+                    '¿Estás seguro de que quieres eliminar esta publicación?',
+                    [
+                      { text: 'Cancelar', style: 'cancel' },
+                      {
+                        text: 'Eliminar',
+                        style: 'destructive',
+                        onPress: handleDeletePost,
+                      },
+                    ]
+                  );
                 }}
                 activeOpacity={0.7}
               >
-                {post.autorAvatar ? (
-                  <Image source={{ uri: post.autorAvatar }} style={styles.postAvatar} />
-                ) : (
-                  <View style={[styles.postAvatar, styles.avatarPlaceholder]}>
-                    <Text style={styles.avatarText}>
-                      {post.autorNombre?.charAt(0).toUpperCase() || 'U'}
-                    </Text>
-                  </View>
-                )}
-                <View style={styles.postAutorInfo}>
-                  <Text style={styles.postAutorNombre}>{post.autorNombre}</Text>
-                  <Text style={styles.postFecha}>{formatearFecha(post.created_at)}</Text>
-                </View>
+                <IconSymbol name="trash" size={22} color={colors.textSecondary} />
               </TouchableOpacity>
-              {user && (
-                (post.tipo === 'usuario' && post.autor_id === user.id) ||
-                (post.tipo === 'local' && activeLocalProfileId === post.local_id)
-              ) && (
-                <TouchableOpacity 
-                  style={styles.postOptionsButton} 
-                  onPress={() => {
-                    Alert.alert(
-                      'Eliminar publicación',
-                      '¿Estás seguro de que quieres eliminar esta publicación?',
-                      [
-                        { text: 'Cancelar', style: 'cancel' },
-                        {
-                          text: 'Eliminar',
-                          style: 'destructive',
-                          onPress: handleDeletePost,
-                        },
-                      ]
-                    );
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <IconSymbol name="trash" size={22} color={colors.textSecondary} />
-                </TouchableOpacity>
-              )}
-            </View>
+            )}
+          </View>
 
-            {post.images && post.images.length > 0 && (
-              <View style={styles.imageCarouselContainer}>
-                <ScrollView
-                  horizontal
-                  pagingEnabled
-                  showsHorizontalScrollIndicator={false}
-                  onScroll={handleScroll}
-                  scrollEventThrottle={16}
-                  style={styles.imageCarousel}
-                >
-                  {post.images.map((imageUrl: string, index: number) => (
-                    <Image 
-                      key={index} 
-                      source={{ uri: imageUrl }} 
-                      style={styles.postImagen} 
-                      resizeMode="cover" 
+          {post.images && post.images.length > 0 && (
+            <View style={styles.imageCarouselContainer}>
+              <ScrollView
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onScroll={handleScroll}
+                scrollEventThrottle={16}
+                style={styles.imageCarousel}
+              >
+                {post.images.map((imageUrl: string, index: number) => (
+                  <Image 
+                    key={index} 
+                    source={{ uri: imageUrl }} 
+                    style={styles.postImagen} 
+                    resizeMode="cover" 
+                  />
+                ))}
+              </ScrollView>
+              
+              {post.images.length > 1 && (
+                <View style={styles.imageIndicatorContainer}>
+                  {post.images.map((_: string, index: number) => (
+                    <View
+                      key={index}
+                      style={[
+                        styles.imageIndicatorDot,
+                        currentImageIndex === index && styles.imageIndicatorDotActive,
+                      ]}
                     />
                   ))}
-                </ScrollView>
-                
-                {post.images.length > 1 && (
-                  <View style={styles.imageIndicatorContainer}>
-                    {post.images.map((_: string, index: number) => (
-                      <View
-                        key={index}
-                        style={[
-                          styles.imageIndicatorDot,
-                          currentImageIndex === index && styles.imageIndicatorDotActive,
-                        ]}
-                      />
-                    ))}
-                  </View>
-                )}
+                </View>
+              )}
 
-                {post.images.length > 1 && (
-                  <View style={styles.imageCountBadge}>
-                    <Text style={styles.imageCountText}>
-                      {currentImageIndex + 1}/{post.images.length}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-            <View style={styles.postActions}>
-              <TouchableOpacity 
-                style={styles.postActionButton} 
-                onPress={toggleLike}
-                activeOpacity={0.7}
-              >
-                <IconSymbol
-                  name={post.liked ? 'heart.fill' : 'heart'}
-                  size={26}
-                  color={post.liked ? '#EF4444' : colors.text}
-                />
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.postActionButton}
-                onPress={handleCommentPress}
-                activeOpacity={0.7}
-              >
-                <IconSymbol name="message" size={26} color={colors.text} />
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.postActionButton} 
-                onPress={handleShare}
-                activeOpacity={0.7}
-              >
-                <IconSymbol name="paperplane" size={26} color={colors.text} />
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.postActionButtonRight} 
-                onPress={toggleSave}
-                activeOpacity={0.7}
-              >
-                <IconSymbol
-                  name={post.saved ? 'bookmark.fill' : 'bookmark'}
-                  size={26}
-                  color={post.saved ? colors.primary : colors.text}
-                />
-              </TouchableOpacity>
+              {post.images.length > 1 && (
+                <View style={styles.imageCountBadge}>
+                  <Text style={styles.imageCountText}>
+                    {currentImageIndex + 1}/{post.images.length}
+                  </Text>
+                </View>
+              )}
             </View>
+          )}
 
-            <View style={styles.postLikes}>
-              <Text style={styles.postLikesText}>{post.likes || 0} me gusta</Text>
-            </View>
-
-            {post.contenido && (
-              <View style={styles.postDescripcion}>
-                <Text style={styles.postDescripcionText}>
-                  <Text style={{ fontWeight: '600' }}>{post.autorNombre}</Text>{' '}
-                  <ParsedText text={post.contenido} style={styles.postDescripcionText} />
-                </Text>
-              </View>
-            )}
+          <View style={styles.postActions}>
+            <TouchableOpacity 
+              style={styles.postActionButton} 
+              onPress={toggleLike}
+              activeOpacity={0.7}
+            >
+              <IconSymbol
+                name={post.liked ? 'heart.fill' : 'heart'}
+                size={26}
+                color={post.liked ? '#EF4444' : colors.text}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.postActionButton}
+              onPress={handleCommentPress}
+              activeOpacity={0.7}
+            >
+              <IconSymbol name="message" size={26} color={colors.text} />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.postActionButton} 
+              onPress={handleShare}
+              activeOpacity={0.7}
+            >
+              <IconSymbol name="paperplane" size={26} color={colors.text} />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.postActionButtonRight} 
+              onPress={toggleSave}
+              activeOpacity={0.7}
+            >
+              <IconSymbol
+                name={post.saved ? 'bookmark.fill' : 'bookmark'}
+                size={26}
+                color={post.saved ? colors.primary : colors.text}
+              />
+            </TouchableOpacity>
           </View>
 
-          <View style={styles.comentariosSection}>
-            <Text style={styles.comentariosSectionTitle}>
-              Comentarios ({totalCommentCount})
-            </Text>
-            {comentarios.map((comentario) => renderComentario(comentario))}
+          <View style={styles.postLikes}>
+            <Text style={styles.postLikesText}>{post.likes || 0} me gusta</Text>
           </View>
-        </ScrollView>
 
+          {post.contenido && (
+            <View style={styles.postDescripcion}>
+              <Text style={styles.postDescripcionText}>
+                <Text style={{ fontWeight: '600' }}>{post.autorNombre}</Text>{' '}
+                <ParsedText text={post.contenido} style={styles.postDescripcionText} />
+              </Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.comentariosSection}>
+          {totalCommentCount > 0 && (
+            <View style={styles.comentariosSectionHeader}>
+              <Text style={styles.comentariosSectionTitle}>
+                Comentarios
+              </Text>
+            </View>
+          )}
+          {comentarios.map((comentario) => renderComentario(comentario))}
+        </View>
+      </ScrollView>
+
+      <View style={[styles.inputContainer, { paddingBottom: Platform.OS === 'ios' ? keyboardHeight : 0 }]}>
+        {keyboardHeight > 0 && (
+          <MentionAutocomplete
+            text={comentarioTexto}
+            cursorPosition={cursorPosition}
+            onSelectMention={handleSelectMention}
+          />
+        )}
+        
         {replyingTo && (
           <View style={styles.replyingToContainer}>
             <Text style={styles.replyingToText}>
@@ -1564,33 +1648,50 @@ export default function PostDetailScreen() {
           </View>
         )}
 
-        <View style={styles.comentarioInputContainer}>
+        <View style={styles.inputRow}>
+          {user?.avatar ? (
+            <Image source={{ uri: user.avatar }} style={styles.inputAvatar} />
+          ) : (
+            <View style={[styles.inputAvatar, styles.avatarPlaceholder]}>
+              <Text style={[styles.avatarText, { fontSize: 14 }]}>
+                {user?.nombre?.charAt(0).toUpperCase() || 'U'}
+              </Text>
+            </View>
+          )}
           <TextInput
-            style={styles.comentarioInput}
+            ref={textInputRef}
+            style={styles.textInput}
             placeholder={replyingTo ? `Responder a ${replyingTo.autor?.nombre}...` : 'Añade un comentario...'}
             placeholderTextColor={colors.textSecondary}
             value={comentarioTexto}
-            onChangeText={setComentarioTexto}
+            onChangeText={(text) => {
+              console.log('[PostDetail] 📝 Text changed:', text);
+              setComentarioTexto(text);
+            }}
+            onSelectionChange={(event) => {
+              const newPosition = event.nativeEvent.selection.start;
+              console.log('[PostDetail] 📍 Cursor position changed to:', newPosition);
+              setCursorPosition(newPosition);
+            }}
             multiline
             editable={!isSubmitting}
           />
           <TouchableOpacity
-            style={[
-              styles.comentarioSendButton,
-              (!comentarioTexto.trim() || isSubmitting) && styles.comentarioSendButtonDisabled
-            ]}
+            style={styles.sendButton}
             onPress={enviarComentario}
             disabled={!comentarioTexto.trim() || isSubmitting}
             activeOpacity={0.7}
           >
             {isSubmitting ? (
-              <ActivityIndicator size="small" color={colors.headerText} />
+              <ActivityIndicator size="small" color={colors.primary} />
             ) : (
-              <IconSymbol name="paperplane.fill" size={18} color={colors.headerText} />
+              <Text style={[styles.sendButtonText, (!comentarioTexto.trim() || isSubmitting) && styles.sendButtonDisabled]}>
+                Publicar
+              </Text>
             )}
           </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
+      </View>
 
       <Modal
         visible={showUserList}

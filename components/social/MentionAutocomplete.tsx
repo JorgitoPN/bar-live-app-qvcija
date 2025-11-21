@@ -8,7 +8,7 @@ import {
   Image,
   ActivityIndicator,
   Platform,
-  ScrollView,
+  FlatList,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -45,10 +45,8 @@ export default function MentionAutocomplete({
     const lastAtIndex = textBeforeCursor.lastIndexOf('@');
 
     console.log('[MentionAutocomplete] 🔍 Detecting mention...');
-    console.log('[MentionAutocomplete] Text:', text);
     console.log('[MentionAutocomplete] Text before cursor:', textBeforeCursor);
     console.log('[MentionAutocomplete] Last @ index:', lastAtIndex);
-    console.log('[MentionAutocomplete] Cursor position:', cursorPosition);
 
     // No @ found
     if (lastAtIndex === -1) {
@@ -297,7 +295,6 @@ export default function MentionAutocomplete({
       }
 
       console.log('[MentionAutocomplete] ✅ Total results:', results.length);
-      console.log('[MentionAutocomplete] Results:', results);
       setSuggestions(results);
     } catch (error) {
       console.error('[MentionAutocomplete] ❌ Error in searchMentions:', error);
@@ -336,82 +333,60 @@ export default function MentionAutocomplete({
 
   // Don't render if not visible
   if (!isVisible || currentMentionText === null) {
-    console.log('[MentionAutocomplete] 🚫 Not rendering - isVisible:', isVisible, 'currentMentionText:', currentMentionText);
     return null;
   }
 
-  console.log('[MentionAutocomplete] 📊 Rendering with state:', {
-    isVisible,
-    currentMentionText,
-    loading,
-    suggestionsCount: suggestions.length,
-  });
+  const renderItem = ({ item }: { item: MentionSuggestion }) => (
+    <TouchableOpacity
+      style={styles.suggestionItem}
+      onPress={() => handleSelectMention(item)}
+      activeOpacity={0.7}
+    >
+      {item.avatar ? (
+        <Image source={{ uri: item.avatar }} style={styles.avatar} />
+      ) : (
+        <View style={[styles.avatar, styles.avatarPlaceholder]}>
+          <IconSymbol
+            name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
+            size={18}
+            color={colors.textSecondary}
+          />
+        </View>
+      )}
+      <View style={styles.suggestionInfo}>
+        <Text style={styles.suggestionUsername}>
+          {item.username || item.nombre}
+        </Text>
+        <Text style={styles.suggestionName} numberOfLines={1}>
+          {item.nombre}
+        </Text>
+      </View>
+      {item.tipo === 'local' && (
+        <View style={styles.localBadge}>
+          <IconSymbol name="building.2.fill" size={12} color={colors.primary} />
+        </View>
+      )}
+    </TouchableOpacity>
+  );
 
   return (
     <View style={[styles.container, style]} pointerEvents="auto">
-      <View style={styles.innerContainer}>
-        <View style={styles.header}>
-          <IconSymbol name="at" size={16} color={colors.primary} />
-          <Text style={styles.headerText}>
-            {loading ? 'Buscando...' : suggestions.length > 0 ? `${suggestions.length} resultados` : 'Sin resultados'}
-          </Text>
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="small" color={colors.textSecondary} />
         </View>
-        
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color={colors.primary} />
-            <Text style={styles.loadingText}>Buscando usuarios y locales...</Text>
-          </View>
-        ) : suggestions.length > 0 ? (
-          <ScrollView 
-            style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={true}
-            nestedScrollEnabled={true}
-          >
-            {suggestions.map((item, index) => (
-              <TouchableOpacity
-                key={`${item.id}-${item.tipo}-${index}`}
-                style={[styles.suggestionItem, index === suggestions.length - 1 && styles.suggestionItemLast]}
-                onPress={() => handleSelectMention(item)}
-                activeOpacity={0.7}
-              >
-                {item.avatar ? (
-                  <Image source={{ uri: item.avatar }} style={styles.avatar} />
-                ) : (
-                  <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                    <IconSymbol
-                      name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
-                      size={20}
-                      color={colors.textSecondary}
-                    />
-                  </View>
-                )}
-                <View style={styles.suggestionInfo}>
-                  <Text style={styles.suggestionName}>{item.nombre}</Text>
-                  <Text style={styles.suggestionType}>
-                    {item.tipo === 'local' ? '🏢 Local' : `@${item.username}`}
-                  </Text>
-                </View>
-                <IconSymbol name="chevron.right" size={16} color={colors.textSecondary} />
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        ) : currentMentionText.length > 0 ? (
-          <View style={styles.emptyContainer}>
-            <IconSymbol name="magnifyingglass" size={24} color={colors.textSecondary} />
-            <Text style={styles.emptyText}>No se encontraron resultados</Text>
-            <Text style={styles.emptySubtext}>para &quot;{currentMentionText}&quot;</Text>
-          </View>
-        ) : (
-          <View style={styles.emptyContainer}>
-            <IconSymbol name="at" size={24} color={colors.textSecondary} />
-            <Text style={styles.emptyText}>Escribe para buscar</Text>
-            <Text style={styles.emptySubtext}>usuarios o locales</Text>
-          </View>
-        )}
-      </View>
+      ) : suggestions.length > 0 ? (
+        <FlatList
+          data={suggestions}
+          renderItem={renderItem}
+          keyExtractor={(item, index) => `${item.id}-${item.tipo}-${index}`}
+          style={styles.list}
+          contentContainerStyle={styles.listContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        />
+      ) : null}
     </View>
   );
 }
@@ -419,117 +394,61 @@ export default function MentionAutocomplete({
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-  },
-  innerContainer: {
     backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: colors.primary,
-    maxHeight: 300,
-    overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: colors.text,
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.3,
-        shadowRadius: 16,
-      },
-      android: {
-        elevation: 16,
-      },
-      web: {
-        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
-      },
-    }),
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+    maxHeight: 200,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: colors.primary + '20',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.primary + '30',
+  list: {
+    flex: 1,
   },
-  headerText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.primary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  scrollView: {
-    maxHeight: 240,
-  },
-  scrollContent: {
-    flexGrow: 1,
+  listContent: {
+    paddingVertical: 4,
   },
   suggestionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     backgroundColor: colors.cardBackground,
   },
-  suggestionItemLast: {
-    borderBottomWidth: 0,
-  },
   avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     marginRight: 12,
-    borderWidth: 2,
-    borderColor: colors.primary + '30',
   },
   avatarPlaceholder: {
     backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
   suggestionInfo: {
     flex: 1,
   },
-  suggestionName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 3,
-  },
-  suggestionType: {
+  suggestionUsername: {
     fontSize: 14,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-    gap: 12,
-  },
-  loadingText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-    gap: 8,
-  },
-  emptyText: {
-    fontSize: 15,
     fontWeight: '600',
     color: colors.text,
-    textAlign: 'center',
+    marginBottom: 2,
   },
-  emptySubtext: {
+  suggestionName: {
     fontSize: 13,
     color: colors.textSecondary,
-    textAlign: 'center',
+  },
+  localBadge: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.primary + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingContainer: {
+    paddingVertical: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

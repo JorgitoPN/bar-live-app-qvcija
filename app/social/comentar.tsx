@@ -242,7 +242,7 @@ export default function ComentarScreen() {
       <View style={{ flex: 1 }}>
         <ScrollView 
           style={styles.content} 
-          contentContainerStyle={styles.contentContainer}
+          contentContainerStyle={[styles.contentContainer, { paddingBottom: keyboardHeight > 0 ? keyboardHeight + 200 : 100 }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -292,7 +292,6 @@ export default function ComentarScreen() {
           )}
 
           <View style={styles.inputSection}>
-            <Text style={styles.inputLabel}>Tu comentario</Text>
             <View style={styles.inputContainer}>
               <TextInput
                 style={styles.textInput}
@@ -331,9 +330,6 @@ export default function ComentarScreen() {
               </Text>
             </View>
           )}
-
-          {/* Add extra padding at bottom to ensure content is visible above keyboard */}
-          <View style={{ height: keyboardHeight > 0 ? 320 : 40 }} />
         </ScrollView>
 
         {/* Autocomplete Component - Fixed position above keyboard */}
@@ -342,7 +338,7 @@ export default function ComentarScreen() {
             style={[
               styles.autocompleteContainer, 
               { 
-                bottom: keyboardHeight + 8,
+                bottom: keyboardHeight,
               }
             ]}
             pointerEvents="box-none"
@@ -499,14 +495,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBackground,
     padding: 16,
   },
-  inputLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    marginBottom: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
   inputContainer: {
     backgroundColor: colors.background,
     borderRadius: 12,
@@ -546,8 +534,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    paddingHorizontal: 16,
-    paddingBottom: 8,
     zIndex: 9999,
     elevation: 9999,
   },
