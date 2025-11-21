@@ -100,10 +100,10 @@ export default function MapaScreen() {
 
   const cargarTodosLosLocalesEnriquecidos = useCallback(async () => {
     try {
-      console.log('🔄 [MAP] Loading enriched locals with events and subscriptions...');
+      console.log('🔄 [MAP] Loading ALL active locals with location data...');
 
       // Try cache first for INSTANT loading
-      const cachedLocales = await performanceOptimizer.getCache<LocalWithEvent[]>('map_enriched_locales_with_events');
+      const cachedLocales = await performanceOptimizer.getCache<LocalWithEvent[]>('map_all_locales_with_events');
       if (cachedLocales && cachedLocales.length > 0) {
         console.log('⚡ [MAP] INSTANT load from cache:', cachedLocales.length);
         setTodosLosLocales(cachedLocales);
@@ -113,7 +113,8 @@ export default function MapaScreen() {
         setIsLoading(true);
       }
 
-      // ✅ NEW: Load locals with their active events and subscription plans
+      // ✅ FIXED: Load ALL active locals with location data (not just enriched ones)
+      // This ensures all locals from the list view appear on the map
       const { data, error, count } = await supabase
         .from('locales')
         .select(`
@@ -126,7 +127,6 @@ export default function MapaScreen() {
             )
           )
         `, { count: 'exact' })
-        .eq('enriquecido', true)
         .eq('activo', true)
         .not('latitud', 'is', null)
         .not('longitud', 'is', null);
@@ -137,9 +137,9 @@ export default function MapaScreen() {
         return;
       }
 
-      console.log(`✅ [MAP] Loaded ${data?.length || 0} enriched locals from DB (total: ${count})`);
+      console.log(`✅ [MAP] Loaded ${data?.length || 0} active locals with location data from DB (total: ${count})`);
 
-      // ✅ NEW: Fetch active events for all locals
+      // ✅ Fetch active events for all locals
       const now = new Date();
       const currentDate = now.toISOString().split('T')[0];
       
@@ -235,7 +235,7 @@ export default function MapaScreen() {
           enriquecido: local.enriquecido,
           barlive_type: local.barlive_type,
           barlive_types: local.barlive_types || [],
-          // ✅ NEW: Add event and plan data
+          // Add event and plan data
           evento: evento,
           plan: plan,
         };
@@ -243,9 +243,10 @@ export default function MapaScreen() {
 
       setTodosLosLocales(localesTransformados);
       
-      // Cache for next time (10 minutes TTL)
-      await performanceOptimizer.setCache('map_enriched_locales_with_events', localesTransformados, 10 * 60 * 1000);
+      // Cache for next time (5 minutes TTL)
+      await performanceOptimizer.setCache('map_all_locales_with_events', localesTransformados, 5 * 60 * 1000);
       
+      console.log(`✅ [MAP] Successfully loaded and cached ${localesTransformados.length} locals`);
       setIsLoading(false);
     } catch (error) {
       console.error('❌ [MAP] Error in cargarTodosLosLocalesEnriquecidos:', error);
@@ -261,9 +262,10 @@ export default function MapaScreen() {
     const CATEGORIAS_EXCLUIDAS = ['terrazas', 'rooftops', 'lounge'];
     
     console.log('[MAP] 🔍 Filtering for category:', categoriaSeleccionada);
+    console.log('[MAP] 📊 Total locals to filter:', todosLosLocales.length);
     
     const filtrados = todosLosLocales.filter(local => {
-      // ✅ FIXED: Get all categories for this local AND add PUB dynamically
+      // ✅ Get all categories for this local AND add PUB dynamically
       let localCategories = local.barlive_types || (local.barlive_type ? [local.barlive_type] : []);
       
       // ✅ CRITICAL FIX: Add PUB category dynamically based on closing time
@@ -284,7 +286,7 @@ export default function MapaScreen() {
       );
       if (hasExcludedCategory) return false;
       
-      // ✅ FIXED: Strict category filtering
+      // ✅ Category filtering
       let matchCategoria = false;
       if (categoriaSeleccionada === 'todos') {
         matchCategoria = true;
@@ -397,7 +399,7 @@ export default function MapaScreen() {
         overlayIcon = '🕐';
       }
 
-      // ✅ NEW: Check if event is live
+      // Check if event is live
       let isEventLive = false;
       if (local.evento) {
         const now = new Date();
@@ -417,7 +419,7 @@ export default function MapaScreen() {
         lng: local.coordenadas.lng,
         nombre: local.nombre,
         tipo: localCategories[0] || local.tipo,
-        categorias: localCategories, // ✅ FIXED: Include all categories (with PUB) for popup display
+        categorias: localCategories,
         estado: estado,
         estadoBadge: estadoCompleto.badge,
         icon: icon,
@@ -426,12 +428,10 @@ export default function MapaScreen() {
         imagen: local.imagen_url || local.imagenes?.[0] || 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400',
         distancia: local.distancia || 0.5,
         destacado: local.destacado || false,
-        // ✅ NEW: Event data
         hasEvent: !!local.evento,
         isEventLive: isEventLive,
         eventTitulo: local.evento?.titulo || '',
         eventImagen: local.evento?.imagen_url || '',
-        // ✅ NEW: Plan data
         isPremium: local.plan === 'premium',
       };
     });
@@ -498,7 +498,6 @@ export default function MapaScreen() {
       box-shadow: 0 2px 8px rgba(156, 163, 175, 0.3);
     }
     
-    /* ✅ NEW: Event indicator badge */
     .event-indicator {
       position: absolute;
       top: -6px;
@@ -516,7 +515,6 @@ export default function MapaScreen() {
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     }
     
-    /* ✅ NEW: Pulsing animation for live events */
     .event-indicator-live {
       animation: pulse-event 1.5s infinite;
     }
@@ -589,7 +587,6 @@ export default function MapaScreen() {
       border: 2px solid #FFFFFF;
     }
     
-    /* ✅ NEW: Event banner in popup */
     .popup-event-banner {
       background: linear-gradient(135deg, #14B8A6 0%, #0D9488 100%);
       padding: 12px;
@@ -801,7 +798,7 @@ export default function MapaScreen() {
           markerClass += ' custom-marker-destacado';
         }
         
-        // ✅ NEW: Create marker HTML with event indicator
+        // Create marker HTML with event indicator
         var markerHtml = data.icon;
         if (data.hasEvent) {
           var eventIndicatorClass = 'event-indicator';
@@ -834,7 +831,7 @@ export default function MapaScreen() {
         var destacadoBadge = data.destacado ? 
           '<div class="popup-badge-destacado">⭐ Destacado</div>' : '';
         
-        // ✅ NEW: Event banner for premium locals
+        // Event banner for premium locals
         var eventBannerHtml = '';
         if (data.isPremium && data.hasEvent) {
           var eventBannerClass = 'popup-event-banner';
@@ -851,7 +848,7 @@ export default function MapaScreen() {
           '</div>';
         }
         
-        // ✅ CRITICAL FIX: Display categories (including PUB) in popup
+        // Display categories (including PUB) in popup
         var categoriasHtml = '';
         if (data.categorias && data.categorias.length > 0) {
           categoriasHtml = '<div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">';
@@ -1087,6 +1084,13 @@ export default function MapaScreen() {
         <IconSymbol name="location.fill" size={24} color={colors.primary} />
       </TouchableOpacity>
 
+      {isLoading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Cargando locales...</Text>
+        </View>
+      )}
+
       <FiltrosAvanzadosSheet
         visible={mostrarFiltros}
         onClose={() => setMostrarFiltros(false)}
@@ -1280,5 +1284,22 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
     zIndex: 5,
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 100,
+  },
+  loadingText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 12,
   },
 });
