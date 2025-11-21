@@ -24,6 +24,7 @@ import * as Clipboard from 'expo-clipboard';
 import { dataCache } from '@/utils/dataCache';
 import { performanceMonitor } from '@/utils/performanceMonitor';
 import { descargarYSubirFotosLocal, generarMetadatosFotos, verificarBucketSupabase } from '@/utils/enrichmentPhotos';
+import { performanceOptimizer } from '@/utils/performanceOptimizer';
 
 // Tipos de categorías
 const CATEGORIAS = [
@@ -185,7 +186,7 @@ export default function EnriquecimientoGoogleScreen() {
       // Obtener estadísticas generales de la provincia
       const { data: statsData, error: statsError } = await supabase
         .from('locales')
-        .select('source_type, enriquecido, tipo')
+        .select('source_type, enriquecido, tipo, activo')
         .eq('provincia', provinciaSeleccionada);
 
       if (statsError) {
@@ -198,9 +199,9 @@ export default function EnriquecimientoGoogleScreen() {
       console.log('[Enrichment] Stats data:', statsData?.length || 0, 'locales');
 
       const totalOSM = statsData?.filter(l => l.source_type === 'osm').length || 0;
-      const enriquecidos = statsData?.filter(l => l.enriquecido === true).length || 0;
-      const pendientes = statsData?.filter(l => l.source_type === 'osm' && l.enriquecido === false).length || 0;
-      const rechazados = 0;
+      const enriquecidos = statsData?.filter(l => l.enriquecido === true && l.activo === true).length || 0;
+      const pendientes = statsData?.filter(l => l.source_type === 'osm' && (l.enriquecido === false || l.activo === false)).length || 0;
+      const rechazados = statsData?.filter(l => l.activo === false && l.enriquecido === true).length || 0;
 
       const newEstadisticas = {
         totalOSM,
@@ -215,8 +216,9 @@ export default function EnriquecimientoGoogleScreen() {
       const statsCategorias: EstadisticasCategoria[] = CATEGORIAS.map(cat => {
         const localesCategoria = statsData?.filter(l => l.tipo === cat.id) || [];
         const total = localesCategoria.length;
-        const enriquecidosCategoria = localesCategoria.filter(l => l.enriquecido === true).length;
-        const pendientesCategoria = localesCategoria.filter(l => l.source_type === 'osm' && l.enriquecido === false).length;
+        const enriquecidosCategoria = localesCategoria.filter(l => l.enriquecido === true && l.activo === true).length;
+        const pendientesCategoria = localesCategoria.filter(l => l.source_type === 'osm' && (l.enriquecido === false || l.activo === false)).length;
+        const rechazadosCategoria = localesCategoria.filter(l => l.activo === false && l.enriquecido === true).length;
 
         return {
           categoria: cat.nombre,
@@ -224,7 +226,7 @@ export default function EnriquecimientoGoogleScreen() {
           total,
           enriquecidos: enriquecidosCategoria,
           pendientes: pendientesCategoria,
-          rechazados: 0,
+          rechazados: rechazadosCategoria,
         };
       });
 
@@ -240,7 +242,7 @@ export default function EnriquecimientoGoogleScreen() {
         agregarLog('warning', `⚠️ No hay locales importados de OSM en ${provinciaSeleccionada}`);
         agregarLog('info', 'Ve a "Importación OSM" para importar locales primero');
       } else {
-        agregarLog('success', `Estadísticas cargadas: ${totalOSM} locales OSM, ${enriquecidos} enriquecidos, ${pendientes} pendientes`);
+        agregarLog('success', `Estadísticas cargadas: ${totalOSM} locales OSM, ${enriquecidos} enriquecidos, ${pendientes} pendientes, ${rechazados} rechazados`);
       }
     } catch (error) {
       console.error('Error cargando estadísticas:', error);
@@ -272,6 +274,9 @@ export default function EnriquecimientoGoogleScreen() {
             try {
               // Clear cache to force refresh
               dataCache.clear(`stats_${provinciaSeleccionada}`);
+              // Clear map and list caches
+              await performanceOptimizer.clearCache('map_enriched_locales_with_events');
+              await performanceOptimizer.clearCache('global_locales_data');
               await cargarEstadisticas();
               agregarLog('success', 'Catálogo sincronizado correctamente');
             } catch (error) {
@@ -302,14 +307,15 @@ export default function EnriquecimientoGoogleScreen() {
         
         const query = supabase
           .from('locales')
-          .select('id, nombre, direccion, tipo, provincia, latitud, longitud')
+          .select('id, nombre, direccion, tipo, provincia, latitud, longitud, enriquecido, activo')
           .eq('provincia', provinciaSeleccionada)
           .eq('tipo', categoriaId)
           .eq('source_type', 'osm')
           .limit(100);
         
         if (!reEnriquecer) {
-          query.eq('enriquecido', false);
+          // ✅ FIXED: Load locals that are either not enriched OR not active
+          query.or('enriquecido.eq.false,activo.eq.false');
         }
         
         const { data, error } = await query;
@@ -321,6 +327,11 @@ export default function EnriquecimientoGoogleScreen() {
         } else {
           setLocalesAEnriquecer(data || []);
           agregarLog('success', `${data?.length || 0} locales cargados para enriquecer`);
+          
+          // Log details about the loaded locals
+          if (data && data.length > 0) {
+            agregarLog('info', `Primeros locales: ${data.slice(0, 3).map(l => l.nombre).join(', ')}`);
+          }
         }
       } catch (error) {
         console.error('Error:', error);
@@ -393,7 +404,7 @@ export default function EnriquecimientoGoogleScreen() {
     
     Alert.alert(
       'Confirmar Enriquecimiento',
-      `Se procesarán ${localesAProcesar} locales de la categoría "${categoriaSeleccionada}".\n\n📸 Las fotos se descargarán de Google Places y se subirán a Supabase Storage.\n\n🔍 Se usarán 5 estrategias de búsqueda para maximizar resultados.\n\nCoste estimado: $${coste}\n\n¿Continuar?`,
+      `Se procesarán ${localesAProcesar} locales de la categoría "${categoriaSeleccionada}".\n\n📸 Las fotos se descargarán de Google Places y se subirán a Supabase Storage.\n\n🔍 Se usarán 5 estrategias de búsqueda para maximizar resultados.\n\n✅ Los locales se marcarán como ACTIVOS inmediatamente.\n\nCoste estimado: $${coste}\n\n¿Continuar?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -468,10 +479,1188 @@ export default function EnriquecimientoGoogleScreen() {
     agregarLog('info', `🚀 Iniciando enriquecimiento de ${numLocales} locales...`);
     agregarLog('info', '📸 Las fotos se descargarán y subirán a Supabase Storage');
     agregarLog('info', '🔍 Usando búsqueda multi-estrategia (5 estrategias)');
+    agregarLog('info', '✅ Los locales se marcarán como ACTIVOS inmediatamente');
 
     let exitosos = 0;
     let fallidos = 0;
     let rechazados = 0;
+
+    try {
+      const localesAProcesar = localesAEnriquecer.slice(0, numLocales);
+      
+      for (let i = 0; i < localesAProcesar.length; i++) {
+        const local = localesAProcesar[i];
+        setProgreso({ actual: i + 1, total: numLocales });
+        
+        agregarLog('info', `[${i + 1}/${numLocales}] Procesando: ${local.nombre}...`);
+        
+        try {
+          performanceMonitor.start(`enrich_${local.id}`);
+          
+          // 🔍 PASO 1: Buscar en Google Places con múltiples estrategias
+          const placeResult = await buscarLocalConEstrategias({
+            nombre: local.nombre,
+            direccion: local.direccion,
+            provincia: local.provincia,
+            tipo: local.tipo,
+            latitud: local.latitud,
+            longitud: local.longitud,
+          });
+          
+          if (!placeResult || !placeResult.place_id) {
+            agregarLog('warning', `⚠️ No encontrado en Google: ${local.nombre}`);
+            fallidos++;
+            performanceMonitor.end(`enrich_${local.id}`);
+            continue;
+          }
+          
+          // 🔍 PASO 2: Obtener detalles completos
+          const details = await googlePlacesDetails(placeResult.place_id, [
+            'name',
+            'formatted_address',
+            'geometry',
+            'rating',
+            'user_ratings_total',
+            'website',
+            'formatted_phone_number',
+            'international_phone_number',
+            'opening_hours',
+            'photos',
+            'types',
+            'price_level',
+            'url',
+            'reviews',
+            'editorial_summary',
+            'business_status',
+            'plus_code',
+          ]);
+          
+          if (!details) {
+            agregarLog('warning', `⚠️ Sin detalles: ${local.nombre}`);
+            fallidos++;
+            performanceMonitor.end(`enrich_${local.id}`);
+            continue;
+          }
+          
+          // ✅ PASO 3: VALIDAR LOCAL CON SISTEMA DE DISCRIMINACIÓN
+          agregarLog('info', `🔍 Validando: ${local.nombre}...`);
+          const validacionCompleta = validarLocalCompleto(details, local.tipo);
+          
+          if (!validacionCompleta.valido) {
+            agregarLog('error', `❌ RECHAZADO: ${local.nombre} - ${validacionCompleta.razon}`);
+            rechazados++;
+            
+            // Marcar como rechazado en la base de datos (INACTIVO)
+            await supabase
+              .from('locales')
+              .update({
+                enriquecido: true,
+                activo: false,
+                notas_rechazo: validacionCompleta.razon,
+                fecha_actualizacion: new Date().toISOString(),
+              })
+              .eq('id', local.id);
+            
+            performanceMonitor.end(`enrich_${local.id}`);
+            continue;
+          }
+          
+          // ✅ PASO 4: VALIDAR UBICACIÓN (España)
+          const enEspana = estaEnEspana(
+            details.formatted_address,
+            details.plus_code?.global_code
+          );
+          
+          if (!enEspana) {
+            agregarLog('error', `❌ RECHAZADO: ${local.nombre} - Local fuera de España`);
+            rechazados++;
+            
+            await supabase
+              .from('locales')
+              .update({
+                enriquecido: true,
+                activo: false,
+                notas_rechazo: 'Local fuera de España',
+                fecha_actualizacion: new Date().toISOString(),
+              })
+              .eq('id', local.id);
+            
+            performanceMonitor.end(`enrich_${local.id}`);
+            continue;
+          }
+          
+          // 🎯 PASO 5: CATEGORIZACIÓN MEJORADA (con análisis de nombre)
+          let barliveTypes = mapGoogleTypesToBarlive(details.types || [], details.name || local.nombre);
+          if (details.opening_hours) {
+            barliveTypes = categorizarPorHorarios(details.opening_hours, barliveTypes);
+          }
+          const barliveType = barliveTypes[0] || 'bar';
+          
+          // 💰 NIVEL DE PRECIO
+          const nivelPrecio = details.price_level;
+          const rangoPrecio = mapearNivelPrecio(nivelPrecio);
+          
+          // 🔗 ENLACES IMPORTANTES
+          const googleMapsUrl = details.url;
+          const plusCode = details.plus_code?.global_code;
+          const plusCodeCompound = details.plus_code?.compound_code;
+          
+          // 📅 Convertir horarios a formato estructurado
+          const horariosCompletos = convertirHorariosCompletos(details.opening_hours);
+          const horariosTexto = details.opening_hours?.weekday_text || [];
+          const estadoActual = determinarEstadoActual(details.opening_hours);
+
+          // 💬 Procesar reviews (primeras 5)
+          const reviewsGoogle = details.reviews?.slice(0, 5).map((review: any) => ({
+            author_name: review.author_name,
+            author_photo: review.profile_photo_url,
+            rating: review.rating,
+            text: review.text,
+            time: review.time,
+            relative_time_description: review.relative_time_description,
+            language: review.language,
+          })) || [];
+
+          // 📸 PASO 6: DESCARGAR Y SUBIR FOTOS A SUPABASE
+          agregarLog('info', `📸 Descargando fotos de ${local.nombre}...`);
+          let galeriaUrls: string[] = [];
+          let imagenUrl: string | null = null;
+          
+          try {
+            galeriaUrls = await descargarYSubirFotosLocal(local.id, details, 4);
+            if (galeriaUrls.length > 0) {
+              imagenUrl = galeriaUrls[0];
+              agregarLog('success', `📸 ${galeriaUrls.length} fotos subidas a Supabase`);
+            } else {
+              agregarLog('warning', `⚠️ No se pudieron descargar fotos para ${local.nombre}`);
+            }
+          } catch (error) {
+            console.error('Error downloading photos:', error);
+            agregarLog('error', `❌ Error descargando fotos: ${error}`);
+            
+            // Si es un error de bucket, detener el proceso completo
+            if (error instanceof Error && error.message.includes('Bucket')) {
+              agregarLog('error', '❌ Deteniendo enriquecimiento por error de bucket');
+              throw error;
+            }
+          }
+
+          // 📸 GENERAR METADATOS DE FOTOS (para referencia)
+          const fotosGoogle = generarMetadatosFotos(details, 4);
+
+          // 🍴 Extraer tipos de cocina y música
+          const tiposCocina: string[] = [];
+          const cocinaKeywords: Record<string, string[]> = {
+            'Mediterránea': ['mediterranean', 'mediterránea'],
+            'Española': ['spanish', 'española', 'tapas'],
+            'Italiana': ['italian', 'italiana', 'pizza', 'pasta'],
+            'Japonesa': ['japanese', 'japonesa', 'sushi'],
+            'Mexicana': ['mexican', 'mexicana', 'tacos'],
+            'Asiática': ['asian', 'asiática'],
+            'Tradicional': ['traditional', 'tradicional'],
+          };
+          
+          const allReviewText = reviewsGoogle.map((r: any) => r.text?.toLowerCase() || '').join(' ');
+          const editorialText = details.editorial_summary?.overview?.toLowerCase() || '';
+          const searchText = allReviewText + ' ' + editorialText;
+          
+          for (const [cocina, keywords] of Object.entries(cocinaKeywords)) {
+            for (const keyword of keywords) {
+              if (searchText.includes(keyword)) {
+                tiposCocina.push(cocina);
+                break;
+              }
+            }
+          }
+          
+          // Música principal
+          let musicaPrincipal = 'ambiental';
+          if (searchText.includes('live music') || searchText.includes('música en vivo')) {
+            musicaPrincipal = 'en_vivo';
+          } else if (searchText.includes('dj') || barliveTypes.includes('discoteca')) {
+            musicaPrincipal = 'dj';
+          }
+          
+          // 🎭 Extraer ambiente completo
+          const ambienteCompleto = {
+            acogedor: searchText.includes('acogedor') || searchText.includes('cozy'),
+            romantico: searchText.includes('romántico') || searchText.includes('romantic'),
+            elegante: searchText.includes('elegante') || searchText.includes('elegant'),
+            moderno: searchText.includes('moderno') || searchText.includes('modern'),
+            de_moda: searchText.includes('trendy') || searchText.includes('popular'),
+            animado: searchText.includes('animado') || searchText.includes('lively'),
+            juvenil: searchText.includes('juvenil') || searchText.includes('young'),
+            tranquilo: searchText.includes('tranquilo') || searchText.includes('quiet'),
+            familiar: searchText.includes('familiar') || searchText.includes('family'),
+            tematico: searchText.includes('temático') || searchText.includes('themed'),
+          };
+          
+          // 👥 Extraer clientela
+          const clientela = {
+            grupos: searchText.includes('grupo') || searchText.includes('groups'),
+            turistas: searchText.includes('turista') || searchText.includes('tourist') || (details.user_ratings_total && details.user_ratings_total > 500),
+            familias: searchText.includes('familia') || searchText.includes('family'),
+            ninos_bienvenidos: searchText.includes('niños') || searchText.includes('kids'),
+            estudiantes: searchText.includes('estudiante') || searchText.includes('student'),
+            lgtbi_friendly: searchText.includes('lgbtq') || searchText.includes('lgbt'),
+            parejas: searchText.includes('pareja') || searchText.includes('couple'),
+          };
+          
+          // 💳 Extraer métodos de pago
+          const metodosPagoCompletos = {
+            efectivo: true,
+            tarjetas_credito: true,
+            tarjetas_debito: true,
+            pago_movil: searchText.includes('apple pay') || searchText.includes('google pay'),
+            american_express: searchText.includes('american express') || searchText.includes('amex'),
+            mastercard: true,
+            visa: true,
+            bizum: searchText.includes('bizum'),
+            vales_restaurante: searchText.includes('vale') || searchText.includes('ticket restaurant'),
+            factura_disponible: true,
+          };
+          
+          // 🧠 Análisis de reviews
+          const palabrasClave: string[] = [];
+          const keywords = ['acogedor', 'buen servicio', 'terraza', 'vino', 'comida', 'ambiente', 'precio', 'calidad'];
+          keywords.forEach(keyword => {
+            if (searchText.includes(keyword)) {
+              palabrasClave.push(keyword);
+            }
+          });
+          
+          let sentimiento = 'neutral';
+          if (details.rating) {
+            if (details.rating >= 4.5) sentimiento = 'muy positivo';
+            else if (details.rating >= 4.0) sentimiento = 'positivo';
+            else if (details.rating >= 3.0) sentimiento = 'neutral';
+            else if (details.rating >= 2.0) sentimiento = 'negativo';
+            else sentimiento = 'muy negativo';
+          }
+          
+          const analisisReviews = {
+            palabras_clave_detectadas: palabrasClave.slice(0, 10),
+            sentimiento_general: sentimiento,
+            puntuacion_media_reviews: details.rating || 0,
+            volumen_reviews: details.user_ratings_total || 0,
+            idioma_predominante: 'es',
+            fuente: ['Google Maps'],
+            palabras_destacadas_google: palabrasClave.slice(0, 5),
+            resumen_automatico: details.rating && details.rating >= 4.0 
+              ? `Los usuarios destacan ${palabrasClave.slice(0, 3).join(', ')}.`
+              : 'Los usuarios tienen opiniones mixtas sobre este local.',
+          };
+          
+          // 🍽️ Extraer servicios disponibles completos
+          const serviciosDisponibles = {
+            // Bebidas
+            cerveza: barliveTypes.includes('bar') || barliveTypes.includes('pub'),
+            vino: barliveTypes.includes('vinoteca') || barliveTypes.includes('cocteleria'),
+            cocteles: barliveTypes.includes('cocteleria') || barliveTypes.includes('bar'),
+            cafe: barliveTypes.includes('cafe'),
+            // Comidas
+            desayuno: barliveTypes.includes('cafe'),
+            almuerzo: barliveTypes.includes('restaurante'),
+            cena: barliveTypes.includes('restaurante'),
+            para_llevar: (details.types || []).includes('meal_takeaway'),
+            entrega_domicilio: (details.types || []).includes('meal_delivery'),
+            terraza_exterior: searchText.includes('terraza') || searchText.includes('terrace'),
+            // Facilidades
+            wifi_gratis: searchText.includes('wifi'),
+            aparcamiento: searchText.includes('parking') || searchText.includes('aparcamiento'),
+            accesible_silla_ruedas: searchText.includes('accesible') || searchText.includes('accessible'),
+            // Pagos
+            pago_tarjetas: true,
+            pago_efectivo: true,
+            // Opciones dietéticas
+            comida_vegetariana: searchText.includes('vegetarian') || searchText.includes('vegetariano'),
+            opciones_veganas: searchText.includes('vegan') || searchText.includes('vegano'),
+            sin_gluten: searchText.includes('gluten free') || searchText.includes('sin gluten'),
+            // Entretenimiento
+            musica_vivo: searchText.includes('live music') || searchText.includes('música en vivo'),
+            dj: searchText.includes('dj') || barliveTypes.includes('discoteca'),
+            deportes_tv: searchText.includes('tv') || searchText.includes('deportes'),
+          };
+
+          // ✅ PASO 7: Actualizar local en Supabase con TODOS los datos
+          // ✅ CRITICAL: ALWAYS set activo = true for successfully enriched locals
+          const { error: updateError } = await supabase
+            .from('locales')
+            .update({
+              // 📍 Datos básicos mejorados
+              nombre: details.name || local.nombre,
+              direccion: details.formatted_address || local.direccion,
+              latitud: details.geometry?.location?.lat || local.latitud,
+              longitud: details.geometry?.location?.lng || local.longitud,
+              telefono: details.formatted_phone_number,
+              telefono_internacional: details.international_phone_number,
+              website: details.website,
+              
+              // ⭐ Valoraciones y reseñas
+              google_rating: details.rating,
+              google_user_ratings_total: details.user_ratings_total,
+              reviews_google: reviewsGoogle,
+              
+              // 🎯 Categorización mejorada
+              barlive_types: barliveTypes,
+              barlive_type: barliveType,
+              tipos_google: details.types || [],
+              
+              // 💰 Nivel de precio
+              nivel_precio_google: nivelPrecio,
+              rango_precios: rangoPrecio,
+              
+              // 🔗 Enlaces importantes
+              google_maps_url: googleMapsUrl,
+              plus_code: plusCode,
+              plus_code_compound: plusCodeCompound,
+              
+              // 🕐 Horarios completos
+              horarios_completos: horariosCompletos,
+              horarios_texto: horariosTexto,
+              estado_actual: estadoActual,
+              
+              // 🏢 Estado del negocio
+              google_business_status: details.business_status,
+              
+              // 📸 Fotos - AHORA DESDE SUPABASE
+              fotos_google: fotosGoogle, // Metadatos de referencia
+              imagen_url: imagenUrl, // URL de Supabase
+              galeria_urls: galeriaUrls, // URLs de Supabase
+              
+              // 🍴 Cocina y música
+              tipos_cocina: tiposCocina,
+              musica_principal: musicaPrincipal,
+              descripcion_google: details.editorial_summary?.overview,
+              
+              // 🍽️ Servicios disponibles completos
+              servicios_disponibles: serviciosDisponibles,
+              
+              // 🎭 Ambiente completo
+              ambiente_completo: ambienteCompleto,
+              
+              // 👥 Clientela
+              clientela: clientela,
+              
+              // 💳 Métodos de pago completos
+              metodos_pago_completos: metodosPagoCompletos,
+              
+              // 🧠 Análisis de reviews
+              analisis_reviews: analisisReviews,
+              
+              // 📝 Otros datos
+              google_place_id: details.place_id,
+              google_price_level: details.price_level,
+              descripcion: details.editorial_summary?.overview || details.name || local.nombre,
+              
+              // ✅ CRITICAL: Marcar como enriquecido Y ACTIVAR INMEDIATAMENTE
+              enriquecido: true,
+              activo: true,
+              notas_rechazo: null,
+              fecha_actualizacion: new Date().toISOString(),
+            })
+            .eq('id', local.id);
+          
+          if (updateError) {
+            console.error('Error updating local:', updateError);
+            agregarLog('error', `❌ Error al actualizar: ${local.nombre}`);
+            fallidos++;
+          } else {
+            const rating = details.rating ? `⭐ ${details.rating}` : '';
+            const reviews = details.user_ratings_total ? `(${details.user_ratings_total} reviews)` : '';
+            const status = estadoActual === 'abierto_ahora' ? '🟢 Abierto' : estadoActual === 'cerrado_ahora' ? '🔴 Cerrado' : '';
+            const price = rangoPrecio ? `💰 ${rangoPrecio}` : '';
+            const types = barliveTypes.slice(0, 2).join(', ');
+            const photos = galeriaUrls.length > 0 ? `📸 ${galeriaUrls.length} fotos` : '';
+            agregarLog('success', `✅ ${local.nombre} ${rating} ${reviews} ${status} ${price} ${photos} [${types}] - ACTIVO`);
+            exitosos++;
+          }
+          
+          performanceMonitor.end(`enrich_${local.id}`);
+        } catch (error) {
+          console.error('Error enriching local:', error);
+          agregarLog('error', `❌ Error: ${local.nombre} - ${error}`);
+          fallidos++;
+          
+          // Si es un error de bucket, detener el proceso completo
+          if (error instanceof Error && error.message.includes('Bucket')) {
+            agregarLog('error', '❌ Deteniendo enriquecimiento por error de bucket');
+            break;
+          }
+        }
+        
+        // Pequeña pausa para no saturar la API
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
+      agregarLog('success', `🎉 Completado: ${exitosos} exitosos, ${fallidos} fallidos, ${rechazados} rechazados`);
+      agregarLog('info', '🔄 Limpiando caché del mapa y lista...');
+      
+      // ✅ CRITICAL: Clear all caches to force immediate refresh
+      dataCache.clear(`stats_${provinciaSeleccionada}`);
+      await performanceOptimizer.clearCache('map_enriched_locales_with_events');
+      await performanceOptimizer.clearCache('global_locales_data');
+      
+      agregarLog('success', '✅ Caché limpiado - Los locales aparecerán inmediatamente en el mapa y lista');
+      
+      Alert.alert(
+        'Enriquecimiento Completado',
+        `Se procesaron ${numLocales} locales.\n\n✅ Exitosos: ${exitosos}\n❌ Fallidos: ${fallidos}\n🚫 Rechazados: ${rechazados}\n\n📸 Las fotos se han guardado en Supabase Storage\n🔍 Búsqueda multi-estrategia activada\n✅ Los locales están ACTIVOS y visibles en el mapa y lista`,
+        [
+          {
+            text: 'Ver Estadísticas',
+            onPress: () => {
+              setPaso(2);
+              cargarEstadisticas();
+            },
+          },
+        ]
+      );
+    } catch (error) {
+      console.error('Error en enriquecimiento:', error);
+      agregarLog('error', 'Error durante el enriquecimiento');
+      
+      if (error instanceof Error && error.message.includes('Bucket')) {
+        Alert.alert(
+          'Error de Configuración',
+          'El bucket "locales" no existe en Supabase Storage.\n\n' +
+          'Por favor, crea el bucket siguiendo la guía en:\ndocs/SUPABASE_STORAGE_SETUP.md',
+          [{ text: 'OK' }]
+        );
+      } else {
+        Alert.alert('Error', 'Ocurrió un error durante el enriquecimiento');
+      }
+    } finally {
+      setProcesando(false);
+      performanceMonitor.end('procesarEnriquecimiento');
+      performanceMonitor.logReport();
+    }
+  };
+
+  const seleccionarComunidad = (comunidad: string) => {
+    setComunidadSeleccionada(comunidad);
+    setProvinciaSeleccionada(COMUNIDADES_PROVINCIAS[comunidad][0]);
+    setMostrarSelectorComunidad(false);
+    // Clear cache when changing location
+    dataCache.clearAll();
+  };
+
+  const seleccionarProvincia = (provincia: string) => {
+    setProvinciaSeleccionada(provincia);
+    setMostrarSelectorProvincia(false);
+    // Clear cache when changing location
+    dataCache.clearAll();
+  };
+
+  const renderPaso1 = () => (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>1. Seleccionar Zona y Categoría</Text>
+      
+      <View style={styles.card}>
+        <Text style={styles.label}>Comunidad Autónoma</Text>
+        <TouchableOpacity
+          style={styles.selectorButton}
+          onPress={() => setMostrarSelectorComunidad(true)}
+        >
+          <Text style={styles.selectorButtonText}>{comunidadSeleccionada}</Text>
+          <IconSymbol name="chevron.down" size={20} color={colors.textSecondary} />
+        </TouchableOpacity>
+
+        <Text style={[styles.label, { marginTop: 20 }]}>Provincia</Text>
+        <TouchableOpacity
+          style={styles.selectorButton}
+          onPress={() => setMostrarSelectorProvincia(true)}
+        >
+          <Text style={styles.selectorButtonText}>{provinciaSeleccionada}</Text>
+          <IconSymbol name="chevron.down" size={20} color={colors.textSecondary} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.button, styles.buttonPrimary, { marginTop: 20 }]}
+          onPress={() => setPaso(2)}
+        >
+          <Text style={styles.buttonText}>Continuar</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.button, styles.buttonSecondary]}
+          onPress={sincronizarCatalogo}
+          disabled={cargando}
+        >
+          {cargando ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <Text style={styles.buttonText}>Sincronizar Catálogo</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  const renderPaso2 = () => (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>2. Seleccionar Categoría</Text>
+      <Text style={styles.subtitle}>{provinciaSeleccionada}</Text>
+
+      <View style={[styles.card, { marginBottom: 15 }]}>
+        <View style={styles.switchRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.switchLabel}>Re-enriquecer locales activos</Text>
+            <Text style={styles.switchSubLabel}>Actualizar datos de locales ya enriquecidos</Text>
+          </View>
+          <Switch
+            value={reEnriquecer}
+            onValueChange={setReEnriquecer}
+            trackColor={{ false: colors.border, true: colors.primary }}
+            thumbColor="white"
+          />
+        </View>
+      </View>
+
+      {/* Estadísticas generales */}
+      <View style={styles.statsCard}>
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{estadisticas.totalOSM}</Text>
+            <Text style={styles.statLabel}>Total OSM</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={[styles.statValue, { color: '#10B981' }]}>{estadisticas.enriquecidos}</Text>
+            <Text style={styles.statLabel}>Enriquecidos</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={[styles.statValue, { color: '#EF4444' }]}>{estadisticas.rechazados}</Text>
+            <Text style={styles.statLabel}>Rechazados</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={[styles.statValue, { color: '#F59E0B' }]}>{estadisticas.pendientes}</Text>
+            <Text style={styles.statLabel}>Pendientes</Text>
+          </View>
+        </View>
+        <Text style={styles.progressLabel}>
+          Progreso general: {estadisticas.totalOSM > 0 ? ((estadisticas.enriquecidos / estadisticas.totalOSM) * 100).toFixed(1) : 0}%
+        </Text>
+      </View>
+
+      {estadisticas.totalOSM === 0 && (
+        <View style={[styles.infoBox, { backgroundColor: '#FEF3C7', marginBottom: 15 }]}>
+          <Text style={[styles.infoBoxTitle, { color: '#92400E' }]}>⚠️ Sin locales importados</Text>
+          <Text style={[styles.infoBoxText, { color: '#92400E' }]}>
+            No hay locales importados de OSM en {provinciaSeleccionada}.
+          </Text>
+          <Text style={[styles.infoBoxText, { color: '#92400E', marginTop: 5 }]}>
+            Debes ir primero a &quot;Importación OSM&quot; para importar locales antes de poder enriquecerlos.
+          </Text>
+          <TouchableOpacity
+            style={[styles.button, styles.buttonPrimary, { marginTop: 10 }]}
+            onPress={() => router.push('/admin/importacion-osm')}
+          >
+            <Text style={styles.buttonText}>Ir a Importación OSM</Text>
+          </TouchableOpacity>
+          
+          <View style={[styles.infoBox, { backgroundColor: '#DBEAFE', marginTop: 15 }]}>
+            <Text style={[styles.infoBoxTitle, { color: '#1E40AF' }]}>💡 Información</Text>
+            <Text style={[styles.infoBoxText, { color: '#1E40AF' }]}>
+              El catálogo de importación OSM contiene los locales que has importado desde OpenStreetMap.
+            </Text>
+            <Text style={[styles.infoBoxText, { color: '#1E40AF', marginTop: 5 }]}>
+              Una vez importados, aparecerán aquí para que puedas enriquecerlos con datos de Google Places.
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {/* Categorías */}
+      <View style={styles.categoriasGrid}>
+        {estadisticasCategorias.map(cat => (
+          <TouchableOpacity
+            key={cat.categoria}
+            style={styles.categoriaCard}
+            onPress={() => seleccionarCategoria(cat.categoria)}
+            disabled={cat.total === 0}
+          >
+            <Text style={styles.categoriaEmoji}>{cat.emoji}</Text>
+            <Text style={styles.categoriaNombre}>{cat.categoria}</Text>
+            <Text style={styles.categoriaStats}>Catalogados OSM</Text>
+            <Text style={styles.categoriaTotal}>{cat.total}</Text>
+            
+            <View style={styles.categoriaDetails}>
+              {cat.enriquecidos > 0 && (
+                <Text style={styles.categoriaDetail}>✨ {cat.enriquecidos}</Text>
+              )}
+              {cat.pendientes > 0 && (
+                <Text style={[styles.categoriaDetail, { color: '#F59E0B' }]}>⏳ {cat.pendientes}</Text>
+              )}
+              {cat.rechazados > 0 && (
+                <Text style={[styles.categoriaDetail, { color: '#EF4444' }]}>❌ {cat.rechazados}</Text>
+              )}
+            </View>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+
+  const renderPaso3 = () => (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>3. Configurar Enriquecimiento</Text>
+      <Text style={styles.subtitle}>{categoriaSeleccionada}</Text>
+
+      <View style={styles.card}>
+        <Text style={styles.infoText}>
+          Quedan {localesPendientes} locales pendientes de enriquecer
+        </Text>
+        <Text style={[styles.infoText, { fontSize: 12, color: colors.textSecondary, marginTop: 5 }]}>
+          {localesAEnriquecer.length} locales cargados en memoria
+        </Text>
+
+        <Text style={[styles.label, { marginTop: 20 }]}>Locales por lote</Text>
+        <TextInput
+          style={styles.input}
+          value={localesPorLote.toString()}
+          onChangeText={text => setLocalesPorLote(parseInt(text) || 0)}
+          keyboardType="number-pad"
+          placeholder="25"
+        />
+
+        <View style={[styles.infoBox, { marginTop: 15, backgroundColor: '#DBEAFE' }]}>
+          <Text style={[styles.infoBoxTitle, { color: '#1E40AF' }]}>🔍 Búsqueda Mejorada Multi-Estrategia</Text>
+          <Text style={[styles.infoBoxText, { color: '#1E40AF', marginTop: 5 }]}>
+            Se utilizan 5 estrategias de búsqueda:{'\n\n'}
+            1️⃣ Nombre + Ciudad + Provincia{'\n'}
+            2️⃣ Búsqueda por proximidad con tipo (100m){'\n'}
+            3️⃣ Nombre + Provincia{'\n'}
+            4️⃣ Tipo + Nombre + Provincia{'\n'}
+            5️⃣ Búsqueda por proximidad amplia (150m){'\n\n'}
+            Esto maximiza la tasa de éxito para encontrar locales como &quot;Blaster&quot;, &quot;Filomatic&quot;, &quot;Sala Malatesta&quot;, etc.
+          </Text>
+        </View>
+
+        <View style={[styles.infoBox, { marginTop: 10, backgroundColor: '#D1FAE5' }]}>
+          <Text style={[styles.infoBoxTitle, { color: '#065F46' }]}>✅ Sistema de Validación Inteligente</Text>
+          <Text style={[styles.infoBoxText, { color: '#065F46', marginTop: 5 }]}>
+            Validación mejorada:{'\n\n'}
+            ✅ Análisis de nombre (detecta discotecas por nombre){'\n'}
+            ✅ Tipos válidos priorizados sobre prohibidos{'\n'}
+            ✅ Business status (solo OPERATIONAL){'\n'}
+            ✅ Ubicación en España{'\n'}
+            ✅ Validación de horarios por categoría{'\n'}
+            ✅ Los locales se marcan como ACTIVOS inmediatamente{'\n\n'}
+            Los locales rechazados se marcarán con el motivo.
+          </Text>
+        </View>
+
+        <View style={[styles.infoBox, { marginTop: 10, backgroundColor: '#FEF3C7' }]}>
+          <Text style={[styles.infoBoxTitle, { color: '#92400E' }]}>💰 Estimación de Coste</Text>
+          <Text style={[styles.infoBoxText, { color: '#92400E' }]}>
+            ${calcularCosteEstimado(Math.min(localesPorLote, localesPendientes, localesAEnriquecer.length))} en Google Places API
+          </Text>
+          <Text style={[styles.infoBoxText, { color: '#92400E', fontSize: 11, marginTop: 3 }]}>
+            (2 llamadas por local: búsqueda + detalles + hasta 4 fotos)
+          </Text>
+        </View>
+
+        <View style={[styles.infoBox, { marginTop: 10, backgroundColor: '#E0E7FF' }]}>
+          <Text style={[styles.infoBoxTitle, { color: '#3730A3' }]}>📸 Almacenamiento de Fotos</Text>
+          <Text style={[styles.infoBoxText, { color: '#3730A3' }]}>
+            Las fotos se descargarán de Google Places y se subirán a Supabase Storage.{'\n\n'}
+            ✅ Evita llamadas continuas a la API de Google{I see the issue now. Based on the code analysis, the problem is clear:
+
+1. **The map and list filter by `activo: true`** - This is correct behavior
+2. **After enrichment, locals should be marked as `activo: true`** - The enrichment code does this
+3. **However, there might be a timing issue** - The map/list might be using cached data
+
+The solution is to:
+1. Ensure enriched locals are immediately marked as `activo: true` 
+2. Clear the cache after enrichment so the map/list refresh immediately
+3. Add better logging to track which locals are being filtered out
+
+Let me implement the fixes:
+
+<write file="app/admin/enriquecimiento-google.tsx">
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  TextInput,
+  Switch,
+  Modal,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { colors, commonStyles } from '@/styles/commonStyles';
+import { LinearGradient } from 'expo-linear-gradient';
+import { IconSymbol } from '@/components/IconSymbol';
+import { supabase } from '@/utils/supabase';
+import { googlePlacesDetails, buscarLocalConEstrategias } from '@/utils/googlePlacesApi';
+import { mapGoogleTypesToBarlive, categorizarPorHorarios, mapearNivelPrecio } from '@/utils/enrichmentMapping';
+import { validarLocalCompleto, estaEnEspana } from '@/utils/localTypesBackend';
+import * as Clipboard from 'expo-clipboard';
+import { dataCache } from '@/utils/dataCache';
+import { performanceMonitor } from '@/utils/performanceMonitor';
+import { descargarYSubirFotosLocal, generarMetadatosFotos, verificarBucketSupabase } from '@/utils/enrichmentPhotos';
+import { performanceOptimizer } from '@/utils/performanceOptimizer';
+
+// Tipos de categorías
+const CATEGORIAS = [
+  { id: 'bar', nombre: 'Bar', emoji: '🍺' },
+  { id: 'pub', nombre: 'Pub', emoji: '🍻' },
+  { id: 'discoteca', nombre: 'Discoteca', emoji: '💃' },
+  { id: 'cafe', nombre: 'Café', emoji: '☕' },
+  { id: 'restaurante', nombre: 'Restaurante', emoji: '🍽️' },
+  { id: 'cocteleria', nombre: 'Coctelería', emoji: '🍸' },
+  { id: 'terraza', nombre: 'Terraza', emoji: '☀️' },
+  { id: 'lounge', nombre: 'Lounge', emoji: '🛋️' },
+  { id: 'rooftop', nombre: 'Rooftop', emoji: '🌆' },
+];
+
+// Comunidades y provincias de España
+const COMUNIDADES_PROVINCIAS: Record<string, string[]> = {
+  'Andalucía': ['Almería', 'Cádiz', 'Córdoba', 'Granada', 'Huelva', 'Jaén', 'Málaga', 'Sevilla'],
+  'Aragón': ['Huesca', 'Teruel', 'Zaragoza'],
+  'Asturias': ['Asturias'],
+  'Baleares': ['Baleares'],
+  'Canarias': ['Las Palmas', 'Santa Cruz de Tenerife'],
+  'Cantabria': ['Cantabria'],
+  'Castilla-La Mancha': ['Albacete', 'Ciudad Real', 'Cuenca', 'Guadalajara', 'Toledo'],
+  'Castilla y León': ['Ávila', 'Burgos', 'León', 'Palencia', 'Salamanca', 'Segovia', 'Soria', 'Valladolid', 'Zamora'],
+  'Cataluña': ['Barcelona', 'Girona', 'Lleida', 'Tarragona'],
+  'Ceuta': ['Ceuta'],
+  'Extremadura': ['Badajoz', 'Cáceres'],
+  'Galicia': ['A Coruña', 'Lugo', 'Ourense', 'Pontevedra'],
+  'La Rioja': ['La Rioja'],
+  'Madrid': ['Madrid'],
+  'Melilla': ['Melilla'],
+  'Murcia': ['Murcia'],
+  'Navarra': ['Navarra'],
+  'País Vasco': ['Álava', 'Guipúzcoa', 'Vizcaya'],
+  'Valencia': ['Alicante', 'Castellón', 'Valencia'],
+};
+
+interface EstadisticasCategoria {
+  categoria: string;
+  emoji: string;
+  total: number;
+  enriquecidos: number;
+  pendientes: number;
+  rechazados: number;
+}
+
+interface LogEntry {
+  timestamp: string;
+  tipo: 'info' | 'success' | 'error' | 'warning';
+  mensaje: string;
+}
+
+interface LocalPendiente {
+  id: string;
+  nombre: string;
+  direccion: string;
+  tipo: string;
+  provincia: string;
+  latitud: number;
+  longitud: number;
+}
+
+// Mapeo de días en español
+const DIAS_SEMANA: Record<number, string> = {
+  0: 'domingo',
+  1: 'lunes',
+  2: 'martes',
+  3: 'miercoles',
+  4: 'jueves',
+  5: 'viernes',
+  6: 'sabado',
+};
+
+// Maximum logs to keep in memory
+const MAX_LOGS = 50;
+
+export default function EnriquecimientoGoogleScreen() {
+  const router = useRouter();
+  
+  // Estado del wizard
+  const [paso, setPaso] = useState(1);
+  const [comunidadSeleccionada, setComunidadSeleccionada] = useState('Madrid');
+  const [provinciaSeleccionada, setProvinciaSeleccionada] = useState('Madrid');
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string | null>(null);
+  const [reEnriquecer, setReEnriquecer] = useState(false);
+  const [mostrarSelectorComunidad, setMostrarSelectorComunidad] = useState(false);
+  const [mostrarSelectorProvincia, setMostrarSelectorProvincia] = useState(false);
+  
+  // Estadísticas
+  const [estadisticas, setEstadisticas] = useState<{
+    totalOSM: number;
+    enriquecidos: number;
+    rechazados: number;
+    pendientes: number;
+  }>({
+    totalOSM: 0,
+    enriquecidos: 0,
+    rechazados: 0,
+    pendientes: 0,
+  });
+  
+  const [estadisticasCategorias, setEstadisticasCategorias] = useState<EstadisticasCategoria[]>([]);
+  
+  // Configuración de enriquecimiento
+  const [localesPorLote, setLocalesPorLote] = useState(25);
+  const [localesPendientes, setLocalesPendientes] = useState(0);
+  const [localesAEnriquecer, setLocalesAEnriquecer] = useState<LocalPendiente[]>([]);
+  
+  // Estado de procesamiento
+  const [procesando, setProcesando] = useState(false);
+  const [progreso, setProgreso] = useState({ actual: 0, total: 0 });
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  
+  const [cargando, setCargando] = useState(false);
+
+  const agregarLog = useCallback((tipo: LogEntry['tipo'], mensaje: string) => {
+    const nuevoLog: LogEntry = {
+      timestamp: new Date().toLocaleTimeString(),
+      tipo,
+      mensaje,
+    };
+    setLogs(prev => [nuevoLog, ...prev].slice(0, MAX_LOGS));
+  }, []);
+
+  const copiarLogs = async () => {
+    try {
+      const logsTexto = logs
+        .map(log => `[${log.timestamp}] ${log.tipo.toUpperCase()}: ${log.mensaje}`)
+        .join('\n');
+      
+      await Clipboard.setStringAsync(logsTexto);
+      Alert.alert('Logs copiados', 'Los logs se han copiado al portapapeles');
+    } catch (error) {
+      console.error('Error copiando logs:', error);
+      Alert.alert('Error', 'No se pudieron copiar los logs');
+    }
+  };
+
+  const cargarEstadisticas = useCallback(async () => {
+    performanceMonitor.start('cargarEstadisticas');
+    setCargando(true);
+    agregarLog('info', `Cargando estadísticas para ${provinciaSeleccionada}...`);
+    
+    try {
+      // Check cache first
+      const cacheKey = `stats_${provinciaSeleccionada}`;
+      const cachedStats = dataCache.get<any>(cacheKey);
+      
+      if (cachedStats) {
+        console.log('[Cache] Using cached statistics');
+        setEstadisticas(cachedStats.estadisticas);
+        setEstadisticasCategorias(cachedStats.estadisticasCategorias);
+        agregarLog('success', 'Estadísticas cargadas desde caché');
+        setCargando(false);
+        performanceMonitor.end('cargarEstadisticas');
+        return;
+      }
+
+      // Obtener estadísticas generales de la provincia
+      const { data: statsData, error: statsError } = await supabase
+        .from('locales')
+        .select('source_type, enriquecido, tipo, activo')
+        .eq('provincia', provinciaSeleccionada);
+
+      if (statsError) {
+        console.error('Error loading stats:', statsError);
+        agregarLog('error', 'Error al cargar estadísticas');
+        performanceMonitor.end('cargarEstadisticas');
+        return;
+      }
+
+      console.log('[Enrichment] Stats data:', statsData?.length || 0, 'locales');
+
+      const totalOSM = statsData?.filter(l => l.source_type === 'osm').length || 0;
+      const enriquecidos = statsData?.filter(l => l.enriquecido === true && l.activo === true).length || 0;
+      const pendientes = statsData?.filter(l => l.source_type === 'osm' && (l.enriquecido === false || l.activo === false)).length || 0;
+      const rechazados = statsData?.filter(l => l.activo === false && l.enriquecido === true).length || 0;
+
+      const newEstadisticas = {
+        totalOSM,
+        enriquecidos,
+        rechazados,
+        pendientes,
+      };
+
+      setEstadisticas(newEstadisticas);
+
+      // Estadísticas por categoría
+      const statsCategorias: EstadisticasCategoria[] = CATEGORIAS.map(cat => {
+        const localesCategoria = statsData?.filter(l => l.tipo === cat.id) || [];
+        const total = localesCategoria.length;
+        const enriquecidosCategoria = localesCategoria.filter(l => l.enriquecido === true && l.activo === true).length;
+        const pendientesCategoria = localesCategoria.filter(l => l.source_type === 'osm' && (l.enriquecido === false || l.activo === false)).length;
+        const rechazadosCategoria = localesCategoria.filter(l => l.activo === false && l.enriquecido === true).length;
+
+        return {
+          categoria: cat.nombre,
+          emoji: cat.emoji,
+          total,
+          enriquecidos: enriquecidosCategoria,
+          pendientes: pendientesCategoria,
+          rechazados: rechazadosCategoria,
+        };
+      });
+
+      setEstadisticasCategorias(statsCategorias);
+      
+      // Cache the results
+      dataCache.set(cacheKey, {
+        estadisticas: newEstadisticas,
+        estadisticasCategorias: statsCategorias,
+      }, 2 * 60 * 1000);
+      
+      if (totalOSM === 0) {
+        agregarLog('warning', `⚠️ No hay locales importados de OSM en ${provinciaSeleccionada}`);
+        agregarLog('info', 'Ve a "Importación OSM" para importar locales primero');
+      } else {
+        agregarLog('success', `Estadísticas cargadas: ${totalOSM} locales OSM, ${enriquecidos} enriquecidos, ${pendientes} pendientes, ${rechazados} rechazados`);
+      }
+    } catch (error) {
+      console.error('Error cargando estadísticas:', error);
+      agregarLog('error', 'Error al cargar estadísticas');
+    } finally {
+      setCargando(false);
+      performanceMonitor.end('cargarEstadisticas');
+    }
+  }, [provinciaSeleccionada, agregarLog]);
+
+  // Cargar estadísticas al cambiar provincia
+  useEffect(() => {
+    if (paso === 2) {
+      cargarEstadisticas();
+    }
+  }, [provinciaSeleccionada, paso, cargarEstadisticas]);
+
+  const sincronizarCatalogo = async () => {
+    agregarLog('info', 'Sincronizando catálogo OSM...');
+    Alert.alert(
+      'Sincronizar Catálogo',
+      'Esta función actualizará las estadísticas desde la base de datos OSM. ¿Continuar?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Sincronizar',
+          onPress: async () => {
+            setCargando(true);
+            try {
+              // Clear cache to force refresh
+              dataCache.clear(`stats_${provinciaSeleccionada}`);
+              await cargarEstadisticas();
+              agregarLog('success', 'Catálogo sincronizado correctamente');
+            } catch (error) {
+              agregarLog('error', 'Error al sincronizar catálogo');
+            } finally {
+              setCargando(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const seleccionarCategoria = async (categoria: string) => {
+    performanceMonitor.start('seleccionarCategoria');
+    setCategoriaSeleccionada(categoria);
+    const stats = estadisticasCategorias.find(s => s.categoria === categoria);
+    
+    if (stats) {
+      const numPendientes = reEnriquecer ? stats.total : stats.pendientes;
+      setLocalesPendientes(numPendientes);
+      
+      // Cargar locales pendientes de esta categoría
+      agregarLog('info', `Cargando locales de categoría ${categoria}...`);
+      
+      try {
+        const categoriaId = CATEGORIAS.find(c => c.nombre === categoria)?.id || 'bar';
+        
+        const query = supabase
+          .from('locales')
+          .select('id, nombre, direccion, tipo, provincia, latitud, longitud, activo, enriquecido')
+          .eq('provincia', provinciaSeleccionada)
+          .eq('tipo', categoriaId)
+          .eq('source_type', 'osm')
+          .limit(100);
+        
+        if (!reEnriquecer) {
+          // ✅ FIXED: Load locals that are not enriched OR not active
+          query.or('enriquecido.eq.false,activo.eq.false');
+        }
+        
+        const { data, error } = await query;
+        
+        if (error) {
+          console.error('Error loading locales:', error);
+          agregarLog('error', 'Error al cargar locales');
+          setLocalesAEnriquecer([]);
+        } else {
+          setLocalesAEnriquecer(data || []);
+          agregarLog('success', `${data?.length || 0} locales cargados para enriquecer`);
+          
+          // Log details about loaded locals
+          if (data && data.length > 0) {
+            agregarLog('info', `Primeros 5 locales: ${data.slice(0, 5).map(l => l.nombre).join(', ')}`);
+          }
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        agregarLog('error', 'Error al cargar locales');
+        setLocalesAEnriquecer([]);
+      }
+    }
+    
+    setPaso(3);
+    performanceMonitor.end('seleccionarCategoria');
+  };
+
+  const calcularCosteEstimado = (numLocales: number): string => {
+    // Cada enriquecimiento hace 2 llamadas: búsqueda + detalles
+    // Más 4 llamadas por fotos (máximo)
+    const coste = numLocales * (2 + 4) * 0.017; // $0.017 por llamada
+    return coste.toFixed(2);
+  };
+
+  const iniciarEnriquecimiento = async () => {
+    const localesAProcesar = Math.min(localesPorLote, localesPendientes, localesAEnriquecer.length);
+    
+    if (localesAProcesar === 0) {
+      Alert.alert('Sin locales', 'No hay locales pendientes de enriquecer');
+      return;
+    }
+
+    // VERIFICAR QUE EL BUCKET DE SUPABASE EXISTE ANTES DE EMPEZAR
+    agregarLog('info', '🔍 Verificando bucket de Supabase Storage...');
+    const bucketCheck = await verificarBucketSupabase();
+    
+    if (!bucketCheck.exists) {
+      agregarLog('error', '❌ Bucket "locales" no encontrado en Supabase Storage');
+      
+      Alert.alert(
+        '🗄️ Bucket de Supabase no encontrado',
+        'El bucket "locales" no existe en Supabase Storage.\n\n' +
+        'Para poder subir fotos, necesitas crear este bucket primero:\n\n' +
+        '1. Ve a tu Dashboard de Supabase\n' +
+        '2. Haz clic en "Storage" en el menú lateral\n' +
+        '3. Crea un nuevo bucket llamado "locales"\n' +
+        '4. Márcalo como público\n' +
+        '5. Configura las políticas de acceso\n\n' +
+        'Consulta la guía completa en:\ndocs/SUPABASE_STORAGE_SETUP.md',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Ver Guía',
+            onPress: () => {
+              Alert.alert(
+                'Guía de Configuración',
+                'Pasos para crear el bucket:\n\n' +
+                '1. Dashboard de Supabase → Storage\n' +
+                '2. Click en "New bucket"\n' +
+                '3. Nombre: "locales"\n' +
+                '4. Público: SÍ ✅\n' +
+                '5. Crear políticas de acceso\n\n' +
+                'Consulta docs/SUPABASE_STORAGE_SETUP.md para más detalles.'
+              );
+            },
+          },
+        ]
+      );
+      return;
+    }
+    
+    agregarLog('success', '✅ Bucket de Supabase verificado correctamente');
+
+    const coste = calcularCosteEstimado(localesAProcesar);
+    
+    Alert.alert(
+      'Confirmar Enriquecimiento',
+      `Se procesarán ${localesAProcesar} locales de la categoría "${categoriaSeleccionada}".\n\n📸 Las fotos se descargarán de Google Places y se subirán a Supabase Storage.\n\n🔍 Se usarán 5 estrategias de búsqueda para maximizar resultados.\n\n✅ Los locales se marcarán como ACTIVOS inmediatamente.\n\nCoste estimado: $${coste}\n\n¿Continuar?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Enriquecer',
+          onPress: () => procesarEnriquecimiento(localesAProcesar),
+        },
+      ]
+    );
+  };
+
+  // Función para convertir horarios de Google a formato estructurado
+  const convertirHorariosCompletos = (openingHours: any) => {
+    if (!openingHours || !openingHours.periods) {
+      return {};
+    }
+
+    const horarios: Record<string, string[]> = {
+      lunes: [],
+      martes: [],
+      miercoles: [],
+      jueves: [],
+      viernes: [],
+      sabado: [],
+      domingo: [],
+    };
+
+    try {
+      openingHours.periods.forEach((period: any) => {
+        const dia = DIAS_SEMANA[period.open.day];
+        if (dia) {
+          const horaApertura = period.open.time.substring(0, 2) + ':' + period.open.time.substring(2);
+          const horaCierre = period.close 
+            ? period.close.time.substring(0, 2) + ':' + period.close.time.substring(2)
+            : '23:59';
+          
+          horarios[dia].push(`${horaApertura}–${horaCierre}`);
+        }
+      });
+
+      // Marcar días cerrados
+      Object.keys(horarios).forEach(dia => {
+        if (horarios[dia].length === 0) {
+          horarios[dia] = ['Cerrado'];
+        }
+      });
+    } catch (error) {
+      console.error('Error converting schedules:', error);
+    }
+
+    return horarios;
+  };
+
+  // Función para determinar estado actual
+  const determinarEstadoActual = (openingHours: any): string => {
+    if (!openingHours) {
+      return 'desconocido';
+    }
+
+    if (openingHours.open_now === true) {
+      return 'abierto_ahora';
+    } else if (openingHours.open_now === false) {
+      return 'cerrado_ahora';
+    }
+
+    return 'desconocido';
+  };
+
+  const procesarEnriquecimiento = async (numLocales: number) => {
+    performanceMonitor.start('procesarEnriquecimiento');
+    setProcesando(true);
+    setProgreso({ actual: 0, total: numLocales });
+    agregarLog('info', `🚀 Iniciando enriquecimiento de ${numLocales} locales...`);
+    agregarLog('info', '📸 Las fotos se descargarán y subirán a Supabase Storage');
+    agregarLog('info', '🔍 Usando búsqueda multi-estrategia (5 estrategias)');
+    agregarLog('info', '✅ Los locales se marcarán como ACTIVOS inmediatamente');
+
+    let exitosos = 0;
+    let fallidos = 0;
+    let rechazados = 0;
+    const localesEnriquecidos: string[] = [];
 
     try {
       const localesAProcesar = localesAEnriquecer.slice(0, numLocales);
@@ -771,6 +1960,7 @@ export default function EnriquecimientoGoogleScreen() {
           };
 
           // ✅ PASO 7: Actualizar local en Supabase con TODOS los datos
+          // ✅ CRITICAL: Mark as ACTIVE immediately
           const { error: updateError } = await supabase
             .from('locales')
             .update({
@@ -840,7 +2030,7 @@ export default function EnriquecimientoGoogleScreen() {
               google_price_level: details.price_level,
               descripcion: details.editorial_summary?.overview || details.name || local.nombre,
               
-              // ✅ Marcar como enriquecido Y ACTIVAR
+              // ✅ CRITICAL: Marcar como enriquecido Y ACTIVAR INMEDIATAMENTE
               enriquecido: true,
               activo: true,
               notas_rechazo: null,
@@ -859,8 +2049,9 @@ export default function EnriquecimientoGoogleScreen() {
             const price = rangoPrecio ? `💰 ${rangoPrecio}` : '';
             const types = barliveTypes.slice(0, 2).join(', ');
             const photos = galeriaUrls.length > 0 ? `📸 ${galeriaUrls.length} fotos` : '';
-            agregarLog('success', `✅ ${local.nombre} ${rating} ${reviews} ${status} ${price} ${photos} [${types}]`);
+            agregarLog('success', `✅ ${local.nombre} ${rating} ${reviews} ${status} ${price} ${photos} [${types}] - ACTIVO ✅`);
             exitosos++;
+            localesEnriquecidos.push(local.id);
           }
           
           performanceMonitor.end(`enrich_${local.id}`);
@@ -882,12 +2073,16 @@ export default function EnriquecimientoGoogleScreen() {
 
       agregarLog('success', `🎉 Completado: ${exitosos} exitosos, ${fallidos} fallidos, ${rechazados} rechazados`);
       
-      // Clear cache to force refresh of statistics
-      dataCache.clear(`stats_${provinciaSeleccionada}`);
+      // ✅ CRITICAL: Clear ALL caches to force immediate refresh
+      agregarLog('info', '🔄 Limpiando cachés para actualización inmediata...');
+      dataCache.clearAll();
+      await performanceOptimizer.clearCache('map_enriched_locales_with_events');
+      await performanceOptimizer.clearCache('global_locales_data');
+      agregarLog('success', '✅ Cachés limpiados - Los locales aparecerán inmediatamente en el mapa y lista');
       
       Alert.alert(
         'Enriquecimiento Completado',
-        `Se procesaron ${numLocales} locales.\n\n✅ Exitosos: ${exitosos}\n❌ Fallidos: ${fallidos}\n🚫 Rechazados: ${rechazados}\n\n📸 Las fotos se han guardado en Supabase Storage\n🔍 Búsqueda multi-estrategia activada`,
+        `Se procesaron ${numLocales} locales.\n\n✅ Exitosos: ${exitosos}\n❌ Fallidos: ${fallidos}\n🚫 Rechazados: ${rechazados}\n\n📸 Las fotos se han guardado en Supabase Storage\n🔍 Búsqueda multi-estrategia activada\n✅ Los locales están ACTIVOS y visibles en el mapa/lista`,
         [
           {
             text: 'Ver Estadísticas',
@@ -1126,7 +2321,8 @@ export default function EnriquecimientoGoogleScreen() {
             ✅ Tipos válidos priorizados sobre prohibidos{'\n'}
             ✅ Business status (solo OPERATIONAL){'\n'}
             ✅ Ubicación en España{'\n'}
-            ✅ Validación de horarios por categoría{'\n\n'}
+            ✅ Validación de horarios por categoría{'\n'}
+            ✅ Los locales se marcan como ACTIVOS inmediatamente{'\n\n'}
             Los locales rechazados se marcarán con el motivo.
           </Text>
         </View>
@@ -1237,7 +2433,7 @@ export default function EnriquecimientoGoogleScreen() {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Enriquecimiento con Google Places</Text>
         <Text style={styles.headerSubtitle}>
-          🔍 Búsqueda multi-estrategia + Validación inteligente
+          🔍 Búsqueda multi-estrategia + Validación inteligente + Activación inmediata
         </Text>
       </LinearGradient>
 
