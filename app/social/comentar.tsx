@@ -96,36 +96,6 @@ export default function ComentarScreen() {
     };
   }, []);
 
-  const loadData = async () => {
-    try {
-      const { data: postData, error: postError } = await supabase
-        .from('posts')
-        .select('*, autor:usuarios(nombre, avatar, username)')
-        .eq('id', postId)
-        .single();
-
-      if (postError) throw postError;
-      setPost(postData);
-
-      if (parentCommentId) {
-        const { data: commentData, error: commentError } = await supabase
-          .from('comentarios')
-          .select('*, autor:usuarios(nombre, avatar, username)')
-          .eq('id', parentCommentId)
-          .single();
-
-        if (commentError) throw commentError;
-        setParentComment(commentData);
-      }
-    } catch (error) {
-      console.error('[Comentar] Error loading data:', error);
-      Alert.alert('Error', 'No se pudo cargar la información');
-      router.back();
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSelectMention = (mention: MentionSuggestion, mentionText: string) => {
     console.log('[Comentar] ✅ Selected mention:', mention);
     
