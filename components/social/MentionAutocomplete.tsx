@@ -81,20 +81,24 @@ export default function MentionAutocomplete({
     
     try {
       const results: MentionSuggestion[] = [];
+      const cleanQuery = query.trim();
+
+      // Create fuzzy pattern for better matching
+      const fuzzyPattern = cleanQuery.split('').join('%');
 
       // Search users
       console.log('[MentionAutocomplete] 👤 Searching users...');
       
       let usersData: any[] = [];
       
-      if (query.length > 0) {
-        // Search by username first
+      if (cleanQuery.length > 0) {
+        // Search by username and name with fuzzy matching
         const { data: usersByUsername, error: usernameError } = await supabase
           .from('usuarios')
           .select('id, nombre, username, avatar')
           .eq('activo', true)
           .eq('permitir_etiquetas', true)
-          .ilike('username', `%${query}%`)
+          .or(`username.ilike.%${cleanQuery}%,username.ilike.%${fuzzyPattern}%`)
           .limit(10);
 
         if (usernameError) {
@@ -110,7 +114,7 @@ export default function MentionAutocomplete({
           .select('id, nombre, username, avatar')
           .eq('activo', true)
           .eq('permitir_etiquetas', true)
-          .ilike('nombre', `%${query}%`)
+          .or(`nombre.ilike.%${cleanQuery}%,nombre.ilike.%${fuzzyPattern}%`)
           .limit(10);
 
         if (nameError) {
@@ -149,7 +153,7 @@ export default function MentionAutocomplete({
         const scoredUsers = usersData.map(u => {
           const nombre = (u.nombre || '').toLowerCase();
           const username = (u.username || '').toLowerCase();
-          const search = query.toLowerCase();
+          const search = cleanQuery.toLowerCase();
 
           let score = 0;
           if (nombre === search || username === search) score += 100;
@@ -176,13 +180,13 @@ export default function MentionAutocomplete({
       
       let localsData: any[] = [];
       
-      if (query.length > 0) {
+      if (cleanQuery.length > 0) {
         // First, get all locals matching the search
         const { data: locals, error: localsError } = await supabase
           .from('locales')
           .select('id, nombre, imagen_url')
           .eq('activo', true)
-          .ilike('nombre', `%${query}%`)
+          .or(`nombre.ilike.%${cleanQuery}%,nombre.ilike.%${fuzzyPattern}%`)
           .limit(20);
 
         if (localsError) {
@@ -272,7 +276,7 @@ export default function MentionAutocomplete({
       if (localsData && localsData.length > 0) {
         const scoredLocals = localsData.map(l => {
           const nombre = (l.nombre || '').toLowerCase();
-          const search = query.toLowerCase();
+          const search = cleanQuery.toLowerCase();
 
           let score = 0;
           if (nombre === search) score += 100;
@@ -295,6 +299,7 @@ export default function MentionAutocomplete({
       }
 
       console.log('[MentionAutocomplete] ✅ Total results:', results.length);
+      console.log('[MentionAutocomplete] 📊 Users:', results.filter(r => r.tipo === 'usuario').length, 'Locals:', results.filter(r => r.tipo === 'local').length);
       setSuggestions(results);
     } catch (error) {
       console.error('[MentionAutocomplete] ❌ Error in searchMentions:', error);
@@ -373,7 +378,8 @@ export default function MentionAutocomplete({
     <View style={[styles.container, style]} pointerEvents="auto">
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color={colors.textSecondary} />
+          <ActivityIndicator size="small" color={colors.primary} />
+          <Text style={styles.loadingText}>Buscando...</Text>
         </View>
       ) : suggestions.length > 0 ? (
         <FlatList
@@ -386,6 +392,10 @@ export default function MentionAutocomplete({
           showsVerticalScrollIndicator={false}
           bounces={false}
         />
+      ) : currentMentionText.length > 0 ? (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>No se encontraron resultados</Text>
+        </View>
       ) : null}
     </View>
   );
@@ -397,7 +407,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBackground,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
-    maxHeight: 200,
+    maxHeight: 250,
   },
   list: {
     flex: 1,
@@ -450,5 +460,21 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  emptyContainer: {
+    paddingVertical: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    fontSize: 14,
+    color: colors.textSecondary,
   },
 });
