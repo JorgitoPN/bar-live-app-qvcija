@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -58,90 +58,14 @@ export default function DetalleEventoScreen() {
   const [isLive, setIsLive] = useState(false);
 
   // Animations
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.95)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
-
-  const cargarEvento = useCallback(async () => {
-    try {
-      setLoading(true);
-      const eventoId = params.id as string;
-
-      if (!eventoId) {
-        console.error('[DetalleEvento] No event ID provided');
-        router.back();
-        return;
-      }
-
-      console.log('[DetalleEvento] Loading event:', eventoId);
-
-      const { data, error } = await supabase
-        .from('eventos')
-        .select(`
-          *,
-          locales:local_id (
-            nombre,
-            direccion,
-            ciudad,
-            latitud,
-            longitud,
-            imagen_url,
-            barlive_type
-          )
-        `)
-        .eq('id', eventoId)
-        .eq('activo', true)
-        .single();
-
-      if (error) {
-        console.error('[DetalleEvento] Error loading event:', error);
-        router.back();
-        return;
-      }
-
-      if (!data) {
-        console.error('[DetalleEvento] Event not found');
-        router.back();
-        return;
-      }
-
-      // Transform the data to match our interface
-      const eventoData: EventoData = {
-        id: data.id,
-        titulo: data.titulo,
-        descripcion: data.descripcion,
-        fecha: data.fecha,
-        fecha_fin: data.fecha_fin,
-        hora: data.hora,
-        hora_fin: data.hora_fin,
-        precio: data.precio,
-        imagen_url: data.imagen_url,
-        local_id: data.local_id,
-        provincia: data.provincia,
-        destacado: data.destacado,
-        local_nombre: data.locales?.nombre,
-        local_direccion: data.locales?.direccion,
-        local_ciudad: data.locales?.ciudad,
-        local_latitud: data.locales?.latitud,
-        local_longitud: data.locales?.longitud,
-        local_imagen_url: data.locales?.imagen_url,
-        local_categoria: data.locales?.barlive_type,
-      };
-
-      console.log('[DetalleEvento] Event loaded:', eventoData.titulo);
-      setEvento(eventoData);
-    } catch (error) {
-      console.error('[DetalleEvento] Error:', error);
-      router.back();
-    } finally {
-      setLoading(false);
-    }
-  }, [params.id, router]);
+  const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  const scaleAnim = React.useRef(new Animated.Value(0.95)).current;
+  const slideAnim = React.useRef(new Animated.Value(30)).current;
 
   useEffect(() => {
     cargarEvento();
     obtenerUbicacionUsuario();
-  }, [params.id, cargarEvento]);
+  }, [params.id]);
 
   // Update countdown timer
   useEffect(() => {
@@ -230,7 +154,7 @@ export default function DetalleEventoScreen() {
         }),
       ]).start();
     }
-  }, [evento, fadeAnim, scaleAnim, slideAnim]);
+  }, [evento]);
 
   const obtenerUbicacionUsuario = async () => {
     try {
@@ -273,6 +197,82 @@ export default function DetalleEventoScreen() {
       setDistance(dist);
     }
   }, [userLocation, evento]);
+
+  const cargarEvento = async () => {
+    try {
+      setLoading(true);
+      const eventoId = params.id as string;
+
+      if (!eventoId) {
+        console.error('[DetalleEvento] No event ID provided');
+        router.back();
+        return;
+      }
+
+      console.log('[DetalleEvento] Loading event:', eventoId);
+
+      const { data, error } = await supabase
+        .from('eventos')
+        .select(`
+          *,
+          locales:local_id (
+            nombre,
+            direccion,
+            ciudad,
+            latitud,
+            longitud,
+            imagen_url,
+            barlive_type
+          )
+        `)
+        .eq('id', eventoId)
+        .eq('activo', true)
+        .single();
+
+      if (error) {
+        console.error('[DetalleEvento] Error loading event:', error);
+        router.back();
+        return;
+      }
+
+      if (!data) {
+        console.error('[DetalleEvento] Event not found');
+        router.back();
+        return;
+      }
+
+      // Transform the data to match our interface
+      const eventoData: EventoData = {
+        id: data.id,
+        titulo: data.titulo,
+        descripcion: data.descripcion,
+        fecha: data.fecha,
+        fecha_fin: data.fecha_fin,
+        hora: data.hora,
+        hora_fin: data.hora_fin,
+        precio: data.precio,
+        imagen_url: data.imagen_url,
+        local_id: data.local_id,
+        provincia: data.provincia,
+        destacado: data.destacado,
+        local_nombre: data.locales?.nombre,
+        local_direccion: data.locales?.direccion,
+        local_ciudad: data.locales?.ciudad,
+        local_latitud: data.locales?.latitud,
+        local_longitud: data.locales?.longitud,
+        local_imagen_url: data.locales?.imagen_url,
+        local_categoria: data.locales?.barlive_type,
+      };
+
+      console.log('[DetalleEvento] Event loaded:', eventoData.titulo);
+      setEvento(eventoData);
+    } catch (error) {
+      console.error('[DetalleEvento] Error:', error);
+      router.back();
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const formatFecha = (fecha: string): string => {
     try {
@@ -520,7 +520,7 @@ export default function DetalleEventoScreen() {
           {/* Live/Countdown Badge */}
           {timeRemaining && (
             <View style={[styles.countdownBadge, isLive && styles.liveBadge]}>
-              {isLive && <View style={styles.liveDot} />}
+              <View style={isLive ? styles.liveDot : undefined} />
               <IconSymbol 
                 name={isLive ? 'bolt.fill' : 'clock.fill'} 
                 size={14} 
@@ -946,6 +946,9 @@ const styles = StyleSheet.create({
         elevation: 6,
       },
     }),
+  },
+  destacadoBadgeWithCountdown: {
+    top: Platform.OS === 'android' ? 88 : 100,
   },
   destacadoBadgeWithCountdown: {
     top: Platform.OS === 'android' ? 88 : 100,

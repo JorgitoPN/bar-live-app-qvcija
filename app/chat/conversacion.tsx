@@ -362,7 +362,7 @@ export default function ConversacionScreen() {
     } finally {
       setLoading(false);
     }
-  }, [user, params.chatId, params.userId, params.localId, params.storyId, params.storyMessage, loadMessages, router]);
+  }, [user, params.chatId, params.userId, params.localId, params.storyId, params.storyMessage, loadMessages, router, localId]);
 
   useEffect(() => {
     loadOrCreateChat();

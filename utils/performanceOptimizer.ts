@@ -170,7 +170,7 @@ class PerformanceOptimizer {
     return results;
   }
 
-  async batchSetCache<T>(entries: { key: string; data: T; ttl?: number }[]): Promise<void> {
+  async batchSetCache<T>(entries: Array<{ key: string; data: T; ttl?: number }>): Promise<void> {
     await Promise.all(
       entries.map(({ key, data, ttl }) => this.setCache(key, data, ttl))
     );
@@ -233,7 +233,7 @@ class PerformanceOptimizer {
   }
 
   // Debounce utility for search and input
-  debounce<T extends (...args: unknown[]) => unknown>(
+  debounce<T extends (...args: any[]) => any>(
     func: T,
     wait: number
   ): (...args: Parameters<T>) => void {
@@ -246,7 +246,7 @@ class PerformanceOptimizer {
   }
 
   // Throttle utility for scroll and frequent events
-  throttle<T extends (...args: unknown[]) => unknown>(
+  throttle<T extends (...args: any[]) => any>(
     func: T,
     limit: number
   ): (...args: Parameters<T>) => void {

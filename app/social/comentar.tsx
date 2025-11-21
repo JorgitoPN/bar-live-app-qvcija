@@ -39,6 +39,33 @@ export default function ComentarScreen() {
   const [loading, setLoading] = useState(true);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
+  useEffect(() => {
+    loadData();
+  }, [postId, parentCommentId]);
+
+  useEffect(() => {
+    const keyboardWillShowListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        console.log('[Comentar] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
+        setKeyboardHeight(e.endCoordinates.height);
+      }
+    );
+
+    const keyboardWillHideListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        console.log('[Comentar] ⌨️ Keyboard hidden');
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      keyboardWillShowListener.remove();
+      keyboardWillHideListener.remove();
+    };
+  }, []);
+
   const loadData = async () => {
     try {
       const { data: postData, error: postError } = await supabase
@@ -68,33 +95,6 @@ export default function ComentarScreen() {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    loadData();
-  }, [postId, parentCommentId]);
-
-  useEffect(() => {
-    const keyboardWillShowListener = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      (e) => {
-        console.log('[Comentar] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
-        setKeyboardHeight(e.endCoordinates.height);
-      }
-    );
-
-    const keyboardWillHideListener = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
-      () => {
-        console.log('[Comentar] ⌨️ Keyboard hidden');
-        setKeyboardHeight(0);
-      }
-    );
-
-    return () => {
-      keyboardWillShowListener.remove();
-      keyboardWillHideListener.remove();
-    };
-  }, []);
 
   const handleSelectMention = (mention: MentionSuggestion, mentionText: string) => {
     console.log('[Comentar] ✅ Selected mention:', mention);

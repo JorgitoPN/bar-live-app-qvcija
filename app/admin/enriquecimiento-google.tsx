@@ -24,7 +24,6 @@ import * as Clipboard from 'expo-clipboard';
 import { dataCache } from '@/utils/dataCache';
 import { performanceMonitor } from '@/utils/performanceMonitor';
 import { descargarYSubirFotosLocal, generarMetadatosFotos, verificarBucketSupabase } from '@/utils/enrichmentPhotos';
-import { performanceOptimizer } from '@/utils/performanceOptimizer';
 
 // Tipos de categorías
 const CATEGORIAS = [
@@ -186,7 +185,7 @@ export default function EnriquecimientoGoogleScreen() {
       // Obtener estadísticas generales de la provincia
       const { data: statsData, error: statsError } = await supabase
         .from('locales')
-        .select('source_type, enriquecido, tipo, activo')
+        .select('source_type, enriquecido, tipo')
         .eq('provincia', provinciaSeleccionada);
 
       if (statsError) {
@@ -199,9 +198,9 @@ export default function EnriquecimientoGoogleScreen() {
       console.log('[Enrichment] Stats data:', statsData?.length || 0, 'locales');
 
       const totalOSM = statsData?.filter(l => l.source_type === 'osm').length || 0;
-      const enriquecidos = statsData?.filter(l => l.enriquecido === true && l.activo === true).length || 0;
-      const pendientes = statsData?.filter(l => l.source_type === 'osm' && (l.enriquecido === false || l.activo === false)).length || 0;
-      const rechazados = statsData?.filter(l => l.activo === false && l.enriquecido === true).length || 0;
+      const enriquecidos = statsData?.filter(l => l.enriquecido === true).length || 0;
+      const pendientes = statsData?.filter(l => l.source_type === 'osm' && l.enriquecido === false).length || 0;
+      const rechazados = 0;
 
       const newEstadisticas = {
         totalOSM,
@@ -216,9 +215,8 @@ export default function EnriquecimientoGoogleScreen() {
       const statsCategorias: EstadisticasCategoria[] = CATEGORIAS.map(cat => {
         const localesCategoria = statsData?.filter(l => l.tipo === cat.id) || [];
         const total = localesCategoria.length;
-        const enriquecidosCategoria = localesCategoria.filter(l => l.enriquecido === true && l.activo === true).length;
-        const pendientesCategoria = localesCategoria.filter(l => l.source_type === 'osm' && (l.enriquecido === false || l.activo === false)).length;
-        const rechazadosCategoria = localesCategoria.filter(l => l.activo === false && l.enriquecido === true).length;
+        const enriquecidosCategoria = localesCategoria.filter(l => l.enriquecido === true).length;
+        const pendientesCategoria = localesCategoria.filter(l => l.source_type === 'osm' && l.enriquecido === false).length;
 
         return {
           categoria: cat.nombre,
@@ -226,7 +224,7 @@ export default function EnriquecimientoGoogleScreen() {
           total,
           enriquecidos: enriquecidosCategoria,
           pendientes: pendientesCategoria,
-          rechazados: rechazadosCategoria,
+          rechazados: 0,
         };
       });
 
@@ -242,7 +240,7 @@ export default function EnriquecimientoGoogleScreen() {
         agregarLog('warning', `⚠️ No hay locales importados de OSM en ${provinciaSeleccionada}`);
         agregarLog('info', 'Ve a "Importación OSM" para importar locales primero');
       } else {
-        agregarLog('success', `Estadísticas cargadas: ${totalOSM} locales OSM, ${enriquecidos} enriquecidos, ${pendientes} pendientes, ${rechazados} rechazados`);
+        agregarLog('success', `Estadísticas cargadas: ${totalOSM} locales OSM, ${enriquecidos} enriquecidos, ${pendientes} pendientes`);
       }
     } catch (error) {
       console.error('Error cargando estadísticas:', error);
@@ -304,15 +302,14 @@ export default function EnriquecimientoGoogleScreen() {
         
         const query = supabase
           .from('locales')
-          .select('id, nombre, direccion, tipo, provincia, latitud, longitud, activo, enriquecido')
+          .select('id, nombre, direccion, tipo, provincia, latitud, longitud')
           .eq('provincia', provinciaSeleccionada)
           .eq('tipo', categoriaId)
           .eq('source_type', 'osm')
           .limit(100);
         
         if (!reEnriquecer) {
-          // ✅ FIXED: Load locals that are not enriched OR not active
-          query.or('enriquecido.eq.false,activo.eq.false');
+          query.eq('enriquecido', false);
         }
         
         const { data, error } = await query;
@@ -324,11 +321,6 @@ export default function EnriquecimientoGoogleScreen() {
         } else {
           setLocalesAEnriquecer(data || []);
           agregarLog('success', `${data?.length || 0} locales cargados para enriquecer`);
-          
-          // Log details about loaded locals
-          if (data && data.length > 0) {
-            agregarLog('info', `Primeros 5 locales: ${data.slice(0, 5).map(l => l.nombre).join(', ')}`);
-          }
         }
       } catch (error) {
         console.error('Error:', error);
@@ -401,7 +393,7 @@ export default function EnriquecimientoGoogleScreen() {
     
     Alert.alert(
       'Confirmar Enriquecimiento',
-      `Se procesarán ${localesAProcesar} locales de la categoría "${categoriaSeleccionada}".\n\n📸 Las fotos se descargarán de Google Places y se subirán a Supabase Storage.\n\n🔍 Se usarán 5 estrategias de búsqueda para maximizar resultados.\n\n✅ Los locales se marcarán como ACTIVOS inmediatamente.\n\nCoste estimado: $${coste}\n\n¿Continuar?`,
+      `Se procesarán ${localesAProcesar} locales de la categoría "${categoriaSeleccionada}".\n\n📸 Las fotos se descargarán de Google Places y se subirán a Supabase Storage.\n\n🔍 Se usarán 5 estrategias de búsqueda para maximizar resultados.\n\nCoste estimado: $${coste}\n\n¿Continuar?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -476,12 +468,10 @@ export default function EnriquecimientoGoogleScreen() {
     agregarLog('info', `🚀 Iniciando enriquecimiento de ${numLocales} locales...`);
     agregarLog('info', '📸 Las fotos se descargarán y subirán a Supabase Storage');
     agregarLog('info', '🔍 Usando búsqueda multi-estrategia (5 estrategias)');
-    agregarLog('info', '✅ Los locales se marcarán como ACTIVOS inmediatamente');
 
     let exitosos = 0;
     let fallidos = 0;
     let rechazados = 0;
-    const localesEnriquecidos: string[] = [];
 
     try {
       const localesAProcesar = localesAEnriquecer.slice(0, numLocales);
@@ -781,7 +771,6 @@ export default function EnriquecimientoGoogleScreen() {
           };
 
           // ✅ PASO 7: Actualizar local en Supabase con TODOS los datos
-          // ✅ CRITICAL: Mark as ACTIVE immediately
           const { error: updateError } = await supabase
             .from('locales')
             .update({
@@ -851,7 +840,7 @@ export default function EnriquecimientoGoogleScreen() {
               google_price_level: details.price_level,
               descripcion: details.editorial_summary?.overview || details.name || local.nombre,
               
-              // ✅ CRITICAL: Marcar como enriquecido Y ACTIVAR INMEDIATAMENTE
+              // ✅ Marcar como enriquecido Y ACTIVAR
               enriquecido: true,
               activo: true,
               notas_rechazo: null,
@@ -870,9 +859,8 @@ export default function EnriquecimientoGoogleScreen() {
             const price = rangoPrecio ? `💰 ${rangoPrecio}` : '';
             const types = barliveTypes.slice(0, 2).join(', ');
             const photos = galeriaUrls.length > 0 ? `📸 ${galeriaUrls.length} fotos` : '';
-            agregarLog('success', `✅ ${local.nombre} ${rating} ${reviews} ${status} ${price} ${photos} [${types}] - ACTIVO ✅`);
+            agregarLog('success', `✅ ${local.nombre} ${rating} ${reviews} ${status} ${price} ${photos} [${types}]`);
             exitosos++;
-            localesEnriquecidos.push(local.id);
           }
           
           performanceMonitor.end(`enrich_${local.id}`);
@@ -894,16 +882,12 @@ export default function EnriquecimientoGoogleScreen() {
 
       agregarLog('success', `🎉 Completado: ${exitosos} exitosos, ${fallidos} fallidos, ${rechazados} rechazados`);
       
-      // ✅ CRITICAL: Clear ALL caches to force immediate refresh
-      agregarLog('info', '🔄 Limpiando cachés para actualización inmediata...');
-      dataCache.clearAll();
-      await performanceOptimizer.clearCache('map_enriched_locales_with_events');
-      await performanceOptimizer.clearCache('global_locales_data');
-      agregarLog('success', '✅ Cachés limpiados - Los locales aparecerán inmediatamente en el mapa y lista');
+      // Clear cache to force refresh of statistics
+      dataCache.clear(`stats_${provinciaSeleccionada}`);
       
       Alert.alert(
         'Enriquecimiento Completado',
-        `Se procesaron ${numLocales} locales.\n\n✅ Exitosos: ${exitosos}\n❌ Fallidos: ${fallidos}\n🚫 Rechazados: ${rechazados}\n\n📸 Las fotos se han guardado en Supabase Storage\n🔍 Búsqueda multi-estrategia activada\n✅ Los locales están ACTIVOS y visibles en el mapa/lista`,
+        `Se procesaron ${numLocales} locales.\n\n✅ Exitosos: ${exitosos}\n❌ Fallidos: ${fallidos}\n🚫 Rechazados: ${rechazados}\n\n📸 Las fotos se han guardado en Supabase Storage\n🔍 Búsqueda multi-estrategia activada`,
         [
           {
             text: 'Ver Estadísticas',
@@ -1142,8 +1126,7 @@ export default function EnriquecimientoGoogleScreen() {
             ✅ Tipos válidos priorizados sobre prohibidos{'\n'}
             ✅ Business status (solo OPERATIONAL){'\n'}
             ✅ Ubicación en España{'\n'}
-            ✅ Validación de horarios por categoría{'\n'}
-            ✅ Los locales se marcan como ACTIVOS inmediatamente{'\n\n'}
+            ✅ Validación de horarios por categoría{'\n\n'}
             Los locales rechazados se marcarán con el motivo.
           </Text>
         </View>
@@ -1254,7 +1237,7 @@ export default function EnriquecimientoGoogleScreen() {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Enriquecimiento con Google Places</Text>
         <Text style={styles.headerSubtitle}>
-          🔍 Búsqueda multi-estrategia + Validación inteligente + Activación inmediata
+          🔍 Búsqueda multi-estrategia + Validación inteligente
         </Text>
       </LinearGradient>
 

@@ -41,7 +41,7 @@ interface StoryStatsModalProps {
   storyId: string;
   viewsCount: number;
   likesCount: number;
-  views: {
+  views: Array<{
     id: string;
     usuario_id: string;
     viewed_at: string;
@@ -50,8 +50,8 @@ interface StoryStatsModalProps {
       avatar?: string;
       username?: string;
     };
-  }[];
-  likes: {
+  }>;
+  likes: Array<{
     id: string;
     usuario_id: string;
     created_at: string;
@@ -60,7 +60,7 @@ interface StoryStatsModalProps {
       avatar?: string;
       username?: string;
     };
-  }[];
+  }>;
   loading?: boolean;
 }
 

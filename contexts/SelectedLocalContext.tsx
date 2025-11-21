@@ -7,14 +7,14 @@ import { useAuth } from './AuthContext';
 interface SelectedLocalContextType {
   selectedLocalId: string | null;
   setSelectedLocalId: (localId: string | null) => Promise<void>;
-  userLocales: {
+  userLocales: Array<{
     id: string;
     nombre: string;
     imagen_url: string | null;
     tipo: string;
     plan_nombre?: string;
     destacados_restantes?: number;
-  }[];
+  }>;
   loadingLocales: boolean;
   refreshLocales: () => Promise<void>;
 }
@@ -125,7 +125,7 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     loadUserLocales();
-  }, [user, loadUserLocales]);
+  }, [user]);
 
   const setSelectedLocalId = async (localId: string | null) => {
     try {

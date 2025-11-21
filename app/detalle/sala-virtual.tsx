@@ -58,6 +58,8 @@ interface InteractionMessage {
   };
 }
 
+type InteractionMessageArray = InteractionMessage[];
+
 const MENSAJES_RAPIDOS = [
   { id: '1', texto: '¿Me invitas a una copa? 🍹', emoji: '🍹' },
   { id: '2', texto: 'Te invito a una copa 🥂', emoji: '🥂' },
@@ -96,7 +98,7 @@ export default function SalaVirtualScreen() {
   const [showQuickMessages, setShowQuickMessages] = useState(false);
   const [showEmoticons, setShowEmoticons] = useState(false);
   const [selectedRecipient, setSelectedRecipient] = useState<string | null>(null);
-  const [floatingEmojis, setFloatingEmojis] = useState<{ id: string; emoji: string; x: number; y: Animated.Value; opacity: Animated.Value }[]>([]);
+  const [floatingEmojis, setFloatingEmojis] = useState<Array<{ id: string; emoji: string; x: number; y: Animated.Value; opacity: Animated.Value }>>([]);
   
   const [showPublicChat, setShowPublicChat] = useState(false);
   const [chatMessages, setChatMessages] = useState<InteractionMessage[]>([]);
@@ -121,7 +123,7 @@ export default function SalaVirtualScreen() {
         }),
       ])
     ).start();
-  }, [pulseAnim]);
+  }, []);
 
   const loadData = useCallback(async () => {
     try {

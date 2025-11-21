@@ -81,13 +81,13 @@ export async function processStoryMentions(
 /**
  * Get mentioned users/locals for a story
  */
-export async function getStoryMentions(historiaId: string): Promise<{
+export async function getStoryMentions(historiaId: string): Promise<Array<{
   id: string;
   nombre: string;
   username: string;
   avatar?: string;
   tipo: 'usuario' | 'local';
-}[]> {
+}>> {
   try {
     const { data, error } = await supabase
       .from('historia_mentions')

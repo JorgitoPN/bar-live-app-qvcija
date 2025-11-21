@@ -137,7 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         subscription.unsubscribe();
       }
     };
-  }, [initializing]);
+  }, []);
 
   const handleSignOut = async () => {
     try {
