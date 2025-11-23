@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,12 +11,13 @@ import {
   FlatList,
   Keyboard,
   Dimensions,
+  KeyboardEvent,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export interface MentionSuggestion {
   id: string;
@@ -96,14 +97,16 @@ export default function MentionAutocomplete({
   const [currentMentionText, setCurrentMentionText] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [containerHeight, setContainerHeight] = useState(0);
 
   // Listen to keyboard events to adjust positioning
   useEffect(() => {
     const keyboardWillShow = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      (e) => {
-        console.log('[MentionAutocomplete] ⌨️ Keyboard showing, height:', e.endCoordinates.height);
-        setKeyboardHeight(e.endCoordinates.height);
+      (e: KeyboardEvent) => {
+        const height = e.endCoordinates.height;
+        console.log('[MentionAutocomplete] ⌨️ Keyboard showing, height:', height);
+        setKeyboardHeight(height);
       }
     );
 
@@ -433,6 +436,42 @@ export default function MentionAutocomplete({
     setCurrentMentionText(null);
   };
 
+  // Calculate optimal positioning
+  useEffect(() => {
+    if (isVisible && suggestions.length > 0) {
+      // Constants for layout calculation
+      const ITEM_HEIGHT = 76; // Height of each suggestion item
+      const MIN_ITEMS = 1;
+      const MAX_ITEMS = 3.5; // Show 3.5 items to indicate scrollability
+      const SPACING_ABOVE_KEYBOARD = 16; // Space between list and keyboard
+      const TOP_SAFE_AREA = 120; // Safe area at top (status bar + some padding)
+      const HORIZONTAL_MARGIN = 24; // Left + right margins
+      
+      // Calculate ideal height based on number of suggestions
+      const itemsToShow = Math.min(Math.max(suggestions.length, MIN_ITEMS), MAX_ITEMS);
+      const idealHeight = itemsToShow * ITEM_HEIGHT;
+      
+      // Calculate available space above keyboard
+      const bottomOfList = keyboardHeight + SPACING_ABOVE_KEYBOARD;
+      const availableSpace = SCREEN_HEIGHT - bottomOfList - TOP_SAFE_AREA;
+      
+      // Use the smaller of ideal height or available space
+      const finalHeight = Math.min(idealHeight, availableSpace, 280);
+      
+      setContainerHeight(finalHeight);
+      
+      console.log('[MentionAutocomplete] 📐 Layout calculation:');
+      console.log('  - Screen height:', SCREEN_HEIGHT);
+      console.log('  - Keyboard height:', keyboardHeight);
+      console.log('  - Suggestions:', suggestions.length);
+      console.log('  - Items to show:', itemsToShow);
+      console.log('  - Ideal height:', idealHeight);
+      console.log('  - Available space:', availableSpace);
+      console.log('  - Final height:', finalHeight);
+      console.log('  - Bottom position:', bottomOfList);
+    }
+  }, [isVisible, suggestions.length, keyboardHeight]);
+
   // Don't render if not visible or no mention text
   if (!isVisible || currentMentionText === null) {
     console.log('[MentionAutocomplete] 🚫 Not rendering - isVisible:', isVisible, 'currentMentionText:', currentMentionText);
@@ -472,41 +511,21 @@ export default function MentionAutocomplete({
     );
   };
 
-  // IMPROVED POSITIONING CALCULATION
-  // Position the list just above the keyboard with proper height constraints
-  
-  const itemHeight = 76; // Height of each suggestion item (48px avatar + 28px padding)
-  const minItems = 2; // Show at least 2 items
-  const maxItems = 4; // Show at most 4 items
-  
-  // Calculate ideal height based on number of suggestions
-  const idealHeight = Math.min(
-    Math.max(suggestions.length, minItems) * itemHeight,
-    maxItems * itemHeight
-  );
-  
-  // When keyboard is open, position just above it
-  // When keyboard is closed, center in lower portion of screen
-  const bottomPosition = keyboardHeight > 0 ? keyboardHeight + 12 : 140;
-  
-  // Calculate available space from bottom to top
-  const availableHeight = SCREEN_HEIGHT - bottomPosition - 100; // 100px for top safe area
-  
-  // Use the smaller of ideal height or available height
-  const finalHeight = Math.min(idealHeight, availableHeight, 300); // Max 300px
-  
-  console.log('[MentionAutocomplete] 📐 Positioning:');
-  console.log('  - Screen height:', SCREEN_HEIGHT);
-  console.log('  - Keyboard height:', keyboardHeight);
-  console.log('  - Suggestions count:', suggestions.length);
-  console.log('  - Item height:', itemHeight);
-  console.log('  - Ideal height:', idealHeight);
-  console.log('  - Available height:', availableHeight);
-  console.log('  - Final height:', finalHeight);
-  console.log('  - Bottom position:', bottomPosition);
+  // Calculate bottom position - always position above keyboard with spacing
+  const bottomPosition = keyboardHeight > 0 ? keyboardHeight + 16 : 140;
+  const finalHeight = containerHeight > 0 ? containerHeight : 200;
 
   return (
-    <View style={[styles.container, { bottom: bottomPosition, height: finalHeight }, style]}>
+    <View 
+      style={[
+        styles.container, 
+        { 
+          bottom: bottomPosition,
+          height: finalHeight,
+        }, 
+        style
+      ]}
+    >
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color={colors.primary} />
@@ -536,17 +555,17 @@ export default function MentionAutocomplete({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    left: 20,
-    right: 20,
+    left: 24,
+    right: 24,
     backgroundColor: colors.white,
-    borderWidth: 3,
+    borderWidth: 2,
     borderColor: colors.primary,
-    borderRadius: 20,
+    borderRadius: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 24,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 16,
     zIndex: 9999,
     overflow: 'hidden',
   },
@@ -559,15 +578,15 @@ const styles = StyleSheet.create({
   suggestionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: colors.white,
   },
   avatar: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    marginRight: 14,
+    marginRight: 12,
   },
   avatarPlaceholder: {
     justifyContent: 'center',
