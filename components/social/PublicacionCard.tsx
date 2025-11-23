@@ -188,7 +188,7 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
     return item.username || item.nombre; // Users should always have username
   };
 
-  // ✅ Get post author username
+  // ✅ Get post author username - FIXED to show username instead of full name
   const postAuthorUsername = post.tipo === 'local' 
     ? post.autorNombre // Locals use their name
     : post.autorUsername || post.autorNombre; // Users should have username
@@ -213,7 +213,7 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
           </View>
         )}
         <View style={styles.headerContent}>
-          <Text style={styles.autorNombre}>{postAuthorUsername}</Text>
+          <Text style={styles.autorNombre}>@{postAuthorUsername}</Text>
           <Text style={styles.fecha}>{formatearFecha(post.fecha)}</Text>
         </View>
         <TouchableOpacity style={styles.moreButton}>
