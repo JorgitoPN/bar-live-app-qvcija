@@ -10,10 +10,13 @@ import {
   Platform,
   FlatList,
   Keyboard,
+  Dimensions,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export interface MentionSuggestion {
   id: string;
@@ -232,7 +235,6 @@ export default function MentionAutocomplete({
       }
 
       // Search locals with active subscription (Estándar or Premium)
-      // Use RPC function to get locals with active plans
       console.log('[MentionAutocomplete] 🏢 Searching locals with active subscriptions...');
       
       let localsData: any[] = [];
@@ -244,32 +246,41 @@ export default function MentionAutocomplete({
           .select('id, nombre, imagen_url')
           .eq('activo', true)
           .ilike('nombre', `%${cleanQuery}%`)
-          .limit(50);
+          .limit(100);
 
         if (localsError) {
           console.error('[MentionAutocomplete] ❌ Error searching locals:', localsError);
         } else if (allLocals && allLocals.length > 0) {
           console.log('[MentionAutocomplete] 📊 Found', allLocals.length, 'active locals matching search');
           
-          // Now filter by active subscriptions
+          // Now filter by active subscriptions with premium or estandar plans
           const localIds = allLocals.map(l => l.id);
           
+          // Query subscriptions with proper join
           const { data: activeSubs, error: subsError } = await supabase
             .from('suscripciones_locales')
-            .select(`
-              local_id,
-              planes_suscripcion!inner(nombre)
-            `)
+            .select('local_id, plan_id, planes_suscripcion(nombre)')
             .in('local_id', localIds)
-            .eq('estado', 'activa')
-            .in('planes_suscripcion.nombre', ['estandar', 'premium']);
+            .eq('estado', 'activa');
 
           if (subsError) {
             console.error('[MentionAutocomplete] ❌ Error checking subscriptions:', subsError);
           } else if (activeSubs && activeSubs.length > 0) {
-            const localsWithActivePlans = new Set(activeSubs.map(s => s.local_id));
+            console.log('[MentionAutocomplete] 📊 Found', activeSubs.length, 'active subscriptions');
+            
+            // Filter to only include premium and estandar plans
+            const localsWithActivePlans = new Set<string>();
+            activeSubs.forEach(sub => {
+              const planNombre = (sub.planes_suscripcion as any)?.nombre;
+              console.log('[MentionAutocomplete] 🔍 Checking subscription for local:', sub.local_id, 'plan:', planNombre);
+              if (planNombre === 'premium' || planNombre === 'estandar') {
+                localsWithActivePlans.add(sub.local_id);
+              }
+            });
+            
+            console.log('[MentionAutocomplete] ✅ Locals with premium/estandar plans:', localsWithActivePlans.size);
             localsData = allLocals.filter(l => localsWithActivePlans.has(l.id));
-            console.log('[MentionAutocomplete] ✅ Found', localsData.length, 'locals with active plans');
+            console.log('[MentionAutocomplete] ✅ Final filtered locals:', localsData.length);
           }
         }
       } else {
@@ -279,7 +290,7 @@ export default function MentionAutocomplete({
           .select('id, nombre, imagen_url')
           .eq('activo', true)
           .order('created_at', { ascending: false })
-          .limit(50);
+          .limit(100);
 
         if (recentError) {
           console.error('[MentionAutocomplete] ❌ Error fetching recent locals:', recentError);
@@ -291,18 +302,21 @@ export default function MentionAutocomplete({
           
           const { data: activeSubs, error: subsError } = await supabase
             .from('suscripciones_locales')
-            .select(`
-              local_id,
-              planes_suscripcion!inner(nombre)
-            `)
+            .select('local_id, plan_id, planes_suscripcion(nombre)')
             .in('local_id', localIds)
-            .eq('estado', 'activa')
-            .in('planes_suscripcion.nombre', ['estandar', 'premium']);
+            .eq('estado', 'activa');
 
           if (subsError) {
             console.error('[MentionAutocomplete] ❌ Error checking subscriptions:', subsError);
           } else if (activeSubs && activeSubs.length > 0) {
-            const localsWithActivePlans = new Set(activeSubs.map(s => s.local_id));
+            const localsWithActivePlans = new Set<string>();
+            activeSubs.forEach(sub => {
+              const planNombre = (sub.planes_suscripcion as any)?.nombre;
+              if (planNombre === 'premium' || planNombre === 'estandar') {
+                localsWithActivePlans.add(sub.local_id);
+              }
+            });
+            
             localsData = recentLocals.filter(l => localsWithActivePlans.has(l.id));
             console.log('[MentionAutocomplete] ✅ Found', localsData.length, 'recent locals with active plans');
           }
@@ -439,10 +453,19 @@ export default function MentionAutocomplete({
 
   // Calculate bottom position based on keyboard height
   // Position it just above the keyboard with proper spacing
-  const bottomPosition = keyboardHeight > 0 ? keyboardHeight + 10 : 100;
+  // Make sure it doesn't go too high and get cut off
+  const maxHeight = 280;
+  const bottomPadding = 20;
+  const bottomPosition = keyboardHeight > 0 ? keyboardHeight + bottomPadding : 120;
+  
+  // Calculate available space above keyboard
+  const availableSpace = SCREEN_HEIGHT - bottomPosition - 100; // 100 for header
+  const containerHeight = Math.min(maxHeight, Math.max(150, availableSpace));
+
+  console.log('[MentionAutocomplete] 📐 Positioning - bottomPosition:', bottomPosition, 'containerHeight:', containerHeight, 'availableSpace:', availableSpace);
 
   return (
-    <View style={[styles.container, { bottom: bottomPosition }, style]}>
+    <View style={[styles.container, { bottom: bottomPosition, maxHeight: containerHeight }, style]}>
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color={colors.primary} />
@@ -478,8 +501,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.primary,
     borderRadius: 12,
-    maxHeight: 250,
-    minHeight: 100,
+    minHeight: 120,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,

@@ -153,7 +153,7 @@ export default function CrearPublicacionScreen() {
         .select('id, nombre, imagen_url')
         .eq('activo', true)
         .or(`nombre.ilike.%${cleanTexto}%,nombre.ilike.%${fuzzyPattern}%`)
-        .limit(50);
+        .limit(100);
 
       if (localsError) {
         console.error('[CrearPublicacion] ❌ Error searching locals:', localsError);
@@ -163,25 +163,33 @@ export default function CrearPublicacionScreen() {
       if (allLocals && allLocals.length > 0) {
         console.log('[CrearPublicacion] 📊 Found', allLocals.length, 'active locals matching search');
         
-        // Now filter by active subscriptions
+        // Now filter by active subscriptions with premium or estandar plans
         const localIds = allLocals.map(l => l.id);
         
         const { data: activeSubs, error: subsError } = await supabase
           .from('suscripciones_locales')
-          .select(`
-            local_id,
-            planes_suscripcion!inner(nombre)
-          `)
+          .select('local_id, plan_id, planes_suscripcion(nombre)')
           .in('local_id', localIds)
-          .eq('estado', 'activa')
-          .in('planes_suscripcion.nombre', ['estandar', 'premium']);
+          .eq('estado', 'activa');
 
         if (subsError) {
           console.error('[CrearPublicacion] ❌ Error checking subscriptions:', subsError);
         } else if (activeSubs && activeSubs.length > 0) {
-          const localsWithActivePlans = new Set(activeSubs.map(s => s.local_id));
+          console.log('[CrearPublicacion] 📊 Found', activeSubs.length, 'active subscriptions');
+          
+          // Filter to only include premium and estandar plans
+          const localsWithActivePlans = new Set<string>();
+          activeSubs.forEach(sub => {
+            const planNombre = (sub.planes_suscripcion as any)?.nombre;
+            console.log('[CrearPublicacion] 🔍 Checking subscription for local:', sub.local_id, 'plan:', planNombre);
+            if (planNombre === 'premium' || planNombre === 'estandar') {
+              localsWithActivePlans.add(sub.local_id);
+            }
+          });
+          
+          console.log('[CrearPublicacion] ✅ Locals with premium/estandar plans:', localsWithActivePlans.size);
           filteredLocalsData = allLocals.filter(l => localsWithActivePlans.has(l.id));
-          console.log('[CrearPublicacion] ✅ Found', filteredLocalsData.length, 'locals with active plans');
+          console.log('[CrearPublicacion] ✅ Final filtered locals:', filteredLocalsData.length);
         }
       }
 
