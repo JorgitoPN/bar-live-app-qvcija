@@ -453,29 +453,41 @@ export default function MentionAutocomplete({
     </TouchableOpacity>
   );
 
-  // Calculate bottom position based on keyboard height
-  // FIX: Improved positioning to prevent cutoff at the top
-  // Position the list just above the keyboard with proper spacing
-  const listHeight = Math.min(240, SCREEN_HEIGHT * 0.35); // Max 35% of screen height
+  // IMPROVED POSITIONING CALCULATION
+  // The list should be centered in the visible area above the keyboard
+  // Calculate available space and position accordingly
+  
+  const maxListHeight = 240; // Maximum height for the list
   const spacing = 16; // Space between keyboard and list
   
-  // Position above keyboard when keyboard is visible
-  // Ensure there's enough space from the top of the screen
-  const minTopMargin = 100; // Minimum space from top of screen
-  const bottomPosition = keyboardHeight > 0 ? keyboardHeight + spacing : 120;
+  // Calculate available space above keyboard
+  const availableSpace = keyboardHeight > 0 
+    ? SCREEN_HEIGHT - keyboardHeight - spacing 
+    : SCREEN_HEIGHT - 120;
   
-  // Calculate if the list would be cut off at the top
-  const wouldBeCutOff = (SCREEN_HEIGHT - bottomPosition - listHeight) < minTopMargin;
+  // Ensure minimum space from top (for status bar, header, etc.)
+  const minTopSpace = 150;
   
-  // If it would be cut off, adjust the height to fit
-  const adjustedHeight = wouldBeCutOff 
-    ? Math.max(160, SCREEN_HEIGHT - bottomPosition - minTopMargin) 
-    : listHeight;
+  // Calculate the actual height the list can use
+  const calculatedHeight = Math.min(maxListHeight, availableSpace - minTopSpace);
   
-  console.log('[MentionAutocomplete] 📐 Positioning - bottomPosition:', bottomPosition, 'adjustedHeight:', adjustedHeight, 'keyboardHeight:', keyboardHeight, 'wouldBeCutOff:', wouldBeCutOff);
+  // Position the list just above the keyboard
+  // When keyboard is visible, position it above the keyboard with spacing
+  // When keyboard is hidden, position it near the bottom
+  const bottomPosition = keyboardHeight > 0 
+    ? keyboardHeight + spacing 
+    : 120;
+  
+  console.log('[MentionAutocomplete] 📐 Positioning:');
+  console.log('  - Screen height:', SCREEN_HEIGHT);
+  console.log('  - Keyboard height:', keyboardHeight);
+  console.log('  - Available space:', availableSpace);
+  console.log('  - Calculated height:', calculatedHeight);
+  console.log('  - Bottom position:', bottomPosition);
+  console.log('  - Top position:', SCREEN_HEIGHT - bottomPosition - calculatedHeight);
 
   return (
-    <View style={[styles.container, { bottom: bottomPosition, height: adjustedHeight }, style]}>
+    <View style={[styles.container, { bottom: bottomPosition, height: calculatedHeight }, style]}>
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color={colors.primary} />
