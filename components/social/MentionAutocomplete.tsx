@@ -473,44 +473,40 @@ export default function MentionAutocomplete({
   };
 
   // IMPROVED POSITIONING CALCULATION
-  // The goal is to position the list above the keyboard without it overflowing at the top
+  // Position the list just above the keyboard with proper height constraints
   
-  const maxListHeight = 200; // Maximum height for the list
-  const spacing = 8; // Space between keyboard and list
-  const minTopMargin = 80; // Minimum distance from top of screen (for status bar + safe area)
+  const itemHeight = 76; // Height of each suggestion item (48px avatar + 28px padding)
+  const minItems = 2; // Show at least 2 items
+  const maxItems = 4; // Show at most 4 items
   
-  // Calculate where the bottom of the container should be
-  let bottomPosition: number;
-  let calculatedHeight = maxListHeight;
+  // Calculate ideal height based on number of suggestions
+  const idealHeight = Math.min(
+    Math.max(suggestions.length, minItems) * itemHeight,
+    maxItems * itemHeight
+  );
   
-  if (keyboardHeight > 0) {
-    // Keyboard is open
-    bottomPosition = keyboardHeight + spacing;
-    
-    // Calculate the available space above the keyboard
-    const availableSpace = SCREEN_HEIGHT - keyboardHeight - spacing - minTopMargin;
-    
-    // If the list would overflow at the top, reduce its height
-    if (maxListHeight > availableSpace) {
-      calculatedHeight = Math.max(availableSpace, 120); // Minimum 120px height
-      console.log('[MentionAutocomplete] ⚠️ List would overflow, reducing height to:', calculatedHeight);
-    }
-  } else {
-    // Keyboard is closed - center the list
-    bottomPosition = 120;
-  }
+  // When keyboard is open, position just above it
+  // When keyboard is closed, center in lower portion of screen
+  const bottomPosition = keyboardHeight > 0 ? keyboardHeight + 12 : 140;
+  
+  // Calculate available space from bottom to top
+  const availableHeight = SCREEN_HEIGHT - bottomPosition - 100; // 100px for top safe area
+  
+  // Use the smaller of ideal height or available height
+  const finalHeight = Math.min(idealHeight, availableHeight, 300); // Max 300px
   
   console.log('[MentionAutocomplete] 📐 Positioning:');
   console.log('  - Screen height:', SCREEN_HEIGHT);
   console.log('  - Keyboard height:', keyboardHeight);
-  console.log('  - Max list height:', maxListHeight);
-  console.log('  - Calculated height:', calculatedHeight);
-  console.log('  - Spacing:', spacing);
-  console.log('  - Min top margin:', minTopMargin);
+  console.log('  - Suggestions count:', suggestions.length);
+  console.log('  - Item height:', itemHeight);
+  console.log('  - Ideal height:', idealHeight);
+  console.log('  - Available height:', availableHeight);
+  console.log('  - Final height:', finalHeight);
   console.log('  - Bottom position:', bottomPosition);
 
   return (
-    <View style={[styles.container, { bottom: bottomPosition, maxHeight: calculatedHeight }, style]}>
+    <View style={[styles.container, { bottom: bottomPosition, height: finalHeight }, style]}>
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color={colors.primary} />
