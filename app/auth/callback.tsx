@@ -108,6 +108,7 @@ export default function AuthCallbackScreen() {
                   profileCompleted: userData.perfil_completado,
                   hasUsername: !!userData.username,
                   hasName: !!userData.nombre,
+                  hasFechaNacimiento: !!userData.fecha_nacimiento,
                 });
                 
                 // Check if user needs to accept terms
@@ -118,17 +119,16 @@ export default function AuthCallbackScreen() {
                   return;
                 }
                 
-                // FIXED: Check if user needs to complete profile (username and name are mandatory)
-                // New users (without username or nombre) should go to /editar/perfil
-                if (!userData.username || !userData.nombre) {
-                  console.log('[Callback] 📝 Usuario nuevo - redirigiendo a editar perfil');
+                // ✅ FIXED: Check if user needs to complete profile (username, nombre, and fecha_nacimiento are mandatory)
+                if (!userData.username || !userData.nombre || !userData.fecha_nacimiento) {
+                  console.log('[Callback] 📝 Usuario nuevo - redirigiendo a completar perfil');
                   if (isMounted) setStatus('success');
-                  safeRedirect('/editar/perfil', 300);
+                  safeRedirect(`/auth/completar-perfil?userId=${userData.id}&userEmail=${userData.email}&provider=${userData.provider || 'google'}`, 300);
                   return;
                 }
                 
-                // FIXED: Existing users (with username and nombre) go to explorar
-                console.log('[Callback] ✅ Usuario existente - redirigiendo a explorar');
+                // ✅ FIXED: Existing users (with complete profile) go to explorar
+                console.log('[Callback] ✅ Usuario existente con perfil completo - redirigiendo a explorar');
                 if (isMounted) setStatus('success');
                 safeRedirect('/(tabs)/explorar', 300);
                 return;
@@ -188,6 +188,7 @@ export default function AuthCallbackScreen() {
               profileCompleted: userData.perfil_completado,
               hasUsername: !!userData.username,
               hasName: !!userData.nombre,
+              hasFechaNacimiento: !!userData.fecha_nacimiento,
             });
             
             // Check if user needs to accept terms
@@ -198,17 +199,16 @@ export default function AuthCallbackScreen() {
               return;
             }
             
-            // FIXED: Check if user needs to complete profile (username and name are mandatory)
-            // New users (without username or nombre) should go to /editar/perfil
-            if (!userData.username || !userData.nombre) {
-              console.log('[Callback] 📝 Usuario nuevo - redirigiendo a editar perfil');
+            // ✅ FIXED: Check if user needs to complete profile (username, nombre, and fecha_nacimiento are mandatory)
+            if (!userData.username || !userData.nombre || !userData.fecha_nacimiento) {
+              console.log('[Callback] 📝 Usuario nuevo - redirigiendo a completar perfil');
               if (isMounted) setStatus('success');
-              safeRedirect('/editar/perfil', 300);
+              safeRedirect(`/auth/completar-perfil?userId=${userData.id}&userEmail=${userData.email}&provider=${userData.provider || 'google'}`, 300);
               return;
             }
             
-            // FIXED: Existing users (with username and nombre) go to explorar
-            console.log('[Callback] ✅ Usuario existente - redirigiendo a explorar');
+            // ✅ FIXED: Existing users (with complete profile) go to explorar
+            console.log('[Callback] ✅ Usuario existente con perfil completo - redirigiendo a explorar');
             if (isMounted) setStatus('success');
             safeRedirect('/(tabs)/explorar', 300);
             return;

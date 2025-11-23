@@ -71,13 +71,14 @@ export default function Index() {
     return <Redirect href={`/auth/completar-perfil?userId=${user.id}&userEmail=${user.email}&provider=${user.provider || 'barlive'}`} />;
   }
 
+  // ✅ FIXED: After profile completion, redirect to Explorar instead of owner message
   // Profile complete but hasn't seen owner message -> Show owner message
   if (!hasSeenOwnerMessage) {
     console.log('[Index] 🏢 Showing owner welcome message');
     return <Redirect href={`/auth/bienvenida-propietario?userId=${user.id}&userName=${user.nombre}`} />;
   }
 
-  // Everything complete -> Go to main app
-  console.log('[Index] ✅ All complete, redirecting to main app');
+  // Everything complete -> Go to Explorar (main app)
+  console.log('[Index] ✅ All complete, redirecting to Explorar');
   return <Redirect href="/(tabs)/explorar" />;
 }

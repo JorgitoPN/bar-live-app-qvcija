@@ -19,6 +19,7 @@ import { colors } from '@/styles/commonStyles';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '@/utils/supabase';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { decode } from 'base64-arraybuffer';
 
 export default function CompletarPerfilScreen() {
   const router = useRouter();
@@ -217,19 +218,86 @@ export default function CompletarPerfilScreen() {
     }
   };
 
+  // ✅ FIXED: Upload image to Supabase Storage
+  const uploadAvatarToStorage = async (imageUri: string): Promise<string | null> => {
+    try {
+      console.log('[CompletarPerfil] 📤 Uploading avatar to Supabase Storage...');
+
+      // Fetch the image as a blob
+      const response = await fetch(imageUri);
+      const blob = await response.blob();
+      
+      // Convert blob to base64
+      const reader = new FileReader();
+      const base64Promise = new Promise<string>((resolve, reject) => {
+        reader.onloadend = () => {
+          const base64data = reader.result as string;
+          // Remove the data:image/...;base64, prefix
+          const base64 = base64data.split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+      });
+      reader.readAsDataURL(blob);
+      
+      const base64 = await base64Promise;
+      
+      // Generate unique filename
+      const fileExt = imageUri.split('.').pop() || 'jpg';
+      const fileName = `${userId}-${Date.now()}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
+
+      console.log('[CompletarPerfil] 📁 Uploading to path:', filePath);
+
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('user-content')
+        .upload(filePath, decode(base64), {
+          contentType: `image/${fileExt}`,
+          upsert: false,
+        });
+
+      if (error) {
+        console.error('[CompletarPerfil] ❌ Error uploading avatar:', error);
+        return null;
+      }
+
+      console.log('[CompletarPerfil] ✅ Avatar uploaded successfully:', data);
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('user-content')
+        .getPublicUrl(filePath);
+
+      console.log('[CompletarPerfil] 🔗 Public URL:', urlData.publicUrl);
+      return urlData.publicUrl;
+    } catch (error) {
+      console.error('[CompletarPerfil] ❌ Error in uploadAvatarToStorage:', error);
+      return null;
+    }
+  };
+
   const guardarPerfil = async () => {
     setLoading(true);
 
     try {
-      // Subir avatar si existe
+      console.log('[CompletarPerfil] 💾 Saving profile...');
+
+      // ✅ FIXED: Upload avatar to Supabase Storage if exists
       let avatarUrl = null;
       if (avatar) {
-        // En producción, aquí subirías la imagen a Supabase Storage
-        // Por ahora, usamos la URI local
-        avatarUrl = avatar;
+        console.log('[CompletarPerfil] 📤 Uploading avatar...');
+        avatarUrl = await uploadAvatarToStorage(avatar);
+        
+        if (!avatarUrl) {
+          console.warn('[CompletarPerfil] ⚠️ Avatar upload failed, continuing without avatar');
+        } else {
+          console.log('[CompletarPerfil] ✅ Avatar uploaded:', avatarUrl);
+        }
       }
 
-      // FIXED: Update profile with mandatory fields (nombre and username)
+      // ✅ FIXED: Update profile with mandatory fields (nombre and username)
+      console.log('[CompletarPerfil] 💾 Updating user profile in database...');
       const { error } = await supabase
         .from('usuarios')
         .update({
@@ -246,23 +314,29 @@ export default function CompletarPerfilScreen() {
         .eq('id', userId);
 
       if (error) {
-        console.error('Error guardando perfil:', error);
+        console.error('[CompletarPerfil] ❌ Error saving profile:', error);
         Alert.alert('Error', 'No se pudo guardar el perfil. Por favor, intenta nuevamente.');
         return;
       }
 
+      console.log('[CompletarPerfil] ✅ Profile saved successfully!');
+
+      // ✅ FIXED: Show success message and redirect to Explorar
       Alert.alert(
         '¡Perfil completado!',
         'Tu perfil ha sido configurado exitosamente. ¡Bienvenido a BarLive!',
         [
           {
             text: 'Comenzar',
-            onPress: () => router.replace('/(tabs)/explorar'),
+            onPress: () => {
+              console.log('[CompletarPerfil] 🚀 Redirecting to Explorar...');
+              router.replace('/(tabs)/explorar');
+            },
           },
         ]
       );
     } catch (error) {
-      console.error('Error en guardarPerfil:', error);
+      console.error('[CompletarPerfil] ❌ Error in guardarPerfil:', error);
       Alert.alert('Error', 'Ocurrió un error al guardar el perfil');
     } finally {
       setLoading(false);
