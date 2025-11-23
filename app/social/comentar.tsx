@@ -301,7 +301,7 @@ export default function ComentarScreen() {
             </View>
           </View>
 
-          {/* Autocomplete Component - Positioned right after text input */}
+          {/* Autocomplete Component - Positioned prominently after text input */}
           <MentionAutocomplete
             text={comentario}
             cursorPosition={cursorPosition}

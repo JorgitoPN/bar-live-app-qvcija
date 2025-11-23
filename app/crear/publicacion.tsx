@@ -696,12 +696,12 @@ export default function CrearPublicacionScreen() {
             <View style={styles.helperContainer}>
               <IconSymbol ios_icon_name="info.circle" android_material_icon_name="info" size={14} color={colors.primary} />
               <Text style={styles.helperText}>
-                Escribe @ para mencionar usuarios o locales
+                Escribe @ para mencionar usuarios o locales, # para hashtags
               </Text>
             </View>
           </View>
 
-          {/* Autocomplete Components - Positioned right after text input */}
+          {/* Autocomplete Components - Positioned prominently after text input */}
           <MentionAutocomplete
             text={contenido}
             cursorPosition={cursorPosition}

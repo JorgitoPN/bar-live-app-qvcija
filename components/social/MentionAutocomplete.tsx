@@ -205,7 +205,7 @@ export default function MentionAutocomplete({
         })));
       }
 
-      // Search locals - SIMPLIFIED: Don't filter by subscription for now
+      // Search locals
       console.log('[MentionAutocomplete] 🏢 Searching locals...');
       
       let localsData: any[] = [];
@@ -343,13 +343,15 @@ export default function MentionAutocomplete({
         <View style={[styles.avatar, styles.avatarPlaceholder]}>
           {Platform.OS === 'ios' ? (
             <IconSymbol
-              name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
+              ios_icon_name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
+              android_material_icon_name={item.tipo === 'local' ? 'business' : 'person'}
               size={18}
               color={colors.textSecondary}
             />
           ) : (
             <IconSymbol
-              name={item.tipo === 'local' ? 'business' : 'person'}
+              ios_icon_name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
+              android_material_icon_name={item.tipo === 'local' ? 'business' : 'person'}
               size={18}
               color={colors.textSecondary}
             />
@@ -368,13 +370,15 @@ export default function MentionAutocomplete({
         <View style={styles.localBadge}>
           {Platform.OS === 'ios' ? (
             <IconSymbol 
-              name="building.2.fill"
+              ios_icon_name="building.2.fill"
+              android_material_icon_name="business"
               size={12} 
               color={colors.primary} 
             />
           ) : (
             <IconSymbol 
-              name="business"
+              ios_icon_name="building.2.fill"
+              android_material_icon_name="business"
               size={12} 
               color={colors.primary} 
             />
@@ -399,7 +403,7 @@ export default function MentionAutocomplete({
           style={styles.list}
           contentContainerStyle={styles.listContent}
           keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
+          showsVerticalScrollIndicator={true}
           bounces={false}
           nestedScrollEnabled={true}
         />
@@ -416,35 +420,39 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     backgroundColor: colors.cardBackground,
-    borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-    maxHeight: 250,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    borderRadius: 12,
+    maxHeight: 280,
+    minHeight: 60,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 15,
     zIndex: 9999,
+    marginHorizontal: 16,
+    marginVertical: 8,
   },
   list: {
     flex: 1,
   },
   listContent: {
-    paddingVertical: 4,
+    paddingVertical: 8,
   },
   suggestionItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 12,
     backgroundColor: colors.cardBackground,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
   },
   avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     marginRight: 12,
   },
   avatarPlaceholder: {
@@ -458,8 +466,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   suggestionUsername: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
     color: colors.text,
     marginBottom: 2,
   },
@@ -468,32 +476,33 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   localBadge: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: colors.primary + '20',
     justifyContent: 'center',
     alignItems: 'center',
   },
   loadingContainer: {
-    paddingVertical: 20,
+    paddingVertical: 24,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
     gap: 12,
   },
   loadingText: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.textSecondary,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   emptyContainer: {
-    paddingVertical: 20,
+    paddingVertical: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
   emptyText: {
     fontSize: 14,
     color: colors.textSecondary,
+    fontWeight: '500',
   },
 });
