@@ -10,12 +10,14 @@ interface BarraHistoriasProps {
   historias: Historia[];
   onHistoriaPress: (historia: Historia) => void;
   onCrearHistoria?: () => void;
+  currentUserAvatar?: string;
 }
 
 export default function BarraHistorias({
   historias,
   onHistoriaPress,
   onCrearHistoria,
+  currentUserAvatar,
 }: BarraHistoriasProps) {
   return (
     <View style={styles.container}>
@@ -29,10 +31,24 @@ export default function BarraHistorias({
           <TouchableOpacity style={styles.crearHistoria} onPress={onCrearHistoria}>
             <View style={styles.avatarWithAddButton}>
               <View style={styles.avatarBackground}>
-                <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={40} color={colors.textSecondary} />
+                {currentUserAvatar ? (
+                  <Image source={{ uri: currentUserAvatar }} style={styles.userAvatar} />
+                ) : (
+                  <IconSymbol 
+                    ios_icon_name="person.fill" 
+                    android_material_icon_name="person" 
+                    size={40} 
+                    color={colors.textSecondary} 
+                  />
+                )}
               </View>
               <View style={styles.addButtonOverlay}>
-                <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={28} color={colors.primary} />
+                <IconSymbol 
+                  ios_icon_name="plus.circle.fill" 
+                  android_material_icon_name="add_circle" 
+                  size={32} 
+                  color={colors.primary} 
+                />
               </View>
             </View>
             <Text style={styles.crearText}>Tu historia</Text>
@@ -66,7 +82,12 @@ export default function BarraHistorias({
                     <Image source={{ uri: historia.autorAvatar }} style={styles.historiaImage} />
                   ) : (
                     <View style={styles.historiaPlaceholder}>
-                      <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={32} color={colors.textSecondary} />
+                      <IconSymbol 
+                        ios_icon_name="person.fill" 
+                        android_material_icon_name="person" 
+                        size={32} 
+                        color={colors.textSecondary} 
+                      />
                     </View>
                   )}
                 </View>
@@ -114,17 +135,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
   },
+  userAvatar: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 43,
+  },
   addButtonOverlay: {
     position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    bottom: -2,
+    right: -2,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1,
+    borderWidth: 2,
+    borderColor: colors.cardBackground,
   },
   crearText: {
     fontSize: 12,

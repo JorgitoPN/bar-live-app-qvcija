@@ -6,7 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
-  Dimensions,
+Dimensions,
   Platform,
   ActivityIndicator,
   RefreshControl,
@@ -25,6 +25,7 @@ import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import FeedSocial from '@/components/social/FeedSocial';
 import BarraHistorias from '@/components/social/BarraHistorias';
+import { Post } from '@/types';
 
 const { width, height } = Dimensions.get('window');
 const STORY_DURATION = 5000;
@@ -61,6 +62,8 @@ export default function SocialScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [historias, setHistorias] = useState<Historia[]>([]);
   const [loadingHistorias, setLoadingHistorias] = useState(true);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loadingPosts, setLoadingPosts] = useState(true);
 
   // Story viewer state
   const [showStoryViewer, setShowStoryViewer] = useState(false);
@@ -170,13 +173,111 @@ export default function SocialScreen() {
     }
   }, [user]);
 
+  const loadPosts = useCallback(async () => {
+    if (!user) {
+      setLoadingPosts(false);
+      return;
+    }
+
+    try {
+      console.log('[Social] Loading posts...');
+
+      // Get posts from users and locals the user follows
+      const { data: postsData, error: postsError } = await supabase
+        .from('publicaciones')
+        .select(`
+          id,
+          autor_id,
+          tipo,
+          contenido,
+          imagenes,
+          created_at,
+          ubicacion,
+          local_id,
+          usuarios:autor_id(nombre, avatar, username),
+          locales:local_id(nombre, imagen_url)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (postsError) {
+        console.error('[Social] Error loading posts:', postsError);
+        return;
+      }
+
+      if (!postsData || postsData.length === 0) {
+        console.log('[Social] No posts found');
+        setPosts([]);
+        return;
+      }
+
+      // Get post IDs
+      const postIds = postsData.map(p => p.id);
+
+      // Get likes and comments count
+      const [likesData, commentsData, userLikesData] = await Promise.all([
+        supabase
+          .from('post_likes')
+          .select('post_id')
+          .in('post_id', postIds),
+        supabase
+          .from('post_comments')
+          .select('post_id')
+          .in('post_id', postIds),
+        supabase
+          .from('post_likes')
+          .select('post_id')
+          .eq('usuario_id', user.id)
+          .in('post_id', postIds),
+      ]);
+
+      const likesCounts = likesData.data?.reduce((acc, l) => {
+        acc[l.post_id] = (acc[l.post_id] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>) || {};
+
+      const commentsCounts = commentsData.data?.reduce((acc, c) => {
+        acc[c.post_id] = (acc[c.post_id] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>) || {};
+
+      const userLikedPostIds = new Set(userLikesData.data?.map(l => l.post_id) || []);
+
+      // Transform data to Post type
+      const transformedPosts: Post[] = postsData.map((p: any) => ({
+        id: p.id,
+        autorId: p.autor_id,
+        autorNombre: p.tipo === 'usuario' ? p.usuarios?.nombre : p.locales?.nombre,
+        autorUsername: p.tipo === 'usuario' ? p.usuarios?.username : undefined,
+        autorAvatar: p.tipo === 'usuario' ? p.usuarios?.avatar : p.locales?.imagen_url,
+        tipo: p.tipo,
+        contenido: p.contenido || '',
+        imagenes: p.imagenes || [],
+        likes: likesCounts[p.id] || 0,
+        comentarios: commentsCounts[p.id] || 0,
+        fecha: p.created_at,
+        localId: p.local_id,
+        liked: userLikedPostIds.has(p.id),
+        ubicacion: p.ubicacion,
+      }));
+
+      console.log('[Social] ✅ Loaded', transformedPosts.length, 'posts');
+      setPosts(transformedPosts);
+    } catch (error) {
+      console.error('[Social] Error loading posts:', error);
+    } finally {
+      setLoadingPosts(false);
+    }
+  }, [user]);
+
   useEffect(() => {
     loadHistorias();
-  }, [loadHistorias]);
+    loadPosts();
+  }, [loadHistorias, loadPosts]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadHistorias();
+    await Promise.all([loadHistorias(), loadPosts()]);
     setRefreshing(false);
   };
 
@@ -371,6 +472,7 @@ export default function SocialScreen() {
           historias={historias}
           onHistoriaPress={handleOpenStoryViewer}
           onCrearHistoria={() => router.push('/crear/historia')}
+          currentUserAvatar={user?.avatar}
         />
       )}
     </View>
@@ -387,12 +489,19 @@ export default function SocialScreen() {
         <Text style={styles.headerTitle}>Social</Text>
       </LinearGradient>
 
-      <FeedSocial
-        posts={[]}
-        onRefresh={onRefresh}
-        refreshing={refreshing}
-        ListHeaderComponent={ListHeaderComponent}
-      />
+      {loadingPosts && posts.length === 0 ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Cargando publicaciones...</Text>
+        </View>
+      ) : (
+        <FeedSocial
+          posts={posts}
+          onRefresh={onRefresh}
+          refreshing={refreshing}
+          ListHeaderComponent={ListHeaderComponent}
+        />
+      )}
 
       <Modal
         visible={showStoryViewer}
@@ -601,6 +710,13 @@ const styles = StyleSheet.create({
   loadingContainer: {
     padding: 20,
     alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: colors.textSecondary,
   },
   storyViewerModal: {
     flex: 1,
