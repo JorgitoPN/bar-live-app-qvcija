@@ -436,15 +436,15 @@ export default function MentionAutocomplete({
     setCurrentMentionText(null);
   };
 
-  // ✅ Calculate optimal positioning - 5px above keyboard
+  // ✅ Calculate optimal positioning - MUCH LOWER to avoid header overlap
   useEffect(() => {
     if (isVisible && suggestions.length > 0 && keyboardHeight > 0) {
       // Constants for layout calculation
       const ITEM_HEIGHT = 76; // Height of each suggestion item
       const MIN_ITEMS = 1;
       const MAX_ITEMS = 3; // Show up to 3 items for better visibility
-      const TOP_SAFE_AREA = 120; // Safe area at top (status bar + header)
-      const BOTTOM_MARGIN = 5; // ✅ UPDATED: 5px margin between list and keyboard
+      const TOP_SAFE_AREA = 300; // ✅ MUCH MORE space from top to avoid header (was 200px)
+      const BOTTOM_MARGIN = 150; // ✅ MUCH MORE space above keyboard (was 80px)
       
       // Calculate ideal height based on number of suggestions
       const itemsToShow = Math.min(Math.max(suggestions.length, MIN_ITEMS), MAX_ITEMS);
@@ -509,11 +509,11 @@ export default function MentionAutocomplete({
     );
   };
 
-  // ✅ Position 5px above keyboard
-  const BOTTOM_MARGIN = 5; // ✅ UPDATED: 5px margin between list and keyboard
+  // ✅ Position MUCH LOWER - 150px above keyboard (was 80px)
+  const BOTTOM_MARGIN = 150; // ✅ MUCH MORE space above keyboard
   const bottomPosition = keyboardHeight > 0 
     ? keyboardHeight + BOTTOM_MARGIN 
-    : 100; // Fallback when keyboard height not detected
+    : 200; // Fallback when keyboard height not detected
   
   const finalHeight = containerHeight > 0 ? containerHeight : 200;
 
