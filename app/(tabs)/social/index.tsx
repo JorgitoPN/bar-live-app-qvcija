@@ -1538,10 +1538,11 @@ export default function SocialScreen() {
 
     progressAnim.setValue(0);
 
+    // ✅ FIX: Use useNativeDriver: true for smooth animation
     Animated.timing(progressAnim, {
       toValue: 1,
       duration: STORY_DURATION,
-      useNativeDriver: false,
+      useNativeDriver: true, // ✅ This fixes the flickering!
     }).start(({ finished }) => {
       if (finished) {
         handleNextStory();
@@ -2101,9 +2102,10 @@ export default function SocialScreen() {
   const hasUserStories = userStories.length > 0;
   const hasUnviewedUserStories = userStories.some(s => !s.visto_por_usuario);
 
-  const progressWidth = progressAnim.interpolate({
+  // ✅ FIX: Use transform instead of width for smooth animation
+  const progressTransform = progressAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ['0%', '100%'],
+    outputRange: [-100, 0], // Transform from -100% to 0%
   });
 
   const displayAvatar = user?.avatar;
@@ -2419,7 +2421,15 @@ export default function SocialScreen() {
                           <View style={[styles.storyProgressFill, { width: '100%' }]} />
                         )}
                         {index === currentStoryIndex && (
-                          <Animated.View style={[styles.storyProgressFill, { width: progressWidth }]} />
+                          <Animated.View 
+                            style={[
+                              styles.storyProgressFill, 
+                              { 
+                                width: '100%',
+                                transform: [{ translateX: progressTransform }]
+                              }
+                            ]} 
+                          />
                         )}
                       </View>
                     ))}
