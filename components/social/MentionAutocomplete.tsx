@@ -341,12 +341,19 @@ export default function MentionAutocomplete({
         <Image source={{ uri: item.avatar }} style={styles.avatar} />
       ) : (
         <View style={[styles.avatar, styles.avatarPlaceholder]}>
-          <IconSymbol
-            ios_icon_name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
-            android_material_icon_name={item.tipo === 'local' ? 'business' : 'person'}
-            size={18}
-            color={colors.textSecondary}
-          />
+          {Platform.OS === 'ios' ? (
+            <IconSymbol
+              name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
+              size={18}
+              color={colors.textSecondary}
+            />
+          ) : (
+            <IconSymbol
+              name={item.tipo === 'local' ? 'business' : 'person'}
+              size={18}
+              color={colors.textSecondary}
+            />
+          )}
         </View>
       )}
       <View style={styles.suggestionInfo}>
@@ -359,12 +366,19 @@ export default function MentionAutocomplete({
       </View>
       {item.tipo === 'local' && (
         <View style={styles.localBadge}>
-          <IconSymbol 
-            ios_icon_name="building.2.fill" 
-            android_material_icon_name="business" 
-            size={12} 
-            color={colors.primary} 
-          />
+          {Platform.OS === 'ios' ? (
+            <IconSymbol 
+              name="building.2.fill"
+              size={12} 
+              color={colors.primary} 
+            />
+          ) : (
+            <IconSymbol 
+              name="business"
+              size={12} 
+              color={colors.primary} 
+            />
+          )}
         </View>
       )}
     </TouchableOpacity>
