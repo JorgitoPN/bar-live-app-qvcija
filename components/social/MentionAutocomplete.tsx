@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Platform,
   FlatList,
+  Keyboard,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -64,6 +65,31 @@ export default function MentionAutocomplete({
   const [loading, setLoading] = useState(false);
   const [currentMentionText, setCurrentMentionText] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  // Listen to keyboard events to adjust positioning
+  useEffect(() => {
+    const keyboardWillShow = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        console.log('[MentionAutocomplete] ⌨️ Keyboard showing, height:', e.endCoordinates.height);
+        setKeyboardHeight(e.endCoordinates.height);
+      }
+    );
+
+    const keyboardWillHide = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        console.log('[MentionAutocomplete] ⌨️ Keyboard hiding');
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      keyboardWillShow.remove();
+      keyboardWillHide.remove();
+    };
+  }, []);
 
   const detectMention = useCallback(() => {
     const textBeforeCursor = text.substring(0, cursorPosition);
@@ -206,93 +232,78 @@ export default function MentionAutocomplete({
       }
 
       // Search locals with active subscription (Estándar or Premium)
+      // IMPROVED: Use a single query with proper JOINs to ensure we only get locals with active plans
       console.log('[MentionAutocomplete] 🏢 Searching locals with active subscriptions...');
       
       let localsData: any[] = [];
       
       if (cleanQuery.length > 0) {
-        // First, get locals that match the search query
-        const { data: matchingLocals, error: localsError } = await supabase
+        // Use RPC function or direct query with proper filtering
+        const { data: localsWithPlans, error: localsError } = await supabase
           .from('locales')
-          .select('id, nombre, imagen_url')
+          .select(`
+            id,
+            nombre,
+            imagen_url,
+            suscripciones_locales!inner(
+              estado,
+              plan_id,
+              planes_suscripcion!inner(
+                nombre
+              )
+            )
+          `)
           .eq('activo', true)
+          .eq('suscripciones_locales.estado', 'activa')
+          .in('suscripciones_locales.planes_suscripcion.nombre', ['estandar', 'premium'])
           .ilike('nombre', `%${cleanQuery}%`)
           .limit(20);
 
         if (localsError) {
           console.error('[MentionAutocomplete] ❌ Error searching locals:', localsError);
-        } else if (matchingLocals && matchingLocals.length > 0) {
-          console.log('[MentionAutocomplete] ✅ Found matching locals:', matchingLocals.length);
+        } else if (localsWithPlans && localsWithPlans.length > 0) {
+          console.log('[MentionAutocomplete] ✅ Found locals with active plans:', localsWithPlans.length);
           
-          // Get the IDs of matching locals
-          const localIds = matchingLocals.map(l => l.id);
-          
-          // Now filter by subscription plan
-          const { data: subscriptions, error: subsError } = await supabase
-            .from('suscripciones_locales')
-            .select(`
-              local_id,
-              plan_id,
-              estado,
-              planes_suscripcion!inner(nombre)
-            `)
-            .in('local_id', localIds)
-            .eq('estado', 'activa')
-            .in('planes_suscripcion.nombre', ['estandar', 'premium']);
-
-          if (subsError) {
-            console.error('[MentionAutocomplete] ❌ Error fetching subscriptions:', subsError);
-          } else if (subscriptions) {
-            console.log('[MentionAutocomplete] ✅ Found active subscriptions:', subscriptions.length);
-            
-            // Filter locals to only include those with active Estándar or Premium plans
-            const activeLocalIds = new Set(subscriptions.map(s => s.local_id));
-            localsData = matchingLocals.filter(l => activeLocalIds.has(l.id));
-            
-            console.log('[MentionAutocomplete] ✅ Filtered locals with active plans:', localsData.length);
-          }
+          // Transform the data structure
+          localsData = localsWithPlans.map(local => ({
+            id: local.id,
+            nombre: local.nombre,
+            imagen_url: local.imagen_url,
+          }));
         }
       } else {
         // Show recent locals with active subscriptions when query is empty
-        const { data: recentLocals, error: recentError } = await supabase
+        const { data: recentLocalsWithPlans, error: recentError } = await supabase
           .from('locales')
-          .select('id, nombre, imagen_url')
+          .select(`
+            id,
+            nombre,
+            imagen_url,
+            suscripciones_locales!inner(
+              estado,
+              plan_id,
+              planes_suscripcion!inner(
+                nombre
+              )
+            )
+          `)
           .eq('activo', true)
+          .eq('suscripciones_locales.estado', 'activa')
+          .in('suscripciones_locales.planes_suscripcion.nombre', ['estandar', 'premium'])
           .order('created_at', { ascending: false })
           .limit(20);
 
         if (recentError) {
           console.error('[MentionAutocomplete] ❌ Error fetching recent locals:', recentError);
-        } else if (recentLocals && recentLocals.length > 0) {
-          console.log('[MentionAutocomplete] ✅ Found recent locals:', recentLocals.length);
+        } else if (recentLocalsWithPlans && recentLocalsWithPlans.length > 0) {
+          console.log('[MentionAutocomplete] ✅ Found recent locals with active plans:', recentLocalsWithPlans.length);
           
-          // Get the IDs of recent locals
-          const localIds = recentLocals.map(l => l.id);
-          
-          // Filter by subscription plan
-          const { data: subscriptions, error: subsError } = await supabase
-            .from('suscripciones_locales')
-            .select(`
-              local_id,
-              plan_id,
-              estado,
-              planes_suscripcion!inner(nombre)
-            `)
-            .in('local_id', localIds)
-            .eq('estado', 'activa')
-            .in('planes_suscripcion.nombre', ['estandar', 'premium']);
-
-          if (subsError) {
-            console.error('[MentionAutocomplete] ❌ Error fetching subscriptions:', subsError);
-          } else if (subscriptions) {
-            console.log('[MentionAutocomplete] ✅ Found active subscriptions:', subscriptions.length);
-            
-            // Filter locals to only include those with active Estándar or Premium plans
-            const activeLocalIds = new Set(subscriptions.map(s => s.local_id));
-            localsData = recentLocals.filter(l => activeLocalIds.has(l.id));
-            
-            console.log('[MentionAutocomplete] ✅ Filtered recent locals with active plans:', localsData.length);
-          }
+          // Transform the data structure
+          localsData = recentLocalsWithPlans.map(local => ({
+            id: local.id,
+            nombre: local.nombre,
+            imagen_url: local.imagen_url,
+          }));
         }
       }
 
@@ -383,7 +394,7 @@ export default function MentionAutocomplete({
     return null;
   }
 
-  console.log('[MentionAutocomplete] 🎨 Rendering - loading:', loading, 'suggestions:', suggestions.length);
+  console.log('[MentionAutocomplete] 🎨 Rendering - loading:', loading, 'suggestions:', suggestions.length, 'keyboardHeight:', keyboardHeight);
 
   const renderItem = ({ item }: { item: MentionSuggestion }) => (
     <TouchableOpacity
@@ -424,8 +435,11 @@ export default function MentionAutocomplete({
     </TouchableOpacity>
   );
 
+  // Calculate bottom position based on keyboard height
+  const bottomPosition = keyboardHeight > 0 ? keyboardHeight + 10 : 100;
+
   return (
-    <View style={[styles.container, style]}>
+    <View style={[styles.container, { bottom: bottomPosition }, style]}>
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color={colors.primary} />

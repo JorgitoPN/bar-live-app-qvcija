@@ -147,11 +147,25 @@ export default function CrearPublicacionScreen() {
 
       console.log('[CrearPublicacion] 🏢 Searching locals with active subscriptions...');
       
-      const { data: localsData, error: localsError } = await supabase
+      // IMPROVED: Use a single query with proper JOINs
+      const { data: localsWithPlans, error: localsError } = await supabase
         .from('locales')
-        .select('id, nombre, imagen_url')
-        .or(`nombre.ilike.%${cleanTexto}%,nombre.ilike.%${fuzzyPattern}%`)
+        .select(`
+          id,
+          nombre,
+          imagen_url,
+          suscripciones_locales!inner(
+            estado,
+            plan_id,
+            planes_suscripcion!inner(
+              nombre
+            )
+          )
+        `)
         .eq('activo', true)
+        .eq('suscripciones_locales.estado', 'activa')
+        .in('suscripciones_locales.planes_suscripcion.nombre', ['estandar', 'premium'])
+        .or(`nombre.ilike.%${cleanTexto}%,nombre.ilike.%${fuzzyPattern}%`)
         .limit(20);
 
       if (localsError) {
@@ -159,34 +173,15 @@ export default function CrearPublicacionScreen() {
       }
 
       let filteredLocalsData: any[] = [];
-      if (localsData && localsData.length > 0) {
-        const localIds = localsData.map(l => l.id);
+      if (localsWithPlans && localsWithPlans.length > 0) {
+        console.log('[CrearPublicacion] ✅ Found locals with active plans:', localsWithPlans.length);
         
-        const { data: subscriptionsData, error: subscriptionsError } = await supabase
-          .from('suscripciones_locales')
-          .select(`
-            local_id,
-            estado,
-            plan_id,
-            planes_suscripcion!suscripciones_locales_plan_id_fkey(nombre)
-          `)
-          .in('local_id', localIds)
-          .eq('estado', 'activa');
-
-        if (subscriptionsError) {
-          console.error('[CrearPublicacion] ❌ Error fetching subscriptions:', subscriptionsError);
-        } else if (subscriptionsData) {
-          const validLocalIds = subscriptionsData
-            .filter(sub => {
-              const planName = (sub.planes_suscripcion as any)?.nombre;
-              return planName === 'estandar' || planName === 'premium';
-            })
-            .map(sub => sub.local_id);
-
-          filteredLocalsData = localsData.filter(local => validLocalIds.includes(local.id));
-          
-          console.log('[CrearPublicacion] ✅ Found locals with valid subscriptions:', filteredLocalsData.length);
-        }
+        // Transform the data structure
+        filteredLocalsData = localsWithPlans.map(local => ({
+          id: local.id,
+          nombre: local.nombre,
+          imagen_url: local.imagen_url,
+        }));
       }
 
       const suggestions: UserSuggestion[] = [];
@@ -701,19 +696,6 @@ export default function CrearPublicacionScreen() {
             </View>
           </View>
 
-          {/* Autocomplete Components - Positioned prominently after text input */}
-          <MentionAutocomplete
-            text={contenido}
-            cursorPosition={cursorPosition}
-            onSelectMention={handleSelectInlineMention}
-          />
-
-          <HashtagAutocomplete
-            text={contenido}
-            cursorPosition={cursorPosition}
-            onSelectHashtag={handleSelectInlineHashtag}
-          />
-
           {/* Images Preview */}
           {imagenes.length > 0 && (
             <View style={styles.imagesPreviewSection}>
@@ -867,6 +849,19 @@ export default function CrearPublicacionScreen() {
             </View>
           </View>
         </ScrollView>
+
+        {/* Autocomplete Components - Positioned above keyboard */}
+        <MentionAutocomplete
+          text={contenido}
+          cursorPosition={cursorPosition}
+          onSelectMention={handleSelectInlineMention}
+        />
+
+        <HashtagAutocomplete
+          text={contenido}
+          cursorPosition={cursorPosition}
+          onSelectHashtag={handleSelectInlineHashtag}
+        />
       </KeyboardAvoidingView>
 
       {/* Tag Modal */}

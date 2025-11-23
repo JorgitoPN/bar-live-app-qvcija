@@ -217,7 +217,7 @@ export default function ComentarScreen() {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         <ScrollView 
@@ -301,13 +301,6 @@ export default function ComentarScreen() {
             </View>
           </View>
 
-          {/* Autocomplete Component - Positioned prominently after text input */}
-          <MentionAutocomplete
-            text={comentario}
-            cursorPosition={cursorPosition}
-            onSelectMention={handleSelectMention}
-          />
-
           {isInteractingAsLocal && activeLocalProfileId && (
             <View style={styles.contextIndicator}>
               <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="business" size={16} color={colors.primary} />
@@ -317,6 +310,13 @@ export default function ComentarScreen() {
             </View>
           )}
         </ScrollView>
+
+        {/* Autocomplete Component - Positioned above keyboard */}
+        <MentionAutocomplete
+          text={comentario}
+          cursorPosition={cursorPosition}
+          onSelectMention={handleSelectMention}
+        />
       </KeyboardAvoidingView>
     </View>
   );
