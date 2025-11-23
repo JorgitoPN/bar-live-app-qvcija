@@ -358,19 +358,32 @@ export default function CompletarPerfilScreen() {
       </View>
 
       {showDatePicker && (
-        <DateTimePicker
-          value={fechaNacimiento}
-          mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={(event, selectedDate) => {
-            setShowDatePicker(Platform.OS === 'ios');
-            if (selectedDate) {
-              setFechaNacimiento(selectedDate);
-            }
-          }}
-          maximumDate={new Date()}
-          minimumDate={new Date(1900, 0, 1)}
-        />
+        <View style={styles.datePickerContainer}>
+          <DateTimePicker
+            value={fechaNacimiento}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={(event, selectedDate) => {
+              setShowDatePicker(Platform.OS === 'ios');
+              if (selectedDate) {
+                setFechaNacimiento(selectedDate);
+              }
+            }}
+            maximumDate={new Date()}
+            minimumDate={new Date(1900, 0, 1)}
+            textColor={colors.text}
+            themeVariant="light"
+            style={styles.datePicker}
+          />
+          {Platform.OS === 'ios' && (
+            <TouchableOpacity
+              style={styles.datePickerDoneButton}
+              onPress={() => setShowDatePicker(false)}
+            >
+              <Text style={styles.datePickerDoneText}>Listo</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       )}
     </View>
   );
@@ -668,6 +681,30 @@ const styles = StyleSheet.create({
   dateButtonText: {
     fontSize: 16,
     color: colors.text,
+  },
+  datePickerContainer: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  datePicker: {
+    backgroundColor: colors.cardBackground,
+  },
+  datePickerDoneButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  datePickerDoneText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
   avatarSection: {
     alignItems: 'center',
