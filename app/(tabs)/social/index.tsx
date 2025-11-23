@@ -99,6 +99,7 @@ interface LocalProfile {
 const HEADER_HEIGHT = 120;
 const { width, height } = Dimensions.get('window');
 const SCREEN_WIDTH = width;
+const STORY_DURATION = 5000; // 5 seconds per story
 
 const styles = StyleSheet.create({
   container: {
@@ -1534,13 +1535,17 @@ export default function SocialScreen() {
 
     Animated.timing(progressAnim, {
       toValue: 1,
-      duration: 5000,
+      duration: STORY_DURATION,
       useNativeDriver: false,
-    }).start();
+    }).start(({ finished }) => {
+      if (finished) {
+        handleNextStory();
+      }
+    });
 
     storyTimerRef.current = setTimeout(() => {
       handleNextStory();
-    }, 5000);
+    }, STORY_DURATION);
   }, [handleNextStory, progressAnim]);
 
   const findFirstUnviewedStoryIndex = useCallback((stories: HistoriaConAutor[]): number => {
@@ -1752,10 +1757,16 @@ export default function SocialScreen() {
     try {
       console.log('[Social] Sending story message...');
       
+      // ✅ FIX: Respect the chats_check constraint (usuario1_id < usuario2_id)
+      const usuario1_id = user.id < currentStory.autor_id ? user.id : currentStory.autor_id;
+      const usuario2_id = user.id < currentStory.autor_id ? currentStory.autor_id : user.id;
+      
       const { data: chatExistente, error: chatError } = await supabase
         .from('chats')
         .select('id')
-        .or(`and(usuario1_id.eq.${user.id},usuario2_id.eq.${currentStory.autor_id}),and(usuario1_id.eq.${currentStory.autor_id},usuario2_id.eq.${user.id})`)
+        .eq('usuario1_id', usuario1_id)
+        .eq('usuario2_id', usuario2_id)
+        .is('local_id', null)
         .single();
 
       let chatId = chatExistente?.id;
@@ -1765,13 +1776,16 @@ export default function SocialScreen() {
         const { data: nuevoChat, error: nuevoChatError } = await supabase
           .from('chats')
           .insert({
-            usuario1_id: user.id,
-            usuario2_id: currentStory.autor_id,
+            usuario1_id: usuario1_id,
+            usuario2_id: usuario2_id,
           })
           .select()
           .single();
 
-        if (nuevoChatError) throw nuevoChatError;
+        if (nuevoChatError) {
+          console.error('[Social] Error creating chat:', nuevoChatError);
+          throw nuevoChatError;
+        }
         chatId = nuevoChat.id;
         console.log('[Social] Chat created:', chatId);
       }
@@ -1787,7 +1801,10 @@ export default function SocialScreen() {
           tipo_mensaje: 'texto',
         });
 
-      if (mensajeError) throw mensajeError;
+      if (mensajeError) {
+        console.error('[Social] Error sending message:', mensajeError);
+        throw mensajeError;
+      }
 
       console.log('[Social] Message sent successfully');
 
