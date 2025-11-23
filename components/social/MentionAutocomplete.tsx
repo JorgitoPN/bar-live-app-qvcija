@@ -436,28 +436,25 @@ export default function MentionAutocomplete({
     setCurrentMentionText(null);
   };
 
-  // Calculate optimal positioning
+  // ✅ FIX: Calculate optimal positioning - centered above keyboard with proper spacing
   useEffect(() => {
     if (isVisible && suggestions.length > 0 && keyboardHeight > 0) {
       // Constants for layout calculation
       const ITEM_HEIGHT = 76; // Height of each suggestion item
       const MIN_ITEMS = 1;
-      const MAX_ITEMS = 4; // Show up to 4 items
-      const INPUT_CONTAINER_HEIGHT = 60; // Height of the input container at bottom
-      const SPACING_ABOVE_INPUT = 8; // Small gap between list and input
-      const TOP_SAFE_AREA = 100; // Safe area at top (status bar + header)
+      const MAX_ITEMS = 3; // Show up to 3 items for better visibility
+      const TOP_SAFE_AREA = 120; // Safe area at top (status bar + header)
+      const BOTTOM_MARGIN = 16; // Margin between list and keyboard
       
       // Calculate ideal height based on number of suggestions
       const itemsToShow = Math.min(Math.max(suggestions.length, MIN_ITEMS), MAX_ITEMS);
       const idealHeight = itemsToShow * ITEM_HEIGHT;
       
-      // Calculate available space
-      // Total space from top to keyboard = SCREEN_HEIGHT - keyboardHeight
-      // Available space for list = Total space - TOP_SAFE_AREA - INPUT_CONTAINER_HEIGHT - SPACING
-      const availableSpace = SCREEN_HEIGHT - keyboardHeight - TOP_SAFE_AREA - INPUT_CONTAINER_HEIGHT - SPACING_ABOVE_INPUT;
+      // Calculate available space above keyboard
+      const availableSpace = SCREEN_HEIGHT - keyboardHeight - TOP_SAFE_AREA - BOTTOM_MARGIN;
       
-      // Use the smaller of ideal height or available space, with a max of 304px (4 items)
-      const finalHeight = Math.min(idealHeight, availableSpace, 304);
+      // Use the smaller of ideal height or available space
+      const finalHeight = Math.min(idealHeight, availableSpace, MAX_ITEMS * ITEM_HEIGHT);
       
       setContainerHeight(finalHeight);
       
@@ -469,7 +466,7 @@ export default function MentionAutocomplete({
       console.log('  - Ideal height:', idealHeight);
       console.log('  - Available space:', availableSpace);
       console.log('  - Final height:', finalHeight);
-      console.log('  - Bottom position (above input):', keyboardHeight + INPUT_CONTAINER_HEIGHT + SPACING_ABOVE_INPUT);
+      console.log('  - Bottom position (above keyboard):', keyboardHeight + BOTTOM_MARGIN);
     }
   }, [isVisible, suggestions.length, keyboardHeight]);
 
@@ -512,12 +509,11 @@ export default function MentionAutocomplete({
     );
   };
 
-  // Calculate bottom position - position above the input container with proper spacing
-  const INPUT_CONTAINER_HEIGHT = 60;
-  const SPACING_ABOVE_INPUT = 8;
+  // ✅ FIX: Position centered above keyboard with proper spacing
+  const BOTTOM_MARGIN = 16; // Margin between list and keyboard
   const bottomPosition = keyboardHeight > 0 
-    ? keyboardHeight + INPUT_CONTAINER_HEIGHT + SPACING_ABOVE_INPUT 
-    : INPUT_CONTAINER_HEIGHT + SPACING_ABOVE_INPUT + 80; // Fallback when keyboard height not detected
+    ? keyboardHeight + BOTTOM_MARGIN 
+    : 100; // Fallback when keyboard height not detected
   
   const finalHeight = containerHeight > 0 ? containerHeight : 200;
 

@@ -602,6 +602,7 @@ const styles = StyleSheet.create({
   storyProgressFill: {
     height: '100%',
     backgroundColor: '#fff',
+    width: '100%',
   },
   storyAutorInfo: {
     flexDirection: 'row',
@@ -2425,8 +2426,14 @@ export default function SocialScreen() {
                             style={[
                               styles.storyProgressFill, 
                               { 
-                                width: '100%',
-                                transform: [{ translateX: progressTransform }]
+                                transform: [
+                                  { 
+                                    translateX: progressAnim.interpolate({
+                                      inputRange: [0, 1],
+                                      outputRange: ['-100%', '0%'],
+                                    })
+                                  }
+                                ]
                               }
                             ]} 
                           />
