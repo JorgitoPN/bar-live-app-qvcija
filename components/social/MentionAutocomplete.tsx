@@ -58,6 +58,33 @@ function deduplicateById(items: any[]): any[] {
   });
 }
 
+/**
+ * Get initials from a name
+ */
+function getInitials(name: string): string {
+  if (!name) return '?';
+  const parts = name.trim().split(' ');
+  if (parts.length === 1) {
+    return parts[0].charAt(0).toUpperCase();
+  }
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
+
+/**
+ * Generate a color based on a string (for avatar backgrounds)
+ */
+function getColorForString(str: string): string {
+  const colors = [
+    '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
+    '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B739', '#52B788',
+  ];
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+}
+
 export default function MentionAutocomplete({
   text,
   cursorPosition,
@@ -414,51 +441,42 @@ export default function MentionAutocomplete({
 
   console.log('[MentionAutocomplete] 🎨 Rendering - loading:', loading, 'suggestions:', suggestions.length, 'keyboardHeight:', keyboardHeight);
 
-  const renderItem = ({ item }: { item: MentionSuggestion }) => (
-    <TouchableOpacity
-      style={styles.suggestionItem}
-      onPress={() => handleSelectMention(item)}
-      activeOpacity={0.7}
-    >
-      {item.avatar ? (
-        <Image source={{ uri: item.avatar }} style={styles.avatar} />
-      ) : (
-        <View style={[styles.avatar, styles.avatarPlaceholder]}>
-          <IconSymbol
-            ios_icon_name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
-            android_material_icon_name={item.tipo === 'local' ? 'business' : 'person'}
-            size={18}
-            color={colors.textSecondary}
-          />
+  const renderItem = ({ item }: { item: MentionSuggestion }) => {
+    const avatarColor = getColorForString(item.id);
+    const initials = getInitials(item.nombre);
+
+    return (
+      <TouchableOpacity
+        style={styles.suggestionItem}
+        onPress={() => handleSelectMention(item)}
+        activeOpacity={0.7}
+      >
+        {item.avatar ? (
+          <Image source={{ uri: item.avatar }} style={styles.avatar} />
+        ) : (
+          <View style={[styles.avatar, styles.avatarPlaceholder, { backgroundColor: avatarColor }]}>
+            <Text style={styles.avatarInitials}>{initials}</Text>
+          </View>
+        )}
+        <View style={styles.suggestionInfo}>
+          <Text style={styles.suggestionUsername}>
+            {item.username || item.nombre}
+          </Text>
+          {item.username && item.nombre !== item.username && (
+            <Text style={styles.suggestionName} numberOfLines={1}>
+              {item.nombre}
+            </Text>
+          )}
         </View>
-      )}
-      <View style={styles.suggestionInfo}>
-        <Text style={styles.suggestionUsername}>
-          {item.username || item.nombre}
-        </Text>
-        <Text style={styles.suggestionName} numberOfLines={1}>
-          {item.nombre}
-        </Text>
-      </View>
-      {item.tipo === 'local' && (
-        <View style={styles.localBadge}>
-          <IconSymbol 
-            ios_icon_name="building.2.fill"
-            android_material_icon_name="business"
-            size={12} 
-            color={colors.primary} 
-          />
-        </View>
-      )}
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   // IMPROVED POSITIONING CALCULATION
-  // The list should be centered in the visible area above the keyboard
-  // Calculate available space and position accordingly
+  // The list should be positioned just above the keyboard and centered
   
-  const maxListHeight = 240; // Maximum height for the list
-  const spacing = 16; // Space between keyboard and list
+  const maxListHeight = 280; // Maximum height for the list
+  const spacing = 12; // Space between keyboard and list
   
   // Calculate available space above keyboard
   const availableSpace = keyboardHeight > 0 
@@ -466,7 +484,7 @@ export default function MentionAutocomplete({
     : SCREEN_HEIGHT - 120;
   
   // Ensure minimum space from top (for status bar, header, etc.)
-  const minTopSpace = 150;
+  const minTopSpace = 100;
   
   // Calculate the actual height the list can use
   const calculatedHeight = Math.min(maxListHeight, availableSpace - minTopSpace);
@@ -501,7 +519,7 @@ export default function MentionAutocomplete({
           style={styles.list}
           contentContainerStyle={styles.listContent}
           keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={true}
+          showsVerticalScrollIndicator={false}
           bounces={false}
           nestedScrollEnabled={true}
         />
@@ -517,17 +535,17 @@ export default function MentionAutocomplete({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    left: 16,
-    right: 16,
-    backgroundColor: colors.cardBackground,
-    borderWidth: 2,
+    left: 20,
+    right: 20,
+    backgroundColor: colors.white,
+    borderWidth: 3,
     borderColor: colors.primary,
-    borderRadius: 12,
+    borderRadius: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 20,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 24,
     zIndex: 9999,
     overflow: 'hidden',
   },
@@ -535,50 +553,42 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   listContent: {
-    paddingVertical: 8,
+    paddingVertical: 4,
   },
   suggestionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: colors.cardBackground,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    backgroundColor: colors.white,
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 12,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 14,
   },
   avatarPlaceholder: {
-    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
+  },
+  avatarInitials: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.white,
   },
   suggestionInfo: {
     flex: 1,
   },
   suggestionUsername: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '700',
     color: colors.text,
     marginBottom: 2,
   },
   suggestionName: {
-    fontSize: 13,
+    fontSize: 14,
     color: colors.textSecondary,
-  },
-  localBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: colors.primary + '20',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   loadingContainer: {
     flex: 1,
@@ -586,6 +596,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexDirection: 'row',
     gap: 12,
+    paddingVertical: 20,
   },
   loadingText: {
     fontSize: 15,
@@ -596,6 +607,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 20,
   },
   emptyText: {
     fontSize: 14,
