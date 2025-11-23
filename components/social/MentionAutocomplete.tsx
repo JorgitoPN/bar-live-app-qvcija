@@ -342,7 +342,8 @@ export default function MentionAutocomplete({
       ) : (
         <View style={[styles.avatar, styles.avatarPlaceholder]}>
           <IconSymbol
-            name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
+            ios_icon_name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
+            android_material_icon_name={item.tipo === 'local' ? 'business' : 'person'}
             size={18}
             color={colors.textSecondary}
           />
@@ -358,14 +359,19 @@ export default function MentionAutocomplete({
       </View>
       {item.tipo === 'local' && (
         <View style={styles.localBadge}>
-          <IconSymbol name="building.2.fill" size={12} color={colors.primary} />
+          <IconSymbol 
+            ios_icon_name="building.2.fill" 
+            android_material_icon_name="business" 
+            size={12} 
+            color={colors.primary} 
+          />
         </View>
       )}
     </TouchableOpacity>
   );
 
   return (
-    <View style={[styles.container, style]} pointerEvents="auto">
+    <View style={[styles.container, style]}>
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color={colors.primary} />
@@ -381,6 +387,7 @@ export default function MentionAutocomplete({
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           bounces={false}
+          nestedScrollEnabled={true}
         />
       ) : currentMentionText.length > 0 ? (
         <View style={styles.emptyContainer}>
@@ -404,7 +411,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 8,
+    elevation: 10,
+    zIndex: 9999,
   },
   list: {
     flex: 1,
