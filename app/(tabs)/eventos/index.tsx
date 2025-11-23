@@ -84,6 +84,20 @@ export default function EventosScreen() {
   const canCreateEvents = (userRole === 'propietario' && currentMode === 'propietario') || 
                           (userRole === 'admin' && currentMode === 'propietario');
 
+  // Check if user can delete an event
+  // Only owners in "propietario" mode can delete their own events
+  const canDeleteEvent = useCallback((eventoId: string, propietarioId: string): boolean => {
+    if (!user) return false;
+    
+    // Admin can always delete
+    if (user.rol_app === 'admin') return true;
+    
+    // Owner can only delete if they are in "propietario" mode
+    if (user.id === propietarioId && currentMode === 'propietario') return true;
+    
+    return false;
+  }, [user, currentMode]);
+
   const cargarEventos = useCallback(async () => {
     try {
       setLoading(true);
@@ -250,20 +264,6 @@ export default function EventosScreen() {
     setShowDatePickerFin(false);
   };
 
-  // Check if user can delete an event
-  // Only owners in "propietario" mode can delete their own events
-  const canDeleteEvent = (eventoId: string, propietarioId: string): boolean => {
-    if (!user) return false;
-    
-    // Admin can always delete
-    if (user.rol_app === 'admin') return true;
-    
-    // Owner can only delete if they are in "propietario" mode
-    if (user.id === propietarioId && currentMode === 'propietario') return true;
-    
-    return false;
-  };
-
   const handleDeleteEvent = useCallback(async (eventoId: string, propietarioId: string) => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión');
@@ -312,7 +312,7 @@ export default function EventosScreen() {
         },
       ]
     );
-  }, [user, currentMode, cargarEventos]);
+  }, [user, currentMode, cargarEventos, canDeleteEvent]);
 
   return (
     <View style={commonStyles.container}>

@@ -7,14 +7,14 @@ import { useAuth } from './AuthContext';
 interface SelectedLocalContextType {
   selectedLocalId: string | null;
   setSelectedLocalId: (localId: string | null) => Promise<void>;
-  userLocales: Array<{
+  userLocales: {
     id: string;
     nombre: string;
     imagen_url: string | null;
     tipo: string;
     plan_nombre?: string;
     destacados_restantes?: number;
-  }>;
+  }[];
   loadingLocales: boolean;
   refreshLocales: () => Promise<void>;
 }
@@ -46,7 +46,7 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Load user's locales
-  const loadUserLocales = async () => {
+  const loadUserLocales = useCallback(async () => {
     if (!user || user.rol_app !== 'propietario') {
       setUserLocales([]);
       setLoadingLocales(false);
@@ -121,11 +121,11 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoadingLocales(false);
     }
-  };
+  }, [user, selectedLocalId]);
 
   useEffect(() => {
     loadUserLocales();
-  }, [user]);
+  }, [user, loadUserLocales]);
 
   const setSelectedLocalId = async (localId: string | null) => {
     try {

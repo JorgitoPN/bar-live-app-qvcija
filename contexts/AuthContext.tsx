@@ -81,12 +81,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
         console.log('[AuthContext] 🔄 Auth state cambió:', event);
         
-        // Don't process events during initialization
-        if (initializing) {
-          console.log('[AuthContext] ⏳ Ignorando evento durante inicialización');
-          return;
-        }
-        
         setSession(currentSession);
         
         if (event === 'SIGNED_IN' && currentSession) {
@@ -137,7 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         subscription.unsubscribe();
       }
     };
-  }, []);
+  }, [initializing]);
 
   const handleSignOut = async () => {
     try {

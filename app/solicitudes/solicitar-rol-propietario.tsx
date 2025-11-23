@@ -57,16 +57,7 @@ export default function SolicitarRolPropietarioScreen() {
     'Tarragona', 'Teruel', 'Toledo', 'Valencia', 'Valladolid', 'Vizcaya', 'Zamora', 'Zaragoza'
   ];
 
-  useEffect(() => {
-    if (tipo === 'reclamar' && searchQuery.length >= 2) {
-      const timeoutId = setTimeout(() => {
-        searchLocals();
-      }, 500);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [searchQuery, tipo]);
-
-  const searchLocals = async () => {
+  const searchLocals = useCallback(async () => {
     if (!searchQuery.trim()) {
       setSearchResults([]);
       return;
@@ -90,7 +81,16 @@ export default function SolicitarRolPropietarioScreen() {
     } finally {
       setSearching(false);
     }
-  };
+  }, [searchQuery]);
+
+  useEffect(() => {
+    if (tipo === 'reclamar' && searchQuery.length >= 2) {
+      const timeoutId = setTimeout(() => {
+        searchLocals();
+      }, 500);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [searchQuery, tipo, searchLocals]);
 
   const toggleLocalSelection = (localId: string) => {
     if (selectedLocals.includes(localId)) {

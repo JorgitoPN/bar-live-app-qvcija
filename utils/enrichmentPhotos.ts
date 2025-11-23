@@ -339,12 +339,12 @@ export async function descargarYSubirFotosDesdeUrls(
 export function generarMetadatosFotos(
   placeDetails: GooglePlaceDetails,
   maxFotos: number = 4
-): Array<{
+): {
   photo_reference: string;
   width: number;
   height: number;
   attributions: string[];
-}> {
+}[] {
   console.log('[Photos] Generating photo metadata...');
   
   if (!placeDetails.photos || placeDetails.photos.length === 0) {

@@ -205,7 +205,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     if (user && (currentMode === 'propietario' || user.rol_app === 'propietario' || user.rol_app === 'admin')) {
       loadOwnedLocals();
     }
-  }, [user, currentMode]);
+  }, [user, currentMode, loadOwnedLocals]);
 
   // Debug effect to log context state changes
   useEffect(() => {

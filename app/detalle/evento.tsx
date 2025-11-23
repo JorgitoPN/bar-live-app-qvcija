@@ -65,7 +65,7 @@ export default function DetalleEventoScreen() {
   useEffect(() => {
     cargarEvento();
     obtenerUbicacionUsuario();
-  }, [params.id]);
+  }, [params.id, cargarEvento]);
 
   // Update countdown timer
   useEffect(() => {
@@ -154,7 +154,7 @@ export default function DetalleEventoScreen() {
         }),
       ]).start();
     }
-  }, [evento]);
+  }, [evento, fadeAnim, scaleAnim, slideAnim]);
 
   const obtenerUbicacionUsuario = async () => {
     try {
