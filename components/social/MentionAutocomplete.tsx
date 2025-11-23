@@ -205,14 +205,14 @@ export default function MentionAutocomplete({
         })));
       }
 
-      // Search locals
-      console.log('[MentionAutocomplete] 🏢 Searching locals...');
+      // Search locals with active subscription (Estándar or Premium)
+      console.log('[MentionAutocomplete] 🏢 Searching locals with active subscriptions...');
       
       let localsData: any[] = [];
       
       if (cleanQuery.length > 0) {
-        // Search by name
-        const { data: localsByName, error: localsError } = await supabase
+        // First, get locals that match the search query
+        const { data: matchingLocals, error: localsError } = await supabase
           .from('locales')
           .select('id, nombre, imagen_url')
           .eq('activo', true)
@@ -221,24 +221,78 @@ export default function MentionAutocomplete({
 
         if (localsError) {
           console.error('[MentionAutocomplete] ❌ Error searching locals:', localsError);
-        } else if (localsByName) {
-          console.log('[MentionAutocomplete] ✅ Found locals by name:', localsByName.length);
-          localsData = localsByName;
+        } else if (matchingLocals && matchingLocals.length > 0) {
+          console.log('[MentionAutocomplete] ✅ Found matching locals:', matchingLocals.length);
+          
+          // Get the IDs of matching locals
+          const localIds = matchingLocals.map(l => l.id);
+          
+          // Now filter by subscription plan
+          const { data: subscriptions, error: subsError } = await supabase
+            .from('suscripciones_locales')
+            .select(`
+              local_id,
+              plan_id,
+              estado,
+              planes_suscripcion!inner(nombre)
+            `)
+            .in('local_id', localIds)
+            .eq('estado', 'activa')
+            .in('planes_suscripcion.nombre', ['estandar', 'premium']);
+
+          if (subsError) {
+            console.error('[MentionAutocomplete] ❌ Error fetching subscriptions:', subsError);
+          } else if (subscriptions) {
+            console.log('[MentionAutocomplete] ✅ Found active subscriptions:', subscriptions.length);
+            
+            // Filter locals to only include those with active Estándar or Premium plans
+            const activeLocalIds = new Set(subscriptions.map(s => s.local_id));
+            localsData = matchingLocals.filter(l => activeLocalIds.has(l.id));
+            
+            console.log('[MentionAutocomplete] ✅ Filtered locals with active plans:', localsData.length);
+          }
         }
       } else {
-        // Show recent locals when query is empty
+        // Show recent locals with active subscriptions when query is empty
         const { data: recentLocals, error: recentError } = await supabase
           .from('locales')
           .select('id, nombre, imagen_url')
           .eq('activo', true)
           .order('created_at', { ascending: false })
-          .limit(10);
+          .limit(20);
 
         if (recentError) {
           console.error('[MentionAutocomplete] ❌ Error fetching recent locals:', recentError);
-        } else if (recentLocals) {
+        } else if (recentLocals && recentLocals.length > 0) {
           console.log('[MentionAutocomplete] ✅ Found recent locals:', recentLocals.length);
-          localsData = recentLocals;
+          
+          // Get the IDs of recent locals
+          const localIds = recentLocals.map(l => l.id);
+          
+          // Filter by subscription plan
+          const { data: subscriptions, error: subsError } = await supabase
+            .from('suscripciones_locales')
+            .select(`
+              local_id,
+              plan_id,
+              estado,
+              planes_suscripcion!inner(nombre)
+            `)
+            .in('local_id', localIds)
+            .eq('estado', 'activa')
+            .in('planes_suscripcion.nombre', ['estandar', 'premium']);
+
+          if (subsError) {
+            console.error('[MentionAutocomplete] ❌ Error fetching subscriptions:', subsError);
+          } else if (subscriptions) {
+            console.log('[MentionAutocomplete] ✅ Found active subscriptions:', subscriptions.length);
+            
+            // Filter locals to only include those with active Estándar or Premium plans
+            const activeLocalIds = new Set(subscriptions.map(s => s.local_id));
+            localsData = recentLocals.filter(l => activeLocalIds.has(l.id));
+            
+            console.log('[MentionAutocomplete] ✅ Filtered recent locals with active plans:', localsData.length);
+          }
         }
       }
 
@@ -341,21 +395,12 @@ export default function MentionAutocomplete({
         <Image source={{ uri: item.avatar }} style={styles.avatar} />
       ) : (
         <View style={[styles.avatar, styles.avatarPlaceholder]}>
-          {Platform.OS === 'ios' ? (
-            <IconSymbol
-              ios_icon_name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
-              android_material_icon_name={item.tipo === 'local' ? 'business' : 'person'}
-              size={18}
-              color={colors.textSecondary}
-            />
-          ) : (
-            <IconSymbol
-              ios_icon_name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
-              android_material_icon_name={item.tipo === 'local' ? 'business' : 'person'}
-              size={18}
-              color={colors.textSecondary}
-            />
-          )}
+          <IconSymbol
+            ios_icon_name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
+            android_material_icon_name={item.tipo === 'local' ? 'business' : 'person'}
+            size={18}
+            color={colors.textSecondary}
+          />
         </View>
       )}
       <View style={styles.suggestionInfo}>
@@ -368,21 +413,12 @@ export default function MentionAutocomplete({
       </View>
       {item.tipo === 'local' && (
         <View style={styles.localBadge}>
-          {Platform.OS === 'ios' ? (
-            <IconSymbol 
-              ios_icon_name="building.2.fill"
-              android_material_icon_name="business"
-              size={12} 
-              color={colors.primary} 
-            />
-          ) : (
-            <IconSymbol 
-              ios_icon_name="building.2.fill"
-              android_material_icon_name="business"
-              size={12} 
-              color={colors.primary} 
-            />
-          )}
+          <IconSymbol 
+            ios_icon_name="building.2.fill"
+            android_material_icon_name="business"
+            size={12} 
+            color={colors.primary} 
+          />
         </View>
       )}
     </TouchableOpacity>
@@ -418,21 +454,21 @@ export default function MentionAutocomplete({
 
 const styles = StyleSheet.create({
   container: {
-    width: '100%',
+    position: 'absolute',
+    left: 16,
+    right: 16,
     backgroundColor: colors.cardBackground,
     borderWidth: 2,
     borderColor: colors.primary,
     borderRadius: 12,
-    maxHeight: 280,
-    minHeight: 60,
+    maxHeight: 300,
+    minHeight: 80,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 15,
+    elevation: 20,
     zIndex: 9999,
-    marginHorizontal: 16,
-    marginVertical: 8,
   },
   list: {
     flex: 1,
