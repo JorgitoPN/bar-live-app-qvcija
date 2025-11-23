@@ -548,9 +548,10 @@ export default function PostDetailScreen() {
         saved = !!saveData;
       }
 
+      // ✅ Get display username for post author
       const displayName = data.tipo === 'local' && data.local 
         ? data.local.nombre 
-        : data.autor?.nombre || 'Usuario';
+        : data.autor?.username || data.autor?.nombre || 'Usuario';
       const displayAvatar = data.tipo === 'local' && data.local 
         ? data.local.imagen_url 
         : data.autor?.avatar || '';
@@ -603,7 +604,7 @@ export default function PostDetailScreen() {
           ? {
               nombre: comment.local.nombre,
               avatar: comment.local.imagen_url,
-              username: comment.local.nombre,
+              username: comment.local.nombre, // Locals use their name as username
             }
           : comment.autor,
       }));
@@ -1206,7 +1207,7 @@ export default function PostDetailScreen() {
           ? {
               nombre: data.local.nombre,
               avatar: data.local.imagen_url,
-              username: data.local.nombre,
+              username: data.local.nombre, // Locals use their name as username
             }
           : data.autor,
         liked: false,
@@ -1260,6 +1261,9 @@ export default function PostDetailScreen() {
       (comentario.tipo === 'local' && activeLocalProfileId === comentario.local_id)
     );
 
+    // ✅ Get display username for comment author
+    const commentAuthorUsername = comentario.autor?.username || comentario.autor?.nombre || 'usuario';
+
     return (
       <View key={comentario.id}>
         <View style={styles.comentarioItem}>
@@ -1303,7 +1307,7 @@ export default function PostDetailScreen() {
                 activeOpacity={0.7}
               >
                 <Text style={styles.comentarioAutor}>
-                  {comentario.autor?.nombre || 'Usuario'}
+                  @{commentAuthorUsername}
                 </Text>
               </TouchableOpacity>
               <Text style={styles.comentarioFecha}>
@@ -1491,7 +1495,7 @@ export default function PostDetailScreen() {
                 </View>
               )}
               <View style={styles.postAutorInfo}>
-                <Text style={styles.postAutorNombre}>{post.autorNombre}</Text>
+                <Text style={styles.postAutorNombre}>@{post.autorNombre}</Text>
                 <Text style={styles.postFecha}>{formatearFecha(post.created_at)}</Text>
               </View>
             </TouchableOpacity>
@@ -1612,7 +1616,7 @@ export default function PostDetailScreen() {
           {post.contenido && (
             <View style={styles.postDescripcion}>
               <Text style={styles.postDescripcionText}>
-                <Text style={{ fontWeight: '600' }}>{post.autorNombre}</Text>{' '}
+                <Text style={{ fontWeight: '600' }}>@{post.autorNombre}</Text>{' '}
                 <ParsedText text={post.contenido} style={styles.postDescripcionText} />
               </Text>
             </View>
@@ -1651,7 +1655,7 @@ export default function PostDetailScreen() {
         {replyingTo && (
           <View style={styles.replyingToContainer}>
             <Text style={styles.replyingToText}>
-              Respondiendo a {replyingTo.autor?.nombre || 'Usuario'}
+              Respondiendo a @{replyingTo.autor?.username || replyingTo.autor?.nombre || 'Usuario'}
             </Text>
             <TouchableOpacity
               style={styles.cancelReplyButton}
@@ -1675,7 +1679,7 @@ export default function PostDetailScreen() {
           <TextInput
             ref={textInputRef}
             style={styles.textInput}
-            placeholder={replyingTo ? `Responder a ${replyingTo.autor?.nombre}...` : 'Añade un comentario...'}
+            placeholder={replyingTo ? `Responder a @${replyingTo.autor?.username || replyingTo.autor?.nombre}...` : 'Añade un comentario...'}
             placeholderTextColor={colors.textSecondary}
             value={comentarioTexto}
             onChangeText={(text) => {
@@ -1772,9 +1776,9 @@ export default function PostDetailScreen() {
                   </View>
                 )}
                 <View style={styles.userInfo}>
-                  <Text style={styles.userName}>{item.nombre}</Text>
-                  {item.username && (
-                    <Text style={styles.userUsername}>@{item.username}</Text>
+                  <Text style={styles.userName}>@{item.username || item.nombre}</Text>
+                  {item.username && item.username !== item.nombre && (
+                    <Text style={styles.userUsername}>{item.nombre}</Text>
                   )}
                 </View>
               </TouchableOpacity>

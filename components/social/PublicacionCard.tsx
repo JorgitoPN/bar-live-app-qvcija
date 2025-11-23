@@ -180,7 +180,7 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
     }
   };
 
-  // ✅ UPDATED: Get display username - prioritize username, fallback to nombre for locals
+  // ✅ Get display username - prioritize username, fallback to nombre for locals
   const getDisplayUsername = (item: { username?: string; nombre: string; tipo?: 'usuario' | 'local' }) => {
     if (item.tipo === 'local') {
       return item.nombre; // Locals use their name as username
@@ -188,7 +188,7 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
     return item.username || item.nombre; // Users should always have username
   };
 
-  // ✅ UPDATED: Get post author username
+  // ✅ Get post author username
   const postAuthorUsername = post.tipo === 'local' 
     ? post.autorNombre // Locals use their name
     : post.autorUsername || post.autorNombre; // Users should have username
@@ -404,7 +404,7 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
                     <View style={styles.tagMarkerDot} />
                     <View style={styles.tagMarkerLabel}>
                       <Text style={styles.tagMarkerText}>
-                        {user.username || user.nombre}
+                        @{user.username || user.nombre}
                       </Text>
                     </View>
                   </TouchableOpacity>
