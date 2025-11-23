@@ -9,7 +9,6 @@ export default function Index() {
   const { user, loading } = useAuth();
   const [checkingProfile, setCheckingProfile] = useState(true);
   const [profileComplete, setProfileComplete] = useState(false);
-  const [hasSeenOwnerMessage, setHasSeenOwnerMessage] = useState(false);
 
   useEffect(() => {
     const checkProfileCompletion = async () => {
@@ -21,10 +20,10 @@ export default function Index() {
       try {
         console.log('[Index] 🔍 Checking profile completion for user:', user.id);
         
-        // Check if profile is complete (username and fecha_nacimiento are mandatory)
+        // ✅ FIXED: Check if profile is complete (username, nombre, and fecha_nacimiento are mandatory)
         const { data: userData, error } = await supabase
           .from('usuarios')
-          .select('username, fecha_nacimiento, perfil_completado, ha_visto_mensaje_propietario')
+          .select('username, nombre, fecha_nacimiento, perfil_completado')
           .eq('id', user.id)
           .single();
 
@@ -36,13 +35,11 @@ export default function Index() {
 
         console.log('[Index] 📊 User data:', userData);
 
-        // Profile is complete if username and fecha_nacimiento exist
-        const isComplete = !!(userData?.username && userData?.fecha_nacimiento);
+        // ✅ FIXED: Profile is complete if username, nombre, and fecha_nacimiento exist
+        const isComplete = !!(userData?.username && userData?.nombre && userData?.fecha_nacimiento);
         setProfileComplete(isComplete);
-        setHasSeenOwnerMessage(userData?.ha_visto_mensaje_propietario || false);
 
         console.log('[Index] ✅ Profile complete:', isComplete);
-        console.log('[Index] ✅ Has seen owner message:', userData?.ha_visto_mensaje_propietario);
       } catch (error) {
         console.error('[Index] ❌ Error in checkProfileCompletion:', error);
       } finally {
@@ -65,20 +62,13 @@ export default function Index() {
     return <Redirect href="/auth/bienvenida" />;
   }
 
-  // Profile not complete -> Complete profile
+  // ✅ FIXED: Profile not complete -> Complete profile
   if (!profileComplete) {
     console.log('[Index] 📝 Profile incomplete, redirecting to complete profile');
     return <Redirect href={`/auth/completar-perfil?userId=${user.id}&userEmail=${user.email}&provider=${user.provider || 'barlive'}`} />;
   }
 
-  // ✅ FIXED: After profile completion, redirect to Explorar instead of owner message
-  // Profile complete but hasn't seen owner message -> Show owner message
-  if (!hasSeenOwnerMessage) {
-    console.log('[Index] 🏢 Showing owner welcome message');
-    return <Redirect href={`/auth/bienvenida-propietario?userId=${user.id}&userName=${user.nombre}`} />;
-  }
-
-  // Everything complete -> Go to Explorar (main app)
-  console.log('[Index] ✅ All complete, redirecting to Explorar');
+  // ✅ FIXED: Profile complete -> Go directly to Explorar (main app)
+  console.log('[Index] ✅ Profile complete, redirecting to Explorar');
   return <Redirect href="/(tabs)/explorar" />;
 }
