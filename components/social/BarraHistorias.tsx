@@ -44,7 +44,7 @@ export default function BarraHistorias({
           // Check if the story has been viewed by the current user
           const hasBeenViewed = historia.visto_por_usuario === true;
           
-          // ✅ UPDATED: Display username instead of full name
+          // ✅ UPDATED: Display username WITHOUT @ symbol
           const displayName = historia.tipo === 'local' 
             ? historia.autorNombre // Locals use their name
             : historia.autorUsername || historia.autorNombre; // Users should have username
