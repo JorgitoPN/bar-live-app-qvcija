@@ -472,27 +472,45 @@ export default function MentionAutocomplete({
     );
   };
 
-  // FIXED POSITIONING CALCULATION
-  // The list should be positioned directly above the keyboard with minimal gap
+  // IMPROVED POSITIONING CALCULATION
+  // The goal is to position the list above the keyboard without it overflowing at the top
   
-  const maxListHeight = 200; // Reduced maximum height for the list
-  const spacing = 8; // Minimal space between keyboard and list (reduced from 12)
+  const maxListHeight = 200; // Maximum height for the list
+  const spacing = 8; // Space between keyboard and list
+  const minTopMargin = 80; // Minimum distance from top of screen (for status bar + safe area)
   
-  // Calculate the bottom position - this is where the BOTTOM edge of the container will be
-  // We want the bottom of the container to be just above the keyboard
-  const bottomPosition = keyboardHeight > 0 
-    ? keyboardHeight + spacing 
-    : 120;
+  // Calculate where the bottom of the container should be
+  let bottomPosition: number;
+  let calculatedHeight = maxListHeight;
+  
+  if (keyboardHeight > 0) {
+    // Keyboard is open
+    bottomPosition = keyboardHeight + spacing;
+    
+    // Calculate the available space above the keyboard
+    const availableSpace = SCREEN_HEIGHT - keyboardHeight - spacing - minTopMargin;
+    
+    // If the list would overflow at the top, reduce its height
+    if (maxListHeight > availableSpace) {
+      calculatedHeight = Math.max(availableSpace, 120); // Minimum 120px height
+      console.log('[MentionAutocomplete] ⚠️ List would overflow, reducing height to:', calculatedHeight);
+    }
+  } else {
+    // Keyboard is closed - center the list
+    bottomPosition = 120;
+  }
   
   console.log('[MentionAutocomplete] 📐 Positioning:');
   console.log('  - Screen height:', SCREEN_HEIGHT);
   console.log('  - Keyboard height:', keyboardHeight);
   console.log('  - Max list height:', maxListHeight);
+  console.log('  - Calculated height:', calculatedHeight);
   console.log('  - Spacing:', spacing);
+  console.log('  - Min top margin:', minTopMargin);
   console.log('  - Bottom position:', bottomPosition);
 
   return (
-    <View style={[styles.container, { bottom: bottomPosition, maxHeight: maxListHeight }, style]}>
+    <View style={[styles.container, { bottom: bottomPosition, maxHeight: calculatedHeight }, style]}>
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color={colors.primary} />
