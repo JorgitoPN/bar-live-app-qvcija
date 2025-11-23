@@ -454,18 +454,28 @@ export default function MentionAutocomplete({
   );
 
   // Calculate bottom position based on keyboard height
-  // Position it just above the keyboard with proper spacing
-  // FIX: Improved positioning to center above keyboard and prevent cutoff
-  const listHeight = 240; // Fixed height for the list
+  // FIX: Improved positioning to prevent cutoff at the top
+  // Position the list just above the keyboard with proper spacing
+  const listHeight = Math.min(240, SCREEN_HEIGHT * 0.35); // Max 35% of screen height
   const spacing = 16; // Space between keyboard and list
   
   // Position above keyboard when keyboard is visible
+  // Ensure there's enough space from the top of the screen
+  const minTopMargin = 100; // Minimum space from top of screen
   const bottomPosition = keyboardHeight > 0 ? keyboardHeight + spacing : 120;
   
-  console.log('[MentionAutocomplete] 📐 Positioning - bottomPosition:', bottomPosition, 'listHeight:', listHeight, 'keyboardHeight:', keyboardHeight);
+  // Calculate if the list would be cut off at the top
+  const wouldBeCutOff = (SCREEN_HEIGHT - bottomPosition - listHeight) < minTopMargin;
+  
+  // If it would be cut off, adjust the height to fit
+  const adjustedHeight = wouldBeCutOff 
+    ? Math.max(160, SCREEN_HEIGHT - bottomPosition - minTopMargin) 
+    : listHeight;
+  
+  console.log('[MentionAutocomplete] 📐 Positioning - bottomPosition:', bottomPosition, 'adjustedHeight:', adjustedHeight, 'keyboardHeight:', keyboardHeight, 'wouldBeCutOff:', wouldBeCutOff);
 
   return (
-    <View style={[styles.container, { bottom: bottomPosition, height: listHeight }, style]}>
+    <View style={[styles.container, { bottom: bottomPosition, height: adjustedHeight }, style]}>
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color={colors.primary} />
