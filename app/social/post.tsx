@@ -1030,6 +1030,8 @@ export default function PostDetailScreen() {
       const usuario1_id = user.id < recipientId ? user.id : recipientId;
       const usuario2_id = user.id < recipientId ? recipientId : user.id;
 
+      console.log('[PostDetail] 🔍 Checking for existing chat between:', usuario1_id, 'and', usuario2_id);
+
       const { data: existingChat } = await supabase
         .from('chats')
         .select('id')
@@ -1041,6 +1043,7 @@ export default function PostDetailScreen() {
       let chatId = existingChat?.id;
 
       if (!chatId) {
+        console.log('[PostDetail] ✅ No existing chat found, creating new chat');
         const { data: newChat, error: chatError } = await supabase
           .from('chats')
           .insert({
@@ -1052,6 +1055,9 @@ export default function PostDetailScreen() {
 
         if (chatError) throw chatError;
         chatId = newChat.id;
+        console.log('[PostDetail] ✅ New chat created:', chatId);
+      } else {
+        console.log('[PostDetail] ✅ Using existing chat:', chatId);
       }
 
       // Use first image for preview

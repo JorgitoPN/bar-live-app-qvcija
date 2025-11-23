@@ -839,6 +839,11 @@ function PostCardWithSwipe({ post, user, activeLocalProfileId, router, toggleLik
     }
   };
 
+  // ✅ Get display username WITHOUT @ symbol
+  const displayUsername = post.tipo === 'local' 
+    ? post.autor?.nombre // Locals use their name
+    : post.autor?.username || post.autor?.nombre; // Users should have username
+
   return (
     <View style={styles.postCard}>
       <View style={styles.postHeader}>
@@ -857,7 +862,7 @@ function PostCardWithSwipe({ post, user, activeLocalProfileId, router, toggleLik
             </View>
           )}
           <View style={styles.postAutorInfo}>
-            <Text style={styles.postAutorNombre}>{post.autor?.nombre || 'Usuario'}</Text>
+            <Text style={styles.postAutorNombre}>{displayUsername}</Text>
             <Text style={styles.postFecha}>{formatearFecha(post.created_at)}</Text>
           </View>
         </TouchableOpacity>
@@ -980,7 +985,7 @@ function PostCardWithSwipe({ post, user, activeLocalProfileId, router, toggleLik
       {post.contenido && (
         <View style={styles.postDescripcion}>
           <Text style={styles.postDescripcionText}>
-            <Text style={{ fontWeight: '600' }}>{post.autor?.nombre || 'Usuario'}</Text>{' '}
+            <Text style={{ fontWeight: '600' }}>{displayUsername}</Text>{' '}
             <ParsedText text={post.contenido} style={styles.postDescripcionText} />
           </Text>
         </View>
@@ -1755,11 +1760,13 @@ export default function SocialScreen() {
     }
 
     try {
-      console.log('[Social] Sending story message...');
+      console.log('[Social] 📨 Sending story message...');
       
       // ✅ FIX: Respect the chats_check constraint (usuario1_id < usuario2_id)
       const usuario1_id = user.id < currentStory.autor_id ? user.id : currentStory.autor_id;
       const usuario2_id = user.id < currentStory.autor_id ? currentStory.autor_id : user.id;
+      
+      console.log('[Social] 🔍 Checking for existing chat between:', usuario1_id, 'and', usuario2_id);
       
       const { data: chatExistente, error: chatError } = await supabase
         .from('chats')
@@ -1772,7 +1779,7 @@ export default function SocialScreen() {
       let chatId = chatExistente?.id;
 
       if (!chatId) {
-        console.log('[Social] Creating new chat...');
+        console.log('[Social] ✅ No existing chat found, creating new chat');
         const { data: nuevoChat, error: nuevoChatError } = await supabase
           .from('chats')
           .insert({
@@ -1783,11 +1790,13 @@ export default function SocialScreen() {
           .single();
 
         if (nuevoChatError) {
-          console.error('[Social] Error creating chat:', nuevoChatError);
+          console.error('[Social] ❌ Error creating chat:', nuevoChatError);
           throw nuevoChatError;
         }
         chatId = nuevoChat.id;
-        console.log('[Social] Chat created:', chatId);
+        console.log('[Social] ✅ New chat created:', chatId);
+      } else {
+        console.log('[Social] ✅ Using existing chat:', chatId);
       }
 
       const { error: mensajeError } = await supabase
@@ -1802,11 +1811,11 @@ export default function SocialScreen() {
         });
 
       if (mensajeError) {
-        console.error('[Social] Error sending message:', mensajeError);
+        console.error('[Social] ❌ Error sending message:', mensajeError);
         throw mensajeError;
       }
 
-      console.log('[Social] Message sent successfully');
+      console.log('[Social] ✅ Message sent successfully');
 
       await supabase.from('notificaciones').insert({
         usuario_id: currentStory.autor_id,
@@ -1819,7 +1828,7 @@ export default function SocialScreen() {
       setStoryMessage('');
       Alert.alert('Éxito', 'Mensaje enviado correctamente');
     } catch (error) {
-      console.error('[Social] Error sending story message:', error);
+      console.error('[Social] ❌ Error sending story message:', error);
       Alert.alert('Error', 'No se pudo enviar el mensaje');
     }
   }, [user, currentStoryIndex, viewingOwnStories, userStories, historias, storyMessage]);
@@ -2106,6 +2115,13 @@ export default function SocialScreen() {
     (currentStory.tipo === 'local' && activeLocalProfileId === currentStory.local_id)
   );
 
+  // ✅ Get display username for story author WITHOUT @ symbol
+  const storyAuthorUsername = currentStory 
+    ? (currentStory.tipo === 'local' 
+        ? currentStory.autor?.nombre // Locals use their name
+        : currentStory.autor?.username || currentStory.autor?.nombre) // Users should have username
+    : '';
+
   if (isInitialLoading) {
     return <InitialLoadingScreen />;
   }
@@ -2289,56 +2305,63 @@ export default function SocialScreen() {
               </TouchableOpacity>
             )}
 
-            {groupedStories.map(({ firstStory, allViewed, firstStoryIndex }, groupIndex) => (
-              <TouchableOpacity
-                key={firstStory.id}
-                style={styles.historiaItem}
-                onPress={() => handleStoryPress(firstStoryIndex, false)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.historiaAvatarContainer}>
-                  {!allViewed ? (
-                    <LinearGradient
-                      colors={['#FFD700', '#00FF00']}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.historiaGradientBorder}
-                    >
-                      {firstStory.autor?.avatar ? (
-                        <Image
-                          source={{ uri: firstStory.autor.avatar }}
-                          style={styles.historiaAvatar}
-                        />
-                      ) : (
-                        <View style={[styles.historiaAvatar, styles.avatarPlaceholder]}>
-                          <Text style={styles.avatarText}>
-                            {firstStory.autor?.nombre?.charAt(0).toUpperCase() || 'U'}
-                          </Text>
-                        </View>
-                      )}
-                    </LinearGradient>
-                  ) : (
-                    <>
-                      {firstStory.autor?.avatar ? (
-                        <Image
-                          source={{ uri: firstStory.autor.avatar }}
-                          style={[styles.historiaAvatar, { borderWidth: 2, borderColor: colors.cardBorder }]}
-                        />
-                      ) : (
-                        <View style={[styles.historiaAvatar, styles.avatarPlaceholder, { borderWidth: 2, borderColor: colors.cardBorder }]}>
-                          <Text style={styles.avatarText}>
-                            {firstStory.autor?.nombre?.charAt(0).toUpperCase() || 'U'}
-                          </Text>
-                        </View>
-                      )}
-                    </>
-                  )}
-                </View>
-                <Text style={styles.historiaNombre} numberOfLines={1}>
-                  {firstStory.autor?.nombre || 'Usuario'}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            {groupedStories.map(({ firstStory, allViewed, firstStoryIndex }, groupIndex) => {
+              // ✅ Get display username WITHOUT @ symbol
+              const storyUsername = firstStory.tipo === 'local'
+                ? firstStory.autor?.nombre // Locals use their name
+                : firstStory.autor?.username || firstStory.autor?.nombre; // Users should have username
+
+              return (
+                <TouchableOpacity
+                  key={firstStory.id}
+                  style={styles.historiaItem}
+                  onPress={() => handleStoryPress(firstStoryIndex, false)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.historiaAvatarContainer}>
+                    {!allViewed ? (
+                      <LinearGradient
+                        colors={['#FFD700', '#00FF00']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.historiaGradientBorder}
+                      >
+                        {firstStory.autor?.avatar ? (
+                          <Image
+                            source={{ uri: firstStory.autor.avatar }}
+                            style={styles.historiaAvatar}
+                          />
+                        ) : (
+                          <View style={[styles.historiaAvatar, styles.avatarPlaceholder]}>
+                            <Text style={styles.avatarText}>
+                              {firstStory.autor?.nombre?.charAt(0).toUpperCase() || 'U'}
+                            </Text>
+                          </View>
+                        )}
+                      </LinearGradient>
+                    ) : (
+                      <>
+                        {firstStory.autor?.avatar ? (
+                          <Image
+                            source={{ uri: firstStory.autor.avatar }}
+                            style={[styles.historiaAvatar, { borderWidth: 2, borderColor: colors.cardBorder }]}
+                          />
+                        ) : (
+                          <View style={[styles.historiaAvatar, styles.avatarPlaceholder, { borderWidth: 2, borderColor: colors.cardBorder }]}>
+                            <Text style={styles.avatarText}>
+                              {firstStory.autor?.nombre?.charAt(0).toUpperCase() || 'U'}
+                            </Text>
+                          </View>
+                        )}
+                      </>
+                    )}
+                  </View>
+                  <Text style={styles.historiaNombre} numberOfLines={1}>
+                    {storyUsername}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </ScrollView>
         </View>
 
@@ -2417,7 +2440,7 @@ export default function SocialScreen() {
                       </View>
                     )}
                     <Text style={styles.storyAutorNombre}>
-                      {currentStory.autor?.nombre || 'Usuario'}
+                      {storyAuthorUsername}
                     </Text>
                   </TouchableOpacity>
                 </View>
