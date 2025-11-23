@@ -5,7 +5,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
   Image,
   Dimensions,
   Platform,
@@ -154,6 +153,9 @@ export default function SocialScreen() {
         likes_count: likesCounts[h.id] || 0,
         liked_by_user: likedStoryIds.has(h.id),
         autor: h.tipo === 'usuario' ? h.usuarios : h.locales,
+        autorNombre: h.tipo === 'usuario' ? h.usuarios?.nombre : h.locales?.nombre,
+        autorUsername: h.tipo === 'usuario' ? h.usuarios?.username : undefined,
+        autorAvatar: h.tipo === 'usuario' ? h.usuarios?.avatar : h.locales?.imagen_url,
       }));
 
       console.log('[Social] ✅ Loaded', historiasConEstado.length, 'stories');
@@ -326,13 +328,17 @@ export default function SocialScreen() {
     }
   }, [currentStories, currentStoryIndex, router, stopStoryTimer, user]);
 
-  const handleOpenStoryViewer = useCallback((stories: Historia[], startIndex: number = 0) => {
-    setCurrentStories(stories);
-    setCurrentStoryIndex(startIndex);
+  const handleOpenStoryViewer = useCallback((historia: Historia) => {
+    // Group stories by author
+    const storiesByAuthor = historias.filter(h => h.autor_id === historia.autor_id);
+    const startIndex = storiesByAuthor.findIndex(h => h.id === historia.id);
+    
+    setCurrentStories(storiesByAuthor);
+    setCurrentStoryIndex(startIndex >= 0 ? startIndex : 0);
     setShowStoryViewer(true);
     setIsPaused(false);
     startStoryTimer();
-  }, [startStoryTimer]);
+  }, [historias, startStoryTimer]);
 
   useEffect(() => {
     if (showStoryViewer && !isPaused) {
@@ -350,6 +356,23 @@ export default function SocialScreen() {
     outputRange: [-progressBarWidth, 0],
   });
 
+  // Header component for FeedSocial
+  const ListHeaderComponent = (
+    <View>
+      {loadingHistorias ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="small" color={colors.primary} />
+        </View>
+      ) : (
+        <BarraHistorias
+          historias={historias}
+          onHistoriaPress={handleOpenStoryViewer}
+          onCrearHistoria={() => router.push('/crear/historia')}
+        />
+      )}
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -361,24 +384,12 @@ export default function SocialScreen() {
         <Text style={styles.headerTitle}>Social</Text>
       </LinearGradient>
 
-      <ScrollView
-        style={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        showsVerticalScrollIndicator={false}
-      >
-        {loadingHistorias ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color={colors.primary} />
-          </View>
-        ) : (
-          <BarraHistorias
-            historias={historias}
-            onStoryPress={handleOpenStoryViewer}
-          />
-        )}
-
-        <FeedSocial />
-      </ScrollView>
+      <FeedSocial
+        posts={[]}
+        onRefresh={onRefresh}
+        refreshing={refreshing}
+        ListHeaderComponent={ListHeaderComponent}
+      />
 
       <Modal
         visible={showStoryViewer}
@@ -582,9 +593,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.headerText,
   },
-  content: {
-    flex: 1,
-  },
   loadingContainer: {
     padding: 20,
     alignItems: 'center',
@@ -646,8 +654,8 @@ const styles = StyleSheet.create({
   },
   storyCloseButton: {
     position: 'absolute',
-    top: 0,
-    right: 0,
+    top: 50,
+    right: 16,
     width: 36,
     height: 36,
     borderRadius: 18,
