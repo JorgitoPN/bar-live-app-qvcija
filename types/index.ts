@@ -4,6 +4,7 @@ export type UserRole = 'cliente' | 'propietario' | 'admin';
 export interface User {
   id: string;
   nombre: string;
+  username?: string; // ✅ ADDED: Username field
   email: string;
   rol_app: UserRole;
   avatar?: string;
@@ -185,7 +186,7 @@ export interface GooglePlaceDetails {
   opening_hours?: {
     weekday_text: string[];
     open_now?: boolean;
-  };
+  }[];
   photos?: {
     photo_reference: string;
     height: number;
@@ -311,6 +312,7 @@ export interface Post {
   id: string;
   autorId: string;
   autorNombre: string;
+  autorUsername?: string; // ✅ ADDED: Username field for posts
   autorAvatar?: string;
   tipo: 'usuario' | 'local';
   contenido: string;
@@ -328,16 +330,19 @@ export interface Historia {
   id: string;
   autorId: string;
   autorNombre: string;
+  autorUsername?: string; // ✅ ADDED: Username field for stories
   autorAvatar?: string;
   tipo: 'usuario' | 'local';
   imagen: string;
   fecha: string;
   visto?: boolean;
+  visto_por_usuario?: boolean; // ✅ ADDED: Track if current user viewed the story
 }
 
 export interface Chat {
   id: string;
   nombre: string;
+  username?: string; // ✅ ADDED: Username field for chats
   avatar?: string;
   ultimoMensaje: string;
   fecha: string;
@@ -350,6 +355,7 @@ export interface Mensaje {
   chatId: string;
   autorId: string;
   autorNombre: string;
+  autorUsername?: string; // ✅ ADDED: Username field for messages
   contenido: string;
   fecha: string;
   leido: boolean;
@@ -361,6 +367,7 @@ export interface Notificacion {
   tipo: 'like' | 'comentario' | 'seguidor' | 'mencion' | 'solicitud';
   usuarioId: string;
   usuarioNombre: string;
+  usuarioUsername?: string; // ✅ ADDED: Username field for notifications
   usuarioAvatar?: string;
   contenido: string;
   fecha: string;

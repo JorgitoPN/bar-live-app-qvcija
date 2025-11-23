@@ -180,6 +180,19 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
     }
   };
 
+  // ✅ UPDATED: Get display username - prioritize username, fallback to nombre for locals
+  const getDisplayUsername = (item: { username?: string; nombre: string; tipo?: 'usuario' | 'local' }) => {
+    if (item.tipo === 'local') {
+      return item.nombre; // Locals use their name as username
+    }
+    return item.username || item.nombre; // Users should always have username
+  };
+
+  // ✅ UPDATED: Get post author username
+  const postAuthorUsername = post.tipo === 'local' 
+    ? post.autorNombre // Locals use their name
+    : post.autorUsername || post.autorNombre; // Users should have username
+
   return (
     <View style={styles.card}>
       <TouchableOpacity
@@ -200,7 +213,7 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
           </View>
         )}
         <View style={styles.headerContent}>
-          <Text style={styles.autorNombre}>{post.autorNombre}</Text>
+          <Text style={styles.autorNombre}>{postAuthorUsername}</Text>
           <Text style={styles.fecha}>{formatearFecha(post.fecha)}</Text>
         </View>
         <TouchableOpacity style={styles.moreButton}>
@@ -219,7 +232,7 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
                   style={styles.mentionedUsername}
                   onPress={() => navigateToProfile(user)}
                 >
-                  @{user.username || user.nombre}
+                  @{getDisplayUsername(user)}
                 </Text>
               </React.Fragment>
             ))}

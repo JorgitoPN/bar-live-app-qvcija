@@ -41,8 +41,13 @@ export default function BarraHistorias({
 
         {/* Historias */}
         {historias.map((historia) => {
-          // FIXED: Check if the story has been viewed by the current user
+          // Check if the story has been viewed by the current user
           const hasBeenViewed = historia.visto_por_usuario === true;
+          
+          // ✅ UPDATED: Display username instead of full name
+          const displayName = historia.tipo === 'local' 
+            ? historia.autorNombre // Locals use their name
+            : historia.autorUsername || historia.autorNombre; // Users should have username
           
           return (
             <TouchableOpacity
@@ -67,7 +72,7 @@ export default function BarraHistorias({
                 </View>
               </LinearGradient>
               <Text style={styles.historiaNombre} numberOfLines={1}>
-                {historia.autorNombre}
+                {displayName}
               </Text>
             </TouchableOpacity>
           );

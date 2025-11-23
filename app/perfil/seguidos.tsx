@@ -23,7 +23,7 @@ interface Seguido {
   username?: string;
   avatar?: string;
   bio?: string;
-  tipo: 'usuario' | 'local'; // ✅ NEW: Distinguish between users and locals
+  tipo: 'usuario' | 'local';
 }
 
 const styles = StyleSheet.create({
@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 2,
   },
-  userUsername: {
+  userFullName: {
     fontSize: 14,
     color: colors.textSecondary,
     marginBottom: 4,
@@ -127,7 +127,6 @@ export default function SeguidosScreen() {
 
   const userId = params.userId as string || user?.id;
 
-  // ✅ UPDATED: Load both user following and local following
   const loadSeguidos = useCallback(async () => {
     if (!userId) return;
 
@@ -153,7 +152,7 @@ export default function SeguidosScreen() {
         console.error('[Seguidos] Error loading user following:', userError);
       }
 
-      // ✅ NEW: Load local following (locals favorited by this user)
+      // Load local following (locals favorited by this user)
       const { data: localFollowing, error: localError } = await supabase
         .from('locales_favoritos')
         .select(`
@@ -190,7 +189,7 @@ export default function SeguidosScreen() {
           });
       }
 
-      // ✅ NEW: Add local following
+      // Add local following
       if (localFollowing) {
         localFollowing
           .filter(s => s.locales)
@@ -217,7 +216,7 @@ export default function SeguidosScreen() {
   useEffect(() => {
     loadSeguidos();
 
-    // ✅ Subscribe to real-time changes for INSTANT updates
+    // Subscribe to real-time changes for INSTANT updates
     if (userId) {
       const channel = supabase
         .channel(`seguidos-changes-${userId}`)
@@ -307,41 +306,47 @@ export default function SeguidosScreen() {
       <FlatList
         data={seguidos}
         keyExtractor={(item) => `${item.tipo}-${item.id}`}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.userItem}
-            onPress={() => handleItemPress(item.id, item.tipo)}
-            activeOpacity={0.7}
-          >
-            {item.avatar ? (
-              <Image source={{ uri: item.avatar }} style={styles.avatar} />
-            ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <Text style={styles.avatarText}>
-                  {item.nombre.charAt(0).toUpperCase()}
-                </Text>
-              </View>
-            )}
-            <View style={styles.userInfo}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={styles.userName}>{item.nombre}</Text>
-                {item.tipo === 'local' && (
-                  <View style={styles.typeBadge}>
-                    <Text style={styles.typeBadgeText}>Local</Text>
-                  </View>
+        renderItem={({ item }) => {
+          // ✅ UPDATED: Display username as primary identifier for users, name for locals
+          const displayUsername = item.tipo === 'local' ? item.nombre : (item.username || item.nombre);
+          const showFullName = item.tipo === 'usuario' && item.username && item.nombre !== item.username;
+          
+          return (
+            <TouchableOpacity
+              style={styles.userItem}
+              onPress={() => handleItemPress(item.id, item.tipo)}
+              activeOpacity={0.7}
+            >
+              {item.avatar ? (
+                <Image source={{ uri: item.avatar }} style={styles.avatar} />
+              ) : (
+                <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                  <Text style={styles.avatarText}>
+                    {displayUsername.charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+              )}
+              <View style={styles.userInfo}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={styles.userName}>{displayUsername}</Text>
+                  {item.tipo === 'local' && (
+                    <View style={styles.typeBadge}>
+                      <Text style={styles.typeBadgeText}>Local</Text>
+                    </View>
+                  )}
+                </View>
+                {showFullName && (
+                  <Text style={styles.userFullName}>{item.nombre}</Text>
+                )}
+                {item.bio && (
+                  <Text style={styles.userBio} numberOfLines={2}>
+                    {item.bio}
+                  </Text>
                 )}
               </View>
-              {item.username && (
-                <Text style={styles.userUsername}>@{item.username}</Text>
-              )}
-              {item.bio && (
-                <Text style={styles.userBio} numberOfLines={2}>
-                  {item.bio}
-                </Text>
-              )}
-            </View>
-          </TouchableOpacity>
-        )}
+            </TouchableOpacity>
+          );
+        }}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <IconSymbol name="person.2" size={64} color={colors.textSecondary} />

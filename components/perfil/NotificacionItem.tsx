@@ -52,6 +52,9 @@ export default function NotificacionItem({
 
   const icono = getIcono();
 
+  // ✅ UPDATED: Display username instead of full name
+  const displayUsername = notificacion.usuarioUsername || notificacion.usuarioNombre;
+
   return (
     <TouchableOpacity
       style={[styles.container, !notificacion.leida && styles.containerNoLeida]}
@@ -73,7 +76,7 @@ export default function NotificacionItem({
 
       <View style={styles.content}>
         <Text style={styles.texto}>
-          <Text style={styles.nombreUsuario}>{notificacion.usuarioNombre}</Text>
+          <Text style={styles.nombreUsuario}>{displayUsername}</Text>
           {' '}
           {notificacion.contenido}
         </Text>
