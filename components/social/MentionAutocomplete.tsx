@@ -256,10 +256,11 @@ export default function MentionAutocomplete({
           // Now filter by active subscriptions with premium or estandar plans
           const localIds = allLocals.map(l => l.id);
           
-          // Query subscriptions with proper join
+          // Query subscriptions - FIX: Specify which foreign key to use with !inner
+          // Use plan_id:planes_suscripcion!suscripciones_locales_plan_id_fkey to specify the relationship
           const { data: activeSubs, error: subsError } = await supabase
             .from('suscripciones_locales')
-            .select('local_id, plan_id, planes_suscripcion(nombre)')
+            .select('local_id, plan_id, plan:planes_suscripcion!suscripciones_locales_plan_id_fkey(nombre)')
             .in('local_id', localIds)
             .eq('estado', 'activa');
 
@@ -271,7 +272,7 @@ export default function MentionAutocomplete({
             // Filter to only include premium and estandar plans
             const localsWithActivePlans = new Set<string>();
             activeSubs.forEach(sub => {
-              const planNombre = (sub.planes_suscripcion as any)?.nombre;
+              const planNombre = (sub.plan as any)?.nombre;
               console.log('[MentionAutocomplete] 🔍 Checking subscription for local:', sub.local_id, 'plan:', planNombre);
               if (planNombre === 'premium' || planNombre === 'estandar') {
                 localsWithActivePlans.add(sub.local_id);
@@ -300,9 +301,10 @@ export default function MentionAutocomplete({
           // Filter by active subscriptions
           const localIds = recentLocals.map(l => l.id);
           
+          // FIX: Specify which foreign key to use
           const { data: activeSubs, error: subsError } = await supabase
             .from('suscripciones_locales')
-            .select('local_id, plan_id, planes_suscripcion(nombre)')
+            .select('local_id, plan_id, plan:planes_suscripcion!suscripciones_locales_plan_id_fkey(nombre)')
             .in('local_id', localIds)
             .eq('estado', 'activa');
 
@@ -311,7 +313,7 @@ export default function MentionAutocomplete({
           } else if (activeSubs && activeSubs.length > 0) {
             const localsWithActivePlans = new Set<string>();
             activeSubs.forEach(sub => {
-              const planNombre = (sub.planes_suscripcion as any)?.nombre;
+              const planNombre = (sub.plan as any)?.nombre;
               if (planNombre === 'premium' || planNombre === 'estandar') {
                 localsWithActivePlans.add(sub.local_id);
               }
@@ -453,19 +455,17 @@ export default function MentionAutocomplete({
 
   // Calculate bottom position based on keyboard height
   // Position it just above the keyboard with proper spacing
-  // Make sure it doesn't go too high and get cut off
-  const maxHeight = 280;
-  const bottomPadding = 20;
-  const bottomPosition = keyboardHeight > 0 ? keyboardHeight + bottomPadding : 120;
+  // FIX: Improved positioning to center above keyboard and prevent cutoff
+  const listHeight = 240; // Fixed height for the list
+  const spacing = 16; // Space between keyboard and list
   
-  // Calculate available space above keyboard
-  const availableSpace = SCREEN_HEIGHT - bottomPosition - 100; // 100 for header
-  const containerHeight = Math.min(maxHeight, Math.max(150, availableSpace));
-
-  console.log('[MentionAutocomplete] 📐 Positioning - bottomPosition:', bottomPosition, 'containerHeight:', containerHeight, 'availableSpace:', availableSpace);
+  // Position above keyboard when keyboard is visible
+  const bottomPosition = keyboardHeight > 0 ? keyboardHeight + spacing : 120;
+  
+  console.log('[MentionAutocomplete] 📐 Positioning - bottomPosition:', bottomPosition, 'listHeight:', listHeight, 'keyboardHeight:', keyboardHeight);
 
   return (
-    <View style={[styles.container, { bottom: bottomPosition, maxHeight: containerHeight }, style]}>
+    <View style={[styles.container, { bottom: bottomPosition, height: listHeight }, style]}>
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color={colors.primary} />
@@ -501,13 +501,13 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.primary,
     borderRadius: 12,
-    minHeight: 120,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 20,
     zIndex: 9999,
+    overflow: 'hidden',
   },
   list: {
     flex: 1,
@@ -559,7 +559,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingContainer: {
-    paddingVertical: 24,
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -571,7 +571,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   emptyContainer: {
-    paddingVertical: 24,
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
