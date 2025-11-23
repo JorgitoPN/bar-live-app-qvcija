@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from './AuthContext';
@@ -127,7 +127,7 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
     loadUserLocales();
   }, [user, loadUserLocales]);
 
-  const setSelectedLocalId = async (localId: string | null) => {
+  const setSelectedLocalId = useCallback(async (localId: string | null) => {
     try {
       setSelectedLocalIdState(localId);
       if (localId) {
@@ -138,19 +138,19 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('[SelectedLocalContext] Error saving selected local:', error);
     }
-  };
+  }, []);
 
-  const refreshLocales = async () => {
+  const refreshLocales = useCallback(async () => {
     await loadUserLocales();
-  };
+  }, [loadUserLocales]);
 
-  const value = {
+  const value = useMemo(() => ({
     selectedLocalId,
     setSelectedLocalId,
     userLocales,
     loadingLocales,
     refreshLocales,
-  };
+  }), [selectedLocalId, setSelectedLocalId, userLocales, loadingLocales, refreshLocales]);
 
   return (
     <SelectedLocalContext.Provider value={value}>
