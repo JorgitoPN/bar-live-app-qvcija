@@ -147,41 +147,42 @@ export default function CrearPublicacionScreen() {
 
       console.log('[CrearPublicacion] 🏢 Searching locals with active subscriptions...');
       
-      // IMPROVED: Use a single query with proper JOINs
-      const { data: localsWithPlans, error: localsError } = await supabase
+      // First get all active locals matching the search
+      const { data: allLocals, error: localsError } = await supabase
         .from('locales')
-        .select(`
-          id,
-          nombre,
-          imagen_url,
-          suscripciones_locales!inner(
-            estado,
-            plan_id,
-            planes_suscripcion!inner(
-              nombre
-            )
-          )
-        `)
+        .select('id, nombre, imagen_url')
         .eq('activo', true)
-        .eq('suscripciones_locales.estado', 'activa')
-        .in('suscripciones_locales.planes_suscripcion.nombre', ['estandar', 'premium'])
         .or(`nombre.ilike.%${cleanTexto}%,nombre.ilike.%${fuzzyPattern}%`)
-        .limit(20);
+        .limit(50);
 
       if (localsError) {
         console.error('[CrearPublicacion] ❌ Error searching locals:', localsError);
       }
 
       let filteredLocalsData: any[] = [];
-      if (localsWithPlans && localsWithPlans.length > 0) {
-        console.log('[CrearPublicacion] ✅ Found locals with active plans:', localsWithPlans.length);
+      if (allLocals && allLocals.length > 0) {
+        console.log('[CrearPublicacion] 📊 Found', allLocals.length, 'active locals matching search');
         
-        // Transform the data structure
-        filteredLocalsData = localsWithPlans.map(local => ({
-          id: local.id,
-          nombre: local.nombre,
-          imagen_url: local.imagen_url,
-        }));
+        // Now filter by active subscriptions
+        const localIds = allLocals.map(l => l.id);
+        
+        const { data: activeSubs, error: subsError } = await supabase
+          .from('suscripciones_locales')
+          .select(`
+            local_id,
+            planes_suscripcion!inner(nombre)
+          `)
+          .in('local_id', localIds)
+          .eq('estado', 'activa')
+          .in('planes_suscripcion.nombre', ['estandar', 'premium']);
+
+        if (subsError) {
+          console.error('[CrearPublicacion] ❌ Error checking subscriptions:', subsError);
+        } else if (activeSubs && activeSubs.length > 0) {
+          const localsWithActivePlans = new Set(activeSubs.map(s => s.local_id));
+          filteredLocalsData = allLocals.filter(l => localsWithActivePlans.has(l.id));
+          console.log('[CrearPublicacion] ✅ Found', filteredLocalsData.length, 'locals with active plans');
+        }
       }
 
       const suggestions: UserSuggestion[] = [];

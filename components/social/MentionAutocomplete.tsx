@@ -232,78 +232,80 @@ export default function MentionAutocomplete({
       }
 
       // Search locals with active subscription (Estándar or Premium)
-      // IMPROVED: Use a single query with proper JOINs to ensure we only get locals with active plans
+      // Use RPC function to get locals with active plans
       console.log('[MentionAutocomplete] 🏢 Searching locals with active subscriptions...');
       
       let localsData: any[] = [];
       
       if (cleanQuery.length > 0) {
-        // Use RPC function or direct query with proper filtering
-        const { data: localsWithPlans, error: localsError } = await supabase
+        // First get all active locals matching the search
+        const { data: allLocals, error: localsError } = await supabase
           .from('locales')
-          .select(`
-            id,
-            nombre,
-            imagen_url,
-            suscripciones_locales!inner(
-              estado,
-              plan_id,
-              planes_suscripcion!inner(
-                nombre
-              )
-            )
-          `)
+          .select('id, nombre, imagen_url')
           .eq('activo', true)
-          .eq('suscripciones_locales.estado', 'activa')
-          .in('suscripciones_locales.planes_suscripcion.nombre', ['estandar', 'premium'])
           .ilike('nombre', `%${cleanQuery}%`)
-          .limit(20);
+          .limit(50);
 
         if (localsError) {
           console.error('[MentionAutocomplete] ❌ Error searching locals:', localsError);
-        } else if (localsWithPlans && localsWithPlans.length > 0) {
-          console.log('[MentionAutocomplete] ✅ Found locals with active plans:', localsWithPlans.length);
+        } else if (allLocals && allLocals.length > 0) {
+          console.log('[MentionAutocomplete] 📊 Found', allLocals.length, 'active locals matching search');
           
-          // Transform the data structure
-          localsData = localsWithPlans.map(local => ({
-            id: local.id,
-            nombre: local.nombre,
-            imagen_url: local.imagen_url,
-          }));
+          // Now filter by active subscriptions
+          const localIds = allLocals.map(l => l.id);
+          
+          const { data: activeSubs, error: subsError } = await supabase
+            .from('suscripciones_locales')
+            .select(`
+              local_id,
+              planes_suscripcion!inner(nombre)
+            `)
+            .in('local_id', localIds)
+            .eq('estado', 'activa')
+            .in('planes_suscripcion.nombre', ['estandar', 'premium']);
+
+          if (subsError) {
+            console.error('[MentionAutocomplete] ❌ Error checking subscriptions:', subsError);
+          } else if (activeSubs && activeSubs.length > 0) {
+            const localsWithActivePlans = new Set(activeSubs.map(s => s.local_id));
+            localsData = allLocals.filter(l => localsWithActivePlans.has(l.id));
+            console.log('[MentionAutocomplete] ✅ Found', localsData.length, 'locals with active plans');
+          }
         }
       } else {
         // Show recent locals with active subscriptions when query is empty
-        const { data: recentLocalsWithPlans, error: recentError } = await supabase
+        const { data: recentLocals, error: recentError } = await supabase
           .from('locales')
-          .select(`
-            id,
-            nombre,
-            imagen_url,
-            suscripciones_locales!inner(
-              estado,
-              plan_id,
-              planes_suscripcion!inner(
-                nombre
-              )
-            )
-          `)
+          .select('id, nombre, imagen_url')
           .eq('activo', true)
-          .eq('suscripciones_locales.estado', 'activa')
-          .in('suscripciones_locales.planes_suscripcion.nombre', ['estandar', 'premium'])
           .order('created_at', { ascending: false })
-          .limit(20);
+          .limit(50);
 
         if (recentError) {
           console.error('[MentionAutocomplete] ❌ Error fetching recent locals:', recentError);
-        } else if (recentLocalsWithPlans && recentLocalsWithPlans.length > 0) {
-          console.log('[MentionAutocomplete] ✅ Found recent locals with active plans:', recentLocalsWithPlans.length);
+        } else if (recentLocals && recentLocals.length > 0) {
+          console.log('[MentionAutocomplete] 📊 Found', recentLocals.length, 'recent active locals');
           
-          // Transform the data structure
-          localsData = recentLocalsWithPlans.map(local => ({
-            id: local.id,
-            nombre: local.nombre,
-            imagen_url: local.imagen_url,
-          }));
+          // Filter by active subscriptions
+          const localIds = recentLocals.map(l => l.id);
+          
+          const { data: activeSubs, error: subsError } = await supabase
+            .from('suscripciones_locales')
+            .select(`
+              local_id,
+              planes_suscripcion!inner(nombre)
+            `)
+            .in('local_id', localIds)
+            .eq('estado', 'activa')
+            .in('planes_suscripcion.nombre', ['estandar', 'premium']);
+
+          if (subsError) {
+            console.error('[MentionAutocomplete] ❌ Error checking subscriptions:', subsError);
+          } else if (activeSubs && activeSubs.length > 0) {
+            const localsWithActivePlans = new Set(activeSubs.map(s => s.local_id));
+            localsData = recentLocals.filter(l => localsWithActivePlans.has(l.id));
+            console.log('[MentionAutocomplete] ✅ Found', localsData.length, 'recent locals with active plans');
+          }
         }
       }
 
@@ -436,6 +438,7 @@ export default function MentionAutocomplete({
   );
 
   // Calculate bottom position based on keyboard height
+  // Position it just above the keyboard with proper spacing
   const bottomPosition = keyboardHeight > 0 ? keyboardHeight + 10 : 100;
 
   return (
@@ -475,8 +478,8 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.primary,
     borderRadius: 12,
-    maxHeight: 300,
-    minHeight: 80,
+    maxHeight: 250,
+    minHeight: 100,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
