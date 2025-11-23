@@ -50,6 +50,9 @@ interface Historia {
     nombre: string;
     imagen_url?: string;
   };
+  autorNombre?: string;
+  autorUsername?: string;
+  autorAvatar?: string;
 }
 
 export default function SocialScreen() {
@@ -228,7 +231,7 @@ export default function SocialScreen() {
     Animated.timing(progressAnim, {
       toValue: progressBarWidth,
       duration: STORY_DURATION,
-      useNativeDriver: true,
+      useNativeDriver: false,
     }).start(({ finished }) => {
       if (finished) {
         handleNextStory();
@@ -469,7 +472,8 @@ export default function SocialScreen() {
                     ) : (
                       <View style={[styles.storyAutorAvatar, styles.avatarPlaceholder]}>
                         <IconSymbol
-                          name={currentStory.tipo === 'local' ? 'building.2' : 'person.fill'}
+                          ios_icon_name={currentStory.tipo === 'local' ? 'building.2' : 'person.fill'}
+                          android_material_icon_name={currentStory.tipo === 'local' ? 'business' : 'person'}
                           size={18}
                           color={colors.headerText}
                         />
@@ -507,7 +511,7 @@ export default function SocialScreen() {
                     }}
                     activeOpacity={0.8}
                   >
-                    <IconSymbol name="xmark" size={20} color="#fff" />
+                    <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={20} color="#fff" />
                   </TouchableOpacity>
                 </View>
 
@@ -526,7 +530,8 @@ export default function SocialScreen() {
                     activeOpacity={0.7}
                   >
                     <IconSymbol
-                      name={currentStory.liked_by_user ? 'heart.fill' : 'heart'}
+                      ios_icon_name={currentStory.liked_by_user ? 'heart.fill' : 'heart'}
+                      android_material_icon_name={currentStory.liked_by_user ? 'favorite' : 'favorite_border'}
                       size={20}
                       color={currentStory.liked_by_user ? '#EF4444' : '#fff'}
                     />
@@ -554,7 +559,7 @@ export default function SocialScreen() {
                       onPress={handleSendStoryMessage}
                       activeOpacity={0.7}
                     >
-                      <IconSymbol name="paperplane.fill" size={20} color="#fff" />
+                      <IconSymbol ios_icon_name="paperplane.fill" android_material_icon_name="send" size={20} color="#fff" />
                     </TouchableOpacity>
                   )}
                 </View>

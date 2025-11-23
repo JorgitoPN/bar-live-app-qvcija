@@ -29,10 +29,10 @@ export default function BarraHistorias({
           <TouchableOpacity style={styles.crearHistoria} onPress={onCrearHistoria}>
             <View style={styles.avatarWithAddButton}>
               <View style={styles.avatarBackground}>
-                <IconSymbol name="person.fill" size={32} color={colors.textSecondary} />
+                <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={40} color={colors.textSecondary} />
               </View>
               <View style={styles.addButtonOverlay}>
-                <IconSymbol name="plus.circle.fill" size={24} color={colors.primary} />
+                <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={28} color={colors.primary} />
               </View>
             </View>
             <Text style={styles.crearText}>Tu historia</Text>
@@ -44,7 +44,7 @@ export default function BarraHistorias({
           // Check if the story has been viewed by the current user
           const hasBeenViewed = historia.visto_por_usuario === true;
           
-          // ✅ UPDATED: Display username WITHOUT @ symbol
+          // Display username WITHOUT @ symbol
           const displayName = historia.tipo === 'local' 
             ? historia.autorNombre // Locals use their name
             : historia.autorUsername || historia.autorNombre; // Users should have username
@@ -66,7 +66,7 @@ export default function BarraHistorias({
                     <Image source={{ uri: historia.autorAvatar }} style={styles.historiaImage} />
                   ) : (
                     <View style={styles.historiaPlaceholder}>
-                      <IconSymbol name="person.fill" size={24} color={colors.textSecondary} />
+                      <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={32} color={colors.textSecondary} />
                     </View>
                   )}
                 </View>
@@ -87,26 +87,26 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBackground,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
-    paddingVertical: 12,
+    paddingVertical: 16,
   },
   scrollContent: {
     paddingHorizontal: 12,
-    gap: 12,
+    gap: 16,
   },
   crearHistoria: {
     alignItems: 'center',
-    width: 72,
+    width: 90,
   },
   avatarWithAddButton: {
-    width: 68,
-    height: 68,
+    width: 86,
+    height: 86,
     position: 'relative',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   avatarBackground: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
+    width: 86,
+    height: 86,
+    borderRadius: 43,
     backgroundColor: colors.cardBackground,
     borderWidth: 2,
     borderColor: colors.cardBorder,
@@ -118,9 +118,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
@@ -133,19 +133,19 @@ const styles = StyleSheet.create({
   },
   historiaContainer: {
     alignItems: 'center',
-    width: 72,
+    width: 90,
   },
   historiaGradient: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    padding: 2,
-    marginBottom: 6,
+    width: 86,
+    height: 86,
+    borderRadius: 43,
+    padding: 3,
+    marginBottom: 8,
   },
   historiaImageContainer: {
     width: '100%',
     height: '100%',
-    borderRadius: 32,
+    borderRadius: 40,
     overflow: 'hidden',
     borderWidth: 3,
     borderColor: colors.cardBackground,
