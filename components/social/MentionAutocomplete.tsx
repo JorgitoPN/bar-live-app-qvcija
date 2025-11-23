@@ -472,26 +472,14 @@ export default function MentionAutocomplete({
     );
   };
 
-  // IMPROVED POSITIONING CALCULATION
-  // The list should be positioned just above the keyboard and centered
+  // FIXED POSITIONING CALCULATION
+  // The list should be positioned directly above the keyboard with minimal gap
   
-  const maxListHeight = 280; // Maximum height for the list
-  const spacing = 12; // Space between keyboard and list
+  const maxListHeight = 200; // Reduced maximum height for the list
+  const spacing = 8; // Minimal space between keyboard and list (reduced from 12)
   
-  // Calculate available space above keyboard
-  const availableSpace = keyboardHeight > 0 
-    ? SCREEN_HEIGHT - keyboardHeight - spacing 
-    : SCREEN_HEIGHT - 120;
-  
-  // Ensure minimum space from top (for status bar, header, etc.)
-  const minTopSpace = 100;
-  
-  // Calculate the actual height the list can use
-  const calculatedHeight = Math.min(maxListHeight, availableSpace - minTopSpace);
-  
-  // Position the list just above the keyboard
-  // When keyboard is visible, position it above the keyboard with spacing
-  // When keyboard is hidden, position it near the bottom
+  // Calculate the bottom position - this is where the BOTTOM edge of the container will be
+  // We want the bottom of the container to be just above the keyboard
   const bottomPosition = keyboardHeight > 0 
     ? keyboardHeight + spacing 
     : 120;
@@ -499,13 +487,12 @@ export default function MentionAutocomplete({
   console.log('[MentionAutocomplete] 📐 Positioning:');
   console.log('  - Screen height:', SCREEN_HEIGHT);
   console.log('  - Keyboard height:', keyboardHeight);
-  console.log('  - Available space:', availableSpace);
-  console.log('  - Calculated height:', calculatedHeight);
+  console.log('  - Max list height:', maxListHeight);
+  console.log('  - Spacing:', spacing);
   console.log('  - Bottom position:', bottomPosition);
-  console.log('  - Top position:', SCREEN_HEIGHT - bottomPosition - calculatedHeight);
 
   return (
-    <View style={[styles.container, { bottom: bottomPosition, height: calculatedHeight }, style]}>
+    <View style={[styles.container, { bottom: bottomPosition, maxHeight: maxListHeight }, style]}>
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color={colors.primary} />
