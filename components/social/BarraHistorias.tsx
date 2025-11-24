@@ -1,5 +1,5 @@
 
-import React, { memo } from 'react';
+import React, { memo, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { Historia } from '@/types';
@@ -22,6 +22,15 @@ const StoryItem = memo(({
 }) => {
   const hasBeenViewed = historia.visto_por_usuario === true;
   
+  // ✅ Preload image for instant display
+  useEffect(() => {
+    if (historia.autorAvatar) {
+      Image.prefetch(historia.autorAvatar).catch(() => {
+        console.log('[BarraHistorias] Failed to prefetch avatar:', historia.autorAvatar);
+      });
+    }
+  }, [historia.autorAvatar]);
+  
   return (
     <TouchableOpacity
       style={styles.historiaContainer}
@@ -39,7 +48,7 @@ const StoryItem = memo(({
             <Image 
               source={{ uri: historia.autorAvatar }} 
               style={styles.historiaImage}
-              // Performance optimizations
+              // ✅ Performance optimizations
               fadeDuration={0}
               cache="force-cache"
             />
@@ -88,9 +97,10 @@ const BarraHistorias = memo(function BarraHistorias({
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
-        // Performance optimizations
+        // ✅ Performance optimizations
         removeClippedSubviews={true}
         scrollEventThrottle={16}
+        decelerationRate="fast"
       >
         {/* Crear historia */}
         {onCrearHistoria && <CreateStoryButton onPress={onCrearHistoria} />}

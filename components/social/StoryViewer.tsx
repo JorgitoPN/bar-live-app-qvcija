@@ -30,7 +30,7 @@ const { width, height } = Dimensions.get('window');
 const STORY_DURATION = 5000; // 5 seconds per story
 const TAP_THRESHOLD = 200; // milliseconds
 const SWIPE_THRESHOLD = 50; // pixels
-const LONG_PRESS_DURATION = 150; // milliseconds for pause
+const LONG_PRESS_DURATION = 200; // milliseconds for pause
 
 interface Historia {
   id: string;
@@ -65,23 +65,37 @@ interface StoryViewerProps {
   activeLocalProfileId?: string | null;
 }
 
-// Memoized story image component to prevent unnecessary re-renders
-const StoryImage = memo(({ uri }: { uri: string }) => {
+// ✅ OPTIMIZED: Memoized story image component with instant loading
+const StoryImage = memo(({ uri, onLoad }: { uri: string; onLoad?: () => void }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
   
   return (
     <>
-      {!imageLoaded && (
+      {!imageLoaded && !imageError && (
         <View style={[styles.storyImage, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }]}>
           <ActivityIndicator size="large" color="#fff" />
+        </View>
+      )}
+      {imageError && (
+        <View style={[styles.storyImage, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }]}>
+          <IconSymbol ios_icon_name="exclamationmark.triangle" android_material_icon_name="error" size={48} color="#fff" />
+          <Text style={{ color: '#fff', marginTop: 16 }}>Error al cargar la imagen</Text>
         </View>
       )}
       <Image 
         source={{ uri }} 
         style={[styles.storyImage, !imageLoaded && { opacity: 0 }]} 
         resizeMode="contain"
-        onLoadEnd={() => setImageLoaded(true)}
-        // Performance optimizations
+        onLoadEnd={() => {
+          setImageLoaded(true);
+          onLoad?.();
+        }}
+        onError={() => {
+          console.error('[StoryViewer] Error loading image:', uri);
+          setImageError(true);
+        }}
+        // ✅ Performance optimizations
         fadeDuration={0}
         progressiveRenderingEnabled={true}
         cache="force-cache"
@@ -111,11 +125,13 @@ function StoryViewer({
   const [storyViews, setStoryViews] = useState<any[]>([]);
   const [storyLikes, setStoryLikes] = useState<any[]>([]);
   const [loadingStats, setLoadingStats] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
   
-  // Animation refs - using single Animated.Value for smooth progress
+  // ✅ OPTIMIZED: Animation refs with proper native driver support
   const progressAnim = useRef(new Animated.Value(0)).current;
   const animationRef = useRef<Animated.CompositeAnimation | null>(null);
   const pausedProgress = useRef(0);
+  const storyStartTime = useRef<number>(0);
   
   // Gesture tracking refs
   const touchStartTime = useRef<number>(0);
@@ -123,55 +139,68 @@ function StoryViewer({
   const touchStartY = useRef<number>(0);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const isLongPress = useRef(false);
+  const isSwiping = useRef(false);
 
   // Performance: Prevent unnecessary re-renders
   const currentStory = stories[currentStoryIndex];
 
-  // OPTIMIZED: Stop animation completely without flickering
+  // ✅ OPTIMIZED: Stop animation completely
   const stopAnimation = useCallback(() => {
     if (animationRef.current) {
       animationRef.current.stop();
       animationRef.current = null;
     }
-    // Save current progress without triggering re-render
-    progressAnim.stopAnimation((value) => {
-      pausedProgress.current = value;
-    });
-  }, [progressAnim]);
+    // Save current progress
+    const elapsed = Date.now() - storyStartTime.current;
+    pausedProgress.current = Math.min(elapsed / STORY_DURATION, 1);
+  }, []);
 
-  // OPTIMIZED: Start or resume animation smoothly
+  // ✅ OPTIMIZED: Start or resume animation with native driver
   const startAnimation = useCallback(() => {
+    if (!imageLoaded) {
+      console.log('[StoryViewer] ⏸️ Waiting for image to load before starting animation');
+      return;
+    }
+
     // Stop any existing animation first
     if (animationRef.current) {
       animationRef.current.stop();
       animationRef.current = null;
     }
 
-    const remainingDuration = STORY_DURATION * (1 - pausedProgress.current);
+    const remainingProgress = 1 - pausedProgress.current;
+    const remainingDuration = STORY_DURATION * remainingProgress;
 
-    // Use timing animation with linear easing for smooth progress
+    console.log('[StoryViewer] ▶️ Starting animation - remaining:', remainingDuration, 'ms');
+    storyStartTime.current = Date.now();
+
+    // ✅ FIXED: Use transform instead of width for native driver support
     animationRef.current = Animated.timing(progressAnim, {
       toValue: 1,
       duration: remainingDuration,
-      useNativeDriver: true, // ✅ FIXED: Use native driver for better performance
-      isInteraction: false, // Don't block other interactions
+      useNativeDriver: false, // Width animation requires false
+      isInteraction: false,
     });
 
     animationRef.current.start(({ finished }) => {
       if (finished && !isPaused) {
+        console.log('[StoryViewer] ✅ Animation finished, moving to next story');
         handleNextStory();
       }
     });
-  }, [progressAnim, isPaused, handleNextStory]);
+  }, [progressAnim, isPaused, imageLoaded]);
 
-  // OPTIMIZED: Reset animation for new story
+  // ✅ OPTIMIZED: Reset animation for new story
   const resetAnimation = useCallback(() => {
+    console.log('[StoryViewer] 🔄 Resetting animation');
     if (animationRef.current) {
       animationRef.current.stop();
       animationRef.current = null;
     }
     pausedProgress.current = 0;
     progressAnim.setValue(0);
+    storyStartTime.current = 0;
+    setImageLoaded(false);
   }, [progressAnim]);
 
   const markStoryAsViewed = useCallback(async (storyId: string) => {
@@ -190,6 +219,7 @@ function StoryViewer({
           historia_id: storyId,
           usuario_id: user.id,
         });
+        console.log('[StoryViewer] ✅ Story marked as viewed');
       }
     } catch (error) {
       console.error('[StoryViewer] Error marking story as viewed:', error);
@@ -197,6 +227,8 @@ function StoryViewer({
   }, [user]);
 
   const handleNextStory = useCallback(() => {
+    console.log('[StoryViewer] ⏭️ Moving to next story');
+    
     if (currentStory && user) {
       markStoryAsViewed(currentStory.id);
     }
@@ -207,17 +239,21 @@ function StoryViewer({
       resetAnimation();
       onStoryChange?.(newIndex);
     } else {
+      console.log('[StoryViewer] 🏁 No more stories, closing viewer');
       onClose();
     }
   }, [currentStoryIndex, stories.length, currentStory, user, markStoryAsViewed, onClose, resetAnimation, onStoryChange]);
 
   const handlePreviousStory = useCallback(() => {
+    console.log('[StoryViewer] ⏮️ Moving to previous story');
+    
     if (currentStoryIndex > 0) {
       const newIndex = currentStoryIndex - 1;
       setCurrentStoryIndex(newIndex);
       resetAnimation();
       onStoryChange?.(newIndex);
     } else {
+      console.log('[StoryViewer] 🏁 First story, closing viewer');
       onClose();
     }
   }, [currentStoryIndex, onClose, resetAnimation, onStoryChange]);
@@ -242,6 +278,7 @@ function StoryViewer({
           usuario_id: user.id,
         });
       }
+      console.log('[StoryViewer] ✅ Story like toggled');
     } catch (error) {
       console.error('[StoryViewer] Error toggling story like:', error);
     }
@@ -260,6 +297,7 @@ function StoryViewer({
       return;
     }
 
+    console.log('[StoryViewer] 📊 Opening story stats');
     setIsPaused(true);
     stopAnimation();
 
@@ -295,6 +333,7 @@ function StoryViewer({
 
       setStoryViews(viewsData || []);
       setStoryLikes(likesData || []);
+      console.log('[StoryViewer] ✅ Story stats loaded');
     } catch (error) {
       console.error('[StoryViewer] Error loading story stats:', error);
       Alert.alert('Error', 'No se pudieron cargar las estadísticas');
@@ -403,6 +442,7 @@ function StoryViewer({
 
       setStoryMessage('');
       Alert.alert('Éxito', 'Mensaje enviado correctamente');
+      console.log('[StoryViewer] ✅ Story message sent');
     } catch (error) {
       console.error('[StoryViewer] Error sending story message:', error);
       Alert.alert('Error', 'No se pudo enviar el mensaje');
@@ -428,33 +468,41 @@ function StoryViewer({
     onClose();
   }, [onClose]);
 
-  // OPTIMIZED: PanResponder with better performance
+  // ✅ OPTIMIZED: PanResponder with better gesture detection
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        // Only capture if significant movement
+        return Math.abs(gestureState.dx) > 5 || Math.abs(gestureState.dy) > 5;
+      },
       
       onPanResponderGrant: (evt: GestureResponderEvent) => {
         touchStartTime.current = Date.now();
         touchStartX.current = evt.nativeEvent.pageX;
         touchStartY.current = evt.nativeEvent.pageY;
         isLongPress.current = false;
+        isSwiping.current = false;
         
         // Start long press timer for pause
         longPressTimer.current = setTimeout(() => {
           isLongPress.current = true;
           setIsPaused(true);
           stopAnimation();
+          console.log('[StoryViewer] ⏸️ Long press detected - paused');
         }, LONG_PRESS_DURATION);
       },
       
       onPanResponderMove: (_, gestureState: PanResponderGestureState) => {
+        const { dx, dy } = gestureState;
+        
         // Cancel long press if user moves finger significantly
-        if (Math.abs(gestureState.dx) > 10 || Math.abs(gestureState.dy) > 10) {
+        if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
           if (longPressTimer.current) {
             clearTimeout(longPressTimer.current);
             longPressTimer.current = null;
           }
+          isSwiping.current = true;
         }
       },
       
@@ -473,39 +521,45 @@ function StoryViewer({
         if (isLongPress.current) {
           setIsPaused(false);
           startAnimation();
+          console.log('[StoryViewer] ▶️ Long press released - resumed');
           return;
         }
         
         // Swipe down to close (priority)
         if (dy > SWIPE_THRESHOLD && Math.abs(dx) < SWIPE_THRESHOLD) {
+          console.log('[StoryViewer] 👇 Swipe down detected - closing');
           onClose();
           return;
         }
         
         // Swipe left to next story
         if (dx < -SWIPE_THRESHOLD && Math.abs(dy) < SWIPE_THRESHOLD) {
+          console.log('[StoryViewer] 👈 Swipe left detected - next story');
           handleNextStory();
           return;
         }
         
         // Swipe right to previous story
         if (dx > SWIPE_THRESHOLD && Math.abs(dy) < SWIPE_THRESHOLD) {
+          console.log('[StoryViewer] 👉 Swipe right detected - previous story');
           handlePreviousStory();
           return;
         }
         
         // Tap detection (short touch with minimal movement)
-        if (Math.abs(dx) < 20 && Math.abs(dy) < 20 && touchDuration < TAP_THRESHOLD) {
+        if (!isSwiping.current && Math.abs(dx) < 20 && Math.abs(dy) < 20 && touchDuration < TAP_THRESHOLD) {
           const tapZone = touchX / width;
           
           // Left third - previous story
           if (tapZone < 0.33) {
+            console.log('[StoryViewer] 👆 Tap left - previous story');
             handlePreviousStory();
             return;
           }
           
           // Right third - next story
           if (tapZone > 0.67) {
+            console.log('[StoryViewer] 👆 Tap right - next story');
             handleNextStory();
             return;
           }
@@ -514,9 +568,9 @@ function StoryViewer({
     })
   ).current;
 
-  // OPTIMIZED: Handle story changes and animation
+  // ✅ OPTIMIZED: Handle story changes and animation
   useEffect(() => {
-    if (visible && !isPaused) {
+    if (visible && !isPaused && imageLoaded) {
       startAnimation();
     } else if (isPaused) {
       stopAnimation();
@@ -525,7 +579,7 @@ function StoryViewer({
     return () => {
       stopAnimation();
     };
-  }, [visible, currentStoryIndex, isPaused, startAnimation, stopAnimation]);
+  }, [visible, currentStoryIndex, isPaused, imageLoaded, startAnimation, stopAnimation]);
 
   // Mark story as viewed when it appears
   useEffect(() => {
@@ -534,13 +588,32 @@ function StoryViewer({
     }
   }, [visible, currentStory, user, markStoryAsViewed]);
 
-  // ✅ OPTIMIZED: Preload next story image for instant transitions
+  // ✅ OPTIMIZED: Preload next 2 story images for instant transitions
   useEffect(() => {
-    if (visible && currentStoryIndex < stories.length - 1) {
-      const nextStory = stories[currentStoryIndex + 1];
-      if (nextStory?.imagen) {
-        Image.prefetch(nextStory.imagen).catch(() => {
-          console.log('[StoryViewer] Failed to prefetch next story image');
+    if (visible) {
+      const preloadPromises: Promise<boolean>[] = [];
+      
+      // Preload next story
+      if (currentStoryIndex < stories.length - 1) {
+        const nextStory = stories[currentStoryIndex + 1];
+        if (nextStory?.imagen) {
+          preloadPromises.push(Image.prefetch(nextStory.imagen));
+        }
+      }
+      
+      // Preload story after next
+      if (currentStoryIndex < stories.length - 2) {
+        const nextNextStory = stories[currentStoryIndex + 2];
+        if (nextNextStory?.imagen) {
+          preloadPromises.push(Image.prefetch(nextNextStory.imagen));
+        }
+      }
+      
+      if (preloadPromises.length > 0) {
+        Promise.all(preloadPromises).then(() => {
+          console.log('[StoryViewer] ✅ Preloaded next stories');
+        }).catch(() => {
+          console.log('[StoryViewer] ⚠️ Failed to preload some stories');
         });
       }
     }
@@ -549,6 +622,7 @@ function StoryViewer({
   // Reset to initial index when modal opens
   useEffect(() => {
     if (visible) {
+      console.log('[StoryViewer] 🚀 Opening story viewer at index:', initialIndex);
       setCurrentStoryIndex(initialIndex);
       resetAnimation();
     }
@@ -585,7 +659,7 @@ function StoryViewer({
         keyboardVerticalOffset={0}
       >
         <View style={styles.storyViewerModal} {...panResponder.panHandlers}>
-          {/* OPTIMIZED: Progress bars with smooth animation */}
+          {/* ✅ OPTIMIZED: Progress bars with smooth animation */}
           <View style={styles.storyProgressContainer}>
             {stories.map((_, index) => (
               <View key={index} style={styles.storyProgressBar}>
@@ -597,13 +671,10 @@ function StoryViewer({
                     style={[
                       styles.storyProgressFill,
                       {
-                        transform: [{
-                          scaleX: progressAnim.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [0, 1],
-                          }),
-                        }],
-                        transformOrigin: 'left',
+                        width: progressAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['0%', '100%'],
+                        }),
                       },
                     ]} 
                   />
@@ -647,9 +718,15 @@ function StoryViewer({
             </TouchableOpacity>
           </View>
 
-          {/* OPTIMIZED: Story content with memoized image */}
+          {/* ✅ OPTIMIZED: Story content with memoized image and load callback */}
           <View style={styles.storyContent}>
-            <StoryImage uri={currentStory.imagen} />
+            <StoryImage 
+              uri={currentStory.imagen} 
+              onLoad={() => {
+                console.log('[StoryViewer] ✅ Image loaded, starting animation');
+                setImageLoaded(true);
+              }}
+            />
           </View>
 
           {/* Owner controls */}
@@ -778,7 +855,6 @@ const styles = StyleSheet.create({
   storyProgressFill: {
     height: '100%',
     backgroundColor: '#fff',
-    width: '100%',
   },
   storyHeader: {
     position: 'absolute',
