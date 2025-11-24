@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { memo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { Historia } from '@/types';
@@ -12,7 +12,72 @@ interface BarraHistoriasProps {
   onCrearHistoria?: () => void;
 }
 
-export default function BarraHistorias({
+// Memoized story item to prevent unnecessary re-renders
+const StoryItem = memo(({ 
+  historia, 
+  onPress 
+}: { 
+  historia: Historia; 
+  onPress: () => void;
+}) => {
+  const hasBeenViewed = historia.visto_por_usuario === true;
+  
+  return (
+    <TouchableOpacity
+      style={styles.historiaContainer}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <LinearGradient
+        colors={hasBeenViewed ? ['#E5E7EB', '#E5E7EB'] : ['#FFD700', '#00FF00']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.historiaGradient}
+      >
+        <View style={styles.historiaImageContainer}>
+          {historia.autorAvatar ? (
+            <Image 
+              source={{ uri: historia.autorAvatar }} 
+              style={styles.historiaImage}
+              // Performance optimizations
+              fadeDuration={0}
+              cache="force-cache"
+            />
+          ) : (
+            <View style={styles.historiaPlaceholder}>
+              <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={24} color={colors.textSecondary} />
+            </View>
+          )}
+        </View>
+      </LinearGradient>
+      <Text style={styles.historiaNombre} numberOfLines={1}>
+        {historia.autorNombre}
+      </Text>
+    </TouchableOpacity>
+  );
+});
+
+StoryItem.displayName = 'StoryItem';
+
+// Memoized create story button
+const CreateStoryButton = memo(({ onPress }: { onPress: () => void }) => (
+  <TouchableOpacity style={styles.crearHistoria} onPress={onPress} activeOpacity={0.7}>
+    <View style={styles.avatarWithAddButton}>
+      <View style={styles.avatarBackground}>
+        <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={32} color={colors.textSecondary} />
+      </View>
+      <View style={styles.addButtonOverlay}>
+        <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={24} color={colors.primary} />
+      </View>
+    </View>
+    <Text style={styles.crearText}>Tu historia</Text>
+  </TouchableOpacity>
+));
+
+CreateStoryButton.displayName = 'CreateStoryButton';
+
+// Main component - memoized to prevent unnecessary re-renders
+const BarraHistorias = memo(function BarraHistorias({
   historias,
   onHistoriaPress,
   onCrearHistoria,
@@ -23,59 +88,25 @@ export default function BarraHistorias({
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        // Performance optimizations
+        removeClippedSubviews={true}
+        scrollEventThrottle={16}
       >
-        {/* Crear historia - Avatar unificado con botón de añadir */}
-        {onCrearHistoria && (
-          <TouchableOpacity style={styles.crearHistoria} onPress={onCrearHistoria}>
-            <View style={styles.avatarWithAddButton}>
-              <View style={styles.avatarBackground}>
-                <IconSymbol name="person.fill" size={32} color={colors.textSecondary} />
-              </View>
-              <View style={styles.addButtonOverlay}>
-                <IconSymbol name="plus.circle.fill" size={24} color={colors.primary} />
-              </View>
-            </View>
-            <Text style={styles.crearText}>Tu historia</Text>
-          </TouchableOpacity>
-        )}
+        {/* Crear historia */}
+        {onCrearHistoria && <CreateStoryButton onPress={onCrearHistoria} />}
 
         {/* Historias */}
-        {historias.map((historia) => {
-          // FIXED: Check if the story has been viewed by the current user
-          const hasBeenViewed = historia.visto_por_usuario === true;
-          
-          return (
-            <TouchableOpacity
-              key={historia.id}
-              style={styles.historiaContainer}
-              onPress={() => onHistoriaPress(historia)}
-            >
-              <LinearGradient
-                colors={hasBeenViewed ? ['#E5E7EB', '#E5E7EB'] : ['#FFD700', '#00FF00']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.historiaGradient}
-              >
-                <View style={styles.historiaImageContainer}>
-                  {historia.autorAvatar ? (
-                    <Image source={{ uri: historia.autorAvatar }} style={styles.historiaImage} />
-                  ) : (
-                    <View style={styles.historiaPlaceholder}>
-                      <IconSymbol name="person.fill" size={24} color={colors.textSecondary} />
-                    </View>
-                  )}
-                </View>
-              </LinearGradient>
-              <Text style={styles.historiaNombre} numberOfLines={1}>
-                {historia.autorNombre}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
+        {historias.map((historia) => (
+          <StoryItem
+            key={historia.id}
+            historia={historia}
+            onPress={() => onHistoriaPress(historia)}
+          />
+        ))}
       </ScrollView>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {
@@ -163,3 +194,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
+export default BarraHistorias;

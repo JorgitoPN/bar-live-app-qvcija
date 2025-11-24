@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
 import {
   View,
   Text,
@@ -64,7 +64,22 @@ interface StoryViewerProps {
   activeLocalProfileId?: string | null;
 }
 
-export default function StoryViewer({
+// Memoized story image component to prevent unnecessary re-renders
+const StoryImage = memo(({ uri }: { uri: string }) => (
+  <Image 
+    source={{ uri }} 
+    style={styles.storyImage} 
+    resizeMode="contain"
+    // Performance optimizations
+    fadeDuration={0}
+    progressiveRenderingEnabled={true}
+    cache="force-cache"
+  />
+));
+
+StoryImage.displayName = 'StoryImage';
+
+function StoryViewer({
   visible,
   stories,
   initialIndex,
@@ -84,7 +99,7 @@ export default function StoryViewer({
   const [storyLikes, setStoryLikes] = useState<any[]>([]);
   const [loadingStats, setLoadingStats] = useState(false);
   
-  // Animation and timer refs
+  // Animation refs - using single Animated.Value for smooth progress
   const progressAnim = useRef(new Animated.Value(0)).current;
   const animationRef = useRef<Animated.CompositeAnimation | null>(null);
   const pausedProgress = useRef(0);
@@ -96,45 +111,46 @@ export default function StoryViewer({
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const isLongPress = useRef(false);
 
-  console.log('[StoryViewer] 🔄 Component loaded - Version 6.0 - Smooth animations and gestures');
-
+  // Performance: Prevent unnecessary re-renders
   const currentStory = stories[currentStoryIndex];
 
-  // Stop animation completely
+  // OPTIMIZED: Stop animation completely without flickering
   const stopAnimation = useCallback(() => {
     if (animationRef.current) {
       animationRef.current.stop();
       animationRef.current = null;
     }
-    // Save current progress
+    // Save current progress without triggering re-render
     progressAnim.stopAnimation((value) => {
       pausedProgress.current = value;
     });
   }, [progressAnim]);
 
-  // Start or resume animation
+  // OPTIMIZED: Start or resume animation smoothly
   const startAnimation = useCallback(() => {
-    // Stop any existing animation
+    // Stop any existing animation first
     if (animationRef.current) {
       animationRef.current.stop();
     }
 
     const remainingDuration = STORY_DURATION * (1 - pausedProgress.current);
 
+    // Use timing animation with linear easing for smooth progress
     animationRef.current = Animated.timing(progressAnim, {
       toValue: 1,
       duration: remainingDuration,
-      useNativeDriver: false, // width animations don't support native driver
+      useNativeDriver: false, // Required for width animations
+      isInteraction: false, // Don't block other interactions
     });
 
     animationRef.current.start(({ finished }) => {
-      if (finished) {
+      if (finished && !isPaused) {
         handleNextStory();
       }
     });
-  }, [progressAnim]);
+  }, [progressAnim, isPaused]);
 
-  // Reset animation for new story
+  // OPTIMIZED: Reset animation for new story
   const resetAnimation = useCallback(() => {
     if (animationRef.current) {
       animationRef.current.stop();
@@ -148,22 +164,18 @@ export default function StoryViewer({
     if (!user) return;
 
     try {
-      console.log('[StoryViewer] ⚡ Marking story as viewed:', storyId);
-      
       const { data: existingView } = await supabase
         .from('historia_views')
         .select('id')
         .eq('historia_id', storyId)
         .eq('usuario_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (!existingView) {
         await supabase.from('historia_views').insert({
           historia_id: storyId,
           usuario_id: user.id,
         });
-        
-        console.log('[StoryViewer] ✅ Story marked as viewed');
       }
     } catch (error) {
       console.error('[StoryViewer] Error marking story as viewed:', error);
@@ -171,8 +183,6 @@ export default function StoryViewer({
   }, [user]);
 
   const handleNextStory = useCallback(() => {
-    console.log('[StoryViewer] ➡️ Moving to next story');
-    
     if (currentStory && user) {
       markStoryAsViewed(currentStory.id);
     }
@@ -183,21 +193,17 @@ export default function StoryViewer({
       resetAnimation();
       onStoryChange?.(newIndex);
     } else {
-      console.log('[StoryViewer] 🏁 Last story reached, closing viewer');
       onClose();
     }
   }, [currentStoryIndex, stories.length, currentStory, user, markStoryAsViewed, onClose, resetAnimation, onStoryChange]);
 
   const handlePreviousStory = useCallback(() => {
-    console.log('[StoryViewer] ⬅️ Moving to previous story');
-    
     if (currentStoryIndex > 0) {
       const newIndex = currentStoryIndex - 1;
       setCurrentStoryIndex(newIndex);
       resetAnimation();
       onStoryChange?.(newIndex);
     } else {
-      console.log('[StoryViewer] 🏁 First story reached, closing viewer');
       onClose();
     }
   }, [currentStoryIndex, onClose, resetAnimation, onStoryChange]);
@@ -333,8 +339,6 @@ export default function StoryViewer({
     }
 
     try {
-      console.log('[StoryViewer] 📨 Sending story message...');
-      
       const usuario1_id = user.id < currentStory.autor_id ? user.id : currentStory.autor_id;
       const usuario2_id = user.id < currentStory.autor_id ? currentStory.autor_id : user.id;
       
@@ -344,7 +348,7 @@ export default function StoryViewer({
         .eq('usuario1_id', usuario1_id)
         .eq('usuario2_id', usuario2_id)
         .is('local_id', null)
-        .single();
+        .maybeSingle();
 
       let chatId = chatExistente?.id;
 
@@ -410,7 +414,7 @@ export default function StoryViewer({
     onClose();
   }, [onClose]);
 
-  // PanResponder for gesture handling
+  // OPTIMIZED: PanResponder with better performance
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -424,7 +428,6 @@ export default function StoryViewer({
         
         // Start long press timer for pause
         longPressTimer.current = setTimeout(() => {
-          console.log('[StoryViewer] ⏸️ Long press detected - pausing');
           isLongPress.current = true;
           setIsPaused(true);
           stopAnimation();
@@ -454,7 +457,6 @@ export default function StoryViewer({
         
         // If it was a long press, resume on release
         if (isLongPress.current) {
-          console.log('[StoryViewer] ▶️ Resuming after long press');
           setIsPaused(false);
           startAnimation();
           return;
@@ -462,21 +464,18 @@ export default function StoryViewer({
         
         // Swipe down to close (priority)
         if (dy > SWIPE_THRESHOLD && Math.abs(dx) < SWIPE_THRESHOLD) {
-          console.log('[StoryViewer] ⬇️ Swipe down detected - closing');
           onClose();
           return;
         }
         
-        // Swipe left to next user (skip all stories of current user)
+        // Swipe left to next story
         if (dx < -SWIPE_THRESHOLD && Math.abs(dy) < SWIPE_THRESHOLD) {
-          console.log('[StoryViewer] ⬅️ Swipe left detected - next story');
           handleNextStory();
           return;
         }
         
-        // Swipe right to previous user
+        // Swipe right to previous story
         if (dx > SWIPE_THRESHOLD && Math.abs(dy) < SWIPE_THRESHOLD) {
-          console.log('[StoryViewer] ➡️ Swipe right detected - previous story');
           handlePreviousStory();
           return;
         }
@@ -487,39 +486,32 @@ export default function StoryViewer({
           
           // Left third - previous story
           if (tapZone < 0.33) {
-            console.log('[StoryViewer] ⬅️ Left tap - previous story');
             handlePreviousStory();
             return;
           }
           
           // Right third - next story
           if (tapZone > 0.67) {
-            console.log('[StoryViewer] ➡️ Right tap - next story');
             handleNextStory();
             return;
           }
-          
-          // Middle third - toggle pause (not used in Instagram, but kept for compatibility)
-          console.log('[StoryViewer] ⏯️ Middle tap - ignored');
         }
       },
     })
   ).current;
 
-  // Handle story changes and animation
+  // OPTIMIZED: Handle story changes and animation
   useEffect(() => {
     if (visible && !isPaused) {
-      console.log('[StoryViewer] ▶️ Starting animation for story', currentStoryIndex);
       startAnimation();
     } else if (isPaused) {
-      console.log('[StoryViewer] ⏸️ Story paused');
       stopAnimation();
     }
 
     return () => {
       stopAnimation();
     };
-  }, [visible, currentStoryIndex, isPaused]);
+  }, [visible, currentStoryIndex, isPaused, startAnimation, stopAnimation]);
 
   // Mark story as viewed when it appears
   useEffect(() => {
@@ -558,6 +550,7 @@ export default function StoryViewer({
       animationType="fade"
       onRequestClose={onClose}
       statusBarTranslucent
+      hardwareAccelerated={true}
     >
       <StatusBar barStyle="light-content" backgroundColor="#000" />
       <KeyboardAvoidingView
@@ -566,7 +559,7 @@ export default function StoryViewer({
         keyboardVerticalOffset={0}
       >
         <View style={styles.storyViewerModal} {...panResponder.panHandlers}>
-          {/* Progress bars */}
+          {/* OPTIMIZED: Progress bars with smooth animation */}
           <View style={styles.storyProgressContainer}>
             {stories.map((_, index) => (
               <View key={index} style={styles.storyProgressBar}>
@@ -625,9 +618,9 @@ export default function StoryViewer({
             </TouchableOpacity>
           </View>
 
-          {/* Story content */}
+          {/* OPTIMIZED: Story content with memoized image */}
           <View style={styles.storyContent}>
-            <Image source={{ uri: currentStory.imagen }} style={styles.storyImage} resizeMode="contain" />
+            <StoryImage uri={currentStory.imagen} />
           </View>
 
           {/* Owner controls */}
@@ -898,3 +891,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 });
+
+// Export memoized component to prevent unnecessary re-renders
+export default memo(StoryViewer);

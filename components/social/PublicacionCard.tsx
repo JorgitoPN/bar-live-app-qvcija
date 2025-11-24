@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, memo, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Dimensions, Modal, Pressable } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { Post } from '@/types';
@@ -34,7 +34,28 @@ interface TaggedUser {
   position_y?: number;
 }
 
-export default function PublicacionCard({ post, onLike, onComment, onShare }: PublicacionCardProps) {
+// Memoized image component to prevent unnecessary re-renders
+const PostImage = memo(({ uri, onPress }: { uri: string; onPress: () => void }) => (
+  <TouchableOpacity
+    activeOpacity={0.95}
+    onPress={onPress}
+    style={styles.imageContainer}
+  >
+    <Image 
+      source={{ uri }} 
+      style={styles.imagen} 
+      resizeMode="cover"
+      // Performance optimizations
+      fadeDuration={0}
+      progressiveRenderingEnabled={true}
+      cache="force-cache"
+    />
+  </TouchableOpacity>
+));
+
+PostImage.displayName = 'PostImage';
+
+const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment, onShare }: PublicacionCardProps) {
   const router = useRouter();
   const [liked, setLiked] = useState(post.liked || false);
   const [likesCount, setLikesCount] = useState(post.likes);
@@ -136,13 +157,13 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
     loadTags();
   }, [post.id]);
 
-  const handleLike = () => {
+  const handleLike = useCallback(() => {
     setLiked(!liked);
     setLikesCount(liked ? likesCount - 1 : likesCount + 1);
     if (onLike) onLike();
-  };
+  }, [liked, likesCount, onLike]);
 
-  const formatearFecha = (fecha: string) => {
+  const formatearFecha = useCallback((fecha: string) => {
     const date = new Date(fecha);
     const ahora = new Date();
     const diff = ahora.getTime() - date.getTime();
@@ -155,30 +176,30 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
     if (horas < 24) return `Hace ${horas}h`;
     if (dias < 7) return `Hace ${dias}d`;
     return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
-  };
+  }, []);
 
-  const handleScroll = (event: any) => {
+  const handleScroll = useCallback((event: any) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
     const index = Math.round(contentOffsetX / SCREEN_WIDTH);
     setCurrentImageIndex(index);
-  };
+  }, []);
 
-  const handleImagePress = () => {
+  const handleImagePress = useCallback(() => {
     if (taggedUsers.length > 0) {
       setShowTagsOverlay(true);
     } else {
       router.push(`/social/post?id=${post.id}`);
     }
-  };
+  }, [taggedUsers.length, router, post.id]);
 
-  const navigateToProfile = (user: MentionedUser | TaggedUser, tipo?: 'usuario' | 'local') => {
+  const navigateToProfile = useCallback((user: MentionedUser | TaggedUser, tipo?: 'usuario' | 'local') => {
     const userType = tipo || (user as MentionedUser).tipo || 'usuario';
     if (userType === 'local') {
       router.push(`/perfil/local?localId=${user.id}`);
     } else {
       router.push(`/perfil/usuario?userId=${user.id}`);
     }
-  };
+  }, [router]);
 
   return (
     <View style={styles.card}>
@@ -191,20 +212,21 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
             router.push(`/perfil/usuario?userId=${post.autorId}`);
           }
         }}
+        activeOpacity={0.7}
       >
         {post.autorAvatar ? (
           <Image source={{ uri: post.autorAvatar }} style={styles.avatar} />
         ) : (
           <View style={styles.avatarPlaceholder}>
-            <IconSymbol name="person.fill" size={20} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={20} color={colors.textSecondary} />
           </View>
         )}
         <View style={styles.headerContent}>
           <Text style={styles.autorNombre}>{post.autorNombre}</Text>
           <Text style={styles.fecha}>{formatearFecha(post.fecha)}</Text>
         </View>
-        <TouchableOpacity style={styles.moreButton}>
-          <IconSymbol name="ellipsis" size={20} color={colors.text} />
+        <TouchableOpacity style={styles.moreButton} activeOpacity={0.7}>
+          <IconSymbol ios_icon_name="ellipsis" android_material_icon_name="more_vert" size={20} color={colors.text} />
         </TouchableOpacity>
       </TouchableOpacity>
 
@@ -232,7 +254,7 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
 
       {taggedUsers.length > 0 && (
         <View style={styles.taggedContainer}>
-          <IconSymbol name="person.crop.circle.badge.checkmark" size={16} color={colors.primary} />
+          <IconSymbol ios_icon_name="person.crop.circle.badge.checkmark" android_material_icon_name="person_add" size={16} color={colors.primary} />
           <Text style={styles.taggedText}>
             Foto etiquetada de{' '}
             {taggedUsers.slice(0, 2).map((user, index) => (
@@ -274,25 +296,15 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
             decelerationRate="fast"
             snapToInterval={SCREEN_WIDTH}
             snapToAlignment="center"
+            // Performance optimizations
+            removeClippedSubviews={true}
           >
             {images.map((imageUrl, index) => (
-              <TouchableOpacity
+              <PostImage
                 key={index}
-                activeOpacity={0.95}
+                uri={imageUrl}
                 onPress={handleImagePress}
-                style={styles.imageContainer}
-              >
-                <Image 
-                  source={{ uri: imageUrl }} 
-                  style={styles.imagen} 
-                  resizeMode="cover" 
-                />
-                {taggedUsers.length > 0 && (
-                  <View style={styles.tagIconBadge}>
-                    <IconSymbol name="person.crop.circle" size={20} color={colors.headerText} />
-                  </View>
-                )}
-              </TouchableOpacity>
+              />
             ))}
           </ScrollView>
           
@@ -322,15 +334,16 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
 
       {post.ubicacion && (
         <View style={styles.locationContainer}>
-          <IconSymbol name="mappin.circle.fill" size={16} color={colors.primary} />
+          <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={16} color={colors.primary} />
           <Text style={styles.locationText}>{post.ubicacion}</Text>
         </View>
       )}
 
       <View style={styles.acciones}>
-        <TouchableOpacity style={styles.accionButton} onPress={handleLike}>
+        <TouchableOpacity style={styles.accionButton} onPress={handleLike} activeOpacity={0.7}>
           <IconSymbol
-            name={liked ? 'heart.fill' : 'heart'}
+            ios_icon_name={liked ? 'heart.fill' : 'heart'}
+            android_material_icon_name={liked ? 'favorite' : 'favorite_border'}
             size={24}
             color={liked ? '#EF4444' : colors.text}
           />
@@ -339,17 +352,17 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.accionButton} onPress={onComment}>
-          <IconSymbol name="bubble.left" size={24} color={colors.text} />
+        <TouchableOpacity style={styles.accionButton} onPress={onComment} activeOpacity={0.7}>
+          <IconSymbol ios_icon_name="bubble.left" android_material_icon_name="chat_bubble_outline" size={24} color={colors.text} />
           <Text style={styles.accionText}>{post.comentarios}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.accionButton} onPress={onShare}>
-          <IconSymbol name="paperplane" size={24} color={colors.text} />
+        <TouchableOpacity style={styles.accionButton} onPress={onShare} activeOpacity={0.7}>
+          <IconSymbol ios_icon_name="paperplane" android_material_icon_name="send" size={24} color={colors.text} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.accionButton}>
-          <IconSymbol name="bookmark" size={24} color={colors.text} />
+        <TouchableOpacity style={styles.accionButton} activeOpacity={0.7}>
+          <IconSymbol ios_icon_name="bookmark" android_material_icon_name="bookmark_border" size={24} color={colors.text} />
         </TouchableOpacity>
       </View>
 
@@ -358,6 +371,7 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
         transparent={true}
         animationType="fade"
         onRequestClose={() => setShowTagsOverlay(false)}
+        hardwareAccelerated={true}
       >
         <Pressable 
           style={styles.tagsOverlay}
@@ -405,13 +419,13 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
             onPress={() => setShowTagsOverlay(false)}
             activeOpacity={0.7}
           >
-            <IconSymbol name="xmark.circle.fill" size={32} color={colors.headerText} />
+            <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={32} color={colors.headerText} />
           </TouchableOpacity>
         </Pressable>
       </Modal>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: {
@@ -635,3 +649,5 @@ const styles = StyleSheet.create({
     right: 20,
   },
 });
+
+export default PublicacionCard;
