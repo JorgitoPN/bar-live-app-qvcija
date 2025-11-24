@@ -33,13 +33,14 @@ const StoryItem = memo(({
   
   // ✅ CRITICAL FIX: Display username correctly
   // For locals, use the local name directly (no @ symbol)
-  // For users, prioritize username over full name (username does NOT have @ in database)
+  // For users, prioritize username over full name
+  // Username does NOT have @ in database, so we add it for display
   const displayName = historia.tipo === 'local'
     ? (historia.autorNombre || 'Local')
     : historia.autor?.username 
-      ? historia.autor.username
+      ? `@${historia.autor.username}`
       : historia.autorUsername
-        ? historia.autorUsername
+        ? `@${historia.autorUsername}`
         : (historia.autorNombre || historia.autor?.nombre || 'Usuario');
   
   return (

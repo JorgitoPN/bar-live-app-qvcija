@@ -201,10 +201,11 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
     }
   }, [router]);
 
-  // ✅ FIXED: Display username without @ symbol, prioritize username over full name
+  // ✅ FIXED: Display username with @ symbol, prioritize username over full name
+  // Username does NOT have @ in database, so we add it for display
   const displayName = post.autorUsername 
-    ? post.autorUsername.replace(/^@/, '') 
-    : (post.autorNombre || 'Usuario').replace(/^@/, '');
+    ? `@${post.autorUsername}` 
+    : post.autorNombre || 'Usuario';
 
   return (
     <View style={styles.card}>
@@ -248,7 +249,9 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
                 >
                   {user.tipo === 'local' 
                     ? user.nombre 
-                    : (user.username || user.nombre).replace(/^@/, '')}
+                    : user.username 
+                      ? `@${user.username}`
+                      : user.nombre}
                 </Text>
               </React.Fragment>
             ))}
@@ -271,7 +274,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
                   style={styles.taggedUsername}
                   onPress={() => navigateToProfile(user, 'usuario')}
                 >
-                  {(user.username || user.nombre).replace(/^@/, '')}
+                  {user.username ? `@${user.username}` : user.nombre}
                 </Text>
               </React.Fragment>
             ))}
@@ -412,7 +415,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
                     <View style={styles.tagMarkerDot} />
                     <View style={styles.tagMarkerLabel}>
                       <Text style={styles.tagMarkerText}>
-                        {(user.username || user.nombre).replace(/^@/, '')}
+                        {user.username ? `@${user.username}` : user.nombre}
                       </Text>
                     </View>
                   </TouchableOpacity>

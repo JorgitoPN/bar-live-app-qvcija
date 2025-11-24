@@ -121,7 +121,7 @@ export default function ChatsScreen() {
 
             userData = userDataResult;
             if (userData) {
-              console.log('[Chats] ✅ Loaded user info:', userData.nombre);
+              console.log('[Chats] ✅ Loaded user info:', userData.nombre, 'username:', userData.username);
             }
           }
 
@@ -334,54 +334,64 @@ export default function ChatsScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {chatsFiltrados.map((chat) => (
-          <TouchableOpacity
-            key={chat.id}
-            style={styles.chatCard}
-            onPress={() => handleOpenChat(chat.id, !!chat.local_id, chat.local_id || undefined)}
-          >
-            <View style={styles.avatarContainer}>
-              {chat.otro_usuario.avatar ? (
-                <Image source={{ uri: chat.otro_usuario.avatar }} style={styles.avatar} />
-              ) : (
-                <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                  <Text style={styles.avatarText}>
-                    {chat.otro_usuario.nombre.charAt(0).toUpperCase()}
-                  </Text>
-                </View>
-              )}
-              {/* ✅ Show building icon for local chats */}
-              {chat.local_id && (
-                <View style={styles.localBadge}>
-                  <IconSymbol name="building.2" size={12} color={colors.white} />
-                </View>
-              )}
-            </View>
+        {chatsFiltrados.map((chat) => {
+          // ✅ CRITICAL FIX: Display username with @ symbol for users, local name for locals
+          // Username does NOT have @ in database, so we add it for display
+          const displayName = chat.local_id 
+            ? chat.otro_usuario.nombre // For locals, use the local name directly
+            : chat.otro_usuario.username 
+              ? `@${chat.otro_usuario.username}` // For users, add @ to username
+              : chat.otro_usuario.nombre; // Fallback to full name
 
-            <View style={styles.chatContent}>
-              <View style={styles.chatHeader}>
-                <Text style={styles.chatNombre}>{chat.otro_usuario.nombre}</Text>
-                <Text style={styles.chatHora}>{formatHora(chat.ultimo_mensaje_fecha)}</Text>
-              </View>
-              <View style={styles.chatFooter}>
-                <Text
-                  style={[
-                    styles.chatUltimoMensaje,
-                    chat.mensajes_no_leidos > 0 && styles.chatUltimoMensajeNoLeido,
-                  ]}
-                  numberOfLines={1}
-                >
-                  {chat.ultimo_mensaje || 'Nuevo chat'}
-                </Text>
-                {chat.mensajes_no_leidos > 0 && (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>{chat.mensajes_no_leidos}</Text>
+          return (
+            <TouchableOpacity
+              key={chat.id}
+              style={styles.chatCard}
+              onPress={() => handleOpenChat(chat.id, !!chat.local_id, chat.local_id || undefined)}
+            >
+              <View style={styles.avatarContainer}>
+                {chat.otro_usuario.avatar ? (
+                  <Image source={{ uri: chat.otro_usuario.avatar }} style={styles.avatar} />
+                ) : (
+                  <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                    <Text style={styles.avatarText}>
+                      {chat.otro_usuario.nombre.charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                )}
+                {/* ✅ Show building icon for local chats */}
+                {chat.local_id && (
+                  <View style={styles.localBadge}>
+                    <IconSymbol name="building.2" size={12} color={colors.white} />
                   </View>
                 )}
               </View>
-            </View>
-          </TouchableOpacity>
-        ))}
+
+              <View style={styles.chatContent}>
+                <View style={styles.chatHeader}>
+                  <Text style={styles.chatNombre}>{displayName}</Text>
+                  <Text style={styles.chatHora}>{formatHora(chat.ultimo_mensaje_fecha)}</Text>
+                </View>
+                <View style={styles.chatFooter}>
+                  <Text
+                    style={[
+                      styles.chatUltimoMensaje,
+                      chat.mensajes_no_leidos > 0 && styles.chatUltimoMensajeNoLeido,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {chat.ultimo_mensaje || 'Nuevo chat'}
+                  </Text>
+                  {chat.mensajes_no_leidos > 0 && (
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>{chat.mensajes_no_leidos}</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
 
         {chatsFiltrados.length === 0 && (
           <View style={styles.emptyState}>

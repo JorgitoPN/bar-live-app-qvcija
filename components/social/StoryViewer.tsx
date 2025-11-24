@@ -442,8 +442,12 @@ function StoryViewer({
     
     // ✅ INSTANT SUCCESS NOTIFICATION - Show immediately BEFORE sending
     setStoryMessage('');
-    Alert.alert('Éxito', 'Mensaje enviado correctamente');
     setSendingMessage(true);
+    
+    // Show success alert INSTANTLY
+    setTimeout(() => {
+      Alert.alert('Éxito', 'Mensaje enviado correctamente');
+    }, 0);
 
     try {
       console.log('[StoryViewer] 📨 Sending story message to author:', currentStory.autor_id);
@@ -781,13 +785,18 @@ function StoryViewer({
 
   // ✅ CRITICAL FIX: Display username correctly
   // For locals, use the local name directly (no @ symbol)
-  // For users, prioritize username over full name (username does NOT have @ in database)
+  // For users, prioritize username over full name
+  // Username does NOT have @ in database, so we add it for display
   const storyAuthorAvatar = currentStory.autor?.avatar || currentStory.autorAvatar;
   const storyAuthorName = currentStory.autor?.nombre || currentStory.autorNombre || 'Usuario';
   
   const storyAuthorUsername = currentStory.tipo === 'local' 
     ? storyAuthorName // For locals, use the local name directly
-    : (currentStory.autor?.username || currentStory.autorUsername || storyAuthorName); // For users, prioritize username
+    : currentStory.autor?.username 
+      ? `@${currentStory.autor.username}`
+      : currentStory.autorUsername
+        ? `@${currentStory.autorUsername}`
+        : storyAuthorName; // Fallback to full name if no username
 
   return (
     <Modal
