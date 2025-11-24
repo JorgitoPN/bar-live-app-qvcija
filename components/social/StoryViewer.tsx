@@ -144,18 +144,22 @@ function StoryViewer({
   // Performance: Prevent unnecessary re-renders
   const currentStory = stories[currentStoryIndex];
 
-  // ✅ OPTIMIZED: Stop animation completely
+  // ✅ FIXED: Stop animation completely and save progress
   const stopAnimation = useCallback(() => {
+    console.log('[StoryViewer] ⏸️ Stopping animation');
     if (animationRef.current) {
       animationRef.current.stop();
       animationRef.current = null;
     }
-    // Save current progress
-    const elapsed = Date.now() - storyStartTime.current;
-    pausedProgress.current = Math.min(elapsed / STORY_DURATION, 1);
+    // Save current progress only if animation was running
+    if (storyStartTime.current > 0) {
+      const elapsed = Date.now() - storyStartTime.current;
+      pausedProgress.current = Math.min(elapsed / STORY_DURATION, 1);
+      console.log('[StoryViewer] 💾 Saved progress:', pausedProgress.current);
+    }
   }, []);
 
-  // ✅ OPTIMIZED: Start or resume animation with native driver
+  // ✅ FIXED: Start or resume animation with proper initialization
   const startAnimation = useCallback(() => {
     if (!imageLoaded) {
       console.log('[StoryViewer] ⏸️ Waiting for image to load before starting animation');
@@ -168,13 +172,17 @@ function StoryViewer({
       animationRef.current = null;
     }
 
+    // Calculate remaining progress and duration
     const remainingProgress = 1 - pausedProgress.current;
-    const remainingDuration = STORY_DURATION * remainingProgress;
+    const remainingDuration = Math.max(STORY_DURATION * remainingProgress, 100); // Minimum 100ms
 
-    console.log('[StoryViewer] ▶️ Starting animation - remaining:', remainingDuration, 'ms');
+    console.log('[StoryViewer] ▶️ Starting animation - remaining:', remainingDuration, 'ms, from progress:', pausedProgress.current);
     storyStartTime.current = Date.now();
 
-    // ✅ FIXED: Use transform instead of width for native driver support
+    // Set initial progress value
+    progressAnim.setValue(pausedProgress.current);
+
+    // ✅ FIXED: Animate from current progress to 1
     animationRef.current = Animated.timing(progressAnim, {
       toValue: 1,
       duration: remainingDuration,
@@ -190,17 +198,25 @@ function StoryViewer({
     });
   }, [progressAnim, isPaused, imageLoaded]);
 
-  // ✅ OPTIMIZED: Reset animation for new story
+  // ✅ FIXED: Reset animation for new story with proper cleanup
   const resetAnimation = useCallback(() => {
-    console.log('[StoryViewer] 🔄 Resetting animation');
+    console.log('[StoryViewer] 🔄 Resetting animation for new story');
+    
+    // Stop any running animation
     if (animationRef.current) {
       animationRef.current.stop();
       animationRef.current = null;
     }
+    
+    // Reset all progress tracking
     pausedProgress.current = 0;
     progressAnim.setValue(0);
     storyStartTime.current = 0;
+    
+    // Reset image loaded state to wait for new image
     setImageLoaded(false);
+    
+    console.log('[StoryViewer] ✅ Animation reset complete');
   }, [progressAnim]);
 
   const markStoryAsViewed = useCallback(async (storyId: string) => {
@@ -578,18 +594,33 @@ function StoryViewer({
     })
   ).current;
 
-  // ✅ OPTIMIZED: Handle story changes and animation
+  // ✅ FIXED: Handle animation start/stop based on state changes
   useEffect(() => {
-    if (visible && !isPaused && imageLoaded) {
-      startAnimation();
-    } else if (isPaused) {
+    if (!visible) {
+      // Modal is closed, stop everything
       stopAnimation();
+      return;
     }
 
-    return () => {
+    if (isPaused) {
+      // Paused, stop animation
       stopAnimation();
+      return;
+    }
+
+    if (imageLoaded) {
+      // Image is loaded and not paused, start animation
+      startAnimation();
+    }
+
+    // Cleanup on unmount or state change
+    return () => {
+      if (animationRef.current) {
+        animationRef.current.stop();
+        animationRef.current = null;
+      }
     };
-  }, [visible, currentStoryIndex, isPaused, imageLoaded, startAnimation, stopAnimation]);
+  }, [visible, isPaused, imageLoaded, currentStoryIndex]);
 
   // Mark story as viewed when it appears
   useEffect(() => {
@@ -635,8 +666,14 @@ function StoryViewer({
       console.log('[StoryViewer] 🚀 Opening story viewer at index:', initialIndex);
       setCurrentStoryIndex(initialIndex);
       resetAnimation();
+    } else {
+      // Clean up when modal closes
+      console.log('[StoryViewer] 🔒 Closing story viewer, cleaning up');
+      stopAnimation();
+      setImageLoaded(false);
+      setIsPaused(false);
     }
-  }, [visible, initialIndex, resetAnimation]);
+  }, [visible, initialIndex]);
 
   if (!currentStory) {
     return null;
@@ -733,7 +770,7 @@ function StoryViewer({
             <StoryImage 
               uri={currentStory.imagen} 
               onLoad={() => {
-                console.log('[StoryViewer] ✅ Image loaded, starting animation');
+                console.log('[StoryViewer] ✅ Image loaded for story:', currentStory.id);
                 setImageLoaded(true);
               }}
             />
