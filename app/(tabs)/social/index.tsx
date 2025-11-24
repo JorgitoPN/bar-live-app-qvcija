@@ -4,7 +4,6 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { useMode } from '@/contexts/ModeContext';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 import { socialCache } from '@/utils/socialCache';
-import InitialLoadingScreen from '@/components/common/InitialLoadingScreen';
 import { LinearGradient } from 'expo-linear-gradient';
 import ParsedText from '@/components/social/ParsedText';
 import StoryViewer from '@/components/social/StoryViewer';
@@ -877,7 +876,8 @@ export default function SocialScreen() {
     setCurrentMode,
   } = useMode();
   
-  const { posts: globalPosts, stories: globalStories, isInitialLoading, hasLoadedOnce, refreshData } = useGlobalData();
+  // ✅ CRITICAL: Get data from GlobalDataContext - ALWAYS available instantly
+  const { posts: globalPosts, stories: globalStories, hasLoadedOnce, refreshData } = useGlobalData();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -914,6 +914,7 @@ export default function SocialScreen() {
   const isInteractingAsLocal = activeProfileType === 'local';
   const activeLocalProfileId = activeProfileType === 'local' ? activeProfileId : null;
 
+  // ✅ CRITICAL: Load data INSTANTLY from GlobalDataContext
   const loadData = useCallback(async () => {
     if (isLoadingRef.current) {
       console.log('[Social] ⚡ Already loading, skipping...');
@@ -924,17 +925,12 @@ export default function SocialScreen() {
 
     try {
       console.log('[Social] ⚡ Loading user-specific data...');
-      console.log('[Social] 📍 Current mode:', currentMode);
-      console.log('[Social] 📍 Is owner mode:', isOwnerMode);
-      console.log('[Social] 📍 Active profile ID:', activeProfileId);
-      console.log('[Social] 📍 Active profile type:', activeProfileType);
-      console.log('[Social] 📍 Active local data:', activeLocalData?.nombre);
-      console.log('[Social] 📍 Is interacting as local:', isInteractingAsLocal);
-      console.log('[Social] 📍 User role:', user?.rol_app);
+      console.log('[Social] 📍 Global posts available:', globalPosts.length);
+      console.log('[Social] 📍 Global stories available:', globalStories.length);
 
+      // ✅ INSTANT: Use global data immediately
       if (globalPosts.length > 0) {
-        console.log('[Social] ⚡ INSTANT posts from global data:', globalPosts.length);
-        console.log('[Social] 📍 Current context - Mode:', currentMode, 'Type:', activeProfileType, 'Interacting:', isInteractingAsLocal, 'Active Local:', activeLocalProfileId);
+        console.log('[Social] ⚡⚡⚡ INSTANT posts from global data:', globalPosts.length);
         
         let filteredPosts = globalPosts;
         
@@ -1003,8 +999,7 @@ export default function SocialScreen() {
       }
 
       if (globalStories.length > 0) {
-        console.log('[Social] ⚡ INSTANT stories from global data:', globalStories.length);
-        console.log('[Social] 📍 Current context - Mode:', currentMode, 'Owner Mode:', isOwnerMode, 'Active Local:', activeLocalProfileId);
+        console.log('[Social] ⚡⚡⚡ INSTANT stories from global data:', globalStories.length);
         
         let userOwnStories: typeof globalStories = [];
         let otherStories: typeof globalStories = [];
@@ -1087,14 +1082,6 @@ export default function SocialScreen() {
           
           setUserStories(userStoriesWithStatus);
           setHistorias(otherStoriesWithStatus);
-          
-          // ✅ CRITICAL: Preload story images in background
-          if (otherStoriesWithStatus.length > 0) {
-            console.log('[Social] 🚀 Preloading story images in background...');
-            preloadStoryImages(otherStoriesWithStatus, 0, 5).catch(() => {
-              console.log('[Social] ⚠️ Story preload failed, continuing anyway');
-            });
-          }
         } else {
           setHistorias(otherStories);
         }
@@ -1144,15 +1131,17 @@ export default function SocialScreen() {
     }
   }, [user]);
 
+  // ✅ CRITICAL: Load data on focus - INSTANT with global data
   useFocusEffect(
     useCallback(() => {
-      console.log('[Social] ⚡ Screen focused - refreshing data');
+      console.log('[Social] ⚡ Screen focused - loading data INSTANTLY');
       
-      refreshData(false).then(() => {
-        loadData();
-      });
-      
+      // ✅ Load data immediately from global context
+      loadData();
       loadUnreadCounts();
+      
+      // ✅ Refresh global data in background (silent)
+      refreshData(true);
     }, [loadData, loadUnreadCounts, refreshData])
   );
 
@@ -1313,8 +1302,7 @@ export default function SocialScreen() {
     const stories = isOwnStory ? userStories : historias;
     console.log('[Social] 📖 Stories available:', stories.length);
     
-    console.log('[Social] 🚀 Preloading story images before opening viewer...');
-    await preloadStoryImages(stories, index, 4);
+    // ✅ Images already preloaded by GlobalDataContext
     
     setCurrentStoryIndex(index);
     setViewingOwnStories(isOwnStory);
@@ -1557,12 +1545,8 @@ export default function SocialScreen() {
   const displayName = user?.nombre || 'Usuario';
   const displayInitial = displayName.charAt(0).toUpperCase();
 
-  // ✅ CRITICAL FIX: Show loading only if data has never been loaded
-  if (isInitialLoading && !hasLoadedOnce) {
-    return <InitialLoadingScreen />;
-  }
-
-  // ✅ CRITICAL FIX: Show empty state only if data has been loaded at least once
+  // ✅ CRITICAL FIX: NEVER show loading screen - data is ALWAYS available from cache
+  // Show empty state only if data has been loaded at least once AND there are no posts
   const showEmptyState = hasLoadedOnce && posts.length === 0;
 
   return (
@@ -1826,12 +1810,7 @@ export default function SocialScreen() {
                   : 'No hay publicaciones para mostrar'}
               </Text>
             </View>
-          ) : (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.primary} />
-              <Text style={{ color: colors.text, marginTop: 12 }}>Cargando publicaciones...</Text>
-            </View>
-          )}
+          ) : null}
         </View>
 
       </ScrollView>

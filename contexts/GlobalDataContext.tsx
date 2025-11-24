@@ -3,6 +3,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode, useCa
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/utils/supabase';
 import { Local } from '@/types';
+import { Image } from 'react-native';
 
 interface GlobalDataContextType {
   // Data
@@ -15,7 +16,7 @@ interface GlobalDataContextType {
   // Loading states
   isInitialLoading: boolean;
   isRefreshing: boolean;
-  hasLoadedOnce: boolean; // NEW: Track if data has been loaded at least once
+  hasLoadedOnce: boolean;
   
   // Actions
   refreshData: (silent?: boolean) => Promise<void>;
@@ -37,8 +38,8 @@ const CACHE_KEYS = {
   TIMESTAMP: 'global_cache_timestamp',
 };
 
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-const BACKGROUND_REFRESH_INTERVAL = 10 * 60 * 1000; // 10 minutes
+const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes - longer cache for instant loading
+const BACKGROUND_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes - more frequent updates
 
 export function GlobalDataProvider({ children }: { children: ReactNode }) {
   const [locales, setLocales] = useState<Local[]>([]);
@@ -47,13 +48,67 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
   const [eventos, setEventos] = useState<any[]>([]);
   const [ofertas, setOfertas] = useState<any[]>([]);
   
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isInitialLoading, setIsInitialLoading] = useState(false); // ✅ Start as false for instant display
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(0);
   
   const isLoadingRef = useRef(false);
   const backgroundRefreshTimer = useRef<NodeJS.Timeout | null>(null);
+  const preloadedImagesRef = useRef<Set<string>>(new Set());
+
+  /**
+   * ✅ CRITICAL: Preload story and post images aggressively
+   */
+  const preloadImages = useCallback(async (stories: any[], posts: any[]) => {
+    const imagesToPreload: string[] = [];
+    
+    // Preload ALL story images
+    stories.forEach(story => {
+      if (story.imagen && !preloadedImagesRef.current.has(story.imagen)) {
+        imagesToPreload.push(story.imagen);
+        preloadedImagesRef.current.add(story.imagen);
+      }
+      if (story.autor?.avatar && !preloadedImagesRef.current.has(story.autor.avatar)) {
+        imagesToPreload.push(story.autor.avatar);
+        preloadedImagesRef.current.add(story.autor.avatar);
+      }
+    });
+    
+    // Preload first 20 post images
+    posts.slice(0, 20).forEach(post => {
+      if (post.imagen && !preloadedImagesRef.current.has(post.imagen)) {
+        imagesToPreload.push(post.imagen);
+        preloadedImagesRef.current.add(post.imagen);
+      }
+      if (post.imagenes && Array.isArray(post.imagenes)) {
+        post.imagenes.slice(0, 1).forEach((img: string) => {
+          if (!preloadedImagesRef.current.has(img)) {
+            imagesToPreload.push(img);
+            preloadedImagesRef.current.add(img);
+          }
+        });
+      }
+      if (post.autor?.avatar && !preloadedImagesRef.current.has(post.autor.avatar)) {
+        imagesToPreload.push(post.autor.avatar);
+        preloadedImagesRef.current.add(post.autor.avatar);
+      }
+    });
+    
+    if (imagesToPreload.length > 0) {
+      console.log('[GlobalData] 🚀 Preloading', imagesToPreload.length, 'images...');
+      
+      // Preload in background without blocking
+      Promise.allSettled(
+        imagesToPreload.map(uri => Image.prefetch(uri))
+      ).then(results => {
+        const successCount = results.filter(r => r.status === 'fulfilled').length;
+        console.log('[GlobalData] ✅ Preloaded', successCount, '/', imagesToPreload.length, 'images');
+      }).catch(() => {
+        console.log('[GlobalData] ⚠️ Some images failed to preload');
+      });
+    }
+  }, []);
 
   /**
    * Load data from AsyncStorage cache
@@ -81,12 +136,8 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
       const timestamp = cachedTimestamp ? parseInt(cachedTimestamp, 10) : 0;
       const now = Date.now();
       
-      // Check if cache is still valid
-      if (now - timestamp > CACHE_DURATION) {
-        console.log('[GlobalData] ⏰ Cache expired');
-        return false;
-      }
-
+      // ✅ CRITICAL: Accept cache even if expired for INSTANT display
+      // We'll refresh in background
       let hasData = false;
 
       // Parse cached data
@@ -108,6 +159,10 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
         const parsedStories = JSON.parse(cachedStories);
         setStories(parsedStories);
         console.log('[GlobalData] ⚡ INSTANT stories from cache:', parsedStories.length);
+        
+        // ✅ CRITICAL: Preload story images immediately
+        preloadImages(parsedStories, cachedPosts ? JSON.parse(cachedPosts) : []);
+        
         hasData = true;
       }
 
@@ -135,7 +190,7 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
       console.error('[GlobalData] Error loading from cache:', error);
       return false;
     }
-  }, []);
+  }, [preloadImages]);
 
   /**
    * Save data to AsyncStorage cache
@@ -302,6 +357,18 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
         }));
         setStories(mappedStories);
         console.log('[GlobalData] ✅ Stories loaded:', mappedStories.length);
+        
+        // ✅ CRITICAL: Preload story images immediately
+        preloadImages(mappedStories, postsResult.data ? postsResult.data.map(post => ({
+          ...post,
+          autor: post.tipo === 'local' && post.local 
+            ? {
+                nombre: post.local.nombre,
+                avatar: post.local.imagen_url,
+                username: post.local.nombre,
+              }
+            : post.autor,
+        })) : []);
       }
 
       // Process eventos
@@ -349,7 +416,7 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('[GlobalData] Error loading from Supabase:', error);
     }
-  }, [transformarLocal, saveToCache]);
+  }, [transformarLocal, saveToCache, preloadImages]);
 
   /**
    * Refresh data (can be silent or with loading indicator)
@@ -395,30 +462,29 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
   }, []);
 
   /**
-   * Initialize data on mount
+   * ✅ CRITICAL: Initialize data on mount - INSTANT START
    */
   useEffect(() => {
     const initialize = async () => {
       console.log('[GlobalData] 🚀 Initializing...');
       
-      // Try to load from cache first for INSTANT startup
+      // ✅ INSTANT: Load from cache first (even if expired)
       const hasCache = await loadFromCache();
       
       if (hasCache) {
-        // Show cached data immediately - INSTANT APP START
+        // ✅ INSTANT: Show cached data immediately
         console.log('[GlobalData] ⚡⚡⚡ INSTANT START with cached data');
-        setIsInitialLoading(false);
+        setHasLoadedOnce(true);
         
-        // Load fresh data in background after 50ms delay to not block navigation
+        // ✅ Load fresh data in background WITHOUT blocking UI
         setTimeout(() => {
           console.log('[GlobalData] 🔄 Background refresh...');
           refreshData(true);
-        }, 50);
+        }, 10); // Minimal delay
       } else {
         // No cache, load from Supabase
         console.log('[GlobalData] 📡 No cache, loading from Supabase...');
         await loadFromSupabase();
-        setIsInitialLoading(false);
       }
     };
 
