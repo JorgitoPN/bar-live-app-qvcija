@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -17,7 +17,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 
-const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export interface MentionSuggestion {
   id: string;
@@ -97,9 +97,8 @@ export default function MentionAutocomplete({
   const [currentMentionText, setCurrentMentionText] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const [containerHeight, setContainerHeight] = useState(0);
 
-  // Listen to keyboard events to adjust positioning
+  // ✅ Listen to keyboard events to adjust positioning
   useEffect(() => {
     const keyboardWillShow = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
@@ -132,28 +131,29 @@ export default function MentionAutocomplete({
     console.log('[MentionAutocomplete] Text before cursor:', textBeforeCursor);
     console.log('[MentionAutocomplete] Last @ index:', lastAtIndex);
 
-    // No @ found
+    // ✅ No @ found - close window
     if (lastAtIndex === -1) {
-      console.log('[MentionAutocomplete] ❌ No @ found');
+      console.log('[MentionAutocomplete] ❌ No @ found - closing window');
       setCurrentMentionText(null);
       setIsVisible(false);
       setSuggestions([]);
       return;
     }
 
-    // Get text after @
+    // ✅ Get text after @
     const textAfterAt = textBeforeCursor.substring(lastAtIndex + 1);
     console.log('[MentionAutocomplete] Text after @:', textAfterAt);
 
-    // If there's a space or newline after @, stop
-    if (textAfterAt.includes(' ') || textAfterAt.includes('\n')) {
-      console.log('[MentionAutocomplete] ❌ Space or newline found after @');
+    // ✅ If there's a newline after @, stop (but allow spaces for multi-word names)
+    if (textAfterAt.includes('\n')) {
+      console.log('[MentionAutocomplete] ❌ Newline found after @ - closing window');
       setCurrentMentionText(null);
       setIsVisible(false);
       setSuggestions([]);
       return;
     }
 
+    // ✅ Valid mention detected - show window
     console.log('[MentionAutocomplete] ✅ Valid mention detected:', textAfterAt);
     setCurrentMentionText(textAfterAt);
     setIsVisible(true);
@@ -286,8 +286,6 @@ export default function MentionAutocomplete({
           // Now filter by active subscriptions with premium or estandar plans
           const localIds = allLocals.map(l => l.id);
           
-          // Query subscriptions - FIX: Specify which foreign key to use with !inner
-          // Use plan_id:planes_suscripcion!suscripciones_locales_plan_id_fkey to specify the relationship
           const { data: activeSubs, error: subsError } = await supabase
             .from('suscripciones_locales')
             .select('local_id, plan_id, plan:planes_suscripcion!suscripciones_locales_plan_id_fkey(nombre)')
@@ -303,7 +301,6 @@ export default function MentionAutocomplete({
             const localsWithActivePlans = new Set<string>();
             activeSubs.forEach(sub => {
               const planNombre = (sub.plan as any)?.nombre;
-              console.log('[MentionAutocomplete] 🔍 Checking subscription for local:', sub.local_id, 'plan:', planNombre);
               if (planNombre === 'premium' || planNombre === 'estandar') {
                 localsWithActivePlans.add(sub.local_id);
               }
@@ -331,7 +328,6 @@ export default function MentionAutocomplete({
           // Filter by active subscriptions
           const localIds = recentLocals.map(l => l.id);
           
-          // FIX: Specify which foreign key to use
           const { data: activeSubs, error: subsError } = await supabase
             .from('suscripciones_locales')
             .select('local_id, plan_id, plan:planes_suscripcion!suscripciones_locales_plan_id_fkey(nombre)')
@@ -389,14 +385,9 @@ export default function MentionAutocomplete({
       }
 
       console.log('[MentionAutocomplete] ✅ Total results:', results.length);
-      console.log('[MentionAutocomplete] 📊 Users:', results.filter(r => r.tipo === 'usuario').length, 'Locals:', results.filter(r => r.tipo === 'local').length);
       
       // Final deduplication
       const uniqueResults = deduplicateById(results);
-      
-      if (uniqueResults.length !== results.length) {
-        console.warn('[MentionAutocomplete] ⚠️ Removed', results.length - uniqueResults.length, 'duplicate results');
-      }
       
       console.log('[MentionAutocomplete] 🎯 Setting suggestions:', uniqueResults.length);
       setSuggestions(uniqueResults);
@@ -436,42 +427,7 @@ export default function MentionAutocomplete({
     setCurrentMentionText(null);
   };
 
-  // ✅ ENHANCED: Calculate optimal positioning - always above keyboard, never covering content
-  useEffect(() => {
-    if (isVisible && suggestions.length > 0) {
-      // Constants for layout calculation
-      const ITEM_HEIGHT = 72; // Height of each suggestion item (reduced for better fit)
-      const MIN_ITEMS = 1;
-      const MAX_ITEMS = 4; // Show up to 4 items for better visibility
-      const SPACING_ABOVE_KEYBOARD = 8; // Minimal space between list and keyboard
-      const TOP_SAFE_AREA = 180; // Safe area at top (header + input area)
-      
-      // Calculate ideal height based on number of suggestions
-      const itemsToShow = Math.min(Math.max(suggestions.length, MIN_ITEMS), MAX_ITEMS);
-      const idealHeight = itemsToShow * ITEM_HEIGHT;
-      
-      // Calculate available space above keyboard
-      const bottomOfList = keyboardHeight + SPACING_ABOVE_KEYBOARD;
-      const availableSpace = SCREEN_HEIGHT - bottomOfList - TOP_SAFE_AREA;
-      
-      // Use the smaller of ideal height or available space, with max limit
-      const finalHeight = Math.min(idealHeight, availableSpace, 300);
-      
-      setContainerHeight(finalHeight);
-      
-      console.log('[MentionAutocomplete] 📐 Layout calculation:');
-      console.log('  - Screen height:', SCREEN_HEIGHT);
-      console.log('  - Keyboard height:', keyboardHeight);
-      console.log('  - Suggestions:', suggestions.length);
-      console.log('  - Items to show:', itemsToShow);
-      console.log('  - Ideal height:', idealHeight);
-      console.log('  - Available space:', availableSpace);
-      console.log('  - Final height:', finalHeight);
-      console.log('  - Bottom position:', bottomOfList);
-    }
-  }, [isVisible, suggestions.length, keyboardHeight]);
-
-  // Don't render if not visible or no mention text
+  // ✅ Don't render if not visible or no mention text
   if (!isVisible || currentMentionText === null) {
     console.log('[MentionAutocomplete] 🚫 Not rendering - isVisible:', isVisible, 'currentMentionText:', currentMentionText);
     return null;
@@ -510,9 +466,24 @@ export default function MentionAutocomplete({
     );
   };
 
-  // ✅ ENHANCED: Calculate bottom position - always position above keyboard with minimal spacing
-  const bottomPosition = keyboardHeight > 0 ? keyboardHeight + 8 : 140;
-  const finalHeight = containerHeight > 0 ? containerHeight : 200;
+  // ✅ FIXED: Calculate bottom position - always position above keyboard with proper spacing
+  // The window should be positioned directly above the keyboard, never overlapping it
+  const ITEM_HEIGHT = 64;
+  const MAX_ITEMS = 4;
+  const SPACING_ABOVE_KEYBOARD = 8;
+  
+  // Calculate height based on number of suggestions (max 4 items)
+  const itemsToShow = Math.min(suggestions.length, MAX_ITEMS);
+  const calculatedHeight = loading ? 80 : itemsToShow > 0 ? itemsToShow * ITEM_HEIGHT : 80;
+  
+  // Position directly above keyboard
+  const bottomPosition = keyboardHeight > 0 ? keyboardHeight + SPACING_ABOVE_KEYBOARD : 140;
+
+  console.log('[MentionAutocomplete] 📐 Positioning:');
+  console.log('  - Keyboard height:', keyboardHeight);
+  console.log('  - Bottom position:', bottomPosition);
+  console.log('  - Container height:', calculatedHeight);
+  console.log('  - Items to show:', itemsToShow);
 
   return (
     <View 
@@ -520,7 +491,7 @@ export default function MentionAutocomplete({
         styles.container, 
         { 
           bottom: bottomPosition,
-          height: finalHeight,
+          height: calculatedHeight,
         }, 
         style
       ]}
@@ -561,10 +532,10 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     borderRadius: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 20,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 24,
     zIndex: 9999,
     overflow: 'hidden',
   },

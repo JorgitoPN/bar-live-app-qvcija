@@ -154,7 +154,7 @@ export default function StoryViewer({
 
     progressAnim.setValue(0);
 
-    // ✅ Animate width from 0% to 100% using scaleX with transformOrigin: 'left'
+    // ✅ FIXED: Animate using scaleX with transformOrigin: 'left' for smooth filling effect
     Animated.timing(progressAnim, {
       toValue: 1,
       duration: STORY_DURATION,
@@ -399,7 +399,7 @@ export default function StoryViewer({
     stopStoryTimer();
   }, [onClose, stopStoryTimer]);
 
-  // ✅ Instagram-like story gestures with PanResponder
+  // ✅ FIXED: Instagram-like story gestures with PanResponder
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -518,14 +518,13 @@ export default function StoryViewer({
               {stories.map((_, index) => (
                 <View key={index} style={styles.storyProgressBar}>
                   {index < currentStoryIndex && (
-                    <View style={[styles.storyProgressFill, { width: '100%' }]} />
+                    <View style={[styles.storyProgressFill, { transform: [{ scaleX: 1 }] }]} />
                   )}
                   {index === currentStoryIndex && (
                     <Animated.View 
                       style={[
                         styles.storyProgressFill,
                         {
-                          width: '100%',
                           transform: [
                             {
                               scaleX: progressAnim,
@@ -677,6 +676,7 @@ const styles = StyleSheet.create({
   },
   storyProgressFill: {
     height: '100%',
+    width: '100%',
     backgroundColor: '#fff',
     transformOrigin: 'left',
   },
