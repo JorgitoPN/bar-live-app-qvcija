@@ -126,12 +126,13 @@ function StoryViewer({
   const [storyLikes, setStoryLikes] = useState<any[]>([]);
   const [loadingStats, setLoadingStats] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [sendingMessage, setSendingMessage] = useState(false);
   
   // ✅ ULTRA-SMOOTH: Progress animation with requestAnimationFrame
   const progressRefs = useRef<(View | null)[]>([]);
   const animationFrameId = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
-  const elapsedTimeRef = useRef<number>(0);
+  const pausedTimeRef = useRef<number>(0);
   
   // Gesture tracking refs
   const touchStartTime = useRef<number>(0);
@@ -191,7 +192,7 @@ function StoryViewer({
 
   // ✅ ULTRA-SMOOTH: Animation loop with requestAnimationFrame (60fps guaranteed)
   const animateProgress = useCallback(() => {
-    if (isPaused || !imageLoaded) {
+    if (!imageLoaded) {
       return;
     }
 
@@ -202,8 +203,8 @@ function StoryViewer({
       startTimeRef.current = now;
     }
     
-    const totalElapsed = elapsedTimeRef.current + (now - startTimeRef.current);
-    const progress = Math.min(totalElapsed / STORY_DURATION, 1);
+    const elapsed = now - startTimeRef.current - pausedTimeRef.current;
+    const progress = Math.min(elapsed / STORY_DURATION, 1);
 
     // ✅ Update current progress bar with direct DOM manipulation
     const currentProgressBar = progressRefs.current[currentStoryIndex];
@@ -225,11 +226,11 @@ function StoryViewer({
       // Continue animation
       animationFrameId.current = requestAnimationFrame(animateProgress);
     }
-  }, [isPaused, imageLoaded, currentStoryIndex, handleNextStory]);
+  }, [imageLoaded, currentStoryIndex, handleNextStory]);
 
   // ✅ Start animation
   const startAnimation = useCallback(() => {
-    if (!imageLoaded || isPaused) {
+    if (!imageLoaded) {
       return;
     }
 
@@ -239,26 +240,41 @@ function StoryViewer({
       animationFrameId.current = null;
     }
 
-    // Reset timing
-    startTimeRef.current = performance.now();
+    // Reset timing if starting fresh
+    if (startTimeRef.current === 0) {
+      startTimeRef.current = performance.now();
+      pausedTimeRef.current = 0;
+    }
     
     // Start new animation
     animationFrameId.current = requestAnimationFrame(animateProgress);
-  }, [imageLoaded, isPaused, animateProgress]);
+  }, [imageLoaded, animateProgress]);
 
-  // ✅ Stop animation and save progress
+  // ✅ Stop animation (pause)
   const stopAnimation = useCallback(() => {
     if (animationFrameId.current !== null) {
       cancelAnimationFrame(animationFrameId.current);
       animationFrameId.current = null;
     }
-    
-    // Save current progress
-    if (startTimeRef.current > 0) {
-      const elapsed = performance.now() - startTimeRef.current;
-      elapsedTimeRef.current = Math.min(elapsedTimeRef.current + elapsed, STORY_DURATION);
-    }
   }, []);
+
+  // ✅ Pause animation and track paused time
+  const pauseAnimation = useCallback(() => {
+    if (animationFrameId.current !== null) {
+      cancelAnimationFrame(animationFrameId.current);
+      animationFrameId.current = null;
+      
+      // Track when we paused
+      const pauseStartTime = performance.now();
+      const pauseInterval = setInterval(() => {
+        if (!isPaused) {
+          clearInterval(pauseInterval);
+        } else {
+          pausedTimeRef.current = performance.now() - pauseStartTime;
+        }
+      }, 16);
+    }
+  }, [isPaused]);
 
   // ✅ Reset animation for new story
   const resetAnimation = useCallback(() => {
@@ -270,7 +286,7 @@ function StoryViewer({
     
     // Reset all progress tracking
     startTimeRef.current = 0;
-    elapsedTimeRef.current = 0;
+    pausedTimeRef.current = 0;
     
     // Reset all progress bars
     progressRefs.current.forEach((ref, index) => {
@@ -412,51 +428,110 @@ function StoryViewer({
   }, [currentStory, user, activeLocalProfileId, onStoryDelete, onClose]);
 
   const handleSendStoryMessage = useCallback(async () => {
-    if (!currentStory || !user || !storyMessage.trim()) {
+    if (!currentStory || !user || !storyMessage.trim() || sendingMessage) {
       return;
     }
 
+    setSendingMessage(true);
+
     try {
-      const usuario1_id = user.id < currentStory.autor_id ? user.id : currentStory.autor_id;
-      const usuario2_id = user.id < currentStory.autor_id ? currentStory.autor_id : user.id;
+      console.log('[StoryViewer] 📨 Sending story message to author:', currentStory.autor_id);
+      
+      // ✅ CRITICAL: Check if a conversation already exists
+      const userId1 = user.id < currentStory.autor_id ? user.id : currentStory.autor_id;
+      const userId2 = user.id < currentStory.autor_id ? currentStory.autor_id : user.id;
+      
+      console.log('[StoryViewer] 🔍 Checking for existing chat:', { userId1, userId2 });
       
       const { data: chatExistente, error: chatError } = await supabase
         .from('chats')
         .select('id')
-        .eq('usuario1_id', usuario1_id)
-        .eq('usuario2_id', usuario2_id)
+        .eq('usuario1_id', userId1)
+        .eq('usuario2_id', userId2)
         .is('local_id', null)
         .maybeSingle();
+
+      if (chatError && chatError.code !== 'PGRST116') {
+        console.error('[StoryViewer] Error checking for existing chat:', chatError);
+        throw chatError;
+      }
 
       let chatId = chatExistente?.id;
 
       if (!chatId) {
+        console.log('[StoryViewer] 🆕 Creating new chat');
+        
         const { data: nuevoChat, error: nuevoChatError } = await supabase
           .from('chats')
           .insert({
-            usuario1_id: usuario1_id,
-            usuario2_id: usuario2_id,
+            usuario1_id: userId1,
+            usuario2_id: userId2,
+            ultimo_mensaje: storyMessage.trim(),
+            ultimo_mensaje_fecha: new Date().toISOString(),
           })
           .select()
           .single();
 
-        if (nuevoChatError) throw nuevoChatError;
-        chatId = nuevoChat.id;
+        if (nuevoChatError) {
+          console.error('[StoryViewer] Error creating chat:', nuevoChatError);
+          
+          // Check if it's a duplicate key error (race condition)
+          if (nuevoChatError.code === '23505') {
+            console.log('[StoryViewer] Chat already exists (race condition), fetching it...');
+            const { data: retryChat, error: retryError } = await supabase
+              .from('chats')
+              .select('id')
+              .eq('usuario1_id', userId1)
+              .eq('usuario2_id', userId2)
+              .is('local_id', null)
+              .single();
+            
+            if (retryChat) {
+              console.log('[StoryViewer] ✅ Found existing chat on retry:', retryChat.id);
+              chatId = retryChat.id;
+            } else {
+              throw retryError || nuevoChatError;
+            }
+          } else {
+            throw nuevoChatError;
+          }
+        } else {
+          chatId = nuevoChat.id;
+          console.log('[StoryViewer] ✅ Created new chat:', chatId);
+        }
+      } else {
+        console.log('[StoryViewer] ✅ Using existing chat:', chatId);
       }
 
+      // Send message
+      console.log('[StoryViewer] 📤 Sending message to chat:', chatId);
+      
       const { error: mensajeError } = await supabase
         .from('mensajes')
         .insert({
           chat_id: chatId,
           remitente_id: user.id,
-          contenido: storyMessage,
+          contenido: storyMessage.trim(),
           historia_id: currentStory.id,
           historia_imagen: currentStory.imagen,
           tipo_mensaje: 'texto',
         });
 
-      if (mensajeError) throw mensajeError;
+      if (mensajeError) {
+        console.error('[StoryViewer] Error sending message:', mensajeError);
+        throw mensajeError;
+      }
 
+      // Update chat
+      await supabase
+        .from('chats')
+        .update({
+          ultimo_mensaje: storyMessage.trim(),
+          ultimo_mensaje_fecha: new Date().toISOString(),
+        })
+        .eq('id', chatId);
+
+      // Send notification
       await supabase.from('notificaciones').insert({
         usuario_id: currentStory.autor_id,
         tipo: 'mensaje_privado',
@@ -465,13 +540,16 @@ function StoryViewer({
         usuario_origen_id: user.id,
       });
 
+      console.log('[StoryViewer] ✅ Message sent successfully');
       setStoryMessage('');
       Alert.alert('Éxito', 'Mensaje enviado correctamente');
     } catch (error) {
       console.error('[StoryViewer] Error sending story message:', error);
-      Alert.alert('Error', 'No se pudo enviar el mensaje');
+      Alert.alert('Error', 'No se pudo enviar el mensaje. Por favor, inténtalo de nuevo.');
+    } finally {
+      setSendingMessage(false);
     }
-  }, [user, currentStory, storyMessage]);
+  }, [user, currentStory, storyMessage, sendingMessage]);
 
   const handleNavigateToStoryAuthorProfile = useCallback(() => {
     if (!currentStory) return;
@@ -512,7 +590,7 @@ function StoryViewer({
         longPressTimer.current = setTimeout(() => {
           isLongPress.current = true;
           setIsPaused(true);
-          stopAnimation();
+          pauseAnimation();
         }, LONG_PRESS_DURATION);
       },
       
@@ -817,18 +895,20 @@ function StoryViewer({
                   onChangeText={setStoryMessage}
                   onFocus={() => {
                     setIsPaused(true);
-                    stopAnimation();
+                    pauseAnimation();
                   }}
                   onBlur={() => {
                     setIsPaused(false);
                     startAnimation();
                   }}
+                  editable={!sendingMessage}
                 />
                 {storyMessage.trim().length > 0 && (
                   <TouchableOpacity
                     style={styles.storySendButton}
                     onPress={handleSendStoryMessage}
                     activeOpacity={0.7}
+                    disabled={sendingMessage}
                   >
                     <LinearGradient
                       colors={[colors.primary, colors.secondary]}
@@ -836,7 +916,11 @@ function StoryViewer({
                       end={{ x: 1, y: 0 }}
                       style={styles.sendButtonGradient}
                     >
-                      <IconSymbol ios_icon_name="paperplane.fill" android_material_icon_name="send" size={16} color="#fff" />
+                      {sendingMessage ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <IconSymbol ios_icon_name="paperplane.fill" android_material_icon_name="send" size={16} color="#fff" />
+                      )}
                     </LinearGradient>
                   </TouchableOpacity>
                 )}
