@@ -1,11 +1,12 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Dimensions, Modal, Pressable, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Dimensions, Modal, Pressable, Animated, Alert, ActionSheetIOS, Platform } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { Post } from '@/types';
 import { colors } from '@/styles/commonStyles';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/utils/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 import ParsedText from './ParsedText';
 import PostLikesAvatars from './PostLikesAvatars';
 
@@ -37,12 +38,14 @@ interface TaggedUser {
 
 export default function PublicacionCard({ post, onLike, onComment, onShare }: PublicacionCardProps) {
   const router = useRouter();
+  const { user } = useAuth();
   const [liked, setLiked] = useState(post.liked || false);
   const [likesCount, setLikesCount] = useState(post.likes);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [mentionedUsers, setMentionedUsers] = useState<MentionedUser[]>([]);
   const [taggedUsers, setTaggedUsers] = useState<TaggedUser[]>([]);
   const [showTagsOverlay, setShowTagsOverlay] = useState(false);
+  const [showOptionsModal, setShowOptionsModal] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const likeAnimation = useRef(new Animated.Value(1)).current;
   const doubleTapRef = useRef<NodeJS.Timeout | null>(null);
@@ -211,9 +214,131 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
     }
   };
 
+  const handleMorePress = () => {
+    const isOwner = user && post.autorId === user.id;
+    
+    if (Platform.OS === 'ios') {
+      const options = isOwner 
+        ? ['Eliminar', 'Editar', 'Compartir', 'Cancelar']
+        : ['Reportar', 'No me interesa', 'Compartir', 'Cancelar'];
+      
+      const destructiveButtonIndex = 0;
+      const cancelButtonIndex = options.length - 1;
+
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options,
+          destructiveButtonIndex,
+          cancelButtonIndex,
+        },
+        (buttonIndex) => {
+          if (isOwner) {
+            if (buttonIndex === 0) handleDeletePost();
+            else if (buttonIndex === 1) handleEditPost();
+            else if (buttonIndex === 2) handleSharePost();
+          } else {
+            if (buttonIndex === 0) handleReportPost();
+            else if (buttonIndex === 1) handleNotInterested();
+            else if (buttonIndex === 2) handleSharePost();
+          }
+        }
+      );
+    } else {
+      setShowOptionsModal(true);
+    }
+  };
+
+  const handleDeletePost = async () => {
+    Alert.alert(
+      'Eliminar publicación',
+      '¿Estás seguro de que quieres eliminar esta publicación?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('posts')
+                .delete()
+                .eq('id', post.id);
+
+              if (error) throw error;
+              Alert.alert('Éxito', 'Publicación eliminada correctamente');
+            } catch (error) {
+              console.error('[PublicacionCard] Error deleting post:', error);
+              Alert.alert('Error', 'No se pudo eliminar la publicación');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleEditPost = () => {
+    router.push(`/crear/publicacion?editId=${post.id}`);
+  };
+
+  const handleSharePost = () => {
+    router.push(`/social/post?id=${post.id}&share=true`);
+  };
+
+  const handleReportPost = () => {
+    Alert.alert(
+      'Reportar publicación',
+      '¿Por qué quieres reportar esta publicación?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Spam', onPress: () => submitReport('spam') },
+        { text: 'Contenido inapropiado', onPress: () => submitReport('inappropriate') },
+        { text: 'Acoso', onPress: () => submitReport('harassment') },
+      ]
+    );
+  };
+
+  const submitReport = async (reason: string) => {
+    try {
+      const { error } = await supabase
+        .from('reportes')
+        .insert({
+          tipo: 'post',
+          contenido_id: post.id,
+          usuario_id: user?.id,
+          razon: reason,
+        });
+
+      if (error) throw error;
+      Alert.alert('Gracias', 'Tu reporte ha sido enviado');
+    } catch (error) {
+      console.error('[PublicacionCard] Error reporting post:', error);
+      Alert.alert('Error', 'No se pudo enviar el reporte');
+    }
+  };
+
+  const handleNotInterested = async () => {
+    try {
+      const { error } = await supabase
+        .from('contenido_oculto')
+        .insert({
+          usuario_id: user?.id,
+          tipo: 'post',
+          contenido_id: post.id,
+        });
+
+      if (error) throw error;
+      Alert.alert('Listo', 'No verás más publicaciones como esta');
+    } catch (error) {
+      console.error('[PublicacionCard] Error hiding post:', error);
+      Alert.alert('Error', 'No se pudo ocultar la publicación');
+    }
+  };
+
   const displayUsername = post.tipo === 'local' 
     ? post.autorNombre
     : post.autor?.username || post.autorNombre;
+
+  const isOwner = user && post.autorId === user.id;
 
   return (
     <View style={styles.card}>
@@ -223,6 +348,8 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
         onPress={() => {
           if (post.tipo === 'local' && post.localId) {
             router.push(`/perfil/local?localId=${post.localId}`);
+          } else if (user && post.autorId === user.id) {
+            router.push('/(tabs)/perfil');
           } else {
             router.push(`/perfil/usuario?userId=${post.autorId}`);
           }
@@ -233,7 +360,9 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
           <Image source={{ uri: post.autorAvatar }} style={styles.avatar} />
         ) : (
           <View style={styles.avatarPlaceholder}>
-            <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={18} color={colors.textSecondary} />
+            <Text style={styles.avatarPlaceholderText}>
+              {post.autorNombre?.charAt(0).toUpperCase() || 'U'}
+            </Text>
           </View>
         )}
         <View style={styles.headerContent}>
@@ -242,7 +371,11 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
             <Text style={styles.ubicacion} numberOfLines={1}>{post.ubicacion}</Text>
           )}
         </View>
-        <TouchableOpacity style={styles.moreButton} activeOpacity={0.7}>
+        <TouchableOpacity 
+          style={styles.moreButton} 
+          onPress={handleMorePress}
+          activeOpacity={0.7}
+        >
           <IconSymbol ios_icon_name="ellipsis" android_material_icon_name="more_vert" size={20} color={colors.text} />
         </TouchableOpacity>
       </TouchableOpacity>
@@ -451,6 +584,98 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
           </TouchableOpacity>
         </Pressable>
       </Modal>
+
+      {/* Options Modal (Android) */}
+      {Platform.OS === 'android' && (
+        <Modal
+          visible={showOptionsModal}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setShowOptionsModal(false)}
+        >
+          <Pressable 
+            style={styles.optionsModalOverlay}
+            onPress={() => setShowOptionsModal(false)}
+          >
+            <Pressable style={styles.optionsModalContent} onPress={(e) => e.stopPropagation()}>
+              <View style={styles.optionsModalHeader}>
+                <Text style={styles.optionsModalTitle}>Opciones</Text>
+                <TouchableOpacity onPress={() => setShowOptionsModal(false)}>
+                  <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+              
+              {isOwner ? (
+                <React.Fragment>
+                  <TouchableOpacity
+                    style={styles.optionButton}
+                    onPress={() => {
+                      setShowOptionsModal(false);
+                      handleDeletePost();
+                    }}
+                  >
+                    <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={24} color="#EF4444" />
+                    <Text style={[styles.optionButtonText, { color: '#EF4444' }]}>Eliminar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.optionButton}
+                    onPress={() => {
+                      setShowOptionsModal(false);
+                      handleEditPost();
+                    }}
+                  >
+                    <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={24} color={colors.text} />
+                    <Text style={styles.optionButtonText}>Editar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.optionButton}
+                    onPress={() => {
+                      setShowOptionsModal(false);
+                      handleSharePost();
+                    }}
+                  >
+                    <IconSymbol ios_icon_name="square.and.arrow.up" android_material_icon_name="share" size={24} color={colors.text} />
+                    <Text style={styles.optionButtonText}>Compartir</Text>
+                  </TouchableOpacity>
+                </React.Fragment>
+              ) : (
+                <React.Fragment>
+                  <TouchableOpacity
+                    style={styles.optionButton}
+                    onPress={() => {
+                      setShowOptionsModal(false);
+                      handleReportPost();
+                    }}
+                  >
+                    <IconSymbol ios_icon_name="exclamationmark.triangle" android_material_icon_name="report" size={24} color="#EF4444" />
+                    <Text style={[styles.optionButtonText, { color: '#EF4444' }]}>Reportar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.optionButton}
+                    onPress={() => {
+                      setShowOptionsModal(false);
+                      handleNotInterested();
+                    }}
+                  >
+                    <IconSymbol ios_icon_name="eye.slash" android_material_icon_name="visibility_off" size={24} color={colors.text} />
+                    <Text style={styles.optionButtonText}>No me interesa</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.optionButton}
+                    onPress={() => {
+                      setShowOptionsModal(false);
+                      handleSharePost();
+                    }}
+                  >
+                    <IconSymbol ios_icon_name="square.and.arrow.up" android_material_icon_name="share" size={24} color={colors.text} />
+                    <Text style={styles.optionButtonText}>Compartir</Text>
+                  </TouchableOpacity>
+                </React.Fragment>
+              )}
+            </Pressable>
+          </Pressable>
+        </Modal>
+      )}
     </View>
   );
 }
@@ -477,9 +702,14 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: colors.background,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  avatarPlaceholderText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: colors.headerText,
   },
   headerContent: {
     flex: 1,
@@ -656,5 +886,39 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 60,
     right: 20,
+  },
+  optionsModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  optionsModalContent: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingBottom: 20,
+  },
+  optionsModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  optionsModalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  optionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 16,
+  },
+  optionButtonText: {
+    fontSize: 16,
+    color: colors.text,
   },
 });

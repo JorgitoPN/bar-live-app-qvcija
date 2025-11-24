@@ -41,6 +41,8 @@ interface Historia {
     avatar?: string;
     username?: string;
   };
+  autorNombre?: string;
+  autorAvatar?: string;
   visto_por_usuario?: boolean;
   views_count?: number;
   likes_count?: number;
@@ -83,8 +85,9 @@ export default function StoryViewer({
   const progressAnim = useRef(new Animated.Value(0)).current;
   const touchStartTime = useRef<number>(0);
   const fadeAnim = useRef(new Animated.Value(1)).current;
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
 
-  console.log('[StoryViewer] 🔄 Component loaded - Version 4.0 - Instagram-like design');
+  console.log('[StoryViewer] 🔄 Component loaded - Version 5.0 - Fixed gestures and avatars');
 
   const currentStory = stories[currentStoryIndex];
 
@@ -389,57 +392,87 @@ export default function StoryViewer({
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: (_, gestureState) => {
-        return Math.abs(gestureState.dx) > 5 || Math.abs(gestureState.dy) > 5;
+        return Math.abs(gestureState.dx) > 10 || Math.abs(gestureState.dy) > 10;
       },
-      onPanResponderGrant: () => {
+      onPanResponderGrant: (evt: GestureResponderEvent) => {
         touchStartTime.current = Date.now();
-        setIsPaused(true);
-        stopStoryTimer();
+        
+        // Start long press timer for pause
+        longPressTimer.current = setTimeout(() => {
+          setIsPaused(true);
+          stopStoryTimer();
+        }, 200);
+      },
+      onPanResponderMove: (_, gestureState: PanResponderGestureState) => {
+        // Cancel long press if user moves finger
+        if (Math.abs(gestureState.dx) > 10 || Math.abs(gestureState.dy) > 10) {
+          if (longPressTimer.current) {
+            clearTimeout(longPressTimer.current);
+            longPressTimer.current = null;
+          }
+        }
       },
       onPanResponderRelease: (evt: GestureResponderEvent, gestureState: PanResponderGestureState) => {
+        // Clear long press timer
+        if (longPressTimer.current) {
+          clearTimeout(longPressTimer.current);
+          longPressTimer.current = null;
+        }
+
         const { dx, dy } = gestureState;
         const locationX = evt.nativeEvent.locationX;
         const touchDuration = Date.now() - touchStartTime.current;
         
-        // Swipe down to close
-        if (dy > 80 && Math.abs(dx) < 80) {
+        // Swipe down to close (priority)
+        if (dy > 100 && Math.abs(dx) < 100) {
+          console.log('[StoryViewer] Swipe down detected - closing');
           onClose();
           stopStoryTimer();
           return;
         }
         
-        // Swipe right to previous
-        if (dx > 80 && Math.abs(dy) < 80) {
-          handlePreviousStory();
+        // Swipe left to next (horizontal swipe)
+        if (dx < -100 && Math.abs(dy) < 100) {
+          console.log('[StoryViewer] Swipe left detected - next story');
           setIsPaused(false);
-          return;
-        }
-        
-        // Swipe left to next
-        if (dx < -80 && Math.abs(dy) < 80) {
           handleNextStory();
-          setIsPaused(false);
           return;
         }
         
-        // Tap detection
-        if (Math.abs(dx) < 20 && Math.abs(dy) < 20 && touchDuration < 300) {
-          if (locationX < width / 2) {
-            handlePreviousStory();
+        // Swipe right to previous (horizontal swipe)
+        if (dx > 100 && Math.abs(dy) < 100) {
+          console.log('[StoryViewer] Swipe right detected - previous story');
+          setIsPaused(false);
+          handlePreviousStory();
+          return;
+        }
+        
+        // Tap detection (short touch with minimal movement)
+        if (Math.abs(dx) < 30 && Math.abs(dy) < 30 && touchDuration < 300) {
+          console.log('[StoryViewer] Tap detected at x:', locationX);
+          
+          // Left side tap - previous story
+          if (locationX < width / 3) {
+            console.log('[StoryViewer] Left tap - previous story');
             setIsPaused(false);
+            handlePreviousStory();
             return;
           }
           
-          if (locationX >= width / 2) {
-            handleNextStory();
+          // Right side tap - next story
+          if (locationX > (2 * width) / 3) {
+            console.log('[StoryViewer] Right tap - next story');
             setIsPaused(false);
+            handleNextStory();
             return;
           }
         }
         
-        // Resume story
-        setIsPaused(false);
-        startStoryTimer();
+        // Resume story if it was paused
+        if (isPaused) {
+          setIsPaused(false);
+          startStoryTimer();
+        }
       },
     })
   ).current;
@@ -472,9 +505,12 @@ export default function StoryViewer({
     (currentStory.tipo === 'local' && activeLocalProfileId === currentStory.local_id)
   );
 
+  // Get story author info with fallback
+  const storyAuthorAvatar = currentStory.autor?.avatar || currentStory.autorAvatar;
+  const storyAuthorName = currentStory.autor?.nombre || currentStory.autorNombre || 'Usuario';
   const storyAuthorUsername = currentStory.tipo === 'local' 
-    ? currentStory.autor?.nombre
-    : currentStory.autor?.username || currentStory.autor?.nombre;
+    ? storyAuthorName
+    : currentStory.autor?.username || currentStory.autorNombre || storyAuthorName;
 
   return (
     <Modal
@@ -521,12 +557,12 @@ export default function StoryViewer({
               onPress={handleNavigateToStoryAuthorProfile}
               activeOpacity={0.7}
             >
-              {currentStory.autor?.avatar ? (
-                <Image source={{ uri: currentStory.autor.avatar }} style={styles.storyAutorAvatar} />
+              {storyAuthorAvatar ? (
+                <Image source={{ uri: storyAuthorAvatar }} style={styles.storyAutorAvatar} />
               ) : (
                 <View style={[styles.storyAutorAvatar, styles.avatarPlaceholder]}>
                   <Text style={styles.avatarText}>
-                    {currentStory.autor?.nombre?.charAt(0).toUpperCase() || 'U'}
+                    {storyAuthorName.charAt(0).toUpperCase()}
                   </Text>
                 </View>
               )}

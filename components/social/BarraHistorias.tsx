@@ -36,11 +36,11 @@ export default function BarraHistorias({
                 <Image source={{ uri: userAvatar }} style={styles.createStoryImage} />
               ) : (
                 <View style={[styles.createStoryImage, styles.avatarPlaceholder]}>
-                  <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={24} color={colors.textSecondary} />
+                  <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={32} color={colors.textSecondary} />
                 </View>
               )}
               <View style={styles.addButton}>
-                <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={16} color={colors.headerText} />
+                <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={18} color={colors.headerText} />
               </View>
             </View>
             <Text style={styles.storyName} numberOfLines={1}>
@@ -52,6 +52,8 @@ export default function BarraHistorias({
         {/* Stories */}
         {historias.map((historia) => {
           const hasBeenViewed = historia.visto_por_usuario === true;
+          const storyAvatar = historia.autorAvatar || historia.autor?.avatar;
+          const storyName = historia.autorNombre || historia.autor?.nombre || 'Usuario';
           
           return (
             <TouchableOpacity
@@ -67,17 +69,19 @@ export default function BarraHistorias({
                 style={styles.storyGradient}
               >
                 <View style={styles.storyImageContainer}>
-                  {historia.autorAvatar ? (
-                    <Image source={{ uri: historia.autorAvatar }} style={styles.storyImage} />
+                  {storyAvatar ? (
+                    <Image source={{ uri: storyAvatar }} style={styles.storyImage} />
                   ) : (
                     <View style={styles.storyPlaceholder}>
-                      <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={24} color={colors.textSecondary} />
+                      <Text style={styles.storyPlaceholderText}>
+                        {storyName.charAt(0).toUpperCase()}
+                      </Text>
                     </View>
                   )}
                 </View>
               </LinearGradient>
               <Text style={styles.storyName} numberOfLines={1}>
-                {historia.autorNombre}
+                {storyName}
               </Text>
             </TouchableOpacity>
           );
@@ -96,24 +100,24 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 12,
-    gap: 12,
+    gap: 16,
   },
   storyContainer: {
     alignItems: 'center',
-    width: 64,
+    width: 80,
   },
   createStoryWrapper: {
-    width: 64,
-    height: 64,
+    width: 80,
+    height: 80,
     position: 'relative',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   createStoryImage: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: colors.cardBorder,
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: colors.cardBackground,
   },
   avatarPlaceholder: {
@@ -125,28 +129,28 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: colors.cardBackground,
   },
   storyGradient: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    padding: 2,
-    marginBottom: 4,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    padding: 3,
+    marginBottom: 6,
   },
   storyImageContainer: {
     width: '100%',
     height: '100%',
-    borderRadius: 30,
+    borderRadius: 37,
     overflow: 'hidden',
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: colors.cardBackground,
   },
   storyImage: {
@@ -157,9 +161,14 @@ const styles = StyleSheet.create({
   storyPlaceholder: {
     width: '100%',
     height: '100%',
-    backgroundColor: colors.background,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  storyPlaceholderText: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: colors.headerText,
   },
   storyName: {
     fontSize: 12,
