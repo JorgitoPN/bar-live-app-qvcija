@@ -135,6 +135,7 @@ function StoryViewer({
   const startTimeRef = useRef<number>(0);
   const pausedAtRef = useRef<number>(0);
   const totalPausedTimeRef = useRef<number>(0);
+  const isPausedRef = useRef<boolean>(false);
   
   // Gesture tracking refs
   const touchStartTime = useRef<number>(0);
@@ -194,7 +195,7 @@ function StoryViewer({
 
   // ✅ ULTRA-SMOOTH: Animation loop with requestAnimationFrame (60fps guaranteed)
   const animateProgress = useCallback(() => {
-    if (!imageLoaded || isPaused) {
+    if (!imageLoaded || isPausedRef.current) {
       return;
     }
 
@@ -224,7 +225,7 @@ function StoryViewer({
       // Continue animation
       animationFrameId.current = requestAnimationFrame(animateProgress);
     }
-  }, [imageLoaded, isPaused, currentStoryIndex, handleNextStory]);
+  }, [imageLoaded, currentStoryIndex, handleNextStory]);
 
   // ✅ Start animation
   const startAnimation = useCallback(() => {
@@ -251,6 +252,9 @@ function StoryViewer({
       totalPausedTimeRef.current = 0;
     }
     
+    // Update paused ref
+    isPausedRef.current = false;
+    
     // Start new animation
     animationFrameId.current = requestAnimationFrame(animateProgress);
   }, [imageLoaded, animateProgress]);
@@ -271,6 +275,7 @@ function StoryViewer({
       
       // Track when we paused
       pausedAtRef.current = performance.now();
+      isPausedRef.current = true;
     }
   }, []);
 
@@ -286,6 +291,7 @@ function StoryViewer({
     startTimeRef.current = 0;
     pausedAtRef.current = 0;
     totalPausedTimeRef.current = 0;
+    isPausedRef.current = false;
     
     // Reset all progress bars
     progressRefs.current.forEach((ref, index) => {
@@ -340,6 +346,7 @@ function StoryViewer({
     }
 
     setIsPaused(true);
+    isPausedRef.current = true;
     stopAnimation();
 
     setLoadingStats(true);
@@ -431,12 +438,12 @@ function StoryViewer({
       return;
     }
 
-    setSendingMessage(true);
-
-    // ✅ INSTANT SUCCESS NOTIFICATION - Show immediately
     const messageText = storyMessage.trim();
+    
+    // ✅ INSTANT SUCCESS NOTIFICATION - Show immediately BEFORE sending
     setStoryMessage('');
     Alert.alert('Éxito', 'Mensaje enviado correctamente');
+    setSendingMessage(true);
 
     try {
       console.log('[StoryViewer] 📨 Sending story message to author:', currentStory.autor_id);
@@ -620,6 +627,7 @@ function StoryViewer({
         longPressTimer.current = setTimeout(() => {
           isLongPress.current = true;
           setIsPaused(true);
+          isPausedRef.current = true;
           pauseAnimation();
         }, LONG_PRESS_DURATION);
       },
@@ -648,6 +656,7 @@ function StoryViewer({
         
         if (isLongPress.current) {
           setIsPaused(false);
+          isPausedRef.current = false;
           startAnimation();
           return;
         }
@@ -750,6 +759,7 @@ function StoryViewer({
       stopAnimation();
       setImageLoaded(false);
       setIsPaused(false);
+      isPausedRef.current = false;
     }
   }, [visible, initialIndex, resetAnimation, stopAnimation]);
 
@@ -769,15 +779,15 @@ function StoryViewer({
     (currentStory.tipo === 'local' && activeLocalProfileId === currentStory.local_id)
   );
 
-  // ✅ FIXED: Display username without @ symbol, prioritize username over full name
+  // ✅ CRITICAL FIX: Display username correctly
+  // For locals, use the local name directly (no @ symbol)
+  // For users, prioritize username over full name (username does NOT have @ in database)
   const storyAuthorAvatar = currentStory.autor?.avatar || currentStory.autorAvatar;
   const storyAuthorName = currentStory.autor?.nombre || currentStory.autorNombre || 'Usuario';
   
-  // ✅ CRITICAL FIX: For locals, use the local name directly
-  // ✅ For users, prioritize username over full name (username does NOT have @ in database)
   const storyAuthorUsername = currentStory.tipo === 'local' 
-    ? storyAuthorName
-    : (currentStory.autor?.username || currentStory.autorUsername || storyAuthorName);
+    ? storyAuthorName // For locals, use the local name directly
+    : (currentStory.autor?.username || currentStory.autorUsername || storyAuthorName); // For users, prioritize username
 
   return (
     <Modal
@@ -925,10 +935,12 @@ function StoryViewer({
                   onChangeText={setStoryMessage}
                   onFocus={() => {
                     setIsPaused(true);
+                    isPausedRef.current = true;
                     pauseAnimation();
                   }}
                   onBlur={() => {
                     setIsPaused(false);
+                    isPausedRef.current = false;
                     startAnimation();
                   }}
                   editable={!sendingMessage}
@@ -983,6 +995,7 @@ function StoryViewer({
             onClose={() => {
               setShowStoryStats(false);
               setIsPaused(false);
+              isPausedRef.current = false;
               startAnimation();
             }}
             onNavigateToProfile={handleCloseStoryViewerAndNavigate}

@@ -31,9 +31,9 @@ const StoryItem = memo(({
     }
   }, [historia.autorAvatar]);
   
-  // ✅ CRITICAL FIX: Prioritize username over full name (username does NOT have @ in database)
-  // For locals, use the local name directly
-  // For users, prioritize username over full name
+  // ✅ CRITICAL FIX: Display username correctly
+  // For locals, use the local name directly (no @ symbol)
+  // For users, prioritize username over full name (username does NOT have @ in database)
   const displayName = historia.tipo === 'local'
     ? (historia.autorNombre || 'Local')
     : historia.autor?.username 
