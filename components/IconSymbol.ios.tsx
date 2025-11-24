@@ -5,7 +5,8 @@ import { StyleProp, ViewStyle } from "react-native";
 /**
  * iOS-specific icon component using native SF Symbols.
  * 
- * VERSION v21.0: FIXED UNDEFINED NAME ERROR
+ * VERSION v22.0: FIXED PROP NAMING ISSUE
+ * - Now accepts both 'name' and 'ios_icon_name' props for compatibility
  * - Added null/undefined check for name prop before calling includes()
  * - Active icons: Uses filled icon name (with .fill suffix) passed from TabIcon
  * - Inactive icons: Uses outlined icon name (without .fill suffix) passed from TabIcon
@@ -16,39 +17,46 @@ import { StyleProp, ViewStyle } from "react-native";
  */
 export function IconSymbol({
   name,
+  ios_icon_name,
+  android_material_icon_name,
   size = 24,
   color,
   style,
   weight = "regular",
   fill,
 }: {
-  name: SymbolViewProps["name"];
+  name?: SymbolViewProps["name"];
+  ios_icon_name?: SymbolViewProps["name"];
+  android_material_icon_name?: string;
   size?: number;
   color: string;
   style?: StyleProp<ViewStyle>;
   weight?: SymbolWeight;
   fill?: string;
 }) {
-  // ✅ FIXED: Check if name is defined before calling includes()
-  if (!name) {
-    console.error('🚨 [IconSymbol iOS v21.0] ERROR: name prop is undefined or null');
+  // ✅ FIXED: Support both prop naming conventions
+  const iconName = ios_icon_name || name;
+
+  // ✅ FIXED: Check if iconName is defined before calling includes()
+  if (!iconName) {
+    console.error('🚨 [IconSymbol iOS v22.0] ERROR: name/ios_icon_name prop is undefined or null');
     return null;
   }
 
   // Determine if this is a filled or outlined icon based on the icon name
-  const isFilled = name.includes('.fill');
+  const isFilled = iconName.includes('.fill');
   
   // Use monochrome rendering mode for consistent appearance
   const renderingMode = "monochrome";
   
-  console.log(`🎨 [IconSymbol iOS v21.0] Rendering "${name}", ${isFilled ? 'FILLED' : 'OUTLINED'}, mode: ${renderingMode}, color: ${color}, size: ${size}`);
+  console.log(`🎨 [IconSymbol iOS v22.0] Rendering "${iconName}", ${isFilled ? 'FILLED' : 'OUTLINED'}, mode: ${renderingMode}, color: ${color}, size: ${size}`);
   
   return (
     <SymbolView
       weight={weight}
       tintColor={color}
       resizeMode="scaleAspectFit"
-      name={name}
+      name={iconName}
       renderingMode={renderingMode}
       style={[
         {

@@ -225,37 +225,56 @@ export type IconSymbolName = keyof typeof MAPPING;
  *
  * Icon `name`s are based on SFSymbols and require manual mapping to Ionicons.
  * 
- * VERSION v20.0: Added extensive logging to debug icon rendering
+ * VERSION v22.0: FIXED PROP NAMING ISSUE
+ * - Now accepts both 'name' and 'android_material_icon_name' props for compatibility
+ * - Added extensive logging to debug icon rendering
  */
 export function IconSymbol({
   name,
+  ios_icon_name,
+  android_material_icon_name,
   size = 24,
   color,
   style,
   weight = "regular",
   fill,
 }: {
-  name: IconSymbolName;
+  name?: IconSymbolName;
+  ios_icon_name?: IconSymbolName;
+  android_material_icon_name?: string;
   size?: number;
   color: string | OpaqueColorValue;
   style?: StyleProp<ViewStyle>;
   weight?: SymbolWeight;
   fill?: string;
 }) {
-  const ioniconName = MAPPING[name];
+  // ✅ FIXED: Support both prop naming conventions
+  // Priority: android_material_icon_name (direct Ionicon name) > name (SF Symbol name) > ios_icon_name (SF Symbol name)
+  let iconName: string | undefined;
   
-  if (!ioniconName) {
-    console.warn(`⚠️ [IconSymbol v20.0] No mapping found for "${name}"`);
+  if (android_material_icon_name) {
+    // Direct Ionicon name provided
+    iconName = android_material_icon_name;
+  } else {
+    // Use SF Symbol name and map it
+    const sfSymbolName = name || ios_icon_name;
+    if (sfSymbolName) {
+      iconName = MAPPING[sfSymbolName];
+    }
+  }
+  
+  if (!iconName) {
+    console.warn(`⚠️ [IconSymbol v22.0] No icon name or mapping found. name: "${name}", ios_icon_name: "${ios_icon_name}", android_material_icon_name: "${android_material_icon_name}"`);
     return null;
   }
   
-  console.log(`🎨 [IconSymbol v20.0 Android/Web] Rendering "${name}" -> "${ioniconName}", size: ${size}, color: ${color}`);
+  console.log(`🎨 [IconSymbol v22.0 Android/Web] Rendering "${iconName}", size: ${size}, color: ${color}`);
   
   return (
     <Ionicons
       color={color}
       size={size}
-      name={ioniconName}
+      name={iconName as any}
       style={style as StyleProp<TextStyle>}
     />
   );
