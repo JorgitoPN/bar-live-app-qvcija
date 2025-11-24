@@ -52,6 +52,52 @@ export function ModeProvider({ children }: { children: ReactNode }) {
   const [ownedLocals, setOwnedLocals] = useState<LocalProfile[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
 
+  // Define loadOwnedLocals BEFORE using it in useEffect
+  const loadOwnedLocals = useCallback(async () => {
+    if (!user) {
+      setOwnedLocals([]);
+      return;
+    }
+
+    try {
+      console.log('[ModeContext] 🔄 Loading owned locals for user:', user.id);
+      
+      const { data, error } = await supabase
+        .from('propietarios_locales')
+        .select(`
+          local_id,
+          locales (
+            id,
+            nombre,
+            imagen_url,
+            tipo
+          )
+        `)
+        .eq('propietario_id', user.id);
+
+      if (error) {
+        console.error('[ModeContext] ❌ Error loading owned locals:', error);
+        return;
+      }
+
+      const locals = data
+        ?.map(item => item.locales)
+        .filter(Boolean)
+        .map(local => ({
+          id: local.id,
+          nombre: local.nombre,
+          imagen_url: local.imagen_url,
+          tipo: local.tipo,
+        })) || [];
+
+      console.log('[ModeContext] ✅ Loaded', locals.length, 'owned locals');
+      setOwnedLocals(locals);
+    } catch (error) {
+      console.error('[ModeContext] ❌ Error loading owned locals:', error);
+      setOwnedLocals([]);
+    }
+  }, [user]);
+
   // Initialize all state from AsyncStorage on mount
   useEffect(() => {
     const initializeMode = async () => {
@@ -201,6 +247,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
   }, [user, isInitialized]);
 
   // Load owned locals when user changes or mode changes to propietario
+  // ✅ FIX: Now loadOwnedLocals is defined before this useEffect
   useEffect(() => {
     if (user && (currentMode === 'propietario' || user.rol_app === 'propietario' || user.rol_app === 'admin')) {
       loadOwnedLocals();
@@ -217,51 +264,6 @@ export function ModeProvider({ children }: { children: ReactNode }) {
       isInitialized,
     });
   }, [currentMode, activeProfileId, activeProfileType, activeLocalData, isInitialized]);
-
-  const loadOwnedLocals = useCallback(async () => {
-    if (!user) {
-      setOwnedLocals([]);
-      return;
-    }
-
-    try {
-      console.log('[ModeContext] 🔄 Loading owned locals for user:', user.id);
-      
-      const { data, error } = await supabase
-        .from('propietarios_locales')
-        .select(`
-          local_id,
-          locales (
-            id,
-            nombre,
-            imagen_url,
-            tipo
-          )
-        `)
-        .eq('propietario_id', user.id);
-
-      if (error) {
-        console.error('[ModeContext] ❌ Error loading owned locals:', error);
-        return;
-      }
-
-      const locals = data
-        ?.map(item => item.locales)
-        .filter(Boolean)
-        .map(local => ({
-          id: local.id,
-          nombre: local.nombre,
-          imagen_url: local.imagen_url,
-          tipo: local.tipo,
-        })) || [];
-
-      console.log('[ModeContext] ✅ Loaded', locals.length, 'owned locals');
-      setOwnedLocals(locals);
-    } catch (error) {
-      console.error('[ModeContext] ❌ Error loading owned locals:', error);
-      setOwnedLocals([]);
-    }
-  }, [user]);
 
   const setCurrentMode = async (mode: UserMode) => {
     try {
