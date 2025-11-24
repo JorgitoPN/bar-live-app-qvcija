@@ -8,6 +8,7 @@ import InitialLoadingScreen from '@/components/common/InitialLoadingScreen';
 import { LinearGradient } from 'expo-linear-gradient';
 import ParsedText from '@/components/social/ParsedText';
 import StoryViewer from '@/components/social/StoryViewer';
+import { preloadStoryImages } from '@/utils/storyPreloader';
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
@@ -1088,6 +1089,14 @@ export default function SocialScreen() {
           
           setUserStories(userStoriesWithStatus);
           setHistorias(otherStoriesWithStatus);
+          
+          // ✅ CRITICAL: Preload story images in background
+          if (otherStoriesWithStatus.length > 0) {
+            console.log('[Social] 🚀 Preloading story images in background...');
+            preloadStoryImages(otherStoriesWithStatus, 0, 5).catch(() => {
+              console.log('[Social] ⚠️ Story preload failed, continuing anyway');
+            });
+          }
         } else {
           setHistorias(otherStories);
         }
@@ -1302,11 +1311,15 @@ export default function SocialScreen() {
     lastScrollY.current = currentScrollY;
   }, [headerTranslateY]);
 
-  // ✅ FIXED: Handle story press with centralized StoryViewer
-  const handleStoryPress = useCallback((index: number, isOwnStory: boolean = false) => {
+  // ✅ FIXED: Handle story press with centralized StoryViewer + PRELOAD
+  const handleStoryPress = useCallback(async (index: number, isOwnStory: boolean = false) => {
     console.log('[Social] 📖 Story pressed - index:', index, 'isOwnStory:', isOwnStory);
     const stories = isOwnStory ? userStories : historias;
     console.log('[Social] 📖 Stories available:', stories.length);
+    
+    // ✅ CRITICAL: Preload images BEFORE opening viewer
+    console.log('[Social] 🚀 Preloading story images before opening viewer...');
+    await preloadStoryImages(stories, index, 4);
     
     setCurrentStoryIndex(index);
     setViewingOwnStories(isOwnStory);

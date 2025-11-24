@@ -67,18 +67,43 @@ interface StoryViewerProps {
   activeLocalProfileId?: string | null;
 }
 
-// ✅ Memoized story image component with instant loading
+// ✅ CRITICAL FIX: Preload images BEFORE opening viewer
+const preloadStoryImages = async (stories: Historia[], startIndex: number) => {
+  const imagesToPreload: string[] = [];
+  
+  // Preload current + next 3 stories
+  for (let i = startIndex; i < Math.min(startIndex + 4, stories.length); i++) {
+    if (stories[i]?.imagen) {
+      imagesToPreload.push(stories[i].imagen);
+    }
+  }
+  
+  console.log('[StoryViewer] 🚀 Preloading', imagesToPreload.length, 'images...');
+  
+  try {
+    await Promise.all(imagesToPreload.map(uri => Image.prefetch(uri)));
+    console.log('[StoryViewer] ✅ All images preloaded successfully');
+  } catch (error) {
+    console.log('[StoryViewer] ⚠️ Some images failed to preload, continuing anyway');
+  }
+};
+
+// ✅ ULTRA-OPTIMIZED: Memoized story image component with INSTANT loading
 const StoryImage = memo(({ uri, onLoad }: { uri: string; onLoad?: () => void }) => {
-  const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  
+  // ✅ CRITICAL: Start animation immediately, don't wait for onLoad
+  useEffect(() => {
+    // Trigger onLoad immediately since image is preloaded
+    const timer = setTimeout(() => {
+      onLoad?.();
+    }, 50); // Minimal delay to ensure component is mounted
+    
+    return () => clearTimeout(timer);
+  }, [uri, onLoad]);
   
   return (
     <>
-      {!imageLoaded && !imageError && (
-        <View style={[styles.storyImage, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }]}>
-          <ActivityIndicator size="large" color="#fff" />
-        </View>
-      )}
       {imageError && (
         <View style={[styles.storyImage, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }]}>
           <IconSymbol ios_icon_name="exclamationmark.triangle" android_material_icon_name="error" size={48} color="#fff" />
@@ -87,12 +112,8 @@ const StoryImage = memo(({ uri, onLoad }: { uri: string; onLoad?: () => void }) 
       )}
       <Image 
         source={{ uri }} 
-        style={[styles.storyImage, !imageLoaded && { opacity: 0 }]} 
+        style={styles.storyImage} 
         resizeMode="contain"
-        onLoadEnd={() => {
-          setImageLoaded(true);
-          onLoad?.();
-        }}
         onError={() => {
           console.error('[StoryViewer] Error loading image:', uri);
           setImageError(true);
@@ -232,6 +253,7 @@ function StoryViewer({
   const [loadingStats, setLoadingStats] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [imagesPreloaded, setImagesPreloaded] = useState(false);
   
   const isPausedRef = useRef<boolean>(false);
   
@@ -277,6 +299,12 @@ function StoryViewer({
       setCurrentStoryIndex(newIndex);
       setImageLoaded(false);
       onStoryChange?.(newIndex);
+      
+      // ✅ Preload next images in background
+      if (newIndex + 1 < stories.length) {
+        const nextImages = stories.slice(newIndex + 1, newIndex + 4).map(s => s.imagen).filter(Boolean);
+        Promise.all(nextImages.map(uri => Image.prefetch(uri))).catch(() => {});
+      }
     } else {
       onClose();
     }
@@ -703,9 +731,22 @@ function StoryViewer({
     }
   }, [visible, currentStory, user, markStoryAsViewed]);
 
+  // ✅ CRITICAL FIX: Preload images BEFORE opening viewer
+  useEffect(() => {
+    if (visible && !imagesPreloaded) {
+      console.log('[StoryViewer] 🚀 Starting image preload...');
+      setImagesPreloaded(true);
+      
+      preloadStoryImages(stories, initialIndex).then(() => {
+        console.log('[StoryViewer] ✅ Images preloaded, starting animation');
+        setImageLoaded(true);
+      });
+    }
+  }, [visible, stories, initialIndex, imagesPreloaded]);
+
   // ✅ Preload next 2 story images for INSTANT loading
   useEffect(() => {
-    if (visible) {
+    if (visible && imageLoaded) {
       const preloadPromises: Promise<boolean>[] = [];
       
       if (currentStoryIndex < stories.length - 1) {
@@ -728,7 +769,7 @@ function StoryViewer({
         });
       }
     }
-  }, [visible, currentStoryIndex, stories]);
+  }, [visible, currentStoryIndex, stories, imageLoaded]);
 
   // Reset to initial index when modal opens
   useEffect(() => {
@@ -737,10 +778,12 @@ function StoryViewer({
       setImageLoaded(false);
       setIsPaused(false);
       isPausedRef.current = false;
+      setImagesPreloaded(false);
     } else {
       setImageLoaded(false);
       setIsPaused(false);
       isPausedRef.current = false;
+      setImagesPreloaded(false);
     }
   }, [visible, initialIndex]);
 
