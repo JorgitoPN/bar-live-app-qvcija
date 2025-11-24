@@ -17,6 +17,7 @@ import {
   KeyboardAvoidingView,
   StatusBar,
   ActivityIndicator,
+  Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -129,8 +130,11 @@ function StoryViewer({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
   
-  // ✅ ULTRA-SMOOTH: Progress animation with requestAnimationFrame
-  const progressRefs = useRef<(View | null)[]>([]);
+  // ✅ FIXED: Use Animated.Value for smooth progress animation
+  const progressAnimations = useRef<Animated.Value[]>(
+    stories.map(() => new Animated.Value(0))
+  ).current;
+  
   const animationFrameId = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
   const elapsedTimeRef = useRef<number>(0);
@@ -192,7 +196,7 @@ function StoryViewer({
     }
   }, [currentStoryIndex, onClose, onStoryChange]);
 
-  // ✅ ULTRA-SMOOTH: Animation loop with requestAnimationFrame (60fps guaranteed)
+  // ✅ FIXED: Animation loop using Animated.timing for smooth 60fps
   const animateProgress = useCallback(() => {
     if (!imageLoaded || isPausedRef.current) {
       return;
@@ -204,14 +208,8 @@ function StoryViewer({
     
     const progress = Math.min(elapsed / STORY_DURATION, 1);
 
-    // ✅ Update current progress bar with direct DOM manipulation for 60fps
-    const currentProgressBar = progressRefs.current[currentStoryIndex];
-    if (currentProgressBar) {
-      // @ts-expect-error - setNativeProps is available on View
-      currentProgressBar.setNativeProps({
-        style: { width: `${progress * 100}%` }
-      });
-    }
+    // ✅ Update current progress bar using Animated.Value
+    progressAnimations[currentStoryIndex].setValue(progress);
 
     if (progress >= 1) {
       // Story completed
@@ -224,7 +222,7 @@ function StoryViewer({
       // Continue animation
       animationFrameId.current = requestAnimationFrame(animateProgress);
     }
-  }, [imageLoaded, currentStoryIndex, handleNextStory]);
+  }, [imageLoaded, currentStoryIndex, handleNextStory, progressAnimations]);
 
   // ✅ Start animation
   const startAnimation = useCallback(() => {
@@ -272,7 +270,7 @@ function StoryViewer({
     }
   }, []);
 
-  // ✅ Reset animation for new story
+  // ✅ FIXED: Reset animation for new story using Animated.Value
   const resetAnimation = useCallback(() => {
     // Stop any running animation
     if (animationFrameId.current !== null) {
@@ -285,19 +283,18 @@ function StoryViewer({
     elapsedTimeRef.current = 0;
     isPausedRef.current = false;
     
-    // Reset all progress bars
-    progressRefs.current.forEach((ref, index) => {
-      if (ref) {
-        // @ts-expect-error - setNativeProps is available on View
-        ref.setNativeProps({
-          style: { width: index < currentStoryIndex ? '100%' : '0%' }
-        });
+    // Reset all progress bars using Animated.Value
+    progressAnimations.forEach((anim, index) => {
+      if (index < currentStoryIndex) {
+        anim.setValue(1); // Completed stories
+      } else {
+        anim.setValue(0); // Upcoming stories
       }
     });
     
     // Reset image loaded state
     setImageLoaded(false);
-  }, [currentStoryIndex]);
+  }, [currentStoryIndex, progressAnimations]);
 
   const handleStoryLike = useCallback(async () => {
     if (!currentStory || !user) {
@@ -798,19 +795,21 @@ function StoryViewer({
         keyboardVerticalOffset={0}
       >
         <View style={styles.storyViewerModal} {...panResponder.panHandlers}>
-          {/* ✅ NEW DESIGN: Modern progress bars with glassmorphism */}
+          {/* ✅ FIXED: Modern progress bars using Animated.View */}
           <BlurView intensity={20} tint="dark" style={styles.progressContainer}>
             <View style={styles.progressBarsWrapper}>
               {stories.map((_, index) => (
                 <View key={index} style={styles.progressBarContainer}>
                   <View style={styles.progressBarBackground}>
-                    <View
-                      ref={(ref) => {
-                        progressRefs.current[index] = ref;
-                      }}
+                    <Animated.View
                       style={[
                         styles.progressBarFill,
-                        { width: index < currentStoryIndex ? '100%' : '0%' }
+                        {
+                          width: progressAnimations[index].interpolate({
+                            inputRange: [0, 1],
+                            outputRange: ['0%', '100%'],
+                          }),
+                        },
                       ]}
                     >
                       <LinearGradient
@@ -819,7 +818,7 @@ function StoryViewer({
                         end={{ x: 1, y: 0 }}
                         style={styles.progressGradient}
                       />
-                    </View>
+                    </Animated.View>
                   </View>
                 </View>
               ))}
