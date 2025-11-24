@@ -65,6 +65,7 @@ interface HistoriaConAutor {
   };
   autorNombre?: string;
   autorAvatar?: string;
+  autorUsername?: string;
   visto_por_usuario?: boolean;
   views_count?: number;
   likes_count?: number;
@@ -692,6 +693,11 @@ function PostCardWithSwipe({ post, user, activeLocalProfileId, router, toggleLik
     }
   };
 
+  // ✅ CRITICAL FIX: Display username WITHOUT @ symbol, prioritize username over full name
+  const displayName = post.tipo === 'local'
+    ? (post.autor?.nombre || 'Local')
+    : (post.autor?.username || post.autor?.nombre || 'Usuario').replace(/^@/, '');
+
   return (
     <View style={styles.postCard}>
       <View style={styles.postHeader}>
@@ -705,12 +711,12 @@ function PostCardWithSwipe({ post, user, activeLocalProfileId, router, toggleLik
           ) : (
             <View style={[styles.postAvatar, styles.avatarPlaceholder]}>
               <Text style={styles.avatarText}>
-                {post.autor?.nombre?.charAt(0).toUpperCase() || 'U'}
+                {displayName.charAt(0).toUpperCase()}
               </Text>
             </View>
           )}
           <View style={styles.postAutorInfo}>
-            <Text style={styles.postAutorNombre}>{(post.autor?.nombre || 'Usuario').replace(/^@/, '')}</Text>
+            <Text style={styles.postAutorNombre}>{displayName}</Text>
             <Text style={styles.postFecha}>{formatearFecha(post.created_at)}</Text>
           </View>
         </TouchableOpacity>
@@ -835,7 +841,7 @@ function PostCardWithSwipe({ post, user, activeLocalProfileId, router, toggleLik
       {post.contenido && (
         <View style={styles.postDescripcion}>
           <Text style={styles.postDescripcionText}>
-            <Text style={{ fontWeight: '600' }}>{(post.autor?.nombre || 'Usuario').replace(/^@/, '')}</Text>{' '}
+            <Text style={{ fontWeight: '600' }}>{displayName}</Text>{' '}
             <ParsedText text={post.contenido} style={styles.postDescripcionText} />
           </Text>
         </View>
@@ -1726,56 +1732,63 @@ export default function SocialScreen() {
               </TouchableOpacity>
             )}
 
-            {groupedStories.map(({ firstStory, allViewed, firstStoryIndex }, groupIndex) => (
-              <TouchableOpacity
-                key={firstStory.id}
-                style={styles.historiaItem}
-                onPress={() => handleStoryPress(firstStoryIndex, false)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.historiaAvatarContainer}>
-                  {!allViewed ? (
-                    <LinearGradient
-                      colors={['#FFD700', '#00FF00']}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.historiaGradientBorder}
-                    >
-                      {firstStory.autor?.avatar ? (
-                        <Image
-                          source={{ uri: firstStory.autor.avatar }}
-                          style={styles.historiaAvatar}
-                        />
-                      ) : (
-                        <View style={[styles.historiaAvatar, styles.avatarPlaceholder]}>
-                          <Text style={styles.avatarText}>
-                            {firstStory.autor?.nombre?.charAt(0).toUpperCase() || 'U'}
-                          </Text>
-                        </View>
-                      )}
-                    </LinearGradient>
-                  ) : (
-                    <>
-                      {firstStory.autor?.avatar ? (
-                        <Image
-                          source={{ uri: firstStory.autor.avatar }}
-                          style={[styles.historiaAvatar, { borderWidth: 2, borderColor: colors.cardBorder }]}
-                        />
-                      ) : (
-                        <View style={[styles.historiaAvatar, styles.avatarPlaceholder, { borderWidth: 2, borderColor: colors.cardBorder }]}>
-                          <Text style={styles.avatarText}>
-                            {firstStory.autor?.nombre?.charAt(0).toUpperCase() || 'U'}
-                          </Text>
-                        </View>
-                      )}
-                    </>
-                  )}
-                </View>
-                <Text style={styles.historiaNombre} numberOfLines={1}>
-                  {(firstStory.autor?.nombre || 'Usuario').replace(/^@/, '')}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            {groupedStories.map(({ firstStory, allViewed, firstStoryIndex }, groupIndex) => {
+              // ✅ CRITICAL FIX: Display username WITHOUT @ symbol for stories
+              const storyDisplayName = firstStory.tipo === 'local'
+                ? (firstStory.autor?.nombre || 'Local')
+                : (firstStory.autor?.username || firstStory.autor?.nombre || 'Usuario').replace(/^@/, '');
+
+              return (
+                <TouchableOpacity
+                  key={firstStory.id}
+                  style={styles.historiaItem}
+                  onPress={() => handleStoryPress(firstStoryIndex, false)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.historiaAvatarContainer}>
+                    {!allViewed ? (
+                      <LinearGradient
+                        colors={['#FFD700', '#00FF00']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.historiaGradientBorder}
+                      >
+                        {firstStory.autor?.avatar ? (
+                          <Image
+                            source={{ uri: firstStory.autor.avatar }}
+                            style={styles.historiaAvatar}
+                          />
+                        ) : (
+                          <View style={[styles.historiaAvatar, styles.avatarPlaceholder]}>
+                            <Text style={styles.avatarText}>
+                              {storyDisplayName.charAt(0).toUpperCase()}
+                            </Text>
+                          </View>
+                        )}
+                      </LinearGradient>
+                    ) : (
+                      <>
+                        {firstStory.autor?.avatar ? (
+                          <Image
+                            source={{ uri: firstStory.autor.avatar }}
+                            style={[styles.historiaAvatar, { borderWidth: 2, borderColor: colors.cardBorder }]}
+                          />
+                        ) : (
+                          <View style={[styles.historiaAvatar, styles.avatarPlaceholder, { borderWidth: 2, borderColor: colors.cardBorder }]}>
+                            <Text style={styles.avatarText}>
+                              {storyDisplayName.charAt(0).toUpperCase()}
+                            </Text>
+                          </View>
+                        )}
+                      </>
+                    )}
+                  </View>
+                  <Text style={styles.historiaNombre} numberOfLines={1}>
+                    {storyDisplayName}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </ScrollView>
         </View>
 
