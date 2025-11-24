@@ -33,6 +33,7 @@ interface MentionAutocompleteProps {
   cursorPosition: number;
   onSelectMention: (mention: MentionSuggestion, mentionText: string) => void;
   style?: any;
+  inputRef?: React.RefObject<any>;
 }
 
 /**
@@ -92,12 +93,14 @@ export default function MentionAutocomplete({
   cursorPosition,
   onSelectMention,
   style,
+  inputRef,
 }: MentionAutocompleteProps) {
   const [suggestions, setSuggestions] = useState<MentionSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentMentionText, setCurrentMentionText] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [inputLayout, setInputLayout] = useState({ y: 0, height: 0 });
   
   // ✅ Animation for smooth appearance
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -127,6 +130,16 @@ export default function MentionAutocomplete({
       keyboardWillHide.remove();
     };
   }, []);
+
+  // ✅ Measure input position when it becomes available
+  useEffect(() => {
+    if (inputRef?.current && isVisible) {
+      inputRef.current.measure((x: number, y: number, width: number, height: number, pageX: number, pageY: number) => {
+        console.log('[MentionAutocomplete] 📏 Input measured - y:', pageY, 'height:', height);
+        setInputLayout({ y: pageY, height });
+      });
+    }
+  }, [inputRef, isVisible]);
 
   // ✅ Animate appearance/disappearance
   useEffect(() => {
@@ -531,7 +544,7 @@ export default function MentionAutocomplete({
     );
   };
 
-  // ✅ Calculate optimal positioning - directly above keyboard
+  // ✅ Calculate optimal positioning - directly above keyboard, attached to input
   const MARGIN_FROM_KEYBOARD = 8; // Small margin between list and keyboard
   const ITEM_HEIGHT = 64; // Height of each suggestion item
   const MAX_ITEMS = 4; // Show up to 4 items
@@ -540,7 +553,7 @@ export default function MentionAutocomplete({
   const itemsToShow = Math.min(suggestions.length, MAX_ITEMS);
   const containerHeight = loading ? 80 : itemsToShow * ITEM_HEIGHT;
   
-  // Position directly above keyboard
+  // ✅ Position directly above keyboard, attached to the text input
   const bottomPosition = keyboardHeight > 0 
     ? keyboardHeight + MARGIN_FROM_KEYBOARD 
     : 100; // Fallback when keyboard height not detected
