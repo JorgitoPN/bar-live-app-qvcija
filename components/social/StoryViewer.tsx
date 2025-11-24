@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, memo, useMemo } from 'react';
 import {
   View,
   Text,
@@ -130,10 +130,10 @@ function StoryViewer({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
   
-  // ✅ FIXED: Use Animated.Value for smooth progress animation
-  const progressAnimations = useRef<Animated.Value[]>(
-    stories.map(() => new Animated.Value(0))
-  ).current;
+  // ✅ CRITICAL FIX: Initialize progressAnimations with useMemo to ensure it's always in sync with stories
+  const progressAnimations = useMemo(() => {
+    return stories.map(() => new Animated.Value(0));
+  }, [stories.length]);
   
   const animationFrameId = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
@@ -208,8 +208,10 @@ function StoryViewer({
     
     const progress = Math.min(elapsed / STORY_DURATION, 1);
 
-    // ✅ Update current progress bar using Animated.Value
-    progressAnimations[currentStoryIndex].setValue(progress);
+    // ✅ CRITICAL FIX: Check if animation value exists before setting
+    if (progressAnimations[currentStoryIndex]) {
+      progressAnimations[currentStoryIndex].setValue(progress);
+    }
 
     if (progress >= 1) {
       // Story completed
@@ -795,30 +797,32 @@ function StoryViewer({
         keyboardVerticalOffset={0}
       >
         <View style={styles.storyViewerModal} {...panResponder.panHandlers}>
-          {/* ✅ FIXED: Modern progress bars using Animated.View */}
+          {/* ✅ FIXED: Modern progress bars using Animated.View with safe access */}
           <BlurView intensity={20} tint="dark" style={styles.progressContainer}>
             <View style={styles.progressBarsWrapper}>
               {stories.map((_, index) => (
                 <View key={index} style={styles.progressBarContainer}>
                   <View style={styles.progressBarBackground}>
-                    <Animated.View
-                      style={[
-                        styles.progressBarFill,
-                        {
-                          width: progressAnimations[index].interpolate({
-                            inputRange: [0, 1],
-                            outputRange: ['0%', '100%'],
-                          }),
-                        },
-                      ]}
-                    >
-                      <LinearGradient
-                        colors={['#FFD700', '#00FF00']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={styles.progressGradient}
-                      />
-                    </Animated.View>
+                    {progressAnimations[index] && (
+                      <Animated.View
+                        style={[
+                          styles.progressBarFill,
+                          {
+                            width: progressAnimations[index].interpolate({
+                              inputRange: [0, 1],
+                              outputRange: ['0%', '100%'],
+                            }),
+                          },
+                        ]}
+                      >
+                        <LinearGradient
+                          colors={['#FFD700', '#00FF00']}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                          style={styles.progressGradient}
+                        />
+                      </Animated.View>
+                    )}
                   </View>
                 </View>
               ))}
