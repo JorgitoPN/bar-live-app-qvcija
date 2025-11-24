@@ -1,12 +1,13 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Dimensions, Modal, Pressable } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Dimensions, Modal, Pressable, Animated } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { Post } from '@/types';
 import { colors } from '@/styles/commonStyles';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/utils/supabase';
 import ParsedText from './ParsedText';
+import PostLikesAvatars from './PostLikesAvatars';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -43,6 +44,7 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
   const [taggedUsers, setTaggedUsers] = useState<TaggedUser[]>([]);
   const [showTagsOverlay, setShowTagsOverlay] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
+  const likeAnimation = useRef(new Animated.Value(1)).current;
 
   const images = post.imagenes && post.imagenes.length > 0 
     ? post.imagenes 
@@ -137,6 +139,20 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
   }, [post.id]);
 
   const handleLike = () => {
+    // Animate like button
+    Animated.sequence([
+      Animated.timing(likeAnimation, {
+        toValue: 1.3,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(likeAnimation, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
     setLiked(!liked);
     setLikesCount(liked ? likesCount - 1 : likesCount + 1);
     if (onLike) onLike();
@@ -151,9 +167,9 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
     const dias = Math.floor(diff / 86400000);
 
     if (minutos < 1) return 'Ahora';
-    if (minutos < 60) return `Hace ${minutos}m`;
-    if (horas < 24) return `Hace ${horas}h`;
-    if (dias < 7) return `Hace ${dias}d`;
+    if (minutos < 60) return `${minutos}m`;
+    if (horas < 24) return `${horas}h`;
+    if (dias < 7) return `${dias}d`;
     return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
   };
 
@@ -180,8 +196,14 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
     }
   };
 
+  // ✅ Get display username WITHOUT @ symbol
+  const displayUsername = post.tipo === 'local' 
+    ? post.autorNombre // Locals use their name
+    : post.autor?.username || post.autorNombre; // Users should have username
+
   return (
     <View style={styles.card}>
+      {/* Header */}
       <TouchableOpacity
         style={styles.header}
         onPress={() => {
@@ -191,74 +213,27 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
             router.push(`/perfil/usuario?userId=${post.autorId}`);
           }
         }}
+        activeOpacity={0.7}
       >
         {post.autorAvatar ? (
           <Image source={{ uri: post.autorAvatar }} style={styles.avatar} />
         ) : (
           <View style={styles.avatarPlaceholder}>
-            <IconSymbol name="person.fill" size={20} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={20} color={colors.textSecondary} />
           </View>
         )}
         <View style={styles.headerContent}>
-          <Text style={styles.autorNombre}>{post.autorNombre}</Text>
-          <Text style={styles.fecha}>{formatearFecha(post.fecha)}</Text>
+          <Text style={styles.autorNombre}>{displayUsername}</Text>
+          {post.ubicacion && (
+            <Text style={styles.ubicacion} numberOfLines={1}>{post.ubicacion}</Text>
+          )}
         </View>
-        <TouchableOpacity style={styles.moreButton}>
-          <IconSymbol name="ellipsis" size={20} color={colors.text} />
+        <TouchableOpacity style={styles.moreButton} activeOpacity={0.7}>
+          <IconSymbol ios_icon_name="ellipsis" android_material_icon_name="more_vert" size={20} color={colors.text} />
         </TouchableOpacity>
       </TouchableOpacity>
 
-      {mentionedUsers.length > 0 && (
-        <View style={styles.mentionsContainer}>
-          <Text style={styles.mentionsText}>
-            Con{' '}
-            {mentionedUsers.slice(0, 3).map((user, index) => (
-              <React.Fragment key={user.id}>
-                {index > 0 && ', '}
-                <Text
-                  style={styles.mentionedUsername}
-                  onPress={() => navigateToProfile(user)}
-                >
-                  @{user.username || user.nombre}
-                </Text>
-              </React.Fragment>
-            ))}
-            {mentionedUsers.length > 3 && (
-              <Text style={styles.mentionsText}> y {mentionedUsers.length - 3} más</Text>
-            )}
-          </Text>
-        </View>
-      )}
-
-      {taggedUsers.length > 0 && (
-        <View style={styles.taggedContainer}>
-          <IconSymbol name="person.crop.circle.badge.checkmark" size={16} color={colors.primary} />
-          <Text style={styles.taggedText}>
-            Foto etiquetada de{' '}
-            {taggedUsers.slice(0, 2).map((user, index) => (
-              <React.Fragment key={user.id}>
-                {index > 0 && ' y '}
-                <Text
-                  style={styles.taggedUsername}
-                  onPress={() => navigateToProfile(user, 'usuario')}
-                >
-                  @{user.username || user.nombre}
-                </Text>
-              </React.Fragment>
-            ))}
-            {taggedUsers.length > 2 && (
-              <Text style={styles.taggedText}> y {taggedUsers.length - 2} más</Text>
-            )}
-          </Text>
-        </View>
-      )}
-
-      {post.contenido && (
-        <View style={styles.contenidoContainer}>
-          <ParsedText text={post.contenido} style={styles.contenido} />
-        </View>
-      )}
-
+      {/* Images */}
       {images.length > 0 && (
         <View style={styles.imageCarouselContainer}>
           <ScrollView
@@ -287,9 +262,9 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
                   style={styles.imagen} 
                   resizeMode="cover" 
                 />
-                {taggedUsers.length > 0 && (
+                {taggedUsers.length > 0 && index === 0 && (
                   <View style={styles.tagIconBadge}>
-                    <IconSymbol name="person.crop.circle" size={20} color={colors.headerText} />
+                    <IconSymbol ios_icon_name="person.crop.circle" android_material_icon_name="person" size={16} color={colors.headerText} />
                   </View>
                 )}
               </TouchableOpacity>
@@ -309,50 +284,96 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
               ))}
             </View>
           )}
-
-          {images.length > 1 && (
-            <View style={styles.imageCountBadge}>
-              <Text style={styles.imageCountText}>
-                {currentImageIndex + 1}/{images.length}
-              </Text>
-            </View>
-          )}
         </View>
       )}
 
-      {post.ubicacion && (
-        <View style={styles.locationContainer}>
-          <IconSymbol name="mappin.circle.fill" size={16} color={colors.primary} />
-          <Text style={styles.locationText}>{post.ubicacion}</Text>
-        </View>
-      )}
-
+      {/* Actions */}
       <View style={styles.acciones}>
-        <TouchableOpacity style={styles.accionButton} onPress={handleLike}>
-          <IconSymbol
-            name={liked ? 'heart.fill' : 'heart'}
-            size={24}
-            color={liked ? '#EF4444' : colors.text}
-          />
-          <Text style={[styles.accionText, liked && styles.accionTextLiked]}>
-            {likesCount}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.accionesLeft}>
+          <Animated.View style={{ transform: [{ scale: likeAnimation }] }}>
+            <TouchableOpacity style={styles.accionButton} onPress={handleLike} activeOpacity={0.7}>
+              <IconSymbol
+                ios_icon_name={liked ? 'heart.fill' : 'heart'}
+                android_material_icon_name={liked ? 'favorite' : 'favorite_border'}
+                size={26}
+                color={liked ? '#EF4444' : colors.text}
+              />
+            </TouchableOpacity>
+          </Animated.View>
 
-        <TouchableOpacity style={styles.accionButton} onPress={onComment}>
-          <IconSymbol name="bubble.left" size={24} color={colors.text} />
-          <Text style={styles.accionText}>{post.comentarios}</Text>
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.accionButton} onPress={onComment} activeOpacity={0.7}>
+            <IconSymbol ios_icon_name="bubble.left" android_material_icon_name="chat_bubble_outline" size={26} color={colors.text} />
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.accionButton} onPress={onShare}>
-          <IconSymbol name="paperplane" size={24} color={colors.text} />
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.accionButton} onPress={onShare} activeOpacity={0.7}>
+            <IconSymbol ios_icon_name="paperplane" android_material_icon_name="send" size={26} color={colors.text} />
+          </TouchableOpacity>
+        </View>
 
-        <TouchableOpacity style={styles.accionButton}>
-          <IconSymbol name="bookmark" size={24} color={colors.text} />
+        <TouchableOpacity style={styles.accionButton} activeOpacity={0.7}>
+          <IconSymbol ios_icon_name="bookmark" android_material_icon_name="bookmark_border" size={26} color={colors.text} />
         </TouchableOpacity>
       </View>
 
+      {/* Likes */}
+      {likesCount > 0 && (
+        <View style={styles.likesContainer}>
+          <PostLikesAvatars postId={post.id} likesCount={likesCount} />
+        </View>
+      )}
+
+      {/* Content */}
+      {post.contenido && (
+        <View style={styles.contenidoContainer}>
+          <Text style={styles.contenido}>
+            <Text style={styles.autorNombreBold}>{displayUsername}</Text>{' '}
+            <ParsedText text={post.contenido} style={styles.contenidoText} />
+          </Text>
+        </View>
+      )}
+
+      {/* Comments preview */}
+      {post.comentarios > 0 && (
+        <TouchableOpacity
+          style={styles.comentariosPreview}
+          onPress={() => router.push(`/social/post?id=${post.id}`)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.comentariosText}>
+            Ver {post.comentarios === 1 ? 'el comentario' : `los ${post.comentarios} comentarios`}
+          </Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Timestamp */}
+      <View style={styles.timestampContainer}>
+        <Text style={styles.timestamp}>{formatearFecha(post.fecha)}</Text>
+      </View>
+
+      {/* Mentions */}
+      {mentionedUsers.length > 0 && (
+        <View style={styles.mentionsContainer}>
+          <Text style={styles.mentionsText}>
+            Con{' '}
+            {mentionedUsers.slice(0, 2).map((user, index) => (
+              <React.Fragment key={user.id}>
+                {index > 0 && ', '}
+                <Text
+                  style={styles.mentionedUsername}
+                  onPress={() => navigateToProfile(user)}
+                >
+                  {user.username || user.nombre}
+                </Text>
+              </React.Fragment>
+            ))}
+            {mentionedUsers.length > 2 && (
+              <Text style={styles.mentionsText}> y {mentionedUsers.length - 2} más</Text>
+            )}
+          </Text>
+        </View>
+      )}
+
+      {/* Tags Modal */}
       <Modal
         visible={showTagsOverlay}
         transparent={true}
@@ -405,7 +426,7 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
             onPress={() => setShowTagsOverlay(false)}
             activeOpacity={0.7}
           >
-            <IconSymbol name="xmark.circle.fill" size={32} color={colors.headerText} />
+            <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={32} color={colors.headerText} />
           </TouchableOpacity>
         </Pressable>
       </Modal>
@@ -416,26 +437,25 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.cardBackground,
-    marginBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
+    marginBottom: 8,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    gap: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 10,
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: colors.cardBorder,
   },
   avatarPlaceholder: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
@@ -444,55 +464,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   autorNombre: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '600',
     color: colors.text,
   },
-  fecha: {
-    fontSize: 12,
+  ubicacion: {
+    fontSize: 11,
     color: colors.textSecondary,
-    marginTop: 2,
+    marginTop: 1,
   },
   moreButton: {
     padding: 4,
-  },
-  mentionsContainer: {
-    paddingHorizontal: 12,
-    paddingBottom: 8,
-  },
-  mentionsText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  mentionedUsername: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.secondary,
-  },
-  taggedContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingBottom: 8,
-    gap: 6,
-  },
-  taggedText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  taggedUsername: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.primary,
-  },
-  contenidoContainer: {
-    paddingHorizontal: 12,
-    paddingBottom: 12,
-  },
-  contenido: {
-    fontSize: 15,
-    color: colors.text,
-    lineHeight: 20,
   },
   imageCarouselContainer: {
     position: 'relative',
@@ -514,23 +496,23 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 12,
     left: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
   imageIndicatorContainer: {
     position: 'absolute',
-    bottom: 12,
+    top: 12,
     left: 0,
     right: 0,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
   },
   imageIndicatorDot: {
     width: 6,
@@ -540,55 +522,72 @@ const styles = StyleSheet.create({
   },
   imageIndicatorDotActive: {
     backgroundColor: 'rgba(255, 255, 255, 1)',
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  imageCountBadge: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  imageCountText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.headerText,
-  },
-  locationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    gap: 6,
-  },
-  locationText: {
-    fontSize: 13,
-    color: colors.text,
-    fontWeight: '500',
   },
   acciones: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    gap: 16,
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
   },
-  accionButton: {
+  accionesLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 12,
   },
-  accionText: {
+  accionButton: {
+    padding: 4,
+  },
+  likesContainer: {
+    paddingHorizontal: 12,
+    paddingBottom: 8,
+  },
+  contenidoContainer: {
+    paddingHorizontal: 12,
+    paddingBottom: 4,
+  },
+  contenido: {
     fontSize: 14,
+    color: colors.text,
+    lineHeight: 18,
+  },
+  autorNombreBold: {
     fontWeight: '600',
     color: colors.text,
   },
-  accionTextLiked: {
-    color: '#EF4444',
+  contenidoText: {
+    fontSize: 14,
+    color: colors.text,
+  },
+  comentariosPreview: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  comentariosText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  timestampContainer: {
+    paddingHorizontal: 12,
+    paddingBottom: 8,
+  },
+  timestamp: {
+    fontSize: 10,
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+  },
+  mentionsContainer: {
+    paddingHorizontal: 12,
+    paddingBottom: 8,
+  },
+  mentionsText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  mentionedUsername: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.secondary,
   },
   tagsOverlay: {
     flex: 1,
