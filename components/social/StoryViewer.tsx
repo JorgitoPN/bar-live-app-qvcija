@@ -80,6 +80,7 @@ export default function StoryViewer({
   
   const storyTimerRef = useRef<NodeJS.Timeout | null>(null);
   const progressAnim = useRef(new Animated.Value(0)).current;
+  const touchStartTime = useRef<number>(0);
 
   const currentStory = stories[currentStoryIndex];
 
@@ -154,11 +155,11 @@ export default function StoryViewer({
 
     progressAnim.setValue(0);
 
-    // ✅ FIXED: Animate using scaleX with transformOrigin: 'left' for smooth filling effect
+    // ✅ FIXED: Use width animation instead of scaleX for smoother progress bar
     Animated.timing(progressAnim, {
       toValue: 1,
       duration: STORY_DURATION,
-      useNativeDriver: true,
+      useNativeDriver: false, // Changed to false for width animation
     }).start(({ finished }) => {
       if (finished && !isPaused) {
         handleNextStory();
@@ -399,28 +400,30 @@ export default function StoryViewer({
     stopStoryTimer();
   }, [onClose, stopStoryTimer]);
 
-  // ✅ FIXED: Instagram-like story gestures with PanResponder
+  // ✅ FIXED: Improved Instagram-like story gestures with better detection
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: (_, gestureState) => {
         // Only respond to significant movements
-        return Math.abs(gestureState.dx) > 10 || Math.abs(gestureState.dy) > 10;
+        return Math.abs(gestureState.dx) > 5 || Math.abs(gestureState.dy) > 5;
       },
       onPanResponderGrant: () => {
         // ✅ Pause on touch start (tap and hold)
         console.log('[StoryViewer] 👆 Touch started - pausing story');
+        touchStartTime.current = Date.now();
         setIsPaused(true);
         stopStoryTimer();
       },
       onPanResponderRelease: (evt: GestureResponderEvent, gestureState: PanResponderGestureState) => {
         const { dx, dy } = gestureState;
         const locationX = evt.nativeEvent.locationX;
+        const touchDuration = Date.now() - touchStartTime.current;
         
-        console.log('[StoryViewer] 👆 Touch released - dx:', dx, 'dy:', dy, 'locationX:', locationX);
+        console.log('[StoryViewer] 👆 Touch released - dx:', dx, 'dy:', dy, 'locationX:', locationX, 'duration:', touchDuration);
         
-        // ✅ Swipe down to close
-        if (dy > 100 && Math.abs(dx) < 50) {
+        // ✅ Swipe down to close (prioritize vertical swipes)
+        if (dy > 80 && Math.abs(dx) < 80) {
           console.log('[StoryViewer] ⬇️ Swipe down detected - closing story viewer');
           onClose();
           stopStoryTimer();
@@ -428,7 +431,7 @@ export default function StoryViewer({
         }
         
         // ✅ Swipe right to go to previous story
-        if (dx > 100 && Math.abs(dy) < 50) {
+        if (dx > 80 && Math.abs(dy) < 80) {
           console.log('[StoryViewer] ➡️ Swipe right detected - going to previous story');
           handlePreviousStory();
           setIsPaused(false);
@@ -436,30 +439,33 @@ export default function StoryViewer({
         }
         
         // ✅ Swipe left to go to next story
-        if (dx < -100 && Math.abs(dy) < 50) {
+        if (dx < -80 && Math.abs(dy) < 80) {
           console.log('[StoryViewer] ⬅️ Swipe left detected - going to next story');
           handleNextStory();
           setIsPaused(false);
           return;
         }
         
-        // ✅ Tap left side to go to previous story
-        if (Math.abs(dx) < 10 && Math.abs(dy) < 10 && locationX < width / 2) {
-          console.log('[StoryViewer] ⏮️ Tap left detected - going to previous story');
-          handlePreviousStory();
-          setIsPaused(false);
-          return;
+        // ✅ Tap detection (short touch with minimal movement)
+        if (Math.abs(dx) < 20 && Math.abs(dy) < 20 && touchDuration < 300) {
+          // ✅ Tap left side to go to previous story
+          if (locationX < width / 2) {
+            console.log('[StoryViewer] ⏮️ Tap left detected - going to previous story');
+            handlePreviousStory();
+            setIsPaused(false);
+            return;
+          }
+          
+          // ✅ Tap right side to go to next story
+          if (locationX >= width / 2) {
+            console.log('[StoryViewer] ⏭️ Tap right detected - going to next story');
+            handleNextStory();
+            setIsPaused(false);
+            return;
+          }
         }
         
-        // ✅ Tap right side to go to next story
-        if (Math.abs(dx) < 10 && Math.abs(dy) < 10 && locationX >= width / 2) {
-          console.log('[StoryViewer] ⏭️ Tap right detected - going to next story');
-          handleNextStory();
-          setIsPaused(false);
-          return;
-        }
-        
-        // ✅ Resume story if no gesture was detected
+        // ✅ Resume story if no gesture was detected (long press released)
         console.log('[StoryViewer] ▶️ Resuming story');
         setIsPaused(false);
         startStoryTimer();
@@ -518,18 +524,17 @@ export default function StoryViewer({
               {stories.map((_, index) => (
                 <View key={index} style={styles.storyProgressBar}>
                   {index < currentStoryIndex && (
-                    <View style={[styles.storyProgressFill, { transform: [{ scaleX: 1 }] }]} />
+                    <View style={[styles.storyProgressFill, { width: '100%' }]} />
                   )}
                   {index === currentStoryIndex && (
                     <Animated.View 
                       style={[
                         styles.storyProgressFill,
                         {
-                          transform: [
-                            {
-                              scaleX: progressAnim,
-                            },
-                          ],
+                          width: progressAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: ['0%', '100%'],
+                          }),
                         },
                       ]} 
                     />
@@ -610,8 +615,14 @@ export default function StoryViewer({
                 placeholderTextColor="rgba(255, 255, 255, 0.6)"
                 value={storyMessage}
                 onChangeText={setStoryMessage}
-                onFocus={() => setIsPaused(true)}
-                onBlur={() => setIsPaused(false)}
+                onFocus={() => {
+                  setIsPaused(true);
+                  stopStoryTimer();
+                }}
+                onBlur={() => {
+                  setIsPaused(false);
+                  startStoryTimer();
+                }}
               />
 
               {storyMessage.trim().length > 0 && (
@@ -676,9 +687,7 @@ const styles = StyleSheet.create({
   },
   storyProgressFill: {
     height: '100%',
-    width: '100%',
     backgroundColor: '#fff',
-    transformOrigin: 'left',
   },
   storyAutorInfo: {
     flexDirection: 'row',

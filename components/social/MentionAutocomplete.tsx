@@ -466,18 +466,18 @@ export default function MentionAutocomplete({
     );
   };
 
-  // ✅ FIXED: Calculate bottom position - always position above keyboard with proper spacing
-  // The window should be positioned directly above the keyboard, never overlapping it
+  // ✅ FIXED: Position directly above the text input field, just above the keyboard
   const ITEM_HEIGHT = 64;
   const MAX_ITEMS = 4;
-  const SPACING_ABOVE_KEYBOARD = 8;
+  const SPACING_FROM_INPUT = 4; // Small gap between input and mention list
   
   // Calculate height based on number of suggestions (max 4 items)
   const itemsToShow = Math.min(suggestions.length, MAX_ITEMS);
   const calculatedHeight = loading ? 80 : itemsToShow > 0 ? itemsToShow * ITEM_HEIGHT : 80;
   
-  // Position directly above keyboard
-  const bottomPosition = keyboardHeight > 0 ? keyboardHeight + SPACING_ABOVE_KEYBOARD : 140;
+  // Position directly above keyboard with minimal spacing
+  // The text input is at the bottom of the screen, so we position relative to keyboard
+  const bottomPosition = keyboardHeight > 0 ? keyboardHeight + SPACING_FROM_INPUT : 60;
 
   console.log('[MentionAutocomplete] 📐 Positioning:');
   console.log('  - Keyboard height:', keyboardHeight);
