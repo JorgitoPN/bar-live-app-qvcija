@@ -202,7 +202,9 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
   }, [router]);
 
   // ✅ FIXED: Display username without @ symbol, prioritize username over full name
-  const displayName = (post.autorNombre || 'Usuario').replace(/^@/, '');
+  const displayName = post.autorUsername 
+    ? post.autorUsername.replace(/^@/, '') 
+    : (post.autorNombre || 'Usuario').replace(/^@/, '');
 
   return (
     <View style={styles.card}>
@@ -244,7 +246,9 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
                   style={styles.mentionedUsername}
                   onPress={() => navigateToProfile(user)}
                 >
-                  {(user.username || user.nombre).replace(/^@/, '')}
+                  {user.tipo === 'local' 
+                    ? user.nombre 
+                    : (user.username || user.nombre).replace(/^@/, '')}
                 </Text>
               </React.Fragment>
             ))}

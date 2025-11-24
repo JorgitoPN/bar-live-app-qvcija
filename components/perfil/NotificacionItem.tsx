@@ -52,6 +52,11 @@ export default function NotificacionItem({
 
   const icono = getIcono();
 
+  // ✅ FIXED: Display username without @ symbol, prioritize username over full name
+  const displayName = notificacion.usuarioUsername 
+    ? notificacion.usuarioUsername.replace(/^@/, '') 
+    : (notificacion.usuarioNombre || 'Usuario').replace(/^@/, '');
+
   return (
     <TouchableOpacity
       style={[styles.container, !notificacion.leida && styles.containerNoLeida]}
@@ -73,7 +78,7 @@ export default function NotificacionItem({
 
       <View style={styles.content}>
         <Text style={styles.texto}>
-          <Text style={styles.nombreUsuario}>{notificacion.usuarioNombre}</Text>
+          <Text style={styles.nombreUsuario}>{displayName}</Text>
           {' '}
           {notificacion.contenido}
         </Text>

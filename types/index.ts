@@ -7,6 +7,7 @@ export interface User {
   email: string;
   rol_app: UserRole;
   avatar?: string;
+  username?: string;
   seguidores?: number;
   seguidos?: number;
   posts?: number;
@@ -311,6 +312,7 @@ export interface Post {
   id: string;
   autorId: string;
   autorNombre: string;
+  autorUsername?: string;
   autorAvatar?: string;
   tipo: 'usuario' | 'local';
   contenido: string;
@@ -328,11 +330,26 @@ export interface Historia {
   id: string;
   autorId: string;
   autorNombre: string;
+  autorUsername?: string;
   autorAvatar?: string;
   tipo: 'usuario' | 'local';
   imagen: string;
   fecha: string;
   visto?: boolean;
+  autor_id?: string;
+  local_id?: string;
+  created_at?: string;
+  expires_at?: string;
+  visto_por_usuario?: boolean;
+  views_count?: number;
+  likes_count?: number;
+  liked_by_user?: boolean;
+  comments_count?: number;
+  autor?: {
+    nombre: string;
+    avatar?: string;
+    username?: string;
+  };
 }
 
 export interface Chat {
@@ -361,6 +378,7 @@ export interface Notificacion {
   tipo: 'like' | 'comentario' | 'seguidor' | 'mencion' | 'solicitud';
   usuarioId: string;
   usuarioNombre: string;
+  usuarioUsername?: string;
   usuarioAvatar?: string;
   contenido: string;
   fecha: string;

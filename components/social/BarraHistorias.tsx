@@ -31,8 +31,10 @@ const StoryItem = memo(({
     }
   }, [historia.autorAvatar]);
   
-  // ✅ FIXED: Remove @ symbol from username display, prioritize username over full name
-  const displayName = (historia.autorUsername || historia.autorNombre || 'Usuario').replace(/^@/, '');
+  // ✅ FIXED: Prioritize username over full name, remove @ symbol
+  const displayName = historia.autorUsername 
+    ? historia.autorUsername.replace(/^@/, '') 
+    : (historia.autorNombre || 'Usuario').replace(/^@/, '');
   
   return (
     <TouchableOpacity
