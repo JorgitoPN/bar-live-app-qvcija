@@ -17,6 +17,7 @@ import {
   PanResponderGestureState,
   KeyboardAvoidingView,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -65,17 +66,29 @@ interface StoryViewerProps {
 }
 
 // Memoized story image component to prevent unnecessary re-renders
-const StoryImage = memo(({ uri }: { uri: string }) => (
-  <Image 
-    source={{ uri }} 
-    style={styles.storyImage} 
-    resizeMode="contain"
-    // Performance optimizations
-    fadeDuration={0}
-    progressiveRenderingEnabled={true}
-    cache="force-cache"
-  />
-));
+const StoryImage = memo(({ uri }: { uri: string }) => {
+  const [imageLoaded, setImageLoaded] = useState(false);
+  
+  return (
+    <>
+      {!imageLoaded && (
+        <View style={[styles.storyImage, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }]}>
+          <ActivityIndicator size="large" color="#fff" />
+        </View>
+      )}
+      <Image 
+        source={{ uri }} 
+        style={[styles.storyImage, !imageLoaded && { opacity: 0 }]} 
+        resizeMode="contain"
+        onLoadEnd={() => setImageLoaded(true)}
+        // Performance optimizations
+        fadeDuration={0}
+        progressiveRenderingEnabled={true}
+        cache="force-cache"
+      />
+    </>
+  );
+});
 
 StoryImage.displayName = 'StoryImage';
 
@@ -131,6 +144,7 @@ function StoryViewer({
     // Stop any existing animation first
     if (animationRef.current) {
       animationRef.current.stop();
+      animationRef.current = null;
     }
 
     const remainingDuration = STORY_DURATION * (1 - pausedProgress.current);
@@ -139,7 +153,7 @@ function StoryViewer({
     animationRef.current = Animated.timing(progressAnim, {
       toValue: 1,
       duration: remainingDuration,
-      useNativeDriver: false, // Required for width animations
+      useNativeDriver: true, // ✅ FIXED: Use native driver for better performance
       isInteraction: false, // Don't block other interactions
     });
 
@@ -148,7 +162,7 @@ function StoryViewer({
         handleNextStory();
       }
     });
-  }, [progressAnim, isPaused]);
+  }, [progressAnim, isPaused, handleNextStory]);
 
   // OPTIMIZED: Reset animation for new story
   const resetAnimation = useCallback(() => {
@@ -520,6 +534,18 @@ function StoryViewer({
     }
   }, [visible, currentStory, user, markStoryAsViewed]);
 
+  // ✅ OPTIMIZED: Preload next story image for instant transitions
+  useEffect(() => {
+    if (visible && currentStoryIndex < stories.length - 1) {
+      const nextStory = stories[currentStoryIndex + 1];
+      if (nextStory?.imagen) {
+        Image.prefetch(nextStory.imagen).catch(() => {
+          console.log('[StoryViewer] Failed to prefetch next story image');
+        });
+      }
+    }
+  }, [visible, currentStoryIndex, stories]);
+
   // Reset to initial index when modal opens
   useEffect(() => {
     if (visible) {
@@ -571,10 +597,13 @@ function StoryViewer({
                     style={[
                       styles.storyProgressFill,
                       {
-                        width: progressAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: ['0%', '100%'],
-                        }),
+                        transform: [{
+                          scaleX: progressAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [0, 1],
+                          }),
+                        }],
+                        transformOrigin: 'left',
                       },
                     ]} 
                   />
@@ -749,6 +778,7 @@ const styles = StyleSheet.create({
   storyProgressFill: {
     height: '100%',
     backgroundColor: '#fff',
+    width: '100%',
   },
   storyHeader: {
     position: 'absolute',

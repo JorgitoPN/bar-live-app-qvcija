@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
   Linking,
   Alert,
   Platform,
+  Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -25,6 +26,7 @@ import { useMode } from '@/contexts/ModeContext';
 import { supabase } from '@/utils/supabase';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
+import StoryViewer from '@/components/social/StoryViewer';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -93,6 +95,13 @@ export default function PerfilScreen() {
 
   // ✅ NEW: User stories state
   const [userStories, setUserStories] = useState<any[]>([]);
+  
+  // ✅ NEW: Story viewer state
+  const [showStoryViewer, setShowStoryViewer] = useState(false);
+  const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const storyTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const progressAnim = useRef(new Animated.Value(0)).current;
 
   const userRole = user?.rol_app || 'cliente';
   const isPropietario = userRole === 'propietario' || (userRole === 'admin' && currentMode === 'propietario');
@@ -520,7 +529,106 @@ export default function PerfilScreen() {
     router.push(`/empleo/perfil-detalle?id=${perfilProfesional.id}`);
   };
 
-  // ✅ NEW: Handle adding story from avatar
+  // ✅ NEW: Story timer functions
+  const stopStoryTimer = useCallback(() => {
+    if (storyTimerRef.current) {
+      clearTimeout(storyTimerRef.current);
+      storyTimerRef.current = null;
+    }
+    progressAnim.stopAnimation();
+  }, [progressAnim]);
+
+  const handleNextStory = useCallback(async () => {
+    const currentStory = userStories[currentStoryIndex];
+    
+    if (currentStory && user) {
+      try {
+        const { data: existingView } = await supabase
+          .from('historia_views')
+          .select('id')
+          .eq('historia_id', currentStory.id)
+          .eq('usuario_id', user.id)
+          .single();
+
+        if (!existingView) {
+          await supabase.from('historia_views').insert({
+            historia_id: currentStory.id,
+            usuario_id: user.id,
+          });
+        }
+      } catch (error) {
+        console.error('[Perfil] Error marking story as viewed:', error);
+      }
+    }
+    
+    if (currentStoryIndex < userStories.length - 1) {
+      setCurrentStoryIndex(currentStoryIndex + 1);
+      progressAnim.setValue(0);
+    } else {
+      await cargarHistorias();
+      setShowStoryViewer(false);
+      stopStoryTimer();
+    }
+  }, [currentStoryIndex, userStories, stopStoryTimer, user, cargarHistorias, progressAnim]);
+
+  const startStoryTimer = useCallback(() => {
+    if (storyTimerRef.current) {
+      clearTimeout(storyTimerRef.current);
+    }
+
+    progressAnim.setValue(0);
+
+    Animated.timing(progressAnim, {
+      toValue: 1,
+      duration: 5000,
+      useNativeDriver: true,
+    }).start();
+
+    storyTimerRef.current = setTimeout(() => {
+      handleNextStory();
+    }, 5000);
+  }, [handleNextStory, progressAnim]);
+
+  const handlePreviousStory = useCallback(() => {
+    if (currentStoryIndex > 0) {
+      setCurrentStoryIndex(currentStoryIndex - 1);
+      progressAnim.setValue(0);
+      startStoryTimer();
+    } else {
+      setShowStoryViewer(false);
+      stopStoryTimer();
+    }
+  }, [currentStoryIndex, startStoryTimer, stopStoryTimer, progressAnim]);
+
+  useEffect(() => {
+    if (showStoryViewer && !isPaused) {
+      startStoryTimer();
+    }
+    return () => {
+      stopStoryTimer();
+    };
+  }, [showStoryViewer, currentStoryIndex, isPaused, startStoryTimer, stopStoryTimer]);
+
+  // ✅ NEW: Handle adding story from avatar or viewing existing stories
+  const handleAvatarPress = useCallback(() => {
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+    
+    if (userStories.length > 0) {
+      // View existing stories
+      console.log('[Perfil] Opening story viewer with', userStories.length, 'stories');
+      setCurrentStoryIndex(0);
+      setShowStoryViewer(true);
+      setIsPaused(false);
+      startStoryTimer();
+    } else {
+      // Create new story
+      router.push('/crear/historia');
+    }
+  }, [user, userStories, startStoryTimer, router]);
+
   const handleAddStory = () => {
     if (!user) {
       setShowLoginModal(true);
@@ -1017,6 +1125,26 @@ export default function PerfilScreen() {
       <ProfileSwitcher
         visible={showProfileSwitcher}
         onClose={() => setShowProfileSwitcher(false)}
+      />
+
+      {/* ✅ NEW: Story Viewer */}
+      <StoryViewer
+        visible={showStoryViewer}
+        stories={userStories.map(story => ({
+          ...story,
+          autorNombre: user?.nombre || 'Usuario',
+          autorAvatar: user?.avatar,
+        }))}
+        initialIndex={currentStoryIndex}
+        onClose={() => {
+          setShowStoryViewer(false);
+          stopStoryTimer();
+        }}
+        onStoryChange={(index) => setCurrentStoryIndex(index)}
+        onStoryDelete={async (storyId) => {
+          await cargarHistorias();
+        }}
+        activeLocalProfileId={null}
       />
     </View>
   );
