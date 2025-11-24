@@ -154,7 +154,7 @@ export default function StoryViewer({
 
     progressAnim.setValue(0);
 
-    // ✅ Animate width from 0% to 100% using scaleX
+    // ✅ Animate width from 0% to 100% using scaleX with transformOrigin: 'left'
     Animated.timing(progressAnim, {
       toValue: 1,
       duration: STORY_DURATION,
@@ -399,7 +399,7 @@ export default function StoryViewer({
     stopStoryTimer();
   }, [onClose, stopStoryTimer]);
 
-  // ✅ Instagram-like story gestures
+  // ✅ Instagram-like story gestures with PanResponder
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -414,10 +414,10 @@ export default function StoryViewer({
         stopStoryTimer();
       },
       onPanResponderRelease: (evt: GestureResponderEvent, gestureState: PanResponderGestureState) => {
-        const { dx, dy, vx, vy } = gestureState;
+        const { dx, dy } = gestureState;
         const locationX = evt.nativeEvent.locationX;
         
-        console.log('[StoryViewer] 👆 Touch released - dx:', dx, 'dy:', dy, 'vx:', vx, 'vy:', vy, 'locationX:', locationX);
+        console.log('[StoryViewer] 👆 Touch released - dx:', dx, 'dy:', dy, 'locationX:', locationX);
         
         // ✅ Swipe down to close
         if (dy > 100 && Math.abs(dx) < 50) {
@@ -525,12 +525,12 @@ export default function StoryViewer({
                       style={[
                         styles.storyProgressFill,
                         {
+                          width: '100%',
                           transform: [
                             {
                               scaleX: progressAnim,
                             },
                           ],
-                          transformOrigin: 'left',
                         },
                       ]} 
                     />
@@ -678,7 +678,7 @@ const styles = StyleSheet.create({
   storyProgressFill: {
     height: '100%',
     backgroundColor: '#fff',
-    width: '100%',
+    transformOrigin: 'left',
   },
   storyAutorInfo: {
     flexDirection: 'row',
