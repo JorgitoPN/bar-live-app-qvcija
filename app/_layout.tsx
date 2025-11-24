@@ -6,12 +6,12 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
-import { useColorScheme, View, ActivityIndicator } from 'react-native';
+import { useColorScheme } from 'react-native';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ModeProvider } from '@/contexts/ModeContext';
 import { GlobalDataProvider } from '@/contexts/GlobalDataContext';
 import { SelectedLocalProvider } from '@/contexts/SelectedLocalContext';
-import { colors } from '@/styles/commonStyles';
+import { scheduleStoryCleanup } from '@/utils/storyCleanup';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -27,6 +27,9 @@ export default function RootLayout() {
       // Hide splash screen after fonts are loaded
       // GlobalDataProvider will handle data loading
       SplashScreen.hideAsync();
+      
+      // ✅ Schedule automatic cleanup of expired stories
+      scheduleStoryCleanup();
     }
   }, [loaded]);
 

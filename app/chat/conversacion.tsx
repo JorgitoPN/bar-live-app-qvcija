@@ -264,7 +264,7 @@ export default function ConversacionScreen() {
 
         setChatId(chatData.id);
 
-        // Get other user
+        // Get other user - ✅ CRITICAL: Fetch username field
         const otroUsuarioId =
           chatData.usuario1_id === user.id ? chatData.usuario2_id : chatData.usuario1_id;
 
@@ -347,7 +347,7 @@ export default function ConversacionScreen() {
           setChatId(newChat.id);
         }
 
-        // Get other user
+        // Get other user - ✅ CRITICAL: Fetch username field
         const { data: userData } = await supabase
           .from('usuarios')
           .select('id, nombre, username, avatar, activo')
@@ -622,7 +622,7 @@ export default function ConversacionScreen() {
           style={styles.header}
         >
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+            <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Cargando...</Text>
           <View style={{ width: 40 }} />
@@ -634,8 +634,13 @@ export default function ConversacionScreen() {
     );
   }
 
-  // ✅ Display local info for local-specific chats
-  const displayName = isLocalChat && localInfo ? localInfo.nombre : (otroUsuario?.nombre || 'Usuario');
+  // ✅ CRITICAL FIX: Display username WITHOUT @ symbol in chat header
+  // For locals, use the local name directly
+  // For users, prioritize username over full name, NO @ symbol
+  const displayName = isLocalChat && localInfo 
+    ? localInfo.nombre 
+    : (otroUsuario?.username || otroUsuario?.nombre || 'Usuario').replace(/^@/, ''); // Remove @ if present
+  
   const displayAvatar = isLocalChat && localInfo ? localInfo.imagen_url : otroUsuario?.avatar;
 
   return (
@@ -645,7 +650,7 @@ export default function ConversacionScreen() {
         style={styles.header}
       >
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.headerCenter}
@@ -671,14 +676,14 @@ export default function ConversacionScreen() {
             {/* ✅ Show "Local" badge for local chats */}
             {isLocalChat && (
               <View style={styles.localBadgeHeader}>
-                <IconSymbol name="building.2" size={12} color={colors.headerText} />
+                <IconSymbol ios_icon_name="building.2" android_material_icon_name="business" size={12} color={colors.headerText} />
                 <Text style={styles.localBadgeText}>Local</Text>
               </View>
             )}
           </View>
         </TouchableOpacity>
         <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteConversation}>
-          <IconSymbol name="trash" size={22} color={colors.headerText} />
+          <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={22} color={colors.headerText} />
         </TouchableOpacity>
       </LinearGradient>
 
@@ -702,7 +707,7 @@ export default function ConversacionScreen() {
           )}
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <IconSymbol name="bubble.left.and.bubble.right" size={64} color={colors.textSecondary} />
+              <IconSymbol ios_icon_name="bubble.left.and.bubble.right" android_material_icon_name="chat" size={64} color={colors.textSecondary} />
               <Text style={styles.emptyText}>No hay mensajes aún</Text>
               <Text style={styles.emptySubtext}>
                 {isLocalChat 
@@ -732,7 +737,7 @@ export default function ConversacionScreen() {
             {enviando ? (
               <ActivityIndicator size="small" color={colors.headerText} />
             ) : (
-              <IconSymbol name="paperplane.fill" size={20} color={colors.headerText} />
+              <IconSymbol ios_icon_name="paperplane.fill" android_material_icon_name="send" size={20} color={colors.headerText} />
             )}
           </TouchableOpacity>
         </View>

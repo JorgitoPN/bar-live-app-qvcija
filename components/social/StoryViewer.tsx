@@ -130,15 +130,16 @@ function StoryViewer({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
   
-  // ✅ Initialize progressAnimations with useMemo to ensure it's always in sync with stories
+  // ✅ SMOOTH 60FPS PROGRESS BAR - Use single animation value per story
   const progressAnimations = useMemo(() => {
     return stories.map(() => new Animated.Value(0));
   }, [stories.length]);
   
+  // ✅ High-precision timer for smooth animation
+  const animationStartTime = useRef<number>(0);
   const animationFrameId = useRef<number | null>(null);
-  const startTimeRef = useRef<number>(0);
-  const elapsedTimeRef = useRef<number>(0);
   const isPausedRef = useRef<boolean>(false);
+  const pausedProgress = useRef<number>(0);
   
   // Gesture tracking refs
   const touchStartTime = useRef<number>(0);
@@ -196,19 +197,17 @@ function StoryViewer({
     }
   }, [currentStoryIndex, onClose, onStoryChange]);
 
-  // ✅ Animation loop using Animated.timing for smooth 60fps
+  // ✅ ULTRA-SMOOTH 60FPS ANIMATION - requestAnimationFrame loop
   const animateProgress = useCallback(() => {
     if (!imageLoaded || isPausedRef.current) {
       return;
     }
 
     const now = performance.now();
-    const elapsed = now - startTimeRef.current;
-    elapsedTimeRef.current = elapsed;
-    
+    const elapsed = now - animationStartTime.current;
     const progress = Math.min(elapsed / STORY_DURATION, 1);
 
-    // ✅ Check if animation value exists before setting
+    // ✅ Update progress bar smoothly
     if (progressAnimations[currentStoryIndex]) {
       progressAnimations[currentStoryIndex].setValue(progress);
     }
@@ -238,41 +237,35 @@ function StoryViewer({
       animationFrameId.current = null;
     }
 
-    // Resume from where we paused
-    if (isPausedRef.current) {
-      startTimeRef.current = performance.now() - elapsedTimeRef.current;
+    // Resume from where we paused or start fresh
+    if (isPausedRef.current && pausedProgress.current > 0) {
+      animationStartTime.current = performance.now() - (pausedProgress.current * STORY_DURATION);
     } else {
-      // Start fresh
-      startTimeRef.current = performance.now();
-      elapsedTimeRef.current = 0;
+      animationStartTime.current = performance.now();
+      pausedProgress.current = 0;
     }
     
-    // Update paused ref
     isPausedRef.current = false;
     
-    // Start new animation
+    // Start animation loop
     animationFrameId.current = requestAnimationFrame(animateProgress);
   }, [imageLoaded, animateProgress]);
-
-  // ✅ Stop animation (pause)
-  const stopAnimation = useCallback(() => {
-    if (animationFrameId.current !== null) {
-      cancelAnimationFrame(animationFrameId.current);
-      animationFrameId.current = null;
-    }
-    isPausedRef.current = true;
-  }, []);
 
   // ✅ Pause animation
   const pauseAnimation = useCallback(() => {
     if (animationFrameId.current !== null) {
       cancelAnimationFrame(animationFrameId.current);
       animationFrameId.current = null;
+      
+      // Save current progress
+      const currentValue = progressAnimations[currentStoryIndex]?._value || 0;
+      pausedProgress.current = currentValue;
+      
       isPausedRef.current = true;
     }
-  }, []);
+  }, [currentStoryIndex, progressAnimations]);
 
-  // ✅ Reset animation for new story using Animated.Value
+  // ✅ Reset animation for new story
   const resetAnimation = useCallback(() => {
     // Stop any running animation
     if (animationFrameId.current !== null) {
@@ -280,12 +273,12 @@ function StoryViewer({
       animationFrameId.current = null;
     }
     
-    // Reset all progress tracking
-    startTimeRef.current = 0;
-    elapsedTimeRef.current = 0;
+    // Reset progress tracking
+    animationStartTime.current = 0;
+    pausedProgress.current = 0;
     isPausedRef.current = false;
     
-    // Reset all progress bars using Animated.Value
+    // Reset all progress bars
     progressAnimations.forEach((anim, index) => {
       if (index < currentStoryIndex) {
         anim.setValue(1); // Completed stories
@@ -338,7 +331,7 @@ function StoryViewer({
 
     setIsPaused(true);
     isPausedRef.current = true;
-    stopAnimation();
+    pauseAnimation();
 
     setLoadingStats(true);
     setShowStoryStats(true);
@@ -378,7 +371,7 @@ function StoryViewer({
     } finally {
       setLoadingStats(false);
     }
-  }, [currentStory, user, stopAnimation, activeLocalProfileId]);
+  }, [currentStory, user, pauseAnimation, activeLocalProfileId]);
 
   const handleDeleteStory = useCallback(async () => {
     if (!currentStory || !user) {
@@ -403,6 +396,17 @@ function StoryViewer({
           style: 'destructive',
           onPress: async () => {
             try {
+              // ✅ Delete story image from storage
+              if (currentStory.imagen) {
+                const imagePath = currentStory.imagen.split('/').pop();
+                if (imagePath) {
+                  await supabase.storage
+                    .from('historias')
+                    .remove([imagePath]);
+                  console.log('[StoryViewer] ✅ Story image deleted from storage');
+                }
+              }
+
               const { error } = await supabase
                 .from('historias')
                 .delete()
@@ -716,7 +720,7 @@ function StoryViewer({
     }
   }, [visible, currentStory, user, markStoryAsViewed]);
 
-  // ✅ Preload next 2 story images
+  // ✅ Preload next 2 story images for INSTANT loading
   useEffect(() => {
     if (visible) {
       const preloadPromises: Promise<boolean>[] = [];
@@ -749,12 +753,15 @@ function StoryViewer({
       setCurrentStoryIndex(initialIndex);
       resetAnimation();
     } else {
-      stopAnimation();
+      if (animationFrameId.current !== null) {
+        cancelAnimationFrame(animationFrameId.current);
+        animationFrameId.current = null;
+      }
       setImageLoaded(false);
       setIsPaused(false);
       isPausedRef.current = false;
     }
-  }, [visible, initialIndex, resetAnimation, stopAnimation]);
+  }, [visible, initialIndex, resetAnimation]);
 
   // ✅ Reset animation when story changes
   useEffect(() => {
