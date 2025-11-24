@@ -28,9 +28,6 @@ import {
   Pressable,
   FlatList,
   Keyboard,
-  PanResponder,
-  GestureResponderEvent,
-  PanResponderGestureState,
 } from 'react-native';
 import { supabase } from '@/utils/supabase';
 import { useGlobalData } from '@/contexts/GlobalDataContext';
@@ -102,7 +99,6 @@ interface LocalProfile {
 const HEADER_HEIGHT = 120;
 const { width, height } = Dimensions.get('window');
 const SCREEN_WIDTH = width;
-const STORY_DURATION = 5000; // 5 seconds per story
 
 const styles = StyleSheet.create({
   container: {
@@ -605,7 +601,6 @@ const styles = StyleSheet.create({
   storyProgressFill: {
     height: '100%',
     backgroundColor: '#fff',
-    width: '100%',
   },
   storyAutorInfo: {
     flexDirection: 'row',
@@ -843,11 +838,6 @@ function PostCardWithSwipe({ post, user, activeLocalProfileId, router, toggleLik
     }
   };
 
-  // ✅ Get display username WITHOUT @ symbol
-  const displayUsername = post.tipo === 'local' 
-    ? post.autor?.nombre // Locals use their name
-    : post.autor?.username || post.autor?.nombre; // Users should have username
-
   return (
     <View style={styles.postCard}>
       <View style={styles.postHeader}>
@@ -866,7 +856,7 @@ function PostCardWithSwipe({ post, user, activeLocalProfileId, router, toggleLik
             </View>
           )}
           <View style={styles.postAutorInfo}>
-            <Text style={styles.postAutorNombre}>{displayUsername}</Text>
+            <Text style={styles.postAutorNombre}>{post.autor?.nombre || 'Usuario'}</Text>
             <Text style={styles.postFecha}>{formatearFecha(post.created_at)}</Text>
           </View>
         </TouchableOpacity>
@@ -989,7 +979,7 @@ function PostCardWithSwipe({ post, user, activeLocalProfileId, router, toggleLik
       {post.contenido && (
         <View style={styles.postDescripcion}>
           <Text style={styles.postDescripcionText}>
-            <Text style={{ fontWeight: '600' }}>{displayUsername}</Text>{' '}
+            <Text style={{ fontWeight: '600' }}>{post.autor?.nombre || 'Usuario'}</Text>{' '}
             <ParsedText text={post.contenido} style={styles.postDescripcionText} />
           </Text>
         </View>
@@ -1542,23 +1532,16 @@ export default function SocialScreen() {
 
     progressAnim.setValue(0);
 
-    // ✅ FIX: Animate width from 0% to 100% using scaleX
     Animated.timing(progressAnim, {
       toValue: 1,
-      duration: STORY_DURATION,
-      useNativeDriver: true,
-    }).start(({ finished }) => {
-      if (finished && !isPaused) {
-        handleNextStory();
-      }
-    });
+      duration: 5000,
+      useNativeDriver: false,
+    }).start();
 
     storyTimerRef.current = setTimeout(() => {
-      if (!isPaused) {
-        handleNextStory();
-      }
-    }, STORY_DURATION);
-  }, [handleNextStory, progressAnim, isPaused]);
+      handleNextStory();
+    }, 5000);
+  }, [handleNextStory, progressAnim]);
 
   const findFirstUnviewedStoryIndex = useCallback((stories: HistoriaConAutor[]): number => {
     const firstUnviewedIndex = stories.findIndex(story => !story.visto_por_usuario);
@@ -1767,43 +1750,30 @@ export default function SocialScreen() {
     }
 
     try {
-      console.log('[Social] 📨 Sending story message...');
-      
-      // ✅ FIX: Respect the chats_check constraint (usuario1_id < usuario2_id)
-      const usuario1_id = user.id < currentStory.autor_id ? user.id : currentStory.autor_id;
-      const usuario2_id = user.id < currentStory.autor_id ? currentStory.autor_id : user.id;
-      
-      console.log('[Social] 🔍 Checking for existing chat between:', usuario1_id, 'and', usuario2_id);
+      console.log('[Social] Sending story message...');
       
       const { data: chatExistente, error: chatError } = await supabase
         .from('chats')
         .select('id')
-        .eq('usuario1_id', usuario1_id)
-        .eq('usuario2_id', usuario2_id)
-        .is('local_id', null)
+        .or(`and(usuario1_id.eq.${user.id},usuario2_id.eq.${currentStory.autor_id}),and(usuario1_id.eq.${currentStory.autor_id},usuario2_id.eq.${user.id})`)
         .single();
 
       let chatId = chatExistente?.id;
 
       if (!chatId) {
-        console.log('[Social] ✅ No existing chat found, creating new chat');
+        console.log('[Social] Creating new chat...');
         const { data: nuevoChat, error: nuevoChatError } = await supabase
           .from('chats')
           .insert({
-            usuario1_id: usuario1_id,
-            usuario2_id: usuario2_id,
+            usuario1_id: user.id,
+            usuario2_id: currentStory.autor_id,
           })
           .select()
           .single();
 
-        if (nuevoChatError) {
-          console.error('[Social] ❌ Error creating chat:', nuevoChatError);
-          throw nuevoChatError;
-        }
+        if (nuevoChatError) throw nuevoChatError;
         chatId = nuevoChat.id;
-        console.log('[Social] ✅ New chat created:', chatId);
-      } else {
-        console.log('[Social] ✅ Using existing chat:', chatId);
+        console.log('[Social] Chat created:', chatId);
       }
 
       const { error: mensajeError } = await supabase
@@ -1817,12 +1787,9 @@ export default function SocialScreen() {
           tipo_mensaje: 'texto',
         });
 
-      if (mensajeError) {
-        console.error('[Social] ❌ Error sending message:', mensajeError);
-        throw mensajeError;
-      }
+      if (mensajeError) throw mensajeError;
 
-      console.log('[Social] ✅ Message sent successfully');
+      console.log('[Social] Message sent successfully');
 
       await supabase.from('notificaciones').insert({
         usuario_id: currentStory.autor_id,
@@ -1835,7 +1802,7 @@ export default function SocialScreen() {
       setStoryMessage('');
       Alert.alert('Éxito', 'Mensaje enviado correctamente');
     } catch (error) {
-      console.error('[Social] ❌ Error sending story message:', error);
+      console.error('[Social] Error sending story message:', error);
       Alert.alert('Error', 'No se pudo enviar el mensaje');
     }
   }, [user, currentStoryIndex, viewingOwnStories, userStories, historias, storyMessage]);
@@ -2071,76 +2038,6 @@ export default function SocialScreen() {
     stopStoryTimer();
   }, [stopStoryTimer]);
 
-  // ✅ FIX: Instagram-like story gestures
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        // Only respond to significant movements
-        return Math.abs(gestureState.dx) > 10 || Math.abs(gestureState.dy) > 10;
-      },
-      onPanResponderGrant: () => {
-        // ✅ Pause on touch start (tap and hold)
-        console.log('[Social] 👆 Touch started - pausing story');
-        setIsPaused(true);
-        stopStoryTimer();
-      },
-      onPanResponderRelease: (evt: GestureResponderEvent, gestureState: PanResponderGestureState) => {
-        const { dx, dy, vx, vy } = gestureState;
-        const locationX = evt.nativeEvent.locationX;
-        
-        console.log('[Social] 👆 Touch released - dx:', dx, 'dy:', dy, 'vx:', vx, 'vy:', vy, 'locationX:', locationX);
-        
-        // ✅ Swipe down to close
-        if (dy > 100 && Math.abs(dx) < 50) {
-          console.log('[Social] ⬇️ Swipe down detected - closing story viewer');
-          setShowStoryViewer(false);
-          stopStoryTimer();
-          return;
-        }
-        
-        // ✅ Swipe right to go to previous user
-        if (dx > 100 && Math.abs(dy) < 50) {
-          console.log('[Social] ➡️ Swipe right detected - going to previous user');
-          // TODO: Implement previous user navigation
-          setIsPaused(false);
-          startStoryTimer();
-          return;
-        }
-        
-        // ✅ Swipe left to go to next user
-        if (dx < -100 && Math.abs(dy) < 50) {
-          console.log('[Social] ⬅️ Swipe left detected - going to next user');
-          // TODO: Implement next user navigation
-          setIsPaused(false);
-          startStoryTimer();
-          return;
-        }
-        
-        // ✅ Tap left side to go to previous story
-        if (Math.abs(dx) < 10 && Math.abs(dy) < 10 && locationX < width / 2) {
-          console.log('[Social] ⏮️ Tap left detected - going to previous story');
-          handlePreviousStory();
-          setIsPaused(false);
-          return;
-        }
-        
-        // ✅ Tap right side to go to next story
-        if (Math.abs(dx) < 10 && Math.abs(dy) < 10 && locationX >= width / 2) {
-          console.log('[Social] ⏭️ Tap right detected - going to next story');
-          handleNextStory();
-          setIsPaused(false);
-          return;
-        }
-        
-        // ✅ Resume story if no gesture was detected
-        console.log('[Social] ▶️ Resuming story');
-        setIsPaused(false);
-        startStoryTimer();
-      },
-    })
-  ).current;
-
   useEffect(() => {
     if (showStoryViewer && !isPaused) {
       startStoryTimer();
@@ -2178,6 +2075,11 @@ export default function SocialScreen() {
   const hasUserStories = userStories.length > 0;
   const hasUnviewedUserStories = userStories.some(s => !s.visto_por_usuario);
 
+  const progressWidth = progressAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0%', '100%'],
+  });
+
   const displayAvatar = user?.avatar;
   const displayName = user?.nombre || 'Usuario';
   const displayInitial = displayName.charAt(0).toUpperCase();
@@ -2186,13 +2088,6 @@ export default function SocialScreen() {
     (currentStory.tipo === 'usuario' && currentStory.autor_id === user.id) ||
     (currentStory.tipo === 'local' && activeLocalProfileId === currentStory.local_id)
   );
-
-  // ✅ Get display username for story author WITHOUT @ symbol
-  const storyAuthorUsername = currentStory 
-    ? (currentStory.tipo === 'local' 
-        ? currentStory.autor?.nombre // Locals use their name
-        : currentStory.autor?.username || currentStory.autor?.nombre) // Users should have username
-    : '';
 
   if (isInitialLoading) {
     return <InitialLoadingScreen />;
@@ -2377,63 +2272,56 @@ export default function SocialScreen() {
               </TouchableOpacity>
             )}
 
-            {groupedStories.map(({ firstStory, allViewed, firstStoryIndex }, groupIndex) => {
-              // ✅ Get display username WITHOUT @ symbol
-              const storyUsername = firstStory.tipo === 'local'
-                ? firstStory.autor?.nombre // Locals use their name
-                : firstStory.autor?.username || firstStory.autor?.nombre; // Users should have username
-
-              return (
-                <TouchableOpacity
-                  key={firstStory.id}
-                  style={styles.historiaItem}
-                  onPress={() => handleStoryPress(firstStoryIndex, false)}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.historiaAvatarContainer}>
-                    {!allViewed ? (
-                      <LinearGradient
-                        colors={['#FFD700', '#00FF00']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.historiaGradientBorder}
-                      >
-                        {firstStory.autor?.avatar ? (
-                          <Image
-                            source={{ uri: firstStory.autor.avatar }}
-                            style={styles.historiaAvatar}
-                          />
-                        ) : (
-                          <View style={[styles.historiaAvatar, styles.avatarPlaceholder]}>
-                            <Text style={styles.avatarText}>
-                              {firstStory.autor?.nombre?.charAt(0).toUpperCase() || 'U'}
-                            </Text>
-                          </View>
-                        )}
-                      </LinearGradient>
-                    ) : (
-                      <>
-                        {firstStory.autor?.avatar ? (
-                          <Image
-                            source={{ uri: firstStory.autor.avatar }}
-                            style={[styles.historiaAvatar, { borderWidth: 2, borderColor: colors.cardBorder }]}
-                          />
-                        ) : (
-                          <View style={[styles.historiaAvatar, styles.avatarPlaceholder, { borderWidth: 2, borderColor: colors.cardBorder }]}>
-                            <Text style={styles.avatarText}>
-                              {firstStory.autor?.nombre?.charAt(0).toUpperCase() || 'U'}
-                            </Text>
-                          </View>
-                        )}
-                      </>
-                    )}
-                  </View>
-                  <Text style={styles.historiaNombre} numberOfLines={1}>
-                    {storyUsername}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+            {groupedStories.map(({ firstStory, allViewed, firstStoryIndex }, groupIndex) => (
+              <TouchableOpacity
+                key={firstStory.id}
+                style={styles.historiaItem}
+                onPress={() => handleStoryPress(firstStoryIndex, false)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.historiaAvatarContainer}>
+                  {!allViewed ? (
+                    <LinearGradient
+                      colors={['#FFD700', '#00FF00']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.historiaGradientBorder}
+                    >
+                      {firstStory.autor?.avatar ? (
+                        <Image
+                          source={{ uri: firstStory.autor.avatar }}
+                          style={styles.historiaAvatar}
+                        />
+                      ) : (
+                        <View style={[styles.historiaAvatar, styles.avatarPlaceholder]}>
+                          <Text style={styles.avatarText}>
+                            {firstStory.autor?.nombre?.charAt(0).toUpperCase() || 'U'}
+                          </Text>
+                        </View>
+                      )}
+                    </LinearGradient>
+                  ) : (
+                    <>
+                      {firstStory.autor?.avatar ? (
+                        <Image
+                          source={{ uri: firstStory.autor.avatar }}
+                          style={[styles.historiaAvatar, { borderWidth: 2, borderColor: colors.cardBorder }]}
+                        />
+                      ) : (
+                        <View style={[styles.historiaAvatar, styles.avatarPlaceholder, { borderWidth: 2, borderColor: colors.cardBorder }]}>
+                          <Text style={styles.avatarText}>
+                            {firstStory.autor?.nombre?.charAt(0).toUpperCase() || 'U'}
+                          </Text>
+                        </View>
+                      )}
+                    </>
+                  )}
+                </View>
+                <Text style={styles.historiaNombre} numberOfLines={1}>
+                  {firstStory.autor?.nombre || 'Usuario'}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </ScrollView>
         </View>
 
@@ -2480,7 +2368,7 @@ export default function SocialScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={0}
         >
-          <View style={styles.storyViewerModal} {...panResponder.panHandlers}>
+          <View style={styles.storyViewerModal}>
             {currentStory && (
               <>
                 <View style={styles.storyViewerHeader}>
@@ -2491,19 +2379,7 @@ export default function SocialScreen() {
                           <View style={[styles.storyProgressFill, { width: '100%' }]} />
                         )}
                         {index === currentStoryIndex && (
-                          <Animated.View 
-                            style={[
-                              styles.storyProgressFill,
-                              {
-                                transform: [
-                                  {
-                                    scaleX: progressAnim,
-                                  },
-                                ],
-                                transformOrigin: 'left',
-                              },
-                            ]} 
-                          />
+                          <Animated.View style={[styles.storyProgressFill, { width: progressWidth }]} />
                         )}
                       </View>
                     ))}
@@ -2524,7 +2400,7 @@ export default function SocialScreen() {
                       </View>
                     )}
                     <Text style={styles.storyAutorNombre}>
-                      {storyAuthorUsername}
+                      {currentStory.autor?.nombre || 'Usuario'}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -2543,6 +2419,19 @@ export default function SocialScreen() {
 
                 <View style={styles.storyContent}>
                   <Image source={{ uri: currentStory.imagen }} style={styles.storyImage} resizeMode="contain" />
+                </View>
+
+                <View style={styles.storyTouchZones}>
+                  <TouchableOpacity
+                    style={styles.storyTouchZone}
+                    onPress={handlePreviousStory}
+                    activeOpacity={1}
+                  />
+                  <TouchableOpacity
+                    style={styles.storyTouchZone}
+                    onPress={handleNextStory}
+                    activeOpacity={1}
+                  />
                 </View>
 
                 {isCurrentStoryOwner && (

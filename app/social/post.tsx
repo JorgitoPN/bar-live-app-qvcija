@@ -222,13 +222,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: colors.cardBackground,
-    borderBottomWidth: 0.5,
-    borderBottomColor: colors.cardBorder,
   },
   comentarioAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     marginRight: 12,
   },
   comentarioContent: {
@@ -237,11 +235,11 @@ const styles = StyleSheet.create({
   comentarioHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   comentarioAutor: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '600',
     color: colors.text,
     marginRight: 8,
   },
@@ -253,7 +251,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.text,
     lineHeight: 20,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   comentarioActions: {
     flexDirection: 'row',
@@ -275,7 +273,7 @@ const styles = StyleSheet.create({
     marginLeft: 'auto',
   },
   replyContainer: {
-    marginLeft: 48,
+    marginLeft: 44,
     borderLeftWidth: 2,
     borderLeftColor: colors.cardBorder,
     paddingLeft: 12,
@@ -1026,38 +1024,26 @@ export default function PostDetailScreen() {
         }
       }
 
-      // ✅ FIX: Respect the chats_check constraint (usuario1_id < usuario2_id)
-      const usuario1_id = user.id < recipientId ? user.id : recipientId;
-      const usuario2_id = user.id < recipientId ? recipientId : user.id;
-
-      console.log('[PostDetail] 🔍 Checking for existing chat between:', usuario1_id, 'and', usuario2_id);
-
       const { data: existingChat } = await supabase
         .from('chats')
         .select('id')
-        .eq('usuario1_id', usuario1_id)
-        .eq('usuario2_id', usuario2_id)
-        .is('local_id', null)
+        .or(`and(usuario1_id.eq.${user.id},usuario2_id.eq.${recipientId}),and(usuario1_id.eq.${recipientId},usuario2_id.eq.${user.id})`)
         .single();
 
       let chatId = existingChat?.id;
 
       if (!chatId) {
-        console.log('[PostDetail] ✅ No existing chat found, creating new chat');
         const { data: newChat, error: chatError } = await supabase
           .from('chats')
           .insert({
-            usuario1_id: usuario1_id,
-            usuario2_id: usuario2_id,
+            usuario1_id: user.id,
+            usuario2_id: recipientId,
           })
           .select('id')
           .single();
 
         if (chatError) throw chatError;
         chatId = newChat.id;
-        console.log('[PostDetail] ✅ New chat created:', chatId);
-      } else {
-        console.log('[PostDetail] ✅ Using existing chat:', chatId);
       }
 
       // Use first image for preview
@@ -1321,7 +1307,7 @@ export default function PostDetailScreen() {
                 activeOpacity={0.7}
               >
                 <Text style={styles.comentarioAutor}>
-                  {commentAuthorUsername}
+                  @{commentAuthorUsername}
                 </Text>
               </TouchableOpacity>
               <Text style={styles.comentarioFecha}>
@@ -1385,15 +1371,13 @@ export default function PostDetailScreen() {
                 onPress={() => toggleCommentLike(comentario.id)}
                 activeOpacity={0.7}
               >
-                <IconSymbol 
-                  name={comentario.liked ? 'heart.fill' : 'heart'} 
-                  size={14} 
-                  color={comentario.liked ? '#EF4444' : colors.textSecondary} 
-                />
                 {comentario.likes > 0 && (
                   <Text style={[styles.comentarioActionText, comentario.liked && { color: '#EF4444' }]}>
-                    {comentario.likes}
+                    {comentario.likes} me gusta
                   </Text>
+                )}
+                {comentario.likes === 0 && (
+                  <Text style={styles.comentarioActionText}>Me gusta</Text>
                 )}
               </TouchableOpacity>
               {!isReply && (
@@ -1511,7 +1495,7 @@ export default function PostDetailScreen() {
                 </View>
               )}
               <View style={styles.postAutorInfo}>
-                <Text style={styles.postAutorNombre}>{post.autorNombre}</Text>
+                <Text style={styles.postAutorNombre}>@{post.autorNombre}</Text>
                 <Text style={styles.postFecha}>{formatearFecha(post.created_at)}</Text>
               </View>
             </TouchableOpacity>
@@ -1632,7 +1616,7 @@ export default function PostDetailScreen() {
           {post.contenido && (
             <View style={styles.postDescripcion}>
               <Text style={styles.postDescripcionText}>
-                <Text style={{ fontWeight: '600' }}>{post.autorNombre}</Text>{' '}
+                <Text style={{ fontWeight: '600' }}>@{post.autorNombre}</Text>{' '}
                 <ParsedText text={post.contenido} style={styles.postDescripcionText} />
               </Text>
             </View>
@@ -1671,7 +1655,7 @@ export default function PostDetailScreen() {
         {replyingTo && (
           <View style={styles.replyingToContainer}>
             <Text style={styles.replyingToText}>
-              Respondiendo a {replyingTo.autor?.username || replyingTo.autor?.nombre || 'Usuario'}
+              Respondiendo a @{replyingTo.autor?.username || replyingTo.autor?.nombre || 'Usuario'}
             </Text>
             <TouchableOpacity
               style={styles.cancelReplyButton}
@@ -1695,7 +1679,7 @@ export default function PostDetailScreen() {
           <TextInput
             ref={textInputRef}
             style={styles.textInput}
-            placeholder={replyingTo ? `Responder a ${replyingTo.autor?.username || replyingTo.autor?.nombre}...` : 'Añade un comentario...'}
+            placeholder={replyingTo ? `Responder a @${replyingTo.autor?.username || replyingTo.autor?.nombre}...` : 'Añade un comentario...'}
             placeholderTextColor={colors.textSecondary}
             value={comentarioTexto}
             onChangeText={(text) => {
@@ -1792,7 +1776,7 @@ export default function PostDetailScreen() {
                   </View>
                 )}
                 <View style={styles.userInfo}>
-                  <Text style={styles.userName}>{item.username || item.nombre}</Text>
+                  <Text style={styles.userName}>@{item.username || item.nombre}</Text>
                   {item.username && item.username !== item.nombre && (
                     <Text style={styles.userUsername}>{item.nombre}</Text>
                   )}

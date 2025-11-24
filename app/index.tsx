@@ -1,84 +1,34 @@
 
+import React, { useEffect } from 'react';
+import { View, ActivityIndicator, Text } from 'react-native';
 import { Redirect } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
-import InitialLoadingScreen from '@/components/common/InitialLoadingScreen';
-import { useEffect, useState } from 'react';
-import { supabase } from '@/utils/supabase';
+import { colors } from '@/styles/commonStyles';
 
 export default function Index() {
   const { user, loading } = useAuth();
-  const [checkingProfile, setCheckingProfile] = useState(true);
-  const [profileComplete, setProfileComplete] = useState(false);
-  const [hasSeenOwnerMessage, setHasSeenOwnerMessage] = useState(false);
 
   useEffect(() => {
-    const checkProfileCompletion = async () => {
-      if (!user) {
-        setCheckingProfile(false);
-        return;
-      }
-
-      try {
-        console.log('[Index] 🔍 Checking profile completion for user:', user.id);
-        
-        // Check if profile is complete (username and fecha_nacimiento are mandatory)
-        const { data: userData, error } = await supabase
-          .from('usuarios')
-          .select('username, fecha_nacimiento, perfil_completado, ha_visto_mensaje_propietario')
-          .eq('id', user.id)
-          .single();
-
-        if (error) {
-          console.error('[Index] ❌ Error checking profile:', error);
-          setCheckingProfile(false);
-          return;
-        }
-
-        console.log('[Index] 📊 User data:', userData);
-
-        // Profile is complete if username and fecha_nacimiento exist
-        const isComplete = !!(userData?.username && userData?.fecha_nacimiento);
-        setProfileComplete(isComplete);
-        setHasSeenOwnerMessage(userData?.ha_visto_mensaje_propietario || false);
-
-        console.log('[Index] ✅ Profile complete:', isComplete);
-        console.log('[Index] ✅ Has seen owner message:', userData?.ha_visto_mensaje_propietario);
-      } catch (error) {
-        console.error('[Index] ❌ Error in checkProfileCompletion:', error);
-      } finally {
-        setCheckingProfile(false);
-      }
-    };
-
-    if (!loading) {
-      checkProfileCompletion();
-    }
+    console.log('[Index] 🏠 Estado:', { 
+      hasUser: !!user, 
+      userEmail: user?.email,
+      loading 
+    });
   }, [user, loading]);
 
-  if (loading || checkingProfile) {
-    return <InitialLoadingScreen />;
+  // Show loading while auth is initializing
+  if (loading) {
+    console.log('[Index] ⏳ Cargando autenticación...');
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={{ marginTop: 16, color: colors.text }}>Cargando...</Text>
+      </View>
+    );
   }
 
-  // Not logged in -> Show welcome screen
-  if (!user) {
-    console.log('[Index] 🚪 No user, redirecting to welcome');
-    return <Redirect href="/auth/bienvenida" />;
-  }
-
-  // Profile not complete -> Complete profile
-  if (!profileComplete) {
-    console.log('[Index] 📝 Profile incomplete, redirecting to complete profile');
-    return <Redirect href={`/auth/completar-perfil?userId=${user.id}&userEmail=${user.email}&provider=${user.provider || 'barlive'}`} />;
-  }
-
-  // ✅ FIXED: After profile completion, redirect to Explorar instead of owner message
-  // Profile complete but hasn't seen owner message -> Show owner message
-  if (!hasSeenOwnerMessage) {
-    console.log('[Index] 🏢 Showing owner welcome message');
-    return <Redirect href={`/auth/bienvenida-propietario?userId=${user.id}&userName=${user.nombre}`} />;
-  }
-
-  // Everything complete -> Go to Explorar (main app)
-  console.log('[Index] ✅ All complete, redirecting to Explorar');
+  // Always redirect to explorar
+  // The app will handle authentication state internally
+  console.log('[Index] 🚀 Redirigiendo a explorar');
   return <Redirect href="/(tabs)/explorar" />;
 }

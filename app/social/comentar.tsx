@@ -223,8 +223,8 @@ export default function ComentarScreen() {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         <ScrollView 
           style={styles.content} 
@@ -315,7 +315,7 @@ export default function ComentarScreen() {
           )}
         </ScrollView>
 
-        {/* ✅ Autocomplete Component - Positioned above keyboard */}
+        {/* Autocomplete Component - Positioned above keyboard */}
         <MentionAutocomplete
           text={comentario}
           cursorPosition={cursorPosition}
@@ -373,7 +373,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    paddingBottom: 40,
+    paddingBottom: 120,
   },
   postPreview: {
     backgroundColor: colors.cardBackground,

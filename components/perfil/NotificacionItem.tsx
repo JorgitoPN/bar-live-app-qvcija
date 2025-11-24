@@ -52,7 +52,7 @@ export default function NotificacionItem({
 
   const icono = getIcono();
 
-  // ✅ UPDATED: Display username WITHOUT @ symbol
+  // ✅ UPDATED: Display username instead of full name
   const displayUsername = notificacion.usuarioUsername || notificacion.usuarioNombre;
 
   return (
