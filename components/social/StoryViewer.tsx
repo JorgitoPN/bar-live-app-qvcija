@@ -8,7 +8,6 @@ import {
   Image,
   Modal,
   Platform,
-  Animated,
   Alert,
   TextInput,
   Dimensions,
@@ -65,7 +64,7 @@ interface StoryViewerProps {
   activeLocalProfileId?: string | null;
 }
 
-// ✅ OPTIMIZED: Memoized story image component with instant loading
+// ✅ ULTRA-OPTIMIZED: Memoized story image component with instant loading
 const StoryImage = memo(({ uri, onLoad }: { uri: string; onLoad?: () => void }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -126,11 +125,11 @@ function StoryViewer({
   const [loadingStats, setLoadingStats] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   
-  // ✅ ULTRA-SMOOTH: Progress bar with high-precision timing
-  const progressValue = useRef(0);
+  // ✅ ULTRA-SMOOTH: Progress bar with high-precision timing and smooth rendering
+  const [progressWidth, setProgressWidth] = useState(0);
   const animationFrameId = useRef<number | null>(null);
-  const startTime = useRef<number>(0);
-  const pausedAt = useRef<number>(0);
+  const storyStartTime = useRef<number>(0);
+  const elapsedBeforePause = useRef<number>(0);
   const isAnimating = useRef(false);
   
   // Gesture tracking refs
@@ -143,20 +142,18 @@ function StoryViewer({
 
   const currentStory = stories[currentStoryIndex];
 
-  // ✅ ULTRA-SMOOTH: Animation loop with 60fps precision
+  // ✅ ULTRA-SMOOTH: Animation loop with 60fps precision and smooth state updates
   const animateProgress = useCallback(() => {
     if (!isAnimating.current || isPaused) {
       return;
     }
 
     const now = performance.now();
-    const elapsed = now - startTime.current + pausedAt.current;
+    const elapsed = now - storyStartTime.current + elapsedBeforePause.current;
     const progress = Math.min(elapsed / STORY_DURATION, 1);
 
-    progressValue.current = progress;
-
-    // Force re-render by updating a dummy state if needed
-    // But we'll use the ref directly in the render
+    // ✅ Update state for smooth rendering
+    setProgressWidth(progress * 100);
 
     if (progress >= 1) {
       isAnimating.current = false;
@@ -178,10 +175,10 @@ function StoryViewer({
       return;
     }
 
-    console.log('[StoryViewer] ▶️ Starting ultra-smooth animation from progress:', pausedAt.current);
+    console.log('[StoryViewer] ▶️ Starting ultra-smooth animation from progress:', elapsedBeforePause.current);
     
     isAnimating.current = true;
-    startTime.current = performance.now();
+    storyStartTime.current = performance.now();
     
     // Cancel any existing animation frame
     if (animationFrameId.current !== null) {
@@ -201,14 +198,14 @@ function StoryViewer({
       animationFrameId.current = null;
     }
     
-    if (isAnimating.current && startTime.current > 0) {
-      const elapsed = performance.now() - startTime.current;
-      pausedAt.current = Math.min(pausedAt.current + elapsed, STORY_DURATION);
-      console.log('[StoryViewer] 💾 Saved progress:', pausedAt.current, 'ms');
+    if (isAnimating.current && storyStartTime.current > 0) {
+      const elapsed = performance.now() - storyStartTime.current;
+      elapsedBeforePause.current = Math.min(elapsedBeforePause.current + elapsed, STORY_DURATION);
+      console.log('[StoryViewer] 💾 Saved progress:', elapsedBeforePause.current, 'ms');
     }
     
     isAnimating.current = false;
-    startTime.current = 0;
+    storyStartTime.current = 0;
   }, []);
 
   // ✅ ULTRA-SMOOTH: Reset animation for new story
@@ -223,9 +220,9 @@ function StoryViewer({
     
     // Reset all progress tracking
     isAnimating.current = false;
-    progressValue.current = 0;
-    pausedAt.current = 0;
-    startTime.current = 0;
+    setProgressWidth(0);
+    elapsedBeforePause.current = 0;
+    storyStartTime.current = 0;
     
     // Reset image loaded state
     setImageLoaded(false);
@@ -498,7 +495,7 @@ function StoryViewer({
     onClose();
   }, [onClose]);
 
-  // ✅ FIXED: Improved PanResponder with better gesture detection
+  // ✅ OPTIMIZED: Improved PanResponder with better gesture detection
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -687,9 +684,6 @@ function StoryViewer({
     : currentStory.autor?.username || currentStory.autorNombre || storyAuthorName
   ).replace(/^@/, '');
 
-  // ✅ ULTRA-SMOOTH: Calculate progress percentage for rendering
-  const progressPercentage = `${(progressValue.current * 100).toFixed(2)}%`;
-
   return (
     <Modal
       visible={visible}
@@ -705,7 +699,7 @@ function StoryViewer({
         keyboardVerticalOffset={0}
       >
         <View style={styles.storyViewerModal} {...panResponder.panHandlers}>
-          {/* ✅ ULTRA-SMOOTH: Progress bars with direct percentage rendering */}
+          {/* ✅ ULTRA-SMOOTH: Progress bars with smooth state-based rendering */}
           <View style={styles.storyProgressContainer}>
             {stories.map((_, index) => (
               <View key={index} style={styles.storyProgressBar}>
@@ -716,7 +710,7 @@ function StoryViewer({
                   <View 
                     style={[
                       styles.storyProgressFill,
-                      { width: progressPercentage },
+                      { width: `${progressWidth}%` },
                     ]} 
                   />
                 )}
