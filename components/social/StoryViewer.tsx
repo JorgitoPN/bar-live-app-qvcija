@@ -64,7 +64,7 @@ interface StoryViewerProps {
   activeLocalProfileId?: string | null;
 }
 
-// ✅ ULTRA-OPTIMIZED: Memoized story image component with instant loading
+// ✅ Memoized story image component with instant loading
 const StoryImage = memo(({ uri, onLoad }: { uri: string; onLoad?: () => void }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -104,6 +104,31 @@ const StoryImage = memo(({ uri, onLoad }: { uri: string; onLoad?: () => void }) 
 
 StoryImage.displayName = 'StoryImage';
 
+// ✅ ULTRA-SMOOTH: Progress bar component with direct width manipulation
+const ProgressBar = memo(({ 
+  isActive, 
+  isCompleted, 
+  progressRef 
+}: { 
+  isActive: boolean; 
+  isCompleted: boolean;
+  progressRef?: React.RefObject<View>;
+}) => {
+  return (
+    <View style={styles.storyProgressBar}>
+      <View 
+        ref={progressRef}
+        style={[
+          styles.storyProgressFill,
+          { width: isCompleted ? '100%' : '0%' }
+        ]} 
+      />
+    </View>
+  );
+});
+
+ProgressBar.displayName = 'ProgressBar';
+
 function StoryViewer({
   visible,
   stories,
@@ -125,12 +150,11 @@ function StoryViewer({
   const [loadingStats, setLoadingStats] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   
-  // ✅ ULTRA-SMOOTH: Progress bar with high-precision timing and smooth rendering
-  const [progressWidth, setProgressWidth] = useState(0);
+  // ✅ ULTRA-SMOOTH: Direct DOM manipulation for progress bar
+  const progressBarRef = useRef<View>(null);
   const animationFrameId = useRef<number | null>(null);
-  const storyStartTime = useRef<number>(0);
-  const elapsedBeforePause = useRef<number>(0);
-  const isAnimating = useRef(false);
+  const startTimeRef = useRef<number>(0);
+  const pausedAtRef = useRef<number>(0);
   
   // Gesture tracking refs
   const touchStartTime = useRef<number>(0);
@@ -142,76 +166,68 @@ function StoryViewer({
 
   const currentStory = stories[currentStoryIndex];
 
-  // ✅ ULTRA-SMOOTH: Animation loop with 60fps precision and smooth state updates
+  // ✅ ULTRA-SMOOTH: Animation loop with direct DOM manipulation (60fps, no re-renders)
   const animateProgress = useCallback(() => {
-    if (!isAnimating.current || isPaused) {
+    if (!progressBarRef.current || isPaused) {
       return;
     }
 
     const now = performance.now();
-    const elapsed = now - storyStartTime.current + elapsedBeforePause.current;
+    const elapsed = now - startTimeRef.current + pausedAtRef.current;
     const progress = Math.min(elapsed / STORY_DURATION, 1);
 
-    // ✅ Update state for smooth rendering
-    setProgressWidth(progress * 100);
+    // ✅ Direct DOM manipulation - no state updates, no re-renders, ultra-smooth
+    // @ts-ignore - setNativeProps is available on View
+    progressBarRef.current.setNativeProps({
+      style: { width: `${progress * 100}%` }
+    });
 
     if (progress >= 1) {
-      isAnimating.current = false;
+      // Story completed
+      if (animationFrameId.current !== null) {
+        cancelAnimationFrame(animationFrameId.current);
+        animationFrameId.current = null;
+      }
       handleNextStory();
     } else {
+      // Continue animation
       animationFrameId.current = requestAnimationFrame(animateProgress);
     }
   }, [isPaused]);
 
-  // ✅ ULTRA-SMOOTH: Start animation with precise timing
+  // ✅ ULTRA-SMOOTH: Start animation
   const startAnimation = useCallback(() => {
     if (!imageLoaded || isPaused) {
-      console.log('[StoryViewer] ⏸️ Not starting animation - imageLoaded:', imageLoaded, 'isPaused:', isPaused);
       return;
     }
 
-    if (isAnimating.current) {
-      console.log('[StoryViewer] ⚠️ Animation already running');
-      return;
-    }
-
-    console.log('[StoryViewer] ▶️ Starting ultra-smooth animation from progress:', elapsedBeforePause.current);
-    
-    isAnimating.current = true;
-    storyStartTime.current = performance.now();
-    
-    // Cancel any existing animation frame
+    // Cancel any existing animation
     if (animationFrameId.current !== null) {
       cancelAnimationFrame(animationFrameId.current);
+      animationFrameId.current = null;
     }
-    
-    // Start new animation loop
+
+    // Start new animation
+    startTimeRef.current = performance.now();
     animationFrameId.current = requestAnimationFrame(animateProgress);
   }, [imageLoaded, isPaused, animateProgress]);
 
   // ✅ ULTRA-SMOOTH: Stop animation and save progress
   const stopAnimation = useCallback(() => {
-    console.log('[StoryViewer] ⏸️ Stopping animation');
-    
     if (animationFrameId.current !== null) {
       cancelAnimationFrame(animationFrameId.current);
       animationFrameId.current = null;
     }
     
-    if (isAnimating.current && storyStartTime.current > 0) {
-      const elapsed = performance.now() - storyStartTime.current;
-      elapsedBeforePause.current = Math.min(elapsedBeforePause.current + elapsed, STORY_DURATION);
-      console.log('[StoryViewer] 💾 Saved progress:', elapsedBeforePause.current, 'ms');
+    // Save current progress
+    if (startTimeRef.current > 0) {
+      const elapsed = performance.now() - startTimeRef.current;
+      pausedAtRef.current = Math.min(pausedAtRef.current + elapsed, STORY_DURATION);
     }
-    
-    isAnimating.current = false;
-    storyStartTime.current = 0;
   }, []);
 
   // ✅ ULTRA-SMOOTH: Reset animation for new story
   const resetAnimation = useCallback(() => {
-    console.log('[StoryViewer] 🔄 Resetting animation for new story');
-    
     // Stop any running animation
     if (animationFrameId.current !== null) {
       cancelAnimationFrame(animationFrameId.current);
@@ -219,15 +235,19 @@ function StoryViewer({
     }
     
     // Reset all progress tracking
-    isAnimating.current = false;
-    setProgressWidth(0);
-    elapsedBeforePause.current = 0;
-    storyStartTime.current = 0;
+    startTimeRef.current = 0;
+    pausedAtRef.current = 0;
+    
+    // Reset progress bar to 0
+    if (progressBarRef.current) {
+      // @ts-ignore
+      progressBarRef.current.setNativeProps({
+        style: { width: '0%' }
+      });
+    }
     
     // Reset image loaded state
     setImageLoaded(false);
-    
-    console.log('[StoryViewer] ✅ Animation reset complete');
   }, []);
 
   const markStoryAsViewed = useCallback(async (storyId: string) => {
@@ -246,7 +266,6 @@ function StoryViewer({
           historia_id: storyId,
           usuario_id: user.id,
         });
-        console.log('[StoryViewer] ✅ Story marked as viewed');
       }
     } catch (error) {
       console.error('[StoryViewer] Error marking story as viewed:', error);
@@ -254,8 +273,6 @@ function StoryViewer({
   }, [user]);
 
   const handleNextStory = useCallback(() => {
-    console.log('[StoryViewer] ⏭️ Moving to next story');
-    
     if (currentStory && user) {
       markStoryAsViewed(currentStory.id);
     }
@@ -266,21 +283,17 @@ function StoryViewer({
       resetAnimation();
       onStoryChange?.(newIndex);
     } else {
-      console.log('[StoryViewer] 🏁 No more stories, closing viewer');
       onClose();
     }
   }, [currentStoryIndex, stories.length, currentStory, user, markStoryAsViewed, onClose, resetAnimation, onStoryChange]);
 
   const handlePreviousStory = useCallback(() => {
-    console.log('[StoryViewer] ⏮️ Moving to previous story');
-    
     if (currentStoryIndex > 0) {
       const newIndex = currentStoryIndex - 1;
       setCurrentStoryIndex(newIndex);
       resetAnimation();
       onStoryChange?.(newIndex);
     } else {
-      console.log('[StoryViewer] 🏁 First story, closing viewer');
       onClose();
     }
   }, [currentStoryIndex, onClose, resetAnimation, onStoryChange]);
@@ -305,7 +318,6 @@ function StoryViewer({
           usuario_id: user.id,
         });
       }
-      console.log('[StoryViewer] ✅ Story like toggled');
     } catch (error) {
       console.error('[StoryViewer] Error toggling story like:', error);
     }
@@ -324,7 +336,6 @@ function StoryViewer({
       return;
     }
 
-    console.log('[StoryViewer] 📊 Opening story stats');
     setIsPaused(true);
     stopAnimation();
 
@@ -360,7 +371,6 @@ function StoryViewer({
 
       setStoryViews(viewsData || []);
       setStoryLikes(likesData || []);
-      console.log('[StoryViewer] ✅ Story stats loaded');
     } catch (error) {
       console.error('[StoryViewer] Error loading story stats:', error);
       Alert.alert('Error', 'No se pudieron cargar las estadísticas');
@@ -469,7 +479,6 @@ function StoryViewer({
 
       setStoryMessage('');
       Alert.alert('Éxito', 'Mensaje enviado correctamente');
-      console.log('[StoryViewer] ✅ Story message sent');
     } catch (error) {
       console.error('[StoryViewer] Error sending story message:', error);
       Alert.alert('Error', 'No se pudo enviar el mensaje');
@@ -495,7 +504,7 @@ function StoryViewer({
     onClose();
   }, [onClose]);
 
-  // ✅ OPTIMIZED: Improved PanResponder with better gesture detection
+  // ✅ Improved PanResponder with better gesture detection
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -516,7 +525,6 @@ function StoryViewer({
           isLongPress.current = true;
           setIsPaused(true);
           stopAnimation();
-          console.log('[StoryViewer] ⏸️ Long press detected - paused');
         }, LONG_PRESS_DURATION);
       },
       
@@ -545,24 +553,20 @@ function StoryViewer({
         if (isLongPress.current) {
           setIsPaused(false);
           startAnimation();
-          console.log('[StoryViewer] ▶️ Long press released - resumed');
           return;
         }
         
         if (dy > SWIPE_THRESHOLD && Math.abs(dx) < SWIPE_THRESHOLD) {
-          console.log('[StoryViewer] 👇 Swipe down detected - closing');
           onClose();
           return;
         }
         
         if (dx < -SWIPE_THRESHOLD && Math.abs(dy) < SWIPE_THRESHOLD) {
-          console.log('[StoryViewer] 👈 Swipe left detected - next story');
           handleNextStory();
           return;
         }
         
         if (dx > SWIPE_THRESHOLD && Math.abs(dy) < SWIPE_THRESHOLD) {
-          console.log('[StoryViewer] 👉 Swipe right detected - previous story');
           handlePreviousStory();
           return;
         }
@@ -571,13 +575,11 @@ function StoryViewer({
           const tapZone = touchX / width;
           
           if (tapZone < 0.33) {
-            console.log('[StoryViewer] 👆 Tap left - previous story');
             handlePreviousStory();
             return;
           }
           
           if (tapZone > 0.67) {
-            console.log('[StoryViewer] 👆 Tap right - next story');
             handleNextStory();
             return;
           }
@@ -595,19 +597,11 @@ function StoryViewer({
 
   // ✅ ULTRA-SMOOTH: Handle animation lifecycle
   useEffect(() => {
-    if (!visible) {
-      stopAnimation();
+    if (!visible || !imageLoaded || isPaused) {
       return;
     }
 
-    if (isPaused) {
-      stopAnimation();
-      return;
-    }
-
-    if (imageLoaded) {
-      startAnimation();
-    }
+    startAnimation();
 
     return () => {
       if (animationFrameId.current !== null) {
@@ -615,7 +609,7 @@ function StoryViewer({
         animationFrameId.current = null;
       }
     };
-  }, [visible, isPaused, imageLoaded, currentStoryIndex, startAnimation, stopAnimation]);
+  }, [visible, isPaused, imageLoaded, currentStoryIndex, startAnimation]);
 
   // Mark story as viewed when it appears
   useEffect(() => {
@@ -624,7 +618,7 @@ function StoryViewer({
     }
   }, [visible, currentStory, user, markStoryAsViewed]);
 
-  // ✅ OPTIMIZED: Preload next 2 story images
+  // ✅ Preload next 2 story images
   useEffect(() => {
     if (visible) {
       const preloadPromises: Promise<boolean>[] = [];
@@ -644,10 +638,8 @@ function StoryViewer({
       }
       
       if (preloadPromises.length > 0) {
-        Promise.all(preloadPromises).then(() => {
-          console.log('[StoryViewer] ✅ Preloaded next stories');
-        }).catch(() => {
-          console.log('[StoryViewer] ⚠️ Failed to preload some stories');
+        Promise.all(preloadPromises).catch(() => {
+          console.log('[StoryViewer] Failed to preload some stories');
         });
       }
     }
@@ -656,11 +648,9 @@ function StoryViewer({
   // Reset to initial index when modal opens
   useEffect(() => {
     if (visible) {
-      console.log('[StoryViewer] 🚀 Opening story viewer at index:', initialIndex);
       setCurrentStoryIndex(initialIndex);
       resetAnimation();
     } else {
-      console.log('[StoryViewer] 🔒 Closing story viewer, cleaning up');
       stopAnimation();
       setImageLoaded(false);
       setIsPaused(false);
@@ -676,13 +666,15 @@ function StoryViewer({
     (currentStory.tipo === 'local' && activeLocalProfileId === currentStory.local_id)
   );
 
-  // ✅ FIXED: Remove @ symbol from username display
+  // ✅ FIXED: Display username without @ symbol, prioritize username over full name
   const storyAuthorAvatar = currentStory.autor?.avatar || currentStory.autorAvatar;
   const storyAuthorName = currentStory.autor?.nombre || currentStory.autorNombre || 'Usuario';
-  const storyAuthorUsername = (currentStory.tipo === 'local' 
+  
+  // ✅ For locals, use the local name directly
+  // ✅ For users, prioritize username over full name, and remove @ symbol
+  const storyAuthorUsername = currentStory.tipo === 'local' 
     ? storyAuthorName
-    : currentStory.autor?.username || currentStory.autorNombre || storyAuthorName
-  ).replace(/^@/, '');
+    : (currentStory.autor?.username || storyAuthorName).replace(/^@/, '');
 
   return (
     <Modal
@@ -699,22 +691,15 @@ function StoryViewer({
         keyboardVerticalOffset={0}
       >
         <View style={styles.storyViewerModal} {...panResponder.panHandlers}>
-          {/* ✅ ULTRA-SMOOTH: Progress bars with smooth state-based rendering */}
+          {/* ✅ ULTRA-SMOOTH: Progress bars with direct DOM manipulation */}
           <View style={styles.storyProgressContainer}>
             {stories.map((_, index) => (
-              <View key={index} style={styles.storyProgressBar}>
-                {index < currentStoryIndex && (
-                  <View style={[styles.storyProgressFill, { width: '100%' }]} />
-                )}
-                {index === currentStoryIndex && (
-                  <View 
-                    style={[
-                      styles.storyProgressFill,
-                      { width: `${progressWidth}%` },
-                    ]} 
-                  />
-                )}
-              </View>
+              <ProgressBar
+                key={index}
+                isActive={index === currentStoryIndex}
+                isCompleted={index < currentStoryIndex}
+                progressRef={index === currentStoryIndex ? progressBarRef : undefined}
+              />
             ))}
           </View>
 
@@ -758,7 +743,6 @@ function StoryViewer({
             <StoryImage 
               uri={currentStory.imagen} 
               onLoad={() => {
-                console.log('[StoryViewer] ✅ Image loaded for story:', currentStory.id);
                 setImageLoaded(true);
               }}
             />

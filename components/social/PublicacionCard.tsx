@@ -201,6 +201,9 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
     }
   }, [router]);
 
+  // ✅ FIXED: Display username without @ symbol, prioritize username over full name
+  const displayName = (post.autorNombre || 'Usuario').replace(/^@/, '');
+
   return (
     <View style={styles.card}>
       <TouchableOpacity
@@ -222,7 +225,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
           </View>
         )}
         <View style={styles.headerContent}>
-          <Text style={styles.autorNombre}>{(post.autorNombre || 'Usuario').replace(/^@/, '')}</Text>
+          <Text style={styles.autorNombre}>{displayName}</Text>
           <Text style={styles.fecha}>{formatearFecha(post.fecha)}</Text>
         </View>
         <TouchableOpacity style={styles.moreButton} activeOpacity={0.7}>
@@ -241,7 +244,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
                   style={styles.mentionedUsername}
                   onPress={() => navigateToProfile(user)}
                 >
-                  {user.username || user.nombre}
+                  {(user.username || user.nombre).replace(/^@/, '')}
                 </Text>
               </React.Fragment>
             ))}
@@ -264,7 +267,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
                   style={styles.taggedUsername}
                   onPress={() => navigateToProfile(user, 'usuario')}
                 >
-                  {user.username || user.nombre}
+                  {(user.username || user.nombre).replace(/^@/, '')}
                 </Text>
               </React.Fragment>
             ))}
@@ -405,7 +408,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
                     <View style={styles.tagMarkerDot} />
                     <View style={styles.tagMarkerLabel}>
                       <Text style={styles.tagMarkerText}>
-                        {user.username || user.nombre}
+                        {(user.username || user.nombre).replace(/^@/, '')}
                       </Text>
                     </View>
                   </TouchableOpacity>

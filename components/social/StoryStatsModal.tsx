@@ -269,51 +269,51 @@ export default function StoryStatsModal({
             ) : (
               <ScrollView style={styles.listContainer} showsVerticalScrollIndicator={false}>
                 {consolidatedViewers.length > 0 ? (
-                  consolidatedViewers.map((viewer) => (
-                    <TouchableOpacity 
-                      key={viewer.id} 
-                      style={styles.userItem}
-                      onPress={() => handleUserPress(viewer.usuario_id)}
-                      activeOpacity={0.7}
-                    >
-                      <View style={styles.userAvatarContainer}>
-                        {viewer.usuario?.avatar ? (
-                          <Image
-                            source={{ uri: viewer.usuario.avatar }}
-                            style={styles.userAvatar}
-                          />
-                        ) : (
-                          <View style={[styles.userAvatar, styles.avatarPlaceholder]}>
-                            <Text style={styles.avatarText}>
-                              {viewer.usuario?.nombre?.charAt(0).toUpperCase() || 'U'}
-                            </Text>
-                          </View>
-                        )}
-                        {/* ✅ HEART INDICATOR: Show heart icon if user liked */}
-                        {viewer.liked && (
-                          <View style={styles.likeIndicator}>
-                            <IconSymbol name="heart.fill" size={16} color="#FFFFFF" />
-                          </View>
-                        )}
-                      </View>
-                      <View style={styles.userInfo}>
-                        <View style={styles.userNameRow}>
-                          <Text style={styles.userName}>
-                            {viewer.usuario?.nombre || 'Usuario'}
-                          </Text>
+                  consolidatedViewers.map((viewer) => {
+                    // ✅ FIXED: Display username without @ symbol, prioritize username over full name
+                    const displayName = (viewer.usuario?.username || viewer.usuario?.nombre || 'Usuario').replace(/^@/, '');
+                    
+                    return (
+                      <TouchableOpacity 
+                        key={viewer.id} 
+                        style={styles.userItem}
+                        onPress={() => handleUserPress(viewer.usuario_id)}
+                        activeOpacity={0.7}
+                      >
+                        <View style={styles.userAvatarContainer}>
+                          {viewer.usuario?.avatar ? (
+                            <Image
+                              source={{ uri: viewer.usuario.avatar }}
+                              style={styles.userAvatar}
+                            />
+                          ) : (
+                            <View style={[styles.userAvatar, styles.avatarPlaceholder]}>
+                              <Text style={styles.avatarText}>
+                                {displayName.charAt(0).toUpperCase()}
+                              </Text>
+                            </View>
+                          )}
+                          {/* ✅ HEART INDICATOR: Show heart icon if user liked */}
                           {viewer.liked && (
-                            <IconSymbol name="heart.fill" size={14} color="#EF4444" />
+                            <View style={styles.likeIndicator}>
+                              <IconSymbol name="heart.fill" size={16} color="#FFFFFF" />
+                            </View>
                           )}
                         </View>
-                        {viewer.usuario?.username && (
-                          <Text style={styles.userUsername}>
-                            @{viewer.usuario.username}
-                          </Text>
-                        )}
-                      </View>
-                      <Text style={styles.timeText}>{formatTime(viewer.viewed_at)}</Text>
-                    </TouchableOpacity>
-                  ))
+                        <View style={styles.userInfo}>
+                          <View style={styles.userNameRow}>
+                            <Text style={styles.userName}>
+                              {displayName}
+                            </Text>
+                            {viewer.liked && (
+                              <IconSymbol name="heart.fill" size={14} color="#EF4444" />
+                            )}
+                          </View>
+                        </View>
+                        <Text style={styles.timeText}>{formatTime(viewer.viewed_at)}</Text>
+                      </TouchableOpacity>
+                    );
+                  })
                 ) : (
                   <View style={styles.emptyState}>
                     <IconSymbol name="eye" size={48} color={colors.textSecondary} />
