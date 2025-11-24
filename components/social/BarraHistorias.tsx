@@ -32,7 +32,7 @@ const StoryItem = memo(({
   }, [historia.autorAvatar]);
   
   // ✅ FIXED: Remove @ symbol from username display
-  const displayName = historia.autorNombre || 'Usuario';
+  const displayName = (historia.autorNombre || 'Usuario').replace(/^@/, '');
   
   return (
     <TouchableOpacity
@@ -51,7 +51,6 @@ const StoryItem = memo(({
             <Image 
               source={{ uri: historia.autorAvatar }} 
               style={styles.historiaImage}
-              // ✅ Performance optimizations
               fadeDuration={0}
               cache="force-cache"
             />
@@ -100,7 +99,6 @@ const BarraHistorias = memo(function BarraHistorias({
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
-        // ✅ Performance optimizations
         removeClippedSubviews={true}
         scrollEventThrottle={16}
         decelerationRate="fast"

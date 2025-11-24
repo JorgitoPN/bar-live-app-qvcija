@@ -95,7 +95,6 @@ const StoryImage = memo(({ uri, onLoad }: { uri: string; onLoad?: () => void }) 
           console.error('[StoryViewer] Error loading image:', uri);
           setImageError(true);
         }}
-        // ✅ Performance optimizations
         fadeDuration={0}
         progressiveRenderingEnabled={true}
         cache="force-cache"
@@ -127,11 +126,12 @@ function StoryViewer({
   const [loadingStats, setLoadingStats] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   
-  // ✅ FIXED: Smooth animation with proper state management
+  // ✅ FIXED: Ultra-smooth progress bar with requestAnimationFrame
   const progressAnim = useRef(new Animated.Value(0)).current;
-  const animationRef = useRef<Animated.CompositeAnimation | null>(null);
-  const storyStartTime = useRef<number>(0);
-  const elapsedBeforePause = useRef<number>(0);
+  const animationStartTime = useRef<number>(0);
+  const pausedProgress = useRef<number>(0);
+  const animationFrameId = useRef<number | null>(null);
+  const isAnimating = useRef(false);
   
   // Gesture tracking refs
   const touchStartTime = useRef<number>(0);
@@ -141,82 +141,90 @@ function StoryViewer({
   const isLongPress = useRef(false);
   const isSwiping = useRef(false);
 
-  // Performance: Prevent unnecessary re-renders
   const currentStory = stories[currentStoryIndex];
 
-  // ✅ FIXED: Stop animation and save elapsed time
-  const stopAnimation = useCallback(() => {
-    console.log('[StoryViewer] ⏸️ Stopping animation');
-    if (animationRef.current) {
-      animationRef.current.stop();
-      animationRef.current = null;
-    }
-    // Calculate elapsed time since animation started
-    if (storyStartTime.current > 0) {
-      const elapsed = Date.now() - storyStartTime.current;
-      elapsedBeforePause.current += elapsed;
-      console.log('[StoryViewer] 💾 Total elapsed time:', elapsedBeforePause.current, 'ms');
-    }
-    storyStartTime.current = 0;
-  }, []);
-
-  // ✅ FIXED: Start or resume animation with smooth continuation
-  const startAnimation = useCallback(() => {
-    if (!imageLoaded) {
-      console.log('[StoryViewer] ⏸️ Waiting for image to load before starting animation');
+  // ✅ FIXED: Smooth animation using requestAnimationFrame for 60fps
+  const animateProgress = useCallback(() => {
+    if (!isAnimating.current || isPaused) {
       return;
     }
 
-    // Stop any existing animation first
-    if (animationRef.current) {
-      animationRef.current.stop();
-      animationRef.current = null;
+    const now = Date.now();
+    const elapsed = now - animationStartTime.current;
+    const progress = Math.min((pausedProgress.current + elapsed) / STORY_DURATION, 1);
+
+    progressAnim.setValue(progress);
+
+    if (progress >= 1) {
+      isAnimating.current = false;
+      handleNextStory();
+    } else {
+      animationFrameId.current = requestAnimationFrame(animateProgress);
+    }
+  }, [isPaused, progressAnim]);
+
+  // ✅ FIXED: Start animation with smooth continuation
+  const startAnimation = useCallback(() => {
+    if (!imageLoaded || isPaused) {
+      console.log('[StoryViewer] ⏸️ Not starting animation - imageLoaded:', imageLoaded, 'isPaused:', isPaused);
+      return;
     }
 
-    // Calculate remaining duration based on elapsed time
-    const remainingDuration = Math.max(STORY_DURATION - elapsedBeforePause.current, 100);
-    const currentProgress = Math.min(elapsedBeforePause.current / STORY_DURATION, 1);
+    if (isAnimating.current) {
+      console.log('[StoryViewer] ⚠️ Animation already running');
+      return;
+    }
 
-    console.log('[StoryViewer] ▶️ Starting animation - remaining:', remainingDuration, 'ms, progress:', currentProgress);
+    console.log('[StoryViewer] ▶️ Starting smooth animation from progress:', pausedProgress.current);
     
-    // Record start time for this animation segment
-    storyStartTime.current = Date.now();
+    isAnimating.current = true;
+    animationStartTime.current = Date.now();
+    
+    // Cancel any existing animation frame
+    if (animationFrameId.current !== null) {
+      cancelAnimationFrame(animationFrameId.current);
+    }
+    
+    // Start new animation loop
+    animationFrameId.current = requestAnimationFrame(animateProgress);
+  }, [imageLoaded, isPaused, animateProgress]);
 
-    // Set current progress value without animation
-    progressAnim.setValue(currentProgress);
+  // ✅ FIXED: Stop animation and save progress
+  const stopAnimation = useCallback(() => {
+    console.log('[StoryViewer] ⏸️ Stopping animation');
+    
+    if (animationFrameId.current !== null) {
+      cancelAnimationFrame(animationFrameId.current);
+      animationFrameId.current = null;
+    }
+    
+    if (isAnimating.current && animationStartTime.current > 0) {
+      const elapsed = Date.now() - animationStartTime.current;
+      pausedProgress.current = Math.min(pausedProgress.current + elapsed, STORY_DURATION);
+      console.log('[StoryViewer] 💾 Saved progress:', pausedProgress.current, 'ms');
+    }
+    
+    isAnimating.current = false;
+    animationStartTime.current = 0;
+  }, []);
 
-    // ✅ FIXED: Animate smoothly from current progress to 1
-    animationRef.current = Animated.timing(progressAnim, {
-      toValue: 1,
-      duration: remainingDuration,
-      useNativeDriver: false, // Width animation requires false
-      isInteraction: false,
-    });
-
-    animationRef.current.start(({ finished }) => {
-      if (finished && !isPaused) {
-        console.log('[StoryViewer] ✅ Animation finished, moving to next story');
-        handleNextStory();
-      }
-    });
-  }, [progressAnim, isPaused, imageLoaded]);
-
-  // ✅ FIXED: Reset animation for new story with proper cleanup
+  // ✅ FIXED: Reset animation for new story
   const resetAnimation = useCallback(() => {
     console.log('[StoryViewer] 🔄 Resetting animation for new story');
     
     // Stop any running animation
-    if (animationRef.current) {
-      animationRef.current.stop();
-      animationRef.current = null;
+    if (animationFrameId.current !== null) {
+      cancelAnimationFrame(animationFrameId.current);
+      animationFrameId.current = null;
     }
     
     // Reset all progress tracking
-    elapsedBeforePause.current = 0;
+    isAnimating.current = false;
+    pausedProgress.current = 0;
+    animationStartTime.current = 0;
     progressAnim.setValue(0);
-    storyStartTime.current = 0;
     
-    // Reset image loaded state to wait for new image
+    // Reset image loaded state
     setImageLoaded(false);
     
     console.log('[StoryViewer] ✅ Animation reset complete');
@@ -493,7 +501,6 @@ function StoryViewer({
       onStartShouldSetPanResponder: () => true,
       onStartShouldSetPanResponderCapture: () => false,
       onMoveShouldSetPanResponder: (_, gestureState) => {
-        // Only capture if significant movement
         return Math.abs(gestureState.dx) > 10 || Math.abs(gestureState.dy) > 10;
       },
       onMoveShouldSetPanResponderCapture: () => false,
@@ -505,7 +512,6 @@ function StoryViewer({
         isLongPress.current = false;
         isSwiping.current = false;
         
-        // Start long press timer for pause
         longPressTimer.current = setTimeout(() => {
           isLongPress.current = true;
           setIsPaused(true);
@@ -517,7 +523,6 @@ function StoryViewer({
       onPanResponderMove: (_, gestureState: PanResponderGestureState) => {
         const { dx, dy } = gestureState;
         
-        // Cancel long press if user moves finger significantly
         if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
           if (longPressTimer.current) {
             clearTimeout(longPressTimer.current);
@@ -528,7 +533,6 @@ function StoryViewer({
       },
       
       onPanResponderRelease: (evt: GestureResponderEvent, gestureState: PanResponderGestureState) => {
-        // Clear long press timer
         if (longPressTimer.current) {
           clearTimeout(longPressTimer.current);
           longPressTimer.current = null;
@@ -538,7 +542,6 @@ function StoryViewer({
         const touchDuration = Date.now() - touchStartTime.current;
         const touchX = evt.nativeEvent.pageX;
         
-        // If it was a long press, resume on release
         if (isLongPress.current) {
           setIsPaused(false);
           startAnimation();
@@ -546,39 +549,33 @@ function StoryViewer({
           return;
         }
         
-        // Swipe down to close (priority)
         if (dy > SWIPE_THRESHOLD && Math.abs(dx) < SWIPE_THRESHOLD) {
           console.log('[StoryViewer] 👇 Swipe down detected - closing');
           onClose();
           return;
         }
         
-        // Swipe left to next story
         if (dx < -SWIPE_THRESHOLD && Math.abs(dy) < SWIPE_THRESHOLD) {
           console.log('[StoryViewer] 👈 Swipe left detected - next story');
           handleNextStory();
           return;
         }
         
-        // Swipe right to previous story
         if (dx > SWIPE_THRESHOLD && Math.abs(dy) < SWIPE_THRESHOLD) {
           console.log('[StoryViewer] 👉 Swipe right detected - previous story');
           handlePreviousStory();
           return;
         }
         
-        // Tap detection (short touch with minimal movement)
         if (!isSwiping.current && Math.abs(dx) < 20 && Math.abs(dy) < 20 && touchDuration < TAP_THRESHOLD) {
           const tapZone = touchX / width;
           
-          // Left third - previous story
           if (tapZone < 0.33) {
             console.log('[StoryViewer] 👆 Tap left - previous story');
             handlePreviousStory();
             return;
           }
           
-          // Right third - next story
           if (tapZone > 0.67) {
             console.log('[StoryViewer] 👆 Tap right - next story');
             handleNextStory();
@@ -588,7 +585,6 @@ function StoryViewer({
       },
       
       onPanResponderTerminate: () => {
-        // Clean up if gesture is interrupted
         if (longPressTimer.current) {
           clearTimeout(longPressTimer.current);
           longPressTimer.current = null;
@@ -597,33 +593,29 @@ function StoryViewer({
     })
   ).current;
 
-  // ✅ FIXED: Handle animation start/stop based on state changes
+  // ✅ FIXED: Handle animation lifecycle
   useEffect(() => {
     if (!visible) {
-      // Modal is closed, stop everything
       stopAnimation();
       return;
     }
 
     if (isPaused) {
-      // Paused, stop animation
       stopAnimation();
       return;
     }
 
     if (imageLoaded) {
-      // Image is loaded and not paused, start animation
       startAnimation();
     }
 
-    // Cleanup on unmount or state change
     return () => {
-      if (animationRef.current) {
-        animationRef.current.stop();
-        animationRef.current = null;
+      if (animationFrameId.current !== null) {
+        cancelAnimationFrame(animationFrameId.current);
+        animationFrameId.current = null;
       }
     };
-  }, [visible, isPaused, imageLoaded, currentStoryIndex]);
+  }, [visible, isPaused, imageLoaded, currentStoryIndex, startAnimation, stopAnimation]);
 
   // Mark story as viewed when it appears
   useEffect(() => {
@@ -632,12 +624,11 @@ function StoryViewer({
     }
   }, [visible, currentStory, user, markStoryAsViewed]);
 
-  // ✅ OPTIMIZED: Preload next 2 story images for instant transitions
+  // ✅ OPTIMIZED: Preload next 2 story images
   useEffect(() => {
     if (visible) {
       const preloadPromises: Promise<boolean>[] = [];
       
-      // Preload next story
       if (currentStoryIndex < stories.length - 1) {
         const nextStory = stories[currentStoryIndex + 1];
         if (nextStory?.imagen) {
@@ -645,7 +636,6 @@ function StoryViewer({
         }
       }
       
-      // Preload story after next
       if (currentStoryIndex < stories.length - 2) {
         const nextNextStory = stories[currentStoryIndex + 2];
         if (nextNextStory?.imagen) {
@@ -670,13 +660,12 @@ function StoryViewer({
       setCurrentStoryIndex(initialIndex);
       resetAnimation();
     } else {
-      // Clean up when modal closes
       console.log('[StoryViewer] 🔒 Closing story viewer, cleaning up');
       stopAnimation();
       setImageLoaded(false);
       setIsPaused(false);
     }
-  }, [visible, initialIndex]);
+  }, [visible, initialIndex, resetAnimation, stopAnimation]);
 
   if (!currentStory) {
     return null;
@@ -687,13 +676,13 @@ function StoryViewer({
     (currentStory.tipo === 'local' && activeLocalProfileId === currentStory.local_id)
   );
 
-  // Get story author info with fallback
+  // ✅ FIXED: Remove @ symbol from username display
   const storyAuthorAvatar = currentStory.autor?.avatar || currentStory.autorAvatar;
   const storyAuthorName = currentStory.autor?.nombre || currentStory.autorNombre || 'Usuario';
-  // ✅ FIXED: Remove @ symbol from username display
-  const storyAuthorUsername = currentStory.tipo === 'local' 
+  const storyAuthorUsername = (currentStory.tipo === 'local' 
     ? storyAuthorName
-    : currentStory.autor?.username || currentStory.autorNombre || storyAuthorName;
+    : currentStory.autor?.username || currentStory.autorNombre || storyAuthorName
+  ).replace(/^@/, '');
 
   return (
     <Modal
@@ -710,7 +699,7 @@ function StoryViewer({
         keyboardVerticalOffset={0}
       >
         <View style={styles.storyViewerModal} {...panResponder.panHandlers}>
-          {/* ✅ OPTIMIZED: Progress bars with smooth animation */}
+          {/* ✅ FIXED: Ultra-smooth progress bars */}
           <View style={styles.storyProgressContainer}>
             {stories.map((_, index) => (
               <View key={index} style={styles.storyProgressBar}>
@@ -769,7 +758,7 @@ function StoryViewer({
             </TouchableOpacity>
           </View>
 
-          {/* ✅ OPTIMIZED: Story content with memoized image and load callback */}
+          {/* Story content */}
           <View style={styles.storyContent}>
             <StoryImage 
               uri={currentStory.imagen} 
@@ -1049,5 +1038,4 @@ const styles = StyleSheet.create({
   },
 });
 
-// Export memoized component to prevent unnecessary re-renders
 export default memo(StoryViewer);

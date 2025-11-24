@@ -222,7 +222,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
           </View>
         )}
         <View style={styles.headerContent}>
-          <Text style={styles.autorNombre}>{post.autorNombre}</Text>
+          <Text style={styles.autorNombre}>{(post.autorNombre || 'Usuario').replace(/^@/, '')}</Text>
           <Text style={styles.fecha}>{formatearFecha(post.fecha)}</Text>
         </View>
         <TouchableOpacity style={styles.moreButton} activeOpacity={0.7}>
@@ -241,7 +241,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
                   style={styles.mentionedUsername}
                   onPress={() => navigateToProfile(user)}
                 >
-                  @{user.username || user.nombre}
+                  {user.username || user.nombre}
                 </Text>
               </React.Fragment>
             ))}
@@ -264,7 +264,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
                   style={styles.taggedUsername}
                   onPress={() => navigateToProfile(user, 'usuario')}
                 >
-                  @{user.username || user.nombre}
+                  {user.username || user.nombre}
                 </Text>
               </React.Fragment>
             ))}

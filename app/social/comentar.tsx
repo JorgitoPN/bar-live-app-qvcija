@@ -257,8 +257,8 @@ export default function ComentarScreen() {
                   </View>
                 )}
                 <View style={styles.postAutorInfo}>
-                  <Text style={styles.postAutorNombre}>{post.autor?.nombre || 'Usuario'}</Text>
-                  <Text style={styles.postAutorUsername}>@{post.autor?.username || 'usuario'}</Text>
+                  <Text style={styles.postAutorNombre}>{(post.autor?.nombre || 'Usuario').replace(/^@/, '')}</Text>
+                  <Text style={styles.postAutorUsername}>{post.autor?.username || 'usuario'}</Text>
                 </View>
               </View>
               {post.contenido && (
@@ -281,8 +281,8 @@ export default function ComentarScreen() {
                   </View>
                 )}
                 <View style={styles.commentAutorInfo}>
-                  <Text style={styles.commentAutorNombre}>{parentComment.autor?.nombre || 'Usuario'}</Text>
-                  <Text style={styles.commentAutorUsername}>@{parentComment.autor?.username || 'usuario'}</Text>
+                  <Text style={styles.commentAutorNombre}>{(parentComment.autor?.nombre || 'Usuario').replace(/^@/, '')}</Text>
+                  <Text style={styles.commentAutorUsername}>{parentComment.autor?.username || 'usuario'}</Text>
                 </View>
               </View>
               <Text style={styles.commentTexto} numberOfLines={2}>

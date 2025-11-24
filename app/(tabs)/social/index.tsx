@@ -710,7 +710,7 @@ function PostCardWithSwipe({ post, user, activeLocalProfileId, router, toggleLik
             </View>
           )}
           <View style={styles.postAutorInfo}>
-            <Text style={styles.postAutorNombre}>{post.autor?.nombre || 'Usuario'}</Text>
+            <Text style={styles.postAutorNombre}>{(post.autor?.nombre || 'Usuario').replace(/^@/, '')}</Text>
             <Text style={styles.postFecha}>{formatearFecha(post.created_at)}</Text>
           </View>
         </TouchableOpacity>
@@ -835,7 +835,7 @@ function PostCardWithSwipe({ post, user, activeLocalProfileId, router, toggleLik
       {post.contenido && (
         <View style={styles.postDescripcion}>
           <Text style={styles.postDescripcionText}>
-            <Text style={{ fontWeight: '600' }}>{post.autor?.nombre || 'Usuario'}</Text>{' '}
+            <Text style={{ fontWeight: '600' }}>{(post.autor?.nombre || 'Usuario').replace(/^@/, '')}</Text>{' '}
             <ParsedText text={post.contenido} style={styles.postDescripcionText} />
           </Text>
         </View>
@@ -1161,11 +1161,16 @@ export default function SocialScreen() {
     try {
       console.log('[Social] 🔍 Searching for:', query);
       
-      const searchTerm = query.trim();
+      // ✅ FIXED: Remove @ symbol from search query for better UX
+      let searchTerm = query.trim();
+      if (searchTerm.startsWith('@')) {
+        searchTerm = searchTerm.substring(1);
+      }
+      
       const results: SearchResult[] = [];
       
-      if (searchTerm.startsWith('#')) {
-        const hashtagTerm = searchTerm.substring(1).toLowerCase();
+      if (query.trim().startsWith('#')) {
+        const hashtagTerm = searchTerm.toLowerCase();
         
         const { data: hashtagsData, error: hashtagsError } = await supabase
           .from('hashtags')
@@ -1767,7 +1772,7 @@ export default function SocialScreen() {
                   )}
                 </View>
                 <Text style={styles.historiaNombre} numberOfLines={1}>
-                  {firstStory.autor?.nombre || 'Usuario'}
+                  {(firstStory.autor?.nombre || 'Usuario').replace(/^@/, '')}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -1960,7 +1965,7 @@ export default function SocialScreen() {
                     </Text>
                   )}
                   {result.username && result.tipo !== 'hashtag' && (
-                    <Text style={styles.searchResultUsername}>@{result.username}</Text>
+                    <Text style={styles.searchResultUsername}>{result.username}</Text>
                   )}
                   {result.bio && (
                     <Text style={styles.searchResultUsername}>{result.bio}</Text>
