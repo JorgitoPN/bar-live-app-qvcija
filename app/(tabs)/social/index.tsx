@@ -602,7 +602,6 @@ const styles = StyleSheet.create({
   storyProgressFill: {
     height: '100%',
     backgroundColor: '#fff',
-    width: '100%',
   },
   storyAutorInfo: {
     flexDirection: 'row',
@@ -1539,11 +1538,11 @@ export default function SocialScreen() {
 
     progressAnim.setValue(0);
 
-    // ✅ FIX: Use useNativeDriver: true for smooth animation
+    // ✅ FIX: Animate width from 0% to 100% using scaleX
     Animated.timing(progressAnim, {
       toValue: 1,
       duration: STORY_DURATION,
-      useNativeDriver: true, // ✅ This fixes the flickering!
+      useNativeDriver: true,
     }).start(({ finished }) => {
       if (finished) {
         handleNextStory();
@@ -2103,12 +2102,6 @@ export default function SocialScreen() {
   const hasUserStories = userStories.length > 0;
   const hasUnviewedUserStories = userStories.some(s => !s.visto_por_usuario);
 
-  // ✅ FIX: Use transform instead of width for smooth animation
-  const progressTransform = progressAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-100, 0], // Transform from -100% to 0%
-  });
-
   const displayAvatar = user?.avatar;
   const displayName = user?.nombre || 'Usuario';
   const displayInitial = displayName.charAt(0).toUpperCase();
@@ -2424,17 +2417,15 @@ export default function SocialScreen() {
                         {index === currentStoryIndex && (
                           <Animated.View 
                             style={[
-                              styles.storyProgressFill, 
-                              { 
+                              styles.storyProgressFill,
+                              {
                                 transform: [
-                                  { 
-                                    translateX: progressAnim.interpolate({
-                                      inputRange: [0, 1],
-                                      outputRange: ['-100%', '0%'],
-                                    })
-                                  }
-                                ]
-                              }
+                                  {
+                                    scaleX: progressAnim,
+                                  },
+                                ],
+                                transformOrigin: 'left',
+                              },
                             ]} 
                           />
                         )}
