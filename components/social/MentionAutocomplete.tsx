@@ -12,6 +12,7 @@ import {
   Keyboard,
   Dimensions,
   KeyboardEvent,
+  Animated,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -97,7 +98,10 @@ export default function MentionAutocomplete({
   const [currentMentionText, setCurrentMentionText] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const [containerHeight, setContainerHeight] = useState(0);
+  
+  // ✅ Animation for smooth appearance
+  const slideAnim = useRef(new Animated.Value(0)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
 
   // Listen to keyboard events to adjust positioning
   useEffect(() => {
@@ -123,6 +127,40 @@ export default function MentionAutocomplete({
       keyboardWillHide.remove();
     };
   }, []);
+
+  // ✅ Animate appearance/disappearance
+  useEffect(() => {
+    if (isVisible && suggestions.length > 0) {
+      // Slide up and fade in
+      Animated.parallel([
+        Animated.spring(slideAnim, {
+          toValue: 1,
+          useNativeDriver: true,
+          tension: 80,
+          friction: 10,
+        }),
+        Animated.timing(opacityAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      // Slide down and fade out
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacityAnim, {
+          toValue: 0,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [isVisible, suggestions.length, slideAnim, opacityAnim]);
 
   const detectMention = useCallback(() => {
     const textBeforeCursor = text.substring(0, cursorPosition);
@@ -286,8 +324,6 @@ export default function MentionAutocomplete({
           // Now filter by active subscriptions with premium or estandar plans
           const localIds = allLocals.map(l => l.id);
           
-          // Query subscriptions - FIX: Specify which foreign key to use with !inner
-          // Use plan_id:planes_suscripcion!suscripciones_locales_plan_id_fkey to specify the relationship
           const { data: activeSubs, error: subsError } = await supabase
             .from('suscripciones_locales')
             .select('local_id, plan_id, plan:planes_suscripcion!suscripciones_locales_plan_id_fkey(nombre)')
@@ -331,7 +367,6 @@ export default function MentionAutocomplete({
           // Filter by active subscriptions
           const localIds = recentLocals.map(l => l.id);
           
-          // FIX: Specify which foreign key to use
           const { data: activeSubs, error: subsError } = await supabase
             .from('suscripciones_locales')
             .select('local_id, plan_id, plan:planes_suscripcion!suscripciones_locales_plan_id_fkey(nombre)')
@@ -436,40 +471,6 @@ export default function MentionAutocomplete({
     setCurrentMentionText(null);
   };
 
-  // ✅ FIX: Calculate optimal positioning - centered above keyboard with proper spacing
-  useEffect(() => {
-    if (isVisible && suggestions.length > 0 && keyboardHeight > 0) {
-      // Constants for layout calculation
-      const ITEM_HEIGHT = 76; // Height of each suggestion item
-      const MIN_ITEMS = 1;
-      const MAX_ITEMS = 3; // Show up to 3 items for better visibility
-      const TOP_SAFE_AREA = 120; // Safe area at top (status bar + header)
-      const BOTTOM_MARGIN = 16; // Margin between list and keyboard
-      
-      // Calculate ideal height based on number of suggestions
-      const itemsToShow = Math.min(Math.max(suggestions.length, MIN_ITEMS), MAX_ITEMS);
-      const idealHeight = itemsToShow * ITEM_HEIGHT;
-      
-      // Calculate available space above keyboard
-      const availableSpace = SCREEN_HEIGHT - keyboardHeight - TOP_SAFE_AREA - BOTTOM_MARGIN;
-      
-      // Use the smaller of ideal height or available space
-      const finalHeight = Math.min(idealHeight, availableSpace, MAX_ITEMS * ITEM_HEIGHT);
-      
-      setContainerHeight(finalHeight);
-      
-      console.log('[MentionAutocomplete] 📐 Layout calculation:');
-      console.log('  - Screen height:', SCREEN_HEIGHT);
-      console.log('  - Keyboard height:', keyboardHeight);
-      console.log('  - Suggestions:', suggestions.length);
-      console.log('  - Items to show:', itemsToShow);
-      console.log('  - Ideal height:', idealHeight);
-      console.log('  - Available space:', availableSpace);
-      console.log('  - Final height:', finalHeight);
-      console.log('  - Bottom position (above keyboard):', keyboardHeight + BOTTOM_MARGIN);
-    }
-  }, [isVisible, suggestions.length, keyboardHeight]);
-
   // Don't render if not visible or no mention text
   if (!isVisible || currentMentionText === null) {
     console.log('[MentionAutocomplete] 🚫 Not rendering - isVisible:', isVisible, 'currentMentionText:', currentMentionText);
@@ -505,25 +506,44 @@ export default function MentionAutocomplete({
             </Text>
           )}
         </View>
+        {item.tipo === 'local' && (
+          <View style={styles.localBadge}>
+            <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="business" size={14} color={colors.primary} />
+          </View>
+        )}
       </TouchableOpacity>
     );
   };
 
-  // ✅ FIX: Position centered above keyboard with proper spacing
-  const BOTTOM_MARGIN = 16; // Margin between list and keyboard
-  const bottomPosition = keyboardHeight > 0 
-    ? keyboardHeight + BOTTOM_MARGIN 
-    : 100; // Fallback when keyboard height not detected
+  // ✅ Calculate optimal positioning - directly above keyboard
+  const MARGIN_FROM_KEYBOARD = 8; // Small margin between list and keyboard
+  const ITEM_HEIGHT = 64; // Height of each suggestion item
+  const MAX_ITEMS = 4; // Show up to 4 items
   
-  const finalHeight = containerHeight > 0 ? containerHeight : 200;
+  // Calculate height based on number of suggestions
+  const itemsToShow = Math.min(suggestions.length, MAX_ITEMS);
+  const containerHeight = loading ? 80 : itemsToShow * ITEM_HEIGHT;
+  
+  // Position directly above keyboard
+  const bottomPosition = keyboardHeight > 0 
+    ? keyboardHeight + MARGIN_FROM_KEYBOARD 
+    : 100; // Fallback when keyboard height not detected
+
+  // ✅ Animation transforms
+  const translateY = slideAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [20, 0], // Slide up from 20px below
+  });
 
   return (
-    <View 
+    <Animated.View 
       style={[
         styles.container, 
         { 
           bottom: bottomPosition,
-          height: finalHeight,
+          height: containerHeight,
+          opacity: opacityAnim,
+          transform: [{ translateY }],
         }, 
         style
       ]}
@@ -547,27 +567,27 @@ export default function MentionAutocomplete({
         />
       ) : currentMentionText.length > 0 ? (
         <View style={styles.emptyContainer}>
+          <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
           <Text style={styles.emptyText}>No se encontraron resultados</Text>
         </View>
       ) : null}
-    </View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    left: 16,
-    right: 16,
+    left: 0,
+    right: 0,
     backgroundColor: colors.white,
-    borderWidth: 2,
-    borderColor: colors.primary,
-    borderRadius: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 16,
+    elevation: 8,
     zIndex: 9999,
     overflow: 'hidden',
   },
@@ -575,7 +595,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   listContent: {
-    paddingVertical: 4,
+    paddingVertical: 0,
   },
   suggestionItem: {
     flexDirection: 'row',
@@ -583,11 +603,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: colors.white,
+    borderBottomWidth: 0.5,
+    borderBottomColor: colors.cardBorder,
   },
   avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     marginRight: 12,
   },
   avatarPlaceholder: {
@@ -595,7 +617,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatarInitials: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
     color: colors.white,
   },
@@ -603,14 +625,22 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   suggestionUsername: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '600',
     color: colors.text,
     marginBottom: 2,
   },
   suggestionName: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.textSecondary,
+  },
+  localBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.primary + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   loadingContainer: {
     flex: 1,
@@ -621,15 +651,17 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   loadingText: {
-    fontSize: 15,
+    fontSize: 14,
     color: colors.textSecondary,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   emptyContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 20,
+    flexDirection: 'row',
+    gap: 8,
   },
   emptyText: {
     fontSize: 14,
