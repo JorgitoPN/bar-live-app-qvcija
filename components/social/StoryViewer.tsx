@@ -24,6 +24,8 @@ import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import StoryStatsModal from './StoryStatsModal';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 
 const { width, height } = Dimensions.get('window');
 const STORY_DURATION = 5000; // 5 seconds per story
@@ -104,31 +106,6 @@ const StoryImage = memo(({ uri, onLoad }: { uri: string; onLoad?: () => void }) 
 
 StoryImage.displayName = 'StoryImage';
 
-// ✅ ULTRA-SMOOTH: Progress bar component with direct width manipulation
-const ProgressBar = memo(({ 
-  isActive, 
-  isCompleted, 
-  progressRef 
-}: { 
-  isActive: boolean; 
-  isCompleted: boolean;
-  progressRef?: React.RefObject<View>;
-}) => {
-  return (
-    <View style={styles.storyProgressBar}>
-      <View 
-        ref={progressRef}
-        style={[
-          styles.storyProgressFill,
-          { width: isCompleted ? '100%' : '0%' }
-        ]} 
-      />
-    </View>
-  );
-});
-
-ProgressBar.displayName = 'ProgressBar';
-
 function StoryViewer({
   visible,
   stories,
@@ -150,11 +127,11 @@ function StoryViewer({
   const [loadingStats, setLoadingStats] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   
-  // ✅ ULTRA-SMOOTH: Direct DOM manipulation for progress bar
-  const progressBarRef = useRef<View>(null);
+  // ✅ ULTRA-SMOOTH: Progress animation with requestAnimationFrame
+  const progressRefs = useRef<(View | null)[]>([]);
   const animationFrameId = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
-  const pausedAtRef = useRef<number>(0);
+  const elapsedTimeRef = useRef<number>(0);
   
   // Gesture tracking refs
   const touchStartTime = useRef<number>(0);
@@ -196,7 +173,6 @@ function StoryViewer({
     if (currentStoryIndex < stories.length - 1) {
       const newIndex = currentStoryIndex + 1;
       setCurrentStoryIndex(newIndex);
-      resetAnimation();
       onStoryChange?.(newIndex);
     } else {
       onClose();
@@ -207,52 +183,36 @@ function StoryViewer({
     if (currentStoryIndex > 0) {
       const newIndex = currentStoryIndex - 1;
       setCurrentStoryIndex(newIndex);
-      resetAnimation();
       onStoryChange?.(newIndex);
     } else {
       onClose();
     }
   }, [currentStoryIndex, onClose, onStoryChange]);
 
-  // ✅ ULTRA-SMOOTH: Reset animation for new story
-  const resetAnimation = useCallback(() => {
-    // Stop any running animation
-    if (animationFrameId.current !== null) {
-      cancelAnimationFrame(animationFrameId.current);
-      animationFrameId.current = null;
-    }
-    
-    // Reset all progress tracking
-    startTimeRef.current = 0;
-    pausedAtRef.current = 0;
-    
-    // Reset progress bar to 0
-    if (progressBarRef.current) {
-      // @ts-expect-error - setNativeProps is available on View
-      progressBarRef.current.setNativeProps({
-        style: { width: '0%' }
-      });
-    }
-    
-    // Reset image loaded state
-    setImageLoaded(false);
-  }, []);
-
-  // ✅ ULTRA-SMOOTH: Animation loop with direct DOM manipulation (60fps, no re-renders)
+  // ✅ ULTRA-SMOOTH: Animation loop with requestAnimationFrame (60fps guaranteed)
   const animateProgress = useCallback(() => {
-    if (!progressBarRef.current || isPaused) {
+    if (isPaused || !imageLoaded) {
       return;
     }
 
     const now = performance.now();
-    const elapsed = now - startTimeRef.current + pausedAtRef.current;
-    const progress = Math.min(elapsed / STORY_DURATION, 1);
+    
+    // Calculate elapsed time
+    if (startTimeRef.current === 0) {
+      startTimeRef.current = now;
+    }
+    
+    const totalElapsed = elapsedTimeRef.current + (now - startTimeRef.current);
+    const progress = Math.min(totalElapsed / STORY_DURATION, 1);
 
-    // ✅ Direct DOM manipulation - no state updates, no re-renders, ultra-smooth
-    // @ts-expect-error - setNativeProps is available on View
-    progressBarRef.current.setNativeProps({
-      style: { width: `${progress * 100}%` }
-    });
+    // ✅ Update current progress bar with direct DOM manipulation
+    const currentProgressBar = progressRefs.current[currentStoryIndex];
+    if (currentProgressBar) {
+      // @ts-expect-error - setNativeProps is available on View
+      currentProgressBar.setNativeProps({
+        style: { width: `${progress * 100}%` }
+      });
+    }
 
     if (progress >= 1) {
       // Story completed
@@ -265,9 +225,9 @@ function StoryViewer({
       // Continue animation
       animationFrameId.current = requestAnimationFrame(animateProgress);
     }
-  }, [isPaused, handleNextStory]);
+  }, [isPaused, imageLoaded, currentStoryIndex, handleNextStory]);
 
-  // ✅ ULTRA-SMOOTH: Start animation
+  // ✅ Start animation
   const startAnimation = useCallback(() => {
     if (!imageLoaded || isPaused) {
       return;
@@ -279,12 +239,14 @@ function StoryViewer({
       animationFrameId.current = null;
     }
 
-    // Start new animation
+    // Reset timing
     startTimeRef.current = performance.now();
+    
+    // Start new animation
     animationFrameId.current = requestAnimationFrame(animateProgress);
   }, [imageLoaded, isPaused, animateProgress]);
 
-  // ✅ ULTRA-SMOOTH: Stop animation and save progress
+  // ✅ Stop animation and save progress
   const stopAnimation = useCallback(() => {
     if (animationFrameId.current !== null) {
       cancelAnimationFrame(animationFrameId.current);
@@ -294,9 +256,35 @@ function StoryViewer({
     // Save current progress
     if (startTimeRef.current > 0) {
       const elapsed = performance.now() - startTimeRef.current;
-      pausedAtRef.current = Math.min(pausedAtRef.current + elapsed, STORY_DURATION);
+      elapsedTimeRef.current = Math.min(elapsedTimeRef.current + elapsed, STORY_DURATION);
     }
   }, []);
+
+  // ✅ Reset animation for new story
+  const resetAnimation = useCallback(() => {
+    // Stop any running animation
+    if (animationFrameId.current !== null) {
+      cancelAnimationFrame(animationFrameId.current);
+      animationFrameId.current = null;
+    }
+    
+    // Reset all progress tracking
+    startTimeRef.current = 0;
+    elapsedTimeRef.current = 0;
+    
+    // Reset all progress bars
+    progressRefs.current.forEach((ref, index) => {
+      if (ref) {
+        // @ts-expect-error - setNativeProps is available on View
+        ref.setNativeProps({
+          style: { width: index < currentStoryIndex ? '100%' : '0%' }
+        });
+      }
+    });
+    
+    // Reset image loaded state
+    setImageLoaded(false);
+  }, [currentStoryIndex]);
 
   const handleStoryLike = useCallback(async () => {
     if (!currentStory || !user) {
@@ -657,6 +645,13 @@ function StoryViewer({
     }
   }, [visible, initialIndex, resetAnimation, stopAnimation]);
 
+  // ✅ Reset animation when story changes
+  useEffect(() => {
+    if (visible) {
+      resetAnimation();
+    }
+  }, [currentStoryIndex, visible, resetAnimation]);
+
   if (!currentStory) {
     return null;
   }
@@ -691,34 +686,58 @@ function StoryViewer({
         keyboardVerticalOffset={0}
       >
         <View style={styles.storyViewerModal} {...panResponder.panHandlers}>
-          {/* ✅ ULTRA-SMOOTH: Progress bars with direct DOM manipulation */}
-          <View style={styles.storyProgressContainer}>
-            {stories.map((_, index) => (
-              <ProgressBar
-                key={index}
-                isActive={index === currentStoryIndex}
-                isCompleted={index < currentStoryIndex}
-                progressRef={index === currentStoryIndex ? progressBarRef : undefined}
-              />
-            ))}
-          </View>
+          {/* ✅ NEW DESIGN: Modern progress bars with glassmorphism */}
+          <BlurView intensity={20} tint="dark" style={styles.progressContainer}>
+            <View style={styles.progressBarsWrapper}>
+              {stories.map((_, index) => (
+                <View key={index} style={styles.progressBarContainer}>
+                  <View style={styles.progressBarBackground}>
+                    <View
+                      ref={(ref) => {
+                        progressRefs.current[index] = ref;
+                      }}
+                      style={[
+                        styles.progressBarFill,
+                        { width: index < currentStoryIndex ? '100%' : '0%' }
+                      ]}
+                    >
+                      <LinearGradient
+                        colors={['#FFD700', '#00FF00']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.progressGradient}
+                      />
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </BlurView>
 
-          {/* Header */}
-          <View style={styles.storyHeader}>
+          {/* ✅ NEW DESIGN: Modern header with glassmorphism */}
+          <BlurView intensity={30} tint="dark" style={styles.storyHeader}>
             <TouchableOpacity 
               style={styles.storyAutorInfo}
               onPress={handleNavigateToStoryAuthorProfile}
               activeOpacity={0.7}
             >
-              {storyAuthorAvatar ? (
-                <Image source={{ uri: storyAuthorAvatar }} style={styles.storyAutorAvatar} />
-              ) : (
-                <View style={[styles.storyAutorAvatar, styles.avatarPlaceholder]}>
-                  <Text style={styles.avatarText}>
-                    {storyAuthorName.charAt(0).toUpperCase()}
-                  </Text>
-                </View>
-              )}
+              <View style={styles.avatarWrapper}>
+                {storyAuthorAvatar ? (
+                  <Image source={{ uri: storyAuthorAvatar }} style={styles.storyAutorAvatar} />
+                ) : (
+                  <View style={[styles.storyAutorAvatar, styles.avatarPlaceholder]}>
+                    <Text style={styles.avatarText}>
+                      {storyAuthorName.charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                )}
+                <LinearGradient
+                  colors={['rgba(255, 215, 0, 0.3)', 'rgba(0, 255, 0, 0.3)']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.avatarRing}
+                />
+              </View>
               <View style={styles.storyAutorTextContainer}>
                 <Text style={styles.storyAutorNombre}>
                   {storyAuthorUsername}
@@ -734,9 +753,14 @@ function StoryViewer({
               onPress={onClose}
               activeOpacity={0.7}
             >
-              <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color="#fff" />
+              <LinearGradient
+                colors={['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.05)']}
+                style={styles.closeButtonGradient}
+              >
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={20} color="#fff" />
+              </LinearGradient>
             </TouchableOpacity>
-          </View>
+          </BlurView>
 
           {/* Story content */}
           <View style={styles.storyContent}>
@@ -748,32 +772,42 @@ function StoryViewer({
             />
           </View>
 
-          {/* Owner controls */}
+          {/* ✅ NEW DESIGN: Modern owner controls with glassmorphism */}
           {isCurrentStoryOwner && (
-            <View style={styles.storyOwnerControls}>
+            <BlurView intensity={30} tint="dark" style={styles.storyOwnerControls}>
               <TouchableOpacity
                 style={styles.storyControlButton}
                 onPress={handleViewStoryStats}
                 activeOpacity={0.7}
               >
-                <IconSymbol ios_icon_name="eye.fill" android_material_icon_name="visibility" size={20} color="#fff" />
-                <Text style={styles.storyControlText}>
-                  {currentStory.views_count || 0}
-                </Text>
+                <LinearGradient
+                  colors={['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.05)']}
+                  style={styles.controlButtonGradient}
+                >
+                  <IconSymbol ios_icon_name="eye.fill" android_material_icon_name="visibility" size={18} color="#fff" />
+                  <Text style={styles.storyControlText}>
+                    {currentStory.views_count || 0}
+                  </Text>
+                </LinearGradient>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.storyControlButton}
                 onPress={handleDeleteStory}
                 activeOpacity={0.7}
               >
-                <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={20} color="#fff" />
+                <LinearGradient
+                  colors={['rgba(239, 68, 68, 0.3)', 'rgba(239, 68, 68, 0.1)']}
+                  style={styles.controlButtonGradient}
+                >
+                  <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={18} color="#fff" />
+                </LinearGradient>
               </TouchableOpacity>
-            </View>
+            </BlurView>
           )}
 
-          {/* Viewer interaction bar */}
+          {/* ✅ NEW DESIGN: Modern interaction bar with glassmorphism */}
           {!isCurrentStoryOwner && (
-            <View style={styles.storyInteractionBar}>
+            <BlurView intensity={30} tint="dark" style={styles.storyInteractionBar}>
               <View style={styles.storyMessageInputContainer}>
                 <TextInput
                   style={styles.storyMessageInput}
@@ -796,7 +830,14 @@ function StoryViewer({
                     onPress={handleSendStoryMessage}
                     activeOpacity={0.7}
                   >
-                    <IconSymbol ios_icon_name="paperplane.fill" android_material_icon_name="send" size={18} color={colors.primary} />
+                    <LinearGradient
+                      colors={[colors.primary, colors.secondary]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.sendButtonGradient}
+                    >
+                      <IconSymbol ios_icon_name="paperplane.fill" android_material_icon_name="send" size={16} color="#fff" />
+                    </LinearGradient>
                   </TouchableOpacity>
                 )}
               </View>
@@ -806,14 +847,21 @@ function StoryViewer({
                 onPress={handleStoryLike}
                 activeOpacity={0.7}
               >
-                <IconSymbol
-                  ios_icon_name={currentStory.liked_by_user ? 'heart.fill' : 'heart'}
-                  android_material_icon_name={currentStory.liked_by_user ? 'favorite' : 'favorite_border'}
-                  size={24}
-                  color={currentStory.liked_by_user ? '#EF4444' : '#fff'}
-                />
+                <LinearGradient
+                  colors={currentStory.liked_by_user 
+                    ? ['rgba(239, 68, 68, 0.3)', 'rgba(239, 68, 68, 0.1)']
+                    : ['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.05)']}
+                  style={styles.likeButtonGradient}
+                >
+                  <IconSymbol
+                    ios_icon_name={currentStory.liked_by_user ? 'heart.fill' : 'heart'}
+                    android_material_icon_name={currentStory.liked_by_user ? 'favorite' : 'favorite_border'}
+                    size={22}
+                    color={currentStory.liked_by_user ? '#EF4444' : '#fff'}
+                  />
+                </LinearGradient>
               </TouchableOpacity>
-            </View>
+            </BlurView>
           )}
 
           <StoryStatsModal
@@ -855,49 +903,80 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
-  storyProgressContainer: {
+  progressContainer: {
     position: 'absolute',
     top: Platform.OS === 'ios' ? 50 : 40,
-    left: 8,
-    right: 8,
-    flexDirection: 'row',
-    gap: 4,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 8,
+    paddingVertical: 12,
     zIndex: 10,
-  },
-  storyProgressBar: {
-    flex: 1,
-    height: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 1,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
     overflow: 'hidden',
   },
-  storyProgressFill: {
+  progressBarsWrapper: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  progressBarContainer: {
+    flex: 1,
+    height: 3,
+  },
+  progressBarBackground: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
     height: '100%',
-    backgroundColor: '#fff',
+    overflow: 'hidden',
+    borderRadius: 2,
+  },
+  progressGradient: {
+    flex: 1,
   },
   storyHeader: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 60 : 50,
+    top: Platform.OS === 'ios' ? 75 : 65,
     left: 0,
     right: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 12,
+    paddingVertical: 12,
     zIndex: 10,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    overflow: 'hidden',
   },
   storyAutorInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
   },
+  avatarWrapper: {
+    position: 'relative',
+    marginRight: 12,
+  },
   storyAutorAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    marginRight: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     borderWidth: 2,
     borderColor: '#fff',
+    zIndex: 1,
+  },
+  avatarRing: {
+    position: 'absolute',
+    top: -3,
+    left: -3,
+    right: -3,
+    bottom: -3,
+    borderRadius: 23,
+    zIndex: 0,
   },
   avatarPlaceholder: {
     backgroundColor: colors.primary,
@@ -905,7 +984,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatarText: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 'bold',
     color: colors.headerText,
   },
@@ -913,26 +992,30 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   storyAutorNombre: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
     color: '#fff',
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
     textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
+    textShadowRadius: 2,
   },
   storyTime: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: 'rgba(255, 255, 255, 0.85)',
     marginTop: 2,
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
     textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
+    textShadowRadius: 2,
   },
   storyCloseButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    overflow: 'hidden',
+  },
+  closeButtonGradient: {
+    width: '100%',
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -952,19 +1035,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     zIndex: 10,
+    borderRadius: 24,
+    overflow: 'hidden',
+    paddingHorizontal: 8,
+    paddingVertical: 8,
   },
   storyControlButton: {
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  controlButtonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 20,
   },
   storyControlText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#fff',
   },
   storyInteractionBar: {
@@ -979,6 +1068,9 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.OS === 'ios' ? 34 : 12,
     gap: 12,
     zIndex: 10,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: 'hidden',
   },
   storyMessageInputContainer: {
     flex: 1,
@@ -998,22 +1090,31 @@ const styles = StyleSheet.create({
     paddingRight: 8,
   },
   storySendButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#fff',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  sendButtonGradient: {
+    width: '100%',
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
   },
   storyLikeButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    overflow: 'hidden',
+  },
+  likeButtonGradient: {
+    width: '100%',
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 24,
   },
 });
 
