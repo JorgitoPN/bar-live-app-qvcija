@@ -1261,7 +1261,7 @@ export default function PostDetailScreen() {
       (comentario.tipo === 'local' && activeLocalProfileId === comentario.local_id)
     );
 
-    // ✅ Get display username for comment author
+    // ✅ Get display username for comment author (NO @ symbol except in profile)
     const commentAuthorUsername = comentario.autor?.username || comentario.autor?.nombre || 'usuario';
 
     return (
@@ -1307,7 +1307,7 @@ export default function PostDetailScreen() {
                 activeOpacity={0.7}
               >
                 <Text style={styles.comentarioAutor}>
-                  @{commentAuthorUsername}
+                  {commentAuthorUsername}
                 </Text>
               </TouchableOpacity>
               <Text style={styles.comentarioFecha}>
@@ -1495,7 +1495,7 @@ export default function PostDetailScreen() {
                 </View>
               )}
               <View style={styles.postAutorInfo}>
-                <Text style={styles.postAutorNombre}>@{post.autorNombre}</Text>
+                <Text style={styles.postAutorNombre}>{post.autorNombre}</Text>
                 <Text style={styles.postFecha}>{formatearFecha(post.created_at)}</Text>
               </View>
             </TouchableOpacity>
@@ -1616,7 +1616,7 @@ export default function PostDetailScreen() {
           {post.contenido && (
             <View style={styles.postDescripcion}>
               <Text style={styles.postDescripcionText}>
-                <Text style={{ fontWeight: '600' }}>@{post.autorNombre}</Text>{' '}
+                <Text style={{ fontWeight: '600' }}>{post.autorNombre}</Text>{' '}
                 <ParsedText text={post.contenido} style={styles.postDescripcionText} />
               </Text>
             </View>
@@ -1655,7 +1655,7 @@ export default function PostDetailScreen() {
         {replyingTo && (
           <View style={styles.replyingToContainer}>
             <Text style={styles.replyingToText}>
-              Respondiendo a @{replyingTo.autor?.username || replyingTo.autor?.nombre || 'Usuario'}
+              Respondiendo a {replyingTo.autor?.username || replyingTo.autor?.nombre || 'Usuario'}
             </Text>
             <TouchableOpacity
               style={styles.cancelReplyButton}
@@ -1679,7 +1679,7 @@ export default function PostDetailScreen() {
           <TextInput
             ref={textInputRef}
             style={styles.textInput}
-            placeholder={replyingTo ? `Responder a @${replyingTo.autor?.username || replyingTo.autor?.nombre}...` : 'Añade un comentario...'}
+            placeholder={replyingTo ? `Responder a ${replyingTo.autor?.username || replyingTo.autor?.nombre}...` : 'Añade un comentario...'}
             placeholderTextColor={colors.textSecondary}
             value={comentarioTexto}
             onChangeText={(text) => {
@@ -1776,7 +1776,7 @@ export default function PostDetailScreen() {
                   </View>
                 )}
                 <View style={styles.userInfo}>
-                  <Text style={styles.userName}>@{item.username || item.nombre}</Text>
+                  <Text style={styles.userName}>{item.username || item.nombre}</Text>
                   {item.username && item.username !== item.nombre && (
                     <Text style={styles.userUsername}>{item.nombre}</Text>
                   )}

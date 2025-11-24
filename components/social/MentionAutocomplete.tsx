@@ -436,16 +436,15 @@ export default function MentionAutocomplete({
     setCurrentMentionText(null);
   };
 
-  // Calculate optimal positioning
+  // ✅ ENHANCED: Calculate optimal positioning - always above keyboard, never covering content
   useEffect(() => {
     if (isVisible && suggestions.length > 0) {
       // Constants for layout calculation
-      const ITEM_HEIGHT = 76; // Height of each suggestion item
+      const ITEM_HEIGHT = 72; // Height of each suggestion item (reduced for better fit)
       const MIN_ITEMS = 1;
-      const MAX_ITEMS = 3.5; // Show 3.5 items to indicate scrollability
-      const SPACING_ABOVE_KEYBOARD = 16; // Space between list and keyboard
-      const TOP_SAFE_AREA = 120; // Safe area at top (status bar + some padding)
-      const HORIZONTAL_MARGIN = 24; // Left + right margins
+      const MAX_ITEMS = 4; // Show up to 4 items for better visibility
+      const SPACING_ABOVE_KEYBOARD = 8; // Minimal space between list and keyboard
+      const TOP_SAFE_AREA = 180; // Safe area at top (header + input area)
       
       // Calculate ideal height based on number of suggestions
       const itemsToShow = Math.min(Math.max(suggestions.length, MIN_ITEMS), MAX_ITEMS);
@@ -455,8 +454,8 @@ export default function MentionAutocomplete({
       const bottomOfList = keyboardHeight + SPACING_ABOVE_KEYBOARD;
       const availableSpace = SCREEN_HEIGHT - bottomOfList - TOP_SAFE_AREA;
       
-      // Use the smaller of ideal height or available space
-      const finalHeight = Math.min(idealHeight, availableSpace, 280);
+      // Use the smaller of ideal height or available space, with max limit
+      const finalHeight = Math.min(idealHeight, availableSpace, 300);
       
       setContainerHeight(finalHeight);
       
@@ -511,8 +510,8 @@ export default function MentionAutocomplete({
     );
   };
 
-  // Calculate bottom position - always position above keyboard with spacing
-  const bottomPosition = keyboardHeight > 0 ? keyboardHeight + 16 : 140;
+  // ✅ ENHANCED: Calculate bottom position - always position above keyboard with minimal spacing
+  const bottomPosition = keyboardHeight > 0 ? keyboardHeight + 8 : 140;
   const finalHeight = containerHeight > 0 ? containerHeight : 200;
 
   return (
@@ -555,17 +554,17 @@ export default function MentionAutocomplete({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    left: 24,
-    right: 24,
+    left: 16,
+    right: 16,
     backgroundColor: colors.white,
     borderWidth: 2,
     borderColor: colors.primary,
-    borderRadius: 16,
+    borderRadius: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 16,
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 20,
     zIndex: 9999,
     overflow: 'hidden',
   },
@@ -579,7 +578,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 10,
     backgroundColor: colors.white,
   },
   avatar: {
