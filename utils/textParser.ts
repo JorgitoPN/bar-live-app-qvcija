@@ -98,12 +98,12 @@ export function extractMentions(text: string): string[] {
 /**
  * Search for users by username (for mention autocomplete)
  */
-export async function searchUsersForMention(query: string, supabase: any): Promise<{
+export async function searchUsersForMention(query: string, supabase: any): Promise<Array<{
   id: string;
   username: string;
   nombre: string;
   avatar?: string;
-}[]> {
+}>> {
   if (!query || query.length < 2) return [];
 
   try {
@@ -125,12 +125,12 @@ export async function searchUsersForMention(query: string, supabase: any): Promi
 /**
  * Search for locals by name (for mention autocomplete)
  */
-export async function searchLocalsForMention(query: string, supabase: any): Promise<{
+export async function searchLocalsForMention(query: string, supabase: any): Promise<Array<{
   id: string;
   nombre: string;
   imagen_url?: string;
   tipo: string;
-}[]> {
+}>> {
   if (!query || query.length < 2) return [];
 
   try {

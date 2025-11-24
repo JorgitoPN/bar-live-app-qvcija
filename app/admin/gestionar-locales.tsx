@@ -365,7 +365,7 @@ export default function GestionarLocalesScreen() {
     }
   }, [hasMore, loadingMore, initialLoading, paginaActual, cargarLocales]);
 
-  const LocalCard = useCallback(({ local }: { local: Local }) => {
+  const LocalCard = React.memo(({ local }: { local: Local }) => {
     return (
       <View style={styles.localCard}>
         <Pressable
@@ -529,11 +529,15 @@ export default function GestionarLocalesScreen() {
         )}
       </View>
     );
-  }, [modoSeleccion, localesSeleccionados, toggleSeleccionLocal, toggleEstadoLocal, toggleDestacadoLocal, eliminarLocal, router]);
+  }, (prevProps, nextProps) => {
+    return prevProps.local.id === nextProps.local.id &&
+           prevProps.local.activo === nextProps.local.activo &&
+           prevProps.local.destacado === nextProps.local.destacado;
+  });
 
   const renderLocalCard = useCallback(({ item }: { item: Local }) => (
     <LocalCard local={item} />
-  ), [LocalCard]);
+  ), []);
 
   const renderHeader = useMemo(() => (
     <React.Fragment>

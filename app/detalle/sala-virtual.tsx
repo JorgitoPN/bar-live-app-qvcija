@@ -58,7 +58,7 @@ interface InteractionMessage {
   };
 }
 
-
+type InteractionMessageArray = InteractionMessage[];
 
 const MENSAJES_RAPIDOS = [
   { id: '1', texto: '¿Me invitas a una copa? 🍹', emoji: '🍹' },
@@ -123,7 +123,7 @@ export default function SalaVirtualScreen() {
         }),
       ])
     ).start();
-  }, [pulseAnim]);
+  }, []);
 
   const loadData = useCallback(async () => {
     try {

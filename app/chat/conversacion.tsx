@@ -101,14 +101,14 @@ export default function ConversacionScreen() {
       setLoading(true);
 
       // ✅ CRITICAL: Handle local-specific chats
-      if (params.localId) {
-        console.log('[Conversacion] 🔥🔥🔥 Loading LOCAL-SPECIFIC chat for local:', params.localId);
+      if (localId) {
+        console.log('[Conversacion] 🔥🔥🔥 Loading LOCAL-SPECIFIC chat for local:', localId);
         
         // Load local info
         const { data: localData, error: localError } = await supabase
           .from('locales')
           .select('id, nombre, imagen_url, propietario_id')
-          .eq('id', params.localId)
+          .eq('id', localId)
           .single();
 
         if (localError || !localData) {
@@ -126,12 +126,12 @@ export default function ConversacionScreen() {
         const userId1 = user.id < localData.propietario_id ? user.id : localData.propietario_id;
         const userId2 = user.id < localData.propietario_id ? localData.propietario_id : user.id;
 
-        console.log('[Conversacion] 🔍 Checking for existing local chat:', { userId1, userId2, localId: params.localId });
+        console.log('[Conversacion] 🔍 Checking for existing local chat:', { userId1, userId2, localId });
 
         const { data: existingChat, error: chatError } = await supabase
           .from('chats')
           .select('*')
-          .eq('local_id', params.localId)
+          .eq('local_id', localId)
           .eq('usuario1_id', userId1)
           .eq('usuario2_id', userId2)
           .single();
@@ -149,7 +149,7 @@ export default function ConversacionScreen() {
             .insert({
               usuario1_id: userId1,
               usuario2_id: userId2,
-              local_id: params.localId, // ✅ CRITICAL: Set local_id to isolate this chat
+              local_id: localId, // ✅ CRITICAL: Set local_id to isolate this chat
               ultimo_mensaje: '',
               ultimo_mensaje_fecha: new Date().toISOString(),
             })
@@ -166,7 +166,7 @@ export default function ConversacionScreen() {
               const { data: retryChat, error: retryError } = await supabase
                 .from('chats')
                 .select('*')
-                .eq('local_id', params.localId)
+                .eq('local_id', localId)
                 .eq('usuario1_id', userId1)
                 .eq('usuario2_id', userId2)
                 .single();
@@ -210,7 +210,7 @@ export default function ConversacionScreen() {
           const chatIdToUse = existingChat?.id || (await supabase
             .from('chats')
             .select('id')
-            .eq('local_id', params.localId)
+            .eq('local_id', localId)
             .eq('usuario1_id', userId1)
             .eq('usuario2_id', userId2)
             .single()).data?.id;
@@ -236,7 +236,7 @@ export default function ConversacionScreen() {
               titulo: 'Mensaje sobre tu historia',
               mensaje: `${user.nombre} te envió un mensaje sobre la historia de ${localData.nombre}`,
               usuario_origen_id: user.id,
-              local_id: params.localId,
+              local_id: localId,
             });
 
             await loadMessages(chatIdToUse);
@@ -362,7 +362,7 @@ export default function ConversacionScreen() {
     } finally {
       setLoading(false);
     }
-  }, [user, params.chatId, params.userId, params.localId, params.storyId, params.storyMessage, loadMessages, router]);
+  }, [user, params.chatId, params.userId, params.localId, params.storyId, params.storyMessage, loadMessages, router, localId]);
 
   useEffect(() => {
     loadOrCreateChat();
@@ -515,7 +515,7 @@ export default function ConversacionScreen() {
             ? `${user.nombre} te envió un mensaje sobre ${localInfo.nombre}`
             : `${user.nombre} te envió un mensaje`,
           usuario_origen_id: user.id,
-          local_id: isLocalChat ? params.localId : null,
+          local_id: isLocalChat ? localId : null,
         });
       }
 
@@ -650,8 +650,8 @@ export default function ConversacionScreen() {
         <TouchableOpacity
           style={styles.headerCenter}
           onPress={() => {
-            if (isLocalChat && params.localId) {
-              router.push(`/perfil/local?localId=${params.localId}`);
+            if (isLocalChat && localId) {
+              router.push(`/perfil/local?localId=${localId}`);
             } else if (otroUsuario) {
               router.push(`/perfil/usuario?userId=${otroUsuario.id}`);
             }

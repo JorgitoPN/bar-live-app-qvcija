@@ -118,6 +118,7 @@ export default function PanelAnalisisScreen() {
     console.log('[PanelAnalisis] 🔄 Auto-loading analytics and recommendations on page access');
     loadAnalyticsData();
     loadRecommendations();
+    // ✅ AUTO-GENERATE: If no recommendations exist, generate them automatically
     checkAndGenerateRecommendations();
 
     // Real-time synchronization for analytics
@@ -216,7 +217,7 @@ export default function PanelAnalisisScreen() {
       supabase.removeChannel(followersChannel);
       supabase.removeChannel(checkInsChannel);
     };
-  }, [localId, timeRange, loadAnalyticsData, loadRecommendations, checkAndGenerateRecommendations, router]);
+  }, [localId, timeRange]);
 
   const loadAnalyticsData = async () => {
     if (!localId || !user) return;

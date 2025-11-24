@@ -38,7 +38,11 @@ export default function ComentarScreen() {
   const [parentComment, setParentComment] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadData = useCallback(async () => {
+  useEffect(() => {
+    loadData();
+  }, [postId, parentCommentId]);
+
+  const loadData = async () => {
     try {
       const { data: postData, error: postError } = await supabase
         .from('posts')
@@ -66,11 +70,7 @@ export default function ComentarScreen() {
     } finally {
       setLoading(false);
     }
-  }, [postId, parentCommentId, router]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  };
 
   const handleSelectMention = useCallback((mention: MentionSuggestion, mentionText: string) => {
     console.log('[Comentar] ✅ Selected mention:', mention);

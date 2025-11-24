@@ -198,7 +198,7 @@ export default function LocalPerfilScreen() {
         useNativeDriver: true,
       }),
     ]).start();
-  }, [fadeAnim, scaleAnim]);
+  }, []);
 
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
     const R = 6371;
@@ -614,7 +614,7 @@ export default function LocalPerfilScreen() {
     router.push(`/crear/publicacion?localId=${localId}`);
   };
 
-  const handleCrearHistoria = useCallback(async () => {
+  const handleCrearHistoria = async () => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión');
       return;
@@ -629,7 +629,7 @@ export default function LocalPerfilScreen() {
     await setCurrentMode('propietario');
     
     router.push(`/crear/historia?localId=${localId}`);
-  }, [user, isOwner, switchToLocalProfile, localId, setCurrentMode, router]);
+  };
 
   const handleCrearEvento = async () => {
     if (!user) {
@@ -773,7 +773,7 @@ export default function LocalPerfilScreen() {
       storyTimerRef.current = null;
     }
     progressAnim.stopAnimation();
-  }, []);
+  }, [progressAnim]);
 
   const handleNextStory = useCallback(async () => {
     const currentStory = localStories[currentStoryIndex];
@@ -824,7 +824,7 @@ export default function LocalPerfilScreen() {
     storyTimerRef.current = setTimeout(() => {
       handleNextStory();
     }, 5000);
-  }, [handleNextStory]);
+  }, [handleNextStory, progressAnim]);
 
   const handlePreviousStory = useCallback(() => {
     if (currentStoryIndex > 0) {
@@ -835,7 +835,7 @@ export default function LocalPerfilScreen() {
       setShowStoryViewer(false);
       stopStoryTimer();
     }
-  }, [currentStoryIndex, startStoryTimer, stopStoryTimer]);
+  }, [currentStoryIndex, startStoryTimer, stopStoryTimer, progressAnim]);
 
   // ✅ UPDATED: Handle avatar press - view stories or create new story
   const handleAvatarPress = useCallback(async () => {

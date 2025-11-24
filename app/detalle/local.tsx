@@ -689,9 +689,8 @@ export default function DetalleLocalScreen() {
   useEffect(() => {
     if (params.id) {
       cargarLocal();
-      cargarReviewsBarlive();
     }
-  }, [params.id, cargarLocal, cargarReviewsBarlive]);
+  }, [params.id, cargarLocal]);
 
   const handleEnviarReview = async () => {
     if (!user) {

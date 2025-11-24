@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from './AuthContext';
 import { supabase } from '@/utils/supabase';
@@ -51,219 +51,6 @@ export function ModeProvider({ children }: { children: ReactNode }) {
   const [activeLocalData, setActiveLocalData] = useState<LocalProfile | null>(null);
   const [ownedLocals, setOwnedLocals] = useState<LocalProfile[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
-
-  // Define loadOwnedLocals with useCallback BEFORE it's used in any useEffect
-  const loadOwnedLocals = useCallback(async () => {
-    if (!user) {
-      setOwnedLocals([]);
-      return;
-    }
-
-    try {
-      console.log('[ModeContext] 🔄 Loading owned locals for user:', user.id);
-      
-      const { data, error } = await supabase
-        .from('propietarios_locales')
-        .select(`
-          local_id,
-          locales (
-            id,
-            nombre,
-            imagen_url,
-            tipo
-          )
-        `)
-        .eq('propietario_id', user.id);
-
-      if (error) {
-        console.error('[ModeContext] ❌ Error loading owned locals:', error);
-        return;
-      }
-
-      const locals = data
-        ?.map(item => item.locales)
-        .filter(Boolean)
-        .map(local => ({
-          id: local.id,
-          nombre: local.nombre,
-          imagen_url: local.imagen_url,
-          tipo: local.tipo,
-        })) || [];
-
-      console.log('[ModeContext] ✅ Loaded', locals.length, 'owned locals');
-      setOwnedLocals(locals);
-    } catch (error) {
-      console.error('[ModeContext] ❌ Error loading owned locals:', error);
-      setOwnedLocals([]);
-    }
-  }, [user]);
-
-  // Define switchToClientProfile with useCallback
-  const switchToClientProfile = useCallback(async () => {
-    if (!user) {
-      console.warn('[ModeContext] ⚠️ Cannot switch to client profile: no user');
-      return;
-    }
-
-    try {
-      console.log('[ModeContext] 🔄 Switching to client profile:', user.id);
-      
-      // CRITICAL: Update state FIRST, then persist to storage
-      // This ensures the UI updates immediately
-      setCurrentModeState('cliente');
-      setActiveProfileIdState(user.id);
-      setActiveProfileTypeState('cliente');
-      setActiveLocalData(null);
-      
-      console.log('[ModeContext] ✅ State updated - Mode: cliente, Profile:', user.nombre);
-      
-      // Then persist to storage (async, non-blocking)
-      try {
-        await Promise.all([
-          AsyncStorage.setItem(MODE_STORAGE_KEY, 'cliente'),
-          AsyncStorage.setItem(ACTIVE_PROFILE_STORAGE_KEY, user.id),
-          AsyncStorage.setItem(ACTIVE_PROFILE_TYPE_STORAGE_KEY, 'cliente'),
-        ]);
-        console.log('[ModeContext] 📦 Persisted to storage:', { mode: 'cliente', profileId: user.id, profileType: 'cliente' });
-      } catch (storageError) {
-        console.error('[ModeContext] ⚠️ Error persisting to storage (state is still updated):', storageError);
-      }
-    } catch (error) {
-      console.error('[ModeContext] ❌ Error switching to client profile:', error);
-    }
-  }, [user]);
-
-  // Define switchToLocalProfile with useCallback
-  const switchToLocalProfile = useCallback(async (localId: string) => {
-    if (!user) {
-      console.warn('[ModeContext] ⚠️ Cannot switch to local profile: no user');
-      return;
-    }
-
-    try {
-      console.log('[ModeContext] 🔄 Switching to local profile:', localId);
-      
-      // Verify user owns this local
-      const { data: ownershipData, error: ownershipError } = await supabase
-        .from('propietarios_locales')
-        .select('id')
-        .eq('propietario_id', user.id)
-        .eq('local_id', localId)
-        .single();
-
-      if (ownershipError || !ownershipData) {
-        console.error('[ModeContext] ❌ User does not own this local:', ownershipError);
-        return;
-      }
-
-      // Load local data
-      const { data: localData, error: localError } = await supabase
-        .from('locales')
-        .select('id, nombre, imagen_url, tipo')
-        .eq('id', localId)
-        .single();
-
-      if (localError || !localData) {
-        console.error('[ModeContext] ❌ Error loading local data:', localError);
-        return;
-      }
-
-      // CRITICAL: Update state FIRST, then persist to storage
-      // This ensures the UI updates immediately
-      setCurrentModeState('propietario');
-      setActiveProfileIdState(localId);
-      setActiveProfileTypeState('local');
-      setActiveLocalData(localData);
-      
-      console.log('[ModeContext] ✅ State updated - Mode: propietario, Profile:', localData.nombre);
-      
-      // Then persist to storage (async, non-blocking)
-      try {
-        await Promise.all([
-          AsyncStorage.setItem(MODE_STORAGE_KEY, 'propietario'),
-          AsyncStorage.setItem(ACTIVE_PROFILE_STORAGE_KEY, localId),
-          AsyncStorage.setItem(ACTIVE_PROFILE_TYPE_STORAGE_KEY, 'local'),
-        ]);
-        console.log('[ModeContext] 📦 Persisted to storage:', { mode: 'propietario', profileId: localId, profileType: 'local' });
-      } catch (storageError) {
-        console.error('[ModeContext] ⚠️ Error persisting to storage (state is still updated):', storageError);
-      }
-    } catch (error) {
-      console.error('[ModeContext] ❌ Error switching to local profile:', error);
-    }
-  }, [user]);
-
-  // Define setCurrentMode with useCallback
-  const setCurrentMode = useCallback(async (mode: UserMode) => {
-    try {
-      console.log('[ModeContext] 🔄 Setting mode to:', mode);
-      
-      // Validate mode is allowed for current user
-      if (user) {
-        const userRole = user.rol_app || 'cliente';
-        
-        const isValidMode = 
-          (mode === 'cliente') ||
-          (mode === 'propietario' && (userRole === 'propietario' || userRole === 'admin')) ||
-          (mode === 'admin' && userRole === 'admin');
-        
-        if (!isValidMode) {
-          console.warn('[ModeContext] ⚠️ Invalid mode for user role:', mode, userRole);
-          return;
-        }
-      }
-      
-      await AsyncStorage.setItem(MODE_STORAGE_KEY, mode);
-      setCurrentModeState(mode);
-      
-      console.log('[ModeContext] ✅ Mode saved to storage:', mode);
-
-      // 🆕 FEATURE 1: Auto-select single local when switching to propietario mode
-      if (mode === 'propietario' && user) {
-        console.log('[ModeContext] 🔍 Checking for auto-selection of single local...');
-        
-        // Load owned locals if not already loaded
-        if (ownedLocals.length === 0) {
-          await loadOwnedLocals();
-        }
-        
-        // Wait a bit for state to update
-        setTimeout(async () => {
-          const { data, error } = await supabase
-            .from('propietarios_locales')
-            .select(`
-              local_id,
-              locales (
-                id,
-                nombre,
-                imagen_url,
-                tipo
-              )
-            `)
-            .eq('propietario_id', user.id);
-
-          if (!error && data && data.length === 1) {
-            const singleLocal = data[0].locales;
-            if (singleLocal) {
-              console.log('[ModeContext] ✅ Auto-selecting single local:', singleLocal.nombre);
-              await switchToLocalProfile(singleLocal.id);
-            }
-          } else {
-            console.log('[ModeContext] ℹ️ User has', data?.length || 0, 'locals, no auto-selection');
-          }
-        }, 100);
-      }
-      
-      // 🆕 FIX: When switching to cliente mode, automatically switch to client profile
-      if (mode === 'cliente' && user) {
-        console.log('[ModeContext] 🔄 Mode changed to cliente, switching to client profile');
-        await switchToClientProfile();
-      }
-    } catch (error) {
-      console.error('[ModeContext] ❌ Error saving mode:', error);
-      setCurrentModeState(mode);
-    }
-  }, [user, ownedLocals.length, loadOwnedLocals, switchToLocalProfile, switchToClientProfile]);
 
   // Initialize all state from AsyncStorage on mount
   useEffect(() => {
@@ -418,7 +205,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     if (user && (currentMode === 'propietario' || user.rol_app === 'propietario' || user.rol_app === 'admin')) {
       loadOwnedLocals();
     }
-  }, [user, currentMode, loadOwnedLocals]);
+  }, [user, currentMode]);
 
   // Debug effect to log context state changes
   useEffect(() => {
@@ -430,6 +217,215 @@ export function ModeProvider({ children }: { children: ReactNode }) {
       isInitialized,
     });
   }, [currentMode, activeProfileId, activeProfileType, activeLocalData, isInitialized]);
+
+  const loadOwnedLocals = async () => {
+    if (!user) {
+      setOwnedLocals([]);
+      return;
+    }
+
+    try {
+      console.log('[ModeContext] 🔄 Loading owned locals for user:', user.id);
+      
+      const { data, error } = await supabase
+        .from('propietarios_locales')
+        .select(`
+          local_id,
+          locales (
+            id,
+            nombre,
+            imagen_url,
+            tipo
+          )
+        `)
+        .eq('propietario_id', user.id);
+
+      if (error) {
+        console.error('[ModeContext] ❌ Error loading owned locals:', error);
+        return;
+      }
+
+      const locals = data
+        ?.map(item => item.locales)
+        .filter(Boolean)
+        .map(local => ({
+          id: local.id,
+          nombre: local.nombre,
+          imagen_url: local.imagen_url,
+          tipo: local.tipo,
+        })) || [];
+
+      console.log('[ModeContext] ✅ Loaded', locals.length, 'owned locals');
+      setOwnedLocals(locals);
+    } catch (error) {
+      console.error('[ModeContext] ❌ Error loading owned locals:', error);
+      setOwnedLocals([]);
+    }
+  };
+
+  const setCurrentMode = async (mode: UserMode) => {
+    try {
+      console.log('[ModeContext] 🔄 Setting mode to:', mode);
+      
+      // Validate mode is allowed for current user
+      if (user) {
+        const userRole = user.rol_app || 'cliente';
+        
+        const isValidMode = 
+          (mode === 'cliente') ||
+          (mode === 'propietario' && (userRole === 'propietario' || userRole === 'admin')) ||
+          (mode === 'admin' && userRole === 'admin');
+        
+        if (!isValidMode) {
+          console.warn('[ModeContext] ⚠️ Invalid mode for user role:', mode, userRole);
+          return;
+        }
+      }
+      
+      await AsyncStorage.setItem(MODE_STORAGE_KEY, mode);
+      setCurrentModeState(mode);
+      
+      console.log('[ModeContext] ✅ Mode saved to storage:', mode);
+
+      // 🆕 FEATURE 1: Auto-select single local when switching to propietario mode
+      if (mode === 'propietario' && user) {
+        console.log('[ModeContext] 🔍 Checking for auto-selection of single local...');
+        
+        // Load owned locals if not already loaded
+        if (ownedLocals.length === 0) {
+          await loadOwnedLocals();
+        }
+        
+        // Wait a bit for state to update
+        setTimeout(async () => {
+          const { data, error } = await supabase
+            .from('propietarios_locales')
+            .select(`
+              local_id,
+              locales (
+                id,
+                nombre,
+                imagen_url,
+                tipo
+              )
+            `)
+            .eq('propietario_id', user.id);
+
+          if (!error && data && data.length === 1) {
+            const singleLocal = data[0].locales;
+            if (singleLocal) {
+              console.log('[ModeContext] ✅ Auto-selecting single local:', singleLocal.nombre);
+              await switchToLocalProfile(singleLocal.id);
+            }
+          } else {
+            console.log('[ModeContext] ℹ️ User has', data?.length || 0, 'locals, no auto-selection');
+          }
+        }, 100);
+      }
+      
+      // 🆕 FIX: When switching to cliente mode, automatically switch to client profile
+      if (mode === 'cliente' && user) {
+        console.log('[ModeContext] 🔄 Mode changed to cliente, switching to client profile');
+        await switchToClientProfile();
+      }
+    } catch (error) {
+      console.error('[ModeContext] ❌ Error saving mode:', error);
+      setCurrentModeState(mode);
+    }
+  };
+
+  const switchToClientProfile = async () => {
+    if (!user) {
+      console.warn('[ModeContext] ⚠️ Cannot switch to client profile: no user');
+      return;
+    }
+
+    try {
+      console.log('[ModeContext] 🔄 Switching to client profile:', user.id);
+      
+      // CRITICAL: Update state FIRST, then persist to storage
+      // This ensures the UI updates immediately
+      setCurrentModeState('cliente');
+      setActiveProfileIdState(user.id);
+      setActiveProfileTypeState('cliente');
+      setActiveLocalData(null);
+      
+      console.log('[ModeContext] ✅ State updated - Mode: cliente, Profile:', user.nombre);
+      
+      // Then persist to storage (async, non-blocking)
+      try {
+        await Promise.all([
+          AsyncStorage.setItem(MODE_STORAGE_KEY, 'cliente'),
+          AsyncStorage.setItem(ACTIVE_PROFILE_STORAGE_KEY, user.id),
+          AsyncStorage.setItem(ACTIVE_PROFILE_TYPE_STORAGE_KEY, 'cliente'),
+        ]);
+        console.log('[ModeContext] 📦 Persisted to storage:', { mode: 'cliente', profileId: user.id, profileType: 'cliente' });
+      } catch (storageError) {
+        console.error('[ModeContext] ⚠️ Error persisting to storage (state is still updated):', storageError);
+      }
+    } catch (error) {
+      console.error('[ModeContext] ❌ Error switching to client profile:', error);
+    }
+  };
+
+  const switchToLocalProfile = async (localId: string) => {
+    if (!user) {
+      console.warn('[ModeContext] ⚠️ Cannot switch to local profile: no user');
+      return;
+    }
+
+    try {
+      console.log('[ModeContext] 🔄 Switching to local profile:', localId);
+      
+      // Verify user owns this local
+      const { data: ownershipData, error: ownershipError } = await supabase
+        .from('propietarios_locales')
+        .select('id')
+        .eq('propietario_id', user.id)
+        .eq('local_id', localId)
+        .single();
+
+      if (ownershipError || !ownershipData) {
+        console.error('[ModeContext] ❌ User does not own this local:', ownershipError);
+        return;
+      }
+
+      // Load local data
+      const { data: localData, error: localError } = await supabase
+        .from('locales')
+        .select('id, nombre, imagen_url, tipo')
+        .eq('id', localId)
+        .single();
+
+      if (localError || !localData) {
+        console.error('[ModeContext] ❌ Error loading local data:', localError);
+        return;
+      }
+
+      // CRITICAL: Update state FIRST, then persist to storage
+      // This ensures the UI updates immediately
+      setCurrentModeState('propietario');
+      setActiveProfileIdState(localId);
+      setActiveProfileTypeState('local');
+      setActiveLocalData(localData);
+      
+      console.log('[ModeContext] ✅ State updated - Mode: propietario, Profile:', localData.nombre);
+      
+      // Then persist to storage (async, non-blocking)
+      try {
+        await Promise.all([
+          AsyncStorage.setItem(MODE_STORAGE_KEY, 'propietario'),
+          AsyncStorage.setItem(ACTIVE_PROFILE_STORAGE_KEY, localId),
+          AsyncStorage.setItem(ACTIVE_PROFILE_TYPE_STORAGE_KEY, 'local'),
+        ]);
+        console.log('[ModeContext] 📦 Persisted to storage:', { mode: 'propietario', profileId: localId, profileType: 'local' });
+      } catch (storageError) {
+        console.error('[ModeContext] ⚠️ Error persisting to storage (state is still updated):', storageError);
+      }
+    } catch (error) {
+      console.error('[ModeContext] ❌ Error switching to local profile:', error);
+    }
+  };
 
   // Legacy support - compute these values from the new state
   const selectedLocalId = activeProfileType === 'local' ? activeProfileId : null;

@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from './AuthContext';
@@ -7,14 +7,14 @@ import { useAuth } from './AuthContext';
 interface SelectedLocalContextType {
   selectedLocalId: string | null;
   setSelectedLocalId: (localId: string | null) => Promise<void>;
-  userLocales: {
+  userLocales: Array<{
     id: string;
     nombre: string;
     imagen_url: string | null;
     tipo: string;
     plan_nombre?: string;
     destacados_restantes?: number;
-  }[];
+  }>;
   loadingLocales: boolean;
   refreshLocales: () => Promise<void>;
 }
@@ -46,7 +46,7 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Load user's locales
-  const loadUserLocales = useCallback(async () => {
+  const loadUserLocales = async () => {
     if (!user || user.rol_app !== 'propietario') {
       setUserLocales([]);
       setLoadingLocales(false);
@@ -121,13 +121,13 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoadingLocales(false);
     }
-  }, [user, selectedLocalId]);
+  };
 
   useEffect(() => {
     loadUserLocales();
-  }, [user, loadUserLocales]);
+  }, [user]);
 
-  const setSelectedLocalId = useCallback(async (localId: string | null) => {
+  const setSelectedLocalId = async (localId: string | null) => {
     try {
       setSelectedLocalIdState(localId);
       if (localId) {
@@ -138,19 +138,19 @@ export function SelectedLocalProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('[SelectedLocalContext] Error saving selected local:', error);
     }
-  }, []);
+  };
 
-  const refreshLocales = useCallback(async () => {
+  const refreshLocales = async () => {
     await loadUserLocales();
-  }, [loadUserLocales]);
+  };
 
-  const value = useMemo(() => ({
+  const value = {
     selectedLocalId,
     setSelectedLocalId,
     userLocales,
     loadingLocales,
     refreshLocales,
-  }), [selectedLocalId, setSelectedLocalId, userLocales, loadingLocales, refreshLocales]);
+  };
 
   return (
     <SelectedLocalContext.Provider value={value}>
