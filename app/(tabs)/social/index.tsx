@@ -28,6 +28,9 @@ import {
   Pressable,
   FlatList,
   Keyboard,
+  PanResponder,
+  GestureResponderEvent,
+  PanResponderGestureState,
 } from 'react-native';
 import { supabase } from '@/utils/supabase';
 import { useGlobalData } from '@/contexts/GlobalDataContext';
@@ -602,6 +605,7 @@ const styles = StyleSheet.create({
   storyProgressFill: {
     height: '100%',
     backgroundColor: '#fff',
+    width: '100%',
   },
   storyAutorInfo: {
     flexDirection: 'row',
@@ -1544,15 +1548,17 @@ export default function SocialScreen() {
       duration: STORY_DURATION,
       useNativeDriver: true,
     }).start(({ finished }) => {
-      if (finished) {
+      if (finished && !isPaused) {
         handleNextStory();
       }
     });
 
     storyTimerRef.current = setTimeout(() => {
-      handleNextStory();
+      if (!isPaused) {
+        handleNextStory();
+      }
     }, STORY_DURATION);
-  }, [handleNextStory, progressAnim]);
+  }, [handleNextStory, progressAnim, isPaused]);
 
   const findFirstUnviewedStoryIndex = useCallback((stories: HistoriaConAutor[]): number => {
     const firstUnviewedIndex = stories.findIndex(story => !story.visto_por_usuario);
@@ -2065,6 +2071,76 @@ export default function SocialScreen() {
     stopStoryTimer();
   }, [stopStoryTimer]);
 
+  // ✅ FIX: Instagram-like story gestures
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        // Only respond to significant movements
+        return Math.abs(gestureState.dx) > 10 || Math.abs(gestureState.dy) > 10;
+      },
+      onPanResponderGrant: () => {
+        // ✅ Pause on touch start (tap and hold)
+        console.log('[Social] 👆 Touch started - pausing story');
+        setIsPaused(true);
+        stopStoryTimer();
+      },
+      onPanResponderRelease: (evt: GestureResponderEvent, gestureState: PanResponderGestureState) => {
+        const { dx, dy, vx, vy } = gestureState;
+        const locationX = evt.nativeEvent.locationX;
+        
+        console.log('[Social] 👆 Touch released - dx:', dx, 'dy:', dy, 'vx:', vx, 'vy:', vy, 'locationX:', locationX);
+        
+        // ✅ Swipe down to close
+        if (dy > 100 && Math.abs(dx) < 50) {
+          console.log('[Social] ⬇️ Swipe down detected - closing story viewer');
+          setShowStoryViewer(false);
+          stopStoryTimer();
+          return;
+        }
+        
+        // ✅ Swipe right to go to previous user
+        if (dx > 100 && Math.abs(dy) < 50) {
+          console.log('[Social] ➡️ Swipe right detected - going to previous user');
+          // TODO: Implement previous user navigation
+          setIsPaused(false);
+          startStoryTimer();
+          return;
+        }
+        
+        // ✅ Swipe left to go to next user
+        if (dx < -100 && Math.abs(dy) < 50) {
+          console.log('[Social] ⬅️ Swipe left detected - going to next user');
+          // TODO: Implement next user navigation
+          setIsPaused(false);
+          startStoryTimer();
+          return;
+        }
+        
+        // ✅ Tap left side to go to previous story
+        if (Math.abs(dx) < 10 && Math.abs(dy) < 10 && locationX < width / 2) {
+          console.log('[Social] ⏮️ Tap left detected - going to previous story');
+          handlePreviousStory();
+          setIsPaused(false);
+          return;
+        }
+        
+        // ✅ Tap right side to go to next story
+        if (Math.abs(dx) < 10 && Math.abs(dy) < 10 && locationX >= width / 2) {
+          console.log('[Social] ⏭️ Tap right detected - going to next story');
+          handleNextStory();
+          setIsPaused(false);
+          return;
+        }
+        
+        // ✅ Resume story if no gesture was detected
+        console.log('[Social] ▶️ Resuming story');
+        setIsPaused(false);
+        startStoryTimer();
+      },
+    })
+  ).current;
+
   useEffect(() => {
     if (showStoryViewer && !isPaused) {
       startStoryTimer();
@@ -2404,7 +2480,7 @@ export default function SocialScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={0}
         >
-          <View style={styles.storyViewerModal}>
+          <View style={styles.storyViewerModal} {...panResponder.panHandlers}>
             {currentStory && (
               <>
                 <View style={styles.storyViewerHeader}>
@@ -2467,19 +2543,6 @@ export default function SocialScreen() {
 
                 <View style={styles.storyContent}>
                   <Image source={{ uri: currentStory.imagen }} style={styles.storyImage} resizeMode="contain" />
-                </View>
-
-                <View style={styles.storyTouchZones}>
-                  <TouchableOpacity
-                    style={styles.storyTouchZone}
-                    onPress={handlePreviousStory}
-                    activeOpacity={1}
-                  />
-                  <TouchableOpacity
-                    style={styles.storyTouchZone}
-                    onPress={handleNextStory}
-                    activeOpacity={1}
-                  />
                 </View>
 
                 {isCurrentStoryOwner && (

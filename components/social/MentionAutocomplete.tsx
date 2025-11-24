@@ -183,9 +183,10 @@ export default function MentionAutocomplete({
     const textAfterAt = textBeforeCursor.substring(lastAtIndex + 1);
     console.log('[MentionAutocomplete] Text after @:', textAfterAt);
 
-    // If there's a space or newline after @, stop
-    if (textAfterAt.includes(' ') || textAfterAt.includes('\n')) {
-      console.log('[MentionAutocomplete] ❌ Space or newline found after @');
+    // ✅ FIX: Allow spaces in mention search for locals
+    // Only stop if there's a newline after @
+    if (textAfterAt.includes('\n')) {
+      console.log('[MentionAutocomplete] ❌ Newline found after @');
       setCurrentMentionText(null);
       setIsVisible(false);
       setSuggestions([]);
@@ -302,18 +303,33 @@ export default function MentionAutocomplete({
         })));
       }
 
-      // Search locals with active subscription (Estándar or Premium)
+      // ✅ FIX: Search locals with spaces in names
       console.log('[MentionAutocomplete] 🏢 Searching locals with active subscriptions...');
       
       let localsData: any[] = [];
       
       if (cleanQuery.length > 0) {
+        // ✅ Split query by spaces and search for each word
+        const queryWords = cleanQuery.split(/\s+/).filter(w => w.length > 0);
+        console.log('[MentionAutocomplete] 🔍 Query words:', queryWords);
+        
+        // Build a flexible search pattern that matches all words in any order
+        let searchPattern = '';
+        if (queryWords.length === 1) {
+          searchPattern = `%${queryWords[0]}%`;
+        } else {
+          // For multiple words, search for locals that contain all words
+          searchPattern = `%${queryWords.join('%')}%`;
+        }
+        
+        console.log('[MentionAutocomplete] 🔍 Search pattern:', searchPattern);
+        
         // First get all active locals matching the search
         const { data: allLocals, error: localsError } = await supabase
           .from('locales')
           .select('id, nombre, imagen_url')
           .eq('activo', true)
-          .ilike('nombre', `%${cleanQuery}%`)
+          .ilike('nombre', searchPattern)
           .limit(100);
 
         if (localsError) {
