@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  Keyboard,
   KeyboardAvoidingView,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -72,7 +73,7 @@ export default function ComentarScreen() {
     }
   };
 
-  const handleSelectMention = useCallback((mention: MentionSuggestion, mentionText: string) => {
+  const handleSelectMention = (mention: MentionSuggestion, mentionText: string) => {
     console.log('[Comentar] ✅ Selected mention:', mention);
     
     const textBeforeCursor = comentario.substring(0, cursorPosition);
@@ -90,7 +91,7 @@ export default function ComentarScreen() {
     
     const newCursorPosition = lastAtIndex + mentionUsername.length + 2;
     setCursorPosition(newCursorPosition);
-  }, [comentario, cursorPosition]);
+  };
 
   const publicarComentario = async () => {
     if (!comentario.trim()) {
@@ -217,7 +218,7 @@ export default function ComentarScreen() {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         <ScrollView 
@@ -271,28 +272,29 @@ export default function ComentarScreen() {
             </View>
           )}
 
-          {/* Text Input Section */}
           <View style={styles.inputSection}>
-            <TextInput
-              style={styles.textInput}
-              placeholder={parentComment ? 'Escribe tu respuesta...' : 'Escribe tu comentario...'}
-              placeholderTextColor={colors.textSecondary}
-              value={comentario}
-              onChangeText={(text) => {
-                console.log('[Comentar] 📝 Text changed:', text);
-                setComentario(text);
-              }}
-              onSelectionChange={(event) => {
-                const newPosition = event.nativeEvent.selection.start;
-                console.log('[Comentar] 📍 Cursor position changed to:', newPosition);
-                setCursorPosition(newPosition);
-              }}
-              multiline
-              maxLength={500}
-              editable={!publishing}
-              autoFocus
-            />
-            <Text style={styles.charCount}>{comentario.length}/500</Text>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.textInput}
+                placeholder={parentComment ? 'Escribe tu respuesta...' : 'Escribe tu comentario...'}
+                placeholderTextColor={colors.textSecondary}
+                value={comentario}
+                onChangeText={(text) => {
+                  console.log('[Comentar] 📝 Text changed:', text);
+                  setComentario(text);
+                }}
+                onSelectionChange={(event) => {
+                  const newPosition = event.nativeEvent.selection.start;
+                  console.log('[Comentar] 📍 Cursor position changed to:', newPosition);
+                  setCursorPosition(newPosition);
+                }}
+                multiline
+                maxLength={500}
+                editable={!publishing}
+                autoFocus
+              />
+              <Text style={styles.charCount}>{comentario.length}/500</Text>
+            </View>
             <View style={styles.helperContainer}>
               <IconSymbol ios_icon_name="info.circle" android_material_icon_name="info" size={14} color={colors.primary} />
               <Text style={styles.helperText}>
@@ -300,6 +302,13 @@ export default function ComentarScreen() {
               </Text>
             </View>
           </View>
+
+          {/* Autocomplete Component - Positioned in scroll view */}
+          <MentionAutocomplete
+            text={comentario}
+            cursorPosition={cursorPosition}
+            onSelectMention={handleSelectMention}
+          />
 
           {isInteractingAsLocal && activeLocalProfileId && (
             <View style={styles.contextIndicator}>
@@ -310,13 +319,6 @@ export default function ComentarScreen() {
             </View>
           )}
         </ScrollView>
-
-        {/* Autocomplete Component - Positioned above keyboard */}
-        <MentionAutocomplete
-          text={comentario}
-          cursorPosition={cursorPosition}
-          onSelectMention={handleSelectMention}
-        />
       </KeyboardAvoidingView>
     </View>
   );
@@ -369,7 +371,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    paddingBottom: 120,
+    flexGrow: 1,
+    paddingBottom: 40,
   },
   postPreview: {
     backgroundColor: colors.cardBackground,
@@ -460,9 +463,15 @@ const styles = StyleSheet.create({
   },
   inputSection: {
     backgroundColor: colors.cardBackground,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
+    padding: 16,
+  },
+  inputContainer: {
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    marginBottom: 8,
   },
   textInput: {
     fontSize: 16,
@@ -475,7 +484,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
     textAlign: 'right',
-    marginBottom: 8,
   },
   helperContainer: {
     flexDirection: 'row',
