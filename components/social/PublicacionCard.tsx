@@ -201,10 +201,10 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
     }
   }, [router]);
 
-  // ✅ FIXED: Display username with @ symbol, prioritize username over full name
-  // Username does NOT have @ in database, so we add it for display
+  // ✅ CRITICAL FIX: Display username WITHOUT @ symbol, prioritize username over full name
+  // Username does NOT have @ in database, so we display it directly
   const displayName = post.autorUsername 
-    ? `@${post.autorUsername}` 
+    ? post.autorUsername.replace(/^@/, '') // Remove @ if present (shouldn't be in DB but just in case)
     : post.autorNombre || 'Usuario';
 
   return (
@@ -250,7 +250,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
                   {user.tipo === 'local' 
                     ? user.nombre 
                     : user.username 
-                      ? `@${user.username}`
+                      ? user.username.replace(/^@/, '') // Remove @ if present
                       : user.nombre}
                 </Text>
               </React.Fragment>
@@ -274,7 +274,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
                   style={styles.taggedUsername}
                   onPress={() => navigateToProfile(user, 'usuario')}
                 >
-                  {user.username ? `@${user.username}` : user.nombre}
+                  {user.username ? user.username.replace(/^@/, '') : user.nombre}
                 </Text>
               </React.Fragment>
             ))}
@@ -415,7 +415,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
                     <View style={styles.tagMarkerDot} />
                     <View style={styles.tagMarkerLabel}>
                       <Text style={styles.tagMarkerText}>
-                        {user.username ? `@${user.username}` : user.nombre}
+                        {user.username ? user.username.replace(/^@/, '') : user.nombre}
                       </Text>
                     </View>
                   </TouchableOpacity>

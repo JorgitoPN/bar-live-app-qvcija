@@ -49,7 +49,7 @@ export default function ChatsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   
-  // ✅ NEW: Mass deletion state
+  // ✅ Mass deletion state
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedChats, setSelectedChats] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
@@ -90,7 +90,7 @@ export default function ChatsScreen() {
         (chatsData || []).map(async (chat) => {
           const otroUsuarioId = chat.usuario1_id === user.id ? chat.usuario2_id : chat.usuario1_id;
 
-          // ✅ CRITICAL FIX: If this is a local-specific chat, get local info instead of user info
+          // ✅ If this is a local-specific chat, get local info instead of user info
           let userData;
           if (chat.local_id) {
             console.log('[Chats] 🏢 Chat', chat.id, 'is LOCAL-SPECIFIC, loading local info for:', chat.local_id);
@@ -117,7 +117,7 @@ export default function ChatsScreen() {
           } else {
             console.log('[Chats] 👤 Chat', chat.id, 'is USER-TO-USER, loading user info for:', otroUsuarioId);
             
-            // Regular user-to-user chat
+            // Regular user-to-user chat - ✅ CRITICAL: Fetch username field
             const { data: userDataResult } = await supabase
               .from('usuarios')
               .select('id, nombre, username, avatar, activo')
@@ -174,7 +174,7 @@ export default function ChatsScreen() {
 
     console.log('[Chats] 🔥 Opening chat:', { chatId, isLocalChat, localId });
 
-    // FIXED: Mark messages as read when opening chat
+    // Mark messages as read when opening chat
     try {
       await supabase
         .from('mensajes')
@@ -186,7 +186,7 @@ export default function ChatsScreen() {
       console.error('[Chats] Error marking messages as read:', error);
     }
 
-    // ✅ CRITICAL: Route to local-specific chat if this is a local chat
+    // ✅ Route to local-specific chat if this is a local chat
     if (isLocalChat && localId) {
       console.log('[Chats] 🏢 Navigating to LOCAL-SPECIFIC chat');
       router.push(`/chat/conversacion?localId=${localId}&userId=${user.id}`);
@@ -228,13 +228,13 @@ export default function ChatsScreen() {
     router.push('/chat/nuevo-chat');
   };
 
-  // ✅ NEW: Toggle selection mode
+  // ✅ Toggle selection mode
   const toggleSelectionMode = () => {
     setSelectionMode(!selectionMode);
     setSelectedChats(new Set());
   };
 
-  // ✅ NEW: Toggle chat selection
+  // ✅ Toggle chat selection
   const toggleChatSelection = (chatId: string) => {
     const newSelected = new Set(selectedChats);
     if (newSelected.has(chatId)) {
@@ -245,7 +245,7 @@ export default function ChatsScreen() {
     setSelectedChats(newSelected);
   };
 
-  // ✅ NEW: Delete selected conversations
+  // ✅ FIXED: Delete selected conversations with optimistic UI update
   const handleDeleteSelected = async () => {
     if (selectedChats.size === 0) {
       Alert.alert('Error', 'Selecciona al menos una conversación para eliminar');
@@ -262,11 +262,17 @@ export default function ChatsScreen() {
           style: 'destructive',
           onPress: async () => {
             setDeleting(true);
+            
+            // ✅ OPTIMISTIC UI UPDATE: Remove chats from UI immediately
+            const chatIdsToDelete = Array.from(selectedChats);
+            const previousChats = [...chats];
+            setChats(chats.filter(chat => !selectedChats.has(chat.id)));
+            setSelectionMode(false);
+            setSelectedChats(new Set());
+            
             try {
-              const chatIds = Array.from(selectedChats);
-              
               // Delete all messages for selected chats
-              for (const chatId of chatIds) {
+              for (const chatId of chatIdsToDelete) {
                 await supabase
                   .from('mensajes')
                   .delete()
@@ -277,21 +283,18 @@ export default function ChatsScreen() {
               const { error } = await supabase
                 .from('chats')
                 .delete()
-                .in('id', chatIds);
+                .in('id', chatIdsToDelete);
 
               if (error) throw error;
 
-              Alert.alert('Éxito', `${selectedChats.size} conversación(es) eliminada(s) correctamente`);
-              
-              // Reset selection mode
-              setSelectionMode(false);
-              setSelectedChats(new Set());
-              
-              // Reload chats
-              await loadChats();
+              console.log('[Chats] ✅ Successfully deleted', chatIdsToDelete.length, 'conversations');
+              Alert.alert('Éxito', `${chatIdsToDelete.length} conversación(es) eliminada(s) correctamente`);
             } catch (error) {
               console.error('[Chats] Error deleting conversations:', error);
               Alert.alert('Error', 'No se pudieron eliminar algunas conversaciones');
+              
+              // ✅ Rollback on error
+              setChats(previousChats);
             } finally {
               setDeleting(false);
             }

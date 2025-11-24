@@ -130,7 +130,7 @@ function StoryViewer({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
   
-  // ✅ CRITICAL FIX: Initialize progressAnimations with useMemo to ensure it's always in sync with stories
+  // ✅ Initialize progressAnimations with useMemo to ensure it's always in sync with stories
   const progressAnimations = useMemo(() => {
     return stories.map(() => new Animated.Value(0));
   }, [stories.length]);
@@ -196,7 +196,7 @@ function StoryViewer({
     }
   }, [currentStoryIndex, onClose, onStoryChange]);
 
-  // ✅ FIXED: Animation loop using Animated.timing for smooth 60fps
+  // ✅ Animation loop using Animated.timing for smooth 60fps
   const animateProgress = useCallback(() => {
     if (!imageLoaded || isPausedRef.current) {
       return;
@@ -208,7 +208,7 @@ function StoryViewer({
     
     const progress = Math.min(elapsed / STORY_DURATION, 1);
 
-    // ✅ CRITICAL FIX: Check if animation value exists before setting
+    // ✅ Check if animation value exists before setting
     if (progressAnimations[currentStoryIndex]) {
       progressAnimations[currentStoryIndex].setValue(progress);
     }
@@ -272,7 +272,7 @@ function StoryViewer({
     }
   }, []);
 
-  // ✅ FIXED: Reset animation for new story using Animated.Value
+  // ✅ Reset animation for new story using Animated.Value
   const resetAnimation = useCallback(() => {
     // Stop any running animation
     if (animationFrameId.current !== null) {
@@ -441,13 +441,13 @@ function StoryViewer({
     try {
       console.log('[StoryViewer] 📨 Sending story message to author:', currentStory.autor_id);
       
-      // ✅ CRITICAL: Check if a conversation already exists
+      // ✅ Check if a conversation already exists
       const userId1 = user.id < currentStory.autor_id ? user.id : currentStory.autor_id;
       const userId2 = user.id < currentStory.autor_id ? currentStory.autor_id : user.id;
       
       console.log('[StoryViewer] 🔍 Checking for existing chat:', { userId1, userId2 });
       
-      // ✅ CRITICAL: For local stories, check for local-specific chat
+      // ✅ For local stories, check for local-specific chat
       let chatQuery = supabase
         .from('chats')
         .select('id')
@@ -481,7 +481,7 @@ function StoryViewer({
           ultimo_mensaje_fecha: new Date().toISOString(),
         };
         
-        // ✅ CRITICAL: Set local_id for local stories
+        // ✅ Set local_id for local stories
         if (currentStory.tipo === 'local' && currentStory.local_id) {
           chatData.local_id = currentStory.local_id;
           console.log('[StoryViewer] 🏢 Creating local-specific chat with local_id:', currentStory.local_id);
@@ -693,7 +693,7 @@ function StoryViewer({
     })
   ).current;
 
-  // ✅ ULTRA-SMOOTH: Handle animation lifecycle
+  // ✅ Handle animation lifecycle
   useEffect(() => {
     if (!visible || !imageLoaded || isPaused) {
       return;
@@ -797,7 +797,7 @@ function StoryViewer({
         keyboardVerticalOffset={0}
       >
         <View style={styles.storyViewerModal} {...panResponder.panHandlers}>
-          {/* ✅ FIXED: Modern progress bars using Animated.View with safe access */}
+          {/* ✅ Modern progress bars using Animated.View with safe access */}
           <BlurView intensity={20} tint="dark" style={styles.progressContainer}>
             <View style={styles.progressBarsWrapper}>
               {stories.map((_, index) => (
@@ -829,7 +829,7 @@ function StoryViewer({
             </View>
           </BlurView>
 
-          {/* ✅ NEW DESIGN: Modern header with glassmorphism */}
+          {/* ✅ Modern header with glassmorphism */}
           <BlurView intensity={30} tint="dark" style={styles.storyHeader}>
             <TouchableOpacity 
               style={styles.storyAutorInfo}
@@ -887,7 +887,7 @@ function StoryViewer({
             />
           </View>
 
-          {/* ✅ NEW DESIGN: Modern owner controls with glassmorphism */}
+          {/* ✅ Modern owner controls with glassmorphism */}
           {isCurrentStoryOwner && (
             <BlurView intensity={30} tint="dark" style={styles.storyOwnerControls}>
               <TouchableOpacity
@@ -920,7 +920,7 @@ function StoryViewer({
             </BlurView>
           )}
 
-          {/* ✅ NEW DESIGN: Modern interaction bar with glassmorphism */}
+          {/* ✅ Modern interaction bar with glassmorphism */}
           {!isCurrentStoryOwner && (
             <BlurView intensity={30} tint="dark" style={styles.storyInteractionBar}>
               <View style={styles.storyMessageInputContainer}>
