@@ -48,6 +48,7 @@ interface Historia {
   };
   autorNombre?: string;
   autorAvatar?: string;
+  autorUsername?: string;
   visto_por_usuario?: boolean;
   views_count?: number;
   likes_count?: number;
@@ -772,11 +773,11 @@ function StoryViewer({
   const storyAuthorAvatar = currentStory.autor?.avatar || currentStory.autorAvatar;
   const storyAuthorName = currentStory.autor?.nombre || currentStory.autorNombre || 'Usuario';
   
-  // ✅ For locals, use the local name directly
-  // ✅ For users, prioritize username over full name, and remove @ symbol
+  // ✅ CRITICAL FIX: For locals, use the local name directly
+  // ✅ For users, prioritize username over full name (username does NOT have @ in database)
   const storyAuthorUsername = currentStory.tipo === 'local' 
     ? storyAuthorName
-    : (currentStory.autor?.username || storyAuthorName).replace(/^@/, '');
+    : (currentStory.autor?.username || currentStory.autorUsername || storyAuthorName);
 
   return (
     <Modal

@@ -31,16 +31,16 @@ const StoryItem = memo(({
     }
   }, [historia.autorAvatar]);
   
-  // ✅ FIXED: Prioritize username over full name, remove @ symbol
+  // ✅ CRITICAL FIX: Prioritize username over full name (username does NOT have @ in database)
   // For locals, use the local name directly
   // For users, prioritize username over full name
   const displayName = historia.tipo === 'local'
-    ? (historia.autorNombre || 'Local').replace(/^@/, '')
+    ? (historia.autorNombre || 'Local')
     : historia.autor?.username 
-      ? historia.autor.username.replace(/^@/, '')
+      ? historia.autor.username
       : historia.autorUsername
-        ? historia.autorUsername.replace(/^@/, '')
-        : (historia.autorNombre || historia.autor?.nombre || 'Usuario').replace(/^@/, '');
+        ? historia.autorUsername
+        : (historia.autorNombre || historia.autor?.nombre || 'Usuario');
   
   return (
     <TouchableOpacity
