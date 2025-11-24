@@ -12,6 +12,7 @@ import { ModeProvider } from '@/contexts/ModeContext';
 import { GlobalDataProvider } from '@/contexts/GlobalDataContext';
 import { SelectedLocalProvider } from '@/contexts/SelectedLocalContext';
 import { scheduleStoryCleanup } from '@/utils/storyCleanup';
+import { performanceManager } from '@/utils/performanceManager';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -27,6 +28,23 @@ export default function RootLayout() {
       // Hide splash screen after fonts are loaded
       // GlobalDataProvider will handle data loading
       SplashScreen.hideAsync();
+      
+      // ✅ Initialize Instagram-like performance optimizations
+      console.log('[App] 🚀 Initializing performance optimizations...');
+      performanceManager.initialize(undefined, {
+        enableAdvancedCache: true,
+        enableIntelligentPreload: true,
+        enableRealtimeMessaging: true,
+        enableImageOptimization: true,
+        enableOptimisticUI: true,
+        enableBackgroundSync: true,
+        enableRequestDedup: true,
+        cacheStrategy: 'aggressive', // Instagram-like aggressive caching
+      }).then(() => {
+        console.log('[App] ✅ Performance optimizations initialized');
+      }).catch(error => {
+        console.error('[App] ❌ Error initializing performance:', error);
+      });
       
       // ✅ Schedule automatic cleanup of expired stories
       scheduleStoryCleanup();
