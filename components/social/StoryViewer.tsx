@@ -83,7 +83,7 @@ export default function StoryViewer({
   const touchStartTime = useRef<number>(0);
 
   // ✅ FORCE RELOAD - Version check
-  console.log('[StoryViewer] 🔄 Component loaded - Version 2.0 - Fixed gestures and progress bar');
+  console.log('[StoryViewer] 🔄 Component loaded - Version 3.0 - RESTORED with all fixes');
 
   const currentStory = stories[currentStoryIndex];
 

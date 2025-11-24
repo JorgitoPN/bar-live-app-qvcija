@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Platform,
   FlatList,
+  Keyboard,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -64,6 +65,31 @@ export default function MentionAutocomplete({
   const [loading, setLoading] = useState(false);
   const [currentMentionText, setCurrentMentionText] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  // ✅ Listen to keyboard events to position the list above the keyboard
+  useEffect(() => {
+    const keyboardWillShow = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        console.log('[MentionAutocomplete] ⌨️ Keyboard height:', e.endCoordinates.height);
+        setKeyboardHeight(e.endCoordinates.height);
+      }
+    );
+
+    const keyboardWillHide = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        console.log('[MentionAutocomplete] ⌨️ Keyboard hidden');
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      keyboardWillShow.remove();
+      keyboardWillHide.remove();
+    };
+  }, []);
 
   const detectMention = useCallback(() => {
     const textBeforeCursor = text.substring(0, cursorPosition);
@@ -205,7 +231,7 @@ export default function MentionAutocomplete({
         })));
       }
 
-      // Search locals - SIMPLIFIED: Don't filter by subscription for now
+      // Search locals
       console.log('[MentionAutocomplete] 🏢 Searching locals...');
       
       let localsData: any[] = [];
@@ -329,7 +355,7 @@ export default function MentionAutocomplete({
     return null;
   }
 
-  console.log('[MentionAutocomplete] 🎨 Rendering - loading:', loading, 'suggestions:', suggestions.length);
+  console.log('[MentionAutocomplete] 🎨 Rendering - loading:', loading, 'suggestions:', suggestions.length, 'keyboardHeight:', keyboardHeight);
 
   const renderItem = ({ item }: { item: MentionSuggestion }) => (
     <TouchableOpacity
@@ -371,7 +397,19 @@ export default function MentionAutocomplete({
   );
 
   return (
-    <View style={[styles.container, style]}>
+    <View 
+      style={[
+        styles.container, 
+        style,
+        // ✅ Position above keyboard
+        keyboardHeight > 0 && {
+          position: 'absolute',
+          bottom: keyboardHeight,
+          left: 0,
+          right: 0,
+        }
+      ]}
+    >
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color={colors.primary} />
