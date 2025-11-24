@@ -6,8 +6,8 @@ import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 import { socialCache } from '@/utils/socialCache';
 import InitialLoadingScreen from '@/components/common/InitialLoadingScreen';
 import { LinearGradient } from 'expo-linear-gradient';
-import StoryStatsModal from '@/components/social/StoryStatsModal';
 import ParsedText from '@/components/social/ParsedText';
+import StoryViewer from '@/components/social/StoryViewer';
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
@@ -22,7 +22,6 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
-  Animated,
   Alert,
   ActivityIndicator,
   Pressable,
@@ -63,6 +62,8 @@ interface HistoriaConAutor {
     avatar?: string;
     username?: string;
   };
+  autorNombre?: string;
+  autorAvatar?: string;
   visto_por_usuario?: boolean;
   views_count?: number;
   likes_count?: number;
@@ -572,154 +573,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 16,
   },
-  storyViewerModal: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  storyViewerHeader: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    paddingTop: Platform.OS === 'ios' ? 50 : 40,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
-  storyProgressContainer: {
-    flexDirection: 'row',
-    gap: 4,
-    marginBottom: 12,
-  },
-  storyProgressBar: {
-    flex: 1,
-    height: 3,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 1.5,
-    overflow: 'hidden',
-  },
-  storyProgressFill: {
-    height: '100%',
-    backgroundColor: '#fff',
-  },
-  storyAutorInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  storyAutorAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    marginRight: 12,
-  },
-  storyAutorNombre: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-    flex: 1,
-  },
-  storyCloseButton: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 50 : 40,
-    right: 16,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 20,
-  },
-  storyBottomLeftControls: {
-    position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 40 : 20,
-    left: 16,
-    flexDirection: 'row',
-    gap: 16,
-    zIndex: 10,
-  },
-  storyStatsButtonBottom: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  storyDeleteButtonBottom: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  storyContent: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  storyImage: {
-    width: width,
-    height: height,
-  },
-  storyTouchZones: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    flexDirection: 'row',
-  },
-  storyTouchZone: {
-    flex: 1,
-  },
-  storyInteractionBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    paddingBottom: Platform.OS === 'ios' ? 34 : 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    zIndex: 10,
-  },
-  storyInteractionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  storyInteractionText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  storyMessageInput: {
-    flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    color: '#fff',
-    fontSize: 14,
-  },
-  storySendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   userAvatarInStory: {
     width: 90,
     height: 90,
@@ -866,7 +719,7 @@ function PostCardWithSwipe({ post, user, activeLocalProfileId, router, toggleLik
             onPress={() => handleDeletePost(post.id)}
             activeOpacity={0.7}
           >
-            <IconSymbol name="trash" size={22} color={colors.text} />
+            <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={22} color={colors.text} />
           </TouchableOpacity>
         )}
       </View>
@@ -928,7 +781,7 @@ function PostCardWithSwipe({ post, user, activeLocalProfileId, router, toggleLik
 
       {post.ubicacion && (
         <View style={styles.locationContainer}>
-          <IconSymbol name="mappin.circle.fill" size={16} color={colors.primary} />
+          <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={16} color={colors.primary} />
           <Text style={styles.locationText}>{post.ubicacion}</Text>
         </View>
       )}
@@ -940,7 +793,8 @@ function PostCardWithSwipe({ post, user, activeLocalProfileId, router, toggleLik
           activeOpacity={0.7}
         >
           <IconSymbol 
-            name={post.liked ? 'heart.fill' : 'heart'} 
+            ios_icon_name={post.liked ? 'heart.fill' : 'heart'}
+            android_material_icon_name={post.liked ? 'favorite' : 'favorite_border'}
             size={26} 
             color={post.liked ? '#EF4444' : colors.text} 
           />
@@ -950,14 +804,14 @@ function PostCardWithSwipe({ post, user, activeLocalProfileId, router, toggleLik
           onPress={() => router.push(`/social/post?id=${post.id}`)}
           activeOpacity={0.7}
         >
-          <IconSymbol name="message" size={26} color={colors.text} />
+          <IconSymbol ios_icon_name="message" android_material_icon_name="chat_bubble_outline" size={26} color={colors.text} />
         </TouchableOpacity>
         <TouchableOpacity 
           style={styles.postActionButton}
           onPress={() => router.push(`/social/post?id=${post.id}&share=true`)}
           activeOpacity={0.7}
         >
-          <IconSymbol name="paperplane" size={26} color={colors.text} />
+          <IconSymbol ios_icon_name="paperplane" android_material_icon_name="send" size={26} color={colors.text} />
         </TouchableOpacity>
         <TouchableOpacity 
           style={styles.postActionButtonRight}
@@ -965,7 +819,8 @@ function PostCardWithSwipe({ post, user, activeLocalProfileId, router, toggleLik
           activeOpacity={0.7}
         >
           <IconSymbol 
-            name={post.saved ? 'bookmark.fill' : 'bookmark'} 
+            ios_icon_name={post.saved ? 'bookmark.fill' : 'bookmark'}
+            android_material_icon_name={post.saved ? 'bookmark' : 'bookmark_border'}
             size={26} 
             color={post.saved ? colors.primary : colors.text} 
           />
@@ -1033,18 +888,10 @@ export default function SocialScreen() {
   
   const [showLocalSelector, setShowLocalSelector] = useState(false);
   
+  // ✅ FIXED: Use centralized StoryViewer component
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
   const [viewingOwnStories, setViewingOwnStories] = useState(false);
-  const [storyMessage, setStoryMessage] = useState('');
-  const storyTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const progressAnim = useRef(new Animated.Value(0)).current;
-
-  const [showStoryStats, setShowStoryStats] = useState(false);
-  const [storyViews, setStoryViews] = useState<any[]>([]);
-  const [storyLikes, setStoryLikes] = useState<any[]>([]);
-  const [loadingStats, setLoadingStats] = useState(false);
 
   const scrollY = useRef(new Animated.Value(0)).current;
   const lastScrollY = useRef(0);
@@ -1060,46 +907,6 @@ export default function SocialScreen() {
 
   const isInteractingAsLocal = activeProfileType === 'local';
   const activeLocalProfileId = activeProfileType === 'local' ? activeProfileId : null;
-
-  const markStoryAsViewed = useCallback(async (storyId: string) => {
-    if (!user) return;
-
-    try {
-      console.log('[Social] ⚡ INSTANT - Marking story as viewed:', storyId);
-      
-      const { data: existingView } = await supabase
-        .from('historia_views')
-        .select('id')
-        .eq('historia_id', storyId)
-        .eq('usuario_id', user.id)
-        .single();
-
-      if (!existingView) {
-        await supabase.from('historia_views').insert({
-          historia_id: storyId,
-          usuario_id: user.id,
-        });
-        
-        console.log('[Social] ✅ Story marked as viewed in database');
-      } else {
-        console.log('[Social] ℹ️ Story already viewed');
-      }
-
-      if (viewingOwnStories) {
-        setUserStories(prev => prev.map(s => 
-          s.id === storyId ? { ...s, visto_por_usuario: true } : s
-        ));
-      } else {
-        setHistorias(prev => prev.map(s => 
-          s.id === storyId ? { ...s, visto_por_usuario: true } : s
-        ));
-      }
-      
-      console.log('[Social] ✅ INSTANT - UI updated, border removed');
-    } catch (error) {
-      console.error('[Social] Error marking story as viewed:', error);
-    }
-  }, [user, viewingOwnStories]);
 
   const loadData = useCallback(async () => {
     if (isLoadingRef.current) {
@@ -1327,7 +1134,6 @@ export default function SocialScreen() {
     useCallback(() => {
       console.log('[Social] ⚡ Screen focused - refreshing data');
       
-      // ENHANCED: Force refresh from global data to sync like counts
       refreshData(false).then(() => {
         loadData();
       });
@@ -1343,7 +1149,6 @@ export default function SocialScreen() {
     setRefreshing(false);
   }, [loadData, refreshData]);
 
-  // ENHANCED: Search with hashtag support - ONLY from posts (not comments)
   const handleSearch = useCallback(async (query: string) => {
     setSearchQuery(query);
     
@@ -1358,12 +1163,9 @@ export default function SocialScreen() {
       const searchTerm = query.trim();
       const results: SearchResult[] = [];
       
-      // Check if searching for hashtag
       if (searchTerm.startsWith('#')) {
         const hashtagTerm = searchTerm.substring(1).toLowerCase();
         
-        // ENHANCED: Search hashtags - only count usage from posts (not comments)
-        // Get hashtags with their post count
         const { data: hashtagsData, error: hashtagsError } = await supabase
           .from('hashtags')
           .select(`
@@ -1375,7 +1177,6 @@ export default function SocialScreen() {
           .limit(50);
 
         if (!hashtagsError && hashtagsData) {
-          // Count unique posts for each hashtag
           const hashtagsWithCounts = hashtagsData.map((h: any) => {
             const postCount = h.post_hashtags?.length || 0;
             return {
@@ -1383,12 +1184,10 @@ export default function SocialScreen() {
               tag: h.tag,
               uso_count: postCount,
             };
-          }).filter((h: any) => h.uso_count > 0); // Only show hashtags that have posts
+          }).filter((h: any) => h.uso_count > 0);
 
-          // Sort by usage count
           hashtagsWithCounts.sort((a: any, b: any) => b.uso_count - a.uso_count);
 
-          // Take top 10
           const topHashtags = hashtagsWithCounts.slice(0, 10);
 
           results.push(...topHashtags.map((h: any) => ({
@@ -1399,7 +1198,6 @@ export default function SocialScreen() {
           })));
         }
       } else {
-        // Search users
         const { data: usersData, error: usersError } = await supabase
           .from('usuarios')
           .select('id, nombre, username, avatar')
@@ -1417,7 +1215,6 @@ export default function SocialScreen() {
           })));
         }
 
-        // Search locals with active subscriptions
         const { data: localsWithSubs, error: localsError } = await supabase
           .from('locales')
           .select(`
@@ -1493,319 +1290,16 @@ export default function SocialScreen() {
     lastScrollY.current = currentScrollY;
   }, [headerTranslateY]);
 
-  const stopStoryTimer = useCallback(() => {
-    if (storyTimerRef.current) {
-      clearTimeout(storyTimerRef.current);
-      storyTimerRef.current = null;
-    }
-    progressAnim.stopAnimation();
-  }, [progressAnim]);
-
-  const handleNextStory = useCallback(async () => {
-    const currentStories = viewingOwnStories ? userStories : historias;
-    const currentStory = currentStories[currentStoryIndex];
-    
-    if (currentStory && user && !viewingOwnStories) {
-      await markStoryAsViewed(currentStory.id);
-    }
-    
-    if (currentStory && user && viewingOwnStories) {
-      await markStoryAsViewed(currentStory.id);
-    }
-    
-    if (currentStoryIndex < currentStories.length - 1) {
-      setCurrentStoryIndex(currentStoryIndex + 1);
-      progressAnim.setValue(0);
-    } else {
-      socialCache.clearStories();
-      socialCache.clearStories(user?.id);
-      await loadData();
-      setShowStoryViewer(false);
-      stopStoryTimer();
-    }
-  }, [currentStoryIndex, historias, userStories, viewingOwnStories, stopStoryTimer, user, loadData, progressAnim, markStoryAsViewed]);
-
-  const startStoryTimer = useCallback(() => {
-    if (storyTimerRef.current) {
-      clearTimeout(storyTimerRef.current);
-    }
-
-    progressAnim.setValue(0);
-
-    Animated.timing(progressAnim, {
-      toValue: 1,
-      duration: 5000,
-      useNativeDriver: false,
-    }).start();
-
-    storyTimerRef.current = setTimeout(() => {
-      handleNextStory();
-    }, 5000);
-  }, [handleNextStory, progressAnim]);
-
-  const findFirstUnviewedStoryIndex = useCallback((stories: HistoriaConAutor[]): number => {
-    const firstUnviewedIndex = stories.findIndex(story => !story.visto_por_usuario);
-    return firstUnviewedIndex === -1 ? 0 : firstUnviewedIndex;
-  }, []);
-
-  const handleStoryPress = useCallback(async (index: number, isOwnStory: boolean = false) => {
+  // ✅ FIXED: Handle story press with centralized StoryViewer
+  const handleStoryPress = useCallback((index: number, isOwnStory: boolean = false) => {
     console.log('[Social] 📖 Story pressed - index:', index, 'isOwnStory:', isOwnStory);
     const stories = isOwnStory ? userStories : historias;
     console.log('[Social] 📖 Stories available:', stories.length);
     
-    const firstUnviewedIndex = findFirstUnviewedStoryIndex(stories);
-    console.log('[Social] 📖 First unviewed index:', firstUnviewedIndex);
-    
-    setCurrentStoryIndex(firstUnviewedIndex);
+    setCurrentStoryIndex(index);
     setViewingOwnStories(isOwnStory);
     setShowStoryViewer(true);
-    setIsPaused(false);
-    
-    const firstStory = stories[firstUnviewedIndex];
-    if (firstStory && user) {
-      await markStoryAsViewed(firstStory.id);
-    }
-    
-    startStoryTimer();
-  }, [startStoryTimer, userStories, historias, findFirstUnviewedStoryIndex, user, markStoryAsViewed]);
-
-  const handlePreviousStory = useCallback(() => {
-    if (currentStoryIndex > 0) {
-      setCurrentStoryIndex(currentStoryIndex - 1);
-      progressAnim.setValue(0);
-      startStoryTimer();
-    } else {
-      setShowStoryViewer(false);
-      stopStoryTimer();
-    }
-  }, [currentStoryIndex, startStoryTimer, stopStoryTimer, progressAnim]);
-
-  const handleDeleteStory = useCallback(async () => {
-    const currentStories = viewingOwnStories ? userStories : historias;
-    const currentStory = currentStories[currentStoryIndex];
-    
-    if (!currentStory || !user) {
-      return;
-    }
-
-    const isOwner = currentStory.tipo === 'usuario' 
-      ? currentStory.autor_id === user.id
-      : currentStory.tipo === 'local' && activeLocalProfileId === currentStory.local_id;
-
-    if (!isOwner) {
-      return;
-    }
-
-    Alert.alert(
-      'Eliminar historia',
-      '¿Estás seguro de que quieres eliminar esta historia?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const { error } = await supabase
-                .from('historias')
-                .delete()
-                .eq('id', currentStory.id);
-
-              if (error) throw error;
-
-              if (viewingOwnStories) {
-                const newStories = userStories.filter((_, i) => i !== currentStoryIndex);
-                setUserStories(newStories);
-                socialCache.setStories(newStories, user.id);
-              } else {
-                const newHistorias = historias.filter((_, i) => i !== currentStoryIndex);
-                setHistorias(newHistorias);
-                socialCache.setStories(newHistorias);
-              }
-
-              setShowStoryViewer(false);
-              stopStoryTimer();
-              setCurrentStoryIndex(0);
-
-              Alert.alert('Éxito', 'Historia eliminada correctamente');
-            } catch (error) {
-              console.error('[Social] Error deleting story:', error);
-              Alert.alert('Error', 'No se pudo eliminar la historia');
-            }
-          },
-        },
-      ]
-    );
-  }, [historias, userStories, currentStoryIndex, user, viewingOwnStories, stopStoryTimer, activeLocalProfileId]);
-
-  const handleStoryLike = useCallback(async () => {
-    const currentStories = viewingOwnStories ? userStories : historias;
-    const currentStory = currentStories[currentStoryIndex];
-    
-    if (!currentStory || !user) {
-      setLoginMessage('Para dar me gusta necesitas registrarte en BarLive');
-      setShowLoginModal(true);
-      return;
-    }
-
-    const isLiked = currentStory.liked_by_user;
-
-    try {
-      if (isLiked) {
-        await supabase
-          .from('historia_likes')
-          .delete()
-          .eq('historia_id', currentStory.id)
-          .eq('usuario_id', user.id);
-      } else {
-        await supabase.from('historia_likes').insert({
-          historia_id: currentStory.id,
-          usuario_id: user.id,
-        });
-      }
-
-      if (viewingOwnStories) {
-        setUserStories(prev => prev.map((s, i) => 
-          i === currentStoryIndex 
-            ? { ...s, liked_by_user: !isLiked }
-            : s
-        ));
-      } else {
-        setHistorias(prev => prev.map((s, i) => 
-          i === currentStoryIndex 
-            ? { ...s, liked_by_user: !isLiked }
-            : s
-        ));
-      }
-    } catch (error) {
-      console.error('[Social] Error toggling story like:', error);
-    }
-  }, [user, currentStoryIndex, viewingOwnStories, userStories, historias]);
-
-  const handleViewStoryStats = useCallback(async () => {
-    const currentStories = viewingOwnStories ? userStories : historias;
-    const currentStory = currentStories[currentStoryIndex];
-    
-    if (!currentStory || !user) {
-      return;
-    }
-
-    const isOwner = currentStory.tipo === 'usuario' 
-      ? currentStory.autor_id === user.id
-      : currentStory.tipo === 'local' && activeLocalProfileId === currentStory.local_id;
-
-    if (!isOwner) {
-      return;
-    }
-
-    setIsPaused(true);
-    stopStoryTimer();
-
-    setLoadingStats(true);
-    setShowStoryStats(true);
-
-    try {
-      const { data: viewsData, error: viewsError } = await supabase
-        .from('historia_views')
-        .select(`
-          id,
-          usuario_id,
-          viewed_at,
-          usuario:usuarios(nombre, avatar, username)
-        `)
-        .eq('historia_id', currentStory.id)
-        .order('viewed_at', { ascending: false });
-
-      if (viewsError) throw viewsError;
-
-      const { data: likesData, error: likesError } = await supabase
-        .from('historia_likes')
-        .select(`
-          id,
-          usuario_id,
-          created_at,
-          usuario:usuarios(nombre, avatar, username)
-        `)
-        .eq('historia_id', currentStory.id)
-        .order('created_at', { ascending: false });
-
-      if (likesError) throw likesError;
-
-      setStoryViews(viewsData || []);
-      setStoryLikes(likesData || []);
-    } catch (error) {
-      console.error('[Social] Error loading story stats:', error);
-      Alert.alert('Error', 'No se pudieron cargar las estadísticas');
-    } finally {
-      setLoadingStats(false);
-    }
-  }, [userStories, historias, currentStoryIndex, user, viewingOwnStories, stopStoryTimer, activeLocalProfileId]);
-
-  const handleSendStoryMessage = useCallback(async () => {
-    const currentStories = viewingOwnStories ? userStories : historias;
-    const currentStory = currentStories[currentStoryIndex];
-    
-    if (!currentStory || !user || !storyMessage.trim()) {
-      return;
-    }
-
-    try {
-      console.log('[Social] Sending story message...');
-      
-      const { data: chatExistente, error: chatError } = await supabase
-        .from('chats')
-        .select('id')
-        .or(`and(usuario1_id.eq.${user.id},usuario2_id.eq.${currentStory.autor_id}),and(usuario1_id.eq.${currentStory.autor_id},usuario2_id.eq.${user.id})`)
-        .single();
-
-      let chatId = chatExistente?.id;
-
-      if (!chatId) {
-        console.log('[Social] Creating new chat...');
-        const { data: nuevoChat, error: nuevoChatError } = await supabase
-          .from('chats')
-          .insert({
-            usuario1_id: user.id,
-            usuario2_id: currentStory.autor_id,
-          })
-          .select()
-          .single();
-
-        if (nuevoChatError) throw nuevoChatError;
-        chatId = nuevoChat.id;
-        console.log('[Social] Chat created:', chatId);
-      }
-
-      const { error: mensajeError } = await supabase
-        .from('mensajes')
-        .insert({
-          chat_id: chatId,
-          remitente_id: user.id,
-          contenido: storyMessage,
-          historia_id: currentStory.id,
-          historia_imagen: currentStory.imagen,
-          tipo_mensaje: 'texto',
-        });
-
-      if (mensajeError) throw mensajeError;
-
-      console.log('[Social] Message sent successfully');
-
-      await supabase.from('notificaciones').insert({
-        usuario_id: currentStory.autor_id,
-        tipo: 'mensaje_privado',
-        titulo: 'Mensaje sobre tu historia',
-        mensaje: `${user.nombre} te envió un mensaje sobre tu historia`,
-        usuario_origen_id: user.id,
-      });
-
-      setStoryMessage('');
-      Alert.alert('Éxito', 'Mensaje enviado correctamente');
-    } catch (error) {
-      console.error('[Social] Error sending story message:', error);
-      Alert.alert('Error', 'No se pudo enviar el mensaje');
-    }
-  }, [user, currentStoryIndex, viewingOwnStories, userStories, historias, storyMessage]);
+  }, [userStories, historias]);
 
   const toggleLike = useCallback(async (postId: string) => {
     if (!user) {
@@ -2013,40 +1507,6 @@ export default function SocialScreen() {
     }
   }, [switchToClientProfile, setCurrentMode, loadData]);
 
-  const handleNavigateToStoryAuthorProfile = useCallback(() => {
-    const currentStories = viewingOwnStories ? userStories : historias;
-    const currentStory = currentStories[currentStoryIndex];
-    
-    if (!currentStory) return;
-
-    setShowStoryViewer(false);
-    stopStoryTimer();
-
-    if (currentStory.tipo === 'local' && currentStory.local_id) {
-      router.push(`/perfil/local?localId=${currentStory.local_id}`);
-    } else if (user && currentStory.autor_id === user.id) {
-      router.push('/(tabs)/perfil');
-    } else {
-      router.push(`/perfil/usuario?userId=${currentStory.autor_id}`);
-    }
-  }, [currentStoryIndex, viewingOwnStories, userStories, historias, user, router, stopStoryTimer]);
-
-  const handleCloseStoryViewerAndNavigate = useCallback(() => {
-    console.log('[Social] ✅ Closing story viewer before navigation from stats modal');
-    setShowStoryStats(false);
-    setShowStoryViewer(false);
-    stopStoryTimer();
-  }, [stopStoryTimer]);
-
-  useEffect(() => {
-    if (showStoryViewer && !isPaused) {
-      startStoryTimer();
-    }
-    return () => {
-      stopStoryTimer();
-    };
-  }, [showStoryViewer, currentStoryIndex, isPaused, startStoryTimer, stopStoryTimer]);
-
   const groupedStories = useMemo(() => {
     const storyGroups = historias.reduce((acc, historia) => {
       const authorId = historia.autor_id;
@@ -2070,24 +1530,12 @@ export default function SocialScreen() {
     });
   }, [historias]);
 
-  const currentStories = viewingOwnStories ? userStories : historias;
-  const currentStory = currentStories[currentStoryIndex];
   const hasUserStories = userStories.length > 0;
   const hasUnviewedUserStories = userStories.some(s => !s.visto_por_usuario);
-
-  const progressWidth = progressAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0%', '100%'],
-  });
 
   const displayAvatar = user?.avatar;
   const displayName = user?.nombre || 'Usuario';
   const displayInitial = displayName.charAt(0).toUpperCase();
-
-  const isCurrentStoryOwner = currentStory && user && (
-    (currentStory.tipo === 'usuario' && currentStory.autor_id === user.id) ||
-    (currentStory.tipo === 'local' && activeLocalProfileId === currentStory.local_id)
-  );
 
   if (isInitialLoading) {
     return <InitialLoadingScreen />;
@@ -2116,7 +1564,7 @@ export default function SocialScreen() {
               onPress={() => router.push('/(tabs)/perfil/chats')}
               activeOpacity={0.7}
             >
-              <IconSymbol name="message.fill" size={24} color={colors.headerText} />
+              <IconSymbol ios_icon_name="message.fill" android_material_icon_name="message" size={24} color={colors.headerText} />
               {unreadMessages > 0 && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>
@@ -2130,7 +1578,7 @@ export default function SocialScreen() {
               onPress={() => router.push('/(tabs)/perfil/notificaciones')}
               activeOpacity={0.7}
             >
-              <IconSymbol name="bell.fill" size={24} color={colors.headerText} />
+              <IconSymbol ios_icon_name="bell.fill" android_material_icon_name="notifications" size={24} color={colors.headerText} />
               {unreadNotifications > 0 && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>
@@ -2144,14 +1592,14 @@ export default function SocialScreen() {
               onPress={() => setShowSearchModal(true)}
               activeOpacity={0.7}
             >
-              <IconSymbol name="magnifyingglass" size={24} color={colors.headerText} />
+              <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={24} color={colors.headerText} />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.headerButton}
               onPress={handleCreatePress}
               activeOpacity={0.7}
             >
-              <IconSymbol name="plus" size={24} color={colors.headerText} />
+              <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={24} color={colors.headerText} />
             </TouchableOpacity>
           </View>
         </LinearGradient>
@@ -2168,7 +1616,7 @@ export default function SocialScreen() {
                   <Image source={{ uri: activeLocalData.imagen_url }} style={styles.localSelectorImage} />
                 ) : (
                   <View style={[styles.localSelectorImage, styles.localSelectorImagePlaceholder]}>
-                    <IconSymbol name="building.2" size={20} color={colors.headerText} />
+                    <IconSymbol ios_icon_name="building.2" android_material_icon_name="business" size={20} color={colors.headerText} />
                   </View>
                 )}
                 <View style={styles.localSelectorText}>
@@ -2179,7 +1627,7 @@ export default function SocialScreen() {
                 </View>
               </View>
               {ownedLocals.length > 1 && (
-                <IconSymbol name="chevron.down" size={20} color={colors.text} />
+                <IconSymbol ios_icon_name="chevron.down" android_material_icon_name="expand_more" size={20} color={colors.text} />
               )}
             </TouchableOpacity>
           </View>
@@ -2261,7 +1709,7 @@ export default function SocialScreen() {
                         </View>
                       )}
                       <View style={styles.historiaAddIcon}>
-                        <IconSymbol name="plus" size={18} color={colors.headerText} />
+                        <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={18} color={colors.headerText} />
                       </View>
                     </>
                   )}
@@ -2341,7 +1789,7 @@ export default function SocialScreen() {
             })
           ) : (
             <View style={styles.emptyContainer}>
-              <IconSymbol name="photo.on.rectangle" size={64} color={colors.textSecondary} />
+              <IconSymbol ios_icon_name="photo.on.rectangle" android_material_icon_name="photo_library" size={64} color={colors.textSecondary} />
               <Text style={styles.emptyText}>
                 {activeProfileType === 'local' && activeLocalProfileId 
                   ? 'Este local no tiene publicaciones aún'
@@ -2353,162 +1801,26 @@ export default function SocialScreen() {
 
       </ScrollView>
 
-      <Modal
+      {/* ✅ FIXED: Use centralized StoryViewer component */}
+      <StoryViewer
         visible={showStoryViewer}
-        animationType="fade"
-        onRequestClose={() => {
-          setShowStoryStats(false);
+        stories={viewingOwnStories ? userStories : historias}
+        initialIndex={currentStoryIndex}
+        onClose={() => {
+          console.log('[Social] Closing story viewer');
           setShowStoryViewer(false);
-          stopStoryTimer();
         }}
-        statusBarTranslucent
-      >
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          keyboardVerticalOffset={0}
-        >
-          <View style={styles.storyViewerModal}>
-            {currentStory && (
-              <>
-                <View style={styles.storyViewerHeader}>
-                  <View style={styles.storyProgressContainer}>
-                    {currentStories.map((_, index) => (
-                      <View key={index} style={styles.storyProgressBar}>
-                        {index < currentStoryIndex && (
-                          <View style={[styles.storyProgressFill, { width: '100%' }]} />
-                        )}
-                        {index === currentStoryIndex && (
-                          <Animated.View style={[styles.storyProgressFill, { width: progressWidth }]} />
-                        )}
-                      </View>
-                    ))}
-                  </View>
-
-                  <TouchableOpacity 
-                    style={styles.storyAutorInfo}
-                    onPress={handleNavigateToStoryAuthorProfile}
-                    activeOpacity={0.7}
-                  >
-                    {currentStory.autor?.avatar ? (
-                      <Image source={{ uri: currentStory.autor.avatar }} style={styles.storyAutorAvatar} />
-                    ) : (
-                      <View style={[styles.storyAutorAvatar, styles.avatarPlaceholder]}>
-                        <Text style={styles.avatarText}>
-                          {currentStory.autor?.nombre?.charAt(0).toUpperCase() || 'U'}
-                        </Text>
-                      </View>
-                    )}
-                    <Text style={styles.storyAutorNombre}>
-                      {currentStory.autor?.nombre || 'Usuario'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                <TouchableOpacity
-                  style={styles.storyCloseButton}
-                  onPress={() => {
-                    setShowStoryStats(false);
-                    setShowStoryViewer(false);
-                    stopStoryTimer();
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <IconSymbol name="xmark" size={20} color="#fff" />
-                </TouchableOpacity>
-
-                <View style={styles.storyContent}>
-                  <Image source={{ uri: currentStory.imagen }} style={styles.storyImage} resizeMode="contain" />
-                </View>
-
-                <View style={styles.storyTouchZones}>
-                  <TouchableOpacity
-                    style={styles.storyTouchZone}
-                    onPress={handlePreviousStory}
-                    activeOpacity={1}
-                  />
-                  <TouchableOpacity
-                    style={styles.storyTouchZone}
-                    onPress={handleNextStory}
-                    activeOpacity={1}
-                  />
-                </View>
-
-                {isCurrentStoryOwner && (
-                  <View style={styles.storyBottomLeftControls}>
-                    <TouchableOpacity
-                      style={styles.storyStatsButtonBottom}
-                      onPress={handleViewStoryStats}
-                      activeOpacity={0.7}
-                    >
-                      <IconSymbol name="eye.fill" size={24} color="#fff" />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.storyDeleteButtonBottom}
-                      onPress={handleDeleteStory}
-                      activeOpacity={0.7}
-                    >
-                      <IconSymbol name="trash.fill" size={24} color="#fff" />
-                    </TouchableOpacity>
-                  </View>
-                )}
-
-                {!isCurrentStoryOwner && (
-                  <View style={styles.storyInteractionBar}>
-                    <TouchableOpacity
-                      style={styles.storyInteractionButton}
-                      onPress={handleStoryLike}
-                      activeOpacity={0.7}
-                    >
-                      <IconSymbol
-                        name={currentStory.liked_by_user ? 'heart.fill' : 'heart'}
-                        size={20}
-                        color={currentStory.liked_by_user ? '#EF4444' : '#fff'}
-                      />
-                    </TouchableOpacity>
-
-                    <TextInput
-                      style={styles.storyMessageInput}
-                      placeholder="Enviar mensaje..."
-                      placeholderTextColor="rgba(255, 255, 255, 0.6)"
-                      value={storyMessage}
-                      onChangeText={setStoryMessage}
-                      onFocus={() => setIsPaused(true)}
-                      onBlur={() => setIsPaused(false)}
-                    />
-
-                    {storyMessage.trim().length > 0 && (
-                      <TouchableOpacity
-                        style={styles.storySendButton}
-                        onPress={handleSendStoryMessage}
-                        activeOpacity={0.7}
-                      >
-                        <IconSymbol name="paperplane.fill" size={20} color="#fff" />
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                )}
-
-                <StoryStatsModal
-                  visible={showStoryStats}
-                  onClose={() => {
-                    setShowStoryStats(false);
-                    setIsPaused(false);
-                    startStoryTimer();
-                  }}
-                  onNavigateToProfile={handleCloseStoryViewerAndNavigate}
-                  storyId={currentStory.id}
-                  viewsCount={currentStory.views_count || 0}
-                  likesCount={storyLikes.length}
-                  views={storyViews}
-                  likes={storyLikes}
-                  loading={loadingStats}
-                />
-              </>
-            )}
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+        onStoryChange={(index) => {
+          console.log('[Social] Story changed to index:', index);
+          setCurrentStoryIndex(index);
+        }}
+        onStoryDelete={async (storyId) => {
+          console.log('[Social] Story deleted:', storyId);
+          await refreshData(false);
+          await loadData();
+        }}
+        activeLocalProfileId={activeLocalProfileId}
+      />
 
       <Modal
         visible={showLocalSelector}
@@ -2524,7 +1836,7 @@ export default function SocialScreen() {
             <View style={styles.localSelectorModalHeader}>
               <Text style={styles.localSelectorModalTitle}>Seleccionar Local</Text>
               <TouchableOpacity onPress={() => setShowLocalSelector(false)}>
-                <IconSymbol name="xmark" size={24} color={colors.text} />
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
 
@@ -2536,7 +1848,7 @@ export default function SocialScreen() {
                   handleSwitchToClientMode();
                 }}
               >
-                <IconSymbol name="person.fill" size={20} color={colors.secondary} />
+                <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={20} color={colors.secondary} />
                 <Text style={styles.switchToClientButtonText}>
                   Volver a modo cliente
                 </Text>
@@ -2560,7 +1872,7 @@ export default function SocialScreen() {
                     <Image source={{ uri: local.imagen_url }} style={styles.localSelectorItemImage} />
                   ) : (
                     <View style={[styles.localSelectorItemImage, styles.localSelectorImagePlaceholder]}>
-                      <IconSymbol name="building.2" size={24} color={colors.headerText} />
+                      <IconSymbol ios_icon_name="building.2" android_material_icon_name="business" size={24} color={colors.headerText} />
                     </View>
                   )}
                   <View style={styles.localSelectorItemInfo}>
@@ -2570,7 +1882,7 @@ export default function SocialScreen() {
                     <Text style={styles.localSelectorItemType}>{local.tipo}</Text>
                   </View>
                   {activeLocalProfileId === local.id && (
-                    <IconSymbol name="checkmark.circle.fill" size={24} color={colors.primary} />
+                    <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color={colors.primary} />
                   )}
                 </TouchableOpacity>
               ))}
@@ -2590,10 +1902,10 @@ export default function SocialScreen() {
             style={styles.searchModalHeader}
           >
             <TouchableOpacity onPress={() => setShowSearchModal(false)} activeOpacity={0.7}>
-              <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+              <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
             </TouchableOpacity>
             <View style={styles.searchInputContainer}>
-              <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
+              <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
               <TextInput
                 style={styles.searchInput}
                 placeholder="Buscar usuarios, locales o #hashtags..."
@@ -2615,7 +1927,6 @@ export default function SocialScreen() {
                   setSearchResults([]);
                   setShowSearchModal(false);
                   if (result.tipo === 'hashtag') {
-                    // Navigate to hashtag page
                     router.push(`/social/hashtag?tag=${encodeURIComponent(result.nombre.substring(1))}`);
                   } else if (result.tipo === 'local') {
                     router.push(`/perfil/local?localId=${result.id}`);
@@ -2629,7 +1940,7 @@ export default function SocialScreen() {
               >
                 {result.tipo === 'hashtag' ? (
                   <View style={[styles.searchResultAvatar, { backgroundColor: colors.primary + '20', justifyContent: 'center', alignItems: 'center' }]}>
-                    <IconSymbol name="number" size={24} color={colors.primary} />
+                    <IconSymbol ios_icon_name="number" android_material_icon_name="tag" size={24} color={colors.primary} />
                   </View>
                 ) : result.avatar ? (
                   <Image source={{ uri: result.avatar }} style={styles.searchResultAvatar} />
@@ -2655,7 +1966,7 @@ export default function SocialScreen() {
                   )}
                   {result.tipo === 'local' && (
                     <View style={styles.searchResultBadge}>
-                      <IconSymbol name="building.2" size={14} color={colors.primary} />
+                      <IconSymbol ios_icon_name="building.2" android_material_icon_name="business" size={14} color={colors.primary} />
                       <Text style={styles.searchResultBadgeText}>Local con plan activo</Text>
                     </View>
                   )}
@@ -2680,7 +1991,7 @@ export default function SocialScreen() {
             <View style={styles.createOptionsHeader}>
               <Text style={styles.createOptionsTitle}>Crear</Text>
               <TouchableOpacity onPress={() => setShowCreateOptions(false)} activeOpacity={0.7}>
-                <IconSymbol name="xmark" size={24} color={colors.text} />
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
             <View style={styles.createOptionsButtons}>
@@ -2697,7 +2008,7 @@ export default function SocialScreen() {
                 activeOpacity={0.7}
               >
                 <View style={styles.createOptionIcon}>
-                  <IconSymbol name="camera.fill" size={24} color={colors.headerText} />
+                  <IconSymbol ios_icon_name="camera.fill" android_material_icon_name="camera_alt" size={24} color={colors.headerText} />
                 </View>
                 <View style={styles.createOptionInfo}>
                   <Text style={styles.createOptionTitle}>Historia</Text>
@@ -2719,7 +2030,7 @@ export default function SocialScreen() {
                 activeOpacity={0.7}
               >
                 <View style={styles.createOptionIcon}>
-                  <IconSymbol name="photo.fill" size={24} color={colors.headerText} />
+                  <IconSymbol ios_icon_name="photo.fill" android_material_icon_name="photo" size={24} color={colors.headerText} />
                 </View>
                 <View style={styles.createOptionInfo}>
                   <Text style={styles.createOptionTitle}>Publicación</Text>

@@ -12,11 +12,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
-  Modal,
-  Pressable,
   Animated,
-  KeyboardAvoidingView,
-  TextInput,
 } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -24,9 +20,9 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
+import StoryViewer from '@/components/social/StoryViewer';
 
-const { width, height } = Dimensions.get('window');
-// FIXED: Correct grid calculation for 3 columns with 2px gaps
+const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
 
 interface HistoriaConAutor {
@@ -42,7 +38,13 @@ interface HistoriaConAutor {
     avatar?: string;
     username?: string;
   };
+  autorNombre?: string;
+  autorAvatar?: string;
   visto_por_usuario?: boolean;
+  views_count?: number;
+  likes_count?: number;
+  liked_by_user?: boolean;
+  comments_count?: number;
 }
 
 export default function UsuarioPerfilScreen() {
@@ -61,13 +63,10 @@ export default function UsuarioPerfilScreen() {
     seguidos: 0,
   });
 
+  // ✅ FIXED: Use centralized StoryViewer component
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [userStories, setUserStories] = useState<HistoriaConAutor[]>([]);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
-  const [storyMessage, setStoryMessage] = useState('');
-  const storyTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const progressAnim = useRef(new Animated.Value(0)).current;
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
@@ -189,6 +188,7 @@ export default function UsuarioPerfilScreen() {
 
       console.log('[UsuarioPerfil] ✅ User stats loaded - Posts:', postsCount, 'Seguidores:', followerCounts.seguidores, 'Seguidos:', followerCounts.seguidos);
 
+      // ✅ Load user stories
       const { data: userStoriesData } = await supabase
         .from('historias')
         .select(`
@@ -218,6 +218,8 @@ export default function UsuarioPerfilScreen() {
         const storiesWithStatus = userStoriesData.map(story => ({
           ...story,
           visto_por_usuario: viewedStoryIds.has(story.id),
+          autorNombre: userData.nombre,
+          autorAvatar: userData.avatar,
           autor: {
             nombre: userData.nombre,
             avatar: userData.avatar,
@@ -492,76 +494,7 @@ export default function UsuarioPerfilScreen() {
     router.push(`/perfil/seguidos?userId=${userId}`);
   };
 
-  const stopStoryTimer = useCallback(() => {
-    if (storyTimerRef.current) {
-      clearTimeout(storyTimerRef.current);
-      storyTimerRef.current = null;
-    }
-    progressAnim.stopAnimation();
-  }, [progressAnim]);
-
-  const handleNextStory = useCallback(async () => {
-    const currentStory = userStories[currentStoryIndex];
-    
-    if (currentStory && currentUser) {
-      try {
-        const { data: existingView } = await supabase
-          .from('historia_views')
-          .select('id')
-          .eq('historia_id', currentStory.id)
-          .eq('usuario_id', currentUser.id)
-          .single();
-
-        if (!existingView) {
-          await supabase.from('historia_views').insert({
-            historia_id: currentStory.id,
-            usuario_id: currentUser.id,
-          });
-        }
-      } catch (error) {
-        console.error('[UsuarioPerfil] Error marking story as viewed:', error);
-      }
-    }
-    
-    if (currentStoryIndex < userStories.length - 1) {
-      setCurrentStoryIndex(currentStoryIndex + 1);
-      progressAnim.setValue(0);
-    } else {
-      await loadUserData();
-      setShowStoryViewer(false);
-      stopStoryTimer();
-    }
-  }, [currentStoryIndex, userStories, stopStoryTimer, currentUser, loadUserData, progressAnim]);
-
-  const startStoryTimer = useCallback(() => {
-    if (storyTimerRef.current) {
-      clearTimeout(storyTimerRef.current);
-    }
-
-    progressAnim.setValue(0);
-
-    Animated.timing(progressAnim, {
-      toValue: 1,
-      duration: 5000,
-      useNativeDriver: false,
-    }).start();
-
-    storyTimerRef.current = setTimeout(() => {
-      handleNextStory();
-    }, 5000);
-  }, [handleNextStory, progressAnim]);
-
-  const handlePreviousStory = useCallback(() => {
-    if (currentStoryIndex > 0) {
-      setCurrentStoryIndex(currentStoryIndex - 1);
-      progressAnim.setValue(0);
-      startStoryTimer();
-    } else {
-      setShowStoryViewer(false);
-      stopStoryTimer();
-    }
-  }, [currentStoryIndex, startStoryTimer, stopStoryTimer, progressAnim]);
-
+  // ✅ FIXED: Handle avatar press to view stories
   const handleAvatarPress = useCallback(() => {
     if (!currentUser) {
       Alert.alert('Error', 'Debes iniciar sesión para ver historias');
@@ -569,21 +502,11 @@ export default function UsuarioPerfilScreen() {
     }
 
     if (userStories.length > 0) {
+      console.log('[UsuarioPerfil] Opening story viewer with', userStories.length, 'stories');
       setCurrentStoryIndex(0);
       setShowStoryViewer(true);
-      setIsPaused(false);
-      startStoryTimer();
     }
-  }, [currentUser, userStories, startStoryTimer]);
-
-  useEffect(() => {
-    if (showStoryViewer && !isPaused) {
-      startStoryTimer();
-    }
-    return () => {
-      stopStoryTimer();
-    };
-  }, [showStoryViewer, currentStoryIndex, isPaused, startStoryTimer, stopStoryTimer]);
+  }, [currentUser, userStories]);
 
   if (loading) {
     return (
@@ -602,14 +525,8 @@ export default function UsuarioPerfilScreen() {
     );
   }
 
-  const currentStory = userStories[currentStoryIndex];
   const hasActiveStory = userStories.length > 0;
   const hasUnviewedStories = userStories.some(s => !s.visto_por_usuario);
-
-  const progressWidth = progressAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0%', '100%'],
-  });
 
   return (
     <View style={styles.container}>
@@ -621,13 +538,14 @@ export default function UsuarioPerfilScreen() {
       >
         <View style={styles.headerTop}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+            <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{usuario.username || usuario.nombre}</Text>
           {!isOwnProfile && (
             <TouchableOpacity onPress={handleBlock} style={styles.headerButton}>
               <IconSymbol
-                name={isBlocked ? 'person.fill.checkmark' : 'person.fill.xmark'}
+                ios_icon_name={isBlocked ? 'person.fill.checkmark' : 'person.fill.xmark'}
+                android_material_icon_name={isBlocked ? 'person_add_disabled' : 'person_off'}
                 size={24}
                 color={colors.headerText}
               />
@@ -664,7 +582,7 @@ export default function UsuarioPerfilScreen() {
                 <Image source={{ uri: usuario.avatar }} style={styles.avatar} />
               ) : (
                 <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                  <IconSymbol name="person.fill" size={40} color={colors.headerText} />
+                  <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={40} color={colors.headerText} />
                 </View>
               )}
             </TouchableOpacity>
@@ -738,12 +656,12 @@ export default function UsuarioPerfilScreen() {
                   />
                 ) : (
                   <View style={[styles.gridImage, styles.gridImagePlaceholder]}>
-                    <IconSymbol name="photo" size={32} color={colors.textSecondary} />
+                    <IconSymbol ios_icon_name="photo" android_material_icon_name="photo" size={32} color={colors.textSecondary} />
                   </View>
                 )}
                 {post.imagenes && post.imagenes.length > 1 && (
                   <View style={styles.multipleImagesIndicator}>
-                    <IconSymbol name="square.stack.fill" size={16} color={colors.headerText} />
+                    <IconSymbol ios_icon_name="square.stack.fill" android_material_icon_name="collections" size={16} color={colors.headerText} />
                   </View>
                 )}
               </TouchableOpacity>
@@ -751,225 +669,31 @@ export default function UsuarioPerfilScreen() {
           </View>
         ) : (
           <View style={styles.emptyState}>
-            <IconSymbol name="photo.on.rectangle" size={48} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="photo.on.rectangle" android_material_icon_name="photo_library" size={48} color={colors.textSecondary} />
             <Text style={styles.emptyText}>No hay publicaciones</Text>
           </View>
         )}
       </ScrollView>
 
-      {/* ✅ UPDATED: Story Viewer Modal with KeyboardAvoidingView */}
-      <Modal
+      {/* ✅ FIXED: Use centralized StoryViewer component */}
+      <StoryViewer
         visible={showStoryViewer}
-        animationType="fade"
-        onRequestClose={async () => {
-          const currentStory = userStories[currentStoryIndex];
-          
-          if (currentStory && currentUser) {
-            try {
-              const { data: existingView } = await supabase
-                .from('historia_views')
-                .select('id')
-                .eq('historia_id', currentStory.id)
-                .eq('usuario_id', currentUser.id)
-                .single();
-
-              if (!existingView) {
-                await supabase.from('historia_views').insert({
-                  historia_id: currentStory.id,
-                  usuario_id: currentUser.id,
-                });
-              }
-            } catch (error) {
-              console.error('[UsuarioPerfil] Error marking story as viewed on modal close:', error);
-            }
-          }
-          
-          await loadUserData();
+        stories={userStories}
+        initialIndex={currentStoryIndex}
+        onClose={() => {
+          console.log('[UsuarioPerfil] Closing story viewer');
           setShowStoryViewer(false);
-          stopStoryTimer();
         }}
-        statusBarTranslucent
-      >
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={0}
-        >
-          <View style={styles.storyViewerModal}>
-          {currentStory && (
-            <>
-              <View style={styles.storyViewerHeader}>
-                <View style={styles.storyProgressContainer}>
-                  {userStories.map((_, index) => (
-                    <View key={index} style={styles.storyProgressBar}>
-                      {index < currentStoryIndex && (
-                        <View style={[styles.storyProgressFill, { width: '100%' }]} />
-                      )}
-                      {index === currentStoryIndex && (
-                        <Animated.View
-                          style={[styles.storyProgressFill, { width: progressWidth }]}
-                        />
-                      )}
-                    </View>
-                  ))}
-                </View>
-
-                <View style={styles.storyAutorInfo}>
-                  {usuario.avatar ? (
-                    <Image source={{ uri: usuario.avatar }} style={styles.storyAutorAvatar} />
-                  ) : (
-                    <View style={[styles.storyAutorAvatar, styles.avatarPlaceholder]}>
-                      <Text style={styles.avatarText}>
-                        {usuario.nombre?.charAt(0).toUpperCase() || 'U'}
-                      </Text>
-                    </View>
-                  )}
-                  <Text style={styles.storyAutorNombre}>{usuario.nombre}</Text>
-                  <TouchableOpacity
-                    style={styles.storyCloseButton}
-                    onPress={async () => {
-                      const currentStory = userStories[currentStoryIndex];
-                      
-                      if (currentStory && currentUser) {
-                        try {
-                          const { data: existingView } = await supabase
-                            .from('historia_views')
-                            .select('id')
-                            .eq('historia_id', currentStory.id)
-                            .eq('usuario_id', currentUser.id)
-                            .single();
-
-                          if (!existingView) {
-                            await supabase.from('historia_views').insert({
-                              historia_id: currentStory.id,
-                              usuario_id: currentUser.id,
-                            });
-                          }
-                        } catch (error) {
-                          console.error('[UsuarioPerfil] Error marking story as viewed on close:', error);
-                        }
-                      }
-                      
-                      await loadUserData();
-                      setShowStoryViewer(false);
-                      stopStoryTimer();
-                    }}
-                    activeOpacity={0.8}
-                  >
-                    <IconSymbol name="xmark" size={20} color="#fff" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              <View style={styles.storyContent}>
-                <Image
-                  source={{ uri: currentStory.imagen }}
-                  style={styles.storyImage}
-                  resizeMode="contain"
-                />
-              </View>
-
-              {/* ✅ NEW: Interaction bar for non-owners */}
-              {!isOwnProfile && (
-                <View style={styles.storyInteractionBar}>
-                  <TextInput
-                    style={styles.storyMessageInput}
-                    placeholder="Enviar mensaje..."
-                    placeholderTextColor="rgba(255, 255, 255, 0.6)"
-                    value={storyMessage}
-                    onChangeText={setStoryMessage}
-                    onFocus={() => {
-                      setIsPaused(true);
-                      stopStoryTimer();
-                    }}
-                    onBlur={() => {
-                      setIsPaused(false);
-                      startStoryTimer();
-                    }}
-                  />
-
-                  {storyMessage.trim().length > 0 && (
-                    <TouchableOpacity
-                      style={styles.storySendButton}
-                      onPress={async () => {
-                        if (!currentUser || !storyMessage.trim()) return;
-
-                        try {
-                          console.log('[UsuarioPerfil] Sending story message...');
-                          
-                          const { data: chatExistente } = await supabase
-                            .from('chats')
-                            .select('id')
-                            .or(`and(usuario1_id.eq.${currentUser.id},usuario2_id.eq.${userId}),and(usuario1_id.eq.${userId},usuario2_id.eq.${currentUser.id})`)
-                            .single();
-
-                          let chatId = chatExistente?.id;
-
-                          if (!chatId) {
-                            const { data: nuevoChat, error: nuevoChatError } = await supabase
-                              .from('chats')
-                              .insert({
-                                usuario1_id: currentUser.id,
-                                usuario2_id: userId,
-                              })
-                              .select()
-                              .single();
-
-                            if (nuevoChatError) throw nuevoChatError;
-                            chatId = nuevoChat.id;
-                          }
-
-                          const { error: mensajeError } = await supabase
-                            .from('mensajes')
-                            .insert({
-                              chat_id: chatId,
-                              remitente_id: currentUser.id,
-                              contenido: storyMessage,
-                              historia_id: currentStory.id,
-                              historia_imagen: currentStory.imagen,
-                              tipo_mensaje: 'texto',
-                            });
-
-                          if (mensajeError) throw mensajeError;
-
-                          await supabase.from('notificaciones').insert({
-                            usuario_id: userId,
-                            tipo: 'mensaje_privado',
-                            titulo: 'Mensaje sobre tu historia',
-                            mensaje: `${currentUser.nombre} te envió un mensaje sobre tu historia`,
-                            usuario_origen_id: currentUser.id,
-                          });
-
-                          setStoryMessage('');
-                          Alert.alert('Éxito', 'Mensaje enviado correctamente');
-                        } catch (error) {
-                          console.error('[UsuarioPerfil] Error sending story message:', error);
-                          Alert.alert('Error', 'No se pudo enviar el mensaje');
-                        }
-                      }}
-                      activeOpacity={0.7}
-                    >
-                      <IconSymbol name="paperplane.fill" size={20} color="#fff" />
-                    </TouchableOpacity>
-                  )}
-                </View>
-              )}
-
-              <View style={styles.storyTouchZones}>
-                <Pressable
-                  style={styles.storyTouchZone}
-                  onPress={handlePreviousStory}
-                />
-                <Pressable
-                  style={styles.storyTouchZone}
-                  onPress={handleNextStory}
-                />
-              </View>
-            </>
-          )}
-        </View>
-        </KeyboardAvoidingView>
-      </Modal>
+        onStoryChange={(index) => {
+          console.log('[UsuarioPerfil] Story changed to index:', index);
+          setCurrentStoryIndex(index);
+        }}
+        onStoryDelete={async (storyId) => {
+          console.log('[UsuarioPerfil] Story deleted:', storyId);
+          await loadUserData();
+        }}
+        activeLocalProfileId={null}
+      />
     </View>
   );
 }
@@ -1036,11 +760,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.headerText,
   },
   profileInfo: {
     flex: 1,
@@ -1153,110 +872,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.textSecondary,
     marginTop: 16,
-  },
-  storyViewerModal: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  storyViewerHeader: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    paddingTop: 50,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
-  storyProgressContainer: {
-    flexDirection: 'row',
-    gap: 4,
-    marginBottom: 12,
-  },
-  storyProgressBar: {
-    flex: 1,
-    height: 3,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 1.5,
-    overflow: 'hidden',
-  },
-  storyProgressFill: {
-    height: '100%',
-    backgroundColor: '#fff',
-  },
-  storyAutorInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  storyAutorAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    marginRight: 12,
-  },
-  storyAutorNombre: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-    flex: 1,
-  },
-  storyCloseButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  storyContent: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  storyImage: {
-    width: width,
-    height: height,
-  },
-  storyInteractionBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    paddingBottom: Platform.OS === 'ios' ? 34 : 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    zIndex: 10,
-  },
-  storyMessageInput: {
-    flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    color: '#fff',
-    fontSize: 14,
-  },
-  storySendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  storyTouchZones: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    flexDirection: 'row',
-  },
-  storyTouchZone: {
-    flex: 1,
   },
 });
