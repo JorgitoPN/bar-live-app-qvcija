@@ -82,6 +82,9 @@ export default function StoryViewer({
   const progressAnim = useRef(new Animated.Value(0)).current;
   const touchStartTime = useRef<number>(0);
 
+  // ✅ FORCE RELOAD - Version check
+  console.log('[StoryViewer] 🔄 Component loaded - Version 2.0 - Fixed gestures and progress bar');
+
   const currentStory = stories[currentStoryIndex];
 
   const stopStoryTimer = useCallback(() => {

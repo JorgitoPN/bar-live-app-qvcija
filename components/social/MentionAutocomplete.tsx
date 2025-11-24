@@ -98,6 +98,9 @@ export default function MentionAutocomplete({
   const [isVisible, setIsVisible] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
+  // ✅ FORCE RELOAD - Version check
+  console.log('[MentionAutocomplete] 🔄 Component loaded - Version 2.0 - Fixed positioning');
+
   // ✅ Listen to keyboard events to adjust positioning
   useEffect(() => {
     const keyboardWillShow = Keyboard.addListener(
