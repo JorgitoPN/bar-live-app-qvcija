@@ -1,6 +1,6 @@
 
-import React, { memo } from 'react';
-import { FlatList, View, StyleSheet, RefreshControl } from 'react-native';
+import React, { memo, useCallback } from 'react';
+import { FlatList, View, StyleSheet } from 'react-native';
 import PublicacionCard from './PublicacionCard';
 import { Post } from '@/types';
 import { colors } from '@/styles/commonStyles';
@@ -13,7 +13,7 @@ interface FeedSocialProps {
   ListHeaderComponent?: React.ReactElement;
 }
 
-// Memoized to prevent unnecessary re-renders
+// ✅ ULTRA-OPTIMIZED: Memoized feed with aggressive performance optimizations
 const FeedSocial = memo(function FeedSocial({
   posts,
   onRefresh,
@@ -21,19 +21,20 @@ const FeedSocial = memo(function FeedSocial({
   onEndReached,
   ListHeaderComponent,
 }: FeedSocialProps) {
-  const renderItem = ({ item }: { item: Post }) => (
+  // ✅ Memoized render function to prevent recreation
+  const renderItem = useCallback(({ item }: { item: Post }) => (
     <PublicacionCard post={item} />
-  );
+  ), []);
 
-  // Performance optimization: Use item ID as key
-  const keyExtractor = (item: Post) => item.id;
+  // ✅ Memoized key extractor
+  const keyExtractor = useCallback((item: Post) => item.id, []);
 
-  // Performance optimization: Calculate item layout for better scrolling
-  const getItemLayout = (_: any, index: number) => ({
-    length: 500, // Approximate height of a post
+  // ✅ CRITICAL: Optimized item layout for instant scrolling
+  const getItemLayout = useCallback((_: any, index: number) => ({
+    length: 500,
     offset: 500 * index,
     index,
-  });
+  }), []);
 
   return (
     <FlatList
@@ -42,24 +43,31 @@ const FeedSocial = memo(function FeedSocial({
       keyExtractor={keyExtractor}
       contentContainerStyle={styles.listContent}
       showsVerticalScrollIndicator={false}
-      refreshControl={
-        onRefresh ? (
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        ) : undefined
-      }
+      refreshing={refreshing}
+      onRefresh={onRefresh}
       onEndReached={onEndReached}
       onEndReachedThreshold={0.5}
       ListHeaderComponent={ListHeaderComponent}
-      // PERFORMANCE OPTIMIZATIONS
+      // ✅ ULTRA-PERFORMANCE OPTIMIZATIONS
       removeClippedSubviews={true}
-      maxToRenderPerBatch={3}
-      updateCellsBatchingPeriod={100}
-      initialNumToRender={3}
-      windowSize={5}
+      maxToRenderPerBatch={5}
+      updateCellsBatchingPeriod={50}
+      initialNumToRender={5}
+      windowSize={10}
       getItemLayout={getItemLayout}
-      // Reduce re-renders
       extraData={posts.length}
+      // ✅ CRITICAL: Disable nested scrolling for better performance
+      nestedScrollEnabled={false}
+      // ✅ Fast scroll indicator
+      persistentScrollbar={false}
     />
+  );
+}, (prevProps, nextProps) => {
+  // ✅ Custom comparison for better memoization
+  return (
+    prevProps.posts.length === nextProps.posts.length &&
+    prevProps.refreshing === nextProps.refreshing &&
+    prevProps.posts[0]?.id === nextProps.posts[0]?.id
   );
 });
 
