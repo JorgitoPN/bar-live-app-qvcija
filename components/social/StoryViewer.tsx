@@ -468,14 +468,16 @@ function StoryViewer({
     onClose();
   }, [onClose]);
 
-  // ✅ OPTIMIZED: PanResponder with better gesture detection
+  // ✅ FIXED: Improved PanResponder with better gesture detection
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponderCapture: () => false,
       onMoveShouldSetPanResponder: (_, gestureState) => {
         // Only capture if significant movement
-        return Math.abs(gestureState.dx) > 5 || Math.abs(gestureState.dy) > 5;
+        return Math.abs(gestureState.dx) > 10 || Math.abs(gestureState.dy) > 10;
       },
+      onMoveShouldSetPanResponderCapture: () => false,
       
       onPanResponderGrant: (evt: GestureResponderEvent) => {
         touchStartTime.current = Date.now();
@@ -563,6 +565,14 @@ function StoryViewer({
             handleNextStory();
             return;
           }
+        }
+      },
+      
+      onPanResponderTerminate: () => {
+        // Clean up if gesture is interrupted
+        if (longPressTimer.current) {
+          clearTimeout(longPressTimer.current);
+          longPressTimer.current = null;
         }
       },
     })
