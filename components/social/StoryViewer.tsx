@@ -27,6 +27,9 @@ import StoryStatsModal from './StoryStatsModal';
 
 const { width, height } = Dimensions.get('window');
 const STORY_DURATION = 5000; // 5 seconds per story
+const TAP_THRESHOLD = 200; // milliseconds
+const SWIPE_THRESHOLD = 50; // pixels
+const LONG_PRESS_DURATION = 150; // milliseconds for pause
 
 interface Historia {
   id: string;
@@ -81,22 +84,64 @@ export default function StoryViewer({
   const [storyLikes, setStoryLikes] = useState<any[]>([]);
   const [loadingStats, setLoadingStats] = useState(false);
   
-  const storyTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // Animation and timer refs
   const progressAnim = useRef(new Animated.Value(0)).current;
+  const animationRef = useRef<Animated.CompositeAnimation | null>(null);
+  const pausedProgress = useRef(0);
+  
+  // Gesture tracking refs
   const touchStartTime = useRef<number>(0);
-  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const touchStartX = useRef<number>(0);
+  const touchStartY = useRef<number>(0);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const isLongPress = useRef(false);
 
-  console.log('[StoryViewer] 🔄 Component loaded - Version 5.0 - Fixed gestures and avatars');
+  console.log('[StoryViewer] 🔄 Component loaded - Version 6.0 - Smooth animations and gestures');
 
   const currentStory = stories[currentStoryIndex];
 
-  const stopStoryTimer = useCallback(() => {
-    if (storyTimerRef.current) {
-      clearTimeout(storyTimerRef.current);
-      storyTimerRef.current = null;
+  // Stop animation completely
+  const stopAnimation = useCallback(() => {
+    if (animationRef.current) {
+      animationRef.current.stop();
+      animationRef.current = null;
     }
-    progressAnim.stopAnimation();
+    // Save current progress
+    progressAnim.stopAnimation((value) => {
+      pausedProgress.current = value;
+    });
+  }, [progressAnim]);
+
+  // Start or resume animation
+  const startAnimation = useCallback(() => {
+    // Stop any existing animation
+    if (animationRef.current) {
+      animationRef.current.stop();
+    }
+
+    const remainingDuration = STORY_DURATION * (1 - pausedProgress.current);
+
+    animationRef.current = Animated.timing(progressAnim, {
+      toValue: 1,
+      duration: remainingDuration,
+      useNativeDriver: false, // width animations don't support native driver
+    });
+
+    animationRef.current.start(({ finished }) => {
+      if (finished) {
+        handleNextStory();
+      }
+    });
+  }, [progressAnim]);
+
+  // Reset animation for new story
+  const resetAnimation = useCallback(() => {
+    if (animationRef.current) {
+      animationRef.current.stop();
+      animationRef.current = null;
+    }
+    pausedProgress.current = 0;
+    progressAnim.setValue(0);
   }, [progressAnim]);
 
   const markStoryAsViewed = useCallback(async (storyId: string) => {
@@ -125,57 +170,37 @@ export default function StoryViewer({
     }
   }, [user]);
 
-  const handleNextStory = useCallback(async () => {
+  const handleNextStory = useCallback(() => {
+    console.log('[StoryViewer] ➡️ Moving to next story');
+    
     if (currentStory && user) {
-      await markStoryAsViewed(currentStory.id);
+      markStoryAsViewed(currentStory.id);
     }
     
     if (currentStoryIndex < stories.length - 1) {
       const newIndex = currentStoryIndex + 1;
       setCurrentStoryIndex(newIndex);
-      progressAnim.setValue(0);
+      resetAnimation();
       onStoryChange?.(newIndex);
     } else {
+      console.log('[StoryViewer] 🏁 Last story reached, closing viewer');
       onClose();
-      stopStoryTimer();
     }
-  }, [currentStoryIndex, stories.length, currentStory, user, markStoryAsViewed, onClose, stopStoryTimer, progressAnim, onStoryChange]);
+  }, [currentStoryIndex, stories.length, currentStory, user, markStoryAsViewed, onClose, resetAnimation, onStoryChange]);
 
   const handlePreviousStory = useCallback(() => {
+    console.log('[StoryViewer] ⬅️ Moving to previous story');
+    
     if (currentStoryIndex > 0) {
       const newIndex = currentStoryIndex - 1;
       setCurrentStoryIndex(newIndex);
-      progressAnim.setValue(0);
+      resetAnimation();
       onStoryChange?.(newIndex);
     } else {
+      console.log('[StoryViewer] 🏁 First story reached, closing viewer');
       onClose();
-      stopStoryTimer();
     }
-  }, [currentStoryIndex, onClose, stopStoryTimer, progressAnim, onStoryChange]);
-
-  const startStoryTimer = useCallback(() => {
-    if (storyTimerRef.current) {
-      clearTimeout(storyTimerRef.current);
-    }
-
-    progressAnim.setValue(0);
-
-    Animated.timing(progressAnim, {
-      toValue: 1,
-      duration: STORY_DURATION,
-      useNativeDriver: false,
-    }).start(({ finished }) => {
-      if (finished && !isPaused) {
-        handleNextStory();
-      }
-    });
-
-    storyTimerRef.current = setTimeout(() => {
-      if (!isPaused) {
-        handleNextStory();
-      }
-    }, STORY_DURATION);
-  }, [handleNextStory, progressAnim, isPaused]);
+  }, [currentStoryIndex, onClose, resetAnimation, onStoryChange]);
 
   const handleStoryLike = useCallback(async () => {
     if (!currentStory || !user) {
@@ -216,7 +241,7 @@ export default function StoryViewer({
     }
 
     setIsPaused(true);
-    stopStoryTimer();
+    stopAnimation();
 
     setLoadingStats(true);
     setShowStoryStats(true);
@@ -256,7 +281,7 @@ export default function StoryViewer({
     } finally {
       setLoadingStats(false);
     }
-  }, [currentStory, user, stopStoryTimer, activeLocalProfileId]);
+  }, [currentStory, user, stopAnimation, activeLocalProfileId]);
 
   const handleDeleteStory = useCallback(async () => {
     if (!currentStory || !user) {
@@ -290,7 +315,6 @@ export default function StoryViewer({
 
               onStoryDelete?.(currentStory.id);
               onClose();
-              stopStoryTimer();
 
               Alert.alert('Éxito', 'Historia eliminada correctamente');
             } catch (error) {
@@ -301,7 +325,7 @@ export default function StoryViewer({
         },
       ]
     );
-  }, [currentStory, user, activeLocalProfileId, onStoryDelete, onClose, stopStoryTimer]);
+  }, [currentStory, user, activeLocalProfileId, onStoryDelete, onClose]);
 
   const handleSendStoryMessage = useCallback(async () => {
     if (!currentStory || !user || !storyMessage.trim()) {
@@ -371,7 +395,6 @@ export default function StoryViewer({
     if (!currentStory) return;
 
     onClose();
-    stopStoryTimer();
 
     if (currentStory.tipo === 'local' && currentStory.local_id) {
       router.push(`/perfil/local?localId=${currentStory.local_id}`);
@@ -380,31 +403,36 @@ export default function StoryViewer({
     } else {
       router.push(`/perfil/usuario?userId=${currentStory.autor_id}`);
     }
-  }, [currentStory, user, router, onClose, stopStoryTimer]);
+  }, [currentStory, user, router, onClose]);
 
   const handleCloseStoryViewerAndNavigate = useCallback(() => {
     setShowStoryStats(false);
     onClose();
-    stopStoryTimer();
-  }, [onClose, stopStoryTimer]);
+  }, [onClose]);
 
+  // PanResponder for gesture handling
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        return Math.abs(gestureState.dx) > 10 || Math.abs(gestureState.dy) > 10;
-      },
+      onMoveShouldSetPanResponder: () => true,
+      
       onPanResponderGrant: (evt: GestureResponderEvent) => {
         touchStartTime.current = Date.now();
+        touchStartX.current = evt.nativeEvent.pageX;
+        touchStartY.current = evt.nativeEvent.pageY;
+        isLongPress.current = false;
         
         // Start long press timer for pause
         longPressTimer.current = setTimeout(() => {
+          console.log('[StoryViewer] ⏸️ Long press detected - pausing');
+          isLongPress.current = true;
           setIsPaused(true);
-          stopStoryTimer();
-        }, 200);
+          stopAnimation();
+        }, LONG_PRESS_DURATION);
       },
+      
       onPanResponderMove: (_, gestureState: PanResponderGestureState) => {
-        // Cancel long press if user moves finger
+        // Cancel long press if user moves finger significantly
         if (Math.abs(gestureState.dx) > 10 || Math.abs(gestureState.dy) > 10) {
           if (longPressTimer.current) {
             clearTimeout(longPressTimer.current);
@@ -412,6 +440,7 @@ export default function StoryViewer({
           }
         }
       },
+      
       onPanResponderRelease: (evt: GestureResponderEvent, gestureState: PanResponderGestureState) => {
         // Clear long press timer
         if (longPressTimer.current) {
@@ -420,81 +449,92 @@ export default function StoryViewer({
         }
 
         const { dx, dy } = gestureState;
-        const locationX = evt.nativeEvent.locationX;
         const touchDuration = Date.now() - touchStartTime.current;
+        const touchX = evt.nativeEvent.pageX;
         
-        // Swipe down to close (priority)
-        if (dy > 100 && Math.abs(dx) < 100) {
-          console.log('[StoryViewer] Swipe down detected - closing');
-          onClose();
-          stopStoryTimer();
+        // If it was a long press, resume on release
+        if (isLongPress.current) {
+          console.log('[StoryViewer] ▶️ Resuming after long press');
+          setIsPaused(false);
+          startAnimation();
           return;
         }
         
-        // Swipe left to next (horizontal swipe)
-        if (dx < -100 && Math.abs(dy) < 100) {
-          console.log('[StoryViewer] Swipe left detected - next story');
-          setIsPaused(false);
+        // Swipe down to close (priority)
+        if (dy > SWIPE_THRESHOLD && Math.abs(dx) < SWIPE_THRESHOLD) {
+          console.log('[StoryViewer] ⬇️ Swipe down detected - closing');
+          onClose();
+          return;
+        }
+        
+        // Swipe left to next user (skip all stories of current user)
+        if (dx < -SWIPE_THRESHOLD && Math.abs(dy) < SWIPE_THRESHOLD) {
+          console.log('[StoryViewer] ⬅️ Swipe left detected - next story');
           handleNextStory();
           return;
         }
         
-        // Swipe right to previous (horizontal swipe)
-        if (dx > 100 && Math.abs(dy) < 100) {
-          console.log('[StoryViewer] Swipe right detected - previous story');
-          setIsPaused(false);
+        // Swipe right to previous user
+        if (dx > SWIPE_THRESHOLD && Math.abs(dy) < SWIPE_THRESHOLD) {
+          console.log('[StoryViewer] ➡️ Swipe right detected - previous story');
           handlePreviousStory();
           return;
         }
         
         // Tap detection (short touch with minimal movement)
-        if (Math.abs(dx) < 30 && Math.abs(dy) < 30 && touchDuration < 300) {
-          console.log('[StoryViewer] Tap detected at x:', locationX);
+        if (Math.abs(dx) < 20 && Math.abs(dy) < 20 && touchDuration < TAP_THRESHOLD) {
+          const tapZone = touchX / width;
           
-          // Left side tap - previous story
-          if (locationX < width / 3) {
-            console.log('[StoryViewer] Left tap - previous story');
-            setIsPaused(false);
+          // Left third - previous story
+          if (tapZone < 0.33) {
+            console.log('[StoryViewer] ⬅️ Left tap - previous story');
             handlePreviousStory();
             return;
           }
           
-          // Right side tap - next story
-          if (locationX > (2 * width) / 3) {
-            console.log('[StoryViewer] Right tap - next story');
-            setIsPaused(false);
+          // Right third - next story
+          if (tapZone > 0.67) {
+            console.log('[StoryViewer] ➡️ Right tap - next story');
             handleNextStory();
             return;
           }
-        }
-        
-        // Resume story if it was paused
-        if (isPaused) {
-          setIsPaused(false);
-          startStoryTimer();
+          
+          // Middle third - toggle pause (not used in Instagram, but kept for compatibility)
+          console.log('[StoryViewer] ⏯️ Middle tap - ignored');
         }
       },
     })
   ).current;
 
+  // Handle story changes and animation
   useEffect(() => {
     if (visible && !isPaused) {
-      startStoryTimer();
+      console.log('[StoryViewer] ▶️ Starting animation for story', currentStoryIndex);
+      startAnimation();
+    } else if (isPaused) {
+      console.log('[StoryViewer] ⏸️ Story paused');
+      stopAnimation();
     }
-    return () => {
-      stopStoryTimer();
-    };
-  }, [visible, currentStoryIndex, isPaused, startStoryTimer, stopStoryTimer]);
 
+    return () => {
+      stopAnimation();
+    };
+  }, [visible, currentStoryIndex, isPaused]);
+
+  // Mark story as viewed when it appears
   useEffect(() => {
     if (visible && currentStory && user) {
       markStoryAsViewed(currentStory.id);
     }
   }, [visible, currentStory, user, markStoryAsViewed]);
 
+  // Reset to initial index when modal opens
   useEffect(() => {
-    setCurrentStoryIndex(initialIndex);
-  }, [initialIndex]);
+    if (visible) {
+      setCurrentStoryIndex(initialIndex);
+      resetAnimation();
+    }
+  }, [visible, initialIndex, resetAnimation]);
 
   if (!currentStory) {
     return null;
@@ -625,11 +665,11 @@ export default function StoryViewer({
                   onChangeText={setStoryMessage}
                   onFocus={() => {
                     setIsPaused(true);
-                    stopStoryTimer();
+                    stopAnimation();
                   }}
                   onBlur={() => {
                     setIsPaused(false);
-                    startStoryTimer();
+                    startAnimation();
                   }}
                 />
                 {storyMessage.trim().length > 0 && (
@@ -663,7 +703,7 @@ export default function StoryViewer({
             onClose={() => {
               setShowStoryStats(false);
               setIsPaused(false);
-              startStoryTimer();
+              startAnimation();
             }}
             onNavigateToProfile={handleCloseStoryViewerAndNavigate}
             storyId={currentStory.id}
