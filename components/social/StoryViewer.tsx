@@ -17,7 +17,6 @@ import {
   KeyboardAvoidingView,
   StatusBar,
   ActivityIndicator,
-  Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -108,6 +107,110 @@ const StoryImage = memo(({ uri, onLoad }: { uri: string; onLoad?: () => void }) 
 
 StoryImage.displayName = 'StoryImage';
 
+// ✅ ULTRA-SMOOTH Progress Bar Component using requestAnimationFrame
+const ProgressBar = memo(({ 
+  index, 
+  currentIndex, 
+  isActive, 
+  isPaused, 
+  duration,
+  onComplete 
+}: { 
+  index: number;
+  currentIndex: number;
+  isActive: boolean;
+  isPaused: boolean;
+  duration: number;
+  onComplete: () => void;
+}) => {
+  const [progress, setProgress] = useState(0);
+  const animationFrameRef = useRef<number | null>(null);
+  const startTimeRef = useRef<number>(0);
+  const pausedTimeRef = useRef<number>(0);
+  const accumulatedTimeRef = useRef<number>(0);
+
+  useEffect(() => {
+    // Set initial progress based on position
+    if (index < currentIndex) {
+      setProgress(1); // Completed
+    } else if (index > currentIndex) {
+      setProgress(0); // Not started
+    } else if (isActive && !isPaused) {
+      // Start animation for current story
+      startTimeRef.current = performance.now();
+      
+      const animate = (currentTime: number) => {
+        if (!isActive || isPaused) return;
+        
+        const elapsed = currentTime - startTimeRef.current + accumulatedTimeRef.current;
+        const newProgress = Math.min(elapsed / duration, 1);
+        
+        setProgress(newProgress);
+        
+        if (newProgress >= 1) {
+          onComplete();
+        } else {
+          animationFrameRef.current = requestAnimationFrame(animate);
+        }
+      };
+      
+      animationFrameRef.current = requestAnimationFrame(animate);
+    }
+
+    return () => {
+      if (animationFrameRef.current !== null) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+    };
+  }, [index, currentIndex, isActive, isPaused, duration, onComplete]);
+
+  // Handle pause/resume
+  useEffect(() => {
+    if (isActive && index === currentIndex) {
+      if (isPaused) {
+        // Save current progress when pausing
+        if (animationFrameRef.current !== null) {
+          cancelAnimationFrame(animationFrameRef.current);
+          animationFrameRef.current = null;
+        }
+        pausedTimeRef.current = performance.now();
+      } else if (pausedTimeRef.current > 0) {
+        // Resume from saved progress
+        const pauseDuration = performance.now() - pausedTimeRef.current;
+        accumulatedTimeRef.current += (pausedTimeRef.current - startTimeRef.current);
+        startTimeRef.current = performance.now();
+        pausedTimeRef.current = 0;
+      }
+    }
+  }, [isPaused, isActive, index, currentIndex]);
+
+  // Reset accumulated time when story changes
+  useEffect(() => {
+    if (index === currentIndex && isActive) {
+      accumulatedTimeRef.current = 0;
+      pausedTimeRef.current = 0;
+    }
+  }, [currentIndex, index, isActive]);
+
+  return (
+    <View style={styles.progressBarContainer}>
+      <View style={styles.progressBarBackground}>
+        <View style={[styles.progressBarFill, { width: `${progress * 100}%` }]}>
+          <LinearGradient
+            colors={['#FFD700', '#00FF00']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.progressGradient}
+          />
+        </View>
+      </View>
+    </View>
+  );
+});
+
+ProgressBar.displayName = 'ProgressBar';
+
 function StoryViewer({
   visible,
   stories,
@@ -130,12 +233,6 @@ function StoryViewer({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
   
-  // ✅ ULTRA-SMOOTH PROGRESS BAR - Use Animated.timing for stable 60fps animation
-  const progressAnimations = useMemo(() => {
-    return stories.map(() => new Animated.Value(0));
-  }, [stories.length]);
-  
-  const currentAnimation = useRef<Animated.CompositeAnimation | null>(null);
   const isPausedRef = useRef<boolean>(false);
   
   // Gesture tracking refs
@@ -178,6 +275,7 @@ function StoryViewer({
     if (currentStoryIndex < stories.length - 1) {
       const newIndex = currentStoryIndex + 1;
       setCurrentStoryIndex(newIndex);
+      setImageLoaded(false);
       onStoryChange?.(newIndex);
     } else {
       onClose();
@@ -188,77 +286,12 @@ function StoryViewer({
     if (currentStoryIndex > 0) {
       const newIndex = currentStoryIndex - 1;
       setCurrentStoryIndex(newIndex);
+      setImageLoaded(false);
       onStoryChange?.(newIndex);
     } else {
       onClose();
     }
   }, [currentStoryIndex, onClose, onStoryChange]);
-
-  // ✅ ULTRA-SMOOTH ANIMATION - Use Animated.timing with useNativeDriver
-  const startAnimation = useCallback(() => {
-    if (!imageLoaded || isPausedRef.current) {
-      return;
-    }
-
-    // Stop any existing animation
-    if (currentAnimation.current) {
-      currentAnimation.current.stop();
-      currentAnimation.current = null;
-    }
-
-    const currentProgress = progressAnimations[currentStoryIndex];
-    if (!currentProgress) return;
-
-    // Calculate remaining duration based on current progress
-    const currentValue = (currentProgress as any)._value || 0;
-    const remainingDuration = STORY_DURATION * (1 - currentValue);
-
-    // ✅ Use Animated.timing for smooth, hardware-accelerated animation
-    currentAnimation.current = Animated.timing(currentProgress, {
-      toValue: 1,
-      duration: remainingDuration,
-      useNativeDriver: false, // Can't use native driver for width animations
-      isInteraction: false,
-    });
-
-    currentAnimation.current.start(({ finished }) => {
-      if (finished && !isPausedRef.current) {
-        handleNextStory();
-      }
-    });
-  }, [imageLoaded, currentStoryIndex, handleNextStory, progressAnimations]);
-
-  // ✅ Pause animation
-  const pauseAnimation = useCallback(() => {
-    if (currentAnimation.current) {
-      currentAnimation.current.stop();
-      currentAnimation.current = null;
-    }
-    isPausedRef.current = true;
-  }, []);
-
-  // ✅ Reset animation for new story
-  const resetAnimation = useCallback(() => {
-    // Stop any running animation
-    if (currentAnimation.current) {
-      currentAnimation.current.stop();
-      currentAnimation.current = null;
-    }
-    
-    isPausedRef.current = false;
-    
-    // Reset all progress bars
-    progressAnimations.forEach((anim, index) => {
-      if (index < currentStoryIndex) {
-        anim.setValue(1); // Completed stories
-      } else {
-        anim.setValue(0); // Upcoming stories
-      }
-    });
-    
-    // Reset image loaded state
-    setImageLoaded(false);
-  }, [currentStoryIndex, progressAnimations]);
 
   const handleStoryLike = useCallback(async () => {
     if (!currentStory || !user) {
@@ -300,7 +333,6 @@ function StoryViewer({
 
     setIsPaused(true);
     isPausedRef.current = true;
-    pauseAnimation();
 
     setLoadingStats(true);
     setShowStoryStats(true);
@@ -340,7 +372,7 @@ function StoryViewer({
     } finally {
       setLoadingStats(false);
     }
-  }, [currentStory, user, pauseAnimation, activeLocalProfileId]);
+  }, [currentStory, user, activeLocalProfileId]);
 
   const handleDeleteStory = useCallback(async () => {
     if (!currentStory || !user) {
@@ -594,7 +626,6 @@ function StoryViewer({
           isLongPress.current = true;
           setIsPaused(true);
           isPausedRef.current = true;
-          pauseAnimation();
         }, LONG_PRESS_DURATION);
       },
       
@@ -623,7 +654,6 @@ function StoryViewer({
         if (isLongPress.current) {
           setIsPaused(false);
           isPausedRef.current = false;
-          startAnimation();
           return;
         }
         
@@ -666,22 +696,6 @@ function StoryViewer({
     })
   ).current;
 
-  // ✅ Handle animation lifecycle
-  useEffect(() => {
-    if (!visible || !imageLoaded || isPaused) {
-      return;
-    }
-
-    startAnimation();
-
-    return () => {
-      if (currentAnimation.current) {
-        currentAnimation.current.stop();
-        currentAnimation.current = null;
-      }
-    };
-  }, [visible, isPaused, imageLoaded, currentStoryIndex, startAnimation]);
-
   // Mark story as viewed when it appears
   useEffect(() => {
     if (visible && currentStory && user) {
@@ -720,24 +734,15 @@ function StoryViewer({
   useEffect(() => {
     if (visible) {
       setCurrentStoryIndex(initialIndex);
-      resetAnimation();
+      setImageLoaded(false);
+      setIsPaused(false);
+      isPausedRef.current = false;
     } else {
-      if (currentAnimation.current) {
-        currentAnimation.current.stop();
-        currentAnimation.current = null;
-      }
       setImageLoaded(false);
       setIsPaused(false);
       isPausedRef.current = false;
     }
-  }, [visible, initialIndex, resetAnimation]);
-
-  // ✅ Reset animation when story changes
-  useEffect(() => {
-    if (visible) {
-      resetAnimation();
-    }
-  }, [currentStoryIndex, visible, resetAnimation]);
+  }, [visible, initialIndex]);
 
   if (!currentStory) {
     return null;
@@ -773,34 +778,19 @@ function StoryViewer({
         keyboardVerticalOffset={0}
       >
         <View style={styles.storyViewerModal} {...panResponder.panHandlers}>
-          {/* ✅ Modern progress bars using Animated.View with safe access */}
+          {/* ✅ ULTRA-SMOOTH progress bars using requestAnimationFrame */}
           <BlurView intensity={20} tint="dark" style={styles.progressContainer}>
             <View style={styles.progressBarsWrapper}>
               {stories.map((_, index) => (
-                <View key={index} style={styles.progressBarContainer}>
-                  <View style={styles.progressBarBackground}>
-                    {progressAnimations[index] && (
-                      <Animated.View
-                        style={[
-                          styles.progressBarFill,
-                          {
-                            width: progressAnimations[index].interpolate({
-                              inputRange: [0, 1],
-                              outputRange: ['0%', '100%'],
-                            }),
-                          },
-                        ]}
-                      >
-                        <LinearGradient
-                          colors={['#FFD700', '#00FF00']}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 0 }}
-                          style={styles.progressGradient}
-                        />
-                      </Animated.View>
-                    )}
-                  </View>
-                </View>
+                <ProgressBar
+                  key={index}
+                  index={index}
+                  currentIndex={currentStoryIndex}
+                  isActive={imageLoaded && visible}
+                  isPaused={isPaused}
+                  duration={STORY_DURATION}
+                  onComplete={handleNextStory}
+                />
               ))}
             </View>
           </BlurView>
@@ -909,12 +899,10 @@ function StoryViewer({
                   onFocus={() => {
                     setIsPaused(true);
                     isPausedRef.current = true;
-                    pauseAnimation();
                   }}
                   onBlur={() => {
                     setIsPaused(false);
                     isPausedRef.current = false;
-                    startAnimation();
                   }}
                   editable={!sendingMessage}
                 />
@@ -969,7 +957,6 @@ function StoryViewer({
               setShowStoryStats(false);
               setIsPaused(false);
               isPausedRef.current = false;
-              startAnimation();
             }}
             onNavigateToProfile={handleCloseStoryViewerAndNavigate}
             storyId={currentStory.id}
