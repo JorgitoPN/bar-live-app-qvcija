@@ -548,9 +548,15 @@ export default function PostDetailScreen() {
         saved = !!saveData;
       }
 
+      // ✅ CRITICAL FIX: Display username WITHOUT @ symbol
+      // For locals, use the local name directly
+      // For users, prioritize username over full name
       const displayName = data.tipo === 'local' && data.local 
         ? data.local.nombre 
-        : data.autor?.nombre || 'Usuario';
+        : data.autor?.username 
+          ? data.autor.username.replace(/^@/, '') // Remove @ if present
+          : data.autor?.nombre || 'Usuario';
+
       const displayAvatar = data.tipo === 'local' && data.local 
         ? data.local.imagen_url 
         : data.autor?.avatar || '';
@@ -597,6 +603,7 @@ export default function PostDetailScreen() {
 
       console.log('[PostDetail] Loaded comments for post:', params.id, 'Count:', data?.length || 0);
 
+      // ✅ CRITICAL FIX: Display username WITHOUT @ symbol in comments
       const mappedComments = (data || []).map(comment => ({
         ...comment,
         autor: comment.tipo === 'local' && comment.local 
@@ -605,7 +612,19 @@ export default function PostDetailScreen() {
               avatar: comment.local.imagen_url,
               username: comment.local.nombre,
             }
-          : comment.autor,
+          : comment.autor 
+            ? {
+                nombre: comment.autor.username 
+                  ? comment.autor.username.replace(/^@/, '') // Remove @ if present
+                  : comment.autor.nombre,
+                avatar: comment.autor.avatar,
+                username: comment.autor.username,
+              }
+            : {
+                nombre: 'Usuario',
+                avatar: undefined,
+                username: undefined,
+              },
       }));
 
       if (user && mappedComments.length > 0) {
@@ -1200,6 +1219,7 @@ export default function PostDetailScreen() {
         console.log('[PostDetail] ✅ Comment hashtags and mentions processed');
       }
       
+      // ✅ CRITICAL FIX: Display username WITHOUT @ symbol in new comments
       const mappedComment = {
         ...data,
         autor: data.tipo === 'local' && data.local 
@@ -1208,7 +1228,19 @@ export default function PostDetailScreen() {
               avatar: data.local.imagen_url,
               username: data.local.nombre,
             }
-          : data.autor,
+          : data.autor 
+            ? {
+                nombre: data.autor.username 
+                  ? data.autor.username.replace(/^@/, '') // Remove @ if present
+                  : data.autor.nombre,
+                avatar: data.autor.avatar,
+                username: data.autor.username,
+              }
+            : {
+                nombre: 'Usuario',
+                avatar: undefined,
+                username: undefined,
+              },
         liked: false,
       };
       

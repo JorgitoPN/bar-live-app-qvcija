@@ -130,16 +130,13 @@ function StoryViewer({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
   
-  // ✅ SMOOTH 60FPS PROGRESS BAR - Use single animation value per story
+  // ✅ ULTRA-SMOOTH PROGRESS BAR - Use Animated.timing for stable 60fps animation
   const progressAnimations = useMemo(() => {
     return stories.map(() => new Animated.Value(0));
   }, [stories.length]);
   
-  // ✅ High-precision timer for smooth animation
-  const animationStartTime = useRef<number>(0);
-  const animationFrameId = useRef<number | null>(null);
+  const currentAnimation = useRef<Animated.CompositeAnimation | null>(null);
   const isPausedRef = useRef<boolean>(false);
-  const pausedProgress = useRef<number>(0);
   
   // Gesture tracking refs
   const touchStartTime = useRef<number>(0);
@@ -197,85 +194,57 @@ function StoryViewer({
     }
   }, [currentStoryIndex, onClose, onStoryChange]);
 
-  // ✅ ULTRA-SMOOTH 60FPS ANIMATION - requestAnimationFrame loop
-  const animateProgress = useCallback(() => {
+  // ✅ ULTRA-SMOOTH ANIMATION - Use Animated.timing with useNativeDriver
+  const startAnimation = useCallback(() => {
     if (!imageLoaded || isPausedRef.current) {
       return;
     }
 
-    const now = performance.now();
-    const elapsed = now - animationStartTime.current;
-    const progress = Math.min(elapsed / STORY_DURATION, 1);
-
-    // ✅ Update progress bar smoothly
-    if (progressAnimations[currentStoryIndex]) {
-      progressAnimations[currentStoryIndex].setValue(progress);
+    // Stop any existing animation
+    if (currentAnimation.current) {
+      currentAnimation.current.stop();
+      currentAnimation.current = null;
     }
 
-    if (progress >= 1) {
-      // Story completed
-      if (animationFrameId.current !== null) {
-        cancelAnimationFrame(animationFrameId.current);
-        animationFrameId.current = null;
+    const currentProgress = progressAnimations[currentStoryIndex];
+    if (!currentProgress) return;
+
+    // Calculate remaining duration based on current progress
+    const currentValue = (currentProgress as any)._value || 0;
+    const remainingDuration = STORY_DURATION * (1 - currentValue);
+
+    // ✅ Use Animated.timing for smooth, hardware-accelerated animation
+    currentAnimation.current = Animated.timing(currentProgress, {
+      toValue: 1,
+      duration: remainingDuration,
+      useNativeDriver: false, // Can't use native driver for width animations
+      isInteraction: false,
+    });
+
+    currentAnimation.current.start(({ finished }) => {
+      if (finished && !isPausedRef.current) {
+        handleNextStory();
       }
-      handleNextStory();
-    } else {
-      // Continue animation
-      animationFrameId.current = requestAnimationFrame(animateProgress);
-    }
+    });
   }, [imageLoaded, currentStoryIndex, handleNextStory, progressAnimations]);
-
-  // ✅ Start animation
-  const startAnimation = useCallback(() => {
-    if (!imageLoaded) {
-      return;
-    }
-
-    // Cancel any existing animation
-    if (animationFrameId.current !== null) {
-      cancelAnimationFrame(animationFrameId.current);
-      animationFrameId.current = null;
-    }
-
-    // Resume from where we paused or start fresh
-    if (isPausedRef.current && pausedProgress.current > 0) {
-      animationStartTime.current = performance.now() - (pausedProgress.current * STORY_DURATION);
-    } else {
-      animationStartTime.current = performance.now();
-      pausedProgress.current = 0;
-    }
-    
-    isPausedRef.current = false;
-    
-    // Start animation loop
-    animationFrameId.current = requestAnimationFrame(animateProgress);
-  }, [imageLoaded, animateProgress]);
 
   // ✅ Pause animation
   const pauseAnimation = useCallback(() => {
-    if (animationFrameId.current !== null) {
-      cancelAnimationFrame(animationFrameId.current);
-      animationFrameId.current = null;
-      
-      // Save current progress
-      const currentValue = progressAnimations[currentStoryIndex]?._value || 0;
-      pausedProgress.current = currentValue;
-      
-      isPausedRef.current = true;
+    if (currentAnimation.current) {
+      currentAnimation.current.stop();
+      currentAnimation.current = null;
     }
-  }, [currentStoryIndex, progressAnimations]);
+    isPausedRef.current = true;
+  }, []);
 
   // ✅ Reset animation for new story
   const resetAnimation = useCallback(() => {
     // Stop any running animation
-    if (animationFrameId.current !== null) {
-      cancelAnimationFrame(animationFrameId.current);
-      animationFrameId.current = null;
+    if (currentAnimation.current) {
+      currentAnimation.current.stop();
+      currentAnimation.current = null;
     }
     
-    // Reset progress tracking
-    animationStartTime.current = 0;
-    pausedProgress.current = 0;
     isPausedRef.current = false;
     
     // Reset all progress bars
@@ -706,9 +675,9 @@ function StoryViewer({
     startAnimation();
 
     return () => {
-      if (animationFrameId.current !== null) {
-        cancelAnimationFrame(animationFrameId.current);
-        animationFrameId.current = null;
+      if (currentAnimation.current) {
+        currentAnimation.current.stop();
+        currentAnimation.current = null;
       }
     };
   }, [visible, isPaused, imageLoaded, currentStoryIndex, startAnimation]);
@@ -753,9 +722,9 @@ function StoryViewer({
       setCurrentStoryIndex(initialIndex);
       resetAnimation();
     } else {
-      if (animationFrameId.current !== null) {
-        cancelAnimationFrame(animationFrameId.current);
-        animationFrameId.current = null;
+      if (currentAnimation.current) {
+        currentAnimation.current.stop();
+        currentAnimation.current = null;
       }
       setImageLoaded(false);
       setIsPaused(false);
