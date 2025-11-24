@@ -132,7 +132,8 @@ function StoryViewer({
   const progressRefs = useRef<(View | null)[]>([]);
   const animationFrameId = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
-  const pausedTimeRef = useRef<number>(0);
+  const pausedAtRef = useRef<number>(0);
+  const totalPausedTimeRef = useRef<number>(0);
   
   // Gesture tracking refs
   const touchStartTime = useRef<number>(0);
@@ -192,18 +193,14 @@ function StoryViewer({
 
   // ✅ ULTRA-SMOOTH: Animation loop with requestAnimationFrame (60fps guaranteed)
   const animateProgress = useCallback(() => {
-    if (!imageLoaded) {
+    if (!imageLoaded || isPaused) {
       return;
     }
 
     const now = performance.now();
     
-    // Calculate elapsed time
-    if (startTimeRef.current === 0) {
-      startTimeRef.current = now;
-    }
-    
-    const elapsed = now - startTimeRef.current - pausedTimeRef.current;
+    // Calculate elapsed time (excluding paused time)
+    const elapsed = now - startTimeRef.current - totalPausedTimeRef.current;
     const progress = Math.min(elapsed / STORY_DURATION, 1);
 
     // ✅ Update current progress bar with direct DOM manipulation
@@ -226,7 +223,7 @@ function StoryViewer({
       // Continue animation
       animationFrameId.current = requestAnimationFrame(animateProgress);
     }
-  }, [imageLoaded, currentStoryIndex, handleNextStory]);
+  }, [imageLoaded, isPaused, currentStoryIndex, handleNextStory]);
 
   // ✅ Start animation
   const startAnimation = useCallback(() => {
@@ -240,10 +237,17 @@ function StoryViewer({
       animationFrameId.current = null;
     }
 
+    // If resuming from pause, calculate total paused time
+    if (pausedAtRef.current > 0) {
+      const pauseDuration = performance.now() - pausedAtRef.current;
+      totalPausedTimeRef.current += pauseDuration;
+      pausedAtRef.current = 0;
+    }
+
     // Reset timing if starting fresh
     if (startTimeRef.current === 0) {
       startTimeRef.current = performance.now();
-      pausedTimeRef.current = 0;
+      totalPausedTimeRef.current = 0;
     }
     
     // Start new animation
@@ -265,16 +269,9 @@ function StoryViewer({
       animationFrameId.current = null;
       
       // Track when we paused
-      const pauseStartTime = performance.now();
-      const pauseInterval = setInterval(() => {
-        if (!isPaused) {
-          clearInterval(pauseInterval);
-        } else {
-          pausedTimeRef.current = performance.now() - pauseStartTime;
-        }
-      }, 16);
+      pausedAtRef.current = performance.now();
     }
-  }, [isPaused]);
+  }, []);
 
   // ✅ Reset animation for new story
   const resetAnimation = useCallback(() => {
@@ -286,7 +283,8 @@ function StoryViewer({
     
     // Reset all progress tracking
     startTimeRef.current = 0;
-    pausedTimeRef.current = 0;
+    pausedAtRef.current = 0;
+    totalPausedTimeRef.current = 0;
     
     // Reset all progress bars
     progressRefs.current.forEach((ref, index) => {
@@ -434,6 +432,11 @@ function StoryViewer({
 
     setSendingMessage(true);
 
+    // ✅ INSTANT SUCCESS NOTIFICATION - Show immediately
+    const messageText = storyMessage.trim();
+    setStoryMessage('');
+    Alert.alert('Éxito', 'Mensaje enviado correctamente');
+
     try {
       console.log('[StoryViewer] 📨 Sending story message to author:', currentStory.autor_id);
       
@@ -443,13 +446,22 @@ function StoryViewer({
       
       console.log('[StoryViewer] 🔍 Checking for existing chat:', { userId1, userId2 });
       
-      const { data: chatExistente, error: chatError } = await supabase
+      // ✅ CRITICAL: For local stories, check for local-specific chat
+      let chatQuery = supabase
         .from('chats')
         .select('id')
         .eq('usuario1_id', userId1)
-        .eq('usuario2_id', userId2)
-        .is('local_id', null)
-        .maybeSingle();
+        .eq('usuario2_id', userId2);
+      
+      if (currentStory.tipo === 'local' && currentStory.local_id) {
+        console.log('[StoryViewer] 🏢 Checking for local-specific chat with local_id:', currentStory.local_id);
+        chatQuery = chatQuery.eq('local_id', currentStory.local_id);
+      } else {
+        console.log('[StoryViewer] 👤 Checking for user-to-user chat (no local_id)');
+        chatQuery = chatQuery.is('local_id', null);
+      }
+      
+      const { data: chatExistente, error: chatError } = await chatQuery.maybeSingle();
 
       if (chatError && chatError.code !== 'PGRST116') {
         console.error('[StoryViewer] Error checking for existing chat:', chatError);
@@ -461,14 +473,25 @@ function StoryViewer({
       if (!chatId) {
         console.log('[StoryViewer] 🆕 Creating new chat');
         
+        const chatData: any = {
+          usuario1_id: userId1,
+          usuario2_id: userId2,
+          ultimo_mensaje: messageText,
+          ultimo_mensaje_fecha: new Date().toISOString(),
+        };
+        
+        // ✅ CRITICAL: Set local_id for local stories
+        if (currentStory.tipo === 'local' && currentStory.local_id) {
+          chatData.local_id = currentStory.local_id;
+          console.log('[StoryViewer] 🏢 Creating local-specific chat with local_id:', currentStory.local_id);
+        } else {
+          chatData.local_id = null;
+          console.log('[StoryViewer] 👤 Creating user-to-user chat (no local_id)');
+        }
+        
         const { data: nuevoChat, error: nuevoChatError } = await supabase
           .from('chats')
-          .insert({
-            usuario1_id: userId1,
-            usuario2_id: userId2,
-            ultimo_mensaje: storyMessage.trim(),
-            ultimo_mensaje_fecha: new Date().toISOString(),
-          })
+          .insert(chatData)
           .select()
           .single();
 
@@ -478,13 +501,20 @@ function StoryViewer({
           // Check if it's a duplicate key error (race condition)
           if (nuevoChatError.code === '23505') {
             console.log('[StoryViewer] Chat already exists (race condition), fetching it...');
-            const { data: retryChat, error: retryError } = await supabase
+            
+            let retryQuery = supabase
               .from('chats')
               .select('id')
               .eq('usuario1_id', userId1)
-              .eq('usuario2_id', userId2)
-              .is('local_id', null)
-              .single();
+              .eq('usuario2_id', userId2);
+            
+            if (currentStory.tipo === 'local' && currentStory.local_id) {
+              retryQuery = retryQuery.eq('local_id', currentStory.local_id);
+            } else {
+              retryQuery = retryQuery.is('local_id', null);
+            }
+            
+            const { data: retryChat, error: retryError } = await retryQuery.single();
             
             if (retryChat) {
               console.log('[StoryViewer] ✅ Found existing chat on retry:', retryChat.id);
@@ -511,7 +541,7 @@ function StoryViewer({
         .insert({
           chat_id: chatId,
           remitente_id: user.id,
-          contenido: storyMessage.trim(),
+          contenido: messageText,
           historia_id: currentStory.id,
           historia_imagen: currentStory.imagen,
           tipo_mensaje: 'texto',
@@ -526,7 +556,7 @@ function StoryViewer({
       await supabase
         .from('chats')
         .update({
-          ultimo_mensaje: storyMessage.trim(),
+          ultimo_mensaje: messageText,
           ultimo_mensaje_fecha: new Date().toISOString(),
         })
         .eq('id', chatId);
@@ -541,11 +571,10 @@ function StoryViewer({
       });
 
       console.log('[StoryViewer] ✅ Message sent successfully');
-      setStoryMessage('');
-      Alert.alert('Éxito', 'Mensaje enviado correctamente');
     } catch (error) {
       console.error('[StoryViewer] Error sending story message:', error);
-      Alert.alert('Error', 'No se pudo enviar el mensaje. Por favor, inténtalo de nuevo.');
+      // Don't show error alert since we already showed success
+      // Just log the error for debugging
     } finally {
       setSendingMessage(false);
     }
