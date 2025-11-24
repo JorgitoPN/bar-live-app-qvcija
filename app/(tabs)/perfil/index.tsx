@@ -99,9 +99,6 @@ export default function PerfilScreen() {
   // ✅ NEW: Story viewer state
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
-  const storyTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const progressAnim = useRef(new Animated.Value(0)).current;
 
   const userRole = user?.rol_app || 'cliente';
   const isPropietario = userRole === 'propietario' || (userRole === 'admin' && currentMode === 'propietario');
@@ -367,7 +364,9 @@ export default function PerfilScreen() {
     if (!user) return;
 
     try {
-      const { data: userStoriesData } = await supabase
+      console.log('[Perfil] Loading user stories for user:', user.id);
+      
+      const { data: userStoriesData, error } = await supabase
         .from('historias')
         .select('id, autor_id, tipo, imagen, created_at, expires_at, visto')
         .eq('autor_id', user.id)
@@ -375,9 +374,13 @@ export default function PerfilScreen() {
         .gt('expires_at', new Date().toISOString())
         .order('created_at', { ascending: true });
 
-      if (userStoriesData) {
-        setUserStories(userStoriesData);
+      if (error) {
+        console.error('[Perfil] Error loading stories:', error);
+        return;
       }
+
+      console.log('[Perfil] ✅ Loaded', userStoriesData?.length || 0, 'stories');
+      setUserStories(userStoriesData || []);
     } catch (error) {
       console.error('[Perfil] Error loading stories:', error);
     }
@@ -529,105 +532,26 @@ export default function PerfilScreen() {
     router.push(`/empleo/perfil-detalle?id=${perfilProfesional.id}`);
   };
 
-  // ✅ NEW: Story timer functions
-  const stopStoryTimer = useCallback(() => {
-    if (storyTimerRef.current) {
-      clearTimeout(storyTimerRef.current);
-      storyTimerRef.current = null;
-    }
-    progressAnim.stopAnimation();
-  }, [progressAnim]);
-
-  const handleNextStory = useCallback(async () => {
-    const currentStory = userStories[currentStoryIndex];
-    
-    if (currentStory && user) {
-      try {
-        const { data: existingView } = await supabase
-          .from('historia_views')
-          .select('id')
-          .eq('historia_id', currentStory.id)
-          .eq('usuario_id', user.id)
-          .single();
-
-        if (!existingView) {
-          await supabase.from('historia_views').insert({
-            historia_id: currentStory.id,
-            usuario_id: user.id,
-          });
-        }
-      } catch (error) {
-        console.error('[Perfil] Error marking story as viewed:', error);
-      }
-    }
-    
-    if (currentStoryIndex < userStories.length - 1) {
-      setCurrentStoryIndex(currentStoryIndex + 1);
-      progressAnim.setValue(0);
-    } else {
-      await cargarHistorias();
-      setShowStoryViewer(false);
-      stopStoryTimer();
-    }
-  }, [currentStoryIndex, userStories, stopStoryTimer, user, cargarHistorias, progressAnim]);
-
-  const startStoryTimer = useCallback(() => {
-    if (storyTimerRef.current) {
-      clearTimeout(storyTimerRef.current);
-    }
-
-    progressAnim.setValue(0);
-
-    Animated.timing(progressAnim, {
-      toValue: 1,
-      duration: 5000,
-      useNativeDriver: true,
-    }).start();
-
-    storyTimerRef.current = setTimeout(() => {
-      handleNextStory();
-    }, 5000);
-  }, [handleNextStory, progressAnim]);
-
-  const handlePreviousStory = useCallback(() => {
-    if (currentStoryIndex > 0) {
-      setCurrentStoryIndex(currentStoryIndex - 1);
-      progressAnim.setValue(0);
-      startStoryTimer();
-    } else {
-      setShowStoryViewer(false);
-      stopStoryTimer();
-    }
-  }, [currentStoryIndex, startStoryTimer, stopStoryTimer, progressAnim]);
-
-  useEffect(() => {
-    if (showStoryViewer && !isPaused) {
-      startStoryTimer();
-    }
-    return () => {
-      stopStoryTimer();
-    };
-  }, [showStoryViewer, currentStoryIndex, isPaused, startStoryTimer, stopStoryTimer]);
-
-  // ✅ NEW: Handle adding story from avatar or viewing existing stories
+  // ✅ FIXED: Handle avatar press to view or create stories
   const handleAvatarPress = useCallback(() => {
     if (!user) {
       setShowLoginModal(true);
       return;
     }
     
+    console.log('[Perfil] Avatar pressed, stories count:', userStories.length);
+    
     if (userStories.length > 0) {
       // View existing stories
-      console.log('[Perfil] Opening story viewer with', userStories.length, 'stories');
+      console.log('[Perfil] ✅ Opening story viewer with', userStories.length, 'stories');
       setCurrentStoryIndex(0);
       setShowStoryViewer(true);
-      setIsPaused(false);
-      startStoryTimer();
     } else {
       // Create new story
+      console.log('[Perfil] No stories found, redirecting to create story');
       router.push('/crear/historia');
     }
-  }, [user, userStories, startStoryTimer, router]);
+  }, [user, userStories, router]);
 
   const handleAddStory = () => {
     if (!user) {
@@ -653,12 +577,12 @@ export default function PerfilScreen() {
           <Image source={{ uri: firstImage }} style={styles.gridImage} />
         ) : (
           <View style={[styles.gridImage, styles.gridImagePlaceholder]}>
-            <IconSymbol name="photo" size={32} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="photo" android_material_icon_name="photo" size={32} color={colors.textSecondary} />
           </View>
         )}
         {post.imagenes && post.imagenes.length > 1 && (
           <View style={styles.multipleImagesIndicator}>
-            <IconSymbol name="square.stack.fill" size={16} color={colors.headerText} />
+            <IconSymbol ios_icon_name="square.stack.fill" android_material_icon_name="collections" size={16} color={colors.headerText} />
           </View>
         )}
       </TouchableOpacity>
@@ -671,8 +595,13 @@ export default function PerfilScreen() {
     return (
       <View style={styles.profileSection}>
         <View style={styles.profileHeader}>
-          <View style={styles.avatarContainer}>
-            {/* ✅ NEW: Story ring if user has stories */}
+          {/* ✅ FIXED: Make avatar container clickable */}
+          <TouchableOpacity 
+            style={styles.avatarContainer}
+            onPress={handleAvatarPress}
+            activeOpacity={0.8}
+          >
+            {/* ✅ Story ring if user has stories */}
             {hasStories && (
               <LinearGradient
                 colors={[colors.primary, colors.secondary]}
@@ -685,13 +614,16 @@ export default function PerfilScreen() {
               <Image source={{ uri: displayAvatar }} style={styles.avatar} />
             ) : (
               <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <IconSymbol name="person.fill" size={40} color={colors.headerText} />
+                <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={40} color={colors.headerText} />
               </View>
             )}
-            {/* ✅ NEW: '+' button to add story */}
+            {/* ✅ '+' button to add story */}
             <TouchableOpacity 
               style={styles.addStoryButton}
-              onPress={handleAddStory}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleAddStory();
+              }}
               activeOpacity={0.8}
             >
               <LinearGradient
@@ -700,10 +632,10 @@ export default function PerfilScreen() {
                 end={{ x: 1, y: 0 }}
                 style={styles.addStoryGradient}
               >
-                <IconSymbol name="plus" size={14} color={colors.white} />
+                <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={14} color={colors.white} />
               </LinearGradient>
             </TouchableOpacity>
-          </View>
+          </TouchableOpacity>
           <View style={styles.profileInfo}>
             <Text style={styles.profileName}>{displayName}</Text>
             {user?.username && (
@@ -716,7 +648,7 @@ export default function PerfilScreen() {
               onPress={() => setShowProfileSwitcher(true)}
               activeOpacity={0.8}
             >
-              <IconSymbol name="arrow.triangle.2.circlepath" size={24} color={colors.headerText} />
+              <IconSymbol ios_icon_name="arrow.triangle.2.circlepath" android_material_icon_name="swap_horiz" size={24} color={colors.headerText} />
             </TouchableOpacity>
           )}
         </View>
@@ -727,7 +659,7 @@ export default function PerfilScreen() {
 
         {user?.sitio_web && (
           <TouchableOpacity style={styles.websiteContainer} onPress={handleWebsite} activeOpacity={0.8}>
-            <IconSymbol name="link" size={16} color={colors.headerText} />
+            <IconSymbol ios_icon_name="link" android_material_icon_name="link" size={16} color={colors.headerText} />
             <Text style={styles.websiteText}>{user.sitio_web}</Text>
           </TouchableOpacity>
         )}
@@ -751,14 +683,14 @@ export default function PerfilScreen() {
 
         <View style={styles.actionButtons}>
           <TouchableOpacity style={styles.actionButton} onPress={handleEditProfile}>
-            <IconSymbol name="pencil" size={18} color={colors.headerText} />
+            <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={18} color={colors.headerText} />
             <Text style={styles.actionButtonText}>Editar Perfil</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.actionButton, styles.createButton]} 
             onPress={() => setShowCreateOptions(true)}
           >
-            <IconSymbol name="plus.circle.fill" size={18} color={colors.white} />
+            <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={18} color={colors.white} />
             <Text style={[styles.actionButtonText, { color: colors.white }]}>Crear</Text>
           </TouchableOpacity>
         </View>
@@ -788,7 +720,7 @@ export default function PerfilScreen() {
         </LinearGradient>
 
         <View style={styles.notLoggedInContainer}>
-          <IconSymbol name="person.circle" size={80} color={colors.textSecondary} />
+          <IconSymbol ios_icon_name="person.circle" android_material_icon_name="account_circle" size={80} color={colors.textSecondary} />
           <Text style={styles.notLoggedInTitle}>Inicia sesión</Text>
           <Text style={styles.notLoggedInText}>
             Inicia sesión para ver tu perfil y acceder a todas las funciones
@@ -828,7 +760,7 @@ export default function PerfilScreen() {
           <Text style={styles.headerTitle}>Mi Perfil</Text>
           <View style={styles.headerActions}>
             <TouchableOpacity style={styles.headerButton} onPress={handleChats}>
-              <IconSymbol name="message.fill" size={24} color={colors.headerText} />
+              <IconSymbol ios_icon_name="message.fill" android_material_icon_name="message" size={24} color={colors.headerText} />
               {unreadMessages > 0 && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>
@@ -838,7 +770,7 @@ export default function PerfilScreen() {
               )}
             </TouchableOpacity>
             <TouchableOpacity style={styles.headerButton} onPress={handleNotifications}>
-              <IconSymbol name="bell.fill" size={24} color={colors.headerText} />
+              <IconSymbol ios_icon_name="bell.fill" android_material_icon_name="notifications" size={24} color={colors.headerText} />
               {unreadNotifications > 0 && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>
@@ -848,7 +780,7 @@ export default function PerfilScreen() {
               )}
             </TouchableOpacity>
             <TouchableOpacity style={styles.headerButton} onPress={handleSettings}>
-              <IconSymbol name="gearshape.fill" size={24} color={colors.headerText} />
+              <IconSymbol ios_icon_name="gearshape.fill" android_material_icon_name="settings" size={24} color={colors.headerText} />
             </TouchableOpacity>
           </View>
         </View>
@@ -879,7 +811,8 @@ export default function PerfilScreen() {
             onPress={() => setActiveTab('posts')}
           >
             <IconSymbol 
-              name="square.grid.3x3" 
+              ios_icon_name="square.grid.3x3" 
+              android_material_icon_name="grid_on"
               size={24} 
               color={activeTab === 'posts' ? colors.primary : colors.textSecondary} 
             />
@@ -889,7 +822,8 @@ export default function PerfilScreen() {
             onPress={() => setActiveTab('favoritos')}
           >
             <IconSymbol 
-              name="bookmark" 
+              ios_icon_name="bookmark" 
+              android_material_icon_name="bookmark_border"
               size={24} 
               color={activeTab === 'favoritos' ? colors.primary : colors.textSecondary} 
             />
@@ -899,7 +833,8 @@ export default function PerfilScreen() {
             onPress={() => setActiveTab('etiquetados')}
           >
             <IconSymbol 
-              name="person.crop.square" 
+              ios_icon_name="person.crop.square" 
+              android_material_icon_name="person_outline"
               size={24} 
               color={activeTab === 'etiquetados' ? colors.primary : colors.textSecondary} 
             />
@@ -909,7 +844,8 @@ export default function PerfilScreen() {
             onPress={() => setActiveTab('empleo')}
           >
             <IconSymbol 
-              name="briefcase.fill" 
+              ios_icon_name="briefcase.fill" 
+              android_material_icon_name="work"
               size={24} 
               color={activeTab === 'empleo' ? colors.primary : colors.textSecondary} 
             />
@@ -935,7 +871,7 @@ export default function PerfilScreen() {
                       </Text>
                       {perfilProfesional.provincia && (
                         <View style={styles.perfilProfesionalLocation}>
-                          <IconSymbol name="mappin" size={14} color={colors.textSecondary} />
+                          <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={14} color={colors.textSecondary} />
                           <Text style={styles.perfilProfesionalLocationText}>
                             {perfilProfesional.provincia}
                           </Text>
@@ -986,7 +922,7 @@ export default function PerfilScreen() {
                       onPress={handleCrearPerfilProfesional}
                       activeOpacity={0.7}
                     >
-                      <IconSymbol name="pencil" size={18} color={colors.white} />
+                      <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={18} color={colors.white} />
                       <Text style={styles.perfilProfesionalButtonText}>Editar</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -994,7 +930,7 @@ export default function PerfilScreen() {
                       onPress={handleVerPerfilProfesional}
                       activeOpacity={0.7}
                     >
-                      <IconSymbol name="eye.fill" size={18} color={colors.primary} />
+                      <IconSymbol ios_icon_name="eye.fill" android_material_icon_name="visibility" size={18} color={colors.primary} />
                       <Text style={[styles.perfilProfesionalButtonText, styles.perfilProfesionalButtonTextSecondary]}>
                         Ver Perfil
                       </Text>
@@ -1003,7 +939,7 @@ export default function PerfilScreen() {
                 </View>
               ) : (
                 <View style={styles.emptyState}>
-                  <IconSymbol name="briefcase" size={64} color={colors.textSecondary} />
+                  <IconSymbol ios_icon_name="briefcase" android_material_icon_name="work_outline" size={64} color={colors.textSecondary} />
                   <Text style={styles.emptyStateTitle}>Crea tu perfil profesional</Text>
                   <Text style={styles.emptyStateText}>
                     Crea tu demanda de empleo para que los propietarios de locales puedan encontrarte
@@ -1013,7 +949,7 @@ export default function PerfilScreen() {
                     onPress={handleCrearPerfilProfesional}
                     activeOpacity={0.7}
                   >
-                    <IconSymbol name="plus.circle.fill" size={20} color={colors.white} />
+                    <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={20} color={colors.white} />
                     <Text style={styles.emptyStateButtonText}>Crear Perfil Profesional</Text>
                   </TouchableOpacity>
                 </View>
@@ -1030,11 +966,16 @@ export default function PerfilScreen() {
               ) : (
                 <View style={styles.emptyState}>
                   <IconSymbol 
-                    name={
+                    ios_icon_name={
                       activeTab === 'posts' ? 'photo.on.rectangle' : 
                       activeTab === 'favoritos' ? 'bookmark' : 
                       'person.crop.square'
-                    } 
+                    }
+                    android_material_icon_name={
+                      activeTab === 'posts' ? 'photo_library' : 
+                      activeTab === 'favoritos' ? 'bookmark_border' : 
+                      'person_outline'
+                    }
                     size={48} 
                     color={colors.textSecondary} 
                   />
@@ -1072,7 +1013,7 @@ export default function PerfilScreen() {
             <View style={styles.createOptionsHeader}>
               <Text style={styles.createOptionsTitle}>Crear</Text>
               <TouchableOpacity onPress={() => setShowCreateOptions(false)} activeOpacity={0.8}>
-                <IconSymbol name="xmark" size={24} color={colors.text} />
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
             <View style={styles.createOptionsButtons}>
@@ -1085,7 +1026,7 @@ export default function PerfilScreen() {
                 activeOpacity={0.8}
               >
                 <View style={styles.createOptionIcon}>
-                  <IconSymbol name="camera.fill" size={24} color={colors.headerText} />
+                  <IconSymbol ios_icon_name="camera.fill" android_material_icon_name="camera_alt" size={24} color={colors.headerText} />
                 </View>
                 <View style={styles.createOptionInfo}>
                   <Text style={styles.createOptionTitle}>Historia</Text>
@@ -1103,7 +1044,7 @@ export default function PerfilScreen() {
                 activeOpacity={0.8}
               >
                 <View style={styles.createOptionIcon}>
-                  <IconSymbol name="photo.fill" size={24} color={colors.headerText} />
+                  <IconSymbol ios_icon_name="photo.fill" android_material_icon_name="photo" size={24} color={colors.headerText} />
                 </View>
                 <View style={styles.createOptionInfo}>
                   <Text style={styles.createOptionTitle}>Publicación</Text>
@@ -1127,7 +1068,7 @@ export default function PerfilScreen() {
         onClose={() => setShowProfileSwitcher(false)}
       />
 
-      {/* ✅ NEW: Story Viewer */}
+      {/* ✅ Story Viewer */}
       <StoryViewer
         visible={showStoryViewer}
         stories={userStories.map(story => ({
@@ -1137,11 +1078,15 @@ export default function PerfilScreen() {
         }))}
         initialIndex={currentStoryIndex}
         onClose={() => {
+          console.log('[Perfil] Closing story viewer');
           setShowStoryViewer(false);
-          stopStoryTimer();
         }}
-        onStoryChange={(index) => setCurrentStoryIndex(index)}
+        onStoryChange={(index) => {
+          console.log('[Perfil] Story changed to index:', index);
+          setCurrentStoryIndex(index);
+        }}
         onStoryDelete={async (storyId) => {
+          console.log('[Perfil] Story deleted:', storyId);
           await cargarHistorias();
         }}
         activeLocalProfileId={null}
@@ -1252,7 +1197,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     marginRight: 20,
   },
-  // ✅ NEW: Story ring styles
+  // ✅ Story ring styles
   storyRing: {
     position: 'absolute',
     top: -4,
@@ -1275,7 +1220,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  // ✅ NEW: Add story button styles
+  // ✅ Add story button styles
   addStoryButton: {
     position: 'absolute',
     bottom: 0,
