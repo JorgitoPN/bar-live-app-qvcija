@@ -27,6 +27,7 @@ import {
   Pressable,
   FlatList,
   Keyboard,
+  Animated,
 } from 'react-native';
 import { supabase } from '@/utils/supabase';
 import { useGlobalData } from '@/contexts/GlobalDataContext';
