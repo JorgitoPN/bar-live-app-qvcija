@@ -1,238 +1,36 @@
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+/**
+ * Performance Optimizer
+ * Ultra-fast optimizations for social network
+ * INSTANT RESPONSE - NO LAG
+ */
 
-// Performance optimization utility for BarLive
-// Implements aggressive caching, preloading, and optimization strategies
-
-interface CacheEntry<T> {
-  data: T;
-  timestamp: number;
-  expiresIn: number;
-}
-
-interface CacheConfig {
-  maxSize: number; // Maximum number of entries
-  defaultTTL: number; // Default time to live in milliseconds
-}
+import { InteractionManager } from 'react-native';
 
 class PerformanceOptimizer {
-  private memoryCache: Map<string, CacheEntry<any>> = new Map();
-  private config: CacheConfig = {
-    maxSize: 500,
-    defaultTTL: 5 * 60 * 1000, // 5 minutes
-  };
+  private pendingTasks: Map<string, any> = new Map();
+  private taskQueue: Array<() => Promise<void>> = [];
+  private isProcessing: boolean = false;
 
-  // Memory cache operations (instant access)
-  setMemoryCache<T>(key: string, data: T, ttl?: number): void {
-    const expiresIn = ttl || this.config.defaultTTL;
-    
-    // Implement LRU eviction if cache is full
-    if (this.memoryCache.size >= this.config.maxSize) {
-      const firstKey = this.memoryCache.keys().next().value;
-      this.memoryCache.delete(firstKey);
-    }
-
-    this.memoryCache.set(key, {
-      data,
-      timestamp: Date.now(),
-      expiresIn,
-    });
-  }
-
-  getMemoryCache<T>(key: string): T | null {
-    const entry = this.memoryCache.get(key);
-    
-    if (!entry) return null;
-
-    // Check if expired
-    if (Date.now() - entry.timestamp > entry.expiresIn) {
-      this.memoryCache.delete(key);
-      return null;
-    }
-
-    return entry.data as T;
-  }
-
-  clearMemoryCache(pattern?: string): void {
-    if (!pattern) {
-      this.memoryCache.clear();
-      return;
-    }
-
-    // Clear entries matching pattern
-    const keysToDelete: string[] = [];
-    this.memoryCache.forEach((_, key) => {
-      if (key.includes(pattern)) {
-        keysToDelete.push(key);
-      }
-    });
-
-    keysToDelete.forEach(key => this.memoryCache.delete(key));
-  }
-
-  // Persistent cache operations (AsyncStorage)
-  async setPersistentCache<T>(key: string, data: T, ttl?: number): Promise<void> {
-    try {
-      const expiresIn = ttl || this.config.defaultTTL;
-      const entry: CacheEntry<T> = {
-        data,
-        timestamp: Date.now(),
-        expiresIn,
-      };
-
-      await AsyncStorage.setItem(`cache:${key}`, JSON.stringify(entry));
-    } catch (error) {
-      console.error('[PerformanceOptimizer] Error setting persistent cache:', error);
-    }
-  }
-
-  async getPersistentCache<T>(key: string): Promise<T | null> {
-    try {
-      const value = await AsyncStorage.getItem(`cache:${key}`);
-      
-      if (!value) return null;
-
-      const entry: CacheEntry<T> = JSON.parse(value);
-
-      // Check if expired
-      if (Date.now() - entry.timestamp > entry.expiresIn) {
-        await AsyncStorage.removeItem(`cache:${key}`);
-        return null;
-      }
-
-      return entry.data;
-    } catch (error) {
-      console.error('[PerformanceOptimizer] Error getting persistent cache:', error);
-      return null;
-    }
-  }
-
-  async clearPersistentCache(pattern?: string): Promise<void> {
-    try {
-      if (!pattern) {
-        const keys = await AsyncStorage.getAllKeys();
-        const cacheKeys = keys.filter(key => key.startsWith('cache:'));
-        await AsyncStorage.multiRemove(cacheKeys);
-        return;
-      }
-
-      const keys = await AsyncStorage.getAllKeys();
-      const keysToDelete = keys.filter(key => 
-        key.startsWith('cache:') && key.includes(pattern)
-      );
-      await AsyncStorage.multiRemove(keysToDelete);
-    } catch (error) {
-      console.error('[PerformanceOptimizer] Error clearing persistent cache:', error);
-    }
-  }
-
-  // Hybrid cache (memory first, then persistent)
-  async getCache<T>(key: string): Promise<T | null> {
-    // Try memory cache first (instant)
-    const memoryData = this.getMemoryCache<T>(key);
-    if (memoryData) {
-      console.log(`[PerformanceOptimizer] Cache HIT (memory): ${key}`);
-      return memoryData;
-    }
-
-    // Try persistent cache
-    const persistentData = await this.getPersistentCache<T>(key);
-    if (persistentData) {
-      console.log(`[PerformanceOptimizer] Cache HIT (persistent): ${key}`);
-      // Promote to memory cache
-      this.setMemoryCache(key, persistentData);
-      return persistentData;
-    }
-
-    console.log(`[PerformanceOptimizer] Cache MISS: ${key}`);
-    return null;
-  }
-
-  async setCache<T>(key: string, data: T, ttl?: number): Promise<void> {
-    // Set both memory and persistent cache
-    this.setMemoryCache(key, data, ttl);
-    await this.setPersistentCache(key, data, ttl);
-  }
-
-  // Batch operations for better performance
-  async batchGetCache<T>(keys: string[]): Promise<Map<string, T>> {
-    const results = new Map<string, T>();
-
-    await Promise.all(
-      keys.map(async (key) => {
-        const data = await this.getCache<T>(key);
-        if (data) {
-          results.set(key, data);
-        }
-      })
-    );
-
-    return results;
-  }
-
-  async batchSetCache<T>(entries: { key: string; data: T; ttl?: number }[]): Promise<void> {
-    await Promise.all(
-      entries.map(({ key, data, ttl }) => this.setCache(key, data, ttl))
-    );
-  }
-
-  // Preloading utilities
-  async preloadData<T>(
-    keys: string[],
-    fetchFn: (key: string) => Promise<T>,
-    ttl?: number
-  ): Promise<void> {
-    console.log(`[PerformanceOptimizer] Preloading ${keys.length} items...`);
-
-    await Promise.all(
-      keys.map(async (key) => {
+  /**
+   * Run task after interactions complete (non-blocking)
+   */
+  async runAfterInteractions<T>(task: () => Promise<T>): Promise<T> {
+    return new Promise((resolve, reject) => {
+      InteractionManager.runAfterInteractions(async () => {
         try {
-          // Check if already cached
-          const cached = await this.getCache<T>(key);
-          if (cached) return;
-
-          // Fetch and cache
-          const data = await fetchFn(key);
-          await this.setCache(key, data, ttl);
+          const result = await task();
+          resolve(result);
         } catch (error) {
-          console.error(`[PerformanceOptimizer] Error preloading ${key}:`, error);
+          reject(error);
         }
-      })
-    );
-
-    console.log(`[PerformanceOptimizer] Preloading complete`);
+      });
+    });
   }
 
-  // Cache statistics
-  getCacheStats(): {
-    memorySize: number;
-    memoryKeys: string[];
-  } {
-    return {
-      memorySize: this.memoryCache.size,
-      memoryKeys: Array.from(this.memoryCache.keys()),
-    };
-  }
-
-  async getPersistentCacheStats(): Promise<{
-    totalSize: number;
-    keys: string[];
-  }> {
-    try {
-      const keys = await AsyncStorage.getAllKeys();
-      const cacheKeys = keys.filter(key => key.startsWith('cache:'));
-      
-      return {
-        totalSize: cacheKeys.length,
-        keys: cacheKeys,
-      };
-    } catch (error) {
-      console.error('[PerformanceOptimizer] Error getting cache stats:', error);
-      return { totalSize: 0, keys: [] };
-    }
-  }
-
-  // Debounce utility for search and input
+  /**
+   * Debounce function calls
+   */
   debounce<T extends (...args: any[]) => any>(
     func: T,
     wait: number
@@ -241,11 +39,16 @@ class PerformanceOptimizer {
 
     return (...args: Parameters<T>) => {
       if (timeout) clearTimeout(timeout);
-      timeout = setTimeout(() => func(...args), wait);
+      
+      timeout = setTimeout(() => {
+        func(...args);
+      }, wait);
     };
   }
 
-  // Throttle utility for scroll and frequent events
+  /**
+   * Throttle function calls
+   */
   throttle<T extends (...args: any[]) => any>(
     func: T,
     limit: number
@@ -261,30 +64,133 @@ class PerformanceOptimizer {
     };
   }
 
-  // Image optimization
-  getOptimizedImageUrl(url: string, width?: number, quality?: number): string {
-    if (!url) return url;
-
-    // For Unsplash images
-    if (url.includes('unsplash.com')) {
-      const params = new URLSearchParams();
-      if (width) params.append('w', width.toString());
-      if (quality) params.append('q', quality.toString());
-      params.append('auto', 'format');
-      params.append('fit', 'crop');
-      
-      return `${url}?${params.toString()}`;
-    }
-
-    // For other images, return as is
-    return url;
+  /**
+   * Batch multiple tasks together
+   */
+  async batchTasks<T>(tasks: Array<() => Promise<T>>): Promise<T[]> {
+    console.log('[PerformanceOptimizer] 🚀 Batching', tasks.length, 'tasks...');
+    
+    const results = await Promise.all(tasks.map(task => task()));
+    
+    console.log('[PerformanceOptimizer] ✅ Batch complete');
+    return results;
   }
 
-  // Clear all caches
-  async clearAllCaches(): Promise<void> {
-    this.clearMemoryCache();
-    await this.clearPersistentCache();
-    console.log('[PerformanceOptimizer] All caches cleared');
+  /**
+   * Queue task for background processing
+   */
+  queueTask(id: string, task: () => Promise<void>): void {
+    this.pendingTasks.set(id, task);
+    this.taskQueue.push(task);
+    
+    if (!this.isProcessing) {
+      this.processQueue();
+    }
+  }
+
+  /**
+   * Process task queue in background
+   */
+  private async processQueue(): Promise<void> {
+    if (this.taskQueue.length === 0) {
+      this.isProcessing = false;
+      return;
+    }
+
+    this.isProcessing = true;
+
+    const task = this.taskQueue.shift();
+    if (task) {
+      try {
+        await this.runAfterInteractions(task);
+      } catch (error) {
+        console.error('[PerformanceOptimizer] Task error:', error);
+      }
+    }
+
+    // Process next task
+    setTimeout(() => this.processQueue(), 0);
+  }
+
+  /**
+   * Memoize function results
+   */
+  memoize<T extends (...args: any[]) => any>(
+    func: T,
+    keyGenerator?: (...args: Parameters<T>) => string
+  ): T {
+    const cache = new Map<string, ReturnType<T>>();
+
+    return ((...args: Parameters<T>) => {
+      const key = keyGenerator ? keyGenerator(...args) : JSON.stringify(args);
+      
+      if (cache.has(key)) {
+        return cache.get(key)!;
+      }
+
+      const result = func(...args);
+      cache.set(key, result);
+      
+      // Clear old cache entries (keep last 100)
+      if (cache.size > 100) {
+        const firstKey = cache.keys().next().value;
+        cache.delete(firstKey);
+      }
+
+      return result;
+    }) as T;
+  }
+
+  /**
+   * Optimize array operations
+   */
+  optimizeArray<T>(array: T[], operation: (item: T) => any): any[] {
+    // Use native array methods for better performance
+    return array.map(operation);
+  }
+
+  /**
+   * Chunk large arrays for processing
+   */
+  chunkArray<T>(array: T[], chunkSize: number = 10): T[][] {
+    const chunks: T[][] = [];
+    
+    for (let i = 0; i < array.length; i += chunkSize) {
+      chunks.push(array.slice(i, i + chunkSize));
+    }
+    
+    return chunks;
+  }
+
+  /**
+   * Process large array in chunks (non-blocking)
+   */
+  async processArrayInChunks<T, R>(
+    array: T[],
+    processor: (item: T) => R,
+    chunkSize: number = 10
+  ): Promise<R[]> {
+    const chunks = this.chunkArray(array, chunkSize);
+    const results: R[] = [];
+
+    for (const chunk of chunks) {
+      await this.runAfterInteractions(async () => {
+        const chunkResults = chunk.map(processor);
+        results.push(...chunkResults);
+      });
+    }
+
+    return results;
+  }
+
+  /**
+   * Clear all pending tasks
+   */
+  clearTasks(): void {
+    this.pendingTasks.clear();
+    this.taskQueue = [];
+    this.isProcessing = false;
+    console.log('[PerformanceOptimizer] 🗑️ All tasks cleared');
   }
 }
 
