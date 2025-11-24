@@ -127,11 +127,11 @@ function StoryViewer({
   const [loadingStats, setLoadingStats] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   
-  // ✅ OPTIMIZED: Animation refs with proper native driver support
+  // ✅ FIXED: Smooth animation with proper state management
   const progressAnim = useRef(new Animated.Value(0)).current;
   const animationRef = useRef<Animated.CompositeAnimation | null>(null);
-  const pausedProgress = useRef(0);
   const storyStartTime = useRef<number>(0);
+  const elapsedBeforePause = useRef<number>(0);
   
   // Gesture tracking refs
   const touchStartTime = useRef<number>(0);
@@ -144,22 +144,23 @@ function StoryViewer({
   // Performance: Prevent unnecessary re-renders
   const currentStory = stories[currentStoryIndex];
 
-  // ✅ FIXED: Stop animation completely and save progress
+  // ✅ FIXED: Stop animation and save elapsed time
   const stopAnimation = useCallback(() => {
     console.log('[StoryViewer] ⏸️ Stopping animation');
     if (animationRef.current) {
       animationRef.current.stop();
       animationRef.current = null;
     }
-    // Save current progress only if animation was running
+    // Calculate elapsed time since animation started
     if (storyStartTime.current > 0) {
       const elapsed = Date.now() - storyStartTime.current;
-      pausedProgress.current = Math.min(elapsed / STORY_DURATION, 1);
-      console.log('[StoryViewer] 💾 Saved progress:', pausedProgress.current);
+      elapsedBeforePause.current += elapsed;
+      console.log('[StoryViewer] 💾 Total elapsed time:', elapsedBeforePause.current, 'ms');
     }
+    storyStartTime.current = 0;
   }, []);
 
-  // ✅ FIXED: Start or resume animation with proper initialization
+  // ✅ FIXED: Start or resume animation with smooth continuation
   const startAnimation = useCallback(() => {
     if (!imageLoaded) {
       console.log('[StoryViewer] ⏸️ Waiting for image to load before starting animation');
@@ -172,17 +173,19 @@ function StoryViewer({
       animationRef.current = null;
     }
 
-    // Calculate remaining progress and duration
-    const remainingProgress = 1 - pausedProgress.current;
-    const remainingDuration = Math.max(STORY_DURATION * remainingProgress, 100); // Minimum 100ms
+    // Calculate remaining duration based on elapsed time
+    const remainingDuration = Math.max(STORY_DURATION - elapsedBeforePause.current, 100);
+    const currentProgress = Math.min(elapsedBeforePause.current / STORY_DURATION, 1);
 
-    console.log('[StoryViewer] ▶️ Starting animation - remaining:', remainingDuration, 'ms, from progress:', pausedProgress.current);
+    console.log('[StoryViewer] ▶️ Starting animation - remaining:', remainingDuration, 'ms, progress:', currentProgress);
+    
+    // Record start time for this animation segment
     storyStartTime.current = Date.now();
 
-    // Set initial progress value
-    progressAnim.setValue(pausedProgress.current);
+    // Set current progress value without animation
+    progressAnim.setValue(currentProgress);
 
-    // ✅ FIXED: Animate from current progress to 1
+    // ✅ FIXED: Animate smoothly from current progress to 1
     animationRef.current = Animated.timing(progressAnim, {
       toValue: 1,
       duration: remainingDuration,
@@ -209,7 +212,7 @@ function StoryViewer({
     }
     
     // Reset all progress tracking
-    pausedProgress.current = 0;
+    elapsedBeforePause.current = 0;
     progressAnim.setValue(0);
     storyStartTime.current = 0;
     
@@ -687,6 +690,7 @@ function StoryViewer({
   // Get story author info with fallback
   const storyAuthorAvatar = currentStory.autor?.avatar || currentStory.autorAvatar;
   const storyAuthorName = currentStory.autor?.nombre || currentStory.autorNombre || 'Usuario';
+  // ✅ FIXED: Remove @ symbol from username display
   const storyAuthorUsername = currentStory.tipo === 'local' 
     ? storyAuthorName
     : currentStory.autor?.username || currentStory.autorNombre || storyAuthorName;

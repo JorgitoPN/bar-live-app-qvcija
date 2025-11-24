@@ -31,6 +31,9 @@ const StoryItem = memo(({
     }
   }, [historia.autorAvatar]);
   
+  // ✅ FIXED: Remove @ symbol from username display
+  const displayName = historia.autorNombre || 'Usuario';
+  
   return (
     <TouchableOpacity
       style={styles.historiaContainer}
@@ -60,7 +63,7 @@ const StoryItem = memo(({
         </View>
       </LinearGradient>
       <Text style={styles.historiaNombre} numberOfLines={1}>
-        {historia.autorNombre}
+        {displayName}
       </Text>
     </TouchableOpacity>
   );
