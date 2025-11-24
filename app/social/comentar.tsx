@@ -12,7 +12,6 @@ import {
   Alert,
   ActivityIndicator,
   Keyboard,
-  KeyboardAvoidingView,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -38,10 +37,34 @@ export default function ComentarScreen() {
   const [post, setPost] = useState<any>(null);
   const [parentComment, setParentComment] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   useEffect(() => {
     loadData();
   }, [postId, parentCommentId]);
+
+  useEffect(() => {
+    const keyboardWillShowListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        console.log('[Comentar] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
+        setKeyboardHeight(e.endCoordinates.height);
+      }
+    );
+
+    const keyboardWillHideListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        console.log('[Comentar] ⌨️ Keyboard hidden');
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      keyboardWillShowListener.remove();
+      keyboardWillHideListener.remove();
+    };
+  }, []);
 
   const loadData = async () => {
     try {
@@ -194,7 +217,7 @@ export default function ComentarScreen() {
       >
         <View style={styles.headerTop}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton} activeOpacity={0.7}>
-            <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.headerText} />
+            <IconSymbol name="xmark" size={24} color={colors.headerText} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>
             {parentComment ? 'Responder' : 'Comentar'}
@@ -216,14 +239,10 @@ export default function ComentarScreen() {
         </View>
       </LinearGradient>
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-      >
+      <View style={{ flex: 1 }}>
         <ScrollView 
           style={styles.content} 
-          contentContainerStyle={styles.contentContainer}
+          contentContainerStyle={[styles.contentContainer, { paddingBottom: 100 }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -234,7 +253,7 @@ export default function ComentarScreen() {
                   <Image source={{ uri: post.autor.avatar }} style={styles.postAvatar} />
                 ) : (
                   <View style={[styles.postAvatar, styles.avatarPlaceholder]}>
-                    <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={20} color={colors.textSecondary} />
+                    <IconSymbol name="person.fill" size={20} color={colors.textSecondary} />
                   </View>
                 )}
                 <View style={styles.postAutorInfo}>
@@ -258,7 +277,7 @@ export default function ComentarScreen() {
                   <Image source={{ uri: parentComment.autor.avatar }} style={styles.commentAvatar} />
                 ) : (
                   <View style={[styles.commentAvatar, styles.avatarPlaceholder]}>
-                    <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={16} color={colors.textSecondary} />
+                    <IconSymbol name="person.fill" size={16} color={colors.textSecondary} />
                   </View>
                 )}
                 <View style={styles.commentAutorInfo}>
@@ -296,30 +315,40 @@ export default function ComentarScreen() {
               <Text style={styles.charCount}>{comentario.length}/500</Text>
             </View>
             <View style={styles.helperContainer}>
-              <IconSymbol ios_icon_name="info.circle" android_material_icon_name="info" size={14} color={colors.primary} />
+              <IconSymbol name="info.circle" size={14} color={colors.primary} />
               <Text style={styles.helperText}>
                 Escribe @ para mencionar usuarios o locales
               </Text>
             </View>
           </View>
 
-          {/* Autocomplete Component - Positioned in scroll view */}
-          <MentionAutocomplete
-            text={comentario}
-            cursorPosition={cursorPosition}
-            onSelectMention={handleSelectMention}
-          />
-
           {isInteractingAsLocal && activeLocalProfileId && (
             <View style={styles.contextIndicator}>
-              <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="business" size={16} color={colors.primary} />
+              <IconSymbol name="building.2.fill" size={16} color={colors.primary} />
               <Text style={styles.contextText}>
                 Comentando como local
               </Text>
             </View>
           )}
         </ScrollView>
-      </KeyboardAvoidingView>
+
+        {/* Autocomplete Component - Fixed position above keyboard */}
+        <View 
+          style={[
+            styles.autocompleteContainer, 
+            { 
+              bottom: keyboardHeight > 0 ? keyboardHeight : 0,
+            }
+          ]}
+          pointerEvents="box-none"
+        >
+          <MentionAutocomplete
+            text={comentario}
+            cursorPosition={cursorPosition}
+            onSelectMention={handleSelectMention}
+          />
+        </View>
+      </View>
     </View>
   );
 }
@@ -372,7 +401,6 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flexGrow: 1,
-    paddingBottom: 40,
   },
   postPreview: {
     backgroundColor: colors.cardBackground,
@@ -499,6 +527,13 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: '600',
     flex: 1,
+  },
+  autocompleteContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    zIndex: 9999,
+    elevation: 9999,
   },
   contextIndicator: {
     flexDirection: 'row',

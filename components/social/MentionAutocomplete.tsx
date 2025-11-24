@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   Platform,
   FlatList,
-  Keyboard,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -65,31 +64,6 @@ export default function MentionAutocomplete({
   const [loading, setLoading] = useState(false);
   const [currentMentionText, setCurrentMentionText] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
-
-  // ✅ Listen to keyboard events to position the list above the keyboard
-  useEffect(() => {
-    const keyboardWillShow = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      (e) => {
-        console.log('[MentionAutocomplete] ⌨️ Keyboard height:', e.endCoordinates.height);
-        setKeyboardHeight(e.endCoordinates.height);
-      }
-    );
-
-    const keyboardWillHide = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
-      () => {
-        console.log('[MentionAutocomplete] ⌨️ Keyboard hidden');
-        setKeyboardHeight(0);
-      }
-    );
-
-    return () => {
-      keyboardWillShow.remove();
-      keyboardWillHide.remove();
-    };
-  }, []);
 
   const detectMention = useCallback(() => {
     const textBeforeCursor = text.substring(0, cursorPosition);
@@ -231,7 +205,7 @@ export default function MentionAutocomplete({
         })));
       }
 
-      // Search locals
+      // Search locals - SIMPLIFIED: Don't filter by subscription for now
       console.log('[MentionAutocomplete] 🏢 Searching locals...');
       
       let localsData: any[] = [];
@@ -355,7 +329,7 @@ export default function MentionAutocomplete({
     return null;
   }
 
-  console.log('[MentionAutocomplete] 🎨 Rendering - loading:', loading, 'suggestions:', suggestions.length, 'keyboardHeight:', keyboardHeight);
+  console.log('[MentionAutocomplete] 🎨 Rendering - loading:', loading, 'suggestions:', suggestions.length);
 
   const renderItem = ({ item }: { item: MentionSuggestion }) => (
     <TouchableOpacity
@@ -368,8 +342,7 @@ export default function MentionAutocomplete({
       ) : (
         <View style={[styles.avatar, styles.avatarPlaceholder]}>
           <IconSymbol
-            ios_icon_name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
-            android_material_icon_name={item.tipo === 'local' ? 'business' : 'person'}
+            name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
             size={18}
             color={colors.textSecondary}
           />
@@ -385,31 +358,14 @@ export default function MentionAutocomplete({
       </View>
       {item.tipo === 'local' && (
         <View style={styles.localBadge}>
-          <IconSymbol 
-            ios_icon_name="building.2.fill" 
-            android_material_icon_name="business" 
-            size={12} 
-            color={colors.primary} 
-          />
+          <IconSymbol name="building.2.fill" size={12} color={colors.primary} />
         </View>
       )}
     </TouchableOpacity>
   );
 
   return (
-    <View 
-      style={[
-        styles.container, 
-        style,
-        // ✅ Position above keyboard
-        keyboardHeight > 0 && {
-          position: 'absolute',
-          bottom: keyboardHeight,
-          left: 0,
-          right: 0,
-        }
-      ]}
-    >
+    <View style={[styles.container, style]} pointerEvents="auto">
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color={colors.primary} />
@@ -425,7 +381,6 @@ export default function MentionAutocomplete({
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           bounces={false}
-          nestedScrollEnabled={true}
         />
       ) : currentMentionText.length > 0 ? (
         <View style={styles.emptyContainer}>
@@ -449,8 +404,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 10,
-    zIndex: 9999,
+    elevation: 8,
   },
   list: {
     flex: 1,

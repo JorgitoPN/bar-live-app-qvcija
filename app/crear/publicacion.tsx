@@ -641,7 +641,7 @@ export default function CrearPublicacionScreen() {
       >
         <View style={styles.headerTop}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton} activeOpacity={0.7}>
-            <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.headerText} />
+            <IconSymbol name="xmark" size={24} color={colors.headerText} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Nueva Publicación</Text>
           <TouchableOpacity 
@@ -694,7 +694,7 @@ export default function CrearPublicacionScreen() {
             />
             <Text style={styles.charCount}>{contenido.length}/2200</Text>
             <View style={styles.helperContainer}>
-              <IconSymbol ios_icon_name="info.circle" android_material_icon_name="info" size={14} color={colors.primary} />
+              <IconSymbol name="info.circle" size={14} color={colors.primary} />
               <Text style={styles.helperText}>
                 Escribe @ para mencionar usuarios o locales
               </Text>
@@ -702,17 +702,19 @@ export default function CrearPublicacionScreen() {
           </View>
 
           {/* Autocomplete Components - Positioned right after text input */}
-          <MentionAutocomplete
-            text={contenido}
-            cursorPosition={cursorPosition}
-            onSelectMention={handleSelectInlineMention}
-          />
+          <View style={styles.autocompleteWrapper}>
+            <MentionAutocomplete
+              text={contenido}
+              cursorPosition={cursorPosition}
+              onSelectMention={handleSelectInlineMention}
+            />
 
-          <HashtagAutocomplete
-            text={contenido}
-            cursorPosition={cursorPosition}
-            onSelectHashtag={handleSelectInlineHashtag}
-          />
+            <HashtagAutocomplete
+              text={contenido}
+              cursorPosition={cursorPosition}
+              onSelectHashtag={handleSelectInlineHashtag}
+            />
+          </View>
 
           {/* Images Preview */}
           {imagenes.length > 0 && (
@@ -742,7 +744,7 @@ export default function CrearPublicacionScreen() {
                       onPress={() => eliminarImagen(index)}
                       activeOpacity={0.7}
                     >
-                      <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={28} color="#FFFFFF" />
+                      <IconSymbol name="xmark.circle.fill" size={28} color="#FFFFFF" />
                     </TouchableOpacity>
                     <View style={styles.imageIndexBadge}>
                       <Text style={styles.imageIndexText}>{index + 1}</Text>
@@ -765,8 +767,7 @@ export default function CrearPublicacionScreen() {
                     ) : (
                       <View style={[styles.taggedAvatar, styles.taggedAvatarPlaceholder]}>
                         <IconSymbol 
-                          ios_icon_name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
-                          android_material_icon_name={item.tipo === 'local' ? 'business' : 'person'}
+                          name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'} 
                           size={14} 
                           color={colors.textSecondary} 
                         />
@@ -780,7 +781,7 @@ export default function CrearPublicacionScreen() {
                       activeOpacity={0.7}
                       style={styles.removeTagButton}
                     >
-                      <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={18} color={colors.textSecondary} />
+                      <IconSymbol name="xmark.circle.fill" size={18} color={colors.textSecondary} />
                     </TouchableOpacity>
                   </View>
                 ))}
@@ -792,11 +793,11 @@ export default function CrearPublicacionScreen() {
           {ubicacion && (
             <View style={styles.locationSection}>
               <View style={styles.locationContent}>
-                <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={20} color={colors.primary} />
+                <IconSymbol name="mappin.circle.fill" size={20} color={colors.primary} />
                 <Text style={styles.locationText} numberOfLines={1}>{ubicacion.nombre}</Text>
               </View>
               <TouchableOpacity onPress={() => setUbicacion(null)} activeOpacity={0.7}>
-                <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={20} color={colors.textSecondary} />
+                <IconSymbol name="xmark.circle.fill" size={20} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
           )}
@@ -812,7 +813,7 @@ export default function CrearPublicacionScreen() {
                 activeOpacity={0.7}
               >
                 <View style={[styles.actionIconContainer, { backgroundColor: colors.primary + '15' }]}>
-                  <IconSymbol ios_icon_name="photo" android_material_icon_name="photo_library" size={24} color={imagenes.length >= MAX_IMAGES ? colors.textSecondary : colors.primary} />
+                  <IconSymbol name="photo" size={24} color={imagenes.length >= MAX_IMAGES ? colors.textSecondary : colors.primary} />
                 </View>
                 <Text style={[styles.actionButtonText, imagenes.length >= MAX_IMAGES && styles.actionButtonTextDisabled]}>
                   Fotos/Videos
@@ -826,7 +827,7 @@ export default function CrearPublicacionScreen() {
                 activeOpacity={0.7}
               >
                 <View style={[styles.actionIconContainer, { backgroundColor: colors.secondary + '15' }]}>
-                  <IconSymbol ios_icon_name="camera" android_material_icon_name="camera_alt" size={24} color={imagenes.length >= MAX_IMAGES ? colors.textSecondary : colors.secondary} />
+                  <IconSymbol name="camera" size={24} color={imagenes.length >= MAX_IMAGES ? colors.textSecondary : colors.secondary} />
                 </View>
                 <Text style={[styles.actionButtonText, imagenes.length >= MAX_IMAGES && styles.actionButtonTextDisabled]}>
                   Cámara
@@ -840,7 +841,7 @@ export default function CrearPublicacionScreen() {
                 activeOpacity={0.7}
               >
                 <View style={[styles.actionIconContainer, { backgroundColor: '#8B5CF6' + '15' }]}>
-                  <IconSymbol ios_icon_name="person.crop.circle.badge.plus" android_material_icon_name="person_add" size={24} color="#8B5CF6" />
+                  <IconSymbol name="person.crop.circle.badge.plus" size={24} color="#8B5CF6" />
                 </View>
                 <Text style={styles.actionButtonText}>
                   Etiquetar
@@ -857,7 +858,7 @@ export default function CrearPublicacionScreen() {
                   {loadingLocation ? (
                     <ActivityIndicator size="small" color="#EF4444" />
                   ) : (
-                    <IconSymbol ios_icon_name="mappin.and.ellipse" android_material_icon_name="location_on" size={24} color="#EF4444" />
+                    <IconSymbol name="mappin.and.ellipse" size={24} color="#EF4444" />
                   )}
                 </View>
                 <Text style={styles.actionButtonText}>
@@ -896,12 +897,12 @@ export default function CrearPublicacionScreen() {
                   }} 
                   activeOpacity={0.7}
                 >
-                  <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
+                  <IconSymbol name="xmark" size={24} color={colors.text} />
                 </TouchableOpacity>
               </View>
 
               <View style={styles.tagSearchContainer}>
-                <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
+                <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
                 <TextInput
                   style={styles.tagSearchInput}
                   placeholder="Buscar..."
@@ -920,7 +921,7 @@ export default function CrearPublicacionScreen() {
                     }} 
                     activeOpacity={0.7}
                   >
-                    <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={20} color={colors.textSecondary} />
+                    <IconSymbol name="xmark.circle.fill" size={20} color={colors.textSecondary} />
                   </TouchableOpacity>
                 )}
               </View>
@@ -949,8 +950,7 @@ export default function CrearPublicacionScreen() {
                         ) : (
                           <View style={[styles.tagSuggestionAvatar, styles.avatarPlaceholder]}>
                             <IconSymbol 
-                              ios_icon_name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
-                              android_material_icon_name={item.tipo === 'local' ? 'business' : 'person'}
+                              name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'} 
                               size={20} 
                               color={colors.textSecondary} 
                             />
@@ -962,13 +962,13 @@ export default function CrearPublicacionScreen() {
                             {item.tipo === 'local' ? '🏢 Local' : `@${item.username}`}
                           </Text>
                         </View>
-                        <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={24} color={colors.primary} />
+                        <IconSymbol name="plus.circle.fill" size={24} color={colors.primary} />
                       </TouchableOpacity>
                     ))}
                   </React.Fragment>
                 ) : tagSearchQuery.length >= 1 ? (
                   <View style={styles.tagEmptyState}>
-                    <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={48} color={colors.textSecondary} />
+                    <IconSymbol name="magnifyingglass" size={48} color={colors.textSecondary} />
                     <Text style={styles.tagEmptyText}>No se encontraron resultados</Text>
                     <Text style={styles.tagEmptySubtext}>
                       Intenta con otro nombre
@@ -976,7 +976,7 @@ export default function CrearPublicacionScreen() {
                   </View>
                 ) : (
                   <View style={styles.tagEmptyState}>
-                    <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={48} color={colors.textSecondary} />
+                    <IconSymbol name="person.2.fill" size={48} color={colors.textSecondary} />
                     <Text style={styles.tagEmptyText}>Busca personas o locales</Text>
                     <Text style={styles.tagEmptySubtext}>
                       Escribe para ver resultados
@@ -1080,6 +1080,11 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: '600',
     flex: 1,
+  },
+  autocompleteWrapper: {
+    paddingHorizontal: 16,
+    marginTop: 12,
+    zIndex: 1000,
   },
   imagesPreviewSection: {
     backgroundColor: colors.cardBackground,

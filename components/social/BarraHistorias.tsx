@@ -10,16 +10,12 @@ interface BarraHistoriasProps {
   historias: Historia[];
   onHistoriaPress: (historia: Historia) => void;
   onCrearHistoria?: () => void;
-  userAvatar?: string;
-  userName?: string;
 }
 
 export default function BarraHistorias({
   historias,
   onHistoriaPress,
   onCrearHistoria,
-  userAvatar,
-  userName = 'Tu historia',
 }: BarraHistoriasProps) {
   return (
     <View style={styles.container}>
@@ -28,60 +24,50 @@ export default function BarraHistorias({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Create story */}
+        {/* Crear historia - Avatar unificado con botón de añadir */}
         {onCrearHistoria && (
-          <TouchableOpacity style={styles.storyContainer} onPress={onCrearHistoria} activeOpacity={0.7}>
-            <View style={styles.createStoryWrapper}>
-              {userAvatar ? (
-                <Image source={{ uri: userAvatar }} style={styles.createStoryImage} />
-              ) : (
-                <View style={[styles.createStoryImage, styles.avatarPlaceholder]}>
-                  <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={32} color={colors.textSecondary} />
-                </View>
-              )}
-              <View style={styles.addButton}>
-                <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={18} color={colors.headerText} />
+          <TouchableOpacity style={styles.crearHistoria} onPress={onCrearHistoria}>
+            <View style={styles.avatarWithAddButton}>
+              <View style={styles.avatarBackground}>
+                <IconSymbol name="person.fill" size={32} color={colors.textSecondary} />
+              </View>
+              <View style={styles.addButtonOverlay}>
+                <IconSymbol name="plus.circle.fill" size={24} color={colors.primary} />
               </View>
             </View>
-            <Text style={styles.storyName} numberOfLines={1}>
-              Tu historia
-            </Text>
+            <Text style={styles.crearText}>Tu historia</Text>
           </TouchableOpacity>
         )}
 
-        {/* Stories */}
+        {/* Historias */}
         {historias.map((historia) => {
+          // FIXED: Check if the story has been viewed by the current user
           const hasBeenViewed = historia.visto_por_usuario === true;
-          const storyAvatar = historia.autorAvatar || historia.autor?.avatar;
-          const storyName = historia.autorNombre || historia.autor?.nombre || 'Usuario';
           
           return (
             <TouchableOpacity
               key={historia.id}
-              style={styles.storyContainer}
+              style={styles.historiaContainer}
               onPress={() => onHistoriaPress(historia)}
-              activeOpacity={0.7}
             >
               <LinearGradient
-                colors={hasBeenViewed ? ['#D1D5DB', '#D1D5DB'] : ['#F59E0B', '#EF4444', '#EC4899']}
+                colors={hasBeenViewed ? ['#E5E7EB', '#E5E7EB'] : ['#FFD700', '#00FF00']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
-                style={styles.storyGradient}
+                style={styles.historiaGradient}
               >
-                <View style={styles.storyImageContainer}>
-                  {storyAvatar ? (
-                    <Image source={{ uri: storyAvatar }} style={styles.storyImage} />
+                <View style={styles.historiaImageContainer}>
+                  {historia.autorAvatar ? (
+                    <Image source={{ uri: historia.autorAvatar }} style={styles.historiaImage} />
                   ) : (
-                    <View style={styles.storyPlaceholder}>
-                      <Text style={styles.storyPlaceholderText}>
-                        {storyName.charAt(0).toUpperCase()}
-                      </Text>
+                    <View style={styles.historiaPlaceholder}>
+                      <IconSymbol name="person.fill" size={24} color={colors.textSecondary} />
                     </View>
                   )}
                 </View>
               </LinearGradient>
-              <Text style={styles.storyName} numberOfLines={1}>
-                {storyName}
+              <Text style={styles.historiaNombre} numberOfLines={1}>
+                {historia.autorNombre}
               </Text>
             </TouchableOpacity>
           );
@@ -94,86 +80,86 @@ export default function BarraHistorias({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: colors.cardBackground,
-    borderBottomWidth: 0.5,
+    borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
-    paddingVertical: 16,
+    paddingVertical: 12,
   },
   scrollContent: {
     paddingHorizontal: 12,
-    gap: 16,
+    gap: 12,
   },
-  storyContainer: {
+  crearHistoria: {
     alignItems: 'center',
-    width: 80,
+    width: 72,
   },
-  createStoryWrapper: {
-    width: 80,
-    height: 80,
+  avatarWithAddButton: {
+    width: 68,
+    height: 68,
     position: 'relative',
     marginBottom: 6,
   },
-  createStoryImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: colors.cardBorder,
-    borderWidth: 3,
-    borderColor: colors.cardBackground,
-  },
-  avatarPlaceholder: {
+  avatarBackground: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: colors.cardBackground,
+    borderWidth: 2,
+    borderColor: colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.background,
+    overflow: 'hidden',
   },
-  addButton: {
+  addButtonOverlay: {
     position: 'absolute',
     bottom: 0,
     right: 0,
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: colors.cardBackground,
+    zIndex: 1,
   },
-  storyGradient: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    padding: 3,
+  crearText: {
+    fontSize: 12,
+    color: colors.text,
+    textAlign: 'center',
+  },
+  historiaContainer: {
+    alignItems: 'center',
+    width: 72,
+  },
+  historiaGradient: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    padding: 2,
     marginBottom: 6,
   },
-  storyImageContainer: {
+  historiaImageContainer: {
     width: '100%',
     height: '100%',
-    borderRadius: 37,
+    borderRadius: 32,
     overflow: 'hidden',
     borderWidth: 3,
     borderColor: colors.cardBackground,
   },
-  storyImage: {
+  historiaImage: {
     width: '100%',
     height: '100%',
     backgroundColor: colors.cardBorder,
   },
-  storyPlaceholder: {
+  historiaPlaceholder: {
     width: '100%',
     height: '100%',
-    backgroundColor: colors.primary,
+    backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  storyPlaceholderText: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: colors.headerText,
-  },
-  storyName: {
+  historiaNombre: {
     fontSize: 12,
     color: colors.text,
     textAlign: 'center',
-    fontWeight: '400',
   },
 });
