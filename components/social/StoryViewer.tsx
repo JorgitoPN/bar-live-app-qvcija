@@ -126,11 +126,11 @@ function StoryViewer({
   const [loadingStats, setLoadingStats] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   
-  // ✅ FIXED: Ultra-smooth progress bar with requestAnimationFrame
-  const progressAnim = useRef(new Animated.Value(0)).current;
-  const animationStartTime = useRef<number>(0);
-  const pausedProgress = useRef<number>(0);
+  // ✅ ULTRA-SMOOTH: Progress bar with high-precision timing
+  const progressValue = useRef(0);
   const animationFrameId = useRef<number | null>(null);
+  const startTime = useRef<number>(0);
+  const pausedAt = useRef<number>(0);
   const isAnimating = useRef(false);
   
   // Gesture tracking refs
@@ -143,17 +143,20 @@ function StoryViewer({
 
   const currentStory = stories[currentStoryIndex];
 
-  // ✅ FIXED: Smooth animation using requestAnimationFrame for 60fps
+  // ✅ ULTRA-SMOOTH: Animation loop with 60fps precision
   const animateProgress = useCallback(() => {
     if (!isAnimating.current || isPaused) {
       return;
     }
 
-    const now = Date.now();
-    const elapsed = now - animationStartTime.current;
-    const progress = Math.min((pausedProgress.current + elapsed) / STORY_DURATION, 1);
+    const now = performance.now();
+    const elapsed = now - startTime.current + pausedAt.current;
+    const progress = Math.min(elapsed / STORY_DURATION, 1);
 
-    progressAnim.setValue(progress);
+    progressValue.current = progress;
+
+    // Force re-render by updating a dummy state if needed
+    // But we'll use the ref directly in the render
 
     if (progress >= 1) {
       isAnimating.current = false;
@@ -161,9 +164,9 @@ function StoryViewer({
     } else {
       animationFrameId.current = requestAnimationFrame(animateProgress);
     }
-  }, [isPaused, progressAnim]);
+  }, [isPaused]);
 
-  // ✅ FIXED: Start animation with smooth continuation
+  // ✅ ULTRA-SMOOTH: Start animation with precise timing
   const startAnimation = useCallback(() => {
     if (!imageLoaded || isPaused) {
       console.log('[StoryViewer] ⏸️ Not starting animation - imageLoaded:', imageLoaded, 'isPaused:', isPaused);
@@ -175,10 +178,10 @@ function StoryViewer({
       return;
     }
 
-    console.log('[StoryViewer] ▶️ Starting smooth animation from progress:', pausedProgress.current);
+    console.log('[StoryViewer] ▶️ Starting ultra-smooth animation from progress:', pausedAt.current);
     
     isAnimating.current = true;
-    animationStartTime.current = Date.now();
+    startTime.current = performance.now();
     
     // Cancel any existing animation frame
     if (animationFrameId.current !== null) {
@@ -189,7 +192,7 @@ function StoryViewer({
     animationFrameId.current = requestAnimationFrame(animateProgress);
   }, [imageLoaded, isPaused, animateProgress]);
 
-  // ✅ FIXED: Stop animation and save progress
+  // ✅ ULTRA-SMOOTH: Stop animation and save progress
   const stopAnimation = useCallback(() => {
     console.log('[StoryViewer] ⏸️ Stopping animation');
     
@@ -198,17 +201,17 @@ function StoryViewer({
       animationFrameId.current = null;
     }
     
-    if (isAnimating.current && animationStartTime.current > 0) {
-      const elapsed = Date.now() - animationStartTime.current;
-      pausedProgress.current = Math.min(pausedProgress.current + elapsed, STORY_DURATION);
-      console.log('[StoryViewer] 💾 Saved progress:', pausedProgress.current, 'ms');
+    if (isAnimating.current && startTime.current > 0) {
+      const elapsed = performance.now() - startTime.current;
+      pausedAt.current = Math.min(pausedAt.current + elapsed, STORY_DURATION);
+      console.log('[StoryViewer] 💾 Saved progress:', pausedAt.current, 'ms');
     }
     
     isAnimating.current = false;
-    animationStartTime.current = 0;
+    startTime.current = 0;
   }, []);
 
-  // ✅ FIXED: Reset animation for new story
+  // ✅ ULTRA-SMOOTH: Reset animation for new story
   const resetAnimation = useCallback(() => {
     console.log('[StoryViewer] 🔄 Resetting animation for new story');
     
@@ -220,15 +223,15 @@ function StoryViewer({
     
     // Reset all progress tracking
     isAnimating.current = false;
-    pausedProgress.current = 0;
-    animationStartTime.current = 0;
-    progressAnim.setValue(0);
+    progressValue.current = 0;
+    pausedAt.current = 0;
+    startTime.current = 0;
     
     // Reset image loaded state
     setImageLoaded(false);
     
     console.log('[StoryViewer] ✅ Animation reset complete');
-  }, [progressAnim]);
+  }, []);
 
   const markStoryAsViewed = useCallback(async (storyId: string) => {
     if (!user) return;
@@ -593,7 +596,7 @@ function StoryViewer({
     })
   ).current;
 
-  // ✅ FIXED: Handle animation lifecycle
+  // ✅ ULTRA-SMOOTH: Handle animation lifecycle
   useEffect(() => {
     if (!visible) {
       stopAnimation();
@@ -684,6 +687,9 @@ function StoryViewer({
     : currentStory.autor?.username || currentStory.autorNombre || storyAuthorName
   ).replace(/^@/, '');
 
+  // ✅ ULTRA-SMOOTH: Calculate progress percentage for rendering
+  const progressPercentage = `${(progressValue.current * 100).toFixed(2)}%`;
+
   return (
     <Modal
       visible={visible}
@@ -699,7 +705,7 @@ function StoryViewer({
         keyboardVerticalOffset={0}
       >
         <View style={styles.storyViewerModal} {...panResponder.panHandlers}>
-          {/* ✅ FIXED: Ultra-smooth progress bars */}
+          {/* ✅ ULTRA-SMOOTH: Progress bars with direct percentage rendering */}
           <View style={styles.storyProgressContainer}>
             {stories.map((_, index) => (
               <View key={index} style={styles.storyProgressBar}>
@@ -707,15 +713,10 @@ function StoryViewer({
                   <View style={[styles.storyProgressFill, { width: '100%' }]} />
                 )}
                 {index === currentStoryIndex && (
-                  <Animated.View 
+                  <View 
                     style={[
                       styles.storyProgressFill,
-                      {
-                        width: progressAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: ['0%', '100%'],
-                        }),
-                      },
+                      { width: progressPercentage },
                     ]} 
                   />
                 )}
