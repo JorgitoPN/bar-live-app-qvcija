@@ -5,9 +5,8 @@ import { StyleProp, ViewStyle } from "react-native";
 /**
  * iOS-specific icon component using native SF Symbols.
  * 
- * VERSION v22.0: IMPROVED NULL/UNDEFINED HANDLING
- * - Enhanced null/undefined check for name prop
- * - Returns null silently if name is not provided (no error logging to reduce console noise)
+ * VERSION v21.0: FIXED UNDEFINED NAME ERROR
+ * - Added null/undefined check for name prop before calling includes()
  * - Active icons: Uses filled icon name (with .fill suffix) passed from TabIcon
  * - Inactive icons: Uses outlined icon name (without .fill suffix) passed from TabIcon
  * - Pure white (#FFFFFF) at 100% opacity for both states
@@ -23,7 +22,7 @@ export function IconSymbol({
   weight = "regular",
   fill,
 }: {
-  name?: SymbolViewProps["name"];
+  name: SymbolViewProps["name"];
   size?: number;
   color: string;
   style?: StyleProp<ViewStyle>;
@@ -31,8 +30,8 @@ export function IconSymbol({
   fill?: string;
 }) {
   // ✅ FIXED: Check if name is defined before calling includes()
-  // Return null silently if name is not provided
-  if (!name || typeof name !== 'string') {
+  if (!name) {
+    console.error('🚨 [IconSymbol iOS v21.0] ERROR: name prop is undefined or null');
     return null;
   }
 
@@ -41,6 +40,8 @@ export function IconSymbol({
   
   // Use monochrome rendering mode for consistent appearance
   const renderingMode = "monochrome";
+  
+  console.log(`🎨 [IconSymbol iOS v21.0] Rendering "${name}", ${isFilled ? 'FILLED' : 'OUTLINED'}, mode: ${renderingMode}, color: ${color}, size: ${size}`);
   
   return (
     <SymbolView

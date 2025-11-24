@@ -189,8 +189,6 @@ const MAPPING = {
   "arrow.triangle.2.circlepath": "sync",
   "plus.circle.fill": "add-circle",
   "trash.circle.fill": "close-circle",
-  "xmark.circle.fill": "close-circle",
-  "cancel": "close-circle",
   
   // Direct Ionicons mappings for tab navigation
   "home": "home",
@@ -227,9 +225,7 @@ export type IconSymbolName = keyof typeof MAPPING;
  *
  * Icon `name`s are based on SFSymbols and require manual mapping to Ionicons.
  * 
- * VERSION v22.0: IMPROVED NULL/UNDEFINED HANDLING
- * - Enhanced null/undefined check for name prop
- * - Returns null silently if name is not provided or not mapped
+ * VERSION v20.0: Added extensive logging to debug icon rendering
  */
 export function IconSymbol({
   name,
@@ -239,23 +235,21 @@ export function IconSymbol({
   weight = "regular",
   fill,
 }: {
-  name?: IconSymbolName;
+  name: IconSymbolName;
   size?: number;
   color: string | OpaqueColorValue;
   style?: StyleProp<ViewStyle>;
   weight?: SymbolWeight;
   fill?: string;
 }) {
-  // Return null silently if name is not provided
-  if (!name || typeof name !== 'string') {
-    return null;
-  }
-
   const ioniconName = MAPPING[name];
   
   if (!ioniconName) {
+    console.warn(`⚠️ [IconSymbol v20.0] No mapping found for "${name}"`);
     return null;
   }
+  
+  console.log(`🎨 [IconSymbol v20.0 Android/Web] Rendering "${name}" -> "${ioniconName}", size: ${size}, color: ${color}`);
   
   return (
     <Ionicons
