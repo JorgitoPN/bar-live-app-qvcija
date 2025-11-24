@@ -107,6 +107,16 @@ export default function PanelAnalisisScreen() {
   const [selectedRecommendation, setSelectedRecommendation] = useState<AIRecommendation | null>(null);
   const [showRecommendationModal, setShowRecommendationModal] = useState(false);
 
+  const loadAnalyticsDataRef = useRef(loadAnalyticsData);
+  const loadRecommendationsRef = useRef(loadRecommendations);
+  const checkAndGenerateRecommendationsRef = useRef(checkAndGenerateRecommendations);
+
+  useEffect(() => {
+    loadAnalyticsDataRef.current = loadAnalyticsData;
+    loadRecommendationsRef.current = loadRecommendations;
+    checkAndGenerateRecommendationsRef.current = checkAndGenerateRecommendations;
+  }, [loadAnalyticsData, loadRecommendations, checkAndGenerateRecommendations]);
+
   // ✅ AUTO-REFRESH: Load data and recommendations automatically when user accesses the page
   useEffect(() => {
     if (!localId) {
@@ -116,10 +126,10 @@ export default function PanelAnalisisScreen() {
     }
 
     console.log('[PanelAnalisis] 🔄 Auto-loading analytics and recommendations on page access');
-    loadAnalyticsData();
-    loadRecommendations();
+    loadAnalyticsDataRef.current();
+    loadRecommendationsRef.current();
     // ✅ AUTO-GENERATE: If no recommendations exist, generate them automatically
-    checkAndGenerateRecommendations();
+    checkAndGenerateRecommendationsRef.current();
 
     // Real-time synchronization for analytics
     console.log('[PanelAnalisis] 🔄 Setting up real-time subscriptions for local:', localId);

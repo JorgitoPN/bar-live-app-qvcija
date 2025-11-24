@@ -166,90 +166,6 @@ function StoryViewer({
 
   const currentStory = stories[currentStoryIndex];
 
-  // ✅ ULTRA-SMOOTH: Animation loop with direct DOM manipulation (60fps, no re-renders)
-  const animateProgress = useCallback(() => {
-    if (!progressBarRef.current || isPaused) {
-      return;
-    }
-
-    const now = performance.now();
-    const elapsed = now - startTimeRef.current + pausedAtRef.current;
-    const progress = Math.min(elapsed / STORY_DURATION, 1);
-
-    // ✅ Direct DOM manipulation - no state updates, no re-renders, ultra-smooth
-    // @ts-ignore - setNativeProps is available on View
-    progressBarRef.current.setNativeProps({
-      style: { width: `${progress * 100}%` }
-    });
-
-    if (progress >= 1) {
-      // Story completed
-      if (animationFrameId.current !== null) {
-        cancelAnimationFrame(animationFrameId.current);
-        animationFrameId.current = null;
-      }
-      handleNextStory();
-    } else {
-      // Continue animation
-      animationFrameId.current = requestAnimationFrame(animateProgress);
-    }
-  }, [isPaused]);
-
-  // ✅ ULTRA-SMOOTH: Start animation
-  const startAnimation = useCallback(() => {
-    if (!imageLoaded || isPaused) {
-      return;
-    }
-
-    // Cancel any existing animation
-    if (animationFrameId.current !== null) {
-      cancelAnimationFrame(animationFrameId.current);
-      animationFrameId.current = null;
-    }
-
-    // Start new animation
-    startTimeRef.current = performance.now();
-    animationFrameId.current = requestAnimationFrame(animateProgress);
-  }, [imageLoaded, isPaused, animateProgress]);
-
-  // ✅ ULTRA-SMOOTH: Stop animation and save progress
-  const stopAnimation = useCallback(() => {
-    if (animationFrameId.current !== null) {
-      cancelAnimationFrame(animationFrameId.current);
-      animationFrameId.current = null;
-    }
-    
-    // Save current progress
-    if (startTimeRef.current > 0) {
-      const elapsed = performance.now() - startTimeRef.current;
-      pausedAtRef.current = Math.min(pausedAtRef.current + elapsed, STORY_DURATION);
-    }
-  }, []);
-
-  // ✅ ULTRA-SMOOTH: Reset animation for new story
-  const resetAnimation = useCallback(() => {
-    // Stop any running animation
-    if (animationFrameId.current !== null) {
-      cancelAnimationFrame(animationFrameId.current);
-      animationFrameId.current = null;
-    }
-    
-    // Reset all progress tracking
-    startTimeRef.current = 0;
-    pausedAtRef.current = 0;
-    
-    // Reset progress bar to 0
-    if (progressBarRef.current) {
-      // @ts-ignore
-      progressBarRef.current.setNativeProps({
-        style: { width: '0%' }
-      });
-    }
-    
-    // Reset image loaded state
-    setImageLoaded(false);
-  }, []);
-
   const markStoryAsViewed = useCallback(async (storyId: string) => {
     if (!user) return;
 
@@ -285,7 +201,7 @@ function StoryViewer({
     } else {
       onClose();
     }
-  }, [currentStoryIndex, stories.length, currentStory, user, markStoryAsViewed, onClose, resetAnimation, onStoryChange]);
+  }, [currentStoryIndex, stories.length, currentStory, user, markStoryAsViewed, onClose, onStoryChange]);
 
   const handlePreviousStory = useCallback(() => {
     if (currentStoryIndex > 0) {
@@ -296,7 +212,91 @@ function StoryViewer({
     } else {
       onClose();
     }
-  }, [currentStoryIndex, onClose, resetAnimation, onStoryChange]);
+  }, [currentStoryIndex, onClose, onStoryChange]);
+
+  // ✅ ULTRA-SMOOTH: Reset animation for new story
+  const resetAnimation = useCallback(() => {
+    // Stop any running animation
+    if (animationFrameId.current !== null) {
+      cancelAnimationFrame(animationFrameId.current);
+      animationFrameId.current = null;
+    }
+    
+    // Reset all progress tracking
+    startTimeRef.current = 0;
+    pausedAtRef.current = 0;
+    
+    // Reset progress bar to 0
+    if (progressBarRef.current) {
+      // @ts-expect-error - setNativeProps is available on View
+      progressBarRef.current.setNativeProps({
+        style: { width: '0%' }
+      });
+    }
+    
+    // Reset image loaded state
+    setImageLoaded(false);
+  }, []);
+
+  // ✅ ULTRA-SMOOTH: Animation loop with direct DOM manipulation (60fps, no re-renders)
+  const animateProgress = useCallback(() => {
+    if (!progressBarRef.current || isPaused) {
+      return;
+    }
+
+    const now = performance.now();
+    const elapsed = now - startTimeRef.current + pausedAtRef.current;
+    const progress = Math.min(elapsed / STORY_DURATION, 1);
+
+    // ✅ Direct DOM manipulation - no state updates, no re-renders, ultra-smooth
+    // @ts-expect-error - setNativeProps is available on View
+    progressBarRef.current.setNativeProps({
+      style: { width: `${progress * 100}%` }
+    });
+
+    if (progress >= 1) {
+      // Story completed
+      if (animationFrameId.current !== null) {
+        cancelAnimationFrame(animationFrameId.current);
+        animationFrameId.current = null;
+      }
+      handleNextStory();
+    } else {
+      // Continue animation
+      animationFrameId.current = requestAnimationFrame(animateProgress);
+    }
+  }, [isPaused, handleNextStory]);
+
+  // ✅ ULTRA-SMOOTH: Start animation
+  const startAnimation = useCallback(() => {
+    if (!imageLoaded || isPaused) {
+      return;
+    }
+
+    // Cancel any existing animation
+    if (animationFrameId.current !== null) {
+      cancelAnimationFrame(animationFrameId.current);
+      animationFrameId.current = null;
+    }
+
+    // Start new animation
+    startTimeRef.current = performance.now();
+    animationFrameId.current = requestAnimationFrame(animateProgress);
+  }, [imageLoaded, isPaused, animateProgress]);
+
+  // ✅ ULTRA-SMOOTH: Stop animation and save progress
+  const stopAnimation = useCallback(() => {
+    if (animationFrameId.current !== null) {
+      cancelAnimationFrame(animationFrameId.current);
+      animationFrameId.current = null;
+    }
+    
+    // Save current progress
+    if (startTimeRef.current > 0) {
+      const elapsed = performance.now() - startTimeRef.current;
+      pausedAtRef.current = Math.min(pausedAtRef.current + elapsed, STORY_DURATION);
+    }
+  }, []);
 
   const handleStoryLike = useCallback(async () => {
     if (!currentStory || !user) {
@@ -594,6 +594,66 @@ function StoryViewer({
       },
     })
   ).current;
+
+  // ✅ ULTRA-SMOOTH: Animation loop with direct DOM manipulation (60fps, no re-renders)
+  const animateProgress = useCallback(() => {
+    if (!progressBarRef.current || isPaused) {
+      return;
+    }
+
+    const now = performance.now();
+    const elapsed = now - startTimeRef.current + pausedAtRef.current;
+    const progress = Math.min(elapsed / STORY_DURATION, 1);
+
+    // ✅ Direct DOM manipulation - no state updates, no re-renders, ultra-smooth
+    // @ts-expect-error - setNativeProps is available on View
+    progressBarRef.current.setNativeProps({
+      style: { width: `${progress * 100}%` }
+    });
+
+    if (progress >= 1) {
+      // Story completed
+      if (animationFrameId.current !== null) {
+        cancelAnimationFrame(animationFrameId.current);
+        animationFrameId.current = null;
+      }
+      handleNextStory();
+    } else {
+      // Continue animation
+      animationFrameId.current = requestAnimationFrame(animateProgress);
+    }
+  }, [isPaused, handleNextStory]);
+
+  // ✅ ULTRA-SMOOTH: Start animation
+  const startAnimation = useCallback(() => {
+    if (!imageLoaded || isPaused) {
+      return;
+    }
+
+    // Cancel any existing animation
+    if (animationFrameId.current !== null) {
+      cancelAnimationFrame(animationFrameId.current);
+      animationFrameId.current = null;
+    }
+
+    // Start new animation
+    startTimeRef.current = performance.now();
+    animationFrameId.current = requestAnimationFrame(animateProgress);
+  }, [imageLoaded, isPaused, animateProgress]);
+
+  // ✅ ULTRA-SMOOTH: Stop animation and save progress
+  const stopAnimation = useCallback(() => {
+    if (animationFrameId.current !== null) {
+      cancelAnimationFrame(animationFrameId.current);
+      animationFrameId.current = null;
+    }
+    
+    // Save current progress
+    if (startTimeRef.current > 0) {
+      const elapsed = performance.now() - startTimeRef.current;
+      pausedAtRef.current = Math.min(pausedAtRef.current + elapsed, STORY_DURATION);
+    }
+  }, []);
 
   // ✅ ULTRA-SMOOTH: Handle animation lifecycle
   useEffect(() => {

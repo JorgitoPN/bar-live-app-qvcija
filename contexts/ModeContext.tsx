@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from './AuthContext';
 import { supabase } from '@/utils/supabase';
@@ -205,7 +205,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     if (user && (currentMode === 'propietario' || user.rol_app === 'propietario' || user.rol_app === 'admin')) {
       loadOwnedLocals();
     }
-  }, [user, currentMode]);
+  }, [user, currentMode, loadOwnedLocals]);
 
   // Debug effect to log context state changes
   useEffect(() => {
@@ -218,7 +218,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     });
   }, [currentMode, activeProfileId, activeProfileType, activeLocalData, isInitialized]);
 
-  const loadOwnedLocals = async () => {
+  const loadOwnedLocals = useCallback(async () => {
     if (!user) {
       setOwnedLocals([]);
       return;
@@ -261,7 +261,7 @@ export function ModeProvider({ children }: { children: ReactNode }) {
       console.error('[ModeContext] ❌ Error loading owned locals:', error);
       setOwnedLocals([]);
     }
-  };
+  }, [user]);
 
   const setCurrentMode = async (mode: UserMode) => {
     try {

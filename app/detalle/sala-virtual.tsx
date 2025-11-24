@@ -123,7 +123,7 @@ export default function SalaVirtualScreen() {
         }),
       ])
     ).start();
-  }, []);
+  }, [pulseAnim]);
 
   const loadData = useCallback(async () => {
     try {

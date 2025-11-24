@@ -30,7 +30,7 @@ export default function UploadProgressModal({
       duration: 300,
       useNativeDriver: false,
     }).start();
-  }, [progress]);
+  }, [progress, progressAnim]);
 
   const progressWidth = progressAnim.interpolate({
     inputRange: [0, 100],

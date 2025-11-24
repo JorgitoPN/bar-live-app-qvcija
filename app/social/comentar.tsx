@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -41,7 +41,7 @@ export default function ComentarScreen() {
 
   useEffect(() => {
     loadData();
-  }, [postId, parentCommentId]);
+  }, [postId, parentCommentId, loadData]);
 
   useEffect(() => {
     const keyboardWillShowListener = Keyboard.addListener(
@@ -66,7 +66,7 @@ export default function ComentarScreen() {
     };
   }, []);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const { data: postData, error: postError } = await supabase
         .from('posts')
@@ -94,7 +94,7 @@ export default function ComentarScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [postId, parentCommentId, router]);
 
   const handleSelectMention = (mention: MentionSuggestion, mentionText: string) => {
     console.log('[Comentar] ✅ Selected mention:', mention);

@@ -312,7 +312,7 @@ export default function EventosScreen() {
         },
       ]
     );
-  }, [user, currentMode, cargarEventos, canDeleteEvent]);
+  }, [user, canDeleteEvent, cargarEventos]);
 
   return (
     <View style={commonStyles.container}>
