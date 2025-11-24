@@ -45,6 +45,7 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
   const [showTagsOverlay, setShowTagsOverlay] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const likeAnimation = useRef(new Animated.Value(1)).current;
+  const doubleTapRef = useRef<NodeJS.Timeout | null>(null);
 
   const images = post.imagenes && post.imagenes.length > 0 
     ? post.imagenes 
@@ -139,10 +140,9 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
   }, [post.id]);
 
   const handleLike = () => {
-    // Animate like button
     Animated.sequence([
       Animated.timing(likeAnimation, {
-        toValue: 1.3,
+        toValue: 1.2,
         duration: 100,
         useNativeDriver: true,
       }),
@@ -156,6 +156,21 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
     setLiked(!liked);
     setLikesCount(liked ? likesCount - 1 : likesCount + 1);
     if (onLike) onLike();
+  };
+
+  const handleDoubleTap = () => {
+    if (doubleTapRef.current) {
+      clearTimeout(doubleTapRef.current);
+      doubleTapRef.current = null;
+      
+      if (!liked) {
+        handleLike();
+      }
+    } else {
+      doubleTapRef.current = setTimeout(() => {
+        doubleTapRef.current = null;
+      }, 300);
+    }
   };
 
   const formatearFecha = (fecha: string) => {
@@ -196,10 +211,9 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
     }
   };
 
-  // ✅ Get display username WITHOUT @ symbol
   const displayUsername = post.tipo === 'local' 
-    ? post.autorNombre // Locals use their name
-    : post.autor?.username || post.autorNombre; // Users should have username
+    ? post.autorNombre
+    : post.autor?.username || post.autorNombre;
 
   return (
     <View style={styles.card}>
@@ -219,7 +233,7 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
           <Image source={{ uri: post.autorAvatar }} style={styles.avatar} />
         ) : (
           <View style={styles.avatarPlaceholder}>
-            <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={20} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={18} color={colors.textSecondary} />
           </View>
         )}
         <View style={styles.headerContent}>
@@ -253,8 +267,8 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
             {images.map((imageUrl, index) => (
               <TouchableOpacity
                 key={index}
-                activeOpacity={0.95}
-                onPress={handleImagePress}
+                activeOpacity={1}
+                onPress={handleDoubleTap}
                 style={styles.imageContainer}
               >
                 <Image 
@@ -263,9 +277,16 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
                   resizeMode="cover" 
                 />
                 {taggedUsers.length > 0 && index === 0 && (
-                  <View style={styles.tagIconBadge}>
-                    <IconSymbol ios_icon_name="person.crop.circle" android_material_icon_name="person" size={16} color={colors.headerText} />
-                  </View>
+                  <TouchableOpacity 
+                    style={styles.tagIconBadge}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      setShowTagsOverlay(true);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <IconSymbol ios_icon_name="person.crop.circle" android_material_icon_name="person" size={14} color={colors.headerText} />
+                  </TouchableOpacity>
                 )}
               </TouchableOpacity>
             ))}
@@ -295,17 +316,17 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
               <IconSymbol
                 ios_icon_name={liked ? 'heart.fill' : 'heart'}
                 android_material_icon_name={liked ? 'favorite' : 'favorite_border'}
-                size={26}
+                size={27}
                 color={liked ? '#EF4444' : colors.text}
               />
             </TouchableOpacity>
           </Animated.View>
 
-          <TouchableOpacity style={styles.accionButton} onPress={onComment} activeOpacity={0.7}>
+          <TouchableOpacity style={styles.accionButton} onPress={() => router.push(`/social/post?id=${post.id}`)} activeOpacity={0.7}>
             <IconSymbol ios_icon_name="bubble.left" android_material_icon_name="chat_bubble_outline" size={26} color={colors.text} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.accionButton} onPress={onShare} activeOpacity={0.7}>
+          <TouchableOpacity style={styles.accionButton} onPress={() => router.push(`/social/post?id=${post.id}&share=true`)} activeOpacity={0.7}>
             <IconSymbol ios_icon_name="paperplane" android_material_icon_name="send" size={26} color={colors.text} />
           </TouchableOpacity>
         </View>
@@ -437,7 +458,7 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.cardBackground,
-    marginBottom: 8,
+    marginBottom: 1,
   },
   header: {
     flexDirection: 'row',
@@ -506,7 +527,7 @@ const styles = StyleSheet.create({
   },
   imageIndicatorContainer: {
     position: 'absolute',
-    top: 12,
+    bottom: 12,
     left: 0,
     right: 0,
     flexDirection: 'row',
@@ -521,7 +542,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.5)',
   },
   imageIndicatorDotActive: {
-    backgroundColor: 'rgba(255, 255, 255, 1)',
+    backgroundColor: colors.primary,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
   },
   acciones: {
     flexDirection: 'row',

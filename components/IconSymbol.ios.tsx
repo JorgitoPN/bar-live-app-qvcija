@@ -5,10 +5,12 @@ import { StyleProp, ViewStyle } from "react-native";
 /**
  * iOS-specific icon component using native SF Symbols.
  * 
- * VERSION v21.0: FIXED UNDEFINED NAME ERROR
- * - Added null/undefined check for name prop before calling includes()
- * - Active icons: Uses filled icon name (with .fill suffix) passed from TabIcon
- * - Inactive icons: Uses outlined icon name (without .fill suffix) passed from TabIcon
+ * VERSION v22.0: ENHANCED ERROR HANDLING
+ * - Added comprehensive null/undefined checks
+ * - Returns null gracefully when name is invalid
+ * - Logs detailed error information for debugging
+ * - Active icons: Uses filled icon name (with .fill suffix)
+ * - Inactive icons: Uses outlined icon name (without .fill suffix)
  * - Pure white (#FFFFFF) at 100% opacity for both states
  * - NO transparency, NO filters - icons are fully opaque and bright
  * - Visual distinction comes from different SF Symbol names (.fill suffix)
@@ -21,34 +23,47 @@ export function IconSymbol({
   style,
   weight = "regular",
   fill,
+  ios_icon_name,
+  android_material_icon_name,
 }: {
-  name: SymbolViewProps["name"];
+  name?: SymbolViewProps["name"];
   size?: number;
   color: string;
   style?: StyleProp<ViewStyle>;
   weight?: SymbolWeight;
   fill?: string;
+  ios_icon_name?: string;
+  android_material_icon_name?: string;
 }) {
-  // ✅ FIXED: Check if name is defined before calling includes()
-  if (!name) {
-    console.error('🚨 [IconSymbol iOS v21.0] ERROR: name prop is undefined or null');
+  // ✅ FIXED: Use ios_icon_name if provided, fallback to name
+  const iconName = ios_icon_name || name;
+  
+  // ✅ FIXED: Enhanced validation with detailed logging
+  if (!iconName || typeof iconName !== 'string' || iconName.trim() === '') {
+    console.error('🚨 [IconSymbol iOS v22.0] ERROR: Invalid icon name', {
+      name,
+      ios_icon_name,
+      android_material_icon_name,
+      type: typeof iconName,
+      value: iconName,
+    });
     return null;
   }
 
   // Determine if this is a filled or outlined icon based on the icon name
-  const isFilled = name.includes('.fill');
+  const isFilled = iconName.includes('.fill');
   
   // Use monochrome rendering mode for consistent appearance
   const renderingMode = "monochrome";
   
-  console.log(`🎨 [IconSymbol iOS v21.0] Rendering "${name}", ${isFilled ? 'FILLED' : 'OUTLINED'}, mode: ${renderingMode}, color: ${color}, size: ${size}`);
+  console.log(`🎨 [IconSymbol iOS v22.0] Rendering "${iconName}", ${isFilled ? 'FILLED' : 'OUTLINED'}, mode: ${renderingMode}, color: ${color}, size: ${size}`);
   
   return (
     <SymbolView
       weight={weight}
       tintColor={color}
       resizeMode="scaleAspectFit"
-      name={name}
+      name={iconName}
       renderingMode={renderingMode}
       style={[
         {

@@ -16,6 +16,7 @@ import {
   GestureResponderEvent,
   PanResponderGestureState,
   KeyboardAvoidingView,
+  StatusBar,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -81,9 +82,9 @@ export default function StoryViewer({
   const storyTimerRef = useRef<NodeJS.Timeout | null>(null);
   const progressAnim = useRef(new Animated.Value(0)).current;
   const touchStartTime = useRef<number>(0);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
 
-  // ✅ FORCE RELOAD - Version check
-  console.log('[StoryViewer] 🔄 Component loaded - Version 3.0 - RESTORED with all fixes');
+  console.log('[StoryViewer] 🔄 Component loaded - Version 4.0 - Instagram-like design');
 
   const currentStory = stories[currentStoryIndex];
 
@@ -99,7 +100,7 @@ export default function StoryViewer({
     if (!user) return;
 
     try {
-      console.log('[StoryViewer] ⚡ INSTANT - Marking story as viewed:', storyId);
+      console.log('[StoryViewer] ⚡ Marking story as viewed:', storyId);
       
       const { data: existingView } = await supabase
         .from('historia_views')
@@ -114,9 +115,7 @@ export default function StoryViewer({
           usuario_id: user.id,
         });
         
-        console.log('[StoryViewer] ✅ Story marked as viewed in database');
-      } else {
-        console.log('[StoryViewer] ℹ️ Story already viewed');
+        console.log('[StoryViewer] ✅ Story marked as viewed');
       }
     } catch (error) {
       console.error('[StoryViewer] Error marking story as viewed:', error);
@@ -158,11 +157,10 @@ export default function StoryViewer({
 
     progressAnim.setValue(0);
 
-    // ✅ FIXED: Use width animation instead of scaleX for smoother progress bar
     Animated.timing(progressAnim, {
       toValue: 1,
       duration: STORY_DURATION,
-      useNativeDriver: false, // Changed to false for width animation
+      useNativeDriver: false,
     }).start(({ finished }) => {
       if (finished && !isPaused) {
         handleNextStory();
@@ -310,11 +308,8 @@ export default function StoryViewer({
     try {
       console.log('[StoryViewer] 📨 Sending story message...');
       
-      // ✅ Respect the chats_check constraint (usuario1_id < usuario2_id)
       const usuario1_id = user.id < currentStory.autor_id ? user.id : currentStory.autor_id;
       const usuario2_id = user.id < currentStory.autor_id ? currentStory.autor_id : user.id;
-      
-      console.log('[StoryViewer] 🔍 Checking for existing chat between:', usuario1_id, 'and', usuario2_id);
       
       const { data: chatExistente, error: chatError } = await supabase
         .from('chats')
@@ -327,7 +322,6 @@ export default function StoryViewer({
       let chatId = chatExistente?.id;
 
       if (!chatId) {
-        console.log('[StoryViewer] ✅ No existing chat found, creating new chat');
         const { data: nuevoChat, error: nuevoChatError } = await supabase
           .from('chats')
           .insert({
@@ -337,14 +331,8 @@ export default function StoryViewer({
           .select()
           .single();
 
-        if (nuevoChatError) {
-          console.error('[StoryViewer] ❌ Error creating chat:', nuevoChatError);
-          throw nuevoChatError;
-        }
+        if (nuevoChatError) throw nuevoChatError;
         chatId = nuevoChat.id;
-        console.log('[StoryViewer] ✅ New chat created:', chatId);
-      } else {
-        console.log('[StoryViewer] ✅ Using existing chat:', chatId);
       }
 
       const { error: mensajeError } = await supabase
@@ -358,12 +346,7 @@ export default function StoryViewer({
           tipo_mensaje: 'texto',
         });
 
-      if (mensajeError) {
-        console.error('[StoryViewer] ❌ Error sending message:', mensajeError);
-        throw mensajeError;
-      }
-
-      console.log('[StoryViewer] ✅ Message sent successfully');
+      if (mensajeError) throw mensajeError;
 
       await supabase.from('notificaciones').insert({
         usuario_id: currentStory.autor_id,
@@ -376,7 +359,7 @@ export default function StoryViewer({
       setStoryMessage('');
       Alert.alert('Éxito', 'Mensaje enviado correctamente');
     } catch (error) {
-      console.error('[StoryViewer] ❌ Error sending story message:', error);
+      console.error('[StoryViewer] Error sending story message:', error);
       Alert.alert('Error', 'No se pudo enviar el mensaje');
     }
   }, [user, currentStory, storyMessage]);
@@ -397,23 +380,18 @@ export default function StoryViewer({
   }, [currentStory, user, router, onClose, stopStoryTimer]);
 
   const handleCloseStoryViewerAndNavigate = useCallback(() => {
-    console.log('[StoryViewer] ✅ Closing story viewer before navigation from stats modal');
     setShowStoryStats(false);
     onClose();
     stopStoryTimer();
   }, [onClose, stopStoryTimer]);
 
-  // ✅ FIXED: Improved Instagram-like story gestures with better detection
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: (_, gestureState) => {
-        // Only respond to significant movements
         return Math.abs(gestureState.dx) > 5 || Math.abs(gestureState.dy) > 5;
       },
       onPanResponderGrant: () => {
-        // ✅ Pause on touch start (tap and hold)
-        console.log('[StoryViewer] 👆 Touch started - pausing story');
         touchStartTime.current = Date.now();
         setIsPaused(true);
         stopStoryTimer();
@@ -423,53 +401,43 @@ export default function StoryViewer({
         const locationX = evt.nativeEvent.locationX;
         const touchDuration = Date.now() - touchStartTime.current;
         
-        console.log('[StoryViewer] 👆 Touch released - dx:', dx, 'dy:', dy, 'locationX:', locationX, 'duration:', touchDuration);
-        
-        // ✅ Swipe down to close (prioritize vertical swipes)
+        // Swipe down to close
         if (dy > 80 && Math.abs(dx) < 80) {
-          console.log('[StoryViewer] ⬇️ Swipe down detected - closing story viewer');
           onClose();
           stopStoryTimer();
           return;
         }
         
-        // ✅ Swipe right to go to previous story
+        // Swipe right to previous
         if (dx > 80 && Math.abs(dy) < 80) {
-          console.log('[StoryViewer] ➡️ Swipe right detected - going to previous story');
           handlePreviousStory();
           setIsPaused(false);
           return;
         }
         
-        // ✅ Swipe left to go to next story
+        // Swipe left to next
         if (dx < -80 && Math.abs(dy) < 80) {
-          console.log('[StoryViewer] ⬅️ Swipe left detected - going to next story');
           handleNextStory();
           setIsPaused(false);
           return;
         }
         
-        // ✅ Tap detection (short touch with minimal movement)
+        // Tap detection
         if (Math.abs(dx) < 20 && Math.abs(dy) < 20 && touchDuration < 300) {
-          // ✅ Tap left side to go to previous story
           if (locationX < width / 2) {
-            console.log('[StoryViewer] ⏮️ Tap left detected - going to previous story');
             handlePreviousStory();
             setIsPaused(false);
             return;
           }
           
-          // ✅ Tap right side to go to next story
           if (locationX >= width / 2) {
-            console.log('[StoryViewer] ⏭️ Tap right detected - going to next story');
             handleNextStory();
             setIsPaused(false);
             return;
           }
         }
         
-        // ✅ Resume story if no gesture was detected (long press released)
-        console.log('[StoryViewer] ▶️ Resuming story');
+        // Resume story
         setIsPaused(false);
         startStoryTimer();
       },
@@ -504,10 +472,9 @@ export default function StoryViewer({
     (currentStory.tipo === 'local' && activeLocalProfileId === currentStory.local_id)
   );
 
-  // ✅ Get display username for story author WITHOUT @ symbol
   const storyAuthorUsername = currentStory.tipo === 'local' 
-    ? currentStory.autor?.nombre // Locals use their name
-    : currentStory.autor?.username || currentStory.autor?.nombre; // Users should have username
+    ? currentStory.autor?.nombre
+    : currentStory.autor?.username || currentStory.autor?.nombre;
 
   return (
     <Modal
@@ -516,36 +483,39 @@ export default function StoryViewer({
       onRequestClose={onClose}
       statusBarTranslucent
     >
+      <StatusBar barStyle="light-content" backgroundColor="#000" />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={0}
       >
         <View style={styles.storyViewerModal} {...panResponder.panHandlers}>
-          <View style={styles.storyViewerHeader}>
-            <View style={styles.storyProgressContainer}>
-              {stories.map((_, index) => (
-                <View key={index} style={styles.storyProgressBar}>
-                  {index < currentStoryIndex && (
-                    <View style={[styles.storyProgressFill, { width: '100%' }]} />
-                  )}
-                  {index === currentStoryIndex && (
-                    <Animated.View 
-                      style={[
-                        styles.storyProgressFill,
-                        {
-                          width: progressAnim.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: ['0%', '100%'],
-                          }),
-                        },
-                      ]} 
-                    />
-                  )}
-                </View>
-              ))}
-            </View>
+          {/* Progress bars */}
+          <View style={styles.storyProgressContainer}>
+            {stories.map((_, index) => (
+              <View key={index} style={styles.storyProgressBar}>
+                {index < currentStoryIndex && (
+                  <View style={[styles.storyProgressFill, { width: '100%' }]} />
+                )}
+                {index === currentStoryIndex && (
+                  <Animated.View 
+                    style={[
+                      styles.storyProgressFill,
+                      {
+                        width: progressAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['0%', '100%'],
+                        }),
+                      },
+                    ]} 
+                  />
+                )}
+              </View>
+            ))}
+          </View>
 
+          {/* Header */}
+          <View style={styles.storyHeader}>
             <TouchableOpacity 
               style={styles.storyAutorInfo}
               onPress={handleNavigateToStoryAuthorProfile}
@@ -560,83 +530,95 @@ export default function StoryViewer({
                   </Text>
                 </View>
               )}
-              <Text style={styles.storyAutorNombre}>
-                {storyAuthorUsername}
-              </Text>
+              <View style={styles.storyAutorTextContainer}>
+                <Text style={styles.storyAutorNombre}>
+                  {storyAuthorUsername}
+                </Text>
+                <Text style={styles.storyTime}>
+                  {formatStoryTime(currentStory.created_at)}
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.storyCloseButton}
+              onPress={onClose}
+              activeOpacity={0.7}
+            >
+              <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color="#fff" />
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity
-            style={styles.storyCloseButton}
-            onPress={onClose}
-            activeOpacity={0.7}
-          >
-            <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={20} color="#fff" />
-          </TouchableOpacity>
-
+          {/* Story content */}
           <View style={styles.storyContent}>
             <Image source={{ uri: currentStory.imagen }} style={styles.storyImage} resizeMode="contain" />
           </View>
 
+          {/* Owner controls */}
           {isCurrentStoryOwner && (
-            <View style={styles.storyBottomLeftControls}>
+            <View style={styles.storyOwnerControls}>
               <TouchableOpacity
-                style={styles.storyStatsButtonBottom}
+                style={styles.storyControlButton}
                 onPress={handleViewStoryStats}
                 activeOpacity={0.7}
               >
-                <IconSymbol ios_icon_name="eye.fill" android_material_icon_name="visibility" size={24} color="#fff" />
+                <IconSymbol ios_icon_name="eye.fill" android_material_icon_name="visibility" size={20} color="#fff" />
+                <Text style={styles.storyControlText}>
+                  {currentStory.views_count || 0}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.storyDeleteButtonBottom}
+                style={styles.storyControlButton}
                 onPress={handleDeleteStory}
                 activeOpacity={0.7}
               >
-                <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={24} color="#fff" />
+                <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={20} color="#fff" />
               </TouchableOpacity>
             </View>
           )}
 
+          {/* Viewer interaction bar */}
           {!isCurrentStoryOwner && (
             <View style={styles.storyInteractionBar}>
+              <View style={styles.storyMessageInputContainer}>
+                <TextInput
+                  style={styles.storyMessageInput}
+                  placeholder={`Enviar mensaje a ${storyAuthorUsername}...`}
+                  placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                  value={storyMessage}
+                  onChangeText={setStoryMessage}
+                  onFocus={() => {
+                    setIsPaused(true);
+                    stopStoryTimer();
+                  }}
+                  onBlur={() => {
+                    setIsPaused(false);
+                    startStoryTimer();
+                  }}
+                />
+                {storyMessage.trim().length > 0 && (
+                  <TouchableOpacity
+                    style={styles.storySendButton}
+                    onPress={handleSendStoryMessage}
+                    activeOpacity={0.7}
+                  >
+                    <IconSymbol ios_icon_name="paperplane.fill" android_material_icon_name="send" size={18} color={colors.primary} />
+                  </TouchableOpacity>
+                )}
+              </View>
+
               <TouchableOpacity
-                style={styles.storyInteractionButton}
+                style={styles.storyLikeButton}
                 onPress={handleStoryLike}
                 activeOpacity={0.7}
               >
                 <IconSymbol
                   ios_icon_name={currentStory.liked_by_user ? 'heart.fill' : 'heart'}
                   android_material_icon_name={currentStory.liked_by_user ? 'favorite' : 'favorite_border'}
-                  size={20}
+                  size={24}
                   color={currentStory.liked_by_user ? '#EF4444' : '#fff'}
                 />
               </TouchableOpacity>
-
-              <TextInput
-                style={styles.storyMessageInput}
-                placeholder="Enviar mensaje..."
-                placeholderTextColor="rgba(255, 255, 255, 0.6)"
-                value={storyMessage}
-                onChangeText={setStoryMessage}
-                onFocus={() => {
-                  setIsPaused(true);
-                  stopStoryTimer();
-                }}
-                onBlur={() => {
-                  setIsPaused(false);
-                  startStoryTimer();
-                }}
-              />
-
-              {storyMessage.trim().length > 0 && (
-                <TouchableOpacity
-                  style={styles.storySendButton}
-                  onPress={handleSendStoryMessage}
-                  activeOpacity={0.7}
-                >
-                  <IconSymbol ios_icon_name="paperplane.fill" android_material_icon_name="send" size={20} color="#fff" />
-                </TouchableOpacity>
-              )}
             </View>
           )}
 
@@ -661,46 +643,67 @@ export default function StoryViewer({
   );
 }
 
+function formatStoryTime(timestamp: string): string {
+  const now = new Date();
+  const storyDate = new Date(timestamp);
+  const diffMs = now.getTime() - storyDate.getTime();
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+
+  if (diffMinutes < 1) return 'Ahora';
+  if (diffMinutes < 60) return `${diffMinutes}m`;
+  if (diffHours < 24) return `${diffHours}h`;
+  return '1d';
+}
+
 const styles = StyleSheet.create({
   storyViewerModal: {
     flex: 1,
     backgroundColor: '#000',
   },
-  storyViewerHeader: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    paddingTop: Platform.OS === 'ios' ? 50 : 40,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
   storyProgressContainer: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 50 : 40,
+    left: 8,
+    right: 8,
     flexDirection: 'row',
     gap: 4,
-    marginBottom: 12,
+    zIndex: 10,
   },
   storyProgressBar: {
     flex: 1,
-    height: 3,
+    height: 2,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 1.5,
+    borderRadius: 1,
     overflow: 'hidden',
   },
   storyProgressFill: {
     height: '100%',
     backgroundColor: '#fff',
   },
+  storyHeader: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 60 : 50,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    zIndex: 10,
+  },
   storyAutorInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   storyAutorAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    marginRight: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginRight: 8,
+    borderWidth: 2,
+    borderColor: '#fff',
   },
   avatarPlaceholder: {
     backgroundColor: colors.primary,
@@ -708,49 +711,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatarText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
     color: colors.headerText,
   },
-  storyAutorNombre: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
+  storyAutorTextContainer: {
     flex: 1,
   },
+  storyAutorNombre: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  storyTime: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginTop: 2,
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
   storyCloseButton: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 50 : 40,
-    right: 16,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 20,
-  },
-  storyBottomLeftControls: {
-    position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 40 : 20,
-    left: 16,
-    flexDirection: 'row',
-    gap: 16,
-    zIndex: 10,
-  },
-  storyStatsButtonBottom: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  storyDeleteButtonBottom: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -763,43 +751,73 @@ const styles = StyleSheet.create({
     width: width,
     height: height,
   },
+  storyOwnerControls: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 50 : 30,
+    left: 16,
+    flexDirection: 'row',
+    gap: 12,
+    zIndex: 10,
+  },
+  storyControlButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  storyControlText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
   storyInteractionBar: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
     paddingBottom: Platform.OS === 'ios' ? 34 : 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
+    gap: 12,
     zIndex: 10,
   },
-  storyInteractionButton: {
+  storyMessageInputContainer: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
   storyMessageInput: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
     color: '#fff',
     fontSize: 14,
+    paddingRight: 8,
   },
   storySendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.primary,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  storyLikeButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
