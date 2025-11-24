@@ -133,8 +133,7 @@ function StoryViewer({
   const progressRefs = useRef<(View | null)[]>([]);
   const animationFrameId = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
-  const pausedAtRef = useRef<number>(0);
-  const totalPausedTimeRef = useRef<number>(0);
+  const elapsedTimeRef = useRef<number>(0);
   const isPausedRef = useRef<boolean>(false);
   
   // Gesture tracking refs
@@ -200,12 +199,12 @@ function StoryViewer({
     }
 
     const now = performance.now();
+    const elapsed = now - startTimeRef.current;
+    elapsedTimeRef.current = elapsed;
     
-    // Calculate elapsed time (excluding paused time)
-    const elapsed = now - startTimeRef.current - totalPausedTimeRef.current;
     const progress = Math.min(elapsed / STORY_DURATION, 1);
 
-    // ✅ Update current progress bar with direct DOM manipulation
+    // ✅ Update current progress bar with direct DOM manipulation for 60fps
     const currentProgressBar = progressRefs.current[currentStoryIndex];
     if (currentProgressBar) {
       // @ts-expect-error - setNativeProps is available on View
@@ -239,17 +238,13 @@ function StoryViewer({
       animationFrameId.current = null;
     }
 
-    // If resuming from pause, calculate total paused time
-    if (pausedAtRef.current > 0) {
-      const pauseDuration = performance.now() - pausedAtRef.current;
-      totalPausedTimeRef.current += pauseDuration;
-      pausedAtRef.current = 0;
-    }
-
-    // Reset timing if starting fresh
-    if (startTimeRef.current === 0) {
+    // Resume from where we paused
+    if (isPausedRef.current) {
+      startTimeRef.current = performance.now() - elapsedTimeRef.current;
+    } else {
+      // Start fresh
       startTimeRef.current = performance.now();
-      totalPausedTimeRef.current = 0;
+      elapsedTimeRef.current = 0;
     }
     
     // Update paused ref
@@ -265,16 +260,14 @@ function StoryViewer({
       cancelAnimationFrame(animationFrameId.current);
       animationFrameId.current = null;
     }
+    isPausedRef.current = true;
   }, []);
 
-  // ✅ Pause animation and track paused time
+  // ✅ Pause animation
   const pauseAnimation = useCallback(() => {
     if (animationFrameId.current !== null) {
       cancelAnimationFrame(animationFrameId.current);
       animationFrameId.current = null;
-      
-      // Track when we paused
-      pausedAtRef.current = performance.now();
       isPausedRef.current = true;
     }
   }, []);
@@ -289,8 +282,7 @@ function StoryViewer({
     
     // Reset all progress tracking
     startTimeRef.current = 0;
-    pausedAtRef.current = 0;
-    totalPausedTimeRef.current = 0;
+    elapsedTimeRef.current = 0;
     isPausedRef.current = false;
     
     // Reset all progress bars
@@ -445,9 +437,7 @@ function StoryViewer({
     setSendingMessage(true);
     
     // Show success alert INSTANTLY
-    setTimeout(() => {
-      Alert.alert('Éxito', 'Mensaje enviado correctamente');
-    }, 0);
+    Alert.alert('Éxito', 'Mensaje enviado correctamente');
 
     try {
       console.log('[StoryViewer] 📨 Sending story message to author:', currentStory.autor_id);
@@ -783,20 +773,15 @@ function StoryViewer({
     (currentStory.tipo === 'local' && activeLocalProfileId === currentStory.local_id)
   );
 
-  // ✅ CRITICAL FIX: Display username correctly
-  // For locals, use the local name directly (no @ symbol)
-  // For users, prioritize username over full name
-  // Username does NOT have @ in database, so we add it for display
+  // ✅ CRITICAL FIX: Display username correctly WITHOUT @ symbol
+  // For locals, use the local name directly
+  // For users, prioritize username over full name, NO @ symbol
   const storyAuthorAvatar = currentStory.autor?.avatar || currentStory.autorAvatar;
   const storyAuthorName = currentStory.autor?.nombre || currentStory.autorNombre || 'Usuario';
   
-  const storyAuthorUsername = currentStory.tipo === 'local' 
+  const displayName = currentStory.tipo === 'local' 
     ? storyAuthorName // For locals, use the local name directly
-    : currentStory.autor?.username 
-      ? `@${currentStory.autor.username}`
-      : currentStory.autorUsername
-        ? `@${currentStory.autorUsername}`
-        : storyAuthorName; // Fallback to full name if no username
+    : (currentStory.autor?.username || currentStory.autorUsername || storyAuthorName).replace(/^@/, ''); // Remove @ if present
 
   return (
     <Modal
@@ -867,7 +852,7 @@ function StoryViewer({
               </View>
               <View style={styles.storyAutorTextContainer}>
                 <Text style={styles.storyAutorNombre}>
-                  {storyAuthorUsername}
+                  {displayName}
                 </Text>
                 <Text style={styles.storyTime}>
                   {formatStoryTime(currentStory.created_at)}
@@ -938,7 +923,7 @@ function StoryViewer({
               <View style={styles.storyMessageInputContainer}>
                 <TextInput
                   style={styles.storyMessageInput}
-                  placeholder={`Enviar mensaje a ${storyAuthorUsername}...`}
+                  placeholder={`Enviar mensaje a ${displayName}...`}
                   placeholderTextColor="rgba(255, 255, 255, 0.5)"
                   value={storyMessage}
                   onChangeText={setStoryMessage}

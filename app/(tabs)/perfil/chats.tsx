@@ -48,6 +48,11 @@ export default function ChatsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  
+  // ✅ NEW: Mass deletion state
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedChats, setSelectedChats] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState(false);
 
   const loadChats = useCallback(async () => {
     if (!user) {
@@ -223,6 +228,79 @@ export default function ChatsScreen() {
     router.push('/chat/nuevo-chat');
   };
 
+  // ✅ NEW: Toggle selection mode
+  const toggleSelectionMode = () => {
+    setSelectionMode(!selectionMode);
+    setSelectedChats(new Set());
+  };
+
+  // ✅ NEW: Toggle chat selection
+  const toggleChatSelection = (chatId: string) => {
+    const newSelected = new Set(selectedChats);
+    if (newSelected.has(chatId)) {
+      newSelected.delete(chatId);
+    } else {
+      newSelected.add(chatId);
+    }
+    setSelectedChats(newSelected);
+  };
+
+  // ✅ NEW: Delete selected conversations
+  const handleDeleteSelected = async () => {
+    if (selectedChats.size === 0) {
+      Alert.alert('Error', 'Selecciona al menos una conversación para eliminar');
+      return;
+    }
+
+    Alert.alert(
+      'Eliminar conversaciones',
+      `¿Estás seguro de que quieres eliminar ${selectedChats.size} conversación(es)? Esta acción no se puede deshacer.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            setDeleting(true);
+            try {
+              const chatIds = Array.from(selectedChats);
+              
+              // Delete all messages for selected chats
+              for (const chatId of chatIds) {
+                await supabase
+                  .from('mensajes')
+                  .delete()
+                  .eq('chat_id', chatId);
+              }
+
+              // Delete the chats
+              const { error } = await supabase
+                .from('chats')
+                .delete()
+                .in('id', chatIds);
+
+              if (error) throw error;
+
+              Alert.alert('Éxito', `${selectedChats.size} conversación(es) eliminada(s) correctamente`);
+              
+              // Reset selection mode
+              setSelectionMode(false);
+              setSelectedChats(new Set());
+              
+              // Reload chats
+              await loadChats();
+            } catch (error) {
+              console.error('[Chats] Error deleting conversations:', error);
+              Alert.alert('Error', 'No se pudieron eliminar algunas conversaciones');
+            } finally {
+              setDeleting(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const formatHora = (fecha: string): string => {
     const now = new Date();
     const messageDate = new Date(fecha);
@@ -254,14 +332,14 @@ export default function ChatsScreen() {
         >
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+              <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Mensajes</Text>
             <View style={{ width: 40 }} />
           </View>
         </LinearGradient>
         <View style={styles.emptyState}>
-          <IconSymbol name="bubble.left.and.bubble.right" size={64} color={colors.textSecondary} />
+          <IconSymbol ios_icon_name="bubble.left.and.bubble.right" android_material_icon_name="chat" size={64} color={colors.textSecondary} />
           <Text style={styles.emptyText}>Inicia sesión para ver tus mensajes</Text>
           <TouchableOpacity
             style={styles.loginButton}
@@ -285,7 +363,7 @@ export default function ChatsScreen() {
         >
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+              <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Mensajes</Text>
             <View style={{ width: 40 }} />
@@ -307,25 +385,54 @@ export default function ChatsScreen() {
         style={styles.header}
       >
         <View style={styles.headerTop}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Mensajes</Text>
-          <TouchableOpacity style={styles.newChatButton} onPress={handleNewChat}>
-            <IconSymbol name="square.and.pencil" size={24} color={colors.headerText} />
-          </TouchableOpacity>
+          {selectionMode ? (
+            <TouchableOpacity onPress={toggleSelectionMode} style={styles.backButton}>
+              <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.headerText} />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
+            </TouchableOpacity>
+          )}
+          <Text style={styles.headerTitle}>
+            {selectionMode ? `${selectedChats.size} seleccionado(s)` : 'Mensajes'}
+          </Text>
+          {selectionMode ? (
+            <TouchableOpacity 
+              style={styles.newChatButton} 
+              onPress={handleDeleteSelected}
+              disabled={deleting || selectedChats.size === 0}
+            >
+              {deleting ? (
+                <ActivityIndicator size="small" color={colors.headerText} />
+              ) : (
+                <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={24} color={colors.headerText} />
+              )}
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.headerActions}>
+              <TouchableOpacity style={styles.headerActionButton} onPress={toggleSelectionMode}>
+                <IconSymbol ios_icon_name="checkmark.circle" android_material_icon_name="check_circle" size={24} color={colors.headerText} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.headerActionButton} onPress={handleNewChat}>
+                <IconSymbol ios_icon_name="square.and.pencil" android_material_icon_name="edit" size={24} color={colors.headerText} />
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
-        <View style={styles.searchContainer}>
-          <IconSymbol name="magnifyingglass" size={18} color={colors.textSecondary} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Buscar conversaciones..."
-            placeholderTextColor={colors.textSecondary}
-            value={busqueda}
-            onChangeText={setBusqueda}
-          />
-        </View>
+        {!selectionMode && (
+          <View style={styles.searchContainer}>
+            <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={18} color={colors.textSecondary} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Buscar conversaciones..."
+              placeholderTextColor={colors.textSecondary}
+              value={busqueda}
+              onChangeText={setBusqueda}
+            />
+          </View>
+        )}
       </LinearGradient>
 
       <ScrollView
@@ -335,20 +442,45 @@ export default function ChatsScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {chatsFiltrados.map((chat) => {
-          // ✅ CRITICAL FIX: Display username with @ symbol for users, local name for locals
-          // Username does NOT have @ in database, so we add it for display
+          // ✅ CRITICAL FIX: Display username WITHOUT @ symbol
+          // For locals, use the local name directly
+          // For users, prioritize username over full name, NO @ symbol
           const displayName = chat.local_id 
             ? chat.otro_usuario.nombre // For locals, use the local name directly
-            : chat.otro_usuario.username 
-              ? `@${chat.otro_usuario.username}` // For users, add @ to username
-              : chat.otro_usuario.nombre; // Fallback to full name
+            : (chat.otro_usuario.username || chat.otro_usuario.nombre).replace(/^@/, ''); // Remove @ if present
+
+          const isSelected = selectedChats.has(chat.id);
 
           return (
             <TouchableOpacity
               key={chat.id}
-              style={styles.chatCard}
-              onPress={() => handleOpenChat(chat.id, !!chat.local_id, chat.local_id || undefined)}
+              style={[styles.chatCard, isSelected && styles.chatCardSelected]}
+              onPress={() => {
+                if (selectionMode) {
+                  toggleChatSelection(chat.id);
+                } else {
+                  handleOpenChat(chat.id, !!chat.local_id, chat.local_id || undefined);
+                }
+              }}
+              onLongPress={() => {
+                if (!selectionMode) {
+                  setSelectionMode(true);
+                  toggleChatSelection(chat.id);
+                }
+              }}
             >
+              {selectionMode && (
+                <View style={styles.selectionIndicator}>
+                  {isSelected ? (
+                    <View style={styles.selectedCircle}>
+                      <IconSymbol ios_icon_name="checkmark" android_material_icon_name="check" size={16} color={colors.headerText} />
+                    </View>
+                  ) : (
+                    <View style={styles.unselectedCircle} />
+                  )}
+                </View>
+              )}
+
               <View style={styles.avatarContainer}>
                 {chat.otro_usuario.avatar ? (
                   <Image source={{ uri: chat.otro_usuario.avatar }} style={styles.avatar} />
@@ -362,7 +494,7 @@ export default function ChatsScreen() {
                 {/* ✅ Show building icon for local chats */}
                 {chat.local_id && (
                   <View style={styles.localBadge}>
-                    <IconSymbol name="building.2" size={12} color={colors.white} />
+                    <IconSymbol ios_icon_name="building.2" android_material_icon_name="business" size={12} color={colors.white} />
                   </View>
                 )}
               </View>
@@ -396,7 +528,8 @@ export default function ChatsScreen() {
         {chatsFiltrados.length === 0 && (
           <View style={styles.emptyState}>
             <IconSymbol
-              name="bubble.left.and.bubble.right"
+              ios_icon_name="bubble.left.and.bubble.right"
+              android_material_icon_name="chat"
               size={64}
               color={colors.textSecondary}
             />
@@ -444,6 +577,16 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'center',
   },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  headerActionButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   newChatButton: {
     width: 40,
     height: 40,
@@ -482,6 +625,28 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     gap: 12,
   },
+  chatCardSelected: {
+    backgroundColor: `${colors.primary}15`,
+    borderColor: colors.primary,
+  },
+  selectionIndicator: {
+    marginRight: 8,
+  },
+  selectedCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  unselectedCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.cardBorder,
+  },
   avatarContainer: {
     position: 'relative',
   },
@@ -501,7 +666,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.headerText,
   },
-  // ✅ NEW: Badge to indicate local chats
+  // ✅ Badge to indicate local chats
   localBadge: {
     position: 'absolute',
     bottom: 0,
