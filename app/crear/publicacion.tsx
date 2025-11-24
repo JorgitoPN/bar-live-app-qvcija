@@ -147,45 +147,49 @@ export default function CrearPublicacionScreen() {
 
       console.log('[CrearPublicacion] 🏢 Searching locals with active subscriptions...');
       
-      const { data: localsData, error: localsError } = await supabase
+      // First get all active locals matching the search
+      const { data: allLocals, error: localsError } = await supabase
         .from('locales')
         .select('id, nombre, imagen_url')
-        .or(`nombre.ilike.%${cleanTexto}%,nombre.ilike.%${fuzzyPattern}%`)
         .eq('activo', true)
-        .limit(20);
+        .or(`nombre.ilike.%${cleanTexto}%,nombre.ilike.%${fuzzyPattern}%`)
+        .limit(100);
 
       if (localsError) {
         console.error('[CrearPublicacion] ❌ Error searching locals:', localsError);
       }
 
       let filteredLocalsData: any[] = [];
-      if (localsData && localsData.length > 0) {
-        const localIds = localsData.map(l => l.id);
+      if (allLocals && allLocals.length > 0) {
+        console.log('[CrearPublicacion] 📊 Found', allLocals.length, 'active locals matching search');
         
-        const { data: subscriptionsData, error: subscriptionsError } = await supabase
+        // Now filter by active subscriptions with premium or estandar plans
+        const localIds = allLocals.map(l => l.id);
+        
+        const { data: activeSubs, error: subsError } = await supabase
           .from('suscripciones_locales')
-          .select(`
-            local_id,
-            estado,
-            plan_id,
-            planes_suscripcion!suscripciones_locales_plan_id_fkey(nombre)
-          `)
+          .select('local_id, plan_id, planes_suscripcion(nombre)')
           .in('local_id', localIds)
           .eq('estado', 'activa');
 
-        if (subscriptionsError) {
-          console.error('[CrearPublicacion] ❌ Error fetching subscriptions:', subscriptionsError);
-        } else if (subscriptionsData) {
-          const validLocalIds = subscriptionsData
-            .filter(sub => {
-              const planName = (sub.planes_suscripcion as any)?.nombre;
-              return planName === 'estandar' || planName === 'premium';
-            })
-            .map(sub => sub.local_id);
-
-          filteredLocalsData = localsData.filter(local => validLocalIds.includes(local.id));
+        if (subsError) {
+          console.error('[CrearPublicacion] ❌ Error checking subscriptions:', subsError);
+        } else if (activeSubs && activeSubs.length > 0) {
+          console.log('[CrearPublicacion] 📊 Found', activeSubs.length, 'active subscriptions');
           
-          console.log('[CrearPublicacion] ✅ Found locals with valid subscriptions:', filteredLocalsData.length);
+          // Filter to only include premium and estandar plans
+          const localsWithActivePlans = new Set<string>();
+          activeSubs.forEach(sub => {
+            const planNombre = (sub.planes_suscripcion as any)?.nombre;
+            console.log('[CrearPublicacion] 🔍 Checking subscription for local:', sub.local_id, 'plan:', planNombre);
+            if (planNombre === 'premium' || planNombre === 'estandar') {
+              localsWithActivePlans.add(sub.local_id);
+            }
+          });
+          
+          console.log('[CrearPublicacion] ✅ Locals with premium/estandar plans:', localsWithActivePlans.size);
+          filteredLocalsData = allLocals.filter(l => localsWithActivePlans.has(l.id));
+          console.log('[CrearPublicacion] ✅ Final filtered locals:', filteredLocalsData.length);
         }
       }
 
@@ -696,23 +700,10 @@ export default function CrearPublicacionScreen() {
             <View style={styles.helperContainer}>
               <IconSymbol ios_icon_name="info.circle" android_material_icon_name="info" size={14} color={colors.primary} />
               <Text style={styles.helperText}>
-                Escribe @ para mencionar usuarios o locales
+                Escribe @ para mencionar usuarios o locales, # para hashtags
               </Text>
             </View>
           </View>
-
-          {/* Autocomplete Components - Positioned right after text input */}
-          <MentionAutocomplete
-            text={contenido}
-            cursorPosition={cursorPosition}
-            onSelectMention={handleSelectInlineMention}
-          />
-
-          <HashtagAutocomplete
-            text={contenido}
-            cursorPosition={cursorPosition}
-            onSelectHashtag={handleSelectInlineHashtag}
-          />
 
           {/* Images Preview */}
           {imagenes.length > 0 && (
@@ -867,6 +858,19 @@ export default function CrearPublicacionScreen() {
             </View>
           </View>
         </ScrollView>
+
+        {/* Autocomplete Components - Positioned above keyboard */}
+        <MentionAutocomplete
+          text={contenido}
+          cursorPosition={cursorPosition}
+          onSelectMention={handleSelectInlineMention}
+        />
+
+        <HashtagAutocomplete
+          text={contenido}
+          cursorPosition={cursorPosition}
+          onSelectHashtag={handleSelectInlineHashtag}
+        />
       </KeyboardAvoidingView>
 
       {/* Tag Modal */}

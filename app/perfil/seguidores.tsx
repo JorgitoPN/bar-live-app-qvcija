@@ -23,7 +23,7 @@ interface Seguidor {
   username?: string;
   avatar?: string;
   bio?: string;
-  tipo: 'usuario' | 'local'; // ✅ NEW: Distinguish between users and locals
+  tipo: 'usuario' | 'local';
 }
 
 const styles = StyleSheet.create({
@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 2,
   },
-  userUsername: {
+  userFullName: {
     fontSize: 14,
     color: colors.textSecondary,
     marginBottom: 4,
@@ -127,7 +127,6 @@ export default function SeguidoresScreen() {
 
   const userId = params.userId as string || user?.id;
 
-  // ✅ UPDATED: Load both user followers and local followers
   const loadSeguidores = useCallback(async () => {
     if (!userId) return;
 
@@ -153,7 +152,7 @@ export default function SeguidoresScreen() {
         console.error('[Seguidores] Error loading user followers:', userError);
       }
 
-      // ✅ NEW: Load local followers (users who favorited locals owned by this user)
+      // Load local followers (users who favorited locals owned by this user)
       const { data: ownedLocals, error: localsError } = await supabase
         .from('locales')
         .select('id')
@@ -232,7 +231,7 @@ export default function SeguidoresScreen() {
   useEffect(() => {
     loadSeguidores();
 
-    // ✅ Subscribe to real-time changes for INSTANT updates
+    // Subscribe to real-time changes for INSTANT updates
     if (userId) {
       const channel = supabase
         .channel(`seguidores-changes-${userId}`)
@@ -321,36 +320,42 @@ export default function SeguidoresScreen() {
       <FlatList
         data={seguidores}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.userItem}
-            onPress={() => handleUserPress(item.id, item.tipo)}
-            activeOpacity={0.7}
-          >
-            {item.avatar ? (
-              <Image source={{ uri: item.avatar }} style={styles.avatar} />
-            ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <Text style={styles.avatarText}>
-                  {item.nombre.charAt(0).toUpperCase()}
-                </Text>
-              </View>
-            )}
-            <View style={styles.userInfo}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={styles.userName}>{item.nombre}</Text>
-              </View>
-              {item.username && (
-                <Text style={styles.userUsername}>@{item.username}</Text>
+        renderItem={({ item }) => {
+          // ✅ UPDATED: Display username as primary identifier
+          const displayUsername = item.username || item.nombre;
+          const showFullName = item.username && item.nombre !== item.username;
+          
+          return (
+            <TouchableOpacity
+              style={styles.userItem}
+              onPress={() => handleUserPress(item.id, item.tipo)}
+              activeOpacity={0.7}
+            >
+              {item.avatar ? (
+                <Image source={{ uri: item.avatar }} style={styles.avatar} />
+              ) : (
+                <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                  <Text style={styles.avatarText}>
+                    {displayUsername.charAt(0).toUpperCase()}
+                  </Text>
+                </View>
               )}
-              {item.bio && (
-                <Text style={styles.userBio} numberOfLines={2}>
-                  {item.bio}
-                </Text>
-              )}
-            </View>
-          </TouchableOpacity>
-        )}
+              <View style={styles.userInfo}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={styles.userName}>{displayUsername}</Text>
+                </View>
+                {showFullName && (
+                  <Text style={styles.userFullName}>{item.nombre}</Text>
+                )}
+                {item.bio && (
+                  <Text style={styles.userBio} numberOfLines={2}>
+                    {item.bio}
+                  </Text>
+                )}
+              </View>
+            </TouchableOpacity>
+          );
+        }}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <IconSymbol name="person.2" size={64} color={colors.textSecondary} />

@@ -9,10 +9,15 @@ import {
   ActivityIndicator,
   Platform,
   FlatList,
+  Keyboard,
+  Dimensions,
+  KeyboardEvent,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export interface MentionSuggestion {
   id: string;
@@ -54,6 +59,33 @@ function deduplicateById(items: any[]): any[] {
   });
 }
 
+/**
+ * Get initials from a name
+ */
+function getInitials(name: string): string {
+  if (!name) return '?';
+  const parts = name.trim().split(' ');
+  if (parts.length === 1) {
+    return parts[0].charAt(0).toUpperCase();
+  }
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
+
+/**
+ * Generate a color based on a string (for avatar backgrounds)
+ */
+function getColorForString(str: string): string {
+  const colors = [
+    '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
+    '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B739', '#52B788',
+  ];
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+}
+
 export default function MentionAutocomplete({
   text,
   cursorPosition,
@@ -64,6 +96,32 @@ export default function MentionAutocomplete({
   const [loading, setLoading] = useState(false);
   const [currentMentionText, setCurrentMentionText] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  // ✅ Listen to keyboard events to adjust positioning
+  useEffect(() => {
+    const keyboardWillShow = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e: KeyboardEvent) => {
+        const height = e.endCoordinates.height;
+        console.log('[MentionAutocomplete] ⌨️ Keyboard showing, height:', height);
+        setKeyboardHeight(height);
+      }
+    );
+
+    const keyboardWillHide = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        console.log('[MentionAutocomplete] ⌨️ Keyboard hiding');
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      keyboardWillShow.remove();
+      keyboardWillHide.remove();
+    };
+  }, []);
 
   const detectMention = useCallback(() => {
     const textBeforeCursor = text.substring(0, cursorPosition);
@@ -73,28 +131,29 @@ export default function MentionAutocomplete({
     console.log('[MentionAutocomplete] Text before cursor:', textBeforeCursor);
     console.log('[MentionAutocomplete] Last @ index:', lastAtIndex);
 
-    // No @ found
+    // ✅ No @ found - close window
     if (lastAtIndex === -1) {
-      console.log('[MentionAutocomplete] ❌ No @ found');
+      console.log('[MentionAutocomplete] ❌ No @ found - closing window');
       setCurrentMentionText(null);
       setIsVisible(false);
       setSuggestions([]);
       return;
     }
 
-    // Get text after @
+    // ✅ Get text after @
     const textAfterAt = textBeforeCursor.substring(lastAtIndex + 1);
     console.log('[MentionAutocomplete] Text after @:', textAfterAt);
 
-    // If there's a space or newline after @, stop
-    if (textAfterAt.includes(' ') || textAfterAt.includes('\n')) {
-      console.log('[MentionAutocomplete] ❌ Space or newline found after @');
+    // ✅ If there's a newline after @, stop (but allow spaces for multi-word names)
+    if (textAfterAt.includes('\n')) {
+      console.log('[MentionAutocomplete] ❌ Newline found after @ - closing window');
       setCurrentMentionText(null);
       setIsVisible(false);
       setSuggestions([]);
       return;
     }
 
+    // ✅ Valid mention detected - show window
     console.log('[MentionAutocomplete] ✅ Valid mention detected:', textAfterAt);
     setCurrentMentionText(textAfterAt);
     setIsVisible(true);
@@ -205,40 +264,90 @@ export default function MentionAutocomplete({
         })));
       }
 
-      // Search locals - SIMPLIFIED: Don't filter by subscription for now
-      console.log('[MentionAutocomplete] 🏢 Searching locals...');
+      // Search locals with active subscription (Estándar or Premium)
+      console.log('[MentionAutocomplete] 🏢 Searching locals with active subscriptions...');
       
       let localsData: any[] = [];
       
       if (cleanQuery.length > 0) {
-        // Search by name
-        const { data: localsByName, error: localsError } = await supabase
+        // First get all active locals matching the search
+        const { data: allLocals, error: localsError } = await supabase
           .from('locales')
           .select('id, nombre, imagen_url')
           .eq('activo', true)
           .ilike('nombre', `%${cleanQuery}%`)
-          .limit(20);
+          .limit(100);
 
         if (localsError) {
           console.error('[MentionAutocomplete] ❌ Error searching locals:', localsError);
-        } else if (localsByName) {
-          console.log('[MentionAutocomplete] ✅ Found locals by name:', localsByName.length);
-          localsData = localsByName;
+        } else if (allLocals && allLocals.length > 0) {
+          console.log('[MentionAutocomplete] 📊 Found', allLocals.length, 'active locals matching search');
+          
+          // Now filter by active subscriptions with premium or estandar plans
+          const localIds = allLocals.map(l => l.id);
+          
+          const { data: activeSubs, error: subsError } = await supabase
+            .from('suscripciones_locales')
+            .select('local_id, plan_id, plan:planes_suscripcion!suscripciones_locales_plan_id_fkey(nombre)')
+            .in('local_id', localIds)
+            .eq('estado', 'activa');
+
+          if (subsError) {
+            console.error('[MentionAutocomplete] ❌ Error checking subscriptions:', subsError);
+          } else if (activeSubs && activeSubs.length > 0) {
+            console.log('[MentionAutocomplete] 📊 Found', activeSubs.length, 'active subscriptions');
+            
+            // Filter to only include premium and estandar plans
+            const localsWithActivePlans = new Set<string>();
+            activeSubs.forEach(sub => {
+              const planNombre = (sub.plan as any)?.nombre;
+              if (planNombre === 'premium' || planNombre === 'estandar') {
+                localsWithActivePlans.add(sub.local_id);
+              }
+            });
+            
+            console.log('[MentionAutocomplete] ✅ Locals with premium/estandar plans:', localsWithActivePlans.size);
+            localsData = allLocals.filter(l => localsWithActivePlans.has(l.id));
+            console.log('[MentionAutocomplete] ✅ Final filtered locals:', localsData.length);
+          }
         }
       } else {
-        // Show recent locals when query is empty
+        // Show recent locals with active subscriptions when query is empty
         const { data: recentLocals, error: recentError } = await supabase
           .from('locales')
           .select('id, nombre, imagen_url')
           .eq('activo', true)
           .order('created_at', { ascending: false })
-          .limit(10);
+          .limit(100);
 
         if (recentError) {
           console.error('[MentionAutocomplete] ❌ Error fetching recent locals:', recentError);
-        } else if (recentLocals) {
-          console.log('[MentionAutocomplete] ✅ Found recent locals:', recentLocals.length);
-          localsData = recentLocals;
+        } else if (recentLocals && recentLocals.length > 0) {
+          console.log('[MentionAutocomplete] 📊 Found', recentLocals.length, 'recent active locals');
+          
+          // Filter by active subscriptions
+          const localIds = recentLocals.map(l => l.id);
+          
+          const { data: activeSubs, error: subsError } = await supabase
+            .from('suscripciones_locales')
+            .select('local_id, plan_id, plan:planes_suscripcion!suscripciones_locales_plan_id_fkey(nombre)')
+            .in('local_id', localIds)
+            .eq('estado', 'activa');
+
+          if (subsError) {
+            console.error('[MentionAutocomplete] ❌ Error checking subscriptions:', subsError);
+          } else if (activeSubs && activeSubs.length > 0) {
+            const localsWithActivePlans = new Set<string>();
+            activeSubs.forEach(sub => {
+              const planNombre = (sub.plan as any)?.nombre;
+              if (planNombre === 'premium' || planNombre === 'estandar') {
+                localsWithActivePlans.add(sub.local_id);
+              }
+            });
+            
+            localsData = recentLocals.filter(l => localsWithActivePlans.has(l.id));
+            console.log('[MentionAutocomplete] ✅ Found', localsData.length, 'recent locals with active plans');
+          }
         }
       }
 
@@ -276,14 +385,9 @@ export default function MentionAutocomplete({
       }
 
       console.log('[MentionAutocomplete] ✅ Total results:', results.length);
-      console.log('[MentionAutocomplete] 📊 Users:', results.filter(r => r.tipo === 'usuario').length, 'Locals:', results.filter(r => r.tipo === 'local').length);
       
       // Final deduplication
       const uniqueResults = deduplicateById(results);
-      
-      if (uniqueResults.length !== results.length) {
-        console.warn('[MentionAutocomplete] ⚠️ Removed', results.length - uniqueResults.length, 'duplicate results');
-      }
       
       console.log('[MentionAutocomplete] 🎯 Setting suggestions:', uniqueResults.length);
       setSuggestions(uniqueResults);
@@ -323,55 +427,75 @@ export default function MentionAutocomplete({
     setCurrentMentionText(null);
   };
 
-  // Don't render if not visible or no mention text
+  // ✅ Don't render if not visible or no mention text
   if (!isVisible || currentMentionText === null) {
     console.log('[MentionAutocomplete] 🚫 Not rendering - isVisible:', isVisible, 'currentMentionText:', currentMentionText);
     return null;
   }
 
-  console.log('[MentionAutocomplete] 🎨 Rendering - loading:', loading, 'suggestions:', suggestions.length);
+  console.log('[MentionAutocomplete] 🎨 Rendering - loading:', loading, 'suggestions:', suggestions.length, 'keyboardHeight:', keyboardHeight);
 
-  const renderItem = ({ item }: { item: MentionSuggestion }) => (
-    <TouchableOpacity
-      style={styles.suggestionItem}
-      onPress={() => handleSelectMention(item)}
-      activeOpacity={0.7}
-    >
-      {item.avatar ? (
-        <Image source={{ uri: item.avatar }} style={styles.avatar} />
-      ) : (
-        <View style={[styles.avatar, styles.avatarPlaceholder]}>
-          <IconSymbol
-            ios_icon_name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
-            android_material_icon_name={item.tipo === 'local' ? 'business' : 'person'}
-            size={18}
-            color={colors.textSecondary}
-          />
+  const renderItem = ({ item }: { item: MentionSuggestion }) => {
+    const avatarColor = getColorForString(item.id);
+    const initials = getInitials(item.nombre);
+
+    return (
+      <TouchableOpacity
+        style={styles.suggestionItem}
+        onPress={() => handleSelectMention(item)}
+        activeOpacity={0.7}
+      >
+        {item.avatar ? (
+          <Image source={{ uri: item.avatar }} style={styles.avatar} />
+        ) : (
+          <View style={[styles.avatar, styles.avatarPlaceholder, { backgroundColor: avatarColor }]}>
+            <Text style={styles.avatarInitials}>{initials}</Text>
+          </View>
+        )}
+        <View style={styles.suggestionInfo}>
+          <Text style={styles.suggestionUsername}>
+            {item.username || item.nombre}
+          </Text>
+          {item.username && item.nombre !== item.username && (
+            <Text style={styles.suggestionName} numberOfLines={1}>
+              {item.nombre}
+            </Text>
+          )}
         </View>
-      )}
-      <View style={styles.suggestionInfo}>
-        <Text style={styles.suggestionUsername}>
-          {item.username || item.nombre}
-        </Text>
-        <Text style={styles.suggestionName} numberOfLines={1}>
-          {item.nombre}
-        </Text>
-      </View>
-      {item.tipo === 'local' && (
-        <View style={styles.localBadge}>
-          <IconSymbol 
-            ios_icon_name="building.2.fill" 
-            android_material_icon_name="business" 
-            size={12} 
-            color={colors.primary} 
-          />
-        </View>
-      )}
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
+
+  // ✅ FIXED: Calculate bottom position - always position above keyboard with proper spacing
+  // The window should be positioned directly above the keyboard, never overlapping it
+  const ITEM_HEIGHT = 64;
+  const MAX_ITEMS = 4;
+  const SPACING_ABOVE_KEYBOARD = 8;
+  
+  // Calculate height based on number of suggestions (max 4 items)
+  const itemsToShow = Math.min(suggestions.length, MAX_ITEMS);
+  const calculatedHeight = loading ? 80 : itemsToShow > 0 ? itemsToShow * ITEM_HEIGHT : 80;
+  
+  // Position directly above keyboard
+  const bottomPosition = keyboardHeight > 0 ? keyboardHeight + SPACING_ABOVE_KEYBOARD : 140;
+
+  console.log('[MentionAutocomplete] 📐 Positioning:');
+  console.log('  - Keyboard height:', keyboardHeight);
+  console.log('  - Bottom position:', bottomPosition);
+  console.log('  - Container height:', calculatedHeight);
+  console.log('  - Items to show:', itemsToShow);
 
   return (
-    <View style={[styles.container, style]}>
+    <View 
+      style={[
+        styles.container, 
+        { 
+          bottom: bottomPosition,
+          height: calculatedHeight,
+        }, 
+        style
+      ]}
+    >
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color={colors.primary} />
@@ -400,19 +524,20 @@ export default function MentionAutocomplete({
 
 const styles = StyleSheet.create({
   container: {
-    width: '100%',
-    backgroundColor: colors.cardBackground,
-    borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-    maxHeight: 250,
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    backgroundColor: colors.white,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    borderRadius: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 10,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 24,
     zIndex: 9999,
+    overflow: 'hidden',
   },
   list: {
     flex: 1,
@@ -425,61 +550,58 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: colors.cardBackground,
+    backgroundColor: colors.white,
   },
   avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     marginRight: 12,
   },
   avatarPlaceholder: {
-    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
+  },
+  avatarInitials: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.white,
   },
   suggestionInfo: {
     flex: 1,
   },
   suggestionUsername: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
     color: colors.text,
     marginBottom: 2,
   },
   suggestionName: {
-    fontSize: 13,
+    fontSize: 14,
     color: colors.textSecondary,
   },
-  localBadge: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: colors.primary + '20',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   loadingContainer: {
-    paddingVertical: 20,
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
     gap: 12,
+    paddingVertical: 20,
   },
   loadingText: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.textSecondary,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   emptyContainer: {
-    paddingVertical: 20,
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 20,
   },
   emptyText: {
     fontSize: 14,
     color: colors.textSecondary,
+    fontWeight: '500',
   },
 });
