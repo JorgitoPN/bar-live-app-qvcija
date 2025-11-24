@@ -183,12 +183,6 @@ export default function ComentarScreen() {
     );
   }
 
-  // ✅ Get display username for post author (NO @ symbol except in profile)
-  const postAuthorUsername = post?.autor?.username || post?.autor?.nombre || 'usuario';
-
-  // ✅ Get display username for parent comment author (NO @ symbol except in profile)
-  const commentAuthorUsername = parentComment?.autor?.username || parentComment?.autor?.nombre || 'usuario';
-
   return (
     <View style={commonStyles.container}>
       <LinearGradient
@@ -243,7 +237,8 @@ export default function ComentarScreen() {
                   </View>
                 )}
                 <View style={styles.postAutorInfo}>
-                  <Text style={styles.postAutorNombre}>{postAuthorUsername}</Text>
+                  <Text style={styles.postAutorNombre}>{post.autor?.nombre || 'Usuario'}</Text>
+                  <Text style={styles.postAutorUsername}>@{post.autor?.username || 'usuario'}</Text>
                 </View>
               </View>
               {post.contenido && (
@@ -266,7 +261,8 @@ export default function ComentarScreen() {
                   </View>
                 )}
                 <View style={styles.commentAutorInfo}>
-                  <Text style={styles.commentAutorNombre}>{commentAuthorUsername}</Text>
+                  <Text style={styles.commentAutorNombre}>{parentComment.autor?.nombre || 'Usuario'}</Text>
+                  <Text style={styles.commentAutorUsername}>@{parentComment.autor?.username || 'usuario'}</Text>
                 </View>
               </View>
               <Text style={styles.commentTexto} numberOfLines={2}>

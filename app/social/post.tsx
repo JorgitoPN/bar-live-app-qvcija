@@ -548,10 +548,9 @@ export default function PostDetailScreen() {
         saved = !!saveData;
       }
 
-      // ✅ Get display username for post author
       const displayName = data.tipo === 'local' && data.local 
         ? data.local.nombre 
-        : data.autor?.username || data.autor?.nombre || 'Usuario';
+        : data.autor?.nombre || 'Usuario';
       const displayAvatar = data.tipo === 'local' && data.local 
         ? data.local.imagen_url 
         : data.autor?.avatar || '';
@@ -604,7 +603,7 @@ export default function PostDetailScreen() {
           ? {
               nombre: comment.local.nombre,
               avatar: comment.local.imagen_url,
-              username: comment.local.nombre, // Locals use their name as username
+              username: comment.local.nombre,
             }
           : comment.autor,
       }));
@@ -1207,7 +1206,7 @@ export default function PostDetailScreen() {
           ? {
               nombre: data.local.nombre,
               avatar: data.local.imagen_url,
-              username: data.local.nombre, // Locals use their name as username
+              username: data.local.nombre,
             }
           : data.autor,
         liked: false,
@@ -1261,9 +1260,6 @@ export default function PostDetailScreen() {
       (comentario.tipo === 'local' && activeLocalProfileId === comentario.local_id)
     );
 
-    // ✅ Get display username for comment author (NO @ symbol except in profile)
-    const commentAuthorUsername = comentario.autor?.username || comentario.autor?.nombre || 'usuario';
-
     return (
       <View key={comentario.id}>
         <View style={styles.comentarioItem}>
@@ -1307,7 +1303,7 @@ export default function PostDetailScreen() {
                 activeOpacity={0.7}
               >
                 <Text style={styles.comentarioAutor}>
-                  {commentAuthorUsername}
+                  {comentario.autor?.nombre || 'Usuario'}
                 </Text>
               </TouchableOpacity>
               <Text style={styles.comentarioFecha}>
@@ -1655,7 +1651,7 @@ export default function PostDetailScreen() {
         {replyingTo && (
           <View style={styles.replyingToContainer}>
             <Text style={styles.replyingToText}>
-              Respondiendo a {replyingTo.autor?.username || replyingTo.autor?.nombre || 'Usuario'}
+              Respondiendo a {replyingTo.autor?.nombre || 'Usuario'}
             </Text>
             <TouchableOpacity
               style={styles.cancelReplyButton}
@@ -1679,7 +1675,7 @@ export default function PostDetailScreen() {
           <TextInput
             ref={textInputRef}
             style={styles.textInput}
-            placeholder={replyingTo ? `Responder a ${replyingTo.autor?.username || replyingTo.autor?.nombre}...` : 'Añade un comentario...'}
+            placeholder={replyingTo ? `Responder a ${replyingTo.autor?.nombre}...` : 'Añade un comentario...'}
             placeholderTextColor={colors.textSecondary}
             value={comentarioTexto}
             onChangeText={(text) => {
@@ -1776,9 +1772,9 @@ export default function PostDetailScreen() {
                   </View>
                 )}
                 <View style={styles.userInfo}>
-                  <Text style={styles.userName}>{item.username || item.nombre}</Text>
-                  {item.username && item.username !== item.nombre && (
-                    <Text style={styles.userUsername}>{item.nombre}</Text>
+                  <Text style={styles.userName}>{item.nombre}</Text>
+                  {item.username && (
+                    <Text style={styles.userUsername}>@{item.username}</Text>
                   )}
                 </View>
               </TouchableOpacity>

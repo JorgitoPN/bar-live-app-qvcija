@@ -53,7 +53,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
     }
   }, [local.id, hasPreloaded, onVisible]);
 
-  // ✅ FIXED: Check if local has social profile with better error handling
+  // FIXED: Check if local has social profile (posts or stories)
   useEffect(() => {
     const checkSocialProfile = async () => {
       if (!local.id) {
@@ -62,56 +62,40 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
       }
 
       try {
-        console.log('[TarjetaLocal] 🔍 Checking social profile for local:', local.id);
-        
-        // Check for posts with timeout
-        const postsPromise = supabase
+        // Check for posts
+        const { data: posts, error: postsError } = await supabase
           .from('posts')
-          .select('id', { count: 'exact', head: true })
+          .select('id')
           .eq('tipo', 'local')
           .eq('local_id', local.id)
           .limit(1);
 
-        // Check for active stories with timeout
-        const storiesPromise = supabase
+        if (postsError) throw postsError;
+
+        if (posts && posts.length > 0) {
+          setHasSocialProfile(true);
+          setCheckingSocialProfile(false);
+          return;
+        }
+
+        // Check for active stories
+        const { data: stories, error: storiesError } = await supabase
           .from('historias')
-          .select('id', { count: 'exact', head: true })
+          .select('id')
           .eq('tipo', 'local')
           .eq('local_id', local.id)
           .gt('expires_at', new Date().toISOString())
           .limit(1);
 
-        // Race against timeout (5 seconds)
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Timeout')), 5000)
-        );
+        if (storiesError) throw storiesError;
 
-        const [postsResult, storiesResult] = await Promise.race([
-          Promise.all([postsPromise, storiesPromise]),
-          timeoutPromise
-        ]) as any;
-
-        const postsCount = postsResult?.count || 0;
-        const storiesCount = storiesResult?.count || 0;
-
-        const hasContent = postsCount > 0 || storiesCount > 0;
-        
-        console.log('[TarjetaLocal] ✅ Social profile check complete:', {
-          localId: local.id,
-          posts: postsCount,
-          stories: storiesCount,
-          hasContent
-        });
-        
-        setHasSocialProfile(hasContent);
-      } catch (error: any) {
-        // ✅ FIXED: Better error handling - don't show error to user, just log it
-        if (error.message === 'Timeout') {
-          console.log('[TarjetaLocal] ⏱️ Social profile check timed out for local:', local.id);
+        if (stories && stories.length > 0) {
+          setHasSocialProfile(true);
         } else {
-          console.log('[TarjetaLocal] ℹ️ Could not check social profile for local:', local.id, error.message);
+          setHasSocialProfile(false);
         }
-        // Default to false if check fails
+      } catch (error) {
+        console.error('[TarjetaLocal] Error checking social profile:', error);
         setHasSocialProfile(false);
       } finally {
         setCheckingSocialProfile(false);
@@ -428,7 +412,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
           </View>
         )}
 
-        {/* ✅ FIXED: Action buttons - Only show Perfil Social if local has social content */}
+        {/* FIXED: Action buttons - Only show Perfil Social if local has social content */}
         <View style={styles.actionButtonsContainer}>
           {!checkingSocialProfile && hasSocialProfile && (
             <TouchableOpacity style={styles.perfilSocialButton} onPress={handlePerfilSocial}>

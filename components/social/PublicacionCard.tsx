@@ -180,19 +180,6 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
     }
   };
 
-  // ✅ Get display username - prioritize username, fallback to nombre for locals (NO @ symbol)
-  const getDisplayUsername = (item: { username?: string; nombre: string; tipo?: 'usuario' | 'local' }) => {
-    if (item.tipo === 'local') {
-      return item.nombre; // Locals use their name as username
-    }
-    return item.username || item.nombre; // Users should always have username
-  };
-
-  // ✅ Get post author username - show username without @ symbol (except in profile)
-  const postAuthorUsername = post.tipo === 'local' 
-    ? post.autorNombre // Locals use their name
-    : post.autorUsername || post.autorNombre; // Users should have username
-
   return (
     <View style={styles.card}>
       <TouchableOpacity
@@ -213,7 +200,7 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
           </View>
         )}
         <View style={styles.headerContent}>
-          <Text style={styles.autorNombre}>{postAuthorUsername}</Text>
+          <Text style={styles.autorNombre}>{post.autorNombre}</Text>
           <Text style={styles.fecha}>{formatearFecha(post.fecha)}</Text>
         </View>
         <TouchableOpacity style={styles.moreButton}>
@@ -232,7 +219,7 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
                   style={styles.mentionedUsername}
                   onPress={() => navigateToProfile(user)}
                 >
-                  {getDisplayUsername(user)}
+                  @{user.username || user.nombre}
                 </Text>
               </React.Fragment>
             ))}
@@ -255,7 +242,7 @@ export default function PublicacionCard({ post, onLike, onComment, onShare }: Pu
                   style={styles.taggedUsername}
                   onPress={() => navigateToProfile(user, 'usuario')}
                 >
-                  {user.username || user.nombre}
+                  @{user.username || user.nombre}
                 </Text>
               </React.Fragment>
             ))}
