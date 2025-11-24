@@ -15,6 +15,7 @@ interface GlobalDataContextType {
   // Loading states
   isInitialLoading: boolean;
   isRefreshing: boolean;
+  hasLoadedOnce: boolean; // NEW: Track if data has been loaded at least once
   
   // Actions
   refreshData: (silent?: boolean) => Promise<void>;
@@ -48,6 +49,7 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
   
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(0);
   
   const isLoadingRef = useRef(false);
@@ -85,39 +87,50 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
         return false;
       }
 
+      let hasData = false;
+
       // Parse cached data
       if (cachedLocales) {
         const parsedLocales = JSON.parse(cachedLocales);
         setLocales(parsedLocales);
         console.log('[GlobalData] ⚡ INSTANT locales from cache:', parsedLocales.length);
+        hasData = true;
       }
 
       if (cachedPosts) {
         const parsedPosts = JSON.parse(cachedPosts);
         setPosts(parsedPosts);
         console.log('[GlobalData] ⚡ INSTANT posts from cache:', parsedPosts.length);
+        hasData = true;
       }
 
       if (cachedStories) {
         const parsedStories = JSON.parse(cachedStories);
         setStories(parsedStories);
         console.log('[GlobalData] ⚡ INSTANT stories from cache:', parsedStories.length);
+        hasData = true;
       }
 
       if (cachedEventos) {
         const parsedEventos = JSON.parse(cachedEventos);
         setEventos(parsedEventos);
         console.log('[GlobalData] ⚡ INSTANT eventos from cache:', parsedEventos.length);
+        hasData = true;
       }
 
       if (cachedOfertas) {
         const parsedOfertas = JSON.parse(cachedOfertas);
         setOfertas(parsedOfertas);
         console.log('[GlobalData] ⚡ INSTANT ofertas from cache:', parsedOfertas.length);
+        hasData = true;
       }
 
-      setLastUpdate(timestamp);
-      return true;
+      if (hasData) {
+        setLastUpdate(timestamp);
+        setHasLoadedOnce(true);
+      }
+
+      return hasData;
     } catch (error) {
       console.error('[GlobalData] Error loading from cache:', error);
       return false;
@@ -259,7 +272,7 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
         console.log('[GlobalData] ✅ Locales loaded:', transformedLocales.length);
       }
 
-      // FIXED: Process posts - map autor field to use local info if tipo='local'
+      // Process posts - map autor field to use local info if tipo='local'
       if (!postsResult.error && postsResult.data) {
         const mappedPosts = postsResult.data.map(post => ({
           ...post,
@@ -275,7 +288,7 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
         console.log('[GlobalData] ✅ Posts loaded:', mappedPosts.length);
       }
 
-      // FIXED: Process stories - map autor field to use local info if tipo='local'
+      // Process stories - map autor field to use local info if tipo='local'
       if (!storiesResult.error && storiesResult.data) {
         const mappedStories = storiesResult.data.map(story => ({
           ...story,
@@ -331,6 +344,7 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
       });
 
       setLastUpdate(Date.now());
+      setHasLoadedOnce(true);
       console.log('[GlobalData] ✅ All data loaded and cached');
     } catch (error) {
       console.error('[GlobalData] Error loading from Supabase:', error);
@@ -392,21 +406,19 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
       
       if (hasCache) {
         // Show cached data immediately - INSTANT APP START
+        console.log('[GlobalData] ⚡⚡⚡ INSTANT START with cached data');
         setIsInitialLoading(false);
         
-        // Load fresh data in background after 100ms delay to not block navigation
+        // Load fresh data in background after 50ms delay to not block navigation
         setTimeout(() => {
           console.log('[GlobalData] 🔄 Background refresh...');
           refreshData(true);
-        }, 100);
-      } else {
-        // No cache, load from Supabase but don't block the app
-        setIsInitialLoading(false); // Allow app to start immediately
-        
-        // Load data in background
-        setTimeout(() => {
-          loadFromSupabase();
         }, 50);
+      } else {
+        // No cache, load from Supabase
+        console.log('[GlobalData] 📡 No cache, loading from Supabase...');
+        await loadFromSupabase();
+        setIsInitialLoading(false);
       }
     };
 
@@ -465,7 +477,7 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
       )
       .subscribe();
 
-    // ENHANCED: Subscribe to likes changes to update post like counts in real-time
+    // Subscribe to likes changes to update post like counts in real-time
     const likesChannel = supabase
       .channel('global-likes-changes')
       .on(
@@ -515,6 +527,7 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
     ofertas,
     isInitialLoading,
     isRefreshing,
+    hasLoadedOnce,
     refreshData,
     updateLocal,
     updatePost,

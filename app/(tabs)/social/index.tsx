@@ -694,7 +694,6 @@ function PostCardWithSwipe({ post, user, activeLocalProfileId, router, toggleLik
     }
   };
 
-  // ✅ CRITICAL FIX: Display username WITHOUT @ symbol, prioritize username over full name
   const displayName = post.tipo === 'local'
     ? (post.autor?.nombre || 'Local')
     : (post.autor?.username || post.autor?.nombre || 'Usuario').replace(/^@/, '');
@@ -878,7 +877,7 @@ export default function SocialScreen() {
     setCurrentMode,
   } = useMode();
   
-  const { posts: globalPosts, stories: globalStories, isInitialLoading, refreshData } = useGlobalData();
+  const { posts: globalPosts, stories: globalStories, isInitialLoading, hasLoadedOnce, refreshData } = useGlobalData();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -896,7 +895,6 @@ export default function SocialScreen() {
   
   const [showLocalSelector, setShowLocalSelector] = useState(false);
   
-  // ✅ FIXED: Use centralized StoryViewer component
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
   const [viewingOwnStories, setViewingOwnStories] = useState(false);
@@ -1176,7 +1174,6 @@ export default function SocialScreen() {
     try {
       console.log('[Social] 🔍 Searching for:', query);
       
-      // ✅ FIXED: Remove @ symbol from search query for better UX
       let searchTerm = query.trim();
       if (searchTerm.startsWith('@')) {
         searchTerm = searchTerm.substring(1);
@@ -1311,13 +1308,11 @@ export default function SocialScreen() {
     lastScrollY.current = currentScrollY;
   }, [headerTranslateY]);
 
-  // ✅ FIXED: Handle story press with centralized StoryViewer + PRELOAD
   const handleStoryPress = useCallback(async (index: number, isOwnStory: boolean = false) => {
     console.log('[Social] 📖 Story pressed - index:', index, 'isOwnStory:', isOwnStory);
     const stories = isOwnStory ? userStories : historias;
     console.log('[Social] 📖 Stories available:', stories.length);
     
-    // ✅ CRITICAL: Preload images BEFORE opening viewer
     console.log('[Social] 🚀 Preloading story images before opening viewer...');
     await preloadStoryImages(stories, index, 4);
     
@@ -1562,9 +1557,13 @@ export default function SocialScreen() {
   const displayName = user?.nombre || 'Usuario';
   const displayInitial = displayName.charAt(0).toUpperCase();
 
-  if (isInitialLoading) {
+  // ✅ CRITICAL FIX: Show loading only if data has never been loaded
+  if (isInitialLoading && !hasLoadedOnce) {
     return <InitialLoadingScreen />;
   }
+
+  // ✅ CRITICAL FIX: Show empty state only if data has been loaded at least once
+  const showEmptyState = hasLoadedOnce && posts.length === 0;
 
   return (
     <View style={styles.container}>
@@ -1746,7 +1745,6 @@ export default function SocialScreen() {
             )}
 
             {groupedStories.map(({ firstStory, allViewed, firstStoryIndex }, groupIndex) => {
-              // ✅ CRITICAL FIX: Display username WITHOUT @ symbol for stories
               const storyDisplayName = firstStory.tipo === 'local'
                 ? (firstStory.autor?.nombre || 'Local')
                 : (firstStory.autor?.username || firstStory.autor?.nombre || 'Usuario').replace(/^@/, '');
@@ -1819,21 +1817,25 @@ export default function SocialScreen() {
                 handleDeletePost={handleDeletePost}
               />;
             })
-          ) : (
+          ) : showEmptyState ? (
             <View style={styles.emptyContainer}>
               <IconSymbol ios_icon_name="photo.on.rectangle" android_material_icon_name="photo_library" size={64} color={colors.textSecondary} />
               <Text style={styles.emptyText}>
                 {activeProfileType === 'local' && activeLocalProfileId 
                   ? 'Este local no tiene publicaciones aún'
-                  : 'No hay publicaciones aún'}
+                  : 'No hay publicaciones para mostrar'}
               </Text>
+            </View>
+          ) : (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={{ color: colors.text, marginTop: 12 }}>Cargando publicaciones...</Text>
             </View>
           )}
         </View>
 
       </ScrollView>
 
-      {/* ✅ FIXED: Use centralized StoryViewer component */}
       <StoryViewer
         visible={showStoryViewer}
         stories={viewingOwnStories ? userStories : historias}
