@@ -300,6 +300,7 @@ export default function DetalleLocalScreen() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Cargando detalles...</Text>
       </View>
     );
   }
@@ -307,6 +308,7 @@ export default function DetalleLocalScreen() {
   if (!local) {
     return (
       <View style={styles.errorContainer}>
+        <IconSymbol ios_icon_name="exclamationmark.triangle" android_material_icon_name="warning" size={64} color={colors.error} />
         <Text style={styles.errorText}>No se encontró el local</Text>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Text style={styles.backButtonText}>Volver</Text>
@@ -342,33 +344,41 @@ export default function DetalleLocalScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scrollView}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Header Image */}
         {local.imagen_url && (
-          <TouchableOpacity onPress={() => handleImagePress(0)}>
+          <TouchableOpacity onPress={() => handleImagePress(0)} activeOpacity={0.9}>
             <Image source={{ uri: local.imagen_url }} style={styles.headerImage} />
+            <LinearGradient
+              colors={['rgba(0,0,0,0.6)', 'transparent']}
+              style={styles.headerGradient}
+            />
           </TouchableOpacity>
         )}
 
+        {/* Header Actions */}
         <View style={styles.headerActions}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButtonCircle}>
-            <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow-back" size={24} color={colors.text} />
+            <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow-back" size={24} color={colors.headerText} />
           </TouchableOpacity>
           <View style={styles.headerActionsRight}>
             <TouchableOpacity onPress={handleShare} style={styles.actionButtonCircle}>
-              <IconSymbol ios_icon_name="square.and.arrow.up" android_material_icon_name="share-social" size={24} color={colors.text} />
+              <IconSymbol ios_icon_name="square.and.arrow.up" android_material_icon_name="share-social" size={24} color={colors.headerText} />
             </TouchableOpacity>
             <TouchableOpacity onPress={toggleFavorite} style={styles.actionButtonCircle}>
               <IconSymbol
                 ios_icon_name={isFavorite ? "heart.fill" : "heart"}
                 android_material_icon_name={isFavorite ? "heart" : "heart-outline"}
                 size={24}
-                color={isFavorite ? colors.error : colors.text}
+                color={isFavorite ? colors.error : colors.headerText}
               />
             </TouchableOpacity>
           </View>
         </View>
 
+        {/* Content */}
         <View style={styles.content}>
+          {/* Title and Category */}
           <Text style={styles.title}>{local.nombre}</Text>
 
           {(local.barlive_type || local.tipo) && (
@@ -377,22 +387,28 @@ export default function DetalleLocalScreen() {
             </View>
           )}
 
+          {/* Rating */}
           {displayRating > 0 && (
             <View style={styles.ratingContainer}>
               <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={20} color={colors.warning} />
               <Text style={styles.ratingText}>
-                {Number(displayRating).toFixed(1)} ({displayRatingCount} valoraciones)
+                {Number(displayRating).toFixed(1)}
               </Text>
+              {displayRatingCount > 0 && (
+                <Text style={styles.ratingCount}>({displayRatingCount} valoraciones)</Text>
+              )}
             </View>
           )}
 
+          {/* Opening Status */}
           {tiempoEstado && (
             <View style={[styles.estadoBadge, isOpen ? styles.estadoAbierto : styles.estadoCerrado]}>
-              <View style={styles.estadoDot} />
+              <View style={[styles.estadoDot, isOpen ? styles.estadoDotAbierto : styles.estadoDotCerrado]} />
               <Text style={styles.estadoText}>{tiempoEstado}</Text>
             </View>
           )}
 
+          {/* Description */}
           {descripcionTexto && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Descripción</Text>
@@ -400,16 +416,46 @@ export default function DetalleLocalScreen() {
             </View>
           )}
 
+          {/* Address */}
           {local.direccion && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Dirección</Text>
               <View style={styles.direccionContainer}>
-                <IconSymbol ios_icon_name="mappin" android_material_icon_name="pin" size={20} color={colors.primary} />
+                <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location-on" size={24} color={colors.primary} />
                 <Text style={styles.infoText}>{local.direccion}</Text>
               </View>
             </View>
           )}
 
+          {/* Contact Buttons */}
+          <View style={styles.contactButtons}>
+            {(local.telefono || local.telefono_internacional) && (
+              <TouchableOpacity onPress={handleCall} style={styles.contactButton}>
+                <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="call" size={20} color={colors.headerText} />
+                <Text style={styles.contactButtonText}>Llamar</Text>
+              </TouchableOpacity>
+            )}
+            {local.latitud && local.longitud && (
+              <TouchableOpacity onPress={handleComoLlegar} style={styles.contactButton}>
+                <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={20} color={colors.headerText} />
+                <Text style={styles.contactButtonText}>Cómo llegar</Text>
+              </TouchableOpacity>
+            )}
+            {local.email && (
+              <TouchableOpacity onPress={handleEmail} style={styles.contactButton}>
+                <IconSymbol ios_icon_name="envelope.fill" android_material_icon_name="mail" size={20} color={colors.headerText} />
+                <Text style={styles.contactButtonText}>Email</Text>
+              </TouchableOpacity>
+            )}
+            {local.website && (
+              <TouchableOpacity onPress={handleWebsite} style={styles.contactButton}>
+                <IconSymbol ios_icon_name="globe" android_material_icon_name="globe" size={20} color={colors.headerText} />
+                <Text style={styles.contactButtonText}>Web</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Schedule */}
           {local.horarios_completos && Object.keys(local.horarios_completos).length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Horario</Text>
@@ -426,33 +472,7 @@ export default function DetalleLocalScreen() {
             </View>
           )}
 
-          <View style={styles.contactButtons}>
-            {(local.telefono || local.telefono_internacional) && (
-              <TouchableOpacity onPress={handleCall} style={styles.contactButton}>
-                <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="call" size={20} color={colors.background} />
-                <Text style={styles.contactButtonText}>Llamar</Text>
-              </TouchableOpacity>
-            )}
-            {local.latitud && local.longitud && (
-              <TouchableOpacity onPress={handleComoLlegar} style={styles.contactButton}>
-                <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={20} color={colors.background} />
-                <Text style={styles.contactButtonText}>Cómo llegar</Text>
-              </TouchableOpacity>
-            )}
-            {local.email && (
-              <TouchableOpacity onPress={handleEmail} style={styles.contactButton}>
-                <IconSymbol ios_icon_name="envelope.fill" android_material_icon_name="mail" size={20} color={colors.background} />
-                <Text style={styles.contactButtonText}>Email</Text>
-              </TouchableOpacity>
-            )}
-            {local.website && (
-              <TouchableOpacity onPress={handleWebsite} style={styles.contactButton}>
-                <IconSymbol ios_icon_name="globe" android_material_icon_name="globe" size={20} color={colors.background} />
-                <Text style={styles.contactButtonText}>Web</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-
+          {/* Cuisine Types */}
           {local.tipos_cocina && local.tipos_cocina.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Tipos de Cocina</Text>
@@ -466,12 +486,14 @@ export default function DetalleLocalScreen() {
             </View>
           )}
 
+          {/* Services */}
           {serviciosActivos.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Servicios</Text>
               <View style={styles.tagsContainer}>
                 {serviciosActivos.map((servicio, index) => (
                   <View key={index} style={styles.tag}>
+                    <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check-circle" size={16} color={colors.primary} />
                     <Text style={styles.tagText}>{servicio.replace(/_/g, ' ')}</Text>
                   </View>
                 ))}
@@ -479,25 +501,27 @@ export default function DetalleLocalScreen() {
             </View>
           )}
 
+          {/* Ambiente */}
           {ambienteActivo.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Ambiente</Text>
               <View style={styles.tagsContainer}>
                 {ambienteActivo.map((ambiente, index) => (
-                  <View key={index} style={styles.tag}>
-                    <Text style={styles.tagText}>{ambiente.replace(/_/g, ' ')}</Text>
+                  <View key={index} style={styles.tagAmbiente}>
+                    <Text style={styles.tagAmbienteText}>{ambiente.replace(/_/g, ' ')}</Text>
                   </View>
                 ))}
               </View>
             </View>
           )}
 
+          {/* Gallery */}
           {local.galeria_urls && local.galeria_urls.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Galería</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.gallery}>
                 {local.galeria_urls.map((img, index) => (
-                  <TouchableOpacity key={index} onPress={() => handleImagePress(index + 1)}>
+                  <TouchableOpacity key={index} onPress={() => handleImagePress(index + 1)} activeOpacity={0.8}>
                     <Image source={{ uri: img }} style={styles.galleryImage} />
                   </TouchableOpacity>
                 ))}
@@ -505,6 +529,7 @@ export default function DetalleLocalScreen() {
             </View>
           )}
 
+          {/* Reviews */}
           {reviews.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Reseñas</Text>
@@ -537,9 +562,13 @@ export default function DetalleLocalScreen() {
               ))}
             </View>
           )}
+
+          {/* Bottom Spacing */}
+          <View style={styles.bottomSpacing} />
         </View>
       </ScrollView>
 
+      {/* Image Gallery Modal */}
       {showGallery && (
         <ImageGalleryModal
           visible={showGallery}
@@ -563,6 +592,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.background,
   },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: colors.textSecondary,
+  },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -573,7 +607,9 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 18,
     color: colors.text,
-    marginBottom: 20,
+    marginTop: 16,
+    marginBottom: 24,
+    textAlign: 'center',
   },
   scrollView: {
     flex: 1,
@@ -583,9 +619,16 @@ const styles = StyleSheet.create({
     height: 300,
     resizeMode: 'cover',
   },
+  headerGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 120,
+  },
   headerActions: {
     position: 'absolute',
-    top: 48,
+    top: Platform.OS === 'ios' ? 50 : 48,
     left: 16,
     right: 16,
     flexDirection: 'row',
@@ -593,67 +636,95 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   backButtonCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.card,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
   headerActionsRight: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 12,
   },
   actionButtonCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.card,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
   content: {
-    padding: 16,
+    padding: 20,
   },
   title: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 'bold',
     color: colors.text,
-    marginBottom: 8,
+    marginBottom: 12,
+    lineHeight: 38,
   },
   categoryBadge: {
     alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
     backgroundColor: colors.primary,
-    marginBottom: 12,
+    marginBottom: 16,
   },
   categoryText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '600',
-    color: colors.background,
+    color: colors.headerText,
   },
   ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
     marginBottom: 16,
   },
   ratingText: {
-    fontSize: 16,
+    fontSize: 18,
     color: colors.text,
+    fontWeight: '700',
+  },
+  ratingCount: {
+    fontSize: 16,
+    color: colors.textSecondary,
     fontWeight: '500',
   },
   estadoBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 20,
-    gap: 6,
-    marginBottom: 16,
+    gap: 8,
+    marginBottom: 20,
   },
   estadoAbierto: {
     backgroundColor: '#22C55E',
@@ -662,34 +733,39 @@ const styles = StyleSheet.create({
     backgroundColor: '#EF4444',
   },
   estadoDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  estadoDotAbierto: {
+    backgroundColor: colors.headerText,
+  },
+  estadoDotCerrado: {
     backgroundColor: colors.headerText,
   },
   estadoText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     color: colors.headerText,
   },
   section: {
-    marginBottom: 24,
+    marginBottom: 28,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 22,
+    fontWeight: '700',
     color: colors.text,
-    marginBottom: 12,
+    marginBottom: 14,
   },
   description: {
     fontSize: 16,
     color: colors.text,
-    lineHeight: 24,
+    lineHeight: 26,
   },
   direccionContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 8,
+    gap: 10,
   },
   infoText: {
     flex: 1,
@@ -698,24 +774,24 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   horariosContainer: {
-    gap: 8,
+    gap: 2,
   },
   horarioRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
   },
   horarioDia: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '600',
     color: colors.text,
-    width: 100,
+    width: 110,
   },
   horarioHoras: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 16,
     color: colors.textSecondary,
     textAlign: 'right',
   },
@@ -723,7 +799,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
-    marginBottom: 24,
+    marginBottom: 28,
   },
   contactButton: {
     flex: 1,
@@ -732,62 +808,98 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
     backgroundColor: colors.primary,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
   contactButtonText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
-    color: colors.background,
+    color: colors.headerText,
   },
   tagsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 10,
   },
   tag: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
     backgroundColor: colors.primary + '20',
   },
   tagText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     color: colors.primary,
+  },
+  tagAmbiente: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: colors.secondary + '20',
+  },
+  tagAmbienteText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.secondary,
   },
   gallery: {
     marginTop: 8,
   },
   galleryImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 8,
+    width: 140,
+    height: 140,
+    borderRadius: 12,
     marginRight: 12,
   },
   reviewCard: {
     backgroundColor: colors.card,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   reviewHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   reviewAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     marginRight: 12,
   },
   reviewHeaderText: {
     flex: 1,
   },
   reviewUsername: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 4,
@@ -797,19 +909,22 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   reviewComment: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.text,
-    lineHeight: 20,
+    lineHeight: 22,
   },
   backButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 12,
     backgroundColor: colors.primary,
   },
   backButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.background,
+    color: colors.headerText,
+  },
+  bottomSpacing: {
+    height: 100,
   },
 });
