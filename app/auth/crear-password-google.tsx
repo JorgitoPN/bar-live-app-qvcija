@@ -65,14 +65,44 @@ export default function CrearPasswordGoogleScreen() {
     setLoading(true);
 
     try {
-      // Update the user's auth record to add password
-      const { error: authError } = await supabase.auth.updateUser({
+      // First, we need to get the user's auth record to update it
+      // Since the user was created with Google, we need to use admin API or a different approach
+      
+      // Update the usuarios table to store the password hash
+      // We'll use Supabase's auth.admin.updateUserById if available, or create a new auth user
+      
+      // For now, let's update the user record to indicate they want to set a password
+      // and then sign them up with email/password
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email: email.toLowerCase(),
         password,
+        options: {
+          data: {
+            existing_user_id: userId,
+          },
+        },
       });
 
-      if (authError) {
-        console.error('Error updating password:', authError);
-        Alert.alert('Error', 'No se pudo crear la contraseña. Por favor, intenta nuevamente.');
+      if (signUpError) {
+        console.error('Error creating password:', signUpError);
+        
+        // If user already exists with email, try to sign in and update
+        if (signUpError.message.includes('already registered')) {
+          Alert.alert(
+            'Cuenta existente',
+            'Ya existe una cuenta con este correo. Por favor, intenta iniciar sesión.',
+            [
+              {
+                text: 'OK',
+                onPress: () => {
+                  router.replace('/auth/login-popup');
+                },
+              },
+            ]
+          );
+        } else {
+          Alert.alert('Error', 'No se pudo crear la contraseña. Por favor, intenta nuevamente.');
+        }
         setLoading(false);
         return;
       }
@@ -82,6 +112,7 @@ export default function CrearPasswordGoogleScreen() {
         .from('usuarios')
         .update({
           provider: 'barlive',
+          email_verified: true,
         })
         .eq('id', userId);
 
