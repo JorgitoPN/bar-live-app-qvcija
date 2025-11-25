@@ -6,8 +6,8 @@ import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 import { socialCache } from '@/utils/socialCache';
 import { LinearGradient } from 'expo-linear-gradient';
 import ParsedText from '@/components/social/ParsedText';
-import StoryViewer from '@/components/social/StoryViewer';
-import BarraHistorias from '@/components/social/BarraHistorias';
+import NewStoryViewer from '@/components/social/NewStoryViewer';
+import NewBarraHistorias from '@/components/social/NewBarraHistorias';
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
@@ -828,6 +828,7 @@ export default function SocialScreen() {
   
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
+  const [currentUserStories, setCurrentUserStories] = useState<HistoriaConAutor[]>([]);
 
   const scrollY = useRef(new Animated.Value(0)).current;
   const lastScrollY = useRef(0);
@@ -1214,12 +1215,26 @@ export default function SocialScreen() {
   }, [headerTranslateY]);
 
   const handleStoryPress = useCallback((historia: HistoriaConAutor) => {
-    console.log('[Social] 📖 Story pressed:', historia.id);
+    console.log('[Social] 📖 Story pressed:', historia.id, 'from user:', historia.autor_id);
     
-    const index = historias.findIndex(s => s.id === historia.id);
+    // Filter stories to only show stories from the same user/local
+    const userStories = historias.filter(s => {
+      // If it's a local story, group by local_id
+      if (historia.tipo === 'local' && historia.local_id) {
+        return s.tipo === 'local' && s.local_id === historia.local_id;
+      }
+      // If it's a user story, group by autor_id
+      return s.tipo === 'usuario' && s.autor_id === historia.autor_id;
+    });
     
-    console.log('[Social] 📖 Opening story at index:', index);
+    console.log('[Social] 📖 Filtered stories for this user/local:', userStories.length);
     
+    // Find the index of the clicked story within the filtered stories
+    const index = userStories.findIndex(s => s.id === historia.id);
+    
+    console.log('[Social] 📖 Opening story at index:', index, 'of', userStories.length, 'stories');
+    
+    setCurrentUserStories(userStories);
     setCurrentStoryIndex(index);
     setShowStoryViewer(true);
   }, [historias]);
@@ -1534,7 +1549,7 @@ export default function SocialScreen() {
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-        <BarraHistorias
+        <NewBarraHistorias
           historias={historias}
           onHistoriaPress={handleStoryPress}
           onCrearHistoria={user ? () => {
@@ -1544,6 +1559,8 @@ export default function SocialScreen() {
               router.push('/crear/historia');
             }
           } : undefined}
+          userAvatar={user?.avatar}
+          userName={user?.nombre}
         />
 
         <View style={styles.feedContainer}>
@@ -1574,13 +1591,14 @@ export default function SocialScreen() {
 
       </ScrollView>
 
-      <StoryViewer
+      <NewStoryViewer
         visible={showStoryViewer}
-        stories={historias}
+        stories={currentUserStories}
         initialIndex={currentStoryIndex}
         onClose={() => {
           console.log('[Social] Closing story viewer');
           setShowStoryViewer(false);
+          setCurrentUserStories([]);
         }}
         onStoryChange={(index) => {
           console.log('[Social] Story changed to index:', index);
