@@ -63,7 +63,7 @@ interface NewStoryViewerProps {
   activeLocalProfileId?: string | null;
 }
 
-// Progress Bar Component with smooth animation - MATCHING PROFILE PAGE DESIGN
+// Progress Bar Component with smooth GPU-accelerated animation
 const ProgressBar = memo(({ 
   duration, 
   isPaused, 
@@ -89,7 +89,7 @@ const ProgressBar = memo(({
       return;
     }
 
-    // Start or resume animation
+    // Start or resume animation with GPU acceleration
     const currentValue = (progress as any)._value || 0;
     const remainingDuration = duration * (1 - currentValue);
 
@@ -97,7 +97,7 @@ const ProgressBar = memo(({
       toValue: 1,
       duration: remainingDuration,
       easing: Easing.linear,
-      useNativeDriver: false, // Can't use native driver for width
+      useNativeDriver: true, // ✅ GPU acceleration for smooth animation
     });
 
     animationRef.current.start(({ finished }) => {
@@ -111,15 +111,22 @@ const ProgressBar = memo(({
     };
   }, [isActive, isPaused, duration, onComplete]);
 
-  const widthInterpolate = progress.interpolate({
+  const scaleX = progress.interpolate({
     inputRange: [0, 1],
-    outputRange: ['0%', '100%'],
+    outputRange: [0, 1],
   });
 
   return (
     <View style={progressStyles.container}>
       <View style={progressStyles.background}>
-        <Animated.View style={[progressStyles.fill, { width: widthInterpolate }]}>
+        <Animated.View 
+          style={[
+            progressStyles.fill,
+            {
+              transform: [{ scaleX }],
+            },
+          ]}
+        >
           <LinearGradient
             colors={['#FFD700', '#00FF00']}
             start={{ x: 0, y: 0 }}
@@ -147,8 +154,9 @@ const progressStyles = StyleSheet.create({
   },
   fill: {
     height: '100%',
-    overflow: 'hidden',
+    width: '100%',
     borderRadius: 2,
+    transformOrigin: 'left',
   },
   gradient: {
     flex: 1,
@@ -403,7 +411,7 @@ const statsStyles = StyleSheet.create({
   },
 });
 
-// Main Story Viewer Component - MATCHING PROFILE PAGE DESIGN
+// Main Story Viewer Component - OPTIMIZED FOR INSTANT OPENING
 function NewStoryViewer({
   visible,
   stories,
@@ -429,18 +437,58 @@ function NewStoryViewer({
     (currentStory?.tipo === 'local' && activeLocalProfileId === currentStory.local_id)
   );
 
-  // ✅ CRITICAL: Preload next images aggressively for smooth transitions
+  // ✅ CRITICAL: Preload ALL images immediately when viewer opens
   useEffect(() => {
-    if (visible && currentIndex < stories.length) {
-      const nextImages = stories.slice(currentIndex, currentIndex + 3).map(s => s.imagen);
-      console.log('[NewStoryViewer] Preloading next', nextImages.length, 'images');
-      nextImages.forEach(uri => {
-        Image.prefetch(uri).catch(() => {
-          console.log('[NewStoryViewer] Failed to prefetch:', uri);
-        });
-      });
+    if (visible && stories.length > 0) {
+      console.log('[NewStoryViewer] ⚡ INSTANT PRELOAD: Starting aggressive preload of', stories.length, 'images');
+      
+      // Preload current image with highest priority
+      if (stories[currentIndex]?.imagen) {
+        Image.prefetch(stories[currentIndex].imagen)
+          .then(() => {
+            console.log('[NewStoryViewer] ✅ Current image preloaded instantly');
+            setImageLoaded(true);
+          })
+          .catch(() => {
+            console.log('[NewStoryViewer] ❌ Failed to preload current image');
+            setImageLoaded(true); // Show anyway
+          });
+      }
+      
+      // Preload all other images in background
+      const otherImages = stories
+        .filter((_, idx) => idx !== currentIndex)
+        .map(s => s.imagen)
+        .filter(Boolean);
+      
+      if (otherImages.length > 0) {
+        Promise.allSettled(otherImages.map(uri => Image.prefetch(uri)))
+          .then(results => {
+            const successCount = results.filter(r => r.status === 'fulfilled').length;
+            console.log('[NewStoryViewer] ✅ Preloaded', successCount, '/', otherImages.length, 'background images');
+          })
+          .catch(() => {
+            console.log('[NewStoryViewer] Error preloading background images');
+          });
+      }
     }
-  }, [visible, currentIndex, stories]);
+  }, [visible, stories, currentIndex]);
+
+  // Reset image loaded state when story changes
+  useEffect(() => {
+    setImageLoaded(false);
+    
+    // Immediately try to load the new image
+    if (currentStory?.imagen) {
+      Image.prefetch(currentStory.imagen)
+        .then(() => {
+          setImageLoaded(true);
+        })
+        .catch(() => {
+          setImageLoaded(true); // Show anyway
+        });
+    }
+  }, [currentIndex, currentStory?.imagen]);
 
   // Mark story as viewed
   useEffect(() => {
@@ -473,7 +521,6 @@ function NewStoryViewer({
   const handleNext = useCallback(() => {
     if (currentIndex < stories.length - 1) {
       setCurrentIndex(currentIndex + 1);
-      setImageLoaded(false);
       onStoryChange?.(currentIndex + 1);
     } else {
       onClose();
@@ -483,7 +530,6 @@ function NewStoryViewer({
   const handlePrevious = useCallback(() => {
     if (currentIndex > 0) {
       setCurrentIndex(currentIndex - 1);
-      setImageLoaded(false);
       onStoryChange?.(currentIndex - 1);
     } else {
       onClose();
@@ -654,7 +700,7 @@ function NewStoryViewer({
     }
   };
 
-  // Touch handlers - OPTIMIZED for better responsiveness
+  // Touch handlers - OPTIMIZED for instant response
   const handleTouchStart = useRef({ x: 0, y: 0, time: 0 });
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
 
@@ -668,7 +714,7 @@ function NewStoryViewer({
 
     longPressTimer.current = setTimeout(() => {
       setIsPaused(true);
-    }, 150); // ✅ Reduced from 200ms for faster response
+    }, 100); // ✅ Reduced to 100ms for instant response
   };
 
   const onTouchEnd = (e: any) => {
@@ -683,7 +729,7 @@ function NewStoryViewer({
     const deltaTime = Date.now() - handleTouchStart.current.time;
 
     // Resume if was paused
-    if (isPaused && deltaTime < 150) {
+    if (isPaused && deltaTime < 100) {
       setIsPaused(false);
       return;
     }
@@ -694,8 +740,8 @@ function NewStoryViewer({
       return;
     }
 
-    // Tap zones
-    if (Math.abs(deltaX) < 20 && Math.abs(deltaY) < 20 && deltaTime < 150) {
+    // Tap zones - instant response
+    if (Math.abs(deltaX) < 20 && Math.abs(deltaY) < 20 && deltaTime < 100) {
       const tapX = touch.pageX;
       
       if (tapX < width / 3) {
@@ -732,13 +778,8 @@ function NewStoryViewer({
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
         >
-          {/* Story Image */}
+          {/* Story Image - Show immediately, no waiting */}
           <View style={styles.imageContainer}>
-            {!imageLoaded && (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#fff" />
-              </View>
-            )}
             <Image
               source={{ uri: currentStory.imagen }}
               style={styles.image}
@@ -746,9 +787,14 @@ function NewStoryViewer({
               onLoad={() => setImageLoaded(true)}
               fadeDuration={0}
             />
+            {!imageLoaded && (
+              <View style={styles.loadingOverlay}>
+                <ActivityIndicator size="large" color="#fff" />
+              </View>
+            )}
           </View>
 
-          {/* Progress Bars - MATCHING PROFILE PAGE */}
+          {/* Progress Bars - GPU accelerated */}
           <BlurView intensity={20} tint="dark" style={styles.progressContainer}>
             <View style={styles.progressBarsWrapper}>
               {stories.map((_, index) => (
@@ -763,7 +809,7 @@ function NewStoryViewer({
             </View>
           </BlurView>
 
-          {/* Header - MATCHING PROFILE PAGE */}
+          {/* Header */}
           <BlurView intensity={30} tint="dark" style={styles.header}>
             <TouchableOpacity
               style={styles.authorInfo}
@@ -805,7 +851,7 @@ function NewStoryViewer({
             </TouchableOpacity>
           </BlurView>
 
-          {/* Owner Controls - MATCHING PROFILE PAGE */}
+          {/* Owner Controls */}
           {isOwner && (
             <BlurView intensity={30} tint="dark" style={styles.ownerControls}>
               <TouchableOpacity style={styles.controlButton} onPress={handleViewStats} activeOpacity={0.7}>
@@ -828,7 +874,7 @@ function NewStoryViewer({
             </BlurView>
           )}
 
-          {/* Interaction Bar - MATCHING PROFILE PAGE */}
+          {/* Interaction Bar */}
           {!isOwner && (
             <BlurView intensity={30} tint="dark" style={styles.interactionBar}>
               <View style={styles.messageInputContainer}>
@@ -924,12 +970,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#000',
   },
-  loadingContainer: {
+  loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#000',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   image: {
     width: width,

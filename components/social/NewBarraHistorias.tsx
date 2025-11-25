@@ -252,8 +252,6 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: colors.cardBackground,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
     paddingVertical: 12,
   },
   scrollContent: {
