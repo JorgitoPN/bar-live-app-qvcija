@@ -816,7 +816,6 @@ export default function SocialScreen() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [historias, setHistorias] = useState<HistoriaConAutor[]>([]);
-  const [userStories, setUserStories] = useState<HistoriaConAutor[]>([]);
   const [posts, setPosts] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -830,7 +829,6 @@ export default function SocialScreen() {
   
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
-  const [viewingOwnStories, setViewingOwnStories] = useState(false);
 
   const scrollY = useRef(new Animated.Value(0)).current;
   const lastScrollY = useRef(0);
@@ -934,13 +932,14 @@ export default function SocialScreen() {
       if (globalStories.length > 0) {
         console.log('[Social] ⚡⚡⚡ INSTANT stories from global data:', globalStories.length);
         
-        let userOwnStories: typeof globalStories = [];
-        let otherStories: typeof globalStories = [];
+        let filteredStories: typeof globalStories = [];
 
         if (isOwnerMode && activeLocalProfileId) {
-          userOwnStories = globalStories.filter(s => s.tipo === 'local' && s.local_id === activeLocalProfileId);
-          otherStories = globalStories.filter(s => s.tipo === 'usuario');
-          console.log('[Social] 🏢 Owner mode - Filtered stories for local:', activeLocalProfileId, 'Own:', userOwnStories.length, 'Others:', otherStories.length);
+          filteredStories = globalStories.filter(s => 
+            s.tipo === 'usuario' || 
+            (s.tipo === 'local' && s.local_id === activeLocalProfileId)
+          );
+          console.log('[Social] 🏢 Owner mode - Filtered stories (users + own local):', filteredStories.length);
         } else if (user) {
           const { data: followedLocals } = await supabase
             .from('locales_favoritos')
@@ -949,19 +948,18 @@ export default function SocialScreen() {
 
           const followedLocalIds = new Set(followedLocals?.map(f => f.local_id) || []);
           
-          userOwnStories = globalStories.filter(s => s.tipo === 'usuario' && s.autor_id === user.id);
-          otherStories = globalStories.filter(s => 
-            (s.tipo === 'usuario' && s.autor_id !== user.id) ||
+          filteredStories = globalStories.filter(s => 
+            s.tipo === 'usuario' ||
             (s.tipo === 'local' && s.local_id && followedLocalIds.has(s.local_id))
           );
-          console.log('[Social] 👤 User mode - Own stories:', userOwnStories.length, 'Others (users + followed locals):', otherStories.length);
+          console.log('[Social] 👤 User mode - Filtered stories (users + followed locals):', filteredStories.length);
         } else {
-          otherStories = globalStories.filter(s => s.tipo === 'usuario');
-          console.log('[Social] 🔓 Not logged in - Showing all user stories:', otherStories.length);
+          filteredStories = globalStories.filter(s => s.tipo === 'usuario');
+          console.log('[Social] 🔓 Not logged in - Showing all user stories:', filteredStories.length);
         }
         
         if (user) {
-          const allStoryIds = globalStories.map(s => s.id);
+          const allStoryIds = filteredStories.map(s => s.id);
           
           const [viewedData, likesData, viewsCountData, commentsCountData] = await Promise.all([
             supabase
@@ -997,7 +995,7 @@ export default function SocialScreen() {
             return acc;
           }, {} as Record<string, number>) || {};
           
-          const userStoriesWithStatus = userOwnStories.map(story => ({
+          const storiesWithStatus = filteredStories.map(story => ({
             ...story,
             visto_por_usuario: viewedStoryIds.has(story.id),
             liked_by_user: likedStoryIds.has(story.id),
@@ -1005,18 +1003,9 @@ export default function SocialScreen() {
             comments_count: commentsCounts[story.id] || 0,
           }));
           
-          const otherStoriesWithStatus = otherStories.map(story => ({
-            ...story,
-            visto_por_usuario: viewedStoryIds.has(story.id),
-            liked_by_user: likedStoryIds.has(story.id),
-            views_count: viewsCounts[story.id] || 0,
-            comments_count: commentsCounts[story.id] || 0,
-          }));
-          
-          setUserStories(userStoriesWithStatus);
-          setHistorias(otherStoriesWithStatus);
+          setHistorias(storiesWithStatus);
         } else {
-          setHistorias(otherStories);
+          setHistorias(filteredStories);
         }
       }
 
@@ -1230,26 +1219,19 @@ export default function SocialScreen() {
     lastScrollY.current = currentScrollY;
   }, [headerTranslateY]);
 
-  // ✅ CRITICAL FIX: Combine user stories and other stories for the story bar
-  // User's own stories should appear FIRST, then other users' stories
-  const allStories = useMemo(() => {
-    return [...userStories, ...historias];
-  }, [userStories, historias]);
-
   // ✅ ULTRA-OPTIMIZED: Handle story press with instant opening
   const handleStoryPress = useCallback((historia: HistoriaConAutor) => {
     console.log('[Social] 📖 Story pressed:', historia.id);
     
-    // Find the index of the story in the combined array
-    const index = allStories.findIndex(s => s.id === historia.id);
+    // Find the index of the story in the array
+    const index = historias.findIndex(s => s.id === historia.id);
     
     console.log('[Social] 📖 Opening story at index:', index);
     
     // ✅ Open viewer INSTANTLY - images are already preloaded by BarraHistorias
     setCurrentStoryIndex(index);
-    setViewingOwnStories(false); // We're now using a single combined array
     setShowStoryViewer(true);
-  }, [allStories]);
+  }, [historias]);
 
   const toggleLike = useCallback(async (postId: string) => {
     if (!user) {
@@ -1563,9 +1545,9 @@ export default function SocialScreen() {
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-        {/* ✅ CRITICAL FIX: Pass ALL stories (user's own + others) to NewBarraHistorias */}
+        {/* ✅ CRITICAL FIX: Pass user avatar and name to NewBarraHistorias */}
         <NewBarraHistorias
-          historias={allStories}
+          historias={historias}
           onHistoriaPress={handleStoryPress}
           onCrearHistoria={user ? () => {
             if (isOwnerMode && activeLocalProfileId) {
@@ -1574,6 +1556,8 @@ export default function SocialScreen() {
               router.push('/crear/historia');
             }
           } : undefined}
+          userAvatar={user?.avatar}
+          userName={user?.nombre}
         />
 
         <View style={styles.feedContainer}>
@@ -1604,10 +1588,10 @@ export default function SocialScreen() {
 
       </ScrollView>
 
-      {/* ✅ CRITICAL FIX: Pass ALL stories to NewStoryViewer */}
+      {/* ✅ Pass stories to NewStoryViewer */}
       <NewStoryViewer
         visible={showStoryViewer}
-        stories={allStories}
+        stories={historias}
         initialIndex={currentStoryIndex}
         onClose={() => {
           console.log('[Social] Closing story viewer');

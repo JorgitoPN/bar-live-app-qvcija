@@ -5,20 +5,25 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { Historia } from '@/types';
 import { colors } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface NewBarraHistoriasProps {
   historias: Historia[];
   onHistoriaPress: (historia: Historia) => void;
   onCrearHistoria?: () => void;
+  userAvatar?: string;
+  userName?: string;
 }
 
 // Story Item Component
 const StoryItem = memo(({ 
   historia, 
-  onPress 
+  onPress,
+  isOwnStory = false,
 }: { 
   historia: Historia; 
   onPress: () => void;
+  isOwnStory?: boolean;
 }) => {
   const hasBeenViewed = historia.visto_por_usuario === true;
   
@@ -30,10 +35,11 @@ const StoryItem = memo(({
   }, [historia.imagen]);
   
   const displayName = useMemo(() => {
+    if (isOwnStory) return 'Tu historia';
     return historia.tipo === 'local'
       ? (historia.autorNombre || 'Local')
       : (historia.autor?.username || historia.autorUsername || historia.autorNombre || historia.autor?.nombre || 'Usuario').replace(/^@/, '');
-  }, [historia.tipo, historia.autorNombre, historia.autor?.username, historia.autorUsername, historia.autor?.nombre]);
+  }, [historia.tipo, historia.autorNombre, historia.autor?.username, historia.autorUsername, historia.autor?.nombre, isOwnStory]);
   
   const gradientColors = useMemo(() => {
     return hasBeenViewed ? ['#E5E7EB', '#E5E7EB'] : ['#FFD700', '#00FF00'];
@@ -74,18 +80,35 @@ const StoryItem = memo(({
   return (
     prevProps.historia.id === nextProps.historia.id &&
     prevProps.historia.visto_por_usuario === nextProps.historia.visto_por_usuario &&
-    prevProps.historia.autorAvatar === nextProps.historia.autorAvatar
+    prevProps.historia.autorAvatar === nextProps.historia.autorAvatar &&
+    prevProps.isOwnStory === nextProps.isOwnStory
   );
 });
 
 StoryItem.displayName = 'StoryItem';
 
-// Create Story Button
-const CreateStoryButton = memo(({ onPress }: { onPress: () => void }) => (
+// Create Story Button (shown when user has no stories)
+const CreateStoryButton = memo(({ 
+  onPress,
+  userAvatar,
+  userName,
+}: { 
+  onPress: () => void;
+  userAvatar?: string;
+  userName?: string;
+}) => (
   <TouchableOpacity style={styles.createStory} onPress={onPress} activeOpacity={0.7}>
     <View style={styles.createAvatarContainer}>
       <View style={styles.createAvatarBackground}>
-        <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={36} color={colors.textSecondary} />
+        {userAvatar ? (
+          <Image 
+            source={{ uri: userAvatar }} 
+            style={styles.userAvatarImage}
+            fadeDuration={0}
+          />
+        ) : (
+          <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={36} color={colors.textSecondary} />
+        )}
       </View>
       <View style={styles.createAddButton}>
         <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={28} color={colors.primary} />
@@ -102,7 +125,22 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
   historias,
   onHistoriaPress,
   onCrearHistoria,
+  userAvatar,
+  userName,
 }: NewBarraHistoriasProps) {
+  const { user } = useAuth();
+  
+  // Separate user's own stories from others
+  const { userStories, otherStories } = useMemo(() => {
+    const userStories = historias.filter(h => 
+      h.tipo === 'usuario' && h.autor_id === user?.id
+    );
+    const otherStories = historias.filter(h => 
+      !(h.tipo === 'usuario' && h.autor_id === user?.id)
+    );
+    return { userStories, otherStories };
+  }, [historias, user?.id]);
+  
   // Preload ALL story images in background
   useEffect(() => {
     const allImages = historias.map(h => h.imagen).filter(Boolean);
@@ -127,11 +165,28 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
         scrollEventThrottle={16}
         decelerationRate="fast"
       >
-        {/* Create Story Button */}
-        {onCrearHistoria && <CreateStoryButton onPress={onCrearHistoria} />}
+        {/* User's Own Story or Create Story Button */}
+        {user && onCrearHistoria && (
+          userStories.length > 0 ? (
+            // Show user's story with their avatar
+            <StoryItem
+              key={userStories[0].id}
+              historia={userStories[0]}
+              onPress={() => onHistoriaPress(userStories[0])}
+              isOwnStory={true}
+            />
+          ) : (
+            // Show create story button with user's avatar
+            <CreateStoryButton 
+              onPress={onCrearHistoria}
+              userAvatar={userAvatar || user.avatar}
+              userName={userName || user.nombre}
+            />
+          )
+        )}
 
-        {/* Stories */}
-        {historias.map((historia) => (
+        {/* Other Users' Stories */}
+        {otherStories.map((historia) => (
           <StoryItem
             key={historia.id}
             historia={historia}
@@ -145,7 +200,9 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
   return (
     prevProps.historias.length === nextProps.historias.length &&
     prevProps.historias[0]?.id === nextProps.historias[0]?.id &&
-    prevProps.historias[0]?.visto_por_usuario === nextProps.historias[0]?.visto_por_usuario
+    prevProps.historias[0]?.visto_por_usuario === nextProps.historias[0]?.visto_por_usuario &&
+    prevProps.userAvatar === nextProps.userAvatar &&
+    prevProps.userName === nextProps.userName
   );
 });
 
@@ -180,6 +237,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
+  },
+  userAvatarImage: {
+    width: '100%',
+    height: '100%',
   },
   createAddButton: {
     position: 'absolute',
