@@ -1297,13 +1297,34 @@ export default function SocialScreen() {
     lastScrollY.current = currentScrollY;
   }, [headerTranslateY]);
 
+  // ✅ CRITICAL FIX: Preload story images BEFORE opening viewer
   const handleStoryPress = useCallback(async (index: number, isOwnStory: boolean = false) => {
     console.log('[Social] 📖 Story pressed - index:', index, 'isOwnStory:', isOwnStory);
     const stories = isOwnStory ? userStories : historias;
     console.log('[Social] 📖 Stories available:', stories.length);
     
-    // ✅ Images already preloaded by GlobalDataContext
+    // ✅ CRITICAL: Preload images BEFORE opening viewer
+    console.log('[Social] 🚀 Preloading story images before opening viewer...');
+    const imagesToPreload: string[] = [];
     
+    // Preload current + next 3 stories
+    for (let i = index; i < Math.min(index + 4, stories.length); i++) {
+      if (stories[i]?.imagen) {
+        imagesToPreload.push(stories[i].imagen);
+      }
+    }
+    
+    // Preload in parallel without blocking
+    Promise.allSettled(imagesToPreload.map(uri => Image.prefetch(uri)))
+      .then(results => {
+        const successCount = results.filter(r => r.status === 'fulfilled').length;
+        console.log('[Social] ✅ Preloaded', successCount, '/', imagesToPreload.length, 'images');
+      })
+      .catch(() => {
+        console.log('[Social] ⚠️ Some images failed to preload');
+      });
+    
+    // ✅ Open viewer immediately (images will load as they're preloaded)
     setCurrentStoryIndex(index);
     setViewingOwnStories(isOwnStory);
     setShowStoryViewer(true);
