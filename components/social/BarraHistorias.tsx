@@ -5,7 +5,6 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { Historia } from '@/types';
 import { colors } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
-import { memoryManager } from '@/utils/memoryManager';
 
 interface BarraHistoriasProps {
   historias: Historia[];
@@ -13,7 +12,7 @@ interface BarraHistoriasProps {
   onCrearHistoria?: () => void;
 }
 
-// ✅ ULTRA-OPTIMIZED: Memoized story item with aggressive caching
+// ✅ ULTRA-OPTIMIZED: Memoized story item with INSTANT image preloading
 const StoryItem = memo(({ 
   historia, 
   onPress 
@@ -23,28 +22,27 @@ const StoryItem = memo(({
 }) => {
   const hasBeenViewed = historia.visto_por_usuario === true;
   
-  // ✅ Preload image for instant display
+  // ✅ CRITICAL: Preload BOTH avatar AND story image immediately
   useEffect(() => {
+    const imagesToPreload: string[] = [];
+    
     if (historia.autorAvatar) {
-      memoryManager.trackImage(historia.autorAvatar);
-      Image.prefetch(historia.autorAvatar).catch(() => {
-        console.log('[BarraHistorias] Failed to prefetch avatar:', historia.autorAvatar);
-      });
+      imagesToPreload.push(historia.autorAvatar);
     }
     
-    // ✅ CRITICAL: Preload story image immediately when avatar is visible
+    // ✅ CRITICAL: Preload story image IMMEDIATELY when avatar is visible
     if (historia.imagen) {
-      Image.prefetch(historia.imagen).catch(() => {
-        console.log('[BarraHistorias] Failed to prefetch story image:', historia.imagen);
-      });
+      imagesToPreload.push(historia.imagen);
     }
     
-    return () => {
-      if (historia.autorAvatar) {
-        memoryManager.clearImage(historia.autorAvatar);
-      }
-    };
-  }, [historia.autorAvatar, historia.imagen]);
+    if (imagesToPreload.length > 0) {
+      // Preload in parallel without blocking
+      Promise.allSettled(imagesToPreload.map(uri => Image.prefetch(uri)))
+        .catch(() => {
+          console.log('[BarraHistorias] Failed to prefetch images for story:', historia.id);
+        });
+    }
+  }, [historia.autorAvatar, historia.imagen, historia.id]);
   
   // ✅ Memoize display name
   const displayName = useMemo(() => {
@@ -127,6 +125,31 @@ const BarraHistorias = memo(function BarraHistorias({
 }: BarraHistoriasProps) {
   // ✅ Memoize historias to prevent unnecessary re-renders
   const memoizedHistorias = useMemo(() => historias, [historias.length, historias[0]?.id]);
+  
+  // ✅ CRITICAL: Preload ALL story images when component mounts
+  useEffect(() => {
+    const allStoryImages: string[] = [];
+    
+    historias.forEach(historia => {
+      if (historia.imagen) {
+        allStoryImages.push(historia.imagen);
+      }
+    });
+    
+    if (allStoryImages.length > 0) {
+      console.log('[BarraHistorias] 🚀 Preloading ALL', allStoryImages.length, 'story images...');
+      
+      // Preload in background without blocking
+      Promise.allSettled(allStoryImages.map(uri => Image.prefetch(uri)))
+        .then(results => {
+          const successCount = results.filter(r => r.status === 'fulfilled').length;
+          console.log('[BarraHistorias] ✅ Preloaded', successCount, '/', allStoryImages.length, 'story images');
+        })
+        .catch(() => {
+          console.log('[BarraHistorias] ⚠️ Some story images failed to preload');
+        });
+    }
+  }, [historias]);
   
   return (
     <View style={styles.container}>

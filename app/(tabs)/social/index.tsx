@@ -7,7 +7,7 @@ import { socialCache } from '@/utils/socialCache';
 import { LinearGradient } from 'expo-linear-gradient';
 import ParsedText from '@/components/social/ParsedText';
 import StoryViewer from '@/components/social/StoryViewer';
-import { preloadStoryImages } from '@/utils/storyPreloader';
+import BarraHistorias from '@/components/social/BarraHistorias';
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
@@ -338,73 +338,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.primary,
     fontWeight: '500',
-  },
-  historiasContainer: {
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderBottomWidth: 0.5,
-    borderBottomColor: colors.cardBorder,
-    minHeight: 130,
-    backgroundColor: colors.background,
-  },
-  historiasScrollContent: {
-    alignItems: 'center',
-  },
-  historiaItem: {
-    alignItems: 'center',
-    marginHorizontal: 8,
-  },
-  historiaAvatarContainer: {
-    position: 'relative',
-  },
-  historiaGradientBorder: {
-    padding: 3,
-    borderRadius: 48,
-    width: 96,
-    height: 96,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  historiaAvatar: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    borderWidth: 3,
-    borderColor: colors.background,
-  },
-  historiaAvatarVisto: {
-    borderColor: colors.cardBorder,
-  },
-  historiaAddButton: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    position: 'relative',
-  },
-  historiaUserAvatar: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-  },
-  historiaAddIcon: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: colors.background,
-  },
-  historiaNombre: {
-    fontSize: 12,
-    color: colors.text,
-    marginTop: 6,
-    textAlign: 'center',
-    maxWidth: 90,
   },
   feedContainer: {
     flex: 1,
@@ -1297,34 +1230,18 @@ export default function SocialScreen() {
     lastScrollY.current = currentScrollY;
   }, [headerTranslateY]);
 
-  // ✅ CRITICAL FIX: Preload story images BEFORE opening viewer
-  const handleStoryPress = useCallback(async (index: number, isOwnStory: boolean = false) => {
-    console.log('[Social] 📖 Story pressed - index:', index, 'isOwnStory:', isOwnStory);
+  // ✅ ULTRA-OPTIMIZED: Handle story press with instant opening
+  const handleStoryPress = useCallback((historia: HistoriaConAutor) => {
+    console.log('[Social] 📖 Story pressed:', historia.id);
+    
+    // Find the index of the story in the appropriate array
+    const isOwnStory = userStories.some(s => s.id === historia.id);
     const stories = isOwnStory ? userStories : historias;
-    console.log('[Social] 📖 Stories available:', stories.length);
+    const index = stories.findIndex(s => s.id === historia.id);
     
-    // ✅ CRITICAL: Preload images BEFORE opening viewer
-    console.log('[Social] 🚀 Preloading story images before opening viewer...');
-    const imagesToPreload: string[] = [];
+    console.log('[Social] 📖 Opening story at index:', index, 'isOwnStory:', isOwnStory);
     
-    // Preload current + next 3 stories
-    for (let i = index; i < Math.min(index + 4, stories.length); i++) {
-      if (stories[i]?.imagen) {
-        imagesToPreload.push(stories[i].imagen);
-      }
-    }
-    
-    // Preload in parallel without blocking
-    Promise.allSettled(imagesToPreload.map(uri => Image.prefetch(uri)))
-      .then(results => {
-        const successCount = results.filter(r => r.status === 'fulfilled').length;
-        console.log('[Social] ✅ Preloaded', successCount, '/', imagesToPreload.length, 'images');
-      })
-      .catch(() => {
-        console.log('[Social] ⚠️ Some images failed to preload');
-      });
-    
-    // ✅ Open viewer immediately (images will load as they're preloaded)
+    // ✅ Open viewer INSTANTLY - images are already preloaded by BarraHistorias
     setCurrentStoryIndex(index);
     setViewingOwnStories(isOwnStory);
     setShowStoryViewer(true);
@@ -1536,36 +1453,6 @@ export default function SocialScreen() {
     }
   }, [switchToClientProfile, setCurrentMode, loadData]);
 
-  const groupedStories = useMemo(() => {
-    const storyGroups = historias.reduce((acc, historia) => {
-      const authorId = historia.autor_id;
-      if (!acc[authorId]) {
-        acc[authorId] = [];
-      }
-      acc[authorId].push(historia);
-      return acc;
-    }, {} as Record<string, typeof historias>);
-
-    return Object.values(storyGroups).map((authorStories) => {
-      const firstStory = authorStories[0];
-      const allViewed = authorStories.every(s => s.visto_por_usuario);
-      const firstStoryIndex = historias.findIndex(h => h.id === firstStory.id);
-
-      return {
-        firstStory,
-        allViewed,
-        firstStoryIndex,
-      };
-    });
-  }, [historias]);
-
-  const hasUserStories = userStories.length > 0;
-  const hasUnviewedUserStories = userStories.some(s => !s.visto_por_usuario);
-
-  const displayAvatar = user?.avatar;
-  const displayName = user?.nombre || 'Usuario';
-  const displayInitial = displayName.charAt(0).toUpperCase();
-
   // ✅ CRITICAL FIX: NEVER show loading screen - data is ALWAYS available from cache
   // Show empty state only if data has been loaded at least once AND there are no posts
   const showEmptyState = hasLoadedOnce && posts.length === 0;
@@ -1672,141 +1559,18 @@ export default function SocialScreen() {
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-        <View style={styles.historiasContainer}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.historiasScrollContent}
-          >
-            {user && (
-              <TouchableOpacity
-                style={styles.historiaItem}
-                onPress={() => {
-                  if (hasUserStories) {
-                    handleStoryPress(0, true);
-                  } else {
-                    if (isOwnerMode && activeLocalProfileId) {
-                      router.push(`/crear/historia?localId=${activeLocalProfileId}`);
-                    } else {
-                      router.push('/crear/historia');
-                    }
-                  }
-                }}
-                activeOpacity={0.7}
-              >
-                <View style={styles.historiaAddButton}>
-                  {hasUserStories ? (
-                    hasUnviewedUserStories ? (
-                      <LinearGradient
-                        colors={['#FFD700', '#00FF00']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.historiaGradientBorder}
-                      >
-                        {(isOwnerMode && activeLocalData?.imagen_url) ? (
-                          <Image source={{ uri: activeLocalData.imagen_url }} style={styles.historiaAvatar} />
-                        ) : displayAvatar ? (
-                          <Image source={{ uri: displayAvatar }} style={styles.historiaAvatar} />
-                        ) : (
-                          <View style={[styles.historiaAvatar, styles.avatarPlaceholder]}>
-                            <Text style={styles.avatarText}>{isOwnerMode && activeLocalData ? activeLocalData.nombre.charAt(0).toUpperCase() : displayInitial}</Text>
-                          </View>
-                        )}
-                      </LinearGradient>
-                    ) : (
-                      <>
-                        {(isOwnerMode && activeLocalData?.imagen_url) ? (
-                          <Image source={{ uri: activeLocalData.imagen_url }} style={[styles.historiaAvatar, { borderWidth: 2, borderColor: colors.cardBorder }]} />
-                        ) : displayAvatar ? (
-                          <Image source={{ uri: displayAvatar }} style={[styles.historiaAvatar, { borderWidth: 2, borderColor: colors.cardBorder }]} />
-                        ) : (
-                          <View style={[styles.historiaAvatar, styles.avatarPlaceholder, { borderWidth: 2, borderColor: colors.cardBorder }]}>
-                            <Text style={styles.avatarText}>{isOwnerMode && activeLocalData ? activeLocalData.nombre.charAt(0).toUpperCase() : displayInitial}</Text>
-                          </View>
-                        )}
-                      </>
-                    )
-                  ) : (
-                    <>
-                      {(isOwnerMode && activeLocalData?.imagen_url) ? (
-                        <Image source={{ uri: activeLocalData.imagen_url }} style={styles.historiaUserAvatar} />
-                      ) : displayAvatar ? (
-                        <Image source={{ uri: displayAvatar }} style={styles.historiaUserAvatar} />
-                      ) : (
-                        <View style={[styles.historiaUserAvatar, styles.avatarPlaceholder]}>
-                          <Text style={styles.avatarText}>{isOwnerMode && activeLocalData ? activeLocalData.nombre.charAt(0).toUpperCase() : displayInitial}</Text>
-                        </View>
-                      )}
-                      <View style={styles.historiaAddIcon}>
-                        <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={18} color={colors.headerText} />
-                      </View>
-                    </>
-                  )}
-                </View>
-                <Text style={styles.historiaNombre}>
-                  {isOwnerMode && activeLocalData ? activeLocalData.nombre : 'Tu historia'}
-                </Text>
-              </TouchableOpacity>
-            )}
-
-            {groupedStories.map(({ firstStory, allViewed, firstStoryIndex }, groupIndex) => {
-              const storyDisplayName = firstStory.tipo === 'local'
-                ? (firstStory.autor?.nombre || 'Local')
-                : (firstStory.autor?.username || firstStory.autor?.nombre || 'Usuario').replace(/^@/, '');
-
-              return (
-                <TouchableOpacity
-                  key={firstStory.id}
-                  style={styles.historiaItem}
-                  onPress={() => handleStoryPress(firstStoryIndex, false)}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.historiaAvatarContainer}>
-                    {!allViewed ? (
-                      <LinearGradient
-                        colors={['#FFD700', '#00FF00']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.historiaGradientBorder}
-                      >
-                        {firstStory.autor?.avatar ? (
-                          <Image
-                            source={{ uri: firstStory.autor.avatar }}
-                            style={styles.historiaAvatar}
-                          />
-                        ) : (
-                          <View style={[styles.historiaAvatar, styles.avatarPlaceholder]}>
-                            <Text style={styles.avatarText}>
-                              {storyDisplayName.charAt(0).toUpperCase()}
-                            </Text>
-                          </View>
-                        )}
-                      </LinearGradient>
-                    ) : (
-                      <>
-                        {firstStory.autor?.avatar ? (
-                          <Image
-                            source={{ uri: firstStory.autor.avatar }}
-                            style={[styles.historiaAvatar, { borderWidth: 2, borderColor: colors.cardBorder }]}
-                          />
-                        ) : (
-                          <View style={[styles.historiaAvatar, styles.avatarPlaceholder, { borderWidth: 2, borderColor: colors.cardBorder }]}>
-                            <Text style={styles.avatarText}>
-                              {storyDisplayName.charAt(0).toUpperCase()}
-                            </Text>
-                          </View>
-                        )}
-                      </>
-                    )}
-                  </View>
-                  <Text style={styles.historiaNombre} numberOfLines={1}>
-                    {storyDisplayName}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </View>
+        {/* ✅ CRITICAL: Pass handleStoryPress directly to BarraHistorias */}
+        <BarraHistorias
+          historias={historias}
+          onHistoriaPress={handleStoryPress}
+          onCrearHistoria={user ? () => {
+            if (isOwnerMode && activeLocalProfileId) {
+              router.push(`/crear/historia?localId=${activeLocalProfileId}`);
+            } else {
+              router.push('/crear/historia');
+            }
+          } : undefined}
+        />
 
         <View style={styles.feedContainer}>
           {posts.length > 0 ? (
