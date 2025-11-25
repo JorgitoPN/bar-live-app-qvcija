@@ -54,13 +54,13 @@ interface Review {
   id: string;
   usuario_id: string;
   local_id: string;
-  valoracion: number;
-  comentario?: string;
+  rating: number;
+  texto?: string;
   created_at: string;
   usuario?: {
     nombre: string;
     username: string;
-    avatar_url?: string;
+    avatar?: string;
   };
 }
 
@@ -87,10 +87,10 @@ export default function DetalleLocalScreen() {
     setLoadingReviews(true);
     try {
       const { data, error } = await supabase
-        .from('reviews')
+        .from('reviews_barlive')
         .select(`
           *,
-          usuario:usuarios(nombre, username, avatar_url)
+          usuario:usuarios(nombre, username, avatar)
         `)
         .eq('local_id', params.id)
         .order('created_at', { ascending: false })
@@ -389,7 +389,7 @@ export default function DetalleLocalScreen() {
                 <View key={review.id} style={styles.reviewCard}>
                   <View style={styles.reviewHeader}>
                     <Image
-                      source={{ uri: review.usuario?.avatar_url || 'https://via.placeholder.com/40' }}
+                      source={{ uri: review.usuario?.avatar || 'https://via.placeholder.com/40' }}
                       style={styles.reviewAvatar}
                     />
                     <View style={styles.reviewHeaderText}>
@@ -398,8 +398,8 @@ export default function DetalleLocalScreen() {
                         {[...Array(5)].map((_, i) => (
                           <IconSymbol
                             key={i}
-                            ios_icon_name={i < review.valoracion ? "star.fill" : "star"}
-                            android_material_icon_name={i < review.valoracion ? "star" : "star_border"}
+                            ios_icon_name={i < review.rating ? "star.fill" : "star"}
+                            android_material_icon_name={i < review.rating ? "star" : "star_border"}
                             size={16}
                             color={colors.warning}
                           />
@@ -407,8 +407,8 @@ export default function DetalleLocalScreen() {
                       </View>
                     </View>
                   </View>
-                  {review.comentario && (
-                    <Text style={styles.reviewComment}>{review.comentario}</Text>
+                  {review.texto && (
+                    <Text style={styles.reviewComment}>{review.texto}</Text>
                   )}
                 </View>
               ))}
