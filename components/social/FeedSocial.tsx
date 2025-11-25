@@ -1,19 +1,47 @@
 
 import React, { memo, useCallback, useMemo } from 'react';
-import { FlatList, View, StyleSheet } from 'react-native';
+import {
+  FlatList,
+  StyleSheet,
+  View,
+} from 'react-native';
 import OptimizedPublicacionCard from './OptimizedPublicacionCard';
-import { Post } from '@/types';
 import { colors } from '@/styles/commonStyles';
+
+interface Post {
+  id: string;
+  contenido: string;
+  imagen?: string;
+  imagenes?: string[];
+  autor_id?: string;
+  local_id?: string;
+  tipo: 'usuario' | 'local';
+  created_at: string;
+  likes: number;
+  comentarios: number;
+  liked?: boolean;
+  saved?: boolean;
+  autor?: {
+    id: string;
+    nombre: string;
+    username: string;
+    avatar_url?: string;
+  };
+  local?: {
+    id: string;
+    nombre: string;
+    avatar_url?: string;
+  };
+}
 
 interface FeedSocialProps {
   posts: Post[];
   onRefresh?: () => void;
   refreshing?: boolean;
   onEndReached?: () => void;
-  ListHeaderComponent?: React.ReactElement;
+  ListHeaderComponent?: React.ComponentType<any> | React.ReactElement | null;
 }
 
-// ✅ ULTRA-OPTIMIZED: Memoized feed with aggressive performance optimizations
 const FeedSocial = memo(function FeedSocial({
   posts,
   onRefresh,
@@ -21,26 +49,21 @@ const FeedSocial = memo(function FeedSocial({
   onEndReached,
   ListHeaderComponent,
 }: FeedSocialProps) {
-  // ✅ Memoized render function to prevent recreation
   const renderItem = useCallback(({ item }: { item: Post }) => (
     <OptimizedPublicacionCard post={item} />
   ), []);
 
-  // ✅ Memoized key extractor
   const keyExtractor = useCallback((item: Post) => item.id, []);
 
-  // ✅ CRITICAL: Optimized item layout for instant scrolling
-  // Dynamic height estimation based on content
   const getItemLayout = useCallback((data: any, index: number) => {
     const item = data?.[index];
     const hasImages = item?.imagenes?.length > 0 || item?.imagen;
     const hasContent = item?.contenido?.length > 0;
     
-    // Estimate height based on content
-    let estimatedHeight = 80; // Header
-    if (hasContent) estimatedHeight += 60; // Content
-    if (hasImages) estimatedHeight += 400; // Images
-    estimatedHeight += 60; // Actions
+    let estimatedHeight = 80;
+    if (hasContent) estimatedHeight += 60;
+    if (hasImages) estimatedHeight += 400;
+    estimatedHeight += 60;
     
     return {
       length: estimatedHeight,
@@ -49,8 +72,11 @@ const FeedSocial = memo(function FeedSocial({
     };
   }, []);
 
-  // ✅ Memoize posts to prevent unnecessary re-renders
-  const memoizedPosts = useMemo(() => posts, [posts.length, posts[0]?.id]);
+  // ✅ FIXED: Extract complex expressions and add missing dependency 'posts'
+  const postsLength = posts.length;
+  const firstPostId = posts[0]?.id;
+  
+  const memoizedPosts = useMemo(() => posts, [posts, postsLength, firstPostId]);
 
   return (
     <FlatList
@@ -64,25 +90,19 @@ const FeedSocial = memo(function FeedSocial({
       onEndReached={onEndReached}
       onEndReachedThreshold={0.5}
       ListHeaderComponent={ListHeaderComponent}
-      // ✅ ULTRA-PERFORMANCE OPTIMIZATIONS
       removeClippedSubviews={true}
       maxToRenderPerBatch={3}
       updateCellsBatchingPeriod={100}
       initialNumToRender={3}
       windowSize={5}
       getItemLayout={getItemLayout}
-      // ✅ CRITICAL: Disable nested scrolling for better performance
       nestedScrollEnabled={false}
-      // ✅ Fast scroll indicator
       persistentScrollbar={false}
-      // ✅ Optimize memory usage
       legacyImplementation={false}
-      // ✅ Reduce overdraw
       drawDistance={500}
     />
   );
 }, (prevProps, nextProps) => {
-  // ✅ Custom comparison for better memoization
   return (
     prevProps.posts.length === nextProps.posts.length &&
     prevProps.refreshing === nextProps.refreshing &&
@@ -91,10 +111,10 @@ const FeedSocial = memo(function FeedSocial({
   );
 });
 
+export default FeedSocial;
+
 const styles = StyleSheet.create({
   listContent: {
     paddingBottom: 100,
   },
 });
-
-export default FeedSocial;

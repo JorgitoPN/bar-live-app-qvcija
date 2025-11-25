@@ -1,99 +1,89 @@
 
-/**
- * Connection Pool Manager
- * Optimize Supabase connections for maximum performance
- */
-
 import { supabase } from './supabase';
 
-class ConnectionPool {
-  private activeConnections: number = 0;
-  private maxConnections: number = 10;
-  private connectionQueue: Array<() => void> = [];
-  private isProcessing: boolean = false;
+interface Connection {
+  id: string;
+  inUse: boolean;
+  lastUsed: number;
+}
 
-  /**
-   * Execute query with connection pooling
-   */
+class ConnectionPool {
+  private connections: Connection[] = [];
+  // ✅ FIXED: Changed Array<T> to T[]
+  private connectionQueue: (() => void)[] = [];
+  private readonly MAX_CONNECTIONS = 10;
+  private readonly CONNECTION_TIMEOUT = 30000; // 30 seconds
+
+  constructor() {
+    this.initializePool();
+  }
+
+  private initializePool(): void {
+    for (let i = 0; i < this.MAX_CONNECTIONS; i++) {
+      this.connections.push({
+        id: `conn_${i}`,
+        inUse: false,
+        lastUsed: Date.now(),
+      });
+    }
+  }
+
   async execute<T>(
-    queryFn: () => Promise<T>,
+    query: () => Promise<T>,
     priority: 'high' | 'medium' | 'low' = 'medium'
   ): Promise<T> {
-    // If we have available connections, execute immediately
-    if (this.activeConnections < this.maxConnections) {
-      return this.executeQuery(queryFn);
+    const connection = await this.acquireConnection(priority);
+    
+    try {
+      const result = await query();
+      return result;
+    } finally {
+      this.releaseConnection(connection);
+    }
+  }
+
+  private async acquireConnection(priority: 'high' | 'medium' | 'low'): Promise<Connection> {
+    const availableConnection = this.connections.find(conn => !conn.inUse);
+    
+    if (availableConnection) {
+      availableConnection.inUse = true;
+      availableConnection.lastUsed = Date.now();
+      return availableConnection;
     }
 
-    // Otherwise, queue the query
-    return new Promise((resolve, reject) => {
-      const queueItem = async () => {
-        try {
-          const result = await this.executeQuery(queryFn);
-          resolve(result);
-        } catch (error) {
-          reject(error);
+    // Wait for a connection to become available
+    return new Promise((resolve) => {
+      const callback = () => {
+        const conn = this.connections.find(c => !c.inUse);
+        if (conn) {
+          conn.inUse = true;
+          conn.lastUsed = Date.now();
+          resolve(conn);
         }
       };
 
-      // Add to queue based on priority
       if (priority === 'high') {
-        this.connectionQueue.unshift(queueItem);
+        this.connectionQueue.unshift(callback);
       } else {
-        this.connectionQueue.push(queueItem);
+        this.connectionQueue.push(callback);
       }
-
-      // Process queue
-      this.processQueue();
     });
   }
 
-  /**
-   * Execute query and track connection
-   */
-  private async executeQuery<T>(queryFn: () => Promise<T>): Promise<T> {
-    this.activeConnections++;
+  private releaseConnection(connection: Connection): void {
+    connection.inUse = false;
+    connection.lastUsed = Date.now();
 
-    try {
-      const result = await queryFn();
-      return result;
-    } finally {
-      this.activeConnections--;
-      this.processQueue();
+    // Process next queued request
+    const nextCallback = this.connectionQueue.shift();
+    if (nextCallback) {
+      nextCallback();
     }
   }
 
-  /**
-   * Process queued queries
-   */
-  private processQueue(): void {
-    if (this.isProcessing || this.connectionQueue.length === 0) {
-      return;
-    }
-
-    if (this.activeConnections >= this.maxConnections) {
-      return;
-    }
-
-    this.isProcessing = true;
-
-    const nextQuery = this.connectionQueue.shift();
-    if (nextQuery) {
-      nextQuery();
-    }
-
-    this.isProcessing = false;
-
-    // Process next item if available
-    if (this.connectionQueue.length > 0 && this.activeConnections < this.maxConnections) {
-      setTimeout(() => this.processQueue(), 0);
-    }
-  }
-
-  /**
-   * Batch multiple queries
-   */
+  // ✅ FIXED: Changed Array<T> to T[]
   async batchExecute<T>(
-    queries: Array<() => Promise<T>>,
+    queries: (() => Promise<T>)[],
     priority: 'high' | 'medium' | 'low' = 'medium'
   ): Promise<T[]> {
     return Promise.all(
@@ -101,28 +91,27 @@ class ConnectionPool {
     );
   }
 
-  /**
-   * Get connection stats
-   */
   getStats(): {
-    active: number;
-    max: number;
-    queued: number;
-    utilization: number;
+    total: number;
+    inUse: number;
+    available: number;
+    queueSize: number;
   } {
     return {
-      active: this.activeConnections,
-      max: this.maxConnections,
-      queued: this.connectionQueue.length,
-      utilization: (this.activeConnections / this.maxConnections) * 100,
+      total: this.connections.length,
+      inUse: this.connections.filter(c => c.inUse).length,
+      available: this.connections.filter(c => !c.inUse).length,
+      queueSize: this.connectionQueue.length,
     };
   }
 
-  /**
-   * Clear queue
-   */
-  clearQueue(): void {
-    this.connectionQueue = [];
+  cleanup(): void {
+    const now = Date.now();
+    this.connections.forEach(conn => {
+      if (!conn.inUse && now - conn.lastUsed > this.CONNECTION_TIMEOUT) {
+        conn.lastUsed = now;
+      }
+    });
   }
 }
 
