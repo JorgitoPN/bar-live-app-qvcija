@@ -15,7 +15,7 @@ import {
   Alert,
   Modal,
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -786,366 +786,376 @@ export default function DetalleLocalScreen() {
   const ratingCombinado = totalReviews > 0 ? (totalRating / totalReviews).toFixed(1) : local.google_rating;
 
   return (
-    <View style={styles.container}>
-      <ScrollView>
-        {/* Imagen con overlays */}
-        <View style={styles.imageContainer}>
-          {local.imagen_url ? (
-            <Image source={{ uri: local.imagen_url }} style={styles.image} resizeMode="cover" />
-          ) : (
-            <View style={[styles.image, { backgroundColor: colors.cardBorder, justifyContent: 'center', alignItems: 'center' }]}>
-              <IconSymbol name="photo" size={64} color={colors.textSecondary} />
-            </View>
-          )}
-
-          {/* Estado (tiempo) - Esquina superior izquierda debajo del botón volver */}
-          <View style={[
-            styles.estadoBadgeOverlay,
-            isOpen ? styles.estadoAbierto : styles.estadoCerrado
-          ]}>
-            <View style={styles.estadoDot} />
-            <Text style={styles.estadoText}>{tiempoEstado}</Text>
-          </View>
-
-          {/* Valoración - Esquina superior derecha debajo del botón compartir */}
-          {ratingCombinado && (
-            <View style={styles.ratingBadgeOverlay}>
-              <IconSymbol name="star.fill" size={16} color={colors.badgeDestacado} />
-              <Text style={styles.ratingTextOverlay}>{ratingCombinado}</Text>
-            </View>
-          )}
-
-          {/* Botón favorito - Esquina inferior derecha */}
-          <TouchableOpacity
-            style={styles.favoritoButtonOverlay}
-            onPress={toggleFavorito}
-            activeOpacity={0.8}
-          >
-            <View style={styles.favoritoBackgroundOverlay}>
-              <IconSymbol
-                name={isFavorito ? 'heart.fill' : 'heart'}
-                size={24}
-                color={isFavorito ? colors.badgeNuevo : colors.headerText}
-              />
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        {/* Header Buttons */}
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.headerButton} onPress={() => router.back()}>
-            <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.headerButton} onPress={() => console.log('Share')}>
-            <IconSymbol name="square.and.arrow.up" size={24} color={colors.headerText} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Mini Galería con márgenes y funcionalidad de clic */}
-        {galeriaUrls.length > 0 && (
-          <View style={styles.galeriaContainer}>
-            <Text style={styles.galeriaTitle}>Galería</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.galeriaScroll}>
-              {galeriaUrls.map((url: string, index: number) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.galeriaImageWrapper}
-                  onPress={() => handleImagePress(index)}
-                  activeOpacity={0.8}
-                >
-                  <Image
-                    source={{ uri: url }}
-                    style={styles.galeriaImage}
-                    resizeMode="cover"
-                  />
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* Información Principal */}
-        <View style={styles.mainInfo}>
-          <Text style={styles.nombre}>{local.nombre}</Text>
-
-          {/* Rating y Precio */}
-          <View style={styles.ratingContainer}>
-            {local.rango_precios && (
-              <Text style={styles.priceLevelText}>{local.rango_precios}</Text>
+    <>
+      <Stack.Screen 
+        options={{ 
+          headerShown: false,
+          presentation: 'card',
+          animation: 'default',
+        }} 
+      />
+      
+      <View style={styles.container}>
+        <ScrollView>
+          {/* Imagen con overlays */}
+          <View style={styles.imageContainer}>
+            {local.imagen_url ? (
+              <Image source={{ uri: local.imagen_url }} style={styles.image} resizeMode="cover" />
+            ) : (
+              <View style={[styles.image, { backgroundColor: colors.cardBorder, justifyContent: 'center', alignItems: 'center' }]}>
+                <IconSymbol name="photo" size={64} color={colors.textSecondary} />
+              </View>
             )}
-          </View>
 
-          {/* Dirección */}
-          {local.direccion && (
-            <View style={styles.direccionContainer}>
-              <IconSymbol name="mappin" size={20} color={colors.primary} />
-              <Text style={styles.direccionText}>{local.direccion}</Text>
+            {/* Estado (tiempo) - Esquina superior izquierda debajo del botón volver */}
+            <View style={[
+              styles.estadoBadgeOverlay,
+              isOpen ? styles.estadoAbierto : styles.estadoCerrado
+            ]}>
+              <View style={styles.estadoDot} />
+              <Text style={styles.estadoText}>{tiempoEstado}</Text>
             </View>
-          )}
 
-          {/* Descripción */}
-          {local.descripcion_google && (
-            <Text style={styles.descripcion}>{local.descripcion_google}</Text>
-          )}
-
-          {/* Botones de Acción */}
-          <View style={styles.actionButtons}>
-            {local.telefono && (
-              <TouchableOpacity style={[styles.actionButton, styles.actionButtonPrimary]} onPress={handleLlamar}>
-                <IconSymbol name="phone.fill" size={20} color={colors.headerText} />
-                <Text style={styles.actionButtonText}>Llamar</Text>
-              </TouchableOpacity>
+            {/* Valoración - Esquina superior derecha debajo del botón compartir */}
+            {ratingCombinado && (
+              <View style={styles.ratingBadgeOverlay}>
+                <IconSymbol name="star.fill" size={16} color={colors.badgeDestacado} />
+                <Text style={styles.ratingTextOverlay}>{ratingCombinado}</Text>
+              </View>
             )}
-            <TouchableOpacity style={[styles.actionButton, styles.actionButtonSecondary]} onPress={handleComoLlegar}>
-              <IconSymbol name="map.fill" size={20} color={colors.headerText} />
-              <Text style={styles.actionButtonText}>Cómo llegar</Text>
+
+            {/* Botón favorito - Esquina inferior derecha */}
+            <TouchableOpacity
+              style={styles.favoritoButtonOverlay}
+              onPress={toggleFavorito}
+              activeOpacity={0.8}
+            >
+              <View style={styles.favoritoBackgroundOverlay}>
+                <IconSymbol
+                  name={isFavorito ? 'heart.fill' : 'heart'}
+                  size={24}
+                  color={isFavorito ? colors.badgeNuevo : colors.headerText}
+                />
+              </View>
             </TouchableOpacity>
           </View>
 
-          {local.website && (
-            <TouchableOpacity style={[styles.actionButton, styles.actionButtonPrimary, { marginTop: 12 }]} onPress={handleWeb}>
-              <IconSymbol name="globe" size={20} color={colors.headerText} />
-              <Text style={styles.actionButtonText}>Visitar Web</Text>
+          {/* Header Buttons */}
+          <View style={styles.header}>
+            <TouchableOpacity style={styles.headerButton} onPress={() => router.back()}>
+              <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
             </TouchableOpacity>
+            <TouchableOpacity style={styles.headerButton} onPress={() => console.log('Share')}>
+              <IconSymbol name="square.and.arrow.up" size={24} color={colors.headerText} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Mini Galería con márgenes y funcionalidad de clic */}
+          {galeriaUrls.length > 0 && (
+            <View style={styles.galeriaContainer}>
+              <Text style={styles.galeriaTitle}>Galería</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.galeriaScroll}>
+                {galeriaUrls.map((url: string, index: number) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.galeriaImageWrapper}
+                    onPress={() => handleImagePress(index)}
+                    activeOpacity={0.8}
+                  >
+                    <Image
+                      source={{ uri: url }}
+                      style={styles.galeriaImage}
+                      resizeMode="cover"
+                    />
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
           )}
-        </View>
 
-        {/* Tipos de Cocina */}
-        {tiposCocina.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🍴 Tipos de Cocina</Text>
-            <View style={styles.cocinaContainer}>
-              {tiposCocina.map((cocina: string, index: number) => (
-                <View key={index} style={styles.cocinaBadge}>
-                  <Text style={styles.cocinaText}>{cocina}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
+          {/* Información Principal */}
+          <View style={styles.mainInfo}>
+            <Text style={styles.nombre}>{local.nombre}</Text>
 
-        {/* Horarios */}
-        {Object.keys(horariosCompletos).length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🕐 Horarios</Text>
-            <View style={styles.horariosContainer}>
-              {Object.entries(horariosCompletos).map(([dia, horas]: [string, any]) => (
-                <View key={dia} style={styles.horarioRow}>
-                  <Text style={styles.horarioDia}>{formatDayName(dia)}</Text>
-                  <Text style={styles.horarioHoras}>
-                    {Array.isArray(horas) ? horas.join(', ') : horas}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
-
-        {/* Servicios Disponibles */}
-        {serviciosActivos.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🛎️ Servicios Disponibles</Text>
-            <View style={styles.serviciosGrid}>
-              {serviciosActivos.map((servicio) => (
-                <View key={servicio} style={styles.servicioBadge}>
-                  <Text style={styles.servicioText}>{formatServiceName(servicio)}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
-
-        {/* Ambiente */}
-        {ambienteActivo.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🎭 Ambiente</Text>
-            <View style={styles.ambienteGrid}>
-              {ambienteActivo.map((ambiente) => (
-                <View key={ambiente} style={styles.ambienteBadge}>
-                  <Text style={styles.ambienteText}>{formatAmbienteName(ambiente)}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
-
-        {/* Clientela - SIN "Locales" */}
-        {clientelaActiva.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>👥 Clientela Típica</Text>
-            <View style={styles.ambienteGrid}>
-              {clientelaActiva.map((cliente) => (
-                <View key={cliente} style={styles.ambienteBadge}>
-                  <Text style={styles.ambienteText}>{formatClientelaName(cliente)}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
-
-        {/* Análisis de Reviews */}
-        {analisisReviews.resumen_automatico && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🧠 Análisis de Reseñas</Text>
-            <View style={styles.analisisCard}>
-              <Text style={styles.analisisTitle}>
-                Sentimiento: {analisisReviews.sentimiento_general}
-              </Text>
-              <Text style={styles.analisisText}>{analisisReviews.resumen_automatico}</Text>
-              
-              {analisisReviews.palabras_clave_detectadas && analisisReviews.palabras_clave_detectadas.length > 0 && (
-                <View style={styles.palabrasClaveContainer}>
-                  {analisisReviews.palabras_clave_detectadas.map((palabra: string, index: number) => (
-                    <View key={index} style={styles.palabraClaveBadge}>
-                      <Text style={styles.palabraClaveText}>{palabra}</Text>
-                    </View>
-                  ))}
-                </View>
+            {/* Rating y Precio */}
+            <View style={styles.ratingContainer}>
+              {local.rango_precios && (
+                <Text style={styles.priceLevelText}>{local.rango_precios}</Text>
               )}
             </View>
-          </View>
-        )}
 
-        {/* Reseñas */}
-        {todasLasReviews.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>⭐ Reseñas</Text>
-            
-            {user && (
-              <TouchableOpacity
-                style={styles.escribirReviewButton}
-                onPress={() => setMostrarModalReview(true)}
-              >
-                <IconSymbol name="pencil" size={20} color={colors.headerText} />
-                <Text style={styles.escribirReviewButtonText}>Escribir reseña</Text>
-              </TouchableOpacity>
+            {/* Dirección */}
+            {local.direccion && (
+              <View style={styles.direccionContainer}>
+                <IconSymbol name="mappin" size={20} color={colors.primary} />
+                <Text style={styles.direccionText}>{local.direccion}</Text>
+              </View>
             )}
 
-            <View style={styles.reviewsContainer}>
-              {reviewsAMostrar.map((review: any, index: number) => (
-                <View key={index} style={styles.reviewCard}>
-                  <View style={styles.reviewHeader}>
-                    <View style={styles.reviewAvatar}>
-                      {review.author_avatar ? (
-                        <Image source={{ uri: review.author_avatar }} style={styles.reviewAvatarImage} />
-                      ) : (
-                        <IconSymbol name="person.fill" size={20} color={colors.textSecondary} />
-                      )}
-                    </View>
-                    <View style={styles.reviewHeaderInfo}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                        <Text style={styles.reviewAuthor}>{review.author_name}</Text>
-                        {review.source === 'barlive' && (
-                          <View style={styles.barliveReviewBadge}>
-                            <Text style={styles.barliveReviewBadgeText}>BARLIVE</Text>
-                          </View>
+            {/* Descripción */}
+            {local.descripcion_google && (
+              <Text style={styles.descripcion}>{local.descripcion_google}</Text>
+            )}
+
+            {/* Botones de Acción */}
+            <View style={styles.actionButtons}>
+              {local.telefono && (
+                <TouchableOpacity style={[styles.actionButton, styles.actionButtonPrimary]} onPress={handleLlamar}>
+                  <IconSymbol name="phone.fill" size={20} color={colors.headerText} />
+                  <Text style={styles.actionButtonText}>Llamar</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity style={[styles.actionButton, styles.actionButtonSecondary]} onPress={handleComoLlegar}>
+                <IconSymbol name="map.fill" size={20} color={colors.headerText} />
+                <Text style={styles.actionButtonText}>Cómo llegar</Text>
+              </TouchableOpacity>
+            </View>
+
+            {local.website && (
+              <TouchableOpacity style={[styles.actionButton, styles.actionButtonPrimary, { marginTop: 12 }]} onPress={handleWeb}>
+                <IconSymbol name="globe" size={20} color={colors.headerText} />
+                <Text style={styles.actionButtonText}>Visitar Web</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Tipos de Cocina */}
+          {tiposCocina.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>🍴 Tipos de Cocina</Text>
+              <View style={styles.cocinaContainer}>
+                {tiposCocina.map((cocina: string, index: number) => (
+                  <View key={index} style={styles.cocinaBadge}>
+                    <Text style={styles.cocinaText}>{cocina}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Horarios */}
+          {Object.keys(horariosCompletos).length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>🕐 Horarios</Text>
+              <View style={styles.horariosContainer}>
+                {Object.entries(horariosCompletos).map(([dia, horas]: [string, any]) => (
+                  <View key={dia} style={styles.horarioRow}>
+                    <Text style={styles.horarioDia}>{formatDayName(dia)}</Text>
+                    <Text style={styles.horarioHoras}>
+                      {Array.isArray(horas) ? horas.join(', ') : horas}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Servicios Disponibles */}
+          {serviciosActivos.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>🛎️ Servicios Disponibles</Text>
+              <View style={styles.serviciosGrid}>
+                {serviciosActivos.map((servicio) => (
+                  <View key={servicio} style={styles.servicioBadge}>
+                    <Text style={styles.servicioText}>{formatServiceName(servicio)}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Ambiente */}
+          {ambienteActivo.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>🎭 Ambiente</Text>
+              <View style={styles.ambienteGrid}>
+                {ambienteActivo.map((ambiente) => (
+                  <View key={ambiente} style={styles.ambienteBadge}>
+                    <Text style={styles.ambienteText}>{formatAmbienteName(ambiente)}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Clientela - SIN "Locales" */}
+          {clientelaActiva.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>👥 Clientela Típica</Text>
+              <View style={styles.ambienteGrid}>
+                {clientelaActiva.map((cliente) => (
+                  <View key={cliente} style={styles.ambienteBadge}>
+                    <Text style={styles.ambienteText}>{formatClientelaName(cliente)}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Análisis de Reviews */}
+          {analisisReviews.resumen_automatico && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>🧠 Análisis de Reseñas</Text>
+              <View style={styles.analisisCard}>
+                <Text style={styles.analisisTitle}>
+                  Sentimiento: {analisisReviews.sentimiento_general}
+                </Text>
+                <Text style={styles.analisisText}>{analisisReviews.resumen_automatico}</Text>
+                
+                {analisisReviews.palabras_clave_detectadas && analisisReviews.palabras_clave_detectadas.length > 0 && (
+                  <View style={styles.palabrasClaveContainer}>
+                    {analisisReviews.palabras_clave_detectadas.map((palabra: string, index: number) => (
+                      <View key={index} style={styles.palabraClaveBadge}>
+                        <Text style={styles.palabraClaveText}>{palabra}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
+
+          {/* Reseñas */}
+          {todasLasReviews.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>⭐ Reseñas</Text>
+              
+              {user && (
+                <TouchableOpacity
+                  style={styles.escribirReviewButton}
+                  onPress={() => setMostrarModalReview(true)}
+                >
+                  <IconSymbol name="pencil" size={20} color={colors.headerText} />
+                  <Text style={styles.escribirReviewButtonText}>Escribir reseña</Text>
+                </TouchableOpacity>
+              )}
+
+              <View style={styles.reviewsContainer}>
+                {reviewsAMostrar.map((review: any, index: number) => (
+                  <View key={index} style={styles.reviewCard}>
+                    <View style={styles.reviewHeader}>
+                      <View style={styles.reviewAvatar}>
+                        {review.author_avatar ? (
+                          <Image source={{ uri: review.author_avatar }} style={styles.reviewAvatarImage} />
+                        ) : (
+                          <IconSymbol name="person.fill" size={20} color={colors.textSecondary} />
                         )}
                       </View>
-                      <Text style={styles.reviewDate}>
-                        {review.fecha 
-                          ? new Date(review.fecha).toLocaleDateString('es-ES')
-                          : review.relative_time_description || 'Hace tiempo'
-                        }
-                      </Text>
+                      <View style={styles.reviewHeaderInfo}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                          <Text style={styles.reviewAuthor}>{review.author_name}</Text>
+                          {review.source === 'barlive' && (
+                            <View style={styles.barliveReviewBadge}>
+                              <Text style={styles.barliveReviewBadgeText}>BARLIVE</Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text style={styles.reviewDate}>
+                          {review.fecha 
+                            ? new Date(review.fecha).toLocaleDateString('es-ES')
+                            : review.relative_time_description || 'Hace tiempo'
+                          }
+                        </Text>
+                      </View>
+                      <View style={styles.reviewRating}>
+                        <IconSymbol name="star.fill" size={14} color={colors.badgeDestacado} />
+                        <Text style={styles.reviewRatingText}>{review.rating}</Text>
+                      </View>
                     </View>
-                    <View style={styles.reviewRating}>
-                      <IconSymbol name="star.fill" size={14} color={colors.badgeDestacado} />
-                      <Text style={styles.reviewRatingText}>{review.rating}</Text>
-                    </View>
+                    <Text style={styles.reviewText}>{review.texto || review.text}</Text>
                   </View>
-                  <Text style={styles.reviewText}>{review.texto || review.text}</Text>
-                </View>
-              ))}
-            </View>
+                ))}
+              </View>
 
-            {todasLasReviews.length > 2 && (
-              <TouchableOpacity
-                style={styles.verMasButton}
-                onPress={() => setMostrarTodasReviews(!mostrarTodasReviews)}
-              >
-                <Text style={styles.verMasButtonText}>
-                  {mostrarTodasReviews ? 'Ver menos' : `Ver más (${todasLasReviews.length - 2} más)`}
-                </Text>
-                <IconSymbol
-                  name={mostrarTodasReviews ? 'chevron.up' : 'chevron.down'}
-                  size={16}
-                  color={colors.primary}
-                />
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
-
-        <View style={{ height: 40 }} />
-      </ScrollView>
-
-      {/* Modal para escribir reseña */}
-      <Modal
-        visible={mostrarModalReview}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setMostrarModalReview(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Escribir reseña</Text>
-              <TouchableOpacity
-                style={styles.modalCloseButton}
-                onPress={() => setMostrarModalReview(false)}
-              >
-                <IconSymbol name="xmark" size={20} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.ratingSelector}>
-              {[1, 2, 3, 4, 5].map((star) => (
+              {todasLasReviews.length > 2 && (
                 <TouchableOpacity
-                  key={star}
-                  style={styles.starButton}
-                  onPress={() => setReviewRating(star)}
+                  style={styles.verMasButton}
+                  onPress={() => setMostrarTodasReviews(!mostrarTodasReviews)}
                 >
+                  <Text style={styles.verMasButtonText}>
+                    {mostrarTodasReviews ? 'Ver menos' : `Ver más (${todasLasReviews.length - 2} más)`}
+                  </Text>
                   <IconSymbol
-                    name={star <= reviewRating ? 'star.fill' : 'star'}
-                    size={32}
-                    color={colors.badgeDestacado}
+                    name={mostrarTodasReviews ? 'chevron.up' : 'chevron.down'}
+                    size={16}
+                    color={colors.primary}
                   />
                 </TouchableOpacity>
-              ))}
-            </View>
-
-            <TextInput
-              style={styles.reviewInput}
-              placeholder="Escribe tu reseña aquí..."
-              placeholderTextColor={colors.textSecondary}
-              value={reviewTexto}
-              onChangeText={setReviewTexto}
-              multiline
-              numberOfLines={6}
-            />
-
-            <TouchableOpacity
-              style={styles.submitButton}
-              onPress={handleEnviarReview}
-              disabled={enviandoReview}
-            >
-              {enviandoReview ? (
-                <ActivityIndicator color={colors.headerText} />
-              ) : (
-                <Text style={styles.submitButtonText}>Publicar reseña</Text>
               )}
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+            </View>
+          )}
 
-      {/* Modal de galería de imágenes */}
-      <ImageGalleryModal
-        visible={showGalleryModal}
-        images={galeriaUrls}
-        initialIndex={galleryInitialIndex}
-        onClose={() => setShowGalleryModal(false)}
-      />
-    </View>
+          <View style={{ height: 40 }} />
+        </ScrollView>
+
+        {/* Modal para escribir reseña */}
+        <Modal
+          visible={mostrarModalReview}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setMostrarModalReview(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Escribir reseña</Text>
+                <TouchableOpacity
+                  style={styles.modalCloseButton}
+                  onPress={() => setMostrarModalReview(false)}
+                >
+                  <IconSymbol name="xmark" size={20} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.ratingSelector}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <TouchableOpacity
+                    key={star}
+                    style={styles.starButton}
+                    onPress={() => setReviewRating(star)}
+                  >
+                    <IconSymbol
+                      name={star <= reviewRating ? 'star.fill' : 'star'}
+                      size={32}
+                      color={colors.badgeDestacado}
+                    />
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <TextInput
+                style={styles.reviewInput}
+                placeholder="Escribe tu reseña aquí..."
+                placeholderTextColor={colors.textSecondary}
+                value={reviewTexto}
+                onChangeText={setReviewTexto}
+                multiline
+                numberOfLines={6}
+              />
+
+              <TouchableOpacity
+                style={styles.submitButton}
+                onPress={handleEnviarReview}
+                disabled={enviandoReview}
+              >
+                {enviandoReview ? (
+                  <ActivityIndicator color={colors.headerText} />
+                ) : (
+                  <Text style={styles.submitButtonText}>Publicar reseña</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Modal de galería de imágenes */}
+        <ImageGalleryModal
+          visible={showGalleryModal}
+          images={galeriaUrls}
+          initialIndex={galleryInitialIndex}
+          onClose={() => setShowGalleryModal(false)}
+        />
+      </View>
+    </>
   );
 }

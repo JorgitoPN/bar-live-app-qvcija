@@ -1023,8 +1023,13 @@ export default function DetalleLocalScreen() {
 
   return (
     <>
-      {/* ✅ SOLUCIÓN: Ocultar el header de navegación */}
-      <Stack.Screen options={{ headerShown: false }} />
+      <Stack.Screen 
+        options={{ 
+          headerShown: false,
+          presentation: 'card',
+          animation: 'default',
+        }} 
+      />
       
       <View style={styles.container}>
         <ScrollView>
