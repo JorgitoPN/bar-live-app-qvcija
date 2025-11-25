@@ -681,10 +681,17 @@ function NewStoryViewer({
     );
   };
 
-  const handleViewStats = () => {
-    setIsPaused(true);
+  const handleViewStats = useCallback(() => {
+    console.log('[NewStoryViewer] ⚡ Stats button clicked - opening immediately');
     setShowStats(true);
-  };
+    setIsPaused(true);
+  }, []);
+
+  const handleCloseStats = useCallback(() => {
+    console.log('[NewStoryViewer] ⚡ Stats modal closed - resuming story');
+    setShowStats(false);
+    setIsPaused(false);
+  }, []);
 
   const handleNavigateToProfile = () => {
     if (!currentStory) return;
@@ -854,7 +861,11 @@ function NewStoryViewer({
           {/* Owner Controls */}
           {isOwner && (
             <BlurView intensity={30} tint="dark" style={styles.ownerControls}>
-              <TouchableOpacity style={styles.controlButton} onPress={handleViewStats} activeOpacity={0.7}>
+              <TouchableOpacity 
+                style={styles.controlButton} 
+                onPress={handleViewStats} 
+                activeOpacity={0.7}
+              >
                 <LinearGradient
                   colors={['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.05)']}
                   style={styles.controlButtonGradient}
@@ -932,10 +943,7 @@ function NewStoryViewer({
 
         <StoryStatsModal
           visible={showStats}
-          onClose={() => {
-            setShowStats(false);
-            setIsPaused(false);
-          }}
+          onClose={handleCloseStats}
           storyId={currentStory.id}
           viewsCount={currentStory.views_count || 0}
           likesCount={currentStory.likes_count || 0}
