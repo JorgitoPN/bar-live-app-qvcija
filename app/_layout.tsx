@@ -25,20 +25,13 @@ function RootLayoutNav() {
   const segments = useSegments();
   const router = useRouter();
   const isHandlingDeepLink = useRef(false);
-  const lastProcessedUrl = useRef<string>('');
 
   // Handle deep links for OAuth callbacks
   useEffect(() => {
     const handleDeepLink = async (event: { url: string }) => {
-      // Prevent duplicate processing of the same URL
-      if (lastProcessedUrl.current === event.url) {
-        console.log('[RootLayout] URL ya procesada, ignorando:', event.url);
-        return;
-      }
-
       // Prevent multiple simultaneous deep link handling
       if (isHandlingDeepLink.current) {
-        console.log('[RootLayout] Ya procesando un deep link, ignorando:', event.url);
+        console.log('[RootLayout] Already handling a deep link, skipping...');
         return;
       }
 
@@ -47,38 +40,26 @@ function RootLayoutNav() {
       console.log('[RootLayout] ========================================');
       
       // Check if this is an OAuth callback
-      const isOAuthCallback = 
-        event.url.includes('access_token') || 
-        event.url.includes('auth/callback') || 
-        event.url.includes('auth/v1/callback') ||
-        event.url.includes('#') && (event.url.includes('token') || event.url.includes('code'));
-      
-      if (isOAuthCallback) {
+      if (event.url.includes('access_token') || event.url.includes('auth/callback') || event.url.includes('auth/v1/callback')) {
         isHandlingDeepLink.current = true;
-        lastProcessedUrl.current = event.url;
         console.log('[RootLayout] 🔐 OAuth callback detected');
         
         try {
           // Extract tokens from URL
           let accessToken: string | null = null;
           let refreshToken: string | null = null;
-          let errorParam: string | null = null;
-          let errorDescription: string | null = null;
           
-          // Try to get from hash first (most common for OAuth)
+          // Try to get from hash first
           if (event.url.includes('#')) {
             const hashPart = event.url.split('#')[1];
             console.log('[RootLayout] Hash part:', hashPart);
             const hashParams = new URLSearchParams(hashPart);
             accessToken = hashParams.get('access_token');
             refreshToken = hashParams.get('refresh_token');
-            errorParam = hashParams.get('error');
-            errorDescription = hashParams.get('error_description');
             
             console.log('[RootLayout] Tokens from hash:', {
               hasAccessToken: !!accessToken,
               hasRefreshToken: !!refreshToken,
-              error: errorParam,
             });
           }
           
@@ -89,22 +70,11 @@ function RootLayoutNav() {
             const queryParams = new URLSearchParams(queryString);
             accessToken = queryParams.get('access_token');
             refreshToken = queryParams.get('refresh_token');
-            errorParam = queryParams.get('error');
-            errorDescription = queryParams.get('error_description');
             
             console.log('[RootLayout] Tokens from query:', {
               hasAccessToken: !!accessToken,
               hasRefreshToken: !!refreshToken,
-              error: errorParam,
             });
-          }
-
-          // Check for OAuth errors
-          if (errorParam) {
-            console.error('[RootLayout] ❌ OAuth error:', errorParam, errorDescription);
-            // Navigate to callback to show error
-            router.replace('/auth/callback');
-            return;
           }
 
           if (accessToken && refreshToken) {
@@ -130,9 +100,8 @@ function RootLayoutNav() {
               router.replace('/auth/callback');
             }
           } else {
-            console.log('[RootLayout] ⚠️ No tokens found in URL');
-            console.log('[RootLayout] URL completa:', event.url);
-            // Still navigate to callback - it will check for existing session
+            console.log('[RootLayout] ⚠️ No tokens found, navigating to callback anyway');
+            // No tokens, just navigate to callback screen
             router.replace('/auth/callback');
           }
         } catch (error) {
@@ -143,10 +112,6 @@ function RootLayoutNav() {
           // Reset the flag after a delay
           setTimeout(() => {
             isHandlingDeepLink.current = false;
-            // Clear the last processed URL after 5 seconds to allow retry
-            setTimeout(() => {
-              lastProcessedUrl.current = '';
-            }, 5000);
           }, 2000);
         }
       } else {
