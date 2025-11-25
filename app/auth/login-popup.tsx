@@ -1,11 +1,9 @@
 
 import {
-  signUpWithBarLive,
   signInWithBarLive,
   signInWithGoogle,
   resetPassword,
 } from '@/utils/auth';
-import { sendWelcomeEmail } from '@/utils/email';
 import React, { useState, useEffect } from 'react';
 import * as WebBrowser from 'expo-web-browser';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,7 +20,6 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
-  Modal,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -32,10 +29,8 @@ WebBrowser.maybeCompleteAuthSession();
 export default function LoginPopupScreen() {
   const router = useRouter();
   const { user, refreshUser } = useAuth();
-  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [nombre, setNombre] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
@@ -53,66 +48,27 @@ export default function LoginPopupScreen() {
       return;
     }
 
-    if (!isLogin && !nombre) {
-      Alert.alert('Error', 'Por favor, ingresa tu nombre');
-      return;
-    }
-
     setLoading(true);
 
     try {
-      if (isLogin) {
-        // Login
-        console.log('[LoginPopup] 🔐 Iniciando sesión...');
-        const { user: userData, error } = await signInWithBarLive(email, password);
+      console.log('[LoginPopup] 🔐 Iniciando sesión...');
+      const { user: userData, error } = await signInWithBarLive(email, password);
+      
+      if (error) {
+        console.log('[LoginPopup] ❌ Error en login:', error);
+        Alert.alert('Error', error);
+        return;
+      }
+
+      if (userData) {
+        console.log('[LoginPopup] ✅ Login exitoso');
         
-        if (error) {
-          console.log('[LoginPopup] ❌ Error en login:', error);
-          Alert.alert('Error', error);
-          return;
-        }
-
-        if (userData) {
-          console.log('[LoginPopup] ✅ Login exitoso');
-          
-          // Wait for auth context to update
-          await new Promise(resolve => setTimeout(resolve, 500));
-          await refreshUser();
-          
-          // Close modal and let AuthContext handle navigation
-          router.back();
-        }
-      } else {
-        // Signup
-        console.log('[LoginPopup] 📝 Creando cuenta...');
-        const { user: userData, error } = await signUpWithBarLive(email, password, nombre);
+        // Wait for auth context to update
+        await new Promise(resolve => setTimeout(resolve, 500));
+        await refreshUser();
         
-        if (error) {
-          console.log('[LoginPopup] ❌ Error en signup:', error);
-          Alert.alert('Error', error);
-          return;
-        }
-
-        if (userData) {
-          console.log('[LoginPopup] ✅ Cuenta creada');
-          
-          // Send welcome email (non-blocking)
-          sendWelcomeEmail(email, nombre).catch(() => {});
-
-          Alert.alert(
-            '¡Cuenta creada!',
-            'Por favor, verifica tu correo electrónico para confirmar tu cuenta.',
-            [
-              {
-                text: 'OK',
-                onPress: () => {
-                  setIsLogin(true);
-                  setPassword('');
-                },
-              },
-            ]
-          );
-        }
+        // Close modal and let AuthContext handle navigation
+        router.back();
       }
     } catch (error: any) {
       console.error('[LoginPopup] ❌ Error:', error);
@@ -197,6 +153,10 @@ export default function LoginPopupScreen() {
     }
   };
 
+  const handleCreateAccount = () => {
+    router.push('/auth/registro-email');
+  };
+
   const handleClose = () => {
     if (!loading && !googleLoading) {
       router.back();
@@ -213,7 +173,7 @@ export default function LoginPopupScreen() {
         onPress={handleClose}
         disabled={loading || googleLoading}
       >
-        <IconSymbol name="xmark" size={20} color={colors.text} />
+        <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={20} color={colors.text} />
       </TouchableOpacity>
 
       <ScrollView
@@ -221,13 +181,9 @@ export default function LoginPopupScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
-          <Text style={styles.title}>
-            {isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
-          </Text>
+          <Text style={styles.title}>Iniciar Sesión</Text>
           <Text style={styles.subtitle}>
-            {isLogin
-              ? 'Bienvenido de nuevo a BarLive'
-              : 'Únete a la comunidad de BarLive'}
+            Bienvenido de nuevo a BarLive
           </Text>
         </View>
 
@@ -244,7 +200,7 @@ export default function LoginPopupScreen() {
               </>
             ) : (
               <>
-                <IconSymbol name="globe" size={24} color={colors.text} />
+                <IconSymbol ios_icon_name="globe" android_material_icon_name="language" size={24} color={colors.text} />
                 <Text style={styles.socialButtonText}>Continuar con Google</Text>
               </>
             )}
@@ -258,21 +214,6 @@ export default function LoginPopupScreen() {
         </View>
 
         <View style={styles.form}>
-          {!isLogin && (
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Nombre</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Tu nombre"
-                placeholderTextColor={colors.textSecondary}
-                value={nombre}
-                onChangeText={setNombre}
-                autoCapitalize="words"
-                editable={!loading && !googleLoading}
-              />
-            </View>
-          )}
-
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Correo electrónico</Text>
             <TextInput
@@ -302,16 +243,14 @@ export default function LoginPopupScreen() {
             />
           </View>
 
-          {isLogin && (
-            <TouchableOpacity 
-              onPress={handleForgotPassword} 
-              disabled={loading || googleLoading}
-            >
-              <Text style={[styles.link, { textAlign: 'right', marginTop: -8 }]}>
-                ¿Olvidaste tu contraseña?
-              </Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity 
+            onPress={handleForgotPassword} 
+            disabled={loading || googleLoading}
+          >
+            <Text style={[styles.link, { textAlign: 'right', marginTop: -8 }]}>
+              ¿Olvidaste tu contraseña?
+            </Text>
+          </TouchableOpacity>
         </View>
 
         <TouchableOpacity
@@ -323,21 +262,21 @@ export default function LoginPopupScreen() {
             <ActivityIndicator color="#FFFFFF" />
           ) : (
             <Text style={[styles.buttonText, styles.buttonTextPrimary]}>
-              {isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
+              Iniciar Sesión
             </Text>
           )}
         </TouchableOpacity>
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            {isLogin ? '¿No tienes cuenta?' : '¿Ya tienes cuenta?'}
+            ¿No tienes cuenta?
           </Text>
           <TouchableOpacity 
-            onPress={() => setIsLogin(!isLogin)} 
+            onPress={handleCreateAccount} 
             disabled={loading || googleLoading}
           >
             <Text style={styles.link}>
-              {isLogin ? 'Crear cuenta' : 'Iniciar sesión'}
+              Crear cuenta
             </Text>
           </TouchableOpacity>
         </View>
