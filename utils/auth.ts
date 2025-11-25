@@ -106,13 +106,17 @@ const getRedirectUrl = (): string => {
   // For native apps, check if running in Expo Go
   const isExpoGo = Constants.appOwnership === 'expo';
   
+  console.log('[Auth] Environment check:', {
+    platform: Platform.OS,
+    isExpoGo,
+    appOwnership: Constants.appOwnership,
+  });
+  
   if (isExpoGo) {
-    // In Expo Go, use the exp:// scheme with the project slug
-    const expoProjectId = Constants.expoConfig?.extra?.eas?.projectId || Constants.expoConfig?.slug;
-    if (expoProjectId) {
-      // Use the Expo Go deep link format
-      return `exp://127.0.0.1:8081/--/auth/callback`;
-    }
+    // In Expo Go, we need to use the Supabase redirect URL directly
+    // because Expo Go doesn't support custom URL schemes properly
+    const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
+    return `${supabaseUrl}/auth/v1/callback`;
   }
   
   // For standalone apps, use the custom scheme
@@ -263,9 +267,11 @@ export const signInWithBarLive = async (
 // Google Sign-In with proper OAuth flow
 export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error: string | null; isNewUser?: boolean }> => {
   try {
+    console.log('[Google Auth] ========================================');
     console.log('[Google Auth] Iniciando Google Sign-In');
     console.log('[Google Auth] Platform:', Platform.OS);
     console.log('[Google Auth] App Ownership:', Constants.appOwnership);
+    console.log('[Google Auth] ========================================');
     
     if (!isSupabaseConfigured()) {
       console.log('[Google Auth] Supabase no configurado');
@@ -280,11 +286,12 @@ export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error
     console.log('[Google Auth] Redirect URL configurada:', redirectUrl);
 
     // Start the OAuth flow
+    console.log('[Google Auth] Iniciando OAuth flow con Supabase...');
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: redirectUrl,
-        skipBrowserRedirect: Platform.OS !== 'web', // Skip auto redirect on native
+        skipBrowserRedirect: false, // Let Supabase handle the redirect
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
@@ -293,7 +300,7 @@ export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error
     });
 
     if (error) {
-      console.error('[Google Auth] Error en Google OAuth:', error);
+      console.error('[Google Auth] ❌ Error en Google OAuth:', error);
       
       // Check if it's a configuration error
       if (error.message.includes('Provider') || error.message.includes('not enabled')) {
@@ -319,126 +326,240 @@ export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error
 
     // For native apps, open the auth URL in a browser
     if (data?.url) {
-      console.log('[Google Auth] Abriendo navegador para autenticación');
+      console.log('[Google Auth] 🌐 Abriendo navegador para autenticación');
       console.log('[Google Auth] OAuth URL:', data.url);
       
-      // Use WebBrowser to open the OAuth URL
-      const result = await WebBrowser.openAuthSessionAsync(
-        data.url,
-        redirectUrl
-      );
+      try {
+        // Use WebBrowser to open the OAuth URL
+        console.log('[Google Auth] Llamando a WebBrowser.openAuthSessionAsync...');
+        const result = await WebBrowser.openAuthSessionAsync(
+          data.url,
+          redirectUrl,
+          {
+            showInRecents: true,
+          }
+        );
 
-      console.log('[Google Auth] Resultado de autenticación:', result.type);
+        console.log('[Google Auth] 📱 Resultado de WebBrowser:', result.type);
 
-      if (result.type === 'success') {
-        // Extract the URL from the result
-        const url = result.url;
-        console.log('[Google Auth] URL de callback recibida:', url);
-        
-        // Parse the URL to get the tokens
-        // The URL can have tokens in either hash (#) or query (?) parameters
-        let accessToken: string | null = null;
-        let refreshToken: string | null = null;
-        
-        // Try to get from hash first
-        if (url.includes('#')) {
-          const hashParams = new URLSearchParams(url.split('#')[1]);
-          accessToken = hashParams.get('access_token');
-          refreshToken = hashParams.get('refresh_token');
-        }
-        
-        // If not in hash, try query params
-        if (!accessToken && url.includes('?')) {
-          const queryParams = new URLSearchParams(url.split('?')[1]);
-          accessToken = queryParams.get('access_token');
-          refreshToken = queryParams.get('refresh_token');
-        }
-
-        console.log('[Google Auth] Tokens encontrados:', {
-          hasAccessToken: !!accessToken,
-          hasRefreshToken: !!refreshToken,
-        });
-
-        if (accessToken && refreshToken) {
-          console.log('[Google Auth] Tokens obtenidos, estableciendo sesión');
+        if (result.type === 'success') {
+          // Extract the URL from the result
+          const url = result.url;
+          console.log('[Google Auth] ✅ URL de callback recibida');
+          console.log('[Google Auth] URL completa:', url);
           
-          // Set the session with the tokens
-          const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
-
-          if (sessionError) {
-            console.error('[Google Auth] Error estableciendo sesión:', sessionError);
-            return { user: null, error: sessionError.message };
+          // Parse the URL to get the tokens
+          // The URL can have tokens in either hash (#) or query (?) parameters
+          let accessToken: string | null = null;
+          let refreshToken: string | null = null;
+          let errorParam: string | null = null;
+          
+          // Try to get from hash first
+          if (url.includes('#')) {
+            console.log('[Google Auth] Extrayendo tokens del hash...');
+            const hashPart = url.split('#')[1];
+            console.log('[Google Auth] Hash part:', hashPart);
+            const hashParams = new URLSearchParams(hashPart);
+            accessToken = hashParams.get('access_token');
+            refreshToken = hashParams.get('refresh_token');
+            errorParam = hashParams.get('error');
+            
+            console.log('[Google Auth] Tokens del hash:', {
+              hasAccessToken: !!accessToken,
+              hasRefreshToken: !!refreshToken,
+              error: errorParam,
+            });
+          }
+          
+          // If not in hash, try query params
+          if (!accessToken && url.includes('?')) {
+            console.log('[Google Auth] Extrayendo tokens de query params...');
+            const queryPart = url.split('?')[1].split('#')[0];
+            console.log('[Google Auth] Query part:', queryPart);
+            const queryParams = new URLSearchParams(queryPart);
+            accessToken = queryParams.get('access_token');
+            refreshToken = queryParams.get('refresh_token');
+            errorParam = queryParams.get('error');
+            
+            console.log('[Google Auth] Tokens de query:', {
+              hasAccessToken: !!accessToken,
+              hasRefreshToken: !!refreshToken,
+              error: errorParam,
+            });
           }
 
-          if (sessionData.user) {
-            console.log('[Google Auth] Sesión establecida para usuario:', sessionData.user.id);
-            console.log('[Google Auth] User metadata:', sessionData.user.user_metadata);
+          // Check for errors
+          if (errorParam) {
+            console.error('[Google Auth] ❌ Error en OAuth callback:', errorParam);
+            return { user: null, error: errorParam };
+          }
+
+          if (accessToken && refreshToken) {
+            console.log('[Google Auth] ✅ Tokens obtenidos, estableciendo sesión...');
             
-            // Wait for trigger to create profile
-            let profileResult = await waitForUserProfile(sessionData.user.id);
-            
-            // If profile not found, try to create it manually
-            if (!profileResult.success || !profileResult.profile) {
-              console.log('[Google Auth] Perfil no encontrado por trigger, intentando crear manualmente...');
-              
-              const nombre = sessionData.user.user_metadata?.full_name || 
-                            sessionData.user.user_metadata?.name || 
-                            sessionData.user.email?.split('@')[0] || 
-                            'Usuario';
-              const avatar = sessionData.user.user_metadata?.avatar_url || 
-                            sessionData.user.user_metadata?.picture;
-              
-              profileResult = await createUserProfileManually(
-                sessionData.user.id,
-                sessionData.user.email || '',
-                nombre,
-                avatar,
-                'google'
-              );
+            // Set the session with the tokens
+            const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+
+            if (sessionError) {
+              console.error('[Google Auth] ❌ Error estableciendo sesión:', sessionError);
+              return { user: null, error: sessionError.message };
             }
-            
-            if (!profileResult.success || !profileResult.profile) {
-              console.error('[Google Auth] No se pudo obtener ni crear el perfil del usuario');
-              return { 
-                user: null, 
-                error: 'Error al obtener el perfil de usuario. Por favor, intenta cerrar sesión y volver a iniciar sesión.' 
+
+            if (sessionData.user) {
+              console.log('[Google Auth] ✅ Sesión establecida para usuario:', sessionData.user.id);
+              console.log('[Google Auth] User email:', sessionData.user.email);
+              console.log('[Google Auth] User metadata:', sessionData.user.user_metadata);
+              
+              // Wait a bit for the database trigger to create the profile
+              console.log('[Google Auth] ⏳ Esperando a que se cree el perfil...');
+              await new Promise(resolve => setTimeout(resolve, 2000));
+              
+              // Wait for trigger to create profile
+              let profileResult = await waitForUserProfile(sessionData.user.id);
+              
+              // If profile not found, try to create it manually
+              if (!profileResult.success || !profileResult.profile) {
+                console.log('[Google Auth] ⚠️ Perfil no encontrado por trigger, intentando crear manualmente...');
+                
+                const nombre = sessionData.user.user_metadata?.full_name || 
+                              sessionData.user.user_metadata?.name || 
+                              sessionData.user.email?.split('@')[0] || 
+                              'Usuario';
+                const avatar = sessionData.user.user_metadata?.avatar_url || 
+                              sessionData.user.user_metadata?.picture;
+                
+                profileResult = await createUserProfileManually(
+                  sessionData.user.id,
+                  sessionData.user.email || '',
+                  nombre,
+                  avatar,
+                  'google'
+                );
+              }
+              
+              if (!profileResult.success || !profileResult.profile) {
+                console.error('[Google Auth] ❌ No se pudo obtener ni crear el perfil del usuario');
+                return { 
+                  user: null, 
+                  error: 'Error al obtener el perfil de usuario. Por favor, intenta cerrar sesión y volver a iniciar sesión.' 
+                };
+              }
+
+              const isNewUser = !profileResult.profile.ha_visto_mensaje_propietario;
+
+              const user: AuthUser = {
+                id: sessionData.user.id,
+                email: sessionData.user.email || '',
+                nombre: profileResult.profile.nombre || 'Usuario',
+                avatar: profileResult.profile.avatar,
+                rol_app: profileResult.profile.rol_app || 'cliente',
+                provider: 'google',
+                ha_visto_mensaje_propietario: profileResult.profile.ha_visto_mensaje_propietario || false,
               };
+
+              console.log('[Google Auth] ✅ Google Sign-In completado exitosamente');
+              console.log('[Google Auth] Usuario:', user);
+              return { user, error: null, isNewUser };
+            } else {
+              console.error('[Google Auth] ❌ No se pudo obtener el usuario de la sesión');
+              return { user: null, error: 'No se pudo obtener el usuario' };
             }
+          } else {
+            console.error('[Google Auth] ❌ No se encontraron tokens en la URL de callback');
+            console.log('[Google Auth] URL recibida:', url);
+            
+            // Try to check if there's already a session (in case tokens were set by deep link handler)
+            console.log('[Google Auth] Verificando si hay sesión existente...');
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+            
+            if (sessionError) {
+              console.error('[Google Auth] ❌ Error obteniendo sesión:', sessionError);
+              return { user: null, error: 'No se pudieron obtener los tokens de autenticación' };
+            }
+            
+            if (session?.user) {
+              console.log('[Google Auth] ✅ Sesión encontrada, continuando con el flujo...');
+              
+              // Wait a bit for the database trigger to create the profile
+              console.log('[Google Auth] ⏳ Esperando a que se cree el perfil...');
+              await new Promise(resolve => setTimeout(resolve, 2000));
+              
+              // Get user profile
+              let profileResult = await waitForUserProfile(session.user.id);
+              
+              // If profile not found, try to create it manually
+              if (!profileResult.success || !profileResult.profile) {
+                console.log('[Google Auth] ⚠️ Perfil no encontrado por trigger, intentando crear manualmente...');
+                
+                const nombre = session.user.user_metadata?.full_name || 
+                              session.user.user_metadata?.name || 
+                              session.user.email?.split('@')[0] || 
+                              'Usuario';
+                const avatar = session.user.user_metadata?.avatar_url || 
+                              session.user.user_metadata?.picture;
+                
+                profileResult = await createUserProfileManually(
+                  session.user.id,
+                  session.user.email || '',
+                  nombre,
+                  avatar,
+                  'google'
+                );
+              }
+              
+              if (!profileResult.success || !profileResult.profile) {
+                console.error('[Google Auth] ❌ No se pudo obtener ni crear el perfil del usuario');
+                return { 
+                  user: null, 
+                  error: 'Error al obtener el perfil de usuario. Por favor, intenta cerrar sesión y volver a iniciar sesión.' 
+                };
+              }
 
-            const isNewUser = !profileResult.profile.ha_visto_mensaje_propietario;
+              const isNewUser = !profileResult.profile.ha_visto_mensaje_propietario;
 
-            const user: AuthUser = {
-              id: sessionData.user.id,
-              email: sessionData.user.email || '',
-              nombre: profileResult.profile.nombre || 'Usuario',
-              avatar: profileResult.profile.avatar,
-              rol_app: profileResult.profile.rol_app || 'cliente',
-              provider: 'google',
-              ha_visto_mensaje_propietario: profileResult.profile.ha_visto_mensaje_propietario || false,
-            };
+              const user: AuthUser = {
+                id: session.user.id,
+                email: session.user.email || '',
+                nombre: profileResult.profile.nombre || 'Usuario',
+                avatar: profileResult.profile.avatar,
+                rol_app: profileResult.profile.rol_app || 'cliente',
+                provider: 'google',
+                ha_visto_mensaje_propietario: profileResult.profile.ha_visto_mensaje_propietario || false,
+              };
 
-            console.log('[Google Auth] Google Sign-In completado exitosamente');
-            return { user, error: null, isNewUser };
+              console.log('[Google Auth] ✅ Google Sign-In completado exitosamente (desde sesión)');
+              console.log('[Google Auth] Usuario:', user);
+              return { user, error: null, isNewUser };
+            }
+            
+            return { user: null, error: 'No se pudieron obtener los tokens de autenticación' };
           }
+        } else if (result.type === 'cancel') {
+          console.log('[Google Auth] ℹ️ Usuario canceló la autenticación');
+          return { user: null, error: 'Autenticación cancelada' };
+        } else if (result.type === 'dismiss') {
+          console.log('[Google Auth] ℹ️ Usuario cerró el navegador');
+          return { user: null, error: 'Autenticación cancelada' };
         } else {
-          console.error('[Google Auth] No se encontraron tokens en la URL de callback');
-          return { user: null, error: 'No se pudieron obtener los tokens de autenticación' };
+          console.log('[Google Auth] ⚠️ Resultado inesperado:', result.type);
+          return { user: null, error: 'Resultado inesperado de autenticación' };
         }
-      } else if (result.type === 'cancel') {
-        console.log('[Google Auth] Usuario canceló la autenticación');
-        return { user: null, error: 'Autenticación cancelada' };
-      } else if (result.type === 'dismiss') {
-        console.log('[Google Auth] Usuario cerró el navegador');
-        return { user: null, error: 'Autenticación cancelada' };
+      } catch (browserError: any) {
+        console.error('[Google Auth] ❌ Error abriendo navegador:', browserError);
+        return { user: null, error: `Error abriendo navegador: ${browserError.message}` };
       }
+    } else {
+      console.error('[Google Auth] ❌ No se obtuvo URL de OAuth');
+      return { user: null, error: 'No se pudo obtener la URL de autenticación' };
     }
 
     return { user: null, error: 'No se pudo completar la autenticación' };
   } catch (error: any) {
-    console.error('[Google Auth] Error en signInWithGoogle:', error);
+    console.error('[Google Auth] ❌ Error en signInWithGoogle:', error);
+    console.error('[Google Auth] Error stack:', error.stack);
     return { user: null, error: error.message || 'Error al iniciar sesión con Google' };
   }
 };

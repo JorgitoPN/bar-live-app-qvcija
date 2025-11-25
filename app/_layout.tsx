@@ -4,7 +4,7 @@ import { useFonts } from 'expo-font';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import 'react-native-reanimated';
 import { useColorScheme } from 'react-native';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
@@ -24,62 +24,103 @@ function RootLayoutNav() {
   const { user, loading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  const isHandlingDeepLink = useRef(false);
 
   // Handle deep links for OAuth callbacks
   useEffect(() => {
     const handleDeepLink = async (event: { url: string }) => {
+      // Prevent multiple simultaneous deep link handling
+      if (isHandlingDeepLink.current) {
+        console.log('[RootLayout] Already handling a deep link, skipping...');
+        return;
+      }
+
+      console.log('[RootLayout] ========================================');
       console.log('[RootLayout] Deep link received:', event.url);
+      console.log('[RootLayout] ========================================');
       
       // Check if this is an OAuth callback
-      if (event.url.includes('access_token') || event.url.includes('auth/callback')) {
-        console.log('[RootLayout] OAuth callback detected, navigating to callback screen');
+      if (event.url.includes('access_token') || event.url.includes('auth/callback') || event.url.includes('auth/v1/callback')) {
+        isHandlingDeepLink.current = true;
+        console.log('[RootLayout] 🔐 OAuth callback detected');
         
-        // Extract tokens from URL
-        let accessToken: string | null = null;
-        let refreshToken: string | null = null;
-        
-        // Try to get from hash first
-        if (event.url.includes('#')) {
-          const hashParams = new URLSearchParams(event.url.split('#')[1]);
-          accessToken = hashParams.get('access_token');
-          refreshToken = hashParams.get('refresh_token');
-        }
-        
-        // If not in hash, try query params
-        if (!accessToken && event.url.includes('?')) {
-          const queryString = event.url.split('?')[1].split('#')[0];
-          const queryParams = new URLSearchParams(queryString);
-          accessToken = queryParams.get('access_token');
-          refreshToken = queryParams.get('refresh_token');
-        }
-
-        if (accessToken && refreshToken) {
-          console.log('[RootLayout] Tokens found in deep link, setting session');
+        try {
+          // Extract tokens from URL
+          let accessToken: string | null = null;
+          let refreshToken: string | null = null;
           
-          try {
-            const { error } = await supabase.auth.setSession({
+          // Try to get from hash first
+          if (event.url.includes('#')) {
+            const hashPart = event.url.split('#')[1];
+            console.log('[RootLayout] Hash part:', hashPart);
+            const hashParams = new URLSearchParams(hashPart);
+            accessToken = hashParams.get('access_token');
+            refreshToken = hashParams.get('refresh_token');
+            
+            console.log('[RootLayout] Tokens from hash:', {
+              hasAccessToken: !!accessToken,
+              hasRefreshToken: !!refreshToken,
+            });
+          }
+          
+          // If not in hash, try query params
+          if (!accessToken && event.url.includes('?')) {
+            const queryString = event.url.split('?')[1].split('#')[0];
+            console.log('[RootLayout] Query part:', queryString);
+            const queryParams = new URLSearchParams(queryString);
+            accessToken = queryParams.get('access_token');
+            refreshToken = queryParams.get('refresh_token');
+            
+            console.log('[RootLayout] Tokens from query:', {
+              hasAccessToken: !!accessToken,
+              hasRefreshToken: !!refreshToken,
+            });
+          }
+
+          if (accessToken && refreshToken) {
+            console.log('[RootLayout] ✅ Tokens found in deep link, setting session...');
+            
+            const { data, error } = await supabase.auth.setSession({
               access_token: accessToken,
               refresh_token: refreshToken,
             });
 
             if (error) {
-              console.error('[RootLayout] Error setting session from deep link:', error);
+              console.error('[RootLayout] ❌ Error setting session from deep link:', error);
+              // Still navigate to callback to show error
+              router.replace('/auth/callback');
             } else {
-              console.log('[RootLayout] Session set successfully from deep link');
+              console.log('[RootLayout] ✅ Session set successfully from deep link');
+              console.log('[RootLayout] User:', data.user?.email);
+              
+              // Wait a bit for session to propagate
+              await new Promise(resolve => setTimeout(resolve, 500));
+              
               // Navigate to callback screen to complete the flow
               router.replace('/auth/callback');
             }
-          } catch (error) {
-            console.error('[RootLayout] Exception setting session from deep link:', error);
+          } else {
+            console.log('[RootLayout] ⚠️ No tokens found, navigating to callback anyway');
+            // No tokens, just navigate to callback screen
+            router.replace('/auth/callback');
           }
-        } else {
-          // No tokens, just navigate to callback screen
+        } catch (error) {
+          console.error('[RootLayout] ❌ Exception handling deep link:', error);
+          // Navigate to callback to show error
           router.replace('/auth/callback');
+        } finally {
+          // Reset the flag after a delay
+          setTimeout(() => {
+            isHandlingDeepLink.current = false;
+          }, 2000);
         }
+      } else {
+        console.log('[RootLayout] ℹ️ Non-OAuth deep link, ignoring');
       }
     };
 
     // Listen for deep links
+    console.log('[RootLayout] Setting up deep link listener...');
     const subscription = Linking.addEventListener('url', handleDeepLink);
 
     // Check if app was opened with a deep link
@@ -87,10 +128,13 @@ function RootLayoutNav() {
       if (url) {
         console.log('[RootLayout] App opened with URL:', url);
         handleDeepLink({ url });
+      } else {
+        console.log('[RootLayout] No initial URL');
       }
     });
 
     return () => {
+      console.log('[RootLayout] Removing deep link listener');
       subscription.remove();
     };
   }, [router]);

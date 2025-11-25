@@ -12,24 +12,30 @@ const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 const ExpoSecureStoreAdapter = {
   getItem: async (key: string) => {
     try {
-      return await SecureStore.getItemAsync(key);
+      const value = await SecureStore.getItemAsync(key);
+      if (value) {
+        console.log('[SecureStore] Retrieved key:', key);
+      }
+      return value;
     } catch (error) {
-      console.error('Error getting item from SecureStore:', error);
+      console.error('[SecureStore] Error getting item:', key, error);
       return null;
     }
   },
   setItem: async (key: string, value: string) => {
     try {
       await SecureStore.setItemAsync(key, value);
+      console.log('[SecureStore] Stored key:', key);
     } catch (error) {
-      console.error('Error setting item in SecureStore:', error);
+      console.error('[SecureStore] Error setting item:', key, error);
     }
   },
   removeItem: async (key: string) => {
     try {
       await SecureStore.deleteItemAsync(key);
+      console.log('[SecureStore] Removed key:', key);
     } catch (error) {
-      console.error('Error removing item from SecureStore:', error);
+      console.error('[SecureStore] Error removing item:', key, error);
     }
   },
 };
@@ -40,7 +46,8 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     storage: Platform.OS !== 'web' ? ExpoSecureStoreAdapter : undefined,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: Platform.OS === 'web', // Only detect session in URL on web
+    detectSessionInUrl: false, // Disable automatic session detection from URL on all platforms
+    flowType: 'pkce', // Use PKCE flow for better security
   },
 });
 

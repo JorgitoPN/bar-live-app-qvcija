@@ -13,6 +13,12 @@ export default function AuthCallbackScreen() {
   const params = useLocalSearchParams();
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [debugInfo, setDebugInfo] = useState<string[]>([]);
+
+  const addDebugInfo = (info: string) => {
+    console.log('[Callback]', info);
+    setDebugInfo(prev => [...prev, info]);
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -21,11 +27,11 @@ export default function AuthCallbackScreen() {
     const safeRedirect = (path: string, delay: number = 0) => {
       if (!isMounted) return;
       
-      console.log('[Callback] 🚀 Programando redirección a:', path, 'en', delay, 'ms');
+      addDebugInfo(`🚀 Programando redirección a: ${path} en ${delay}ms`);
       
       redirectTimeout = setTimeout(() => {
         if (isMounted) {
-          console.log('[Callback] ✅ Ejecutando redirección a:', path);
+          addDebugInfo(`✅ Ejecutando redirección a: ${path}`);
           try {
             router.replace(path as any);
           } catch (error) {
@@ -39,22 +45,24 @@ export default function AuthCallbackScreen() {
 
     const handleCallback = async () => {
       try {
-        console.log('[Callback] 🔄 Procesando callback de autenticación...');
-        console.log('[Callback] Platform:', Platform.OS);
-        console.log('[Callback] Params:', params);
+        addDebugInfo('========================================');
+        addDebugInfo('🔄 Procesando callback de autenticación');
+        addDebugInfo(`Platform: ${Platform.OS}`);
+        addDebugInfo(`Params: ${JSON.stringify(params)}`);
+        addDebugInfo('========================================');
         
         // Get the current URL to extract tokens
         let url = '';
         
         if (Platform.OS === 'web' && typeof window !== 'undefined') {
           url = window.location.href;
-          console.log('[Callback] Web URL:', url);
+          addDebugInfo(`Web URL: ${url}`);
         } else {
           // For native, try to get the initial URL
           const initialUrl = await Linking.getInitialURL();
           if (initialUrl) {
             url = initialUrl;
-            console.log('[Callback] Native initial URL:', url);
+            addDebugInfo(`Native initial URL: ${initialUrl}`);
           }
         }
 
@@ -67,33 +75,34 @@ export default function AuthCallbackScreen() {
         if (url) {
           // Try to get from hash first (web OAuth flow)
           if (url.includes('#')) {
-            const hashParams = new URLSearchParams(url.split('#')[1]);
+            const hashPart = url.split('#')[1];
+            addDebugInfo(`Hash part: ${hashPart}`);
+            const hashParams = new URLSearchParams(hashPart);
             accessToken = hashParams.get('access_token');
             refreshToken = hashParams.get('refresh_token');
             errorParam = hashParams.get('error');
             errorDescription = hashParams.get('error_description');
+            
+            addDebugInfo(`Tokens del hash: access=${!!accessToken}, refresh=${!!refreshToken}, error=${errorParam}`);
           }
           
           // If not in hash, try query params (native OAuth flow)
           if (!accessToken && url.includes('?')) {
             const queryString = url.split('?')[1].split('#')[0]; // Get query params before hash
+            addDebugInfo(`Query part: ${queryString}`);
             const queryParams = new URLSearchParams(queryString);
             accessToken = queryParams.get('access_token');
             refreshToken = queryParams.get('refresh_token');
             errorParam = queryParams.get('error');
             errorDescription = queryParams.get('error_description');
+            
+            addDebugInfo(`Tokens de query: access=${!!accessToken}, refresh=${!!refreshToken}, error=${errorParam}`);
           }
         }
 
-        console.log('[Callback] Tokens parsed:', {
-          hasAccessToken: !!accessToken,
-          hasRefreshToken: !!refreshToken,
-          error: errorParam,
-        });
-
         // Check for OAuth errors
         if (errorParam) {
-          console.error('[Callback] ❌ Error en OAuth:', errorParam);
+          addDebugInfo(`❌ Error en OAuth: ${errorParam}`);
           if (isMounted) {
             setStatus('error');
             setErrorMessage(errorDescription || errorParam);
@@ -104,7 +113,7 @@ export default function AuthCallbackScreen() {
 
         // If we have tokens, set the session
         if (accessToken && refreshToken) {
-          console.log('[Callback] ✅ Tokens encontrados, estableciendo sesión...');
+          addDebugInfo('✅ Tokens encontrados, estableciendo sesión...');
           
           const { data, error: sessionError } = await supabase.auth.setSession({
             access_token: accessToken,
@@ -112,7 +121,7 @@ export default function AuthCallbackScreen() {
           });
 
           if (sessionError) {
-            console.error('[Callback] ❌ Error estableciendo sesión:', sessionError);
+            addDebugInfo(`❌ Error estableciendo sesión: ${sessionError.message}`);
             if (isMounted) {
               setStatus('error');
               setErrorMessage('Error al establecer la sesión');
@@ -122,7 +131,7 @@ export default function AuthCallbackScreen() {
           }
 
           if (data.user) {
-            console.log('[Callback] ✅ Sesión establecida para usuario:', data.user.email);
+            addDebugInfo(`✅ Sesión establecida para usuario: ${data.user.email}`);
             
             // Wait a bit for session to propagate
             await new Promise(resolve => setTimeout(resolve, 1000));
@@ -132,30 +141,25 @@ export default function AuthCallbackScreen() {
               .then(pushToken => {
                 if (pushToken) {
                   savePushToken(data.user.id, pushToken).catch(() => {
-                    console.log('[Callback] Failed to save push token');
+                    addDebugInfo('Failed to save push token');
                   });
                 }
               })
               .catch(() => {
-                console.log('[Callback] Failed to register push notifications');
+                addDebugInfo('Failed to register push notifications');
               });
             
             // Get user profile to check if needs profile completion
-            console.log('[Callback] 🔍 Obteniendo perfil de usuario...');
+            addDebugInfo('🔍 Obteniendo perfil de usuario...');
             const { user: userData } = await getCurrentUser();
             
             if (userData) {
-              console.log('[Callback] ✅ Perfil obtenido:', {
-                email: userData.email,
-                hasAcceptedTerms: userData.ha_aceptado_terminos,
-                profileCompleted: userData.perfil_completado,
-                hasUsername: !!userData.username,
-                hasName: !!userData.nombre,
-              });
+              addDebugInfo(`✅ Perfil obtenido: ${userData.email}`);
+              addDebugInfo(`Terms: ${userData.ha_aceptado_terminos}, Username: ${!!userData.username}, Name: ${!!userData.nombre}`);
               
               // Check if user needs to accept terms
               if (!userData.ha_aceptado_terminos) {
-                console.log('[Callback] 📋 Usuario debe aceptar términos');
+                addDebugInfo('📋 Usuario debe aceptar términos');
                 if (isMounted) setStatus('success');
                 safeRedirect(`/auth/terms-acceptance?userId=${userData.id}`, 500);
                 return;
@@ -164,21 +168,21 @@ export default function AuthCallbackScreen() {
               // Check if user needs to complete profile (username and name are mandatory)
               // New users (without username or nombre) should go to /editar/perfil
               if (!userData.username || !userData.nombre) {
-                console.log('[Callback] 📝 Usuario nuevo - redirigiendo a editar perfil');
+                addDebugInfo('📝 Usuario nuevo - redirigiendo a editar perfil');
                 if (isMounted) setStatus('success');
                 safeRedirect('/editar/perfil', 500);
                 return;
               }
               
               // Existing users (with username and nombre) go to explorar
-              console.log('[Callback] ✅ Usuario existente - redirigiendo a explorar');
+              addDebugInfo('✅ Usuario existente - redirigiendo a explorar');
               if (isMounted) setStatus('success');
               safeRedirect('/(tabs)/explorar', 500);
               return;
             }
             
             // If no user data, redirect to explorar
-            console.log('[Callback] ⚠️ No se pudo obtener datos del usuario, redirigiendo a explorar');
+            addDebugInfo('⚠️ No se pudo obtener datos del usuario, redirigiendo a explorar');
             if (isMounted) setStatus('success');
             safeRedirect('/(tabs)/explorar', 500);
             return;
@@ -186,12 +190,12 @@ export default function AuthCallbackScreen() {
         }
         
         // If no tokens, check for existing session
-        console.log('[Callback] 🔍 Verificando sesión existente...');
+        addDebugInfo('🔍 Verificando sesión existente...');
         
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
-          console.error('[Callback] ❌ Error obteniendo sesión:', sessionError);
+          addDebugInfo(`❌ Error obteniendo sesión: ${sessionError.message}`);
           if (isMounted) {
             setStatus('error');
             setErrorMessage('Error al verificar la sesión');
@@ -201,7 +205,7 @@ export default function AuthCallbackScreen() {
         }
 
         if (session?.user) {
-          console.log('[Callback] ✅ Sesión encontrada para:', session.user.email);
+          addDebugInfo(`✅ Sesión encontrada para: ${session.user.email}`);
           
           // Wait a bit for session to propagate
           await new Promise(resolve => setTimeout(resolve, 1000));
@@ -211,30 +215,25 @@ export default function AuthCallbackScreen() {
             .then(pushToken => {
               if (pushToken) {
                 savePushToken(session.user.id, pushToken).catch(() => {
-                  console.log('[Callback] Failed to save push token');
+                  addDebugInfo('Failed to save push token');
                 });
               }
             })
             .catch(() => {
-              console.log('[Callback] Failed to register push notifications');
+              addDebugInfo('Failed to register push notifications');
             });
           
           // Get user profile to check if needs profile completion
-          console.log('[Callback] 🔍 Obteniendo perfil de usuario...');
+          addDebugInfo('🔍 Obteniendo perfil de usuario...');
           const { user: userData } = await getCurrentUser();
           
           if (userData) {
-            console.log('[Callback] ✅ Perfil obtenido:', {
-              email: userData.email,
-              hasAcceptedTerms: userData.ha_aceptado_terminos,
-              profileCompleted: userData.perfil_completado,
-              hasUsername: !!userData.username,
-              hasName: !!userData.nombre,
-            });
+            addDebugInfo(`✅ Perfil obtenido: ${userData.email}`);
+            addDebugInfo(`Terms: ${userData.ha_aceptado_terminos}, Username: ${!!userData.username}, Name: ${!!userData.nombre}`);
             
             // Check if user needs to accept terms
             if (!userData.ha_aceptado_terminos) {
-              console.log('[Callback] 📋 Usuario debe aceptar términos');
+              addDebugInfo('📋 Usuario debe aceptar términos');
               if (isMounted) setStatus('success');
               safeRedirect(`/auth/terms-acceptance?userId=${userData.id}`, 500);
               return;
@@ -243,29 +242,30 @@ export default function AuthCallbackScreen() {
             // Check if user needs to complete profile (username and name are mandatory)
             // New users (without username or nombre) should go to /editar/perfil
             if (!userData.username || !userData.nombre) {
-              console.log('[Callback] 📝 Usuario nuevo - redirigiendo a editar perfil');
+              addDebugInfo('📝 Usuario nuevo - redirigiendo a editar perfil');
               if (isMounted) setStatus('success');
               safeRedirect('/editar/perfil', 500);
               return;
             }
             
             // Existing users (with username and nombre) go to explorar
-            console.log('[Callback] ✅ Usuario existente - redirigiendo a explorar');
+            addDebugInfo('✅ Usuario existente - redirigiendo a explorar');
             if (isMounted) setStatus('success');
             safeRedirect('/(tabs)/explorar', 500);
             return;
           }
           
           // If no user data, redirect to explorar
-          console.log('[Callback] ⚠️ No se pudo obtener datos del usuario, redirigiendo a explorar');
+          addDebugInfo('⚠️ No se pudo obtener datos del usuario, redirigiendo a explorar');
           if (isMounted) setStatus('success');
           safeRedirect('/(tabs)/explorar', 500);
         } else {
-          console.log('[Callback] ℹ️ No hay sesión activa, redirigiendo a explorar');
+          addDebugInfo('ℹ️ No hay sesión activa, redirigiendo a explorar');
           safeRedirect('/(tabs)/explorar', 1000);
         }
       } catch (error: any) {
-        console.error('[Callback] ❌ Error en callback:', error);
+        addDebugInfo(`❌ Error en callback: ${error.message}`);
+        console.error('[Callback] ❌ Error stack:', error.stack);
         if (isMounted) {
           setStatus('error');
           setErrorMessage(error.message || 'Error inesperado');
@@ -277,7 +277,7 @@ export default function AuthCallbackScreen() {
     handleCallback();
 
     return () => {
-      console.log('[Callback] 🧹 Limpiando componente');
+      addDebugInfo('🧹 Limpiando componente');
       isMounted = false;
       if (redirectTimeout) {
         clearTimeout(redirectTimeout);
@@ -292,6 +292,16 @@ export default function AuthCallbackScreen() {
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.text}>Completando autenticación...</Text>
           <Text style={styles.subText}>Por favor espera un momento</Text>
+          
+          {/* Debug info - only show in development */}
+          {__DEV__ && debugInfo.length > 0 && (
+            <View style={styles.debugContainer}>
+              <Text style={styles.debugTitle}>Debug Info:</Text>
+              {debugInfo.slice(-5).map((info, index) => (
+                <Text key={index} style={styles.debugText}>{info}</Text>
+              ))}
+            </View>
+          )}
         </>
       )}
       
@@ -310,6 +320,16 @@ export default function AuthCallbackScreen() {
           <Text style={styles.errorIcon}>⚠️</Text>
           <Text style={styles.errorText}>{errorMessage}</Text>
           <Text style={styles.subText}>Redirigiendo...</Text>
+          
+          {/* Debug info - only show in development */}
+          {__DEV__ && debugInfo.length > 0 && (
+            <View style={styles.debugContainer}>
+              <Text style={styles.debugTitle}>Debug Info:</Text>
+              {debugInfo.slice(-5).map((info, index) => (
+                <Text key={index} style={styles.debugText}>{info}</Text>
+              ))}
+            </View>
+          )}
         </>
       )}
     </View>
@@ -360,5 +380,24 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 8,
     fontWeight: '600',
+  },
+  debugContainer: {
+    marginTop: 20,
+    padding: 12,
+    backgroundColor: colors.card,
+    borderRadius: 8,
+    maxWidth: '90%',
+  },
+  debugTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: colors.primary,
+    marginBottom: 8,
+  },
+  debugText: {
+    fontSize: 10,
+    color: colors.textSecondary,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    marginBottom: 4,
   },
 });
