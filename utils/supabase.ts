@@ -40,7 +40,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     storage: Platform.OS !== 'web' ? ExpoSecureStoreAdapter : undefined,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false,
+    detectSessionInUrl: Platform.OS === 'web', // Only detect session in URL on web
   },
 });
 
