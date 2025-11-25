@@ -32,12 +32,19 @@ const StoryItem = memo(({
       });
     }
     
+    // ✅ CRITICAL: Preload story image immediately when avatar is visible
+    if (historia.imagen) {
+      Image.prefetch(historia.imagen).catch(() => {
+        console.log('[BarraHistorias] Failed to prefetch story image:', historia.imagen);
+      });
+    }
+    
     return () => {
       if (historia.autorAvatar) {
         memoryManager.clearImage(historia.autorAvatar);
       }
     };
-  }, [historia.autorAvatar]);
+  }, [historia.autorAvatar, historia.imagen]);
   
   // ✅ Memoize display name
   const displayName = useMemo(() => {
@@ -51,21 +58,10 @@ const StoryItem = memo(({
     return hasBeenViewed ? ['#E5E7EB', '#E5E7EB'] : ['#FFD700', '#00FF00'];
   }, [hasBeenViewed]);
   
-  // ✅ CRITICAL: Preload story image when avatar is pressed
-  const handlePress = useCallback(() => {
-    console.log('[BarraHistorias] 🚀 Preloading story image before opening viewer...');
-    if (historia.imagen) {
-      Image.prefetch(historia.imagen).catch(() => {
-        console.log('[BarraHistorias] Failed to prefetch story image');
-      });
-    }
-    onPress();
-  }, [historia.imagen, onPress]);
-  
   return (
     <TouchableOpacity
       style={styles.historiaContainer}
-      onPress={handlePress}
+      onPress={onPress}
       activeOpacity={0.7}
     >
       <LinearGradient

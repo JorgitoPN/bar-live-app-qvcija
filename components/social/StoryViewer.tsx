@@ -128,7 +128,7 @@ const ProgressBar = memo(({
       return;
     }
 
-    // Current story - start animation
+    // Current story - start animation immediately
     if (isActive && !isPaused) {
       startTimeRef.current = performance.now();
       
@@ -216,7 +216,6 @@ function StoryViewer({
   const [storyLikes, setStoryLikes] = useState<any[]>([]);
   const [loadingStats, setLoadingStats] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
-  const [isReady, setIsReady] = useState(false);
   
   const isPausedRef = useRef<boolean>(false);
   
@@ -692,35 +691,9 @@ function StoryViewer({
     }
   }, [visible, currentStory, user, markStoryAsViewed]);
 
-  // ✅ CRITICAL FIX: Preload images BEFORE opening viewer
-  useEffect(() => {
-    if (visible && !isReady) {
-      console.log('[StoryViewer] 🚀 Preloading images...');
-      
-      const imagesToPreload: string[] = [];
-      
-      // Preload current + next 3 stories
-      for (let i = initialIndex; i < Math.min(initialIndex + 4, stories.length); i++) {
-        if (stories[i]?.imagen) {
-          imagesToPreload.push(stories[i].imagen);
-        }
-      }
-      
-      Promise.all(imagesToPreload.map(uri => Image.prefetch(uri)))
-        .then(() => {
-          console.log('[StoryViewer] ✅ Images preloaded, starting animation');
-          setIsReady(true);
-        })
-        .catch(() => {
-          console.log('[StoryViewer] ⚠️ Some images failed to preload, continuing anyway');
-          setIsReady(true);
-        });
-    }
-  }, [visible, stories, initialIndex, isReady]);
-
   // ✅ Preload next 2 story images for INSTANT loading
   useEffect(() => {
-    if (visible && isReady) {
+    if (visible) {
       const preloadPromises: Promise<boolean>[] = [];
       
       if (currentStoryIndex < stories.length - 1) {
@@ -743,7 +716,7 @@ function StoryViewer({
         });
       }
     }
-  }, [visible, currentStoryIndex, stories, isReady]);
+  }, [visible, currentStoryIndex, stories]);
 
   // Reset to initial index when modal opens
   useEffect(() => {
@@ -751,11 +724,9 @@ function StoryViewer({
       setCurrentStoryIndex(initialIndex);
       setIsPaused(false);
       isPausedRef.current = false;
-      setIsReady(false);
     } else {
       setIsPaused(false);
       isPausedRef.current = false;
-      setIsReady(false);
     }
   }, [visible, initialIndex]);
 
@@ -793,7 +764,7 @@ function StoryViewer({
         keyboardVerticalOffset={0}
       >
         <View style={styles.storyViewerModal} {...panResponder.panHandlers}>
-          {/* ✅ ULTRA-SMOOTH progress bars using requestAnimationFrame */}
+          {/* ✅ ULTRA-SMOOTH progress bars using requestAnimationFrame - START IMMEDIATELY */}
           <BlurView intensity={20} tint="dark" style={styles.progressContainer}>
             <View style={styles.progressBarsWrapper}>
               {stories.map((_, index) => (
@@ -801,7 +772,7 @@ function StoryViewer({
                   key={index}
                   index={index}
                   currentIndex={currentStoryIndex}
-                  isActive={isReady && visible}
+                  isActive={visible}
                   isPaused={isPaused}
                   duration={STORY_DURATION}
                   onComplete={handleNextStory}
