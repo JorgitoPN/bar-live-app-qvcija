@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -77,7 +77,6 @@ export default function DetalleLocalScreen() {
   const [showGallery, setShowGallery] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
-  // ✅ FIXED: Moved useCallback inside component and added cargarReviewsBarlive to dependencies
   const cargarReviewsBarlive = useCallback(async () => {
     if (!params.id) {
       console.log('[DetalleLocal] No local ID provided');
@@ -111,11 +110,18 @@ export default function DetalleLocalScreen() {
   }, [params.id]);
 
   const cargarLocal = useCallback(async () => {
+    if (!params.id) {
+      console.log('[DetalleLocal] No local ID provided');
+      setLoading(false);
+      return;
+    }
+
     try {
       const cachedData = localPreloader.getCached(params.id as string);
       if (cachedData) {
         console.log('[DetalleLocal] Using cached data - INSTANT LOAD');
         setLocal(cachedData);
+        setLoading(false);
         cargarReviewsBarlive();
         return;
       }
@@ -129,6 +135,7 @@ export default function DetalleLocalScreen() {
 
       if (error) {
         console.error('[DetalleLocal] Error loading local:', error);
+        setLoading(false);
         return;
       }
 
@@ -292,16 +299,16 @@ export default function DetalleLocalScreen() {
 
         <View style={styles.headerActions}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButtonCircle}>
-            <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.text} />
+            <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.headerActionsRight}>
             <TouchableOpacity onPress={handleShare} style={styles.actionButtonCircle}>
-              <IconSymbol ios_icon_name="square.and.arrow.up" android_material_icon_name="share" size={24} color={colors.text} />
+              <IconSymbol ios_icon_name="square.and.arrow.up" android_material_icon_name="share-social" size={24} color={colors.text} />
             </TouchableOpacity>
             <TouchableOpacity onPress={toggleFavorite} style={styles.actionButtonCircle}>
               <IconSymbol
                 ios_icon_name={isFavorite ? "heart.fill" : "heart"}
-                android_material_icon_name={isFavorite ? "favorite" : "favorite_border"}
+                android_material_icon_name={isFavorite ? "heart" : "heart-outline"}
                 size={24}
                 color={isFavorite ? colors.error : colors.text}
               />
@@ -351,19 +358,19 @@ export default function DetalleLocalScreen() {
           <View style={styles.contactButtons}>
             {local.telefono && (
               <TouchableOpacity onPress={handleCall} style={styles.contactButton}>
-                <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="phone" size={20} color={colors.background} />
+                <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="call" size={20} color={colors.background} />
                 <Text style={styles.contactButtonText}>Llamar</Text>
               </TouchableOpacity>
             )}
             {local.email && (
               <TouchableOpacity onPress={handleEmail} style={styles.contactButton}>
-                <IconSymbol ios_icon_name="envelope.fill" android_material_icon_name="email" size={20} color={colors.background} />
+                <IconSymbol ios_icon_name="envelope.fill" android_material_icon_name="mail" size={20} color={colors.background} />
                 <Text style={styles.contactButtonText}>Email</Text>
               </TouchableOpacity>
             )}
             {local.web && (
               <TouchableOpacity onPress={handleWebsite} style={styles.contactButton}>
-                <IconSymbol ios_icon_name="globe" android_material_icon_name="language" size={20} color={colors.background} />
+                <IconSymbol ios_icon_name="globe" android_material_icon_name="globe" size={20} color={colors.background} />
                 <Text style={styles.contactButtonText}>Web</Text>
               </TouchableOpacity>
             )}
@@ -399,7 +406,7 @@ export default function DetalleLocalScreen() {
                           <IconSymbol
                             key={i}
                             ios_icon_name={i < review.rating ? "star.fill" : "star"}
-                            android_material_icon_name={i < review.rating ? "star" : "star_border"}
+                            android_material_icon_name={i < review.rating ? "star" : "star-outline"}
                             size={16}
                             color={colors.warning}
                           />
