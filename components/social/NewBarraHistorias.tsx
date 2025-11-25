@@ -252,7 +252,7 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: colors.cardBackground,
-    paddingVertical: 0,
+    paddingVertical: 0, // ✅ FIXED: Removed padding to stick to header
   },
   scrollContent: {
     paddingHorizontal: 12,
