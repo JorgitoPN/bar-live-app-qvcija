@@ -27,9 +27,6 @@ export interface AuthUser {
   mostrar_estado_online?: boolean;
 }
 
-// Track if an OAuth flow is in progress
-let isOAuthInProgress = false;
-
 // Helper function to wait for user profile to be created by trigger
 const waitForUserProfile = async (userId: string, maxRetries = 5): Promise<{ success: boolean; profile?: any; error?: string }> => {
   let retries = maxRetries;
@@ -280,12 +277,6 @@ export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error
     console.log('[Google Auth] App Ownership:', Constants.appOwnership);
     console.log('[Google Auth] ========================================');
     
-    // Check if OAuth is already in progress
-    if (isOAuthInProgress) {
-      console.log('[Google Auth] ⚠️ OAuth ya en progreso, ignorando solicitud');
-      return { user: null, error: 'Autenticación en progreso. Por favor espera.' };
-    }
-    
     if (!isSupabaseConfigured()) {
       console.log('[Google Auth] Supabase no configurado');
       return { 
@@ -294,206 +285,170 @@ export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error
       };
     }
 
-    // Mark OAuth as in progress
-    isOAuthInProgress = true;
+    // Get the appropriate redirect URL
+    const redirectUrl = getRedirectUrl();
+    console.log('[Google Auth] Redirect URL configurada:', redirectUrl);
 
-    try {
-      // CRITICAL FIX: Dismiss any existing browser sessions before starting new one
-      console.log('[Google Auth] 🧹 Cerrando cualquier sesión de navegador existente...');
-      try {
-        await WebBrowser.dismissBrowser();
-        // Wait a bit to ensure browser is fully dismissed
-        await new Promise(resolve => setTimeout(resolve, 300));
-      } catch (dismissError) {
-        // It's okay if there's no browser to dismiss
-        console.log('[Google Auth] No hay navegador para cerrar (esto es normal)');
-      }
-
-      // Get the appropriate redirect URL
-      const redirectUrl = getRedirectUrl();
-      console.log('[Google Auth] Redirect URL configurada:', redirectUrl);
-
-      // Start the OAuth flow with PKCE
-      console.log('[Google Auth] Iniciando OAuth flow con Supabase...');
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: redirectUrl,
-          skipBrowserRedirect: Platform.OS !== 'web', // Only skip for native
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
+    // Start the OAuth flow with PKCE
+    console.log('[Google Auth] Iniciando OAuth flow con Supabase...');
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: redirectUrl,
+        skipBrowserRedirect: Platform.OS !== 'web', // Only skip for native
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
         },
-      });
+      },
+    });
 
-      if (error) {
-        console.error('[Google Auth] ❌ Error en Google OAuth:', error);
-        
-        // Check if it's a configuration error
-        if (error.message.includes('Provider') || error.message.includes('not enabled')) {
-          return { 
-            user: null, 
-            error: 'Google Sign-In no está configurado en Supabase. Por favor, habilita el proveedor de Google en tu Dashboard de Supabase (Authentication > Providers > Google) y configura el Client ID para Android.' 
-          };
-        }
-        
-        return { user: null, error: error.message };
+    if (error) {
+      console.error('[Google Auth] ❌ Error en Google OAuth:', error);
+      
+      // Check if it's a configuration error
+      if (error.message.includes('Provider') || error.message.includes('not enabled')) {
+        return { 
+          user: null, 
+          error: 'Google Sign-In no está configurado en Supabase. Por favor, habilita el proveedor de Google en tu Dashboard de Supabase (Authentication > Providers > Google) y configura el Client ID para Android.' 
+        };
       }
+      
+      return { user: null, error: error.message };
+    }
 
-      // For web, Supabase will handle the redirect automatically
-      if (Platform.OS === 'web') {
-        console.log('[Google Auth] Redirigiendo a Google OAuth en web...');
-        if (data?.url) {
-          // Redirect to Google OAuth page
-          window.location.href = data.url;
-        }
-        // Return null as the actual authentication will complete after redirect
-        return { user: null, error: null };
-      }
-
-      // For native apps, open the auth URL in a browser
+    // For web, Supabase will handle the redirect automatically
+    if (Platform.OS === 'web') {
+      console.log('[Google Auth] Redirigiendo a Google OAuth en web...');
       if (data?.url) {
-        console.log('[Google Auth] 🌐 Abriendo navegador para autenticación');
-        console.log('[Google Auth] OAuth URL:', data.url);
+        // Redirect to Google OAuth page
+        window.location.href = data.url;
+      }
+      // Return null as the actual authentication will complete after redirect
+      return { user: null, error: null };
+    }
+
+    // For native apps, open the auth URL in a browser
+    if (data?.url) {
+      console.log('[Google Auth] 🌐 Abriendo navegador para autenticación');
+      console.log('[Google Auth] OAuth URL:', data.url);
+      
+      try {
+        // Warm up the browser for better UX
+        await WebBrowser.warmUpAsync();
         
-        try {
-          // Warm up the browser for better UX
-          await WebBrowser.warmUpAsync();
+        // Use WebBrowser to open the OAuth URL
+        console.log('[Google Auth] Llamando a WebBrowser.openAuthSessionAsync...');
+        const result = await WebBrowser.openAuthSessionAsync(
+          data.url,
+          redirectUrl,
+          {
+            showInRecents: true,
+          }
+        );
+
+        console.log('[Google Auth] 📱 Resultado de WebBrowser:', result.type);
+
+        // Cool down the browser
+        await WebBrowser.coolDownAsync();
+
+        if (result.type === 'success') {
+          // The URL will be handled by the deep link listener in _layout.tsx
+          // Just wait a bit for the session to be set
+          console.log('[Google Auth] ✅ Navegador cerrado exitosamente');
+          console.log('[Google Auth] Esperando a que se establezca la sesión...');
           
-          // Use WebBrowser to open the OAuth URL
-          console.log('[Google Auth] Llamando a WebBrowser.openAuthSessionAsync...');
-          const result = await WebBrowser.openAuthSessionAsync(
-            data.url,
-            redirectUrl,
-            {
-              showInRecents: true,
-            }
-          );
-
-          console.log('[Google Auth] 📱 Resultado de WebBrowser:', result.type);
-
-          // Cool down the browser
-          await WebBrowser.coolDownAsync();
-
-          if (result.type === 'success') {
-            // The URL will be handled by the deep link listener in _layout.tsx
-            // Just wait a bit for the session to be set
-            console.log('[Google Auth] ✅ Navegador cerrado exitosamente');
-            console.log('[Google Auth] Esperando a que se establezca la sesión...');
+          // Wait for the session to be established by the deep link handler
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          // Check if session was established
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+          
+          if (sessionError) {
+            console.error('[Google Auth] ❌ Error obteniendo sesión:', sessionError);
+            return { user: null, error: 'Error al verificar la sesión' };
+          }
+          
+          if (session?.user) {
+            console.log('[Google Auth] ✅ Sesión encontrada:', session.user.email);
             
-            // Wait for the session to be established by the deep link handler
+            // Wait a bit for the database trigger to create the profile
+            console.log('[Google Auth] ⏳ Esperando a que se cree el perfil...');
             await new Promise(resolve => setTimeout(resolve, 2000));
             
-            // Check if session was established
-            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+            // Get user profile
+            let profileResult = await waitForUserProfile(session.user.id);
             
-            if (sessionError) {
-              console.error('[Google Auth] ❌ Error obteniendo sesión:', sessionError);
-              return { user: null, error: 'Error al verificar la sesión' };
+            // If profile not found, try to create it manually
+            if (!profileResult.success || !profileResult.profile) {
+              console.log('[Google Auth] ⚠️ Perfil no encontrado por trigger, intentando crear manualmente...');
+              
+              const nombre = session.user.user_metadata?.full_name || 
+                            session.user.user_metadata?.name || 
+                            session.user.email?.split('@')[0] || 
+                            'Usuario';
+              const avatar = session.user.user_metadata?.avatar_url || 
+                            session.user.user_metadata?.picture;
+              
+              profileResult = await createUserProfileManually(
+                session.user.id,
+                session.user.email || '',
+                nombre,
+                avatar,
+                'google'
+              );
             }
             
-            if (session?.user) {
-              console.log('[Google Auth] ✅ Sesión encontrada:', session.user.email);
-              
-              // Wait a bit for the database trigger to create the profile
-              console.log('[Google Auth] ⏳ Esperando a que se cree el perfil...');
-              await new Promise(resolve => setTimeout(resolve, 2000));
-              
-              // Get user profile
-              let profileResult = await waitForUserProfile(session.user.id);
-              
-              // If profile not found, try to create it manually
-              if (!profileResult.success || !profileResult.profile) {
-                console.log('[Google Auth] ⚠️ Perfil no encontrado por trigger, intentando crear manualmente...');
-                
-                const nombre = session.user.user_metadata?.full_name || 
-                              session.user.user_metadata?.name || 
-                              session.user.email?.split('@')[0] || 
-                              'Usuario';
-                const avatar = session.user.user_metadata?.avatar_url || 
-                              session.user.user_metadata?.picture;
-                
-                profileResult = await createUserProfileManually(
-                  session.user.id,
-                  session.user.email || '',
-                  nombre,
-                  avatar,
-                  'google'
-                );
-              }
-              
-              if (!profileResult.success || !profileResult.profile) {
-                console.error('[Google Auth] ❌ No se pudo obtener ni crear el perfil del usuario');
-                return { 
-                  user: null, 
-                  error: 'Error al obtener el perfil de usuario. Por favor, intenta cerrar sesión y volver a iniciar sesión.' 
-                };
-              }
-
-              const isNewUser = !profileResult.profile.ha_visto_mensaje_propietario;
-
-              const user: AuthUser = {
-                id: session.user.id,
-                email: session.user.email || '',
-                nombre: profileResult.profile.nombre || 'Usuario',
-                avatar: profileResult.profile.avatar,
-                rol_app: profileResult.profile.rol_app || 'cliente',
-                provider: 'google',
-                ha_visto_mensaje_propietario: profileResult.profile.ha_visto_mensaje_propietario || false,
+            if (!profileResult.success || !profileResult.profile) {
+              console.error('[Google Auth] ❌ No se pudo obtener ni crear el perfil del usuario');
+              return { 
+                user: null, 
+                error: 'Error al obtener el perfil de usuario. Por favor, intenta cerrar sesión y volver a iniciar sesión.' 
               };
-
-              console.log('[Google Auth] ✅ Google Sign-In completado exitosamente');
-              console.log('[Google Auth] Usuario:', user);
-              return { user, error: null, isNewUser };
-            } else {
-              console.error('[Google Auth] ❌ No se encontró sesión después de la autenticación');
-              return { user: null, error: 'No se pudo establecer la sesión. Por favor, intenta de nuevo.' };
             }
-          } else if (result.type === 'cancel') {
-            console.log('[Google Auth] ℹ️ Usuario canceló la autenticación');
-            return { user: null, error: 'Autenticación cancelada' };
-          } else if (result.type === 'dismiss') {
-            console.log('[Google Auth] ℹ️ Usuario cerró el navegador');
-            return { user: null, error: 'Autenticación cancelada' };
+
+            const isNewUser = !profileResult.profile.ha_visto_mensaje_propietario;
+
+            const user: AuthUser = {
+              id: session.user.id,
+              email: session.user.email || '',
+              nombre: profileResult.profile.nombre || 'Usuario',
+              avatar: profileResult.profile.avatar,
+              rol_app: profileResult.profile.rol_app || 'cliente',
+              provider: 'google',
+              ha_visto_mensaje_propietario: profileResult.profile.ha_visto_mensaje_propietario || false,
+            };
+
+            console.log('[Google Auth] ✅ Google Sign-In completado exitosamente');
+            console.log('[Google Auth] Usuario:', user);
+            return { user, error: null, isNewUser };
           } else {
-            console.log('[Google Auth] ⚠️ Resultado inesperado:', result.type);
-            return { user: null, error: 'Resultado inesperado de autenticación' };
+            console.error('[Google Auth] ❌ No se encontró sesión después de la autenticación');
+            return { user: null, error: 'No se pudo establecer la sesión. Por favor, intenta de nuevo.' };
           }
-        } catch (browserError: any) {
-          console.error('[Google Auth] ❌ Error abriendo navegador:', browserError);
-          
-          // Check if it's the "another browser is already open" error
-          if (browserError.message && browserError.message.includes('Another web browser is already open')) {
-            console.log('[Google Auth] 🔄 Intentando cerrar navegador existente y reintentar...');
-            try {
-              await WebBrowser.dismissBrowser();
-              await new Promise(resolve => setTimeout(resolve, 500));
-              return { user: null, error: 'Por favor, intenta de nuevo. Se cerró una sesión anterior.' };
-            } catch (retryError) {
-              console.error('[Google Auth] ❌ Error en reintento:', retryError);
-            }
-          }
-          
-          return { user: null, error: `Error abriendo navegador: ${browserError.message}` };
+        } else if (result.type === 'cancel') {
+          console.log('[Google Auth] ℹ️ Usuario canceló la autenticación');
+          return { user: null, error: 'Autenticación cancelada' };
+        } else if (result.type === 'dismiss') {
+          console.log('[Google Auth] ℹ️ Usuario cerró el navegador');
+          return { user: null, error: 'Autenticación cancelada' };
+        } else {
+          console.log('[Google Auth] ⚠️ Resultado inesperado:', result.type);
+          return { user: null, error: 'Resultado inesperado de autenticación' };
         }
-      } else {
-        console.error('[Google Auth] ❌ No se obtuvo URL de OAuth');
-        return { user: null, error: 'No se pudo obtener la URL de autenticación' };
+      } catch (browserError: any) {
+        console.error('[Google Auth] ❌ Error abriendo navegador:', browserError);
+        return { user: null, error: `Error abriendo navegador: ${browserError.message}` };
       }
-
-      return { user: null, error: 'No se pudo completar la autenticación' };
-    } finally {
-      // Always reset the OAuth in progress flag
-      setTimeout(() => {
-        isOAuthInProgress = false;
-        console.log('[Google Auth] 🔓 OAuth flag reset');
-      }, 3000); // Reset after 3 seconds to allow for any pending operations
+    } else {
+      console.error('[Google Auth] ❌ No se obtuvo URL de OAuth');
+      return { user: null, error: 'No se pudo obtener la URL de autenticación' };
     }
+
+    return { user: null, error: 'No se pudo completar la autenticación' };
   } catch (error: any) {
     console.error('[Google Auth] ❌ Error en signInWithGoogle:', error);
     console.error('[Google Auth] Error stack:', error.stack);
-    isOAuthInProgress = false;
     return { user: null, error: error.message || 'Error al iniciar sesión con Google' };
   }
 };
@@ -502,16 +457,6 @@ export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error
 export const signOut = async (): Promise<{ error: string | null }> => {
   try {
     console.log('[Auth] Cerrando sesión');
-    
-    // Dismiss any open browser sessions
-    try {
-      await WebBrowser.dismissBrowser();
-    } catch (e) {
-      // Ignore if no browser to dismiss
-    }
-    
-    // Reset OAuth flag
-    isOAuthInProgress = false;
     
     if (!isSupabaseConfigured()) {
       console.log('[Auth] Supabase no configurado, cerrando sesión local');
