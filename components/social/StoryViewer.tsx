@@ -17,6 +17,7 @@ import {
   KeyboardAvoidingView,
   StatusBar,
   ActivityIndicator,
+  Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -67,7 +68,7 @@ interface StoryViewerProps {
   activeLocalProfileId?: string | null;
 }
 
-// ✅ ULTRA-OPTIMIZED: Memoized story image component with INSTANT loading
+// ✅ Optimized story image component
 const StoryImage = memo(({ uri }: { uri: string }) => {
   const [imageError, setImageError] = useState(false);
   
@@ -97,7 +98,7 @@ const StoryImage = memo(({ uri }: { uri: string }) => {
 
 StoryImage.displayName = 'StoryImage';
 
-// ✅ FIXED: Ultra-smooth progress bar with proper animation
+// ✅ FIXED: Simplified progress bar with Animated API for smooth performance
 const ProgressBar = memo(({ 
   index, 
   currentIndex, 
@@ -113,82 +114,84 @@ const ProgressBar = memo(({
   duration: number;
   onComplete: () => void;
 }) => {
-  const [progress, setProgress] = useState(0);
-  const animationFrameRef = useRef<number | null>(null);
-  const startTimeRef = useRef<number>(0);
-  const elapsedTimeRef = useRef<number>(0);
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const animationRef = useRef<Animated.CompositeAnimation | null>(null);
 
   useEffect(() => {
     // Set initial progress based on position
     if (index < currentIndex) {
-      setProgress(1); // Completed
+      progressAnim.setValue(1); // Completed
       return;
     } else if (index > currentIndex) {
-      setProgress(0); // Not started
+      progressAnim.setValue(0); // Not started
       return;
     }
 
-    // Current story - start animation immediately
-    if (isActive && !isPaused) {
-      startTimeRef.current = performance.now();
+    // Current story - start animation
+    if (isActive && !isPaused && index === currentIndex) {
+      progressAnim.setValue(0);
       
-      const animate = (currentTime: number) => {
-        const elapsed = currentTime - startTimeRef.current + elapsedTimeRef.current;
-        const newProgress = Math.min(elapsed / duration, 1);
-        
-        setProgress(newProgress);
-        
-        if (newProgress >= 1) {
-          elapsedTimeRef.current = 0;
+      animationRef.current = Animated.timing(progressAnim, {
+        toValue: 1,
+        duration: duration,
+        useNativeDriver: false,
+      });
+      
+      animationRef.current.start(({ finished }) => {
+        if (finished) {
           onComplete();
-        } else {
-          animationFrameRef.current = requestAnimationFrame(animate);
         }
-      };
-      
-      animationFrameRef.current = requestAnimationFrame(animate);
+      });
     }
 
     return () => {
-      if (animationFrameRef.current !== null) {
-        cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = null;
+      if (animationRef.current) {
+        animationRef.current.stop();
       }
     };
-  }, [index, currentIndex, isActive, isPaused, duration, onComplete]);
+  }, [index, currentIndex, isActive, isPaused, duration, onComplete, progressAnim]);
 
   // Handle pause/resume
   useEffect(() => {
-    if (isActive && index === currentIndex) {
-      if (isPaused && animationFrameRef.current !== null) {
-        // Save elapsed time when pausing
-        const now = performance.now();
-        elapsedTimeRef.current += (now - startTimeRef.current);
-        cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = null;
+    if (index === currentIndex && isActive) {
+      if (isPaused && animationRef.current) {
+        animationRef.current.stop();
+      } else if (!isPaused) {
+        // Resume animation from current value
+        const currentValue = (progressAnim as any)._value || 0;
+        const remainingDuration = duration * (1 - currentValue);
+        
+        animationRef.current = Animated.timing(progressAnim, {
+          toValue: 1,
+          duration: remainingDuration,
+          useNativeDriver: false,
+        });
+        
+        animationRef.current.start(({ finished }) => {
+          if (finished) {
+            onComplete();
+          }
+        });
       }
     }
-  }, [isPaused, isActive, index, currentIndex]);
+  }, [isPaused, isActive, index, currentIndex, duration, onComplete, progressAnim]);
 
-  // Reset when story changes
-  useEffect(() => {
-    if (index === currentIndex && isActive) {
-      elapsedTimeRef.current = 0;
-      setProgress(0);
-    }
-  }, [currentIndex, index, isActive]);
+  const widthInterpolate = progressAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0%', '100%'],
+  });
 
   return (
     <View style={styles.progressBarContainer}>
       <View style={styles.progressBarBackground}>
-        <View style={[styles.progressBarFill, { width: `${progress * 100}%` }]}>
+        <Animated.View style={[styles.progressBarFill, { width: widthInterpolate }]}>
           <LinearGradient
             colors={['#FFD700', '#00FF00']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.progressGradient}
           />
-        </View>
+        </Animated.View>
       </View>
     </View>
   );
@@ -261,7 +264,7 @@ function StoryViewer({
       setCurrentStoryIndex(newIndex);
       onStoryChange?.(newIndex);
       
-      // ✅ Preload next images in background
+      // Preload next images in background
       if (newIndex + 1 < stories.length) {
         const nextImages = stories.slice(newIndex + 1, newIndex + 4).map(s => s.imagen).filter(Boolean);
         Promise.all(nextImages.map(uri => Image.prefetch(uri))).catch(() => {});
@@ -286,7 +289,7 @@ function StoryViewer({
       return;
     }
 
-    // ✅ OPTIMISTIC UI: Update immediately
+    // Optimistic UI update
     const isLiked = currentStory.liked_by_user;
     currentStory.liked_by_user = !isLiked;
 
@@ -389,7 +392,7 @@ function StoryViewer({
           style: 'destructive',
           onPress: async () => {
             try {
-              // ✅ Delete story image from storage
+              // Delete story image from storage
               if (currentStory.imagen) {
                 const imagePath = currentStory.imagen.split('/').pop();
                 if (imagePath) {
@@ -428,7 +431,7 @@ function StoryViewer({
 
     const messageText = storyMessage.trim();
     
-    // ✅ OPTIMISTIC UI: Clear input and show success IMMEDIATELY
+    // Optimistic UI: Clear input and show success immediately
     setStoryMessage('');
     setSendingMessage(true);
     Alert.alert('Éxito', 'Mensaje enviado correctamente');
@@ -436,13 +439,13 @@ function StoryViewer({
     try {
       console.log('[StoryViewer] 📨 Sending story message to author:', currentStory.autor_id);
       
-      // ✅ Check if a conversation already exists
+      // Check if a conversation already exists
       const userId1 = user.id < currentStory.autor_id ? user.id : currentStory.autor_id;
       const userId2 = user.id < currentStory.autor_id ? currentStory.autor_id : user.id;
       
       console.log('[StoryViewer] 🔍 Checking for existing chat:', { userId1, userId2 });
       
-      // ✅ For local stories, check for local-specific chat
+      // For local stories, check for local-specific chat
       let chatQuery = supabase
         .from('chats')
         .select('id')
@@ -476,7 +479,7 @@ function StoryViewer({
           ultimo_mensaje_fecha: new Date().toISOString(),
         };
         
-        // ✅ Set local_id for local stories
+        // Set local_id for local stories
         if (currentStory.tipo === 'local' && currentStory.local_id) {
           chatData.local_id = currentStory.local_id;
           console.log('[StoryViewer] 🏢 Creating local-specific chat with local_id:', currentStory.local_id);
@@ -691,7 +694,7 @@ function StoryViewer({
     }
   }, [visible, currentStory, user, markStoryAsViewed]);
 
-  // ✅ Preload next 2 story images for INSTANT loading
+  // Preload next 2 story images for instant loading
   useEffect(() => {
     if (visible) {
       const preloadPromises: Promise<boolean>[] = [];
@@ -739,23 +742,22 @@ function StoryViewer({
     (currentStory.tipo === 'local' && activeLocalProfileId === currentStory.local_id)
   );
 
-  // ✅ CRITICAL FIX: Display username correctly WITHOUT @ symbol
-  // For locals, use the local name directly
-  // For users, prioritize username over full name, NO @ symbol
+  // Display username correctly without @ symbol
   const storyAuthorAvatar = currentStory.autor?.avatar || currentStory.autorAvatar;
   const storyAuthorName = currentStory.autor?.nombre || currentStory.autorNombre || 'Usuario';
   
   const displayName = currentStory.tipo === 'local' 
-    ? storyAuthorName // For locals, use the local name directly
-    : (currentStory.autor?.username || currentStory.autorUsername || storyAuthorName).replace(/^@/, ''); // Remove @ if present
+    ? storyAuthorName
+    : (currentStory.autor?.username || currentStory.autorUsername || storyAuthorName).replace(/^@/, '');
 
   return (
     <Modal
       visible={visible}
-      animationType="fade"
+      animationType="none"
       onRequestClose={onClose}
       statusBarTranslucent
       hardwareAccelerated={true}
+      transparent={false}
     >
       <StatusBar barStyle="light-content" backgroundColor="#000" />
       <KeyboardAvoidingView
@@ -764,7 +766,7 @@ function StoryViewer({
         keyboardVerticalOffset={0}
       >
         <View style={styles.storyViewerModal} {...panResponder.panHandlers}>
-          {/* ✅ ULTRA-SMOOTH progress bars using requestAnimationFrame - START IMMEDIATELY */}
+          {/* Progress bars */}
           <BlurView intensity={20} tint="dark" style={styles.progressContainer}>
             <View style={styles.progressBarsWrapper}>
               {stories.map((_, index) => (
@@ -781,7 +783,7 @@ function StoryViewer({
             </View>
           </BlurView>
 
-          {/* ✅ Modern header with glassmorphism */}
+          {/* Header */}
           <BlurView intensity={30} tint="dark" style={styles.storyHeader}>
             <TouchableOpacity 
               style={styles.storyAutorInfo}
@@ -834,7 +836,7 @@ function StoryViewer({
             <StoryImage uri={currentStory.imagen} />
           </View>
 
-          {/* ✅ Modern owner controls with glassmorphism */}
+          {/* Owner controls */}
           {isCurrentStoryOwner && (
             <BlurView intensity={30} tint="dark" style={styles.storyOwnerControls}>
               <TouchableOpacity
@@ -867,7 +869,7 @@ function StoryViewer({
             </BlurView>
           )}
 
-          {/* ✅ Modern interaction bar with glassmorphism */}
+          {/* Interaction bar */}
           {!isCurrentStoryOwner && (
             <BlurView intensity={30} tint="dark" style={styles.storyInteractionBar}>
               <View style={styles.storyMessageInputContainer}>
