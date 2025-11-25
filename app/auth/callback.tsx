@@ -51,145 +51,11 @@ export default function AuthCallbackScreen() {
         addDebugInfo(`Params: ${JSON.stringify(params)}`);
         addDebugInfo('========================================');
         
-        // Get the current URL to extract tokens
-        let url = '';
+        // Wait a moment for the deep link handler to set the session
+        addDebugInfo('⏳ Esperando a que se establezca la sesión...');
+        await new Promise(resolve => setTimeout(resolve, 1500));
         
-        if (Platform.OS === 'web' && typeof window !== 'undefined') {
-          url = window.location.href;
-          addDebugInfo(`Web URL: ${url}`);
-        } else {
-          // For native, try to get the initial URL
-          const initialUrl = await Linking.getInitialURL();
-          if (initialUrl) {
-            url = initialUrl;
-            addDebugInfo(`Native initial URL: ${initialUrl}`);
-          }
-        }
-
-        // Parse tokens from URL
-        let accessToken: string | null = null;
-        let refreshToken: string | null = null;
-        let errorParam: string | null = null;
-        let errorDescription: string | null = null;
-
-        if (url) {
-          // Try to get from hash first (web OAuth flow)
-          if (url.includes('#')) {
-            const hashPart = url.split('#')[1];
-            addDebugInfo(`Hash part: ${hashPart}`);
-            const hashParams = new URLSearchParams(hashPart);
-            accessToken = hashParams.get('access_token');
-            refreshToken = hashParams.get('refresh_token');
-            errorParam = hashParams.get('error');
-            errorDescription = hashParams.get('error_description');
-            
-            addDebugInfo(`Tokens del hash: access=${!!accessToken}, refresh=${!!refreshToken}, error=${errorParam}`);
-          }
-          
-          // If not in hash, try query params (native OAuth flow)
-          if (!accessToken && url.includes('?')) {
-            const queryString = url.split('?')[1].split('#')[0]; // Get query params before hash
-            addDebugInfo(`Query part: ${queryString}`);
-            const queryParams = new URLSearchParams(queryString);
-            accessToken = queryParams.get('access_token');
-            refreshToken = queryParams.get('refresh_token');
-            errorParam = queryParams.get('error');
-            errorDescription = queryParams.get('error_description');
-            
-            addDebugInfo(`Tokens de query: access=${!!accessToken}, refresh=${!!refreshToken}, error=${errorParam}`);
-          }
-        }
-
-        // Check for OAuth errors
-        if (errorParam) {
-          addDebugInfo(`❌ Error en OAuth: ${errorParam}`);
-          if (isMounted) {
-            setStatus('error');
-            setErrorMessage(errorDescription || errorParam);
-          }
-          safeRedirect('/(tabs)/explorar', 2000);
-          return;
-        }
-
-        // If we have tokens, set the session
-        if (accessToken && refreshToken) {
-          addDebugInfo('✅ Tokens encontrados, estableciendo sesión...');
-          
-          const { data, error: sessionError } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
-
-          if (sessionError) {
-            addDebugInfo(`❌ Error estableciendo sesión: ${sessionError.message}`);
-            if (isMounted) {
-              setStatus('error');
-              setErrorMessage('Error al establecer la sesión');
-            }
-            safeRedirect('/(tabs)/explorar', 2000);
-            return;
-          }
-
-          if (data.user) {
-            addDebugInfo(`✅ Sesión establecida para usuario: ${data.user.email}`);
-            
-            // Wait a bit for session to propagate
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            // Register push notifications (non-blocking)
-            registerForPushNotifications()
-              .then(pushToken => {
-                if (pushToken) {
-                  savePushToken(data.user.id, pushToken).catch(() => {
-                    addDebugInfo('Failed to save push token');
-                  });
-                }
-              })
-              .catch(() => {
-                addDebugInfo('Failed to register push notifications');
-              });
-            
-            // Get user profile to check if needs profile completion
-            addDebugInfo('🔍 Obteniendo perfil de usuario...');
-            const { user: userData } = await getCurrentUser();
-            
-            if (userData) {
-              addDebugInfo(`✅ Perfil obtenido: ${userData.email}`);
-              addDebugInfo(`Terms: ${userData.ha_aceptado_terminos}, Username: ${!!userData.username}, Name: ${!!userData.nombre}`);
-              
-              // Check if user needs to accept terms
-              if (!userData.ha_aceptado_terminos) {
-                addDebugInfo('📋 Usuario debe aceptar términos');
-                if (isMounted) setStatus('success');
-                safeRedirect(`/auth/terms-acceptance?userId=${userData.id}`, 500);
-                return;
-              }
-              
-              // Check if user needs to complete profile (username and name are mandatory)
-              // New users (without username or nombre) should go to /editar/perfil
-              if (!userData.username || !userData.nombre) {
-                addDebugInfo('📝 Usuario nuevo - redirigiendo a editar perfil');
-                if (isMounted) setStatus('success');
-                safeRedirect('/editar/perfil', 500);
-                return;
-              }
-              
-              // Existing users (with username and nombre) go to explorar
-              addDebugInfo('✅ Usuario existente - redirigiendo a explorar');
-              if (isMounted) setStatus('success');
-              safeRedirect('/(tabs)/explorar', 500);
-              return;
-            }
-            
-            // If no user data, redirect to explorar
-            addDebugInfo('⚠️ No se pudo obtener datos del usuario, redirigiendo a explorar');
-            if (isMounted) setStatus('success');
-            safeRedirect('/(tabs)/explorar', 500);
-            return;
-          }
-        }
-        
-        // If no tokens, check for existing session
+        // Check for existing session
         addDebugInfo('🔍 Verificando sesión existente...');
         
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -207,7 +73,7 @@ export default function AuthCallbackScreen() {
         if (session?.user) {
           addDebugInfo(`✅ Sesión encontrada para: ${session.user.email}`);
           
-          // Wait a bit for session to propagate
+          // Wait a bit more for session to fully propagate
           await new Promise(resolve => setTimeout(resolve, 1000));
           
           // Register push notifications (non-blocking)
@@ -260,8 +126,13 @@ export default function AuthCallbackScreen() {
           if (isMounted) setStatus('success');
           safeRedirect('/(tabs)/explorar', 500);
         } else {
-          addDebugInfo('ℹ️ No hay sesión activa, redirigiendo a explorar');
-          safeRedirect('/(tabs)/explorar', 1000);
+          addDebugInfo('ℹ️ No hay sesión activa después de esperar');
+          addDebugInfo('⚠️ Esto puede indicar un problema con el flujo OAuth');
+          if (isMounted) {
+            setStatus('error');
+            setErrorMessage('No se pudo establecer la sesión. Por favor, intenta de nuevo.');
+          }
+          safeRedirect('/(tabs)/explorar', 3000);
         }
       } catch (error: any) {
         addDebugInfo(`❌ Error en callback: ${error.message}`);
@@ -297,7 +168,7 @@ export default function AuthCallbackScreen() {
           {__DEV__ && debugInfo.length > 0 && (
             <View style={styles.debugContainer}>
               <Text style={styles.debugTitle}>Debug Info:</Text>
-              {debugInfo.slice(-5).map((info, index) => (
+              {debugInfo.slice(-8).map((info, index) => (
                 <Text key={index} style={styles.debugText}>{info}</Text>
               ))}
             </View>
@@ -325,7 +196,7 @@ export default function AuthCallbackScreen() {
           {__DEV__ && debugInfo.length > 0 && (
             <View style={styles.debugContainer}>
               <Text style={styles.debugTitle}>Debug Info:</Text>
-              {debugInfo.slice(-5).map((info, index) => (
+              {debugInfo.slice(-8).map((info, index) => (
                 <Text key={index} style={styles.debugText}>{info}</Text>
               ))}
             </View>
@@ -387,6 +258,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderRadius: 8,
     maxWidth: '90%',
+    maxHeight: 200,
   },
   debugTitle: {
     fontSize: 12,
