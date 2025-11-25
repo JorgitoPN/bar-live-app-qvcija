@@ -6,8 +6,8 @@ import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 import { socialCache } from '@/utils/socialCache';
 import { LinearGradient } from 'expo-linear-gradient';
 import ParsedText from '@/components/social/ParsedText';
-import StoryViewer from '@/components/social/StoryViewer';
-import BarraHistorias from '@/components/social/BarraHistorias';
+import NewStoryViewer from '@/components/social/NewStoryViewer';
+import NewBarraHistorias from '@/components/social/NewBarraHistorias';
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
@@ -1559,8 +1559,8 @@ export default function SocialScreen() {
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-        {/* ✅ CRITICAL: Pass handleStoryPress directly to BarraHistorias */}
-        <BarraHistorias
+        {/* ✅ NEW: Complete rewrite of story bar with proper avatar sizes */}
+        <NewBarraHistorias
           historias={historias}
           onHistoriaPress={handleStoryPress}
           onCrearHistoria={user ? () => {
@@ -1600,7 +1600,7 @@ export default function SocialScreen() {
 
       </ScrollView>
 
-      <StoryViewer
+      <NewStoryViewer
         visible={showStoryViewer}
         stories={viewingOwnStories ? userStories : historias}
         initialIndex={currentStoryIndex}
