@@ -17,7 +17,6 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/utils/supabase';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MAX_MODAL_HEIGHT = SCREEN_HEIGHT * 0.7;
@@ -99,11 +98,17 @@ export default function StoryStatsModal({
   }, [visible, slideAnim]);
 
   // ✅ CONSOLIDATED VIEW: Merge views and likes into a single list
+  // ✅ FILTER OUT OWN VIEWS: Only show views from other users
   const consolidatedViewers = React.useMemo(() => {
     const viewersMap = new Map<string, ViewerData>();
 
-    // Add all viewers
+    // Add all viewers (excluding own views)
     views.forEach((view) => {
+      // ✅ Skip if this is the current user's own view
+      if (user && view.usuario_id === user.id) {
+        return;
+      }
+      
       viewersMap.set(view.usuario_id, {
         id: view.id,
         usuario_id: view.usuario_id,
@@ -115,6 +120,11 @@ export default function StoryStatsModal({
 
     // Mark viewers who also liked
     likes.forEach((like) => {
+      // ✅ Skip if this is the current user's own like
+      if (user && like.usuario_id === user.id) {
+        return;
+      }
+      
       const existing = viewersMap.get(like.usuario_id);
       if (existing) {
         existing.liked = true;
@@ -136,7 +146,7 @@ export default function StoryStatsModal({
       if (!a.liked && b.liked) return 1;
       return new Date(b.viewed_at).getTime() - new Date(a.viewed_at).getTime();
     });
-  }, [views, likes]);
+  }, [views, likes, user]);
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -153,22 +163,20 @@ export default function StoryStatsModal({
     return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
   };
 
-  const handleUserPress = async (userId: string) => {
-    try {
-      console.log('[StoryStatsModal] 🔍 Navigating to profile for user ID:', userId);
-      
-      // ✅ CRITICAL FIX: Close the stats modal FIRST
-      onClose();
-      
-      // ✅ CRITICAL FIX: Close the parent story viewer if callback provided
-      if (onNavigateToProfile) {
-        console.log('[StoryStatsModal] ✅ Calling onNavigateToProfile to close story viewer');
-        onNavigateToProfile();
-      }
-      
-      // Small delay to ensure modals close before navigation
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
+  const handleUserPress = (userId: string) => {
+    console.log('[StoryStatsModal] 🔍 Navigating to profile for user ID:', userId);
+    
+    // ✅ CRITICAL FIX: Close the stats modal FIRST
+    onClose();
+    
+    // ✅ CRITICAL FIX: Close the parent story viewer if callback provided
+    if (onNavigateToProfile) {
+      console.log('[StoryStatsModal] ✅ Calling onNavigateToProfile to close story viewer');
+      onNavigateToProfile();
+    }
+    
+    // Small delay to ensure modals close before navigation
+    setTimeout(() => {
       // Check if this is the current user
       if (user && userId === user.id) {
         console.log('[StoryStatsModal] ✅ Navigating to own profile');
@@ -176,39 +184,10 @@ export default function StoryStatsModal({
         return;
       }
 
-      // Check if it's a regular user
-      const { data: userData, error: userError } = await supabase
-        .from('usuarios')
-        .select('id, rol_app')
-        .eq('id', userId)
-        .single();
-
-      if (userData) {
-        console.log('[StoryStatsModal] ✅ Found user, navigating to user profile');
-        router.push(`/perfil/usuario?userId=${userId}`);
-        return;
-      }
-
-      console.log('[StoryStatsModal] ⚠️ User not found, might be a local profile');
-      
-      // If not found as user, it might be a local viewing the story
-      // In this case, we need to find the local by propietario_id
-      const { data: localData, error: localError } = await supabase
-        .from('locales')
-        .select('id, nombre')
-        .eq('propietario_id', userId)
-        .single();
-
-      if (localData) {
-        console.log('[StoryStatsModal] ✅ Found local, navigating to local profile:', localData.nombre);
-        router.push(`/perfil/local?localId=${localData.id}`);
-        return;
-      }
-
-      console.log('[StoryStatsModal] ❌ Profile not found for user ID:', userId);
-    } catch (error) {
-      console.error('[StoryStatsModal] ❌ Error navigating to profile:', error);
-    }
+      // Navigate to user profile
+      console.log('[StoryStatsModal] ✅ Navigating to user profile');
+      router.push(`/perfil/usuario?userId=${userId}`);
+    }, 100);
   };
 
   if (!visible) return null;
@@ -242,21 +221,21 @@ export default function StoryStatsModal({
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Estadísticas</Text>
               <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                <IconSymbol name="xmark" size={24} color={colors.text} />
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
 
-            {/* Stats Summary */}
+            {/* Stats Summary - Unified display */}
             <View style={styles.statsContainer}>
               <View style={styles.statItem}>
-                <IconSymbol name="eye.fill" size={20} color={colors.primary} />
-                <Text style={styles.statValue}>{viewsCount}</Text>
-                <Text style={styles.statLabel}>Vistas</Text>
+                <IconSymbol ios_icon_name="eye.fill" android_material_icon_name="visibility" size={20} color={colors.primary} />
+                <Text style={styles.statValue}>{consolidatedViewers.length}</Text>
+                <Text style={styles.statLabel}>Visitantes</Text>
               </View>
               <View style={styles.statDivider} />
               <View style={styles.statItem}>
-                <IconSymbol name="heart.fill" size={20} color="#EF4444" />
-                <Text style={styles.statValue}>{likesCount}</Text>
+                <IconSymbol ios_icon_name="heart.fill" android_material_icon_name="favorite" size={20} color="#EF4444" />
+                <Text style={styles.statValue}>{consolidatedViewers.filter(v => v.liked).length}</Text>
                 <Text style={styles.statLabel}>Me gusta</Text>
               </View>
             </View>
@@ -296,7 +275,7 @@ export default function StoryStatsModal({
                           {/* ✅ HEART INDICATOR: Show heart icon if user liked */}
                           {viewer.liked && (
                             <View style={styles.likeIndicator}>
-                              <IconSymbol name="heart.fill" size={16} color="#FFFFFF" />
+                              <IconSymbol ios_icon_name="heart.fill" android_material_icon_name="favorite" size={16} color="#FFFFFF" />
                             </View>
                           )}
                         </View>
@@ -306,7 +285,7 @@ export default function StoryStatsModal({
                               {displayName}
                             </Text>
                             {viewer.liked && (
-                              <IconSymbol name="heart.fill" size={14} color="#EF4444" />
+                              <IconSymbol ios_icon_name="heart.fill" android_material_icon_name="favorite" size={14} color="#EF4444" />
                             )}
                           </View>
                         </View>
@@ -316,7 +295,7 @@ export default function StoryStatsModal({
                   })
                 ) : (
                   <View style={styles.emptyState}>
-                    <IconSymbol name="eye" size={48} color={colors.textSecondary} />
+                    <IconSymbol ios_icon_name="eye" android_material_icon_name="visibility" size={48} color={colors.textSecondary} />
                     <Text style={styles.emptyText}>Aún no hay vistas</Text>
                   </View>
                 )}
@@ -464,11 +443,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: colors.text,
-  },
-  userUsername: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginTop: 2,
   },
   timeText: {
     fontSize: 13,

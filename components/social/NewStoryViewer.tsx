@@ -254,7 +254,7 @@ function NewStoryViewer({
     }
   }, [currentIndex, currentStory?.imagen]);
 
-  // Mark story as viewed
+  // ✅ Mark story as viewed - ONLY for other users' stories (not own stories)
   useEffect(() => {
     if (visible && currentStory && user && !isOwner) {
       markAsViewed(currentStory.id);
@@ -263,6 +263,13 @@ function NewStoryViewer({
 
   const markAsViewed = async (storyId: string) => {
     if (!user) return;
+    
+    // ✅ CRITICAL: Don't mark own stories as viewed
+    if (isOwner) {
+      console.log('[NewStoryViewer] ⚠️ Skipping view count for own story');
+      return;
+    }
+    
     try {
       const { data: existing } = await supabase
         .from('historia_views')
@@ -272,6 +279,7 @@ function NewStoryViewer({
         .maybeSingle();
 
       if (!existing) {
+        console.log('[NewStoryViewer] ✅ Marking story as viewed by other user');
         await supabase.from('historia_views').insert({
           historia_id: storyId,
           usuario_id: user.id,
@@ -461,19 +469,23 @@ function NewStoryViewer({
     setLoadingStats(true);
     
     try {
+      // ✅ FILTER OUT OWN VIEWS AND LIKES: Only show views/likes from other users
       const [viewsData, likesData] = await Promise.all([
         supabase
           .from('historia_views')
           .select('id, usuario_id, viewed_at, usuario:usuarios(nombre, avatar, username)')
           .eq('historia_id', currentStory.id)
+          .neq('usuario_id', user.id) // ✅ FILTER OUT OWN VIEWS
           .order('viewed_at', { ascending: false }),
         supabase
           .from('historia_likes')
           .select('id, usuario_id, created_at, usuario:usuarios(nombre, avatar, username)')
           .eq('historia_id', currentStory.id)
+          .neq('usuario_id', user.id) // ✅ FILTER OUT OWN LIKES
           .order('created_at', { ascending: false }),
       ]);
 
+      console.log('[NewStoryViewer] ✅ Stats loaded - Views:', viewsData.data?.length || 0, 'Likes:', likesData.data?.length || 0);
       setStoryViews(viewsData.data || []);
       setStoryLikes(likesData.data || []);
     } catch (error) {

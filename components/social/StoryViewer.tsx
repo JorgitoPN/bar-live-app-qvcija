@@ -300,6 +300,20 @@ function StoryViewer({
 
   const markStoryAsViewed = useCallback(async (storyId: string) => {
     if (!user) return;
+    
+    // ✅ CRITICAL: Check if this is the user's own story
+    const story = stories.find(s => s.id === storyId);
+    if (!story) return;
+    
+    const isOwner = story.tipo === 'usuario' 
+      ? story.autor_id === user.id
+      : story.tipo === 'local' && activeLocalProfileId === story.local_id;
+    
+    // ✅ Don't mark own stories as viewed
+    if (isOwner) {
+      console.log('[StoryViewer] ⚠️ Skipping view count for own story');
+      return;
+    }
 
     try {
       const { data: existingView } = await supabase
@@ -310,6 +324,7 @@ function StoryViewer({
         .maybeSingle();
 
       if (!existingView) {
+        console.log('[StoryViewer] ✅ Marking story as viewed by other user');
         await supabase.from('historia_views').insert({
           historia_id: storyId,
           usuario_id: user.id,
@@ -318,7 +333,7 @@ function StoryViewer({
     } catch (error) {
       console.error('[StoryViewer] Error marking story as viewed:', error);
     }
-  }, [user]);
+  }, [user, stories, activeLocalProfileId]);
 
   const handleNextStory = useCallback(() => {
     if (currentStory && user) {
@@ -404,6 +419,7 @@ function StoryViewer({
           usuario:usuarios(nombre, avatar, username)
         `)
         .eq('historia_id', currentStory.id)
+        .neq('usuario_id', user.id) // ✅ FILTER OUT OWN VIEWS
         .order('viewed_at', { ascending: false });
 
       if (viewsError) throw viewsError;
@@ -417,6 +433,7 @@ function StoryViewer({
           usuario:usuarios(nombre, avatar, username)
         `)
         .eq('historia_id', currentStory.id)
+        .neq('usuario_id', user.id) // ✅ FILTER OUT OWN LIKES
         .order('created_at', { ascending: false });
 
       if (likesError) throw likesError;
