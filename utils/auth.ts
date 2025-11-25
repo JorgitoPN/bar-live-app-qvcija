@@ -432,7 +432,7 @@ export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error
       provider: 'google',
       options: {
         redirectTo: redirectUrl,
-        skipBrowserRedirect: false, // Let Supabase handle the redirect
+        skipBrowserRedirect: Platform.OS !== 'web', // Skip browser redirect for native
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
@@ -447,7 +447,13 @@ export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error
       if (error.message.includes('Provider') || error.message.includes('not enabled')) {
         return { 
           user: null, 
-          error: 'Google Sign-In no está configurado en Supabase. Por favor, habilita el proveedor de Google en tu Dashboard de Supabase (Authentication > Providers > Google) y configura el Client ID para Android.' 
+          error: 'Google Sign-In no está configurado correctamente en Supabase.\n\n' +
+                 'Pasos para configurar:\n' +
+                 '1. Ve a tu Dashboard de Supabase\n' +
+                 '2. Authentication > Providers > Google\n' +
+                 '3. Habilita el proveedor\n' +
+                 '4. Configura el Client ID y Secret de Google Cloud Console\n' +
+                 '5. Asegúrate de que la URL de redirección esté configurada correctamente'
         };
       }
       
@@ -487,23 +493,23 @@ export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error
           // Extract the URL from the result
           const url = result.url;
           console.log('[Google Auth] ✅ URL de callback recibida');
-          console.log('[Google Auth] URL completa:', url);
           
           // Parse the URL to get the tokens
           // The URL can have tokens in either hash (#) or query (?) parameters
           let accessToken: string | null = null;
           let refreshToken: string | null = null;
           let errorParam: string | null = null;
+          let errorDescription: string | null = null;
           
           // Try to get from hash first
           if (url.includes('#')) {
             console.log('[Google Auth] Extrayendo tokens del hash...');
             const hashPart = url.split('#')[1];
-            console.log('[Google Auth] Hash part:', hashPart);
             const hashParams = new URLSearchParams(hashPart);
             accessToken = hashParams.get('access_token');
             refreshToken = hashParams.get('refresh_token');
             errorParam = hashParams.get('error');
+            errorDescription = hashParams.get('error_description');
             
             console.log('[Google Auth] Tokens del hash:', {
               hasAccessToken: !!accessToken,
@@ -516,11 +522,11 @@ export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error
           if (!accessToken && url.includes('?')) {
             console.log('[Google Auth] Extrayendo tokens de query params...');
             const queryPart = url.split('?')[1].split('#')[0];
-            console.log('[Google Auth] Query part:', queryPart);
             const queryParams = new URLSearchParams(queryPart);
             accessToken = queryParams.get('access_token');
             refreshToken = queryParams.get('refresh_token');
             errorParam = queryParams.get('error');
+            errorDescription = queryParams.get('error_description');
             
             console.log('[Google Auth] Tokens de query:', {
               hasAccessToken: !!accessToken,
@@ -532,7 +538,7 @@ export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error
           // Check for errors
           if (errorParam) {
             console.error('[Google Auth] ❌ Error en OAuth callback:', errorParam);
-            return { user: null, error: errorParam };
+            return { user: null, error: errorDescription || errorParam };
           }
 
           if (accessToken && refreshToken) {
@@ -551,8 +557,6 @@ export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error
 
             if (sessionData.user) {
               console.log('[Google Auth] ✅ Sesión establecida para usuario:', sessionData.user.id);
-              console.log('[Google Auth] User email:', sessionData.user.email);
-              console.log('[Google Auth] User metadata:', sessionData.user.user_metadata);
               
               // Wait a bit for the database trigger to create the profile
               console.log('[Google Auth] ⏳ Esperando a que se cree el perfil...');
@@ -602,7 +606,6 @@ export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error
               };
 
               console.log('[Google Auth] ✅ Google Sign-In completado exitosamente');
-              console.log('[Google Auth] Usuario:', user);
               return { user, error: null, isNewUser };
             } else {
               console.error('[Google Auth] ❌ No se pudo obtener el usuario de la sesión');
@@ -610,7 +613,6 @@ export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error
             }
           } else {
             console.error('[Google Auth] ❌ No se encontraron tokens en la URL de callback');
-            console.log('[Google Auth] URL recibida:', url);
             
             // Try to check if there's already a session (in case tokens were set by deep link handler)
             console.log('[Google Auth] Verificando si hay sesión existente...');
@@ -672,18 +674,17 @@ export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error
               };
 
               console.log('[Google Auth] ✅ Google Sign-In completado exitosamente (desde sesión)');
-              console.log('[Google Auth] Usuario:', user);
               return { user, error: null, isNewUser };
             }
             
-            return { user: null, error: 'No se pudieron obtener los tokens de autenticación' };
+            return { user: null, error: 'No se pudieron obtener los tokens de autenticación.\n\nPor favor, intenta nuevamente.' };
           }
         } else if (result.type === 'cancel') {
           console.log('[Google Auth] ℹ️ Usuario canceló la autenticación');
-          return { user: null, error: 'Autenticación cancelada' };
+          return { user: null, error: null }; // Don't show error for user cancellation
         } else if (result.type === 'dismiss') {
           console.log('[Google Auth] ℹ️ Usuario cerró el navegador');
-          return { user: null, error: 'Autenticación cancelada' };
+          return { user: null, error: null }; // Don't show error for user dismissal
         } else {
           console.log('[Google Auth] ⚠️ Resultado inesperado:', result.type);
           return { user: null, error: 'Resultado inesperado de autenticación' };

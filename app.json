@@ -57,13 +57,40 @@
               "scheme": "https",
               "host": "embntaqwlwmgazvrglaf.supabase.co",
               "pathPrefix": "/auth/v1/callback"
-            },
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        },
+        {
+          "action": "VIEW",
+          "data": [
             {
               "scheme": "natively"
-            },
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        },
+        {
+          "action": "VIEW",
+          "data": [
             {
               "scheme": "com.barlive.app"
-            },
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        },
+        {
+          "action": "VIEW",
+          "data": [
             {
               "scheme": "exp"
             }
