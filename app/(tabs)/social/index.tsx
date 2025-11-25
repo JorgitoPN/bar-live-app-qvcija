@@ -6,8 +6,8 @@ import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 import { socialCache } from '@/utils/socialCache';
 import { LinearGradient } from 'expo-linear-gradient';
 import ParsedText from '@/components/social/ParsedText';
-import NewStoryViewer from '@/components/social/NewStoryViewer';
-import NewBarraHistorias from '@/components/social/NewBarraHistorias';
+import StoryViewer from '@/components/social/StoryViewer';
+import BarraHistorias from '@/components/social/BarraHistorias';
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
@@ -809,7 +809,6 @@ export default function SocialScreen() {
     setCurrentMode,
   } = useMode();
   
-  // ✅ CRITICAL: Get data from GlobalDataContext - ALWAYS available instantly
   const { posts: globalPosts, stories: globalStories, hasLoadedOnce, refreshData } = useGlobalData();
   
   const [searchQuery, setSearchQuery] = useState('');
@@ -845,7 +844,6 @@ export default function SocialScreen() {
   const isInteractingAsLocal = activeProfileType === 'local';
   const activeLocalProfileId = activeProfileType === 'local' ? activeProfileId : null;
 
-  // ✅ CRITICAL: Load data INSTANTLY from GlobalDataContext
   const loadData = useCallback(async () => {
     if (isLoadingRef.current) {
       console.log('[Social] ⚡ Already loading, skipping...');
@@ -859,7 +857,6 @@ export default function SocialScreen() {
       console.log('[Social] 📍 Global posts available:', globalPosts.length);
       console.log('[Social] 📍 Global stories available:', globalStories.length);
 
-      // ✅ INSTANT: Use global data immediately
       if (globalPosts.length > 0) {
         console.log('[Social] ⚡⚡⚡ INSTANT posts from global data:', globalPosts.length);
         
@@ -1053,16 +1050,13 @@ export default function SocialScreen() {
     }
   }, [user]);
 
-  // ✅ CRITICAL: Load data on focus - INSTANT with global data
   useFocusEffect(
     useCallback(() => {
       console.log('[Social] ⚡ Screen focused - loading data INSTANTLY');
       
-      // ✅ Load data immediately from global context
       loadData();
       loadUnreadCounts();
       
-      // ✅ Refresh global data in background (silent)
       refreshData(true);
     }, [loadData, loadUnreadCounts, refreshData])
   );
@@ -1219,16 +1213,13 @@ export default function SocialScreen() {
     lastScrollY.current = currentScrollY;
   }, [headerTranslateY]);
 
-  // ✅ ULTRA-OPTIMIZED: Handle story press with instant opening
   const handleStoryPress = useCallback((historia: HistoriaConAutor) => {
     console.log('[Social] 📖 Story pressed:', historia.id);
     
-    // Find the index of the story in the array
     const index = historias.findIndex(s => s.id === historia.id);
     
     console.log('[Social] 📖 Opening story at index:', index);
     
-    // ✅ Open viewer INSTANTLY - images are already preloaded by BarraHistorias
     setCurrentStoryIndex(index);
     setShowStoryViewer(true);
   }, [historias]);
@@ -1439,8 +1430,6 @@ export default function SocialScreen() {
     }
   }, [switchToClientProfile, setCurrentMode, loadData]);
 
-  // ✅ CRITICAL FIX: NEVER show loading screen - data is ALWAYS available from cache
-  // Show empty state only if data has been loaded at least once AND there are no posts
   const showEmptyState = hasLoadedOnce && posts.length === 0;
 
   return (
@@ -1545,8 +1534,7 @@ export default function SocialScreen() {
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-        {/* ✅ CRITICAL FIX: Pass user avatar and name to NewBarraHistorias */}
-        <NewBarraHistorias
+        <BarraHistorias
           historias={historias}
           onHistoriaPress={handleStoryPress}
           onCrearHistoria={user ? () => {
@@ -1556,8 +1544,6 @@ export default function SocialScreen() {
               router.push('/crear/historia');
             }
           } : undefined}
-          userAvatar={user?.avatar}
-          userName={user?.nombre}
         />
 
         <View style={styles.feedContainer}>
@@ -1588,8 +1574,7 @@ export default function SocialScreen() {
 
       </ScrollView>
 
-      {/* ✅ Pass stories to NewStoryViewer */}
-      <NewStoryViewer
+      <StoryViewer
         visible={showStoryViewer}
         stories={historias}
         initialIndex={currentStoryIndex}
