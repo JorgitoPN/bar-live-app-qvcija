@@ -131,7 +131,7 @@ export default function VerificarEmailScreen() {
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
       // Update user with new OTP
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from('usuarios')
         .update({
           verification_code: otp,
@@ -139,17 +139,43 @@ export default function VerificarEmailScreen() {
         })
         .eq('email', email);
 
-      if (error) {
-        console.error('Error resending code:', error);
+      if (updateError) {
+        console.error('Error resending code:', updateError);
         Alert.alert('Error', 'No se pudo reenviar el código. Por favor, intenta nuevamente.');
         setResending(false);
         return;
       }
 
-      // TODO: Send OTP via email using Edge Function
-      console.log('New OTP Code:', otp);
+      // Send verification email via Edge Function
+      try {
+        const { error: emailError } = await supabase.functions.invoke(
+          'send-verification-email',
+          {
+            body: {
+              email,
+              code: otp,
+              type: 'verification',
+            },
+          }
+        );
 
-      Alert.alert('Código reenviado', `Hemos enviado un nuevo código a ${email}. (Desarrollo: ${otp})`);
+        if (emailError) {
+          console.error('Error sending verification email:', emailError);
+          Alert.alert(
+            'Código reenviado',
+            `Nuevo código generado pero no se pudo enviar por correo. Tu código es: ${otp}`
+          );
+        } else {
+          Alert.alert('Código reenviado', `Hemos enviado un nuevo código a ${email}`);
+        }
+      } catch (emailError) {
+        console.error('Error invoking email function:', emailError);
+        Alert.alert(
+          'Código reenviado',
+          `Nuevo código generado pero no se pudo enviar por correo. Tu código es: ${otp}`
+        );
+      }
+
       setCountdown(60);
       setCode(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();

@@ -23,9 +23,9 @@ export default function RegistroEmailScreen() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const validateEmail = (email: string) => {
-    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return regex.test(email);
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
   };
 
   const handleContinue = async () => {
@@ -34,7 +34,7 @@ export default function RegistroEmailScreen() {
       return;
     }
 
-    if (!validateEmail(email)) {
+    if (!validateEmail(email.trim())) {
       Alert.alert('Error', 'Por favor, ingresa un correo electrónico válido');
       return;
     }
@@ -42,63 +42,99 @@ export default function RegistroEmailScreen() {
     setLoading(true);
 
     try {
+      const normalizedEmail = email.trim().toLowerCase();
+
       // Check if email already exists
       const { data: existingUser, error: checkError } = await supabase
         .from('usuarios')
-        .select('id, email, provider, email_verified')
-        .eq('email', email.toLowerCase())
+        .select('id, email_verified')
+        .eq('email', normalizedEmail)
         .maybeSingle();
 
       if (checkError && checkError.code !== 'PGRST116') {
         console.error('Error checking email:', checkError);
-        Alert.alert('Error', 'Ocurrió un error al verificar el correo');
+        Alert.alert('Error', 'No se pudo verificar el correo. Por favor, intenta nuevamente.');
         setLoading(false);
         return;
       }
 
       if (existingUser) {
-        if (existingUser.provider === 'google') {
+        if (existingUser.email_verified) {
           Alert.alert(
-            'Cuenta existente',
-            'Esta cuenta fue creada con Google. Para continuar, crea una contraseña para tu cuenta de BarLive.',
+            'Correo ya registrado',
+            'Este correo ya está registrado. Por favor, inicia sesión.',
             [
               {
-                text: 'Crear contraseña',
-                onPress: () => {
+                text: 'Iniciar sesión',
+                onPress: () => router.replace('/auth/login-popup'),
+              },
+              { text: 'Cancelar', style: 'cancel' },
+            ]
+          );
+        } else {
+          Alert.alert(
+            'Verificación pendiente',
+            'Este correo ya está registrado pero no verificado. ¿Deseas reenviar el código de verificación?',
+            [
+              {
+                text: 'Reenviar código',
+                onPress: async () => {
+                  await resendVerificationCode(normalizedEmail);
                   router.push({
-                    pathname: '/auth/crear-password-google',
-                    params: { email: email.toLowerCase(), userId: existingUser.id },
+                    pathname: '/auth/verificar-email',
+                    params: { email: normalizedEmail },
                   });
                 },
               },
               { text: 'Cancelar', style: 'cancel' },
             ]
           );
-          setLoading(false);
-          return;
-        } else {
-          Alert.alert('Error', 'Este correo ya está registrado. Por favor, inicia sesión.');
-          setLoading(false);
-          return;
         }
+        setLoading(false);
+        return;
       }
 
-      // Generate 6-digit OTP
+      // Generate OTP
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-      // Create temporary user record with OTP
+      // Create user in auth.users first
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: normalizedEmail,
+        password: `temp_${Math.random().toString(36).substring(7)}`, // Temporary password
+        options: {
+          data: {
+            email: normalizedEmail,
+          },
+        },
+      });
+
+      if (authError) {
+        console.error('Error creating auth user:', authError);
+        Alert.alert('Error', 'No se pudo crear la cuenta. Por favor, intenta nuevamente.');
+        setLoading(false);
+        return;
+      }
+
+      if (!authData.user) {
+        Alert.alert('Error', 'No se pudo crear la cuenta. Por favor, intenta nuevamente.');
+        setLoading(false);
+        return;
+      }
+
+      // Create user in usuarios table
       const { error: insertError } = await supabase
         .from('usuarios')
         .insert({
-          email: email.toLowerCase(),
+          id: authData.user.id,
+          email: normalizedEmail,
+          nombre: normalizedEmail.split('@')[0],
+          provider: 'barlive',
+          email_verified: false,
           verification_code: otp,
           verification_code_expires_at: expiresAt.toISOString(),
-          email_verified: false,
-          provider: 'barlive',
-          nombre: email.split('@')[0], // Temporary name
           rol_app: 'cliente',
-          activo: false, // Not active until email is verified
+          activo: true,
         });
 
       if (insertError) {
@@ -108,44 +144,93 @@ export default function RegistroEmailScreen() {
         return;
       }
 
-      // Send OTP via email using Edge Function
-      console.log('[Registration] Sending verification email...');
-      const { error: emailError } = await supabase.functions.invoke('send-verification-email', {
-        body: { 
-          email: email.toLowerCase(), 
-          code: otp,
-          nombre: email.split('@')[0]
-        }
-      });
+      // Send verification email via Edge Function
+      try {
+        const { data: emailData, error: emailError } = await supabase.functions.invoke(
+          'send-verification-email',
+          {
+            body: {
+              email: normalizedEmail,
+              code: otp,
+              type: 'verification',
+            },
+          }
+        );
 
-      if (emailError) {
-        console.error('[Registration] Error sending email:', emailError);
-        // Don't block the flow if email fails, user can still verify
-        console.log('[Registration] Email send failed, but continuing with flow. OTP:', otp);
-      } else {
-        console.log('[Registration] Verification email sent successfully');
+        if (emailError) {
+          console.error('Error sending verification email:', emailError);
+          // Don't block the flow if email fails
+          Alert.alert(
+            'Advertencia',
+            `Cuenta creada pero no se pudo enviar el correo de verificación. Tu código es: ${otp}`
+          );
+        } else {
+          console.log('Verification email sent successfully:', emailData);
+        }
+      } catch (emailError) {
+        console.error('Error invoking email function:', emailError);
+        // Don't block the flow if email fails
+        Alert.alert(
+          'Advertencia',
+          `Cuenta creada pero no se pudo enviar el correo de verificación. Tu código es: ${otp}`
+        );
       }
 
-      Alert.alert(
-        'Código enviado',
-        `Hemos enviado un código de verificación a ${email}. Por favor, revisa tu bandeja de entrada y spam.${__DEV__ ? `\n\n(Desarrollo: ${otp})` : ''}`,
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              router.push({
-                pathname: '/auth/verificar-email',
-                params: { email: email.toLowerCase() },
-              });
-            },
-          },
-        ]
-      );
+      // Navigate to verification screen
+      router.push({
+        pathname: '/auth/verificar-email',
+        params: { email: normalizedEmail },
+      });
     } catch (error: any) {
       console.error('Error in handleContinue:', error);
       Alert.alert('Error', 'Ocurrió un error inesperado');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const resendVerificationCode = async (email: string) => {
+    try {
+      // Generate new OTP
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+      // Update user with new OTP
+      const { error: updateError } = await supabase
+        .from('usuarios')
+        .update({
+          verification_code: otp,
+          verification_code_expires_at: expiresAt.toISOString(),
+        })
+        .eq('email', email);
+
+      if (updateError) {
+        console.error('Error updating verification code:', updateError);
+        throw updateError;
+      }
+
+      // Send verification email via Edge Function
+      const { error: emailError } = await supabase.functions.invoke(
+        'send-verification-email',
+        {
+          body: {
+            email,
+            code: otp,
+            type: 'verification',
+          },
+        }
+      );
+
+      if (emailError) {
+        console.error('Error sending verification email:', emailError);
+        Alert.alert(
+          'Advertencia',
+          `Código actualizado pero no se pudo enviar el correo. Tu código es: ${otp}`
+        );
+      }
+    } catch (error) {
+      console.error('Error resending verification code:', error);
+      Alert.alert('Error', 'No se pudo reenviar el código de verificación');
     }
   };
 
@@ -179,14 +264,14 @@ export default function RegistroEmailScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.stepContainer}>
-          <Text style={styles.stepTitle}>¿Cuál es tu correo electrónico?</Text>
+          <Text style={styles.stepTitle}>¿Cuál es tu correo?</Text>
           <Text style={styles.stepSubtitle}>
             Te enviaremos un código de verificación
           </Text>
 
           <TextInput
             style={styles.input}
-            placeholder="tu@email.com"
+            placeholder="correo@ejemplo.com"
             placeholderTextColor={colors.textSecondary}
             value={email}
             onChangeText={setEmail}
@@ -197,25 +282,34 @@ export default function RegistroEmailScreen() {
             editable={!loading}
           />
 
-          <Text style={styles.helperText}>
-            Usaremos este correo para enviarte actualizaciones importantes
-          </Text>
+          <TouchableOpacity
+            style={[styles.button, loading && styles.buttonDisabled]}
+            onPress={handleContinue}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>Continuar</Text>
+            )}
+          </TouchableOpacity>
+
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>o</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <TouchableOpacity
+            style={styles.loginButton}
+            onPress={() => router.replace('/auth/login-popup')}
+          >
+            <Text style={styles.loginButtonText}>
+              ¿Ya tienes cuenta? <Text style={styles.loginButtonTextBold}>Inicia sesión</Text>
+            </Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
-
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={[styles.button, styles.buttonPrimary]}
-          onPress={handleContinue}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.buttonTextPrimary}>Continuar</Text>
-          )}
-        </TouchableOpacity>
-      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -266,43 +360,53 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: colors.cardBackground,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: colors.cardBorder,
-    borderRadius: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    fontSize: 18,
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
     color: colors.text,
-    marginBottom: 12,
-  },
-  helperText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginTop: 8,
-  },
-  footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 24,
-    backgroundColor: colors.background,
-    borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
+    marginBottom: 24,
   },
   button: {
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonPrimary: {
     backgroundColor: colors.primary,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginBottom: 24,
   },
-  buttonTextPrimary: {
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  buttonText: {
+    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.cardBorder,
+  },
+  dividerText: {
+    marginHorizontal: 16,
+    color: colors.textSecondary,
+    fontSize: 14,
+  },
+  loginButton: {
+    alignItems: 'center',
+  },
+  loginButtonText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  loginButtonTextBold: {
+    fontWeight: '600',
+    color: colors.primary,
   },
 });
