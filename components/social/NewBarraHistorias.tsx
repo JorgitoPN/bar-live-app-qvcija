@@ -30,7 +30,9 @@ const StoryItem = memo(({
   // Preload story image immediately
   useEffect(() => {
     if (historia.imagen) {
-      Image.prefetch(historia.imagen).catch(() => {});
+      Image.prefetch(historia.imagen).catch(() => {
+        console.log('[StoryItem] Failed to prefetch image:', historia.imagen);
+      });
     }
   }, [historia.imagen]);
   
@@ -45,6 +47,20 @@ const StoryItem = memo(({
     return hasBeenViewed ? ['#E5E7EB', '#E5E7EB'] : ['#FFD700', '#00FF00'];
   }, [hasBeenViewed]);
   
+  // Get avatar URL - check all possible sources
+  const avatarUrl = useMemo(() => {
+    return historia.autorAvatar || historia.autor?.avatar || null;
+  }, [historia.autorAvatar, historia.autor?.avatar]);
+  
+  console.log('[StoryItem] Rendering story:', {
+    id: historia.id,
+    displayName,
+    avatarUrl,
+    hasAutor: !!historia.autor,
+    autorAvatar: historia.autorAvatar,
+    autorAvatarFromObject: historia.autor?.avatar,
+  });
+  
   return (
     <TouchableOpacity
       style={styles.storyContainer}
@@ -58,11 +74,14 @@ const StoryItem = memo(({
         style={styles.storyGradient}
       >
         <View style={styles.storyImageContainer}>
-          {historia.autorAvatar ? (
+          {avatarUrl ? (
             <Image 
-              source={{ uri: historia.autorAvatar }} 
+              source={{ uri: avatarUrl }} 
               style={styles.storyImage}
               fadeDuration={0}
+              onError={(error) => {
+                console.log('[StoryItem] Error loading avatar:', avatarUrl, error.nativeEvent.error);
+              }}
             />
           ) : (
             <View style={styles.storyPlaceholder}>
@@ -81,6 +100,7 @@ const StoryItem = memo(({
     prevProps.historia.id === nextProps.historia.id &&
     prevProps.historia.visto_por_usuario === nextProps.historia.visto_por_usuario &&
     prevProps.historia.autorAvatar === nextProps.historia.autorAvatar &&
+    prevProps.historia.autor?.avatar === nextProps.historia.autor?.avatar &&
     prevProps.isOwnStory === nextProps.isOwnStory
   );
 });
@@ -96,27 +116,34 @@ const CreateStoryButton = memo(({
   onPress: () => void;
   userAvatar?: string;
   userName?: string;
-}) => (
-  <TouchableOpacity style={styles.createStory} onPress={onPress} activeOpacity={0.7}>
-    <View style={styles.createAvatarContainer}>
-      <View style={styles.createAvatarBackground}>
-        {userAvatar ? (
-          <Image 
-            source={{ uri: userAvatar }} 
-            style={styles.userAvatarImage}
-            fadeDuration={0}
-          />
-        ) : (
-          <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={36} color={colors.textSecondary} />
-        )}
+}) => {
+  console.log('[CreateStoryButton] Rendering with avatar:', userAvatar);
+  
+  return (
+    <TouchableOpacity style={styles.createStory} onPress={onPress} activeOpacity={0.7}>
+      <View style={styles.createAvatarContainer}>
+        <View style={styles.createAvatarBackground}>
+          {userAvatar ? (
+            <Image 
+              source={{ uri: userAvatar }} 
+              style={styles.userAvatarImage}
+              fadeDuration={0}
+              onError={(error) => {
+                console.log('[CreateStoryButton] Error loading avatar:', userAvatar, error.nativeEvent.error);
+              }}
+            />
+          ) : (
+            <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={36} color={colors.textSecondary} />
+          )}
+        </View>
+        <View style={styles.createAddButton}>
+          <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={28} color={colors.primary} />
+        </View>
       </View>
-      <View style={styles.createAddButton}>
-        <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={28} color={colors.primary} />
-      </View>
-    </View>
-    <Text style={styles.createText}>Tu historia</Text>
-  </TouchableOpacity>
-));
+      <Text style={styles.createText}>Tu historia</Text>
+    </TouchableOpacity>
+  );
+});
 
 CreateStoryButton.displayName = 'CreateStoryButton';
 
@@ -130,6 +157,13 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
 }: NewBarraHistoriasProps) {
   const { user } = useAuth();
   
+  console.log('[NewBarraHistorias] Rendering with:', {
+    historiasCount: historias.length,
+    userAvatar,
+    userName,
+    userId: user?.id,
+  });
+  
   // Separate user's own stories from others
   const { userStories, otherStories } = useMemo(() => {
     const userStories = historias.filter(h => 
@@ -138,6 +172,12 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
     const otherStories = historias.filter(h => 
       !(h.tipo === 'usuario' && h.autor_id === user?.id)
     );
+    
+    console.log('[NewBarraHistorias] Stories separated:', {
+      userStories: userStories.length,
+      otherStories: otherStories.length,
+    });
+    
     return { userStories, otherStories };
   }, [historias, user?.id]);
   
@@ -151,7 +191,9 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
           const successCount = results.filter(r => r.status === 'fulfilled').length;
           console.log('[NewBarraHistorias] ✅ Preloaded', successCount, '/', allImages.length, 'images');
         })
-        .catch(() => {});
+        .catch(() => {
+          console.log('[NewBarraHistorias] Error preloading images');
+        });
     }
   }, [historias]);
   
@@ -161,7 +203,7 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
-        removeClippedSubviews={true}
+        removeClippedSubviews={false}
         scrollEventThrottle={16}
         decelerationRate="fast"
       >
@@ -201,6 +243,7 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
     prevProps.historias.length === nextProps.historias.length &&
     prevProps.historias[0]?.id === nextProps.historias[0]?.id &&
     prevProps.historias[0]?.visto_por_usuario === nextProps.historias[0]?.visto_por_usuario &&
+    prevProps.historias[0]?.autorAvatar === nextProps.historias[0]?.autorAvatar &&
     prevProps.userAvatar === nextProps.userAvatar &&
     prevProps.userName === nextProps.userName
   );

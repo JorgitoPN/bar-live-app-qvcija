@@ -25,7 +25,13 @@ export default function AuthCallbackScreen() {
       redirectTimeout = setTimeout(() => {
         if (isMounted) {
           console.log('[Callback] ✅ Ejecutando redirección a:', path);
-          router.replace(path as any);
+          try {
+            router.replace(path as any);
+          } catch (error) {
+            console.error('[Callback] ❌ Error en redirección:', error);
+            // Fallback: try push instead of replace
+            router.push(path as any);
+          }
         }
       }, delay);
     };
@@ -82,7 +88,7 @@ export default function AuthCallbackScreen() {
               console.log('[Callback] ✅ Sesión establecida para usuario:', data.user.email);
               
               // Wait a bit for session to propagate
-              await new Promise(resolve => setTimeout(resolve, 500));
+              await new Promise(resolve => setTimeout(resolve, 800));
               
               // Register push notifications (non-blocking)
               registerForPushNotifications()
@@ -114,30 +120,30 @@ export default function AuthCallbackScreen() {
                 if (!userData.ha_aceptado_terminos) {
                   console.log('[Callback] 📋 Usuario debe aceptar términos');
                   if (isMounted) setStatus('success');
-                  safeRedirect(`/auth/terms-acceptance?userId=${userData.id}`, 300);
+                  safeRedirect(`/auth/terms-acceptance?userId=${userData.id}`, 500);
                   return;
                 }
                 
-                // FIXED: Check if user needs to complete profile (username and name are mandatory)
+                // Check if user needs to complete profile (username and name are mandatory)
                 // New users (without username or nombre) should go to /editar/perfil
                 if (!userData.username || !userData.nombre) {
                   console.log('[Callback] 📝 Usuario nuevo - redirigiendo a editar perfil');
                   if (isMounted) setStatus('success');
-                  safeRedirect('/editar/perfil', 300);
+                  safeRedirect('/editar/perfil', 500);
                   return;
                 }
                 
-                // FIXED: Existing users (with username and nombre) go to explorar
+                // Existing users (with username and nombre) go to explorar
                 console.log('[Callback] ✅ Usuario existente - redirigiendo a explorar');
                 if (isMounted) setStatus('success');
-                safeRedirect('/(tabs)/explorar', 300);
+                safeRedirect('/(tabs)/explorar', 500);
                 return;
               }
               
               // If no user data, redirect to explorar
               console.log('[Callback] ⚠️ No se pudo obtener datos del usuario, redirigiendo a explorar');
               if (isMounted) setStatus('success');
-              safeRedirect('/(tabs)/explorar', 300);
+              safeRedirect('/(tabs)/explorar', 500);
               return;
             }
           }
@@ -162,7 +168,7 @@ export default function AuthCallbackScreen() {
           console.log('[Callback] ✅ Sesión encontrada para:', session.user.email);
           
           // Wait a bit for session to propagate
-          await new Promise(resolve => setTimeout(resolve, 500));
+          await new Promise(resolve => setTimeout(resolve, 800));
           
           // Register push notifications (non-blocking)
           registerForPushNotifications()
@@ -194,33 +200,33 @@ export default function AuthCallbackScreen() {
             if (!userData.ha_aceptado_terminos) {
               console.log('[Callback] 📋 Usuario debe aceptar términos');
               if (isMounted) setStatus('success');
-              safeRedirect(`/auth/terms-acceptance?userId=${userData.id}`, 300);
+              safeRedirect(`/auth/terms-acceptance?userId=${userData.id}`, 500);
               return;
             }
             
-            // FIXED: Check if user needs to complete profile (username and name are mandatory)
+            // Check if user needs to complete profile (username and name are mandatory)
             // New users (without username or nombre) should go to /editar/perfil
             if (!userData.username || !userData.nombre) {
               console.log('[Callback] 📝 Usuario nuevo - redirigiendo a editar perfil');
               if (isMounted) setStatus('success');
-              safeRedirect('/editar/perfil', 300);
+              safeRedirect('/editar/perfil', 500);
               return;
             }
             
-            // FIXED: Existing users (with username and nombre) go to explorar
+            // Existing users (with username and nombre) go to explorar
             console.log('[Callback] ✅ Usuario existente - redirigiendo a explorar');
             if (isMounted) setStatus('success');
-            safeRedirect('/(tabs)/explorar', 300);
+            safeRedirect('/(tabs)/explorar', 500);
             return;
           }
           
           // If no user data, redirect to explorar
           console.log('[Callback] ⚠️ No se pudo obtener datos del usuario, redirigiendo a explorar');
           if (isMounted) setStatus('success');
-          safeRedirect('/(tabs)/explorar', 300);
+          safeRedirect('/(tabs)/explorar', 500);
         } else {
           console.log('[Callback] ℹ️ No hay sesión activa, redirigiendo a explorar');
-          safeRedirect('/(tabs)/explorar', 500);
+          safeRedirect('/(tabs)/explorar', 1000);
         }
       } catch (error: any) {
         console.error('[Callback] ❌ Error en callback:', error);

@@ -63,7 +63,7 @@ interface NewStoryViewerProps {
   activeLocalProfileId?: string | null;
 }
 
-// Progress Bar Component with smooth animation
+// Progress Bar Component with smooth animation - OPTIMIZED for Expo Go
 const ProgressBar = memo(({ 
   duration, 
   isPaused, 
@@ -97,7 +97,7 @@ const ProgressBar = memo(({
       toValue: 1,
       duration: remainingDuration,
       easing: Easing.linear,
-      useNativeDriver: false,
+      useNativeDriver: true, // ✅ Use native driver for better performance
     });
 
     animationRef.current.start(({ finished }) => {
@@ -111,15 +111,23 @@ const ProgressBar = memo(({
     };
   }, [isActive, isPaused, duration, onComplete]);
 
-  const widthInterpolate = progress.interpolate({
+  const scaleX = progress.interpolate({
     inputRange: [0, 1],
-    outputRange: ['0%', '100%'],
+    outputRange: [0, 1],
   });
 
   return (
     <View style={progressStyles.container}>
       <View style={progressStyles.background}>
-        <Animated.View style={[progressStyles.fill, { width: widthInterpolate }]} />
+        <Animated.View 
+          style={[
+            progressStyles.fill, 
+            { 
+              transform: [{ scaleX }],
+              transformOrigin: 'left',
+            }
+          ]} 
+        />
       </View>
     </View>
   );
@@ -140,6 +148,7 @@ const progressStyles = StyleSheet.create({
     overflow: 'hidden',
   },
   fill: {
+    width: '100%',
     height: '100%',
     backgroundColor: '#fff',
     borderRadius: 2,
@@ -394,7 +403,7 @@ const statsStyles = StyleSheet.create({
   },
 });
 
-// Main Story Viewer Component
+// Main Story Viewer Component - OPTIMIZED for Expo Go
 function NewStoryViewer({
   visible,
   stories,
@@ -420,11 +429,16 @@ function NewStoryViewer({
     (currentStory?.tipo === 'local' && activeLocalProfileId === currentStory.local_id)
   );
 
-  // Preload next images
+  // ✅ CRITICAL: Preload next images aggressively for smooth transitions
   useEffect(() => {
     if (visible && currentIndex < stories.length) {
       const nextImages = stories.slice(currentIndex, currentIndex + 3).map(s => s.imagen);
-      nextImages.forEach(uri => Image.prefetch(uri).catch(() => {}));
+      console.log('[NewStoryViewer] Preloading next', nextImages.length, 'images');
+      nextImages.forEach(uri => {
+        Image.prefetch(uri).catch(() => {
+          console.log('[NewStoryViewer] Failed to prefetch:', uri);
+        });
+      });
     }
   }, [visible, currentIndex, stories]);
 
@@ -640,7 +654,7 @@ function NewStoryViewer({
     }
   };
 
-  // Touch handlers
+  // Touch handlers - OPTIMIZED for better responsiveness
   const handleTouchStart = useRef({ x: 0, y: 0, time: 0 });
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
 
@@ -654,7 +668,7 @@ function NewStoryViewer({
 
     longPressTimer.current = setTimeout(() => {
       setIsPaused(true);
-    }, 200);
+    }, 150); // ✅ Reduced from 200ms for faster response
   };
 
   const onTouchEnd = (e: any) => {
@@ -669,7 +683,7 @@ function NewStoryViewer({
     const deltaTime = Date.now() - handleTouchStart.current.time;
 
     // Resume if was paused
-    if (isPaused && deltaTime < 200) {
+    if (isPaused && deltaTime < 150) {
       setIsPaused(false);
       return;
     }
@@ -681,7 +695,7 @@ function NewStoryViewer({
     }
 
     // Tap zones
-    if (Math.abs(deltaX) < 20 && Math.abs(deltaY) < 20 && deltaTime < 200) {
+    if (Math.abs(deltaX) < 20 && Math.abs(deltaY) < 20 && deltaTime < 150) {
       const tapX = touch.pageX;
       
       if (tapX < width / 3) {
