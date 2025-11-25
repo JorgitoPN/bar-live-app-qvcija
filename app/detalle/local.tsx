@@ -22,6 +22,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { LinearGradient } from 'expo-linear-gradient';
 import { localPreloader } from '@/utils/localPreloader';
 import ImageGalleryModal from '@/components/detalle/ImageGalleryModal';
+import { calcularTiempoHasta, formatDayName } from '@/utils/timeUtils';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -29,23 +30,39 @@ interface Local {
   id: string;
   nombre: string;
   descripcion?: string;
+  descripcion_google?: string;
   direccion?: string;
   telefono?: string;
+  telefono_internacional?: string;
   email?: string;
-  web?: string;
-  horario?: string;
-  categoria?: string;
-  subcategoria?: string;
+  website?: string;
+  horarios_completos?: any;
+  horarios_texto?: string[];
+  estado_actual?: string;
+  tipo?: string;
+  barlive_type?: string;
+  barlive_types?: string[];
   precio_medio?: number;
-  valoracion?: number;
-  num_valoraciones?: number;
+  nivel_precio_google?: number;
+  rango_precios?: string;
+  rating?: number;
+  google_rating?: number;
+  google_user_ratings_total?: number;
   latitud?: number;
   longitud?: number;
-  imagen_principal?: string;
-  imagenes?: string[];
+  imagen_url?: string;
+  galeria_urls?: string[];
   servicios?: string[];
+  servicios_disponibles?: any;
   ambiente?: string[];
+  ambiente_completo?: any;
   musica?: string[];
+  musica_principal?: string;
+  tipos_cocina?: string[];
+  clientela?: any;
+  metodos_pago_completos?: any;
+  analisis_reviews?: any;
+  reviews_google?: any[];
   created_at?: string;
   updated_at?: string;
 }
@@ -56,6 +73,7 @@ interface Review {
   local_id: string;
   rating: number;
   texto?: string;
+  fecha?: string;
   created_at: string;
   usuario?: {
     nombre: string;
@@ -222,12 +240,12 @@ export default function DetalleLocalScreen() {
   };
 
   const handleCall = () => {
-    if (!local?.telefono) {
+    if (!local?.telefono && !local?.telefono_internacional) {
       Alert.alert('Error', 'No hay número de teléfono disponible');
       return;
     }
 
-    const phoneNumber = local.telefono.replace(/\s/g, '');
+    const phoneNumber = (local.telefono_internacional || local.telefono || '').replace(/\s/g, '');
     Linking.openURL(`tel:${phoneNumber}`);
   };
 
@@ -241,12 +259,12 @@ export default function DetalleLocalScreen() {
   };
 
   const handleWebsite = () => {
-    if (!local?.web) {
+    if (!local?.website) {
       Alert.alert('Error', 'No hay sitio web disponible');
       return;
     }
 
-    Linking.openURL(local.web);
+    Linking.openURL(local.website);
   };
 
   const handleShare = async () => {
@@ -265,6 +283,17 @@ export default function DetalleLocalScreen() {
   const handleImagePress = (index: number) => {
     setSelectedImageIndex(index);
     setShowGallery(true);
+  };
+
+  const handleComoLlegar = () => {
+    if (local?.latitud && local?.longitud) {
+      const url = Platform.select({
+        ios: `maps://app?daddr=${local.latitud},${local.longitud}`,
+        android: `google.navigation:q=${local.latitud},${local.longitud}`,
+        default: `https://www.google.com/maps/dir/?api=1&destination=${local.latitud},${local.longitud}`,
+      });
+      Linking.openURL(url);
+    }
   };
 
   if (loading) {
@@ -286,14 +315,37 @@ export default function DetalleLocalScreen() {
     );
   }
 
-  const allImages = [local.imagen_principal, ...(local.imagenes || [])].filter(Boolean) as string[];
+  const allImages = [local.imagen_url, ...(local.galeria_urls || [])].filter(Boolean) as string[];
+  const displayRating = local.google_rating || local.rating || 0;
+  const displayRatingCount = local.google_user_ratings_total || 0;
+  const descripcionTexto = local.descripcion_google || local.descripcion || '';
+  
+  // Calculate opening status
+  const tiempoEstado = local.horarios_completos ? calcularTiempoHasta(local.horarios_completos, local.estado_actual) : '';
+  const isOpen = local.estado_actual === 'abierto_ahora';
+
+  // Parse JSONB fields
+  const serviciosDisponibles = local.servicios_disponibles || {};
+  const ambienteCompleto = local.ambiente_completo || {};
+  const clientela = local.clientela || {};
+  const metodosPago = local.metodos_pago_completos || {};
+
+  // Get active services
+  const serviciosActivos = Object.entries(serviciosDisponibles)
+    .filter(([_, value]) => value === true)
+    .map(([key]) => key);
+
+  // Get active ambiente attributes
+  const ambienteActivo = Object.entries(ambienteCompleto)
+    .filter(([_, value]) => value === true)
+    .map(([key]) => key);
 
   return (
     <View style={styles.container}>
       <ScrollView style={styles.scrollView}>
-        {local.imagen_principal && (
+        {local.imagen_url && (
           <TouchableOpacity onPress={() => handleImagePress(0)}>
-            <Image source={{ uri: local.imagen_principal }} style={styles.headerImage} />
+            <Image source={{ uri: local.imagen_url }} style={styles.headerImage} />
           </TouchableOpacity>
         )}
 
@@ -319,47 +371,72 @@ export default function DetalleLocalScreen() {
         <View style={styles.content}>
           <Text style={styles.title}>{local.nombre}</Text>
 
-          {local.categoria && (
+          {(local.barlive_type || local.tipo) && (
             <View style={styles.categoryBadge}>
-              <Text style={styles.categoryText}>{local.categoria}</Text>
+              <Text style={styles.categoryText}>{local.barlive_type || local.tipo}</Text>
             </View>
           )}
 
-          {local.valoracion && (
+          {displayRating > 0 && (
             <View style={styles.ratingContainer}>
               <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={20} color={colors.warning} />
               <Text style={styles.ratingText}>
-                {local.valoracion.toFixed(1)} ({local.num_valoraciones || 0} valoraciones)
+                {Number(displayRating).toFixed(1)} ({displayRatingCount} valoraciones)
               </Text>
             </View>
           )}
 
-          {local.descripcion && (
+          {tiempoEstado && (
+            <View style={[styles.estadoBadge, isOpen ? styles.estadoAbierto : styles.estadoCerrado]}>
+              <View style={styles.estadoDot} />
+              <Text style={styles.estadoText}>{tiempoEstado}</Text>
+            </View>
+          )}
+
+          {descripcionTexto && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Descripción</Text>
-              <Text style={styles.description}>{local.descripcion}</Text>
+              <Text style={styles.description}>{descripcionTexto}</Text>
             </View>
           )}
 
           {local.direccion && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Dirección</Text>
-              <Text style={styles.infoText}>{local.direccion}</Text>
+              <View style={styles.direccionContainer}>
+                <IconSymbol ios_icon_name="mappin" android_material_icon_name="pin" size={20} color={colors.primary} />
+                <Text style={styles.infoText}>{local.direccion}</Text>
+              </View>
             </View>
           )}
 
-          {local.horario && (
+          {local.horarios_completos && Object.keys(local.horarios_completos).length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Horario</Text>
-              <Text style={styles.infoText}>{local.horario}</Text>
+              <View style={styles.horariosContainer}>
+                {Object.entries(local.horarios_completos).map(([dia, horas]: [string, any]) => (
+                  <View key={dia} style={styles.horarioRow}>
+                    <Text style={styles.horarioDia}>{formatDayName(dia)}</Text>
+                    <Text style={styles.horarioHoras}>
+                      {Array.isArray(horas) ? horas.join(', ') : horas}
+                    </Text>
+                  </View>
+                ))}
+              </View>
             </View>
           )}
 
           <View style={styles.contactButtons}>
-            {local.telefono && (
+            {(local.telefono || local.telefono_internacional) && (
               <TouchableOpacity onPress={handleCall} style={styles.contactButton}>
                 <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="call" size={20} color={colors.background} />
                 <Text style={styles.contactButtonText}>Llamar</Text>
+              </TouchableOpacity>
+            )}
+            {local.latitud && local.longitud && (
+              <TouchableOpacity onPress={handleComoLlegar} style={styles.contactButton}>
+                <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={20} color={colors.background} />
+                <Text style={styles.contactButtonText}>Cómo llegar</Text>
               </TouchableOpacity>
             )}
             {local.email && (
@@ -368,7 +445,7 @@ export default function DetalleLocalScreen() {
                 <Text style={styles.contactButtonText}>Email</Text>
               </TouchableOpacity>
             )}
-            {local.web && (
+            {local.website && (
               <TouchableOpacity onPress={handleWebsite} style={styles.contactButton}>
                 <IconSymbol ios_icon_name="globe" android_material_icon_name="globe" size={20} color={colors.background} />
                 <Text style={styles.contactButtonText}>Web</Text>
@@ -376,11 +453,50 @@ export default function DetalleLocalScreen() {
             )}
           </View>
 
-          {local.imagenes && local.imagenes.length > 0 && (
+          {local.tipos_cocina && local.tipos_cocina.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Tipos de Cocina</Text>
+              <View style={styles.tagsContainer}>
+                {local.tipos_cocina.map((cocina, index) => (
+                  <View key={index} style={styles.tag}>
+                    <Text style={styles.tagText}>{cocina}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {serviciosActivos.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Servicios</Text>
+              <View style={styles.tagsContainer}>
+                {serviciosActivos.map((servicio, index) => (
+                  <View key={index} style={styles.tag}>
+                    <Text style={styles.tagText}>{servicio.replace(/_/g, ' ')}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {ambienteActivo.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Ambiente</Text>
+              <View style={styles.tagsContainer}>
+                {ambienteActivo.map((ambiente, index) => (
+                  <View key={index} style={styles.tag}>
+                    <Text style={styles.tagText}>{ambiente.replace(/_/g, ' ')}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {local.galeria_urls && local.galeria_urls.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Galería</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.gallery}>
-                {local.imagenes.map((img, index) => (
+                {local.galeria_urls.map((img, index) => (
                   <TouchableOpacity key={index} onPress={() => handleImagePress(index + 1)}>
                     <Image source={{ uri: img }} style={styles.galleryImage} />
                   </TouchableOpacity>
@@ -529,6 +645,33 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontWeight: '500',
   },
+  estadoBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 6,
+    marginBottom: 16,
+  },
+  estadoAbierto: {
+    backgroundColor: '#22C55E',
+  },
+  estadoCerrado: {
+    backgroundColor: '#EF4444',
+  },
+  estadoDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.headerText,
+  },
+  estadoText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.headerText,
+  },
   section: {
     marginBottom: 24,
   },
@@ -543,18 +686,48 @@ const styles = StyleSheet.create({
     color: colors.text,
     lineHeight: 24,
   },
+  direccionContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
   infoText: {
+    flex: 1,
     fontSize: 16,
     color: colors.text,
     lineHeight: 24,
   },
+  horariosContainer: {
+    gap: 8,
+  },
+  horarioRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  horarioDia: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
+    width: 100,
+  },
+  horarioHoras: {
+    flex: 1,
+    fontSize: 15,
+    color: colors.textSecondary,
+    textAlign: 'right',
+  },
   contactButtons: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
     marginBottom: 24,
   },
   contactButton: {
     flex: 1,
+    minWidth: 100,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -567,6 +740,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: colors.background,
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  tag: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: colors.primary + '20',
+  },
+  tagText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.primary,
   },
   gallery: {
     marginTop: 8,
