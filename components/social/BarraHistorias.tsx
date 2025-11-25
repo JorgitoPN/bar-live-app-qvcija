@@ -81,14 +81,9 @@ const BarraHistorias = memo(function BarraHistorias({
   onHistoriaPress,
   onCrearHistoria,
 }: BarraHistoriasProps) {
-  // ✅ FIXED: Extract complex expression to separate variable
-  const historiasLength = historias.length;
-  const firstHistoriaId = historias[0]?.id;
+  // ✅ FIXED: Removed unnecessary dependencies
+  const memoizedHistorias = useMemo(() => historias, [historias]);
   
-  // ✅ FIXED: Added missing dependency 'historias'
-  const memoizedHistorias = useMemo(() => historias, [historias, historiasLength, firstHistoriaId]);
-  
-  // ✅ CRITICAL: Preload ALL story images when component mounts
   useEffect(() => {
     const allStoryImages: string[] = [];
     
@@ -101,7 +96,6 @@ const BarraHistorias = memo(function BarraHistorias({
     if (allStoryImages.length > 0) {
       console.log('[BarraHistorias] 🚀 Preloading ALL', allStoryImages.length, 'story images...');
       
-      // Preload in background without blocking
       Promise.allSettled(allStoryImages.map(uri => Image.prefetch(uri)))
         .then(results => {
           const successCount = results.filter(r => r.status === 'fulfilled').length;

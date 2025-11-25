@@ -1,16 +1,4 @@
 
-import { useRouter, useFocusEffect } from 'expo-router';
-import { IconSymbol } from '@/components/IconSymbol';
-import { useMode } from '@/contexts/ModeContext';
-import LoginRequiredModal from '@/components/common/LoginRequiredModal';
-import { socialCache } from '@/utils/socialCache';
-import { advancedCache } from '@/utils/advancedCache';
-import { intelligentPreloader } from '@/utils/intelligentPreloader';
-import InitialLoadingScreen from '@/components/common/InitialLoadingScreen';
-import { LinearGradient } from 'expo-linear-gradient';
-import ParsedText from '@/components/social/ParsedText';
-import StoryViewer from '@/components/social/StoryViewer';
-import { preloadStoryImages } from '@/utils/storyPreloader';
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
@@ -32,10 +20,22 @@ import {
   Keyboard,
   Animated,
 } from 'react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { supabase } from '@/utils/supabase';
 import { useGlobalData } from '@/contexts/GlobalDataContext';
 import { colors, commonStyles } from '@/styles/commonStyles';
 import { useAuth } from '@/contexts/AuthContext';
+import { IconSymbol } from '@/components/IconSymbol';
+import { useMode } from '@/contexts/ModeContext';
+import LoginRequiredModal from '@/components/common/LoginRequiredModal';
+import { socialCache } from '@/utils/socialCache';
+import { advancedCache } from '@/utils/advancedCache';
+import { intelligentPreloader } from '@/utils/intelligentPreloader';
+import InitialLoadingScreen from '@/components/common/InitialLoadingScreen';
+import { LinearGradient } from 'expo-linear-gradient';
+import ParsedText from '@/components/social/ParsedText';
+import StoryViewer from '@/components/social/StoryViewer';
+import { preloadStoryImages } from '@/utils/storyPreloader';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -89,7 +89,7 @@ interface Historia {
   };
 }
 
-export default function SocialScreen() {
+export default function SocialScreenOptimized() {
   const router = useRouter();
   const { user } = useAuth();
   
@@ -117,7 +117,7 @@ export default function SocialScreen() {
   
   const isLoadingRef = useRef(false);
 
-  // ✅ FIXED: Removed unnecessary dependencies from useCallback
+  // ✅ FIXED: Added 'posts' to dependency array
   const loadData = useCallback(async () => {
     if (isLoadingRef.current) {
       console.log('[Social] ⚡ Already loading, skipping...');
@@ -129,7 +129,6 @@ export default function SocialScreen() {
     try {
       console.log('[Social] ⚡ Loading with ADVANCED CACHE...');
       
-      // ✅ Try advanced cache first (INSTANT)
       const cachedPosts = await advancedCache.get<any[]>('social:posts');
       const cachedStories = await advancedCache.get<any[]>('social:stories');
       
@@ -197,8 +196,6 @@ export default function SocialScreen() {
           }));
           
           setPosts(postsWithStatus);
-          
-          // ✅ Cache for next time
           await advancedCache.set('social:posts', postsWithStatus, 'high');
         } else {
           setPosts(filteredPosts);
@@ -290,11 +287,8 @@ export default function SocialScreen() {
           
           setUserStories(userStoriesWithStatus);
           setHistorias(otherStoriesWithStatus);
-          
-          // ✅ Cache for next time
           await advancedCache.set('social:stories', otherStoriesWithStatus, 'high');
           
-          // ✅ CRITICAL: Intelligent preloading in background
           if (otherStoriesWithStatus.length > 0) {
             console.log('[Social] 🚀 Starting intelligent preload...');
             setTimeout(() => {
@@ -314,9 +308,8 @@ export default function SocialScreen() {
     } finally {
       isLoadingRef.current = false;
     }
-  }, [user, globalPosts, globalStories, currentMode, activeProfileType, activeProfileId]);
+  }, [user, globalPosts, globalStories, currentMode, activeProfileType, activeProfileId, posts]);
 
-  // ✅ Preload on app start
   useEffect(() => {
     if (user) {
       intelligentPreloader.preloadOnStart(user.id);
@@ -337,14 +330,10 @@ export default function SocialScreen() {
     }
   }, [isInitialLoading, globalPosts.length, globalStories.length, loadData]);
 
-  // ✅ OPTIMIZED: Invalidate cache on refresh
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    
-    // Invalidate caches
     await advancedCache.invalidate('social:');
     socialCache.clearAll();
-    
     await refreshData(false);
     await loadData();
     setRefreshing(false);

@@ -47,9 +47,6 @@ interface InteractionResponse {
   };
 }
 
-// ✅ FIXED: Changed Array<T> to T[]
-type InteractionMessageArray = InteractionMessage[];
-
 export default function SalaVirtualScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
@@ -57,19 +54,14 @@ export default function SalaVirtualScreen() {
 
   const [local, setLocal] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [messages, setMessages] = useState<InteractionMessageArray>([]);
+  const [messages, setMessages] = useState<InteractionMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [messageType, setMessageType] = useState<'pregunta' | 'comentario' | 'sugerencia'>('pregunta');
   const [sending, setSending] = useState(false);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
 
-  useEffect(() => {
-    loadLocalData();
-    loadMessages();
-  }, [params.id]);
-
-  const loadLocalData = async () => {
+  const loadLocalData = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('locales')
@@ -89,9 +81,9 @@ export default function SalaVirtualScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [params.id]);
 
-  const loadMessages = async () => {
+  const loadMessages = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('sala_virtual_interacciones')
@@ -115,7 +107,13 @@ export default function SalaVirtualScreen() {
     } catch (error) {
       console.error('[SalaVirtual] Error:', error);
     }
-  };
+  }, [params.id]);
+
+  // ✅ FIXED: Added missing dependencies 'loadLocalData' and 'loadMessages'
+  useEffect(() => {
+    loadLocalData();
+    loadMessages();
+  }, [loadLocalData, loadMessages]);
 
   const handleSendMessage = async () => {
     if (!user) {

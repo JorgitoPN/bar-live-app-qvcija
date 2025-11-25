@@ -72,11 +72,8 @@ const FeedSocial = memo(function FeedSocial({
     };
   }, []);
 
-  // ✅ FIXED: Extract complex expressions and add missing dependency 'posts'
-  const postsLength = posts.length;
-  const firstPostId = posts[0]?.id;
-  
-  const memoizedPosts = useMemo(() => posts, [posts, postsLength, firstPostId]);
+  // ✅ FIXED: Removed unnecessary dependencies
+  const memoizedPosts = useMemo(() => posts, [posts]);
 
   return (
     <FlatList
