@@ -146,9 +146,13 @@ export const signUpWithBarLive = async (
       return { user: mockUser, error: null };
     }
 
+    // Normalize email
+    const normalizedEmail = email.toLowerCase().trim();
+    console.log('[Auth] Email normalizado:', normalizedEmail);
+
     // Sign up with Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
+      email: normalizedEmail,
       password,
       options: {
         data: {
@@ -161,6 +165,14 @@ export const signUpWithBarLive = async (
 
     if (authError) {
       console.error('[Auth] Error en signup:', authError);
+      
+      // Provide user-friendly error messages
+      if (authError.message.includes('already registered')) {
+        return { user: null, error: 'Este email ya está registrado. ¿Quieres iniciar sesión?' };
+      } else if (authError.message.includes('Password')) {
+        return { user: null, error: 'La contraseña debe tener al menos 6 caracteres' };
+      }
+      
       return { user: null, error: authError.message };
     }
 
@@ -169,6 +181,7 @@ export const signUpWithBarLive = async (
     }
 
     console.log('[Auth] Usuario creado en Auth:', authData.user.id);
+    console.log('[Auth] ⚠️ IMPORTANTE: Verifica tu email para activar tu cuenta');
 
     // Wait for trigger to create profile
     const { success, profile } = await waitForUserProfile(authData.user.id);
@@ -180,7 +193,7 @@ export const signUpWithBarLive = async (
 
     const user: AuthUser = {
       id: authData.user.id,
-      email: authData.user.email || email,
+      email: authData.user.email || normalizedEmail,
       nombre: profile.nombre,
       avatar: profile.avatar,
       rol_app: profile.rol_app || 'cliente',
@@ -203,7 +216,7 @@ export const signInWithBarLive = async (
   try {
     console.log('[Auth] ========================================');
     console.log('[Auth] Iniciando sesión con BarLive');
-    console.log('[Auth] Email:', email);
+    console.log('[Auth] Email original:', email);
     console.log('[Auth] ========================================');
     
     if (!isSupabaseConfigured()) {
@@ -224,6 +237,25 @@ export const signInWithBarLive = async (
     const normalizedEmail = email.toLowerCase().trim();
     console.log('[Auth] Email normalizado:', normalizedEmail);
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(normalizedEmail)) {
+      console.error('[Auth] ❌ Formato de email inválido');
+      return { 
+        user: null, 
+        error: 'Por favor, introduce un email válido' 
+      };
+    }
+
+    // Validate password
+    if (!password || password.length < 6) {
+      console.error('[Auth] ❌ Contraseña muy corta');
+      return { 
+        user: null, 
+        error: 'La contraseña debe tener al menos 6 caracteres' 
+      };
+    }
+
     // Sign in with Supabase Auth
     console.log('[Auth] Llamando a supabase.auth.signInWithPassword...');
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -235,33 +267,50 @@ export const signInWithBarLive = async (
       console.error('[Auth] ❌ Error en signin:', authError);
       console.error('[Auth] Error code:', authError.status);
       console.error('[Auth] Error message:', authError.message);
+      console.error('[Auth] Error name:', authError.name);
       
       // Provide more specific and user-friendly error messages
-      if (authError.message.includes('Invalid login credentials') || 
-          authError.message.includes('Invalid') ||
+      const errorMessage = authError.message.toLowerCase();
+      
+      if (errorMessage.includes('invalid login credentials') || 
+          errorMessage.includes('invalid') ||
           authError.status === 400) {
         return { 
           user: null, 
-          error: 'Email o contraseña incorrectos.\n\nPor favor, verifica:\n- Que el email esté escrito correctamente\n- Que la contraseña sea correcta\n- Que hayas verificado tu email' 
+          error: '❌ Email o contraseña incorrectos\n\n' +
+                 '✓ Verifica que el email esté escrito correctamente\n' +
+                 '✓ Verifica que la contraseña sea correcta\n' +
+                 '✓ Asegúrate de haber verificado tu email\n\n' +
+                 '💡 ¿Olvidaste tu contraseña? Usa "Recuperar contraseña"'
         };
-      } else if (authError.message.includes('Email not confirmed')) {
+      } else if (errorMessage.includes('email not confirmed')) {
         return { 
           user: null, 
-          error: 'Por favor, verifica tu correo electrónico antes de iniciar sesión.\n\nRevisa tu bandeja de entrada y haz clic en el enlace de verificación.' 
+          error: '📧 Email no verificado\n\n' +
+                 'Por favor, verifica tu correo electrónico antes de iniciar sesión.\n\n' +
+                 'Revisa tu bandeja de entrada (y spam) y haz clic en el enlace de verificación.'
         };
-      } else if (authError.message.includes('User not found')) {
+      } else if (errorMessage.includes('user not found')) {
         return { 
           user: null, 
-          error: 'No existe una cuenta con este correo electrónico.\n\n¿Quieres crear una cuenta nueva?' 
+          error: '❌ No existe una cuenta con este email\n\n' +
+                 '¿Quieres crear una cuenta nueva?'
         };
-      } else if (authError.message.includes('Too many requests')) {
+      } else if (errorMessage.includes('too many requests')) {
         return { 
           user: null, 
-          error: 'Demasiados intentos de inicio de sesión.\n\nPor favor, espera unos minutos e intenta nuevamente.' 
+          error: '⏱️ Demasiados intentos\n\n' +
+                 'Por favor, espera unos minutos e intenta nuevamente.'
+        };
+      } else if (errorMessage.includes('network')) {
+        return { 
+          user: null, 
+          error: '🌐 Error de conexión\n\n' +
+                 'Verifica tu conexión a internet e intenta nuevamente.'
         };
       }
       
-      return { user: null, error: authError.message };
+      return { user: null, error: `Error: ${authError.message}` };
     }
 
     if (!authData.user) {
@@ -271,7 +320,21 @@ export const signInWithBarLive = async (
 
     console.log('[Auth] ✅ Sesión iniciada en Auth');
     console.log('[Auth] User ID:', authData.user.id);
+    console.log('[Auth] Email:', authData.user.email);
     console.log('[Auth] Email confirmado:', authData.user.email_confirmed_at ? 'Sí' : 'No');
+
+    // Check if email is confirmed
+    if (!authData.user.email_confirmed_at) {
+      console.warn('[Auth] ⚠️ Email no confirmado');
+      // Sign out the user since email is not confirmed
+      await supabase.auth.signOut();
+      return { 
+        user: null, 
+        error: '📧 Email no verificado\n\n' +
+               'Por favor, verifica tu correo electrónico antes de iniciar sesión.\n\n' +
+               'Revisa tu bandeja de entrada (y spam) y haz clic en el enlace de verificación.'
+      };
+    }
 
     // Get user profile from database
     console.log('[Auth] Obteniendo perfil de usuario...');
@@ -335,7 +398,9 @@ export const signInWithBarLive = async (
     console.error('[Auth] Error stack:', error.stack);
     return { 
       user: null, 
-      error: 'Error inesperado al iniciar sesión.\n\nPor favor, verifica tu conexión a internet e intenta nuevamente.' 
+      error: '❌ Error inesperado al iniciar sesión\n\n' +
+             'Por favor, verifica tu conexión a internet e intenta nuevamente.\n\n' +
+             `Detalles técnicos: ${error.message}`
     };
   }
 };
@@ -790,11 +855,14 @@ export const resetPassword = async (email: string): Promise<{ error: string | nu
       return { error: null };
     }
 
+    // Normalize email
+    const normalizedEmail = email.toLowerCase().trim();
+
     const redirectUrl = Platform.OS === 'web'
       ? `${window.location.origin}/auth/reset-password`
       : 'natively://auth/reset-password';
     
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
       redirectTo: redirectUrl,
     });
 
