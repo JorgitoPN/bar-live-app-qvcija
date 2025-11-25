@@ -1,3 +1,4 @@
+
 {
   "expo": {
     "name": "BarLive",
@@ -18,18 +19,19 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSUserTrackingUsageDescription": "Esta app necesita tu permiso para enviarte notificaciones sobre eventos, ofertas y actividad social.",
-        "NSLocationWhenInUseUsageDescription": "BarLive necesita tu ubicaci\u00f3n para mostrarte locales cercanos.",
-        "NSFaceIDUsageDescription": "BarLive usa Face ID para permitirte iniciar sesi\u00f3n de forma r\u00e1pida y segura.",
+        "NSLocationWhenInUseUsageDescription": "BarLive necesita tu ubicación para mostrarte locales cercanos.",
+        "NSFaceIDUsageDescription": "BarLive usa Face ID para permitirte iniciar sesión de forma rápida y segura.",
         "CFBundleURLTypes": [
           {
             "CFBundleURLSchemes": [
-              "natively",
-              "com.barlive.app",
-              "exp"
+              "com.barlive.app"
             ]
           }
         ]
-      }
+      },
+      "associatedDomains": [
+        "applinks:embntaqwlwmgazvrglaf.supabase.co"
+      ]
     },
     "android": {
       "adaptiveIcon": {
@@ -68,31 +70,7 @@
           "action": "VIEW",
           "data": [
             {
-              "scheme": "natively"
-            }
-          ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
-        },
-        {
-          "action": "VIEW",
-          "data": [
-            {
               "scheme": "com.barlive.app"
-            }
-          ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
-        },
-        {
-          "action": "VIEW",
-          "data": [
-            {
-              "scheme": "exp"
             }
           ],
           "category": [
@@ -113,7 +91,7 @@
       [
         "expo-local-authentication",
         {
-          "faceIDPermission": "BarLive usa Face ID para permitirte iniciar sesi\u00f3n de forma r\u00e1pida y segura."
+          "faceIDPermission": "BarLive usa Face ID para permitirte iniciar sesión de forma rápida y segura."
         }
       ],
       [
@@ -127,7 +105,7 @@
         }
       ]
     ],
-    "scheme": "natively",
+    "scheme": "com.barlive.app",
     "experiments": {
       "typedRoutes": true
     },
@@ -140,6 +118,5 @@
       "androidMode": "default",
       "androidCollapsedTitle": "BarLive"
     }
-  },
-  "scheme": "BarLive"
+  }
 }
