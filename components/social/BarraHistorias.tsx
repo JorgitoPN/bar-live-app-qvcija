@@ -1,10 +1,11 @@
 
-import React, { memo, useEffect } from 'react';
+import React, { memo, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { Historia } from '@/types';
 import { colors } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
+import { memoryManager } from '@/utils/memoryManager';
 
 interface BarraHistoriasProps {
   historias: Historia[];
@@ -12,7 +13,7 @@ interface BarraHistoriasProps {
   onCrearHistoria?: () => void;
 }
 
-// Memoized story item to prevent unnecessary re-renders
+// ✅ ULTRA-OPTIMIZED: Memoized story item with aggressive caching
 const StoryItem = memo(({ 
   historia, 
   onPress 
@@ -25,18 +26,30 @@ const StoryItem = memo(({
   // ✅ Preload image for instant display
   useEffect(() => {
     if (historia.autorAvatar) {
+      memoryManager.trackImage(historia.autorAvatar);
       Image.prefetch(historia.autorAvatar).catch(() => {
         console.log('[BarraHistorias] Failed to prefetch avatar:', historia.autorAvatar);
       });
     }
+    
+    return () => {
+      if (historia.autorAvatar) {
+        memoryManager.clearImage(historia.autorAvatar);
+      }
+    };
   }, [historia.autorAvatar]);
   
-  // ✅ CRITICAL FIX: Display username correctly WITHOUT @ symbol
-  // For locals, use the local name directly
-  // For users, prioritize username over full name, NO @ symbol
-  const displayName = historia.tipo === 'local'
-    ? (historia.autorNombre || 'Local')
-    : (historia.autor?.username || historia.autorUsername || historia.autorNombre || historia.autor?.nombre || 'Usuario').replace(/^@/, '');
+  // ✅ Memoize display name
+  const displayName = useMemo(() => {
+    return historia.tipo === 'local'
+      ? (historia.autorNombre || 'Local')
+      : (historia.autor?.username || historia.autorUsername || historia.autorNombre || historia.autor?.nombre || 'Usuario').replace(/^@/, '');
+  }, [historia.tipo, historia.autorNombre, historia.autor?.username, historia.autorUsername, historia.autor?.nombre]);
+  
+  // ✅ Memoize gradient colors
+  const gradientColors = useMemo(() => {
+    return hasBeenViewed ? ['#E5E7EB', '#E5E7EB'] : ['#FFD700', '#00FF00'];
+  }, [hasBeenViewed]);
   
   return (
     <TouchableOpacity
@@ -45,7 +58,7 @@ const StoryItem = memo(({
       activeOpacity={0.7}
     >
       <LinearGradient
-        colors={hasBeenViewed ? ['#E5E7EB', '#E5E7EB'] : ['#FFD700', '#00FF00']}
+        colors={gradientColors}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.historiaGradient}
@@ -57,6 +70,7 @@ const StoryItem = memo(({
               style={styles.historiaImage}
               fadeDuration={0}
               cache="force-cache"
+              resizeMethod="resize"
             />
           ) : (
             <View style={styles.historiaPlaceholder}>
@@ -69,6 +83,13 @@ const StoryItem = memo(({
         {displayName}
       </Text>
     </TouchableOpacity>
+  );
+}, (prevProps, nextProps) => {
+  // ✅ Only re-render if essential props change
+  return (
+    prevProps.historia.id === nextProps.historia.id &&
+    prevProps.historia.visto_por_usuario === nextProps.historia.visto_por_usuario &&
+    prevProps.historia.autorAvatar === nextProps.historia.autorAvatar
   );
 });
 
@@ -91,12 +112,15 @@ const CreateStoryButton = memo(({ onPress }: { onPress: () => void }) => (
 
 CreateStoryButton.displayName = 'CreateStoryButton';
 
-// Main component - memoized to prevent unnecessary re-renders
+// ✅ ULTRA-OPTIMIZED: Main component with aggressive memoization
 const BarraHistorias = memo(function BarraHistorias({
   historias,
   onHistoriaPress,
   onCrearHistoria,
 }: BarraHistoriasProps) {
+  // ✅ Memoize historias to prevent unnecessary re-renders
+  const memoizedHistorias = useMemo(() => historias, [historias.length, historias[0]?.id]);
+  
   return (
     <View style={styles.container}>
       <ScrollView
@@ -106,12 +130,17 @@ const BarraHistorias = memo(function BarraHistorias({
         removeClippedSubviews={true}
         scrollEventThrottle={16}
         decelerationRate="fast"
+        // ✅ Performance optimizations
+        pagingEnabled={false}
+        snapToInterval={84}
+        snapToAlignment="start"
+        disableIntervalMomentum={true}
       >
         {/* Crear historia */}
         {onCrearHistoria && <CreateStoryButton onPress={onCrearHistoria} />}
 
         {/* Historias */}
-        {historias.map((historia) => (
+        {memoizedHistorias.map((historia) => (
           <StoryItem
             key={historia.id}
             historia={historia}
@@ -120,6 +149,13 @@ const BarraHistorias = memo(function BarraHistorias({
         ))}
       </ScrollView>
     </View>
+  );
+}, (prevProps, nextProps) => {
+  // ✅ Custom comparison for better memoization
+  return (
+    prevProps.historias.length === nextProps.historias.length &&
+    prevProps.historias[0]?.id === nextProps.historias[0]?.id &&
+    prevProps.historias[0]?.visto_por_usuario === nextProps.historias[0]?.visto_por_usuario
   );
 });
 

@@ -12,6 +12,8 @@ import { socialCache } from './socialCache';
 import { optimisticUI } from './optimisticUI';
 import { backgroundSync } from './backgroundSync';
 import { requestDeduplicator } from './requestDeduplicator';
+import { memoryManager } from './memoryManager';
+import { renderOptimizer } from './renderOptimizer';
 
 interface PerformanceConfig {
   enableAdvancedCache: boolean;
@@ -81,6 +83,10 @@ class PerformanceManager {
     if (this.config.enableRequestDedup) {
       console.log('[PerformanceManager] ✅ Request deduplication enabled');
     }
+
+    // ✅ Initialize memory manager
+    memoryManager.initialize();
+    console.log('[PerformanceManager] ✅ Memory manager initialized');
 
     this.initialized = true;
     console.log('[PerformanceManager] ✅ All performance optimizations initialized');
@@ -379,6 +385,12 @@ class PerformanceManager {
     if (this.config.enableRequestDedup) {
       requestDeduplicator.clearAll();
     }
+
+    // Shutdown memory manager
+    memoryManager.shutdown();
+
+    // Clear render optimizer
+    renderOptimizer.clear();
 
     this.initialized = false;
     console.log('[PerformanceManager] ✅ Cleanup complete');

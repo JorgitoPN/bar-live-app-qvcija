@@ -585,7 +585,8 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
     };
   }, [refreshData]);
 
-  const value: GlobalDataContextType = {
+  // ✅ Memoize context value to prevent unnecessary re-renders
+  const value: GlobalDataContextType = React.useMemo(() => ({
     locales,
     posts,
     stories,
@@ -598,7 +599,20 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
     updateLocal,
     updatePost,
     lastUpdate,
-  };
+  }), [
+    locales,
+    posts,
+    stories,
+    eventos,
+    ofertas,
+    isInitialLoading,
+    isRefreshing,
+    hasLoadedOnce,
+    refreshData,
+    updateLocal,
+    updatePost,
+    lastUpdate,
+  ]);
 
   return (
     <GlobalDataContext.Provider value={value}>
