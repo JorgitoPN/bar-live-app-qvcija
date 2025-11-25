@@ -146,6 +146,8 @@ export default function RegistroEmailScreen() {
 
       // Send verification email via Edge Function
       try {
+        console.log('[RegistroEmail] Calling Edge Function to send verification email...');
+        
         const { data: emailData, error: emailError } = await supabase.functions.invoke(
           'send-verification-email',
           {
@@ -157,32 +159,72 @@ export default function RegistroEmailScreen() {
           }
         );
 
+        console.log('[RegistroEmail] Edge Function response:', { emailData, emailError });
+
         if (emailError) {
-          console.error('Error sending verification email:', emailError);
-          // Don't block the flow if email fails
+          console.error('[RegistroEmail] Error sending verification email:', emailError);
+          
+          // Show detailed error message
+          const errorMessage = emailError.message || 'Error desconocido';
+          const errorDetails = emailData?.details || emailData?.error || '';
+          
           Alert.alert(
             'Advertencia',
-            `Cuenta creada pero no se pudo enviar el correo de verificación. Tu código es: ${otp}`
+            `Cuenta creada pero hubo un problema al enviar el correo:\n\n${errorMessage}\n\n${errorDetails}\n\nTu código de verificación es: ${otp}\n\nPor favor, anótalo y continúa con la verificación.`,
+            [
+              {
+                text: 'Continuar',
+                onPress: () => {
+                  router.push({
+                    pathname: '/auth/verificar-email',
+                    params: { email: normalizedEmail },
+                  });
+                },
+              },
+            ]
           );
-        } else {
-          console.log('Verification email sent successfully:', emailData);
+          setLoading(false);
+          return;
         }
-      } catch (emailError) {
-        console.error('Error invoking email function:', emailError);
-        // Don't block the flow if email fails
+
+        console.log('[RegistroEmail] Verification email sent successfully:', emailData);
+        
+        Alert.alert(
+          'Código enviado',
+          'Hemos enviado un código de verificación a tu correo electrónico.',
+          [
+            {
+              text: 'Continuar',
+              onPress: () => {
+                router.push({
+                  pathname: '/auth/verificar-email',
+                  params: { email: normalizedEmail },
+                });
+              },
+            },
+          ]
+        );
+      } catch (emailError: any) {
+        console.error('[RegistroEmail] Error invoking email function:', emailError);
+        
         Alert.alert(
           'Advertencia',
-          `Cuenta creada pero no se pudo enviar el correo de verificación. Tu código es: ${otp}`
+          `Cuenta creada pero no se pudo enviar el correo de verificación.\n\nTu código es: ${otp}\n\nPor favor, anótalo y continúa con la verificación.`,
+          [
+            {
+              text: 'Continuar',
+              onPress: () => {
+                router.push({
+                  pathname: '/auth/verificar-email',
+                  params: { email: normalizedEmail },
+                });
+              },
+            },
+          ]
         );
       }
-
-      // Navigate to verification screen
-      router.push({
-        pathname: '/auth/verificar-email',
-        params: { email: normalizedEmail },
-      });
     } catch (error: any) {
-      console.error('Error in handleContinue:', error);
+      console.error('[RegistroEmail] Error in handleContinue:', error);
       Alert.alert('Error', 'Ocurrió un error inesperado');
     } finally {
       setLoading(false);
@@ -210,7 +252,7 @@ export default function RegistroEmailScreen() {
       }
 
       // Send verification email via Edge Function
-      const { error: emailError } = await supabase.functions.invoke(
+      const { data: emailData, error: emailError } = await supabase.functions.invoke(
         'send-verification-email',
         {
           body: {
@@ -223,12 +265,17 @@ export default function RegistroEmailScreen() {
 
       if (emailError) {
         console.error('Error sending verification email:', emailError);
+        const errorMessage = emailError.message || 'Error desconocido';
+        const errorDetails = emailData?.details || emailData?.error || '';
+        
         Alert.alert(
           'Advertencia',
-          `Código actualizado pero no se pudo enviar el correo. Tu código es: ${otp}`
+          `Código actualizado pero hubo un problema al enviar el correo:\n\n${errorMessage}\n\n${errorDetails}\n\nTu código es: ${otp}`
         );
+      } else {
+        Alert.alert('Código enviado', 'Se ha enviado un nuevo código de verificación a tu correo.');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error resending verification code:', error);
       Alert.alert('Error', 'No se pudo reenviar el código de verificación');
     }
