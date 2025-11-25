@@ -228,10 +228,10 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.cardBackground,
-    // ✅ FIXED: Completely removed all padding and borders to stick to header
+    backgroundColor: colors.background,
     paddingVertical: 0,
     borderBottomWidth: 0,
+    marginTop: 0,
   },
   scrollContent: {
     paddingHorizontal: 12,
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
     borderRadius: 43,
     overflow: 'hidden',
     borderWidth: 3,
-    borderColor: colors.cardBackground,
+    borderColor: colors.background,
   },
   storyImage: {
     width: '100%',
@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
   storyPlaceholder: {
     width: '100%',
     height: '100%',
-    backgroundColor: colors.background,
+    backgroundColor: colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -445,7 +445,7 @@ function NewStoryViewer({
     );
   };
 
-  // ✅ FIXED: Stats button handler - opens INSTANTLY
+  // ✅ FIXED: Stats button handler - opens INSTANTLY without closing story viewer
   const handleViewStats = useCallback(async () => {
     if (!currentStory || !user || !isOwner) return;
 
@@ -483,7 +483,7 @@ function NewStoryViewer({
     }
   }, [currentStory, user, isOwner]);
 
-  // ✅ FIXED: Close stats handler - resumes story
+  // ✅ FIXED: Close stats handler - resumes story WITHOUT closing viewer
   const handleCloseStats = useCallback(() => {
     console.log('[NewStoryViewer] ⚡ Stats modal closed - resuming story');
     setShowStats(false);
@@ -605,7 +605,7 @@ function NewStoryViewer({
                 <ProgressBar
                   key={index}
                   duration={STORY_DURATION}
-                  isPaused={isPaused || !imageLoaded}
+                  isPaused={isPaused || !imageLoaded || showStats}
                   onComplete={handleNext}
                   isActive={index === currentIndex}
                 />
@@ -738,7 +738,7 @@ function NewStoryViewer({
           )}
         </View>
 
-        {/* ✅ FIXED: Stats Modal - opens INSTANTLY */}
+        {/* ✅ FIXED: Stats Modal - opens INSTANTLY while story viewer stays open */}
         <StoryStatsModal
           visible={showStats}
           onClose={handleCloseStats}
