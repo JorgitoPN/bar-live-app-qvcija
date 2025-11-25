@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef, useCallback, memo, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
 import {
   View,
   Text,
@@ -67,40 +67,9 @@ interface StoryViewerProps {
   activeLocalProfileId?: string | null;
 }
 
-// ✅ CRITICAL FIX: Preload images BEFORE opening viewer
-const preloadStoryImages = async (stories: Historia[], startIndex: number) => {
-  const imagesToPreload: string[] = [];
-  
-  // Preload current + next 3 stories
-  for (let i = startIndex; i < Math.min(startIndex + 4, stories.length); i++) {
-    if (stories[i]?.imagen) {
-      imagesToPreload.push(stories[i].imagen);
-    }
-  }
-  
-  console.log('[StoryViewer] 🚀 Preloading', imagesToPreload.length, 'images...');
-  
-  try {
-    await Promise.all(imagesToPreload.map(uri => Image.prefetch(uri)));
-    console.log('[StoryViewer] ✅ All images preloaded successfully');
-  } catch (error) {
-    console.log('[StoryViewer] ⚠️ Some images failed to preload, continuing anyway');
-  }
-};
-
 // ✅ ULTRA-OPTIMIZED: Memoized story image component with INSTANT loading
-const StoryImage = memo(({ uri, onLoad }: { uri: string; onLoad?: () => void }) => {
+const StoryImage = memo(({ uri }: { uri: string }) => {
   const [imageError, setImageError] = useState(false);
-  
-  // ✅ CRITICAL: Start animation immediately, don't wait for onLoad
-  useEffect(() => {
-    // Trigger onLoad immediately since image is preloaded
-    const timer = setTimeout(() => {
-      onLoad?.();
-    }, 50); // Minimal delay to ensure component is mounted
-    
-    return () => clearTimeout(timer);
-  }, [uri, onLoad]);
   
   return (
     <>
@@ -128,7 +97,7 @@ const StoryImage = memo(({ uri, onLoad }: { uri: string; onLoad?: () => void }) 
 
 StoryImage.displayName = 'StoryImage';
 
-// ✅ ULTRA-SMOOTH Progress Bar Component using requestAnimationFrame
+// ✅ FIXED: Ultra-smooth progress bar with proper animation
 const ProgressBar = memo(({ 
   index, 
   currentIndex, 
@@ -147,28 +116,30 @@ const ProgressBar = memo(({
   const [progress, setProgress] = useState(0);
   const animationFrameRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
-  const pausedTimeRef = useRef<number>(0);
-  const accumulatedTimeRef = useRef<number>(0);
+  const elapsedTimeRef = useRef<number>(0);
 
   useEffect(() => {
     // Set initial progress based on position
     if (index < currentIndex) {
       setProgress(1); // Completed
+      return;
     } else if (index > currentIndex) {
       setProgress(0); // Not started
-    } else if (isActive && !isPaused) {
-      // Start animation for current story
+      return;
+    }
+
+    // Current story - start animation
+    if (isActive && !isPaused) {
       startTimeRef.current = performance.now();
       
       const animate = (currentTime: number) => {
-        if (!isActive || isPaused) return;
-        
-        const elapsed = currentTime - startTimeRef.current + accumulatedTimeRef.current;
+        const elapsed = currentTime - startTimeRef.current + elapsedTimeRef.current;
         const newProgress = Math.min(elapsed / duration, 1);
         
         setProgress(newProgress);
         
         if (newProgress >= 1) {
+          elapsedTimeRef.current = 0;
           onComplete();
         } else {
           animationFrameRef.current = requestAnimationFrame(animate);
@@ -189,28 +160,21 @@ const ProgressBar = memo(({
   // Handle pause/resume
   useEffect(() => {
     if (isActive && index === currentIndex) {
-      if (isPaused) {
-        // Save current progress when pausing
-        if (animationFrameRef.current !== null) {
-          cancelAnimationFrame(animationFrameRef.current);
-          animationFrameRef.current = null;
-        }
-        pausedTimeRef.current = performance.now();
-      } else if (pausedTimeRef.current > 0) {
-        // Resume from saved progress
-        const pauseDuration = performance.now() - pausedTimeRef.current;
-        accumulatedTimeRef.current += (pausedTimeRef.current - startTimeRef.current);
-        startTimeRef.current = performance.now();
-        pausedTimeRef.current = 0;
+      if (isPaused && animationFrameRef.current !== null) {
+        // Save elapsed time when pausing
+        const now = performance.now();
+        elapsedTimeRef.current += (now - startTimeRef.current);
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
       }
     }
   }, [isPaused, isActive, index, currentIndex]);
 
-  // Reset accumulated time when story changes
+  // Reset when story changes
   useEffect(() => {
     if (index === currentIndex && isActive) {
-      accumulatedTimeRef.current = 0;
-      pausedTimeRef.current = 0;
+      elapsedTimeRef.current = 0;
+      setProgress(0);
     }
   }, [currentIndex, index, isActive]);
 
@@ -251,9 +215,8 @@ function StoryViewer({
   const [storyViews, setStoryViews] = useState<any[]>([]);
   const [storyLikes, setStoryLikes] = useState<any[]>([]);
   const [loadingStats, setLoadingStats] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
-  const [imagesPreloaded, setImagesPreloaded] = useState(false);
+  const [isReady, setIsReady] = useState(false);
   
   const isPausedRef = useRef<boolean>(false);
   
@@ -297,7 +260,6 @@ function StoryViewer({
     if (currentStoryIndex < stories.length - 1) {
       const newIndex = currentStoryIndex + 1;
       setCurrentStoryIndex(newIndex);
-      setImageLoaded(false);
       onStoryChange?.(newIndex);
       
       // ✅ Preload next images in background
@@ -314,7 +276,6 @@ function StoryViewer({
     if (currentStoryIndex > 0) {
       const newIndex = currentStoryIndex - 1;
       setCurrentStoryIndex(newIndex);
-      setImageLoaded(false);
       onStoryChange?.(newIndex);
     } else {
       onClose();
@@ -326,7 +287,9 @@ function StoryViewer({
       return;
     }
 
+    // ✅ OPTIMISTIC UI: Update immediately
     const isLiked = currentStory.liked_by_user;
+    currentStory.liked_by_user = !isLiked;
 
     try {
       if (isLiked) {
@@ -343,6 +306,8 @@ function StoryViewer({
       }
     } catch (error) {
       console.error('[StoryViewer] Error toggling story like:', error);
+      // Revert on error
+      currentStory.liked_by_user = isLiked;
     }
   }, [user, currentStory]);
 
@@ -464,11 +429,9 @@ function StoryViewer({
 
     const messageText = storyMessage.trim();
     
-    // ✅ INSTANT SUCCESS NOTIFICATION - Show immediately BEFORE sending
+    // ✅ OPTIMISTIC UI: Clear input and show success IMMEDIATELY
     setStoryMessage('');
     setSendingMessage(true);
-    
-    // Show success alert INSTANTLY
     Alert.alert('Éxito', 'Mensaje enviado correctamente');
 
     try {
@@ -607,8 +570,6 @@ function StoryViewer({
       console.log('[StoryViewer] ✅ Message sent successfully');
     } catch (error) {
       console.error('[StoryViewer] Error sending story message:', error);
-      // Don't show error alert since we already showed success
-      // Just log the error for debugging
     } finally {
       setSendingMessage(false);
     }
@@ -733,20 +694,33 @@ function StoryViewer({
 
   // ✅ CRITICAL FIX: Preload images BEFORE opening viewer
   useEffect(() => {
-    if (visible && !imagesPreloaded) {
-      console.log('[StoryViewer] 🚀 Starting image preload...');
-      setImagesPreloaded(true);
+    if (visible && !isReady) {
+      console.log('[StoryViewer] 🚀 Preloading images...');
       
-      preloadStoryImages(stories, initialIndex).then(() => {
-        console.log('[StoryViewer] ✅ Images preloaded, starting animation');
-        setImageLoaded(true);
-      });
+      const imagesToPreload: string[] = [];
+      
+      // Preload current + next 3 stories
+      for (let i = initialIndex; i < Math.min(initialIndex + 4, stories.length); i++) {
+        if (stories[i]?.imagen) {
+          imagesToPreload.push(stories[i].imagen);
+        }
+      }
+      
+      Promise.all(imagesToPreload.map(uri => Image.prefetch(uri)))
+        .then(() => {
+          console.log('[StoryViewer] ✅ Images preloaded, starting animation');
+          setIsReady(true);
+        })
+        .catch(() => {
+          console.log('[StoryViewer] ⚠️ Some images failed to preload, continuing anyway');
+          setIsReady(true);
+        });
     }
-  }, [visible, stories, initialIndex, imagesPreloaded]);
+  }, [visible, stories, initialIndex, isReady]);
 
   // ✅ Preload next 2 story images for INSTANT loading
   useEffect(() => {
-    if (visible && imageLoaded) {
+    if (visible && isReady) {
       const preloadPromises: Promise<boolean>[] = [];
       
       if (currentStoryIndex < stories.length - 1) {
@@ -769,21 +743,19 @@ function StoryViewer({
         });
       }
     }
-  }, [visible, currentStoryIndex, stories, imageLoaded]);
+  }, [visible, currentStoryIndex, stories, isReady]);
 
   // Reset to initial index when modal opens
   useEffect(() => {
     if (visible) {
       setCurrentStoryIndex(initialIndex);
-      setImageLoaded(false);
       setIsPaused(false);
       isPausedRef.current = false;
-      setImagesPreloaded(false);
+      setIsReady(false);
     } else {
-      setImageLoaded(false);
       setIsPaused(false);
       isPausedRef.current = false;
-      setImagesPreloaded(false);
+      setIsReady(false);
     }
   }, [visible, initialIndex]);
 
@@ -829,7 +801,7 @@ function StoryViewer({
                   key={index}
                   index={index}
                   currentIndex={currentStoryIndex}
-                  isActive={imageLoaded && visible}
+                  isActive={isReady && visible}
                   isPaused={isPaused}
                   duration={STORY_DURATION}
                   onComplete={handleNextStory}
@@ -888,12 +860,7 @@ function StoryViewer({
 
           {/* Story content */}
           <View style={styles.storyContent}>
-            <StoryImage 
-              uri={currentStory.imagen} 
-              onLoad={() => {
-                setImageLoaded(true);
-              }}
-            />
+            <StoryImage uri={currentStory.imagen} />
           </View>
 
           {/* ✅ Modern owner controls with glassmorphism */}

@@ -51,10 +51,21 @@ const StoryItem = memo(({
     return hasBeenViewed ? ['#E5E7EB', '#E5E7EB'] : ['#FFD700', '#00FF00'];
   }, [hasBeenViewed]);
   
+  // ✅ CRITICAL: Preload story image when avatar is pressed
+  const handlePress = useCallback(() => {
+    console.log('[BarraHistorias] 🚀 Preloading story image before opening viewer...');
+    if (historia.imagen) {
+      Image.prefetch(historia.imagen).catch(() => {
+        console.log('[BarraHistorias] Failed to prefetch story image');
+      });
+    }
+    onPress();
+  }, [historia.imagen, onPress]);
+  
   return (
     <TouchableOpacity
       style={styles.historiaContainer}
-      onPress={onPress}
+      onPress={handlePress}
       activeOpacity={0.7}
     >
       <LinearGradient
