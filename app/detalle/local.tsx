@@ -15,7 +15,7 @@ import {
   Alert,
   Modal,
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -1022,429 +1022,434 @@ export default function DetalleLocalScreen() {
   ] : diasOrdenados;
 
   return (
-    <View style={styles.container}>
-      <ScrollView>
-        <View style={styles.imageContainer}>
-          {local.imagen_url ? (
-            <Image source={{ uri: local.imagen_url }} style={styles.image} resizeMode="cover" />
-          ) : (
-            <View style={[styles.image, { backgroundColor: colors.cardBorder, justifyContent: 'center', alignItems: 'center' }]}>
-              <IconSymbol name="photo" size={64} color={colors.textSecondary} />
-            </View>
-          )}
-
-          {shouldDimImage() && (
-            <View style={styles.dimmedOverlay} />
-          )}
-
-          {overlayIcon && (
-            <View style={styles.overlayIconContainer}>
-              <IconSymbol name={overlayIcon} size={80} color={getOverlayIconColor()} />
-            </View>
-          )}
-
-          <View style={styles.header}>
-            <TouchableOpacity style={styles.headerButton} onPress={() => router.back()}>
-              <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.headerButton} onPress={() => console.log('Share')}>
-              <IconSymbol name="square.and.arrow.up" size={24} color={colors.headerText} />
-            </TouchableOpacity>
-          </View>
-
-          {isDestacado && (
-            <View style={styles.badgeDestacadoOverlay}>
-              <IconSymbol name="star.fill" size={14} color="#92400E" />
-              <Text style={styles.badgeDestacadoText}>Destacado</Text>
-            </View>
-          )}
-
-          <View style={[
-            styles.estadoBadgeOverlay,
-            { backgroundColor: getBadgeColor() },
-            isDestacado && styles.estadoBadgeOverlayConDestacado
-          ]}>
-            <View style={styles.estadoDot} />
-            <Text style={styles.estadoText}>{getBadgeText()}</Text>
-          </View>
-
-          {ratingCombinado && (
-            <View style={styles.ratingBadgeOverlay}>
-              <IconSymbol name="star.fill" size={16} color={colors.badgeDestacado} />
-              <Text style={styles.ratingTextOverlay}>{ratingCombinado}</Text>
-            </View>
-          )}
-
-          <TouchableOpacity
-            style={styles.favoritoButtonOverlay}
-            onPress={toggleFavorito}
-            activeOpacity={0.8}
-          >
-            <View style={styles.favoritoBackgroundOverlay}>
-              <IconSymbol
-                name={isFavorito ? 'heart.fill' : 'heart'}
-                size={24}
-                color={isFavorito ? colors.badgeNuevo : colors.headerText}
-              />
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        {galeriaUrls.length > 0 && (
-          <View style={styles.galeriaContainer}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.galeriaScroll}>
-              {galeriaUrls.map((url: string, index: number) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.galeriaImageWrapper}
-                  onPress={() => handleImagePress(index)}
-                  activeOpacity={0.8}
-                >
-                  <Image
-                    source={{ uri: url }}
-                    style={styles.galeriaImage}
-                    resizeMode="cover"
-                  />
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        <View style={styles.mainInfo}>
-          {activeEvent && (
-            <View style={{ marginBottom: 20 }}>
-              <EventBanner evento={activeEvent} compact={false} />
-            </View>
-          )}
-          
-          <Text style={styles.nombre}>{local.nombre}</Text>
-
-          {categoriasLocal.length > 0 && (
-            <View style={styles.categoriasContainer}>
-              {categoriasLocal.map((categoria: string, index: number) => (
-                <View key={index} style={styles.categoriaBadge}>
-                  <Text style={styles.categoriaIcon}>{getCategoryIcon(categoria)}</Text>
-                  <Text style={styles.categoriaText}>{categoria}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-
-          {local.direccion && (
-            <View style={styles.direccionContainer}>
-              <IconSymbol name="mappin" size={20} color={colors.primary} />
-              <Text style={styles.direccionText}>{local.direccion}</Text>
-            </View>
-          )}
-
-          {local.descripcion_google && (
-            <Text style={styles.descripcion}>{local.descripcion_google}</Text>
-          )}
-
-          <View style={styles.actionButtons}>
-            {local.telefono && (
-              <TouchableOpacity style={[styles.actionButton, styles.actionButtonPrimary]} onPress={handleLlamar}>
-                <IconSymbol name="phone.fill" size={20} color={colors.headerText} />
-                <Text style={styles.actionButtonText}>Llamar</Text>
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity style={[styles.actionButton, styles.actionButtonSecondary]} onPress={handleComoLlegar}>
-              <IconSymbol name="map.fill" size={20} color={colors.headerText} />
-              <Text style={styles.actionButtonText}>Cómo llegar</Text>
-            </TouchableOpacity>
-          </View>
-
-          {local.website && (
-            <TouchableOpacity style={[styles.actionButton, styles.actionButtonPrimary, { marginTop: 12 }]} onPress={handleWeb}>
-              <IconSymbol name="globe" size={20} color={colors.headerText} />
-              <Text style={styles.actionButtonText}>Visitar Web</Text>
-            </TouchableOpacity>
-          )}
-
-          <TouchableOpacity 
-            style={styles.salaVirtualButton}
-            onPress={() => router.push(`/detalle/sala-virtual?id=${local.id}`)}
-          >
-            <IconSymbol name="person.3.fill" size={20} color={colors.headerText} />
-            <Text style={styles.salaVirtualButtonText}>Ver Sala Virtual</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={[styles.salaVirtualButton, { backgroundColor: colors.primary, marginTop: 12 }]}
-            onPress={() => router.push(`/perfil/local?localId=${local.id}`)}
-          >
-            <IconSymbol name="person.2.fill" size={20} color={colors.headerText} />
-            <Text style={styles.salaVirtualButtonText}>Ver Perfil Social</Text>
-          </TouchableOpacity>
-        </View>
-
-        {tiposCocina.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🍴 Tipos de Cocina</Text>
-            <View style={styles.cocinaContainer}>
-              {tiposCocina.map((cocina: string, index: number) => (
-                <View key={index} style={styles.cocinaBadge}>
-                  <Text style={styles.cocinaText}>{cocina}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
-
-        {Object.keys(horariosCompletos).length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🕐 Horarios</Text>
-            <View style={styles.horariosContainer}>
-              {diasReordenados.map((dia) => {
-                const horas = horariosCompletos[dia];
-                if (!horas) return null;
-                
-                const isCurrentDay = dia === currentDay;
-                return (
-                  <View 
-                    key={dia} 
-                    style={[
-                      styles.horarioRow,
-                      isCurrentDay && styles.horarioRowActual
-                    ]}
-                  >
-                    <Text style={[
-                      styles.horarioDia,
-                      isCurrentDay && styles.horarioDiaActual
-                    ]}>
-                      {formatDayName(dia)}
-                    </Text>
-                    <Text style={[
-                      styles.horarioHoras,
-                      isCurrentDay && styles.horarioHorasActual
-                    ]}>
-                      {Array.isArray(horas) ? horas.join(', ') : horas}
-                    </Text>
-                  </View>
-                );
-              })}
-            </View>
-          </View>
-        )}
-
-        {serviciosActivos.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🛎️ Servicios Disponibles</Text>
-            <View style={styles.serviciosGrid}>
-              {serviciosActivos.map((servicio) => (
-                <View key={servicio} style={styles.servicioBadge}>
-                  <Text style={styles.servicioText}>{formatServiceName(servicio)}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
-
-        {ambienteActivo.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🎭 Ambiente</Text>
-            <View style={styles.ambienteGrid}>
-              {ambienteActivo.map((ambiente) => (
-                <View key={ambiente} style={styles.ambienteBadge}>
-                  <Text style={styles.ambienteText}>{formatAmbienteName(ambiente)}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
-
-        {clientelaActiva.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>👥 Clientela Típica</Text>
-            <View style={styles.ambienteGrid}>
-              {clientelaActiva.map((cliente) => (
-                <View key={cliente} style={styles.ambienteBadge}>
-                  <Text style={styles.ambienteText}>{formatClientelaName(cliente)}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
-
-        {analisisReviews.resumen_automatico && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🧠 Análisis de Reseñas</Text>
-            <View style={styles.analisisCard}>
-              <Text style={styles.analisisTitle}>
-                Sentimiento: {analisisReviews.sentimiento_general}
-              </Text>
-              <Text style={styles.analisisText}>{analisisReviews.resumen_automatico}</Text>
-              
-              {analisisReviews.palabras_clave_detectadas && analisisReviews.palabras_clave_detectadas.length > 0 && (
-                <View style={styles.palabrasClaveContainer}>
-                  {analisisReviews.palabras_clave_detectadas.map((palabra: string, index: number) => (
-                    <View key={index} style={styles.palabraClaveBadge}>
-                      <Text style={styles.palabraClaveText}>{palabra}</Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-            </View>
-          </View>
-        )}
-
-        {todasLasReviews.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>⭐ Reseñas</Text>
-            
-            {user && (
-              <TouchableOpacity
-                style={styles.escribirReviewButton}
-                onPress={() => setMostrarModalReview(true)}
-              >
-                <IconSymbol name="pencil" size={20} color={colors.headerText} />
-                <Text style={styles.escribirReviewButtonText}>Escribir reseña</Text>
-              </TouchableOpacity>
+    <>
+      {/* ✅ SOLUCIÓN: Ocultar el header de navegación */}
+      <Stack.Screen options={{ headerShown: false }} />
+      
+      <View style={styles.container}>
+        <ScrollView>
+          <View style={styles.imageContainer}>
+            {local.imagen_url ? (
+              <Image source={{ uri: local.imagen_url }} style={styles.image} resizeMode="cover" />
+            ) : (
+              <View style={[styles.image, { backgroundColor: colors.cardBorder, justifyContent: 'center', alignItems: 'center' }]}>
+                <IconSymbol name="photo" size={64} color={colors.textSecondary} />
+              </View>
             )}
 
-            <View style={styles.reviewsContainer}>
-              {reviewsAMostrar.map((review: any, index: number) => {
-                const reviewText = review.texto || review.text || '';
-                const isLongReview = reviewText.length > 200;
-                const isExpanded = expandedReviews.has(index);
-                const displayText = isLongReview && !isExpanded 
-                  ? reviewText.substring(0, 200) + '...' 
-                  : reviewText;
-
-                return (
-                  <View key={index} style={styles.reviewCard}>
-                    <View style={styles.reviewHeader}>
-                      <View style={styles.reviewAvatar}>
-                        {review.author_avatar ? (
-                          <Image source={{ uri: review.author_avatar }} style={styles.reviewAvatarImage} />
-                        ) : (
-                          <IconSymbol name="person.fill" size={20} color={colors.textSecondary} />
-                        )}
-                      </View>
-                      <View style={styles.reviewHeaderInfo}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                          <Text style={styles.reviewAuthor}>{review.author_name}</Text>
-                          {review.source === 'barlive' && (
-                            <View style={styles.barliveReviewBadge}>
-                              <Text style={styles.barliveReviewBadgeText}>BARLIVE</Text>
-                            </View>
-                          )}
-                        </View>
-                        <Text style={styles.reviewDate}>
-                          {review.fecha 
-                            ? new Date(review.fecha).toLocaleDateString('es-ES')
-                            : review.relative_time_description || 'Hace tiempo'
-                          }
-                        </Text>
-                      </View>
-                      <View style={styles.reviewRating}>
-                        <IconSymbol name="star.fill" size={14} color={colors.badgeDestacado} />
-                        <Text style={styles.reviewRatingText}>{review.rating}</Text>
-                      </View>
-                    </View>
-                    <Text style={styles.reviewText}>{displayText}</Text>
-                    {isLongReview && (
-                      <TouchableOpacity 
-                        style={styles.leerMasButton}
-                        onPress={() => toggleReviewExpanded(index)}
-                      >
-                        <Text style={styles.leerMasText}>
-                          {isExpanded ? 'Leer menos' : 'Leer más'}
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                );
-              })}
-            </View>
-
-            {todasLasReviews.length > 2 && (
-              <TouchableOpacity
-                style={styles.verMasButton}
-                onPress={() => setMostrarTodasReviews(!mostrarTodasReviews)}
-              >
-                <Text style={styles.verMasButtonText}>
-                  {mostrarTodasReviews ? 'Ver menos' : `Ver más (${todasLasReviews.length - 2} más)`}
-                </Text>
-                <IconSymbol
-                  name={mostrarTodasReviews ? 'chevron.up' : 'chevron.down'}
-                  size={16}
-                  color={colors.primary}
-                />
-              </TouchableOpacity>
+            {shouldDimImage() && (
+              <View style={styles.dimmedOverlay} />
             )}
-          </View>
-        )}
 
-        <View style={{ height: 40 }} />
-      </ScrollView>
+            {overlayIcon && (
+              <View style={styles.overlayIconContainer}>
+                <IconSymbol name={overlayIcon} size={80} color={getOverlayIconColor()} />
+              </View>
+            )}
 
-      <Modal
-        visible={mostrarModalReview}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setMostrarModalReview(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Escribir reseña</Text>
-              <TouchableOpacity
-                style={styles.modalCloseButton}
-                onPress={() => setMostrarModalReview(false)}
-              >
-                <IconSymbol name="xmark" size={20} color={colors.text} />
+            <View style={styles.header}>
+              <TouchableOpacity style={styles.headerButton} onPress={() => router.back()}>
+                <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.headerButton} onPress={() => console.log('Share')}>
+                <IconSymbol name="square.and.arrow.up" size={24} color={colors.headerText} />
               </TouchableOpacity>
             </View>
 
-            <View style={styles.ratingSelector}>
-              {[1, 2, 3, 4, 5].map((star) => (
-                <TouchableOpacity
-                  key={star}
-                  style={styles.starButton}
-                  onPress={() => setReviewRating(star)}
-                >
-                  <IconSymbol
-                    name={star <= reviewRating ? 'star.fill' : 'star'}
-                    size={32}
-                    color={colors.badgeDestacado}
-                  />
-                </TouchableOpacity>
-              ))}
+            {isDestacado && (
+              <View style={styles.badgeDestacadoOverlay}>
+                <IconSymbol name="star.fill" size={14} color="#92400E" />
+                <Text style={styles.badgeDestacadoText}>Destacado</Text>
+              </View>
+            )}
+
+            <View style={[
+              styles.estadoBadgeOverlay,
+              { backgroundColor: getBadgeColor() },
+              isDestacado && styles.estadoBadgeOverlayConDestacado
+            ]}>
+              <View style={styles.estadoDot} />
+              <Text style={styles.estadoText}>{getBadgeText()}</Text>
             </View>
 
-            <TextInput
-              style={styles.reviewInput}
-              placeholder="Escribe tu reseña aquí..."
-              placeholderTextColor={colors.textSecondary}
-              value={reviewTexto}
-              onChangeText={setReviewTexto}
-              multiline
-              numberOfLines={6}
-            />
+            {ratingCombinado && (
+              <View style={styles.ratingBadgeOverlay}>
+                <IconSymbol name="star.fill" size={16} color={colors.badgeDestacado} />
+                <Text style={styles.ratingTextOverlay}>{ratingCombinado}</Text>
+              </View>
+            )}
 
             <TouchableOpacity
-              style={styles.submitButton}
-              onPress={handleEnviarReview}
-              disabled={enviandoReview}
+              style={styles.favoritoButtonOverlay}
+              onPress={toggleFavorito}
+              activeOpacity={0.8}
             >
-              {enviandoReview ? (
-                <ActivityIndicator color={colors.headerText} />
-              ) : (
-                <Text style={styles.submitButtonText}>Publicar reseña</Text>
-              )}
+              <View style={styles.favoritoBackgroundOverlay}>
+                <IconSymbol
+                  name={isFavorito ? 'heart.fill' : 'heart'}
+                  size={24}
+                  color={isFavorito ? colors.badgeNuevo : colors.headerText}
+                />
+              </View>
             </TouchableOpacity>
           </View>
-        </View>
-      </Modal>
 
-      <ImageGalleryModal
-        visible={showGalleryModal}
-        images={galeriaUrls}
-        initialIndex={galleryInitialIndex}
-        onClose={() => setShowGalleryModal(false)}
-      />
-    </View>
+          {galeriaUrls.length > 0 && (
+            <View style={styles.galeriaContainer}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.galeriaScroll}>
+                {galeriaUrls.map((url: string, index: number) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.galeriaImageWrapper}
+                    onPress={() => handleImagePress(index)}
+                    activeOpacity={0.8}
+                  >
+                    <Image
+                      source={{ uri: url }}
+                      style={styles.galeriaImage}
+                      resizeMode="cover"
+                    />
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          <View style={styles.mainInfo}>
+            {activeEvent && (
+              <View style={{ marginBottom: 20 }}>
+                <EventBanner evento={activeEvent} compact={false} />
+              </View>
+            )}
+            
+            <Text style={styles.nombre}>{local.nombre}</Text>
+
+            {categoriasLocal.length > 0 && (
+              <View style={styles.categoriasContainer}>
+                {categoriasLocal.map((categoria: string, index: number) => (
+                  <View key={index} style={styles.categoriaBadge}>
+                    <Text style={styles.categoriaIcon}>{getCategoryIcon(categoria)}</Text>
+                    <Text style={styles.categoriaText}>{categoria}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {local.direccion && (
+              <View style={styles.direccionContainer}>
+                <IconSymbol name="mappin" size={20} color={colors.primary} />
+                <Text style={styles.direccionText}>{local.direccion}</Text>
+              </View>
+            )}
+
+            {local.descripcion_google && (
+              <Text style={styles.descripcion}>{local.descripcion_google}</Text>
+            )}
+
+            <View style={styles.actionButtons}>
+              {local.telefono && (
+                <TouchableOpacity style={[styles.actionButton, styles.actionButtonPrimary]} onPress={handleLlamar}>
+                  <IconSymbol name="phone.fill" size={20} color={colors.headerText} />
+                  <Text style={styles.actionButtonText}>Llamar</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity style={[styles.actionButton, styles.actionButtonSecondary]} onPress={handleComoLlegar}>
+                <IconSymbol name="map.fill" size={20} color={colors.headerText} />
+                <Text style={styles.actionButtonText}>Cómo llegar</Text>
+              </TouchableOpacity>
+            </View>
+
+            {local.website && (
+              <TouchableOpacity style={[styles.actionButton, styles.actionButtonPrimary, { marginTop: 12 }]} onPress={handleWeb}>
+                <IconSymbol name="globe" size={20} color={colors.headerText} />
+                <Text style={styles.actionButtonText}>Visitar Web</Text>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity 
+              style={styles.salaVirtualButton}
+              onPress={() => router.push(`/detalle/sala-virtual?id=${local.id}`)}
+            >
+              <IconSymbol name="person.3.fill" size={20} color={colors.headerText} />
+              <Text style={styles.salaVirtualButtonText}>Ver Sala Virtual</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.salaVirtualButton, { backgroundColor: colors.primary, marginTop: 12 }]}
+              onPress={() => router.push(`/perfil/local?localId=${local.id}`)}
+            >
+              <IconSymbol name="person.2.fill" size={20} color={colors.headerText} />
+              <Text style={styles.salaVirtualButtonText}>Ver Perfil Social</Text>
+            </TouchableOpacity>
+          </View>
+
+          {tiposCocina.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>🍴 Tipos de Cocina</Text>
+              <View style={styles.cocinaContainer}>
+                {tiposCocina.map((cocina: string, index: number) => (
+                  <View key={index} style={styles.cocinaBadge}>
+                    <Text style={styles.cocinaText}>{cocina}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {Object.keys(horariosCompletos).length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>🕐 Horarios</Text>
+              <View style={styles.horariosContainer}>
+                {diasReordenados.map((dia) => {
+                  const horas = horariosCompletos[dia];
+                  if (!horas) return null;
+                  
+                  const isCurrentDay = dia === currentDay;
+                  return (
+                    <View 
+                      key={dia} 
+                      style={[
+                        styles.horarioRow,
+                        isCurrentDay && styles.horarioRowActual
+                      ]}
+                    >
+                      <Text style={[
+                        styles.horarioDia,
+                        isCurrentDay && styles.horarioDiaActual
+                      ]}>
+                        {formatDayName(dia)}
+                      </Text>
+                      <Text style={[
+                        styles.horarioHoras,
+                        isCurrentDay && styles.horarioHorasActual
+                      ]}>
+                        {Array.isArray(horas) ? horas.join(', ') : horas}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
+          {serviciosActivos.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>🛎️ Servicios Disponibles</Text>
+              <View style={styles.serviciosGrid}>
+                {serviciosActivos.map((servicio) => (
+                  <View key={servicio} style={styles.servicioBadge}>
+                    <Text style={styles.servicioText}>{formatServiceName(servicio)}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {ambienteActivo.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>🎭 Ambiente</Text>
+              <View style={styles.ambienteGrid}>
+                {ambienteActivo.map((ambiente) => (
+                  <View key={ambiente} style={styles.ambienteBadge}>
+                    <Text style={styles.ambienteText}>{formatAmbienteName(ambiente)}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {clientelaActiva.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>👥 Clientela Típica</Text>
+              <View style={styles.ambienteGrid}>
+                {clientelaActiva.map((cliente) => (
+                  <View key={cliente} style={styles.ambienteBadge}>
+                    <Text style={styles.ambienteText}>{formatClientelaName(cliente)}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {analisisReviews.resumen_automatico && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>🧠 Análisis de Reseñas</Text>
+              <View style={styles.analisisCard}>
+                <Text style={styles.analisisTitle}>
+                  Sentimiento: {analisisReviews.sentimiento_general}
+                </Text>
+                <Text style={styles.analisisText}>{analisisReviews.resumen_automatico}</Text>
+                
+                {analisisReviews.palabras_clave_detectadas && analisisReviews.palabras_clave_detectadas.length > 0 && (
+                  <View style={styles.palabrasClaveContainer}>
+                    {analisisReviews.palabras_clave_detectadas.map((palabra: string, index: number) => (
+                      <View key={index} style={styles.palabraClaveBadge}>
+                        <Text style={styles.palabraClaveText}>{palabra}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
+
+          {todasLasReviews.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>⭐ Reseñas</Text>
+              
+              {user && (
+                <TouchableOpacity
+                  style={styles.escribirReviewButton}
+                  onPress={() => setMostrarModalReview(true)}
+                >
+                  <IconSymbol name="pencil" size={20} color={colors.headerText} />
+                  <Text style={styles.escribirReviewButtonText}>Escribir reseña</Text>
+                </TouchableOpacity>
+              )}
+
+              <View style={styles.reviewsContainer}>
+                {reviewsAMostrar.map((review: any, index: number) => {
+                  const reviewText = review.texto || review.text || '';
+                  const isLongReview = reviewText.length > 200;
+                  const isExpanded = expandedReviews.has(index);
+                  const displayText = isLongReview && !isExpanded 
+                    ? reviewText.substring(0, 200) + '...' 
+                    : reviewText;
+
+                  return (
+                    <View key={index} style={styles.reviewCard}>
+                      <View style={styles.reviewHeader}>
+                        <View style={styles.reviewAvatar}>
+                          {review.author_avatar ? (
+                            <Image source={{ uri: review.author_avatar }} style={styles.reviewAvatarImage} />
+                          ) : (
+                            <IconSymbol name="person.fill" size={20} color={colors.textSecondary} />
+                          )}
+                        </View>
+                        <View style={styles.reviewHeaderInfo}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <Text style={styles.reviewAuthor}>{review.author_name}</Text>
+                            {review.source === 'barlive' && (
+                              <View style={styles.barliveReviewBadge}>
+                                <Text style={styles.barliveReviewBadgeText}>BARLIVE</Text>
+                              </View>
+                            )}
+                          </View>
+                          <Text style={styles.reviewDate}>
+                            {review.fecha 
+                              ? new Date(review.fecha).toLocaleDateString('es-ES')
+                              : review.relative_time_description || 'Hace tiempo'
+                            }
+                          </Text>
+                        </View>
+                        <View style={styles.reviewRating}>
+                          <IconSymbol name="star.fill" size={14} color={colors.badgeDestacado} />
+                          <Text style={styles.reviewRatingText}>{review.rating}</Text>
+                        </View>
+                      </View>
+                      <Text style={styles.reviewText}>{displayText}</Text>
+                      {isLongReview && (
+                        <TouchableOpacity 
+                          style={styles.leerMasButton}
+                          onPress={() => toggleReviewExpanded(index)}
+                        >
+                          <Text style={styles.leerMasText}>
+                            {isExpanded ? 'Leer menos' : 'Leer más'}
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
+
+              {todasLasReviews.length > 2 && (
+                <TouchableOpacity
+                  style={styles.verMasButton}
+                  onPress={() => setMostrarTodasReviews(!mostrarTodasReviews)}
+                >
+                  <Text style={styles.verMasButtonText}>
+                    {mostrarTodasReviews ? 'Ver menos' : `Ver más (${todasLasReviews.length - 2} más)`}
+                  </Text>
+                  <IconSymbol
+                    name={mostrarTodasReviews ? 'chevron.up' : 'chevron.down'}
+                    size={16}
+                    color={colors.primary}
+                  />
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+
+          <View style={{ height: 40 }} />
+        </ScrollView>
+
+        <Modal
+          visible={mostrarModalReview}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setMostrarModalReview(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Escribir reseña</Text>
+                <TouchableOpacity
+                  style={styles.modalCloseButton}
+                  onPress={() => setMostrarModalReview(false)}
+                >
+                  <IconSymbol name="xmark" size={20} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.ratingSelector}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <TouchableOpacity
+                    key={star}
+                    style={styles.starButton}
+                    onPress={() => setReviewRating(star)}
+                  >
+                    <IconSymbol
+                      name={star <= reviewRating ? 'star.fill' : 'star'}
+                      size={32}
+                      color={colors.badgeDestacado}
+                    />
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <TextInput
+                style={styles.reviewInput}
+                placeholder="Escribe tu reseña aquí..."
+                placeholderTextColor={colors.textSecondary}
+                value={reviewTexto}
+                onChangeText={setReviewTexto}
+                multiline
+                numberOfLines={6}
+              />
+
+              <TouchableOpacity
+                style={styles.submitButton}
+                onPress={handleEnviarReview}
+                disabled={enviandoReview}
+              >
+                {enviandoReview ? (
+                  <ActivityIndicator color={colors.headerText} />
+                ) : (
+                  <Text style={styles.submitButtonText}>Publicar reseña</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        <ImageGalleryModal
+          visible={showGalleryModal}
+          images={galeriaUrls}
+          initialIndex={galleryInitialIndex}
+          onClose={() => setShowGalleryModal(false)}
+        />
+      </View>
+    </>
   );
 }
