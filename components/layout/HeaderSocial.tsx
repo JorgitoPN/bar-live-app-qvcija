@@ -105,7 +105,7 @@ export default function HeaderSocial({
               <IconSymbol name="message.fill" size={24} color={colors.headerText} />
               {unreadMessages > 0 && (
                 <View style={styles.badge}>
-                  <Text style={styles.badgeText} numberOfLines={1}>
+                  <Text style={styles.badgeText}>
                     {formatBadgeCount(unreadMessages)}
                   </Text>
                 </View>
@@ -120,7 +120,7 @@ export default function HeaderSocial({
               <IconSymbol name="bell.fill" size={24} color={colors.headerText} />
               {unreadNotifications > 0 && (
                 <View style={styles.badge}>
-                  <Text style={styles.badgeText} numberOfLines={1}>
+                  <Text style={styles.badgeText}>
                     {formatBadgeCount(unreadNotifications)}
                   </Text>
                 </View>
@@ -263,25 +263,25 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: 'absolute',
-    top: -2,
-    right: -4,
+    top: -4,
+    right: -6,
     backgroundColor: '#EF4444',
-    borderRadius: 12,
-    minWidth: 22,
-    height: 22,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 6,
+    paddingHorizontal: 5,
     borderWidth: 2,
     borderColor: colors.headerGradientStart,
   },
   badgeText: {
     color: '#FFFFFF',
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '700',
     textAlign: 'center',
+    lineHeight: 16,
     includeFontPadding: false,
-    textAlignVertical: 'center',
   },
   modalOverlay: {
     flex: 1,

@@ -37,12 +37,11 @@ export function autoCategorizeLocal(
 
   // CASE 3: Closes after midnight → Nightlife venue
   if (latestClose > 1440 || latestClose < 360) { // After midnight or before 6 AM
-    // ✅ UPDATED: Spanish regulations for pub categorization
-    // Pubs: Close between 3:00 AM and 5:00 AM (180-300 minutes or 1620-1740 minutes)
+    // ✅ UPDATED: Use disco icon for venues closing after 5:00 AM
     // Discotecas: Close between 5:00 AM and 6:00 AM (300-360 minutes or 1740-1800 minutes)
     
     if (latestClose >= 1740 || latestClose <= 360) { // After 5:00 AM (29:00) or before 6:00 AM
-      // Very late closing (5:00-6:00 AM) → Discoteca
+      // Very late closing (5:00-6:00 AM) → Discoteca (primary category)
       categories.push('discoteca', 'pub', 'cocteleria');
     } else if (latestClose >= 1620 || latestClose <= 300) { // After 3:00 AM (27:00) or before 5:00 AM
       // Late closing (3:00-5:00 AM) → Pub, Coctelería
@@ -220,7 +219,8 @@ function mapGoogleTypesToCategories(tipos_google: string[]): LocalCategory[] {
 }
 
 /**
- * Get category icon name for display
+ * ✅ FIXED: Get category icon name for display on map
+ * Returns disco icon (🎵) for venues closing after 5:00 AM
  */
 export function getCategoryIcon(category: LocalCategory): string {
   const iconMap: Record<LocalCategory, string> = {
@@ -300,6 +300,31 @@ export function shouldHavePubCategory(horarios_completos: Record<string, string[
 }
 
 /**
+ * ✅ NEW: Check if a venue should have the DISCOTECA category based on closing time
+ * Returns true if the venue closes after 5:00 AM (29:00 = 1740 minutes)
+ */
+export function shouldHaveDiscoCategory(horarios_completos: Record<string, string[]> | null): boolean {
+  if (!horarios_completos || Object.keys(horarios_completos).length === 0) {
+    return false;
+  }
+
+  const { latestClose } = analyzeSchedule(horarios_completos);
+  
+  if (latestClose === null) {
+    return false;
+  }
+
+  // Check if closes after 5:00 AM (29:00 = 1740 minutes)
+  if (latestClose >= 1740 || (latestClose <= 360 && latestClose > 300)) {
+    console.log(`[shouldHaveDiscoCategory] ✅ Venue closes after 5:00 AM (${latestClose} minutes) - qualifies as DISCOTECA`);
+    return true;
+  }
+  
+  console.log(`[shouldHaveDiscoCategory] ❌ Venue does NOT qualify as discoteca (closes at ${latestClose} minutes)`);
+  return false;
+}
+
+/**
  * Add PUB category to existing categories if venue closes after 2:30 AM
  * This ensures venues can have multiple categories like "Bar y Pub" or "Discoteca y Pub"
  */
@@ -320,4 +345,39 @@ export function addPubCategoryIfNeeded(
   }
 
   return currentCategories;
+}
+
+/**
+ * ✅ NEW: Get the primary icon for a venue based on closing time
+ * Returns disco icon (🎵) for venues closing after 5:00 AM, pub icon (🍺) for venues closing after 2:30 AM
+ */
+export function getPrimaryIconForVenue(
+  categories: LocalCategory[],
+  horarios_completos: Record<string, string[]> | null
+): string {
+  // Check if venue closes after 5:00 AM → Show disco icon
+  if (shouldHaveDiscoCategory(horarios_completos)) {
+    return '🎵'; // Disco icon
+  }
+  
+  // Check if venue closes after 2:30 AM → Show pub icon
+  if (shouldHavePubCategory(horarios_completos)) {
+    return '🍺'; // Pub icon
+  }
+  
+  // Otherwise, use the first category's icon
+  const iconMap: Record<string, string> = {
+    cafe: '☕',
+    restaurante: '🍽️',
+    bar: '🍷',
+    pub: '🍺',
+    cocteleria: '🍸',
+    discoteca: '🎵',
+    sala_conciertos: '🎵',
+    terraza: '☀️',
+    rooftop: '🏢',
+    lounge: '🛋️',
+  };
+  
+  return iconMap[categories[0]] || '📍';
 }

@@ -25,7 +25,7 @@ import { getEstadoLocal } from '@/utils/timeUtils';
 import { performanceOptimizer } from '@/utils/performanceOptimizer';
 import { trackMapInteraction } from '@/utils/activityTracker';
 import { useAuth } from '@/contexts/AuthContext';
-import { addPubCategoryIfNeeded, shouldHavePubCategory } from '@/utils/categorizeLocal';
+import { addPubCategoryIfNeeded, shouldHavePubCategory, getPrimaryIconForVenue } from '@/utils/categorizeLocal';
 
 const { width, height } = Dimensions.get('window');
 
@@ -38,22 +38,6 @@ const CATEGORIAS_LOCALES = [
   { id: 'cocteleria', label: 'Coctelería', icon: 'wineglass' },
   { id: 'discoteca', label: 'Discotecas', icon: 'music.note' },
 ];
-
-const getIconForCategory = (category: string): string => {
-  const iconMap: Record<string, string> = {
-    cafe: '☕',
-    restaurante: '🍽️',
-    bar: '🍷',
-    pub: '🍺',
-    cocteleria: '🍸',
-    discoteca: '🎵',
-    sala_conciertos: '🎵',
-    terraza: '☀️',
-    rooftop: '🏢',
-    lounge: '🛋️',
-  };
-  return iconMap[category] || '📍';
-};
 
 interface LocalWithEvent extends Local {
   evento?: {
@@ -420,7 +404,8 @@ export default function MapaScreen() {
       let localCategories = local.barlive_types || (local.barlive_type ? [local.barlive_type] : []);
       localCategories = addPubCategoryIfNeeded(localCategories, local.horarios_completos);
       
-      const icon = getIconForCategory(localCategories[0] || local.tipo);
+      // ✅ NEW: Use getPrimaryIconForVenue to get the correct icon based on closing time
+      const icon = getPrimaryIconForVenue(localCategories, local.horarios_completos);
       
       let overlayIcon = null;
       if (estadoCompleto.overlayIcon === 'lock') {
