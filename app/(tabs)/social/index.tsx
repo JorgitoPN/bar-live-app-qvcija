@@ -1230,22 +1230,26 @@ export default function SocialScreen() {
     lastScrollY.current = currentScrollY;
   }, [headerTranslateY]);
 
+  // ✅ CRITICAL FIX: Combine user stories and other stories for the story bar
+  // User's own stories should appear FIRST, then other users' stories
+  const allStories = useMemo(() => {
+    return [...userStories, ...historias];
+  }, [userStories, historias]);
+
   // ✅ ULTRA-OPTIMIZED: Handle story press with instant opening
   const handleStoryPress = useCallback((historia: HistoriaConAutor) => {
     console.log('[Social] 📖 Story pressed:', historia.id);
     
-    // Find the index of the story in the appropriate array
-    const isOwnStory = userStories.some(s => s.id === historia.id);
-    const stories = isOwnStory ? userStories : historias;
-    const index = stories.findIndex(s => s.id === historia.id);
+    // Find the index of the story in the combined array
+    const index = allStories.findIndex(s => s.id === historia.id);
     
-    console.log('[Social] 📖 Opening story at index:', index, 'isOwnStory:', isOwnStory);
+    console.log('[Social] 📖 Opening story at index:', index);
     
     // ✅ Open viewer INSTANTLY - images are already preloaded by BarraHistorias
     setCurrentStoryIndex(index);
-    setViewingOwnStories(isOwnStory);
+    setViewingOwnStories(false); // We're now using a single combined array
     setShowStoryViewer(true);
-  }, [userStories, historias]);
+  }, [allStories]);
 
   const toggleLike = useCallback(async (postId: string) => {
     if (!user) {
@@ -1559,9 +1563,9 @@ export default function SocialScreen() {
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-        {/* ✅ NEW: Complete rewrite of story bar with proper avatar sizes */}
+        {/* ✅ CRITICAL FIX: Pass ALL stories (user's own + others) to NewBarraHistorias */}
         <NewBarraHistorias
-          historias={historias}
+          historias={allStories}
           onHistoriaPress={handleStoryPress}
           onCrearHistoria={user ? () => {
             if (isOwnerMode && activeLocalProfileId) {
@@ -1600,9 +1604,10 @@ export default function SocialScreen() {
 
       </ScrollView>
 
+      {/* ✅ CRITICAL FIX: Pass ALL stories to NewStoryViewer */}
       <NewStoryViewer
         visible={showStoryViewer}
-        stories={viewingOwnStories ? userStories : historias}
+        stories={allStories}
         initialIndex={currentStoryIndex}
         onClose={() => {
           console.log('[Social] Closing story viewer');
