@@ -63,7 +63,7 @@ interface NewStoryViewerProps {
   activeLocalProfileId?: string | null;
 }
 
-// Progress Bar Component with smooth animation - OPTIMIZED for Expo Go
+// Progress Bar Component with smooth animation - MATCHING PROFILE PAGE DESIGN
 const ProgressBar = memo(({ 
   duration, 
   isPaused, 
@@ -97,7 +97,7 @@ const ProgressBar = memo(({
       toValue: 1,
       duration: remainingDuration,
       easing: Easing.linear,
-      useNativeDriver: true, // ✅ Use native driver for better performance
+      useNativeDriver: false, // Can't use native driver for width
     });
 
     animationRef.current.start(({ finished }) => {
@@ -111,23 +111,22 @@ const ProgressBar = memo(({
     };
   }, [isActive, isPaused, duration, onComplete]);
 
-  const scaleX = progress.interpolate({
+  const widthInterpolate = progress.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, 1],
+    outputRange: ['0%', '100%'],
   });
 
   return (
     <View style={progressStyles.container}>
       <View style={progressStyles.background}>
-        <Animated.View 
-          style={[
-            progressStyles.fill, 
-            { 
-              transform: [{ scaleX }],
-              transformOrigin: 'left',
-            }
-          ]} 
-        />
+        <Animated.View style={[progressStyles.fill, { width: widthInterpolate }]}>
+          <LinearGradient
+            colors={['#FFD700', '#00FF00']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={progressStyles.gradient}
+          />
+        </Animated.View>
       </View>
     </View>
   );
@@ -139,19 +138,20 @@ const progressStyles = StyleSheet.create({
   container: {
     flex: 1,
     height: 3,
-    marginHorizontal: 2,
   },
   background: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
     borderRadius: 2,
     overflow: 'hidden',
   },
   fill: {
-    width: '100%',
     height: '100%',
-    backgroundColor: '#fff',
+    overflow: 'hidden',
     borderRadius: 2,
+  },
+  gradient: {
+    flex: 1,
   },
 });
 
@@ -403,7 +403,7 @@ const statsStyles = StyleSheet.create({
   },
 });
 
-// Main Story Viewer Component - OPTIMIZED for Expo Go
+// Main Story Viewer Component - MATCHING PROFILE PAGE DESIGN
 function NewStoryViewer({
   visible,
   stories,
@@ -748,35 +748,45 @@ function NewStoryViewer({
             />
           </View>
 
-          {/* Progress Bars */}
-          <View style={styles.progressContainer}>
-            {stories.map((_, index) => (
-              <ProgressBar
-                key={index}
-                duration={STORY_DURATION}
-                isPaused={isPaused || !imageLoaded}
-                onComplete={handleNext}
-                isActive={index === currentIndex}
-              />
-            ))}
-          </View>
+          {/* Progress Bars - MATCHING PROFILE PAGE */}
+          <BlurView intensity={20} tint="dark" style={styles.progressContainer}>
+            <View style={styles.progressBarsWrapper}>
+              {stories.map((_, index) => (
+                <ProgressBar
+                  key={index}
+                  duration={STORY_DURATION}
+                  isPaused={isPaused || !imageLoaded}
+                  onComplete={handleNext}
+                  isActive={index === currentIndex}
+                />
+              ))}
+            </View>
+          </BlurView>
 
-          {/* Header */}
+          {/* Header - MATCHING PROFILE PAGE */}
           <BlurView intensity={30} tint="dark" style={styles.header}>
             <TouchableOpacity
               style={styles.authorInfo}
               onPress={handleNavigateToProfile}
               activeOpacity={0.7}
             >
-              {storyAuthorAvatar ? (
-                <Image source={{ uri: storyAuthorAvatar }} style={styles.avatar} />
-              ) : (
-                <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                  <Text style={styles.avatarText}>
-                    {displayName.charAt(0).toUpperCase()}
-                  </Text>
-                </View>
-              )}
+              <View style={styles.avatarWrapper}>
+                {storyAuthorAvatar ? (
+                  <Image source={{ uri: storyAuthorAvatar }} style={styles.avatar} />
+                ) : (
+                  <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                    <Text style={styles.avatarText}>
+                      {displayName.charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                )}
+                <LinearGradient
+                  colors={['rgba(255, 215, 0, 0.3)', 'rgba(0, 255, 0, 0.3)']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.avatarRing}
+                />
+              </View>
               <View style={styles.authorTextContainer}>
                 <Text style={styles.authorName}>{displayName}</Text>
                 <Text style={styles.storyTime}>
@@ -786,24 +796,39 @@ function NewStoryViewer({
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.closeButton} onPress={onClose} activeOpacity={0.7}>
-              <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color="#fff" />
+              <LinearGradient
+                colors={['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.05)']}
+                style={styles.closeButtonGradient}
+              >
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={20} color="#fff" />
+              </LinearGradient>
             </TouchableOpacity>
           </BlurView>
 
-          {/* Owner Controls */}
+          {/* Owner Controls - MATCHING PROFILE PAGE */}
           {isOwner && (
             <BlurView intensity={30} tint="dark" style={styles.ownerControls}>
               <TouchableOpacity style={styles.controlButton} onPress={handleViewStats} activeOpacity={0.7}>
-                <IconSymbol ios_icon_name="eye.fill" android_material_icon_name="visibility" size={20} color="#fff" />
-                <Text style={styles.controlText}>{currentStory.views_count || 0}</Text>
+                <LinearGradient
+                  colors={['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.05)']}
+                  style={styles.controlButtonGradient}
+                >
+                  <IconSymbol ios_icon_name="eye.fill" android_material_icon_name="visibility" size={18} color="#fff" />
+                  <Text style={styles.controlText}>{currentStory.views_count || 0}</Text>
+                </LinearGradient>
               </TouchableOpacity>
               <TouchableOpacity style={styles.controlButton} onPress={handleDelete} activeOpacity={0.7}>
-                <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={20} color="#fff" />
+                <LinearGradient
+                  colors={['rgba(239, 68, 68, 0.3)', 'rgba(239, 68, 68, 0.1)']}
+                  style={styles.controlButtonGradient}
+                >
+                  <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={18} color="#fff" />
+                </LinearGradient>
               </TouchableOpacity>
             </BlurView>
           )}
 
-          {/* Interaction Bar */}
+          {/* Interaction Bar - MATCHING PROFILE PAGE */}
           {!isOwner && (
             <BlurView intensity={30} tint="dark" style={styles.interactionBar}>
               <View style={styles.messageInputContainer}>
@@ -824,22 +849,36 @@ function NewStoryViewer({
                     activeOpacity={0.7}
                     disabled={sendingMessage}
                   >
-                    {sendingMessage ? (
-                      <ActivityIndicator size="small" color="#fff" />
-                    ) : (
-                      <IconSymbol ios_icon_name="paperplane.fill" android_material_icon_name="send" size={18} color="#fff" />
-                    )}
+                    <LinearGradient
+                      colors={[colors.primary, colors.secondary]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.sendButtonGradient}
+                    >
+                      {sendingMessage ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <IconSymbol ios_icon_name="paperplane.fill" android_material_icon_name="send" size={16} color="#fff" />
+                      )}
+                    </LinearGradient>
                   </TouchableOpacity>
                 )}
               </View>
 
               <TouchableOpacity style={styles.likeButton} onPress={handleLike} activeOpacity={0.7}>
-                <IconSymbol
-                  ios_icon_name={currentStory.liked_by_user ? 'heart.fill' : 'heart'}
-                  android_material_icon_name={currentStory.liked_by_user ? 'favorite' : 'favorite_border'}
-                  size={28}
-                  color={currentStory.liked_by_user ? '#EF4444' : '#fff'}
-                />
+                <LinearGradient
+                  colors={currentStory.liked_by_user 
+                    ? ['rgba(239, 68, 68, 0.3)', 'rgba(239, 68, 68, 0.1)']
+                    : ['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.05)']}
+                  style={styles.likeButtonGradient}
+                >
+                  <IconSymbol
+                    ios_icon_name={currentStory.liked_by_user ? 'heart.fill' : 'heart'}
+                    android_material_icon_name={currentStory.liked_by_user ? 'favorite' : 'favorite_border'}
+                    size={22}
+                    color={currentStory.liked_by_user ? '#EF4444' : '#fff'}
+                  />
+                </LinearGradient>
               </TouchableOpacity>
             </BlurView>
           )}
@@ -899,35 +938,59 @@ const styles = StyleSheet.create({
   progressContainer: {
     position: 'absolute',
     top: Platform.OS === 'ios' ? 50 : 40,
-    left: 8,
-    right: 8,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 8,
+    paddingVertical: 12,
+    zIndex: 10,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    overflow: 'hidden',
+  },
+  progressBarsWrapper: {
     flexDirection: 'row',
-    height: 3,
     gap: 4,
   },
   header: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 60 : 50,
+    top: Platform.OS === 'ios' ? 75 : 65,
     left: 0,
     right: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingVertical: 12,
+    zIndex: 10,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    overflow: 'hidden',
   },
   authorInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
   },
+  avatarWrapper: {
+    position: 'relative',
+    marginRight: 12,
+  },
   avatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    marginRight: 12,
     borderWidth: 2,
     borderColor: '#fff',
+    zIndex: 1,
+  },
+  avatarRing: {
+    position: 'absolute',
+    top: -3,
+    left: -3,
+    right: -3,
+    bottom: -3,
+    borderRadius: 23,
+    zIndex: 0,
   },
   avatarPlaceholder: {
     backgroundColor: colors.primary,
@@ -946,19 +1009,29 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: '#fff',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   storyTime: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: 'rgba(255, 255, 255, 0.85)',
     marginTop: 2,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   closeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    overflow: 'hidden',
+  },
+  closeButtonGradient: {
+    width: '100%',
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   ownerControls: {
     position: 'absolute',
@@ -966,18 +1039,22 @@ const styles = StyleSheet.create({
     left: 16,
     flexDirection: 'row',
     gap: 12,
+    zIndex: 10,
     borderRadius: 24,
-    paddingHorizontal: 12,
+    overflow: 'hidden',
+    paddingHorizontal: 8,
     paddingVertical: 8,
   },
   controlButton: {
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  controlButtonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 20,
   },
   controlText: {
     fontSize: 14,
@@ -995,17 +1072,21 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingBottom: Platform.OS === 'ios' ? 34 : 12,
     gap: 12,
+    zIndex: 10,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: 'hidden',
   },
   messageInputContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   messageInput: {
     flex: 1,
@@ -1017,7 +1098,11 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: colors.primary,
+    overflow: 'hidden',
+  },
+  sendButtonGradient: {
+    width: '100%',
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1025,11 +1110,16 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    overflow: 'hidden',
+  },
+  likeButtonGradient: {
+    width: '100%',
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 24,
   },
 });
 
