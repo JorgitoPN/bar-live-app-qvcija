@@ -85,7 +85,7 @@ const StoryItem = memo(({
             />
           ) : (
             <View style={styles.storyPlaceholder}>
-              <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={32} color={colors.textSecondary} />
+              <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={40} color={colors.textSecondary} />
             </View>
           )}
         </View>
@@ -133,11 +133,11 @@ const CreateStoryButton = memo(({
               }}
             />
           ) : (
-            <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={36} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={44} color={colors.textSecondary} />
           )}
         </View>
         <View style={styles.createAddButton}>
-          <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={28} color={colors.primary} />
+          <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={32} color={colors.primary} />
         </View>
       </View>
       <Text style={styles.createText}>Tu historia</Text>
@@ -262,18 +262,18 @@ const styles = StyleSheet.create({
   },
   createStory: {
     alignItems: 'center',
-    width: 80,
+    width: 96,
   },
   createAvatarContainer: {
-    width: 76,
-    height: 76,
+    width: 92,
+    height: 92,
     position: 'relative',
     marginBottom: 6,
   },
   createAvatarBackground: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
+    width: 92,
+    height: 92,
+    borderRadius: 46,
     backgroundColor: colors.cardBackground,
     borderWidth: 2,
     borderColor: colors.cardBorder,
@@ -289,9 +289,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
@@ -305,19 +305,19 @@ const styles = StyleSheet.create({
   },
   storyContainer: {
     alignItems: 'center',
-    width: 80,
+    width: 96,
   },
   storyGradient: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
+    width: 92,
+    height: 92,
+    borderRadius: 46,
     padding: 3,
     marginBottom: 6,
   },
   storyImageContainer: {
     width: '100%',
     height: '100%',
-    borderRadius: 35,
+    borderRadius: 43,
     overflow: 'hidden',
     borderWidth: 3,
     borderColor: colors.cardBackground,

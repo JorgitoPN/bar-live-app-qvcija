@@ -79,7 +79,7 @@ const StoryItem = memo(({
             />
           ) : (
             <View style={styles.historiaPlaceholder}>
-              <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={24} color={colors.textSecondary} />
+              <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={32} color={colors.textSecondary} />
             </View>
           )}
         </View>
@@ -105,10 +105,10 @@ const CreateStoryButton = memo(({ onPress }: { onPress: () => void }) => (
   <TouchableOpacity style={styles.crearHistoria} onPress={onPress} activeOpacity={0.7}>
     <View style={styles.avatarWithAddButton}>
       <View style={styles.avatarBackground}>
-        <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={32} color={colors.textSecondary} />
+        <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={40} color={colors.textSecondary} />
       </View>
       <View style={styles.addButtonOverlay}>
-        <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={24} color={colors.primary} />
+        <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={28} color={colors.primary} />
       </View>
     </View>
     <Text style={styles.crearText}>Tu historia</Text>
@@ -162,7 +162,7 @@ const BarraHistorias = memo(function BarraHistorias({
         decelerationRate="fast"
         // ✅ Performance optimizations
         pagingEnabled={false}
-        snapToInterval={84}
+        snapToInterval={100}
         snapToAlignment="start"
         disableIntervalMomentum={true}
       >
@@ -202,18 +202,18 @@ const styles = StyleSheet.create({
   },
   crearHistoria: {
     alignItems: 'center',
-    width: 72,
+    width: 88,
   },
   avatarWithAddButton: {
-    width: 68,
-    height: 68,
+    width: 84,
+    height: 84,
     position: 'relative',
     marginBottom: 6,
   },
   avatarBackground: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
+    width: 84,
+    height: 84,
+    borderRadius: 42,
     backgroundColor: colors.cardBackground,
     borderWidth: 2,
     borderColor: colors.cardBorder,
@@ -225,9 +225,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: colors.cardBackground,
     alignItems: 'center',
     justifyContent: 'center',
@@ -240,19 +240,19 @@ const styles = StyleSheet.create({
   },
   historiaContainer: {
     alignItems: 'center',
-    width: 72,
+    width: 88,
   },
   historiaGradient: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
+    width: 84,
+    height: 84,
+    borderRadius: 42,
     padding: 2,
     marginBottom: 6,
   },
   historiaImageContainer: {
     width: '100%',
     height: '100%',
-    borderRadius: 32,
+    borderRadius: 40,
     overflow: 'hidden',
     borderWidth: 3,
     borderColor: colors.cardBackground,
