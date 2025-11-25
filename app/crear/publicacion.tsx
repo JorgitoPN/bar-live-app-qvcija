@@ -15,6 +15,7 @@ import {
   Pressable,
   KeyboardAvoidingView,
   Dimensions,
+  Keyboard,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -115,8 +116,32 @@ export default function CrearPublicacionScreen() {
   const [tagSuggestions, setTagSuggestions] = useState<UserSuggestion[]>([]);
   const [searchingTags, setSearchingTags] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   const MAX_IMAGES = 10;
+
+  useEffect(() => {
+    const keyboardWillShowListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        console.log('[CrearPublicacion] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
+        setKeyboardHeight(e.endCoordinates.height);
+      }
+    );
+
+    const keyboardWillHideListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        console.log('[CrearPublicacion] ⌨️ Keyboard hidden');
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      keyboardWillShowListener.remove();
+      keyboardWillHideListener.remove();
+    };
+  }, []);
 
   const buscarUsuariosYLocales = useCallback(async (texto: string) => {
     const cleanTexto = texto.replace('@', '').trim();
@@ -661,11 +686,7 @@ export default function CrearPublicacionScreen() {
         </View>
       </LinearGradient>
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-      >
+      <View style={{ flex: 1 }}>
         <ScrollView 
           style={styles.content} 
           contentContainerStyle={styles.contentContainer}
@@ -699,21 +720,6 @@ export default function CrearPublicacionScreen() {
                 Escribe @ para mencionar usuarios o locales
               </Text>
             </View>
-          </View>
-
-          {/* Autocomplete Components - Positioned right after text input */}
-          <View style={styles.autocompleteWrapper}>
-            <MentionAutocomplete
-              text={contenido}
-              cursorPosition={cursorPosition}
-              onSelectMention={handleSelectInlineMention}
-            />
-
-            <HashtagAutocomplete
-              text={contenido}
-              cursorPosition={cursorPosition}
-              onSelectHashtag={handleSelectInlineHashtag}
-            />
           </View>
 
           {/* Images Preview */}
@@ -868,7 +874,30 @@ export default function CrearPublicacionScreen() {
             </View>
           </View>
         </ScrollView>
-      </KeyboardAvoidingView>
+
+        {/* Autocomplete Components - Fixed position above keyboard */}
+        <View 
+          style={[
+            styles.autocompleteContainer, 
+            { 
+              bottom: keyboardHeight > 0 ? keyboardHeight : 0,
+            }
+          ]}
+          pointerEvents="box-none"
+        >
+          <MentionAutocomplete
+            text={contenido}
+            cursorPosition={cursorPosition}
+            onSelectMention={handleSelectInlineMention}
+          />
+
+          <HashtagAutocomplete
+            text={contenido}
+            cursorPosition={cursorPosition}
+            onSelectHashtag={handleSelectInlineHashtag}
+          />
+        </View>
+      </View>
 
       {/* Tag Modal */}
       <Modal
@@ -1081,10 +1110,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     flex: 1,
   },
-  autocompleteWrapper: {
-    paddingHorizontal: 16,
-    marginTop: 12,
-    zIndex: 1000,
+  autocompleteContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    zIndex: 9999,
+    elevation: 9999,
   },
   imagesPreviewSection: {
     backgroundColor: colors.cardBackground,

@@ -8,7 +8,7 @@ import {
   Image,
   ActivityIndicator,
   Platform,
-  FlatList,
+  ScrollView,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -331,39 +331,6 @@ export default function MentionAutocomplete({
 
   console.log('[MentionAutocomplete] 🎨 Rendering - loading:', loading, 'suggestions:', suggestions.length);
 
-  const renderItem = ({ item }: { item: MentionSuggestion }) => (
-    <TouchableOpacity
-      style={styles.suggestionItem}
-      onPress={() => handleSelectMention(item)}
-      activeOpacity={0.7}
-    >
-      {item.avatar ? (
-        <Image source={{ uri: item.avatar }} style={styles.avatar} />
-      ) : (
-        <View style={[styles.avatar, styles.avatarPlaceholder]}>
-          <IconSymbol
-            name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
-            size={18}
-            color={colors.textSecondary}
-          />
-        </View>
-      )}
-      <View style={styles.suggestionInfo}>
-        <Text style={styles.suggestionUsername}>
-          {item.username || item.nombre}
-        </Text>
-        <Text style={styles.suggestionName} numberOfLines={1}>
-          {item.nombre}
-        </Text>
-      </View>
-      {item.tipo === 'local' && (
-        <View style={styles.localBadge}>
-          <IconSymbol name="building.2.fill" size={12} color={colors.primary} />
-        </View>
-      )}
-    </TouchableOpacity>
-  );
-
   return (
     <View style={[styles.container, style]} pointerEvents="auto">
       {loading ? (
@@ -372,16 +339,48 @@ export default function MentionAutocomplete({
           <Text style={styles.loadingText}>Buscando...</Text>
         </View>
       ) : suggestions.length > 0 ? (
-        <FlatList
-          data={suggestions}
-          renderItem={renderItem}
-          keyExtractor={(item, index) => `${item.id}-${item.tipo}-${index}`}
+        <ScrollView
           style={styles.list}
           contentContainerStyle={styles.listContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           bounces={false}
-        />
+          nestedScrollEnabled={true}
+        >
+          {suggestions.map((item, index) => (
+            <TouchableOpacity
+              key={`${item.id}-${item.tipo}-${index}`}
+              style={styles.suggestionItem}
+              onPress={() => handleSelectMention(item)}
+              activeOpacity={0.7}
+            >
+              {item.avatar ? (
+                <Image source={{ uri: item.avatar }} style={styles.avatar} />
+              ) : (
+                <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                  <IconSymbol
+                    name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
+                    size={18}
+                    color={colors.textSecondary}
+                  />
+                </View>
+              )}
+              <View style={styles.suggestionInfo}>
+                <Text style={styles.suggestionUsername}>
+                  {item.username || item.nombre}
+                </Text>
+                <Text style={styles.suggestionName} numberOfLines={1}>
+                  {item.nombre}
+                </Text>
+              </View>
+              {item.tipo === 'local' && (
+                <View style={styles.localBadge}>
+                  <IconSymbol name="building.2.fill" size={12} color={colors.primary} />
+                </View>
+              )}
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       ) : currentMentionText.length > 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>No se encontraron resultados</Text>

@@ -69,6 +69,11 @@ export default function HeaderSocial({
     setShowModeSelector(false);
   };
 
+  const formatBadgeCount = (count: number): string => {
+    if (count > 99) return '99+';
+    return count.toString();
+  };
+
   return (
     <>
       <LinearGradient
@@ -100,8 +105,8 @@ export default function HeaderSocial({
               <IconSymbol name="message.fill" size={24} color={colors.headerText} />
               {unreadMessages > 0 && (
                 <View style={styles.badge}>
-                  <Text style={styles.badgeText}>
-                    {unreadMessages > 99 ? '99+' : unreadMessages}
+                  <Text style={styles.badgeText} numberOfLines={1}>
+                    {formatBadgeCount(unreadMessages)}
                   </Text>
                 </View>
               )}
@@ -115,8 +120,8 @@ export default function HeaderSocial({
               <IconSymbol name="bell.fill" size={24} color={colors.headerText} />
               {unreadNotifications > 0 && (
                 <View style={styles.badge}>
-                  <Text style={styles.badgeText}>
-                    {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                  <Text style={styles.badgeText} numberOfLines={1}>
+                    {formatBadgeCount(unreadNotifications)}
                   </Text>
                 </View>
               )}
@@ -258,22 +263,25 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: 'absolute',
-    top: 0,
-    right: 0,
+    top: -2,
+    right: -4,
     backgroundColor: '#EF4444',
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
+    borderRadius: 12,
+    minWidth: 22,
+    height: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 5,
+    paddingHorizontal: 6,
     borderWidth: 2,
     borderColor: colors.headerGradientStart,
   },
   badgeText: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: 'bold',
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+    textAlign: 'center',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   modalOverlay: {
     flex: 1,
