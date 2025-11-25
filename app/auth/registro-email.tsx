@@ -108,18 +108,27 @@ export default function RegistroEmailScreen() {
         return;
       }
 
-      // TODO: Send OTP via email using Edge Function
-      // For now, we'll show it in an alert (development only)
-      console.log('OTP Code:', otp);
-      
-      // In production, you would call an Edge Function to send the email
-      // await supabase.functions.invoke('send-verification-email', {
-      //   body: { email: email.toLowerCase(), code: otp }
-      // });
+      // Send OTP via email using Edge Function
+      console.log('[Registration] Sending verification email...');
+      const { error: emailError } = await supabase.functions.invoke('send-verification-email', {
+        body: { 
+          email: email.toLowerCase(), 
+          code: otp,
+          nombre: email.split('@')[0]
+        }
+      });
+
+      if (emailError) {
+        console.error('[Registration] Error sending email:', emailError);
+        // Don't block the flow if email fails, user can still verify
+        console.log('[Registration] Email send failed, but continuing with flow. OTP:', otp);
+      } else {
+        console.log('[Registration] Verification email sent successfully');
+      }
 
       Alert.alert(
         'Código enviado',
-        `Hemos enviado un código de verificación a ${email}. (Desarrollo: ${otp})`,
+        `Hemos enviado un código de verificación a ${email}. Por favor, revisa tu bandeja de entrada y spam.${__DEV__ ? `\n\n(Desarrollo: ${otp})` : ''}`,
         [
           {
             text: 'OK',

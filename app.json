@@ -1,3 +1,4 @@
+
 {
   "expo": {
     "name": "BarLive",
@@ -18,7 +19,8 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSUserTrackingUsageDescription": "Esta app necesita tu permiso para enviarte notificaciones sobre eventos, ofertas y actividad social.",
-        "NSLocationWhenInUseUsageDescription": "BarLive necesita tu ubicaci\u00f3n para mostrarte locales cercanos.",
+        "NSLocationWhenInUseUsageDescription": "BarLive necesita tu ubicación para mostrarte locales cercanos.",
+        "NSFaceIDUsageDescription": "BarLive usa Face ID para permitirte iniciar sesión de forma rápida y segura.",
         "CFBundleURLTypes": [
           {
             "CFBundleURLSchemes": [
@@ -42,7 +44,9 @@
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE",
-        "android.permission.INTERNET"
+        "android.permission.INTERNET",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
       ],
       "useNextNotificationsApi": true,
       "intentFilters": [
@@ -80,6 +84,12 @@
       "expo-font",
       "expo-router",
       "expo-web-browser",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "BarLive usa Face ID para permitirte iniciar sesión de forma rápida y segura."
+        }
+      ],
       [
         "expo-notifications",
         {

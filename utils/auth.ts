@@ -201,7 +201,10 @@ export const signInWithBarLive = async (
   password: string
 ): Promise<{ user: AuthUser | null; error: string | null }> => {
   try {
-    console.log('[Auth] Iniciando sesión con BarLive:', email);
+    console.log('[Auth] ========================================');
+    console.log('[Auth] Iniciando sesión con BarLive');
+    console.log('[Auth] Email:', email);
+    console.log('[Auth] ========================================');
     
     if (!isSupabaseConfigured()) {
       console.log('[Auth] Supabase no configurado, usando modo simulado');
@@ -217,38 +220,105 @@ export const signInWithBarLive = async (
       return { user: mockUser, error: null };
     }
 
+    // Normalize email: trim whitespace and convert to lowercase
+    const normalizedEmail = email.toLowerCase().trim();
+    console.log('[Auth] Email normalizado:', normalizedEmail);
+
     // Sign in with Supabase Auth
+    console.log('[Auth] Llamando a supabase.auth.signInWithPassword...');
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email,
+      email: normalizedEmail,
       password,
     });
 
     if (authError) {
-      console.error('[Auth] Error en signin:', authError);
-      return { user: null, error: 'Email o contraseña incorrectos' };
+      console.error('[Auth] ❌ Error en signin:', authError);
+      console.error('[Auth] Error code:', authError.status);
+      console.error('[Auth] Error message:', authError.message);
+      
+      // Provide more specific and user-friendly error messages
+      if (authError.message.includes('Invalid login credentials') || 
+          authError.message.includes('Invalid') ||
+          authError.status === 400) {
+        return { 
+          user: null, 
+          error: 'Email o contraseña incorrectos.\n\nPor favor, verifica:\n- Que el email esté escrito correctamente\n- Que la contraseña sea correcta\n- Que hayas verificado tu email' 
+        };
+      } else if (authError.message.includes('Email not confirmed')) {
+        return { 
+          user: null, 
+          error: 'Por favor, verifica tu correo electrónico antes de iniciar sesión.\n\nRevisa tu bandeja de entrada y haz clic en el enlace de verificación.' 
+        };
+      } else if (authError.message.includes('User not found')) {
+        return { 
+          user: null, 
+          error: 'No existe una cuenta con este correo electrónico.\n\n¿Quieres crear una cuenta nueva?' 
+        };
+      } else if (authError.message.includes('Too many requests')) {
+        return { 
+          user: null, 
+          error: 'Demasiados intentos de inicio de sesión.\n\nPor favor, espera unos minutos e intenta nuevamente.' 
+        };
+      }
+      
+      return { user: null, error: authError.message };
     }
 
     if (!authData.user) {
-      return { user: null, error: 'No se pudo iniciar sesión' };
+      console.error('[Auth] ❌ No se obtuvo usuario de la respuesta');
+      return { user: null, error: 'No se pudo iniciar sesión. Por favor, intenta nuevamente.' };
     }
 
-    console.log('[Auth] Sesión iniciada en Auth:', authData.user.id);
+    console.log('[Auth] ✅ Sesión iniciada en Auth');
+    console.log('[Auth] User ID:', authData.user.id);
+    console.log('[Auth] Email confirmado:', authData.user.email_confirmed_at ? 'Sí' : 'No');
 
     // Get user profile from database
+    console.log('[Auth] Obteniendo perfil de usuario...');
     const { data: profileData, error: profileError } = await supabase
       .from('usuarios')
       .select('*')
       .eq('id', authData.user.id)
       .maybeSingle();
 
-    if (profileError || !profileData) {
-      console.error('[Auth] Error obteniendo perfil:', profileError);
-      return { user: null, error: 'No se pudo obtener el perfil de usuario' };
+    if (profileError) {
+      console.error('[Auth] ❌ Error obteniendo perfil:', profileError);
+      return { user: null, error: 'No se pudo obtener el perfil de usuario. Por favor, intenta nuevamente.' };
+    }
+
+    if (!profileData) {
+      console.log('[Auth] ⚠️ Perfil no encontrado, intentando crear...');
+      // Try to create profile if it doesn't exist
+      const createResult = await createUserProfileManually(
+        authData.user.id,
+        authData.user.email || normalizedEmail,
+        authData.user.user_metadata?.nombre || normalizedEmail.split('@')[0],
+        authData.user.user_metadata?.avatar,
+        'barlive'
+      );
+      
+      if (!createResult.success || !createResult.profile) {
+        console.error('[Auth] ❌ No se pudo crear el perfil');
+        return { user: null, error: 'No se pudo crear el perfil de usuario. Por favor, contacta con soporte.' };
+      }
+      
+      const user: AuthUser = {
+        id: authData.user.id,
+        email: authData.user.email || normalizedEmail,
+        nombre: createResult.profile.nombre || 'Usuario',
+        avatar: createResult.profile.avatar,
+        rol_app: createResult.profile.rol_app || 'cliente',
+        provider: 'barlive',
+        ha_visto_mensaje_propietario: createResult.profile.ha_visto_mensaje_propietario || false,
+      };
+
+      console.log('[Auth] ✅ Inicio de sesión completado (perfil creado)');
+      return { user, error: null };
     }
 
     const user: AuthUser = {
       id: authData.user.id,
-      email: authData.user.email || email,
+      email: authData.user.email || normalizedEmail,
       nombre: profileData.nombre || 'Usuario',
       avatar: profileData.avatar,
       rol_app: profileData.rol_app || 'cliente',
@@ -256,11 +326,17 @@ export const signInWithBarLive = async (
       ha_visto_mensaje_propietario: profileData.ha_visto_mensaje_propietario || false,
     };
 
-    console.log('[Auth] Inicio de sesión completado exitosamente');
+    console.log('[Auth] ✅ Inicio de sesión completado exitosamente');
+    console.log('[Auth] Usuario:', user.nombre);
+    console.log('[Auth] ========================================');
     return { user, error: null };
   } catch (error: any) {
-    console.error('[Auth] Error en signInWithBarLive:', error);
-    return { user: null, error: error.message || 'Error desconocido' };
+    console.error('[Auth] ❌ Excepción en signInWithBarLive:', error);
+    console.error('[Auth] Error stack:', error.stack);
+    return { 
+      user: null, 
+      error: 'Error inesperado al iniciar sesión.\n\nPor favor, verifica tu conexión a internet e intenta nuevamente.' 
+    };
   }
 };
 
