@@ -1,227 +1,123 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Platform,
   ActivityIndicator,
-  Alert,
   Dimensions,
+  Alert,
+  RefreshControl,
+  Modal,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
+import { IconSymbol } from '@/components/IconSymbol';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { colors } from '@/styles/commonStyles';
-import { IconSymbol } from '@/components/IconSymbol';
-import { LinearGradient } from 'expo-linear-gradient';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 interface AnalyticsData {
-  views: number;
-  likes: number;
-  comments: number;
-  shares: number;
-  followers: number;
-  engagement_rate: number;
-  top_posts: any[];
-  demographics: any;
+  local: {
+    id: string;
+    nombre: string;
+    imagen_url?: string;
+    seguidores: number;
+    check_ins: number;
+    rating: number;
+    tipo: string;
+    provincia: string;
+  };
+  subscription: {
+    plan_nombre: string;
+    plan_precio: number;
+  };
+  stats: {
+    total_views: number;
+    total_likes: number;
+    total_comments: number;
+    total_shares: number;
+    total_stories: number;
+    total_posts: number;
+    total_eventos: number;
+    engagement_rate: number;
+    nuevos_seguidores: number;
+    reach: number;
+    total_profile_views?: number;
+    total_map_views?: number;
+    total_search_appearances?: number;
+    total_event_interactions?: number;
+  };
+  timeSeriesData: {
+    date: string;
+    views: number;
+    interactions: number;
+    engagement_rate: number;
+  }[];
+  topContent: {
+    id: string;
+    tipo: string;
+    contenido: string;
+    imagen?: string;
+    likes: number;
+    comentarios: number;
+    created_at: string;
+  }[];
+  bestPostingTimes: {
+    hour: number;
+    avgEngagement: number;
+  }[];
+  bestDays: {
+    day: number;
+    avgEngagement: number;
+  }[];
 }
 
-interface Recommendation {
+interface AIRecommendation {
   id: string;
-  local_id: string;
   tipo: string;
   titulo: string;
   descripcion: string;
-  prioridad: 'alta' | 'media' | 'baja';
+  prioridad: 'baja' | 'media' | 'alta' | 'urgente';
+  datos_soporte: any;
+  acciones_sugeridas: string[];
+  impacto_estimado: string;
+  confianza: number;
+  estado: string;
   created_at: string;
-  aplicada: boolean;
 }
 
 export default function PanelAnalisisScreen() {
-  const params = useLocalSearchParams();
   const router = useRouter();
   const { user } = useAuth();
+  const { localId } = useLocalSearchParams();
 
-  const localId = params.id as string;
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
-  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+  const [recommendations, setRecommendations] = useState<AIRecommendation[]>([]);
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('30d');
   const [generatingRecommendations, setGeneratingRecommendations] = useState(false);
+  const [selectedRecommendation, setSelectedRecommendation] = useState<AIRecommendation | null>(null);
+  const [showRecommendationModal, setShowRecommendationModal] = useState(false);
 
-  // ✅ FIXED: Wrapped loadAnalyticsData in useCallback with proper dependencies
-  const loadAnalyticsData = useCallback(async () => {
-    if (!localId) {
-      console.log('[PanelAnalisis] No local ID provided');
-      return;
-    }
+  const loadAnalyticsDataRef = useRef(loadAnalyticsData);
+  const loadRecommendationsRef = useRef(loadRecommendations);
+  const checkAndGenerateRecommendationsRef = useRef(checkAndGenerateRecommendations);
 
-    setLoading(true);
-    try {
-      const daysAgo = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : 90;
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - daysAgo);
+  useEffect(() => {
+    loadAnalyticsDataRef.current = loadAnalyticsData;
+    loadRecommendationsRef.current = loadRecommendations;
+    checkAndGenerateRecommendationsRef.current = checkAndGenerateRecommendations;
+  }, [loadAnalyticsData, loadRecommendations, checkAndGenerateRecommendations]);
 
-      const [postsResult, likesResult, commentsResult, followersResult] = await Promise.all([
-        supabase
-          .from('publicaciones')
-          .select('id, likes, created_at')
-          .eq('local_id', localId)
-          .gte('created_at', startDate.toISOString()),
-        supabase
-          .from('likes')
-          .select('id')
-          .eq('local_id', localId)
-          .gte('created_at', startDate.toISOString()),
-        supabase
-          .from('comentarios')
-          .select('id')
-          .eq('local_id', localId)
-          .gte('created_at', startDate.toISOString()),
-        supabase
-          .from('locales_favoritos')
-          .select('id')
-          .eq('local_id', localId),
-      ]);
-
-      const posts = postsResult.data || [];
-      const totalViews = posts.reduce((sum, post) => sum + (post.views || 0), 0);
-      const totalLikes = likesResult.data?.length || 0;
-      const totalComments = commentsResult.data?.length || 0;
-      const totalFollowers = followersResult.data?.length || 0;
-
-      const engagementRate = posts.length > 0
-        ? ((totalLikes + totalComments) / (totalViews || 1)) * 100
-        : 0;
-
-      const topPosts = posts
-        .sort((a, b) => (b.likes || 0) - (a.likes || 0))
-        .slice(0, 5);
-
-      setAnalyticsData({
-        views: totalViews,
-        likes: totalLikes,
-        comments: totalComments,
-        shares: 0,
-        followers: totalFollowers,
-        engagement_rate: engagementRate,
-        top_posts: topPosts,
-        demographics: {},
-      });
-
-      console.log('[PanelAnalisis] Analytics loaded:', {
-        views: totalViews,
-        likes: totalLikes,
-        comments: totalComments,
-        followers: totalFollowers,
-      });
-    } catch (error) {
-      console.error('[PanelAnalisis] Error loading analytics:', error);
-      Alert.alert('Error', 'No se pudieron cargar las analíticas');
-    } finally {
-      setLoading(false);
-    }
-  }, [localId, timeRange]);
-
-  // ✅ FIXED: Wrapped loadRecommendations in useCallback with proper dependencies
-  const loadRecommendations = useCallback(async () => {
-    if (!localId) {
-      console.log('[PanelAnalisis] No local ID provided');
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('recomendaciones_ia')
-        .select('*')
-        .eq('local_id', localId)
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      if (error) {
-        console.error('[PanelAnalisis] Error loading recommendations:', error);
-        return;
-      }
-
-      console.log('[PanelAnalisis] Recommendations loaded:', data?.length || 0);
-      setRecommendations(data || []);
-    } catch (error) {
-      console.error('[PanelAnalisis] Error:', error);
-    }
-  }, [localId]);
-
-  // ✅ FIXED: Wrapped generateRecommendations in useCallback
-  const generateRecommendations = useCallback(async () => {
-    if (!localId || !user) {
-      Alert.alert('Error', 'No se puede generar recomendaciones');
-      return;
-    }
-
-    setGeneratingRecommendations(true);
-
-    try {
-      console.log('[PanelAnalisis] Calling Edge Function to generate recommendations...');
-
-      const { data, error } = await supabase.functions.invoke('generate-analytics-recommendations', {
-        body: {
-          local_id: localId,
-          user_id: user.id,
-        },
-      });
-
-      if (error) {
-        console.error('[PanelAnalisis] Error generating recommendations:', error);
-        Alert.alert('Error', 'No se pudieron generar las recomendaciones');
-        return;
-      }
-
-      console.log('[PanelAnalisis] Recommendations generated:', data);
-      Alert.alert('Éxito', 'Recomendaciones generadas correctamente');
-      await loadRecommendations();
-    } catch (error) {
-      console.error('[PanelAnalisis] Error:', error);
-      Alert.alert('Error', 'Ocurrió un error al generar las recomendaciones');
-    } finally {
-      setGeneratingRecommendations(false);
-    }
-  }, [localId, user, loadRecommendations]);
-
-  // ✅ FIXED: Wrapped checkAndGenerateRecommendations in useCallback with proper dependencies
-  const checkAndGenerateRecommendations = useCallback(async () => {
-    if (!localId) {
-      console.log('[PanelAnalisis] No local ID provided');
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('recomendaciones_ia')
-        .select('id')
-        .eq('local_id', localId)
-        .order('created_at', { ascending: false })
-        .limit(1);
-
-      if (error) {
-        console.error('[PanelAnalisis] Error checking recommendations:', error);
-        return;
-      }
-
-      if (!data || data.length === 0) {
-        console.log('[PanelAnalisis] No recommendations found, generating...');
-        await generateRecommendations();
-      } else {
-        console.log('[PanelAnalisis] Recommendations already exist');
-      }
-    } catch (error) {
-      console.error('[PanelAnalisis] Error:', error);
-    }
-  }, [localId, generateRecommendations]);
-
-  // ✅ FIXED: Added all dependencies to useEffect
+  // ✅ AUTO-REFRESH: Load data and recommendations automatically when user accesses the page
   useEffect(() => {
     if (!localId) {
       Alert.alert('Error', 'No se especificó el local');
@@ -230,198 +126,920 @@ export default function PanelAnalisisScreen() {
     }
 
     console.log('[PanelAnalisis] 🔄 Auto-loading analytics and recommendations on page access');
-    loadAnalyticsData();
-    loadRecommendations();
-    checkAndGenerateRecommendations();
+    loadAnalyticsDataRef.current();
+    loadRecommendationsRef.current();
+    // ✅ AUTO-GENERATE: If no recommendations exist, generate them automatically
+    checkAndGenerateRecommendationsRef.current();
 
-    const subscription = supabase
-      .channel('recomendaciones_changes')
+    // Real-time synchronization for analytics
+    console.log('[PanelAnalisis] 🔄 Setting up real-time subscriptions for local:', localId);
+
+    const postsChannel = supabase
+      .channel(`analytics-posts-${localId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'recomendaciones_ia',
+          table: 'posts',
           filter: `local_id=eq.${localId}`,
         },
         (payload) => {
-          console.log('[PanelAnalisis] Recommendations changed:', payload);
-          loadRecommendations();
+          console.log('[PanelAnalisis] 📊 Posts changed, reloading analytics');
+          loadAnalyticsData();
+        }
+      )
+      .subscribe();
+
+    const storiesChannel = supabase
+      .channel(`analytics-stories-${localId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'historias',
+          filter: `local_id=eq.${localId}`,
+        },
+        (payload) => {
+          console.log('[PanelAnalisis] 📊 Stories changed, reloading analytics');
+          loadAnalyticsData();
+        }
+      )
+      .subscribe();
+
+    const eventsChannel = supabase
+      .channel(`analytics-events-${localId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'eventos',
+          filter: `local_id=eq.${localId}`,
+        },
+        (payload) => {
+          console.log('[PanelAnalisis] 📊 Events changed, reloading analytics');
+          loadAnalyticsData();
+        }
+      )
+      .subscribe();
+
+    const followersChannel = supabase
+      .channel(`analytics-followers-${localId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'locales_favoritos',
+          filter: `local_id=eq.${localId}`,
+        },
+        (payload) => {
+          console.log('[PanelAnalisis] 📊 Followers changed, reloading analytics');
+          loadAnalyticsData();
+        }
+      )
+      .subscribe();
+
+    const checkInsChannel = supabase
+      .channel(`analytics-checkins-${localId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'check_ins',
+          filter: `local_id=eq.${localId}`,
+        },
+        (payload) => {
+          console.log('[PanelAnalisis] 📊 Check-ins changed, reloading analytics');
+          loadAnalyticsData();
         }
       )
       .subscribe();
 
     return () => {
-      subscription.unsubscribe();
+      console.log('[PanelAnalisis] 🧹 Cleaning up real-time subscriptions');
+      supabase.removeChannel(postsChannel);
+      supabase.removeChannel(storiesChannel);
+      supabase.removeChannel(eventsChannel);
+      supabase.removeChannel(followersChannel);
+      supabase.removeChannel(checkInsChannel);
     };
-  }, [localId, timeRange, loadAnalyticsData, loadRecommendations, checkAndGenerateRecommendations, router]);
+  }, [localId, timeRange]);
 
-  const handleMarkAsApplied = async (recommendationId: string) => {
+  const loadAnalyticsData = async () => {
+    if (!localId || !user) return;
+
     try {
-      const { error } = await supabase
-        .from('recomendaciones_ia')
-        .update({ aplicada: true })
-        .eq('id', recommendationId);
+      setLoading(true);
+      console.log('[PanelAnalisis] Loading analytics for local:', localId);
 
-      if (error) {
-        console.error('[PanelAnalisis] Error marking as applied:', error);
-        Alert.alert('Error', 'No se pudo marcar como aplicada');
+      // 1. Verify local ownership
+      const { data: localData, error: localError } = await supabase
+        .from('locales')
+        .select('id, nombre, imagen_url, propietario_id, seguidores, check_ins, rating, tipo, provincia')
+        .eq('id', localId)
+        .single();
+
+      if (localError || !localData) {
+        throw new Error('Local no encontrado');
+      }
+
+      if (localData.propietario_id !== user.id) {
+        Alert.alert('Acceso Denegado', 'No tienes permiso para ver las analíticas de este local');
+        router.back();
         return;
       }
 
-      await loadRecommendations();
-      Alert.alert('Éxito', 'Recomendación marcada como aplicada');
-    } catch (error) {
-      console.error('[PanelAnalisis] Error:', error);
-      Alert.alert('Error', 'Ocurrió un error');
+      // 2. Verify Premium subscription
+      console.log('[PanelAnalisis] Checking subscription for local:', localId);
+      
+      const { data: subscriptionData, error: subError } = await supabase
+        .from('suscripciones_locales')
+        .select('id, plan_id, estado')
+        .eq('local_id', localId)
+        .eq('estado', 'activa')
+        .maybeSingle();
+
+      console.log('[PanelAnalisis] Subscription query result:', { subscriptionData, subError });
+
+      if (subError) {
+        console.error('[PanelAnalisis] Subscription query error:', subError);
+        Alert.alert(
+          'Error',
+          'No se pudo verificar tu plan de suscripción. Intenta de nuevo.',
+          [{ text: 'OK', onPress: () => router.back() }]
+        );
+        return;
+      }
+
+      if (!subscriptionData) {
+        console.log('[PanelAnalisis] No active subscription found');
+        Alert.alert(
+          'Plan Requerido',
+          'Necesitas un plan activo para acceder al panel de análisis.',
+          [
+            { text: 'Cancelar', style: 'cancel', onPress: () => router.back() },
+            {
+              text: 'Ver Planes',
+              onPress: () => router.push(`/gestion/planes-suscripcion?localId=${localId}`),
+            },
+          ]
+        );
+        return;
+      }
+
+      const { data: planData, error: planError } = await supabase
+        .from('planes_suscripcion')
+        .select('nombre, precio_mensual, panel_analisis')
+        .eq('id', subscriptionData.plan_id)
+        .single();
+
+      console.log('[PanelAnalisis] Plan data:', planData);
+
+      if (planError || !planData) {
+        console.error('[PanelAnalisis] Plan query error:', planError);
+        Alert.alert(
+          'Error de Configuración',
+          'Tu suscripción no tiene un plan asociado. Contacta con soporte.',
+          [{ text: 'OK', onPress: () => router.back() }]
+        );
+        return;
+      }
+
+      if (!planData.panel_analisis) {
+        console.log('[PanelAnalisis] Plan does not have analytics access:', planData.nombre);
+        Alert.alert(
+          'Plan Premium Requerido',
+          `Tu plan actual (${planData.nombre.toUpperCase()}) no incluye acceso al panel de análisis.\n\nActualiza a Premium para acceder a estadísticas detalladas y recomendaciones de IA.`,
+          [
+            { text: 'Cancelar', style: 'cancel', onPress: () => router.back() },
+            {
+              text: 'Actualizar Plan',
+              onPress: () => router.push(`/gestion/planes-suscripcion?localId=${localId}`),
+            },
+          ]
+        );
+        return;
+      }
+
+      console.log('[PanelAnalisis] Access granted! Loading analytics data...');
+
+      // 3. Load analytics data
+      const daysAgo = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : 90;
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - daysAgo);
+
+      const { data: postsData } = await supabase
+        .from('posts')
+        .select('id, likes, comentarios, created_at, contenido, imagen')
+        .eq('local_id', localId)
+        .gte('created_at', startDate.toISOString())
+        .order('likes', { ascending: false });
+
+      const { data: storiesData } = await supabase
+        .from('historias')
+        .select('id, created_at')
+        .eq('local_id', localId)
+        .gte('created_at', startDate.toISOString());
+
+      const { data: storyViewsData } = await supabase
+        .from('historia_views')
+        .select('historia_id, viewed_at')
+        .in(
+          'historia_id',
+          storiesData?.map((s) => s.id) || []
+        );
+
+      const { data: storyLikesData } = await supabase
+        .from('historia_likes')
+        .select('historia_id, created_at')
+        .in(
+          'historia_id',
+          storiesData?.map((s) => s.id) || []
+        );
+
+      const { data: eventosData } = await supabase
+        .from('eventos')
+        .select('id, titulo, fecha, entradas_vendidas, entradas_totales')
+        .eq('local_id', localId)
+        .gte('created_at', startDate.toISOString());
+
+      const { data: checkInsData } = await supabase
+        .from('check_ins')
+        .select('id, created_at, usuario_id')
+        .eq('local_id', localId)
+        .gte('created_at', startDate.toISOString());
+
+      const { data: newFollowersData } = await supabase
+        .from('locales_favoritos')
+        .select('created_at')
+        .eq('local_id', localId)
+        .gte('created_at', startDate.toISOString());
+
+      const { data: profileViewsData } = await supabase
+        .from('profile_views')
+        .select('id, created_at')
+        .eq('local_id', localId)
+        .gte('created_at', startDate.toISOString());
+
+      const { data: mapViewsData } = await supabase
+        .from('map_interactions')
+        .select('id, created_at')
+        .eq('local_id', localId)
+        .gte('created_at', startDate.toISOString());
+
+      const { data: searchAppearancesData } = await supabase
+        .from('search_results')
+        .select('id, created_at')
+        .eq('local_id', localId)
+        .gte('created_at', startDate.toISOString());
+
+      const { data: eventInteractionsData } = await supabase
+        .from('evento_interacciones')
+        .select('id, created_at, tipo')
+        .eq('local_id', localId)
+        .gte('created_at', startDate.toISOString());
+
+      const totalPosts = postsData?.length || 0;
+      const totalStories = storiesData?.length || 0;
+      const totalLikes = (postsData?.reduce((sum, p) => sum + (p.likes || 0), 0) || 0) + (storyLikesData?.length || 0);
+      const totalComments = postsData?.reduce((sum, p) => sum + (p.comentarios || 0), 0) || 0;
+      const totalViews = (storyViewsData?.length || 0) + (checkInsData?.length || 0);
+      const totalEventos = eventosData?.length || 0;
+      const nuevosSeguidores = newFollowersData?.length || 0;
+
+      const totalProfileViews = profileViewsData?.length || 0;
+      const totalMapViews = mapViewsData?.length || 0;
+      const totalSearchAppearances = searchAppearancesData?.length || 0;
+      const totalEventInteractions = eventInteractionsData?.length || 0;
+
+      const totalReach = totalViews + totalProfileViews + totalMapViews + totalSearchAppearances;
+      
+      const totalInteractions = totalLikes + totalComments + totalEventInteractions;
+      const engagementRate = totalPosts + totalStories > 0 ? ((totalInteractions / (totalPosts + totalStories)) * 100) : 0;
+
+      const timeSeriesMap = new Map<string, { views: number; interactions: number }>();
+      
+      checkInsData?.forEach((checkIn) => {
+        const date = new Date(checkIn.created_at).toISOString().split('T')[0];
+        const existing = timeSeriesMap.get(date) || { views: 0, interactions: 0 };
+        timeSeriesMap.set(date, { ...existing, views: existing.views + 1 });
+      });
+
+      storyViewsData?.forEach((view) => {
+        const date = new Date(view.viewed_at).toISOString().split('T')[0];
+        const existing = timeSeriesMap.get(date) || { views: 0, interactions: 0 };
+        timeSeriesMap.set(date, { ...existing, views: existing.views + 1 });
+      });
+
+      postsData?.forEach((post) => {
+        const date = new Date(post.created_at).toISOString().split('T')[0];
+        const existing = timeSeriesMap.get(date) || { views: 0, interactions: 0 };
+        timeSeriesMap.set(date, {
+          ...existing,
+          interactions: existing.interactions + (post.likes || 0) + (post.comentarios || 0),
+        });
+      });
+
+      const timeSeriesData = Array.from(timeSeriesMap.entries())
+        .map(([date, data]) => ({
+          date,
+          ...data,
+          engagement_rate: data.views > 0 ? (data.interactions / data.views) * 100 : 0,
+        }))
+        .sort((a, b) => a.date.localeCompare(b.date));
+
+      const topContent = postsData?.slice(0, 5).map((post) => ({
+        id: post.id,
+        tipo: 'post',
+        contenido: post.contenido || '',
+        imagen: post.imagen,
+        likes: post.likes || 0,
+        comentarios: post.comentarios || 0,
+        created_at: post.created_at,
+      })) || [];
+
+      const postsByHour = new Map<number, { count: number; engagement: number }>();
+      postsData?.forEach((post) => {
+        const hour = new Date(post.created_at).getHours();
+        const engagement = (post.likes || 0) + (post.comentarios || 0);
+        const existing = postsByHour.get(hour) || { count: 0, engagement: 0 };
+        postsByHour.set(hour, {
+          count: existing.count + 1,
+          engagement: existing.engagement + engagement,
+        });
+      });
+
+      const bestPostingTimes = Array.from(postsByHour.entries())
+        .map(([hour, data]) => ({
+          hour,
+          avgEngagement: data.engagement / data.count,
+        }))
+        .sort((a, b) => b.avgEngagement - a.avgEngagement)
+        .slice(0, 3);
+
+      const postsByDay = new Map<number, { count: number; engagement: number }>();
+      postsData?.forEach((post) => {
+        const day = new Date(post.created_at).getDay();
+        const engagement = (post.likes || 0) + (post.comentarios || 0);
+        const existing = postsByDay.get(day) || { count: 0, engagement: 0 };
+        postsByDay.set(day, {
+          count: existing.count + 1,
+          engagement: existing.engagement + engagement,
+        });
+      });
+
+      const bestDays = Array.from(postsByDay.entries())
+        .map(([day, data]) => ({
+          day,
+          avgEngagement: data.engagement / data.count,
+        }))
+        .sort((a, b) => b.avgEngagement - a.avgEngagement)
+        .slice(0, 3);
+
+      setAnalyticsData({
+        local: localData,
+        subscription: {
+          plan_nombre: planData.nombre,
+          plan_precio: planData.precio_mensual,
+        },
+        stats: {
+          total_views: totalViews,
+          total_likes: totalLikes,
+          total_comments: totalComments,
+          total_shares: 0,
+          total_stories: totalStories,
+          total_posts: totalPosts,
+          total_eventos: totalEventos,
+          engagement_rate: engagementRate,
+          nuevos_seguidores: nuevosSeguidores,
+          reach: totalReach,
+          total_profile_views: totalProfileViews,
+          total_map_views: totalMapViews,
+          total_search_appearances: totalSearchAppearances,
+          total_event_interactions: totalEventInteractions,
+        },
+        timeSeriesData,
+        topContent,
+        bestPostingTimes,
+        bestDays,
+      });
+
+      console.log('[PanelAnalisis] Analytics loaded successfully');
+    } catch (error: any) {
+      console.error('[PanelAnalisis] Error loading analytics:', error);
+      Alert.alert('Error', error.message || 'No se pudieron cargar las analíticas');
+      router.back();
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'alta':
-        return colors.error;
-      case 'media':
-        return colors.warning;
-      case 'baja':
-        return colors.success;
-      default:
-        return colors.textSecondary;
+  const loadRecommendations = async () => {
+    if (!localId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('ai_recommendations')
+        .select('*')
+        .eq('local_id', localId)
+        .eq('estado', 'activa')
+        .order('prioridad', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('[PanelAnalisis] Error loading recommendations:', error);
+        return;
+      }
+
+      setRecommendations(data || []);
+    } catch (error) {
+      console.error('[PanelAnalisis] Error:', error);
     }
+  };
+
+  // ✅ AUTO-GENERATE: Check if recommendations exist, if not, generate them automatically
+  const checkAndGenerateRecommendations = async () => {
+    if (!localId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('ai_recommendations')
+        .select('id')
+        .eq('local_id', localId)
+        .eq('estado', 'activa')
+        .limit(1);
+
+      if (error) {
+        console.error('[PanelAnalisis] Error checking recommendations:', error);
+        return;
+      }
+
+      // If no recommendations exist, generate them automatically
+      if (!data || data.length === 0) {
+        console.log('[PanelAnalisis] 🤖 No recommendations found, auto-generating...');
+        await generateRecommendations();
+      }
+    } catch (error) {
+      console.error('[PanelAnalisis] Error checking recommendations:', error);
+    }
+  };
+
+  const generateRecommendations = async () => {
+    if (!localId || generatingRecommendations) return;
+
+    try {
+      setGeneratingRecommendations(true);
+
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        console.error('[PanelAnalisis] Session error:', sessionError);
+        throw new Error('No se pudo obtener la sesión. Por favor, inicia sesión de nuevo.');
+      }
+
+      console.log('[PanelAnalisis] Making request with fresh token');
+
+      const response = await fetch(
+        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/generate-analytics-recommendations`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ localId }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        console.error('[PanelAnalisis] Edge Function error:', result);
+        throw new Error(result.error || 'Error al generar recomendaciones');
+      }
+
+      console.log('[PanelAnalisis] Recommendations generated:', result);
+
+      await loadRecommendations();
+    } catch (error: any) {
+      console.error('[PanelAnalisis] Error generating recommendations:', error);
+      // Don't show alert for auto-generation failures
+    } finally {
+      setGeneratingRecommendations(false);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadAnalyticsData();
+    await loadRecommendations();
+  };
+
+  const getPriorityColor = (prioridad: string) => {
+    switch (prioridad) {
+      case 'urgente':
+        return '#EF4444';
+      case 'alta':
+        return '#F59E0B';
+      case 'media':
+        return '#3B82F6';
+      default:
+        return '#10B981';
+    }
+  };
+
+  const getPriorityIcon = (prioridad: string) => {
+    switch (prioridad) {
+      case 'urgente':
+        return 'exclamationmark.triangle.fill';
+      case 'alta':
+        return 'exclamationmark.circle.fill';
+      case 'media':
+        return 'info.circle.fill';
+      default:
+        return 'checkmark.circle.fill';
+    }
+  };
+
+  const openRecommendationModal = (recommendation: AIRecommendation) => {
+    setSelectedRecommendation(recommendation);
+    setShowRecommendationModal(true);
   };
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Cargando analíticas...</Text>
       </View>
     );
   }
 
+  if (!analyticsData) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
+        <IconSymbol name="exclamationmark.triangle" size={64} color={colors.textSecondary} />
+        <Text style={[styles.loadingText, { marginTop: 16, textAlign: 'center' }]}>
+          No se pudieron cargar las analíticas
+        </Text>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Text style={styles.backButtonText}>Volver</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Panel de Análisis</Text>
-      </View>
+      {/* Header */}
+      <LinearGradient
+        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+        style={styles.header}
+      >
+        <View style={styles.headerRow}>
+          <TouchableOpacity style={styles.headerBackButton} onPress={() => router.back()}>
+            <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+          </TouchableOpacity>
+          <View style={styles.headerContent}>
+            <Text style={styles.headerTitle}>Panel de Análisis</Text>
+            <Text style={styles.headerSubtitle} numberOfLines={1}>{analyticsData.local.nombre}</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.headerActionButton}
+            onPress={generateRecommendations}
+            disabled={generatingRecommendations}
+          >
+            {generatingRecommendations ? (
+              <ActivityIndicator size="small" color={colors.headerText} />
+            ) : (
+              <IconSymbol name="sparkles" size={24} color={colors.headerText} />
+            )}
+          </TouchableOpacity>
+        </View>
 
-      <ScrollView style={styles.scrollView}>
-        <View style={styles.timeRangeSelector}>
-          {(['7d', '30d', '90d'] as const).map((range) => (
+        {/* Time Range Selector */}
+        <View style={styles.timeRangeContainer}>
+          {['7d', '30d', '90d'].map((range) => (
             <TouchableOpacity
               key={range}
-              onPress={() => setTimeRange(range)}
-              style={[
-                styles.timeRangeButton,
-                timeRange === range && styles.timeRangeButtonActive,
-              ]}
+              style={[styles.timeButton, timeRange === range && styles.timeButtonActive]}
+              onPress={() => setTimeRange(range as any)}
             >
-              <Text
-                style={[
-                  styles.timeRangeButtonText,
-                  timeRange === range && styles.timeRangeButtonTextActive,
-                ]}
-              >
+              <Text style={[styles.timeButtonText, timeRange === range && styles.timeButtonTextActive]}>
                 {range === '7d' ? '7 días' : range === '30d' ? '30 días' : '90 días'}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
+      </LinearGradient>
 
-        {analyticsData && (
-          <View style={styles.analyticsSection}>
-            <Text style={styles.sectionTitle}>Métricas</Text>
-            <View style={styles.metricsGrid}>
-              <View style={styles.metricCard}>
-                <IconSymbol ios_icon_name="eye.fill" android_material_icon_name="visibility" size={32} color={colors.primary} />
-                <Text style={styles.metricValue}>{analyticsData.views}</Text>
-                <Text style={styles.metricLabel}>Vistas</Text>
-              </View>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+        }
+      >
+        {/* Info Card - What is this? */}
+        <View style={styles.infoCard}>
+          <View style={styles.infoCardHeader}>
+            <IconSymbol name="info.circle.fill" size={20} color={colors.primary} />
+            <Text style={styles.infoCardTitle}>¿Qué es el Panel de Análisis?</Text>
+          </View>
+          <Text style={styles.infoCardText}>
+            Aquí puedes ver cómo está funcionando tu local en BarLive. Te mostramos cuántas personas ven tu local, 
+            cuántos les gusta tu contenido y te damos consejos para mejorar. Todo en tiempo real y fácil de entender.
+          </Text>
+        </View>
 
-              <View style={styles.metricCard}>
-                <IconSymbol ios_icon_name="heart.fill" android_material_icon_name="favorite" size={32} color={colors.error} />
-                <Text style={styles.metricValue}>{analyticsData.likes}</Text>
-                <Text style={styles.metricLabel}>Me gusta</Text>
-              </View>
+        {/* Main Stats - Simple Cards */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <IconSymbol name="chart.bar.fill" size={20} color={colors.primary} />
+            <Text style={styles.sectionTitle}>Resumen General</Text>
+          </View>
+          <Text style={styles.sectionDescription}>
+            Estas son las cifras más importantes de tu local en los últimos {timeRange === '7d' ? '7 días' : timeRange === '30d' ? '30 días' : '90 días'}
+          </Text>
 
-              <View style={styles.metricCard}>
-                <IconSymbol ios_icon_name="bubble.left.fill" android_material_icon_name="chat_bubble" size={32} color={colors.success} />
-                <Text style={styles.metricValue}>{analyticsData.comments}</Text>
-                <Text style={styles.metricLabel}>Comentarios</Text>
-              </View>
-
-              <View style={styles.metricCard}>
-                <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={32} color={colors.warning} />
-                <Text style={styles.metricValue}>{analyticsData.followers}</Text>
-                <Text style={styles.metricLabel}>Seguidores</Text>
-              </View>
+          <View style={styles.statsGrid}>
+            <View style={[styles.statCard, { backgroundColor: '#EFF6FF' }]}>
+              <IconSymbol name="eye.fill" size={28} color="#3B82F6" />
+              <Text style={styles.statValue}>{analyticsData.stats.reach.toLocaleString()}</Text>
+              <Text style={styles.statLabel}>Personas Alcanzadas</Text>
+              <Text style={styles.statHelp}>Cuántas personas vieron tu local</Text>
             </View>
 
-            <View style={styles.engagementCard}>
-              <Text style={styles.engagementLabel}>Tasa de Engagement</Text>
-              <Text style={styles.engagementValue}>{analyticsData.engagement_rate.toFixed(2)}%</Text>
+            <View style={[styles.statCard, { backgroundColor: '#FEF3C7' }]}>
+              <IconSymbol name="heart.fill" size={28} color="#F59E0B" />
+              <Text style={styles.statValue}>{analyticsData.stats.total_likes.toLocaleString()}</Text>
+              <Text style={styles.statLabel}>Me Gusta</Text>
+              <Text style={styles.statHelp}>A cuántas personas les gustó</Text>
+            </View>
+
+            <View style={[styles.statCard, { backgroundColor: '#D1FAE5' }]}>
+              <IconSymbol name="person.2.fill" size={28} color="#10B981" />
+              <Text style={styles.statValue}>{analyticsData.stats.nuevos_seguidores.toLocaleString()}</Text>
+              <Text style={styles.statLabel}>Nuevos Seguidores</Text>
+              <Text style={styles.statHelp}>Personas que te siguen ahora</Text>
+            </View>
+
+            <View style={[styles.statCard, { backgroundColor: '#FCE7F3' }]}>
+              <IconSymbol name="chart.line.uptrend.xyaxis" size={28} color="#EC4899" />
+              <Text style={styles.statValue}>{analyticsData.stats.engagement_rate.toFixed(1)}%</Text>
+              <Text style={styles.statLabel}>Interacción</Text>
+              <Text style={styles.statHelp}>Qué tan activa es tu audiencia</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* AI Recommendations */}
+        {recommendations.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <IconSymbol name="sparkles" size={20} color="#F59E0B" />
+              <Text style={styles.sectionTitle}>Consejos Personalizados</Text>
+            </View>
+            <Text style={styles.sectionDescription}>
+              Nuestra inteligencia artificial ha analizado tu local y te da estos consejos para mejorar
+            </Text>
+
+            {recommendations.map((rec) => (
+              <TouchableOpacity 
+                key={rec.id} 
+                style={styles.recommendationCard}
+                onPress={() => openRecommendationModal(rec)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.recPriorityDot, { backgroundColor: getPriorityColor(rec.prioridad) }]} />
+                <View style={styles.recContent}>
+                  <Text style={styles.recTitle} numberOfLines={2}>{rec.titulo}</Text>
+                  <Text style={styles.recDescription} numberOfLines={2}>{rec.descripcion}</Text>
+                  <View style={styles.recFooter}>
+                    <View style={styles.recBadge}>
+                      <IconSymbol name="chart.bar.fill" size={12} color="#10B981" />
+                      <Text style={styles.recBadgeText} numberOfLines={1}>{rec.impacto_estimado}</Text>
+                    </View>
+                    <View style={styles.recConfidenceBadge}>
+                      <Text style={styles.recConfidenceText}>{Math.round(rec.confianza * 100)}%</Text>
+                    </View>
+                  </View>
+                </View>
+                <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* Where People See You */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <IconSymbol name="location.fill" size={20} color={colors.primary} />
+            <Text style={styles.sectionTitle}>Dónde Te Ven</Text>
+          </View>
+          <Text style={styles.sectionDescription}>
+            Estos son los lugares de BarLive donde las personas encuentran tu local
+          </Text>
+
+          <View style={styles.platformGrid}>
+            <View style={styles.platformCard}>
+              <View style={[styles.platformIcon, { backgroundColor: '#EFF6FF' }]}>
+                <IconSymbol name="person.fill" size={24} color="#3B82F6" />
+              </View>
+              <Text style={styles.platformValue}>{analyticsData.stats.total_profile_views?.toLocaleString() || 0}</Text>
+              <Text style={styles.platformLabel}>Visitas al Perfil</Text>
+              <Text style={styles.platformHelp}>Personas que entraron a ver tu perfil completo</Text>
+            </View>
+
+            <View style={styles.platformCard}>
+              <View style={[styles.platformIcon, { backgroundColor: '#D1FAE5' }]}>
+                <IconSymbol name="map.fill" size={24} color="#10B981" />
+              </View>
+              <Text style={styles.platformValue}>{analyticsData.stats.total_map_views?.toLocaleString() || 0}</Text>
+              <Text style={styles.platformLabel}>Vistas en Mapa</Text>
+              <Text style={styles.platformHelp}>Personas que te vieron en el mapa de locales</Text>
+            </View>
+
+            <View style={styles.platformCard}>
+              <View style={[styles.platformIcon, { backgroundColor: '#FEF3C7' }]}>
+                <IconSymbol name="magnifyingglass" size={24} color="#F59E0B" />
+              </View>
+              <Text style={styles.platformValue}>{analyticsData.stats.total_search_appearances?.toLocaleString() || 0}</Text>
+              <Text style={styles.platformLabel}>Búsquedas</Text>
+              <Text style={styles.platformHelp}>Veces que apareciste en resultados de búsqueda</Text>
+            </View>
+
+            <View style={styles.platformCard}>
+              <View style={[styles.platformIcon, { backgroundColor: '#F3E8FF' }]}>
+                <IconSymbol name="calendar" size={24} color="#8B5CF6" />
+              </View>
+              <Text style={styles.platformValue}>{analyticsData.stats.total_event_interactions?.toLocaleString() || 0}</Text>
+              <Text style={styles.platformLabel}>Eventos</Text>
+              <Text style={styles.platformHelp}>Interacciones con tus eventos publicados</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Your Content */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <IconSymbol name="photo.fill" size={20} color={colors.primary} />
+            <Text style={styles.sectionTitle}>Tu Contenido</Text>
+          </View>
+          <Text style={styles.sectionDescription}>
+            Resumen de lo que has publicado y cómo ha funcionado
+          </Text>
+
+          <View style={styles.contentGrid}>
+            <View style={styles.contentCard}>
+              <IconSymbol name="photo.fill" size={32} color="#3B82F6" />
+              <Text style={styles.contentValue}>{analyticsData.stats.total_posts}</Text>
+              <Text style={styles.contentLabel}>Publicaciones</Text>
+            </View>
+            <View style={styles.contentCard}>
+              <IconSymbol name="camera.fill" size={32} color="#8B5CF6" />
+              <Text style={styles.contentValue}>{analyticsData.stats.total_stories}</Text>
+              <Text style={styles.contentLabel}>Historias</Text>
+            </View>
+            <View style={styles.contentCard}>
+              <IconSymbol name="calendar" size={32} color="#F59E0B" />
+              <Text style={styles.contentValue}>{analyticsData.stats.total_eventos}</Text>
+              <Text style={styles.contentLabel}>Eventos</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Best Times to Post */}
+        {analyticsData.bestPostingTimes.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <IconSymbol name="clock.fill" size={20} color={colors.primary} />
+              <Text style={styles.sectionTitle}>Mejores Horarios</Text>
+            </View>
+            <Text style={styles.sectionDescription}>
+              Estos son los mejores momentos para publicar según tu audiencia
+            </Text>
+
+            <View style={styles.timesContainer}>
+              {analyticsData.bestPostingTimes.map((time, index) => (
+                <View key={index} style={styles.timeCard}>
+                  <View style={[styles.timeRank, { backgroundColor: index === 0 ? '#F59E0B' : index === 1 ? '#3B82F6' : '#10B981' }]}>
+                    <Text style={styles.timeRankText}>#{index + 1}</Text>
+                  </View>
+                  <Text style={styles.timeValue}>{time.hour}:00 - {time.hour + 1}:00</Text>
+                  <Text style={styles.timeHelp}>Mejor momento para publicar</Text>
+                </View>
+              ))}
             </View>
           </View>
         )}
 
-        <View style={styles.recommendationsSection}>
-          <View style={styles.recommendationsHeader}>
-            <Text style={styles.sectionTitle}>Recomendaciones IA</Text>
-            <TouchableOpacity
-              onPress={generateRecommendations}
-              style={styles.generateButton}
-              disabled={generatingRecommendations}
-            >
-              {generatingRecommendations ? (
-                <ActivityIndicator size="small" color={colors.background} />
-              ) : (
-                <React.Fragment>
-                  <IconSymbol ios_icon_name="sparkles" android_material_icon_name="auto_awesome" size={20} color={colors.background} />
-                  <Text style={styles.generateButtonText}>Generar</Text>
-                </React.Fragment>
-              )}
-            </TouchableOpacity>
-          </View>
-
-          {recommendations.length === 0 ? (
-            <View style={styles.emptyState}>
-              <IconSymbol ios_icon_name="lightbulb" android_material_icon_name="lightbulb" size={64} color={colors.textSecondary} />
-              <Text style={styles.emptyStateText}>No hay recomendaciones</Text>
-              <Text style={styles.emptyStateSubtext}>Genera recomendaciones con IA</Text>
+        {/* Best Days */}
+        {analyticsData.bestDays.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <IconSymbol name="calendar" size={20} color={colors.primary} />
+              <Text style={styles.sectionTitle}>Mejores Días</Text>
             </View>
-          ) : (
-            recommendations.map((recommendation) => (
-              <View key={recommendation.id} style={styles.recommendationCard}>
-                <View style={styles.recommendationHeader}>
-                  <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(recommendation.prioridad) }]}>
-                    <Text style={styles.priorityText}>{recommendation.prioridad.toUpperCase()}</Text>
+            <Text style={styles.sectionDescription}>
+              Los días de la semana donde tu contenido funciona mejor
+            </Text>
+
+            <View style={styles.daysContainer}>
+              {analyticsData.bestDays.map((day, index) => (
+                <View key={index} style={styles.dayCard}>
+                  <View style={[styles.dayRank, { backgroundColor: index === 0 ? '#F59E0B' : index === 1 ? '#3B82F6' : '#10B981' }]}>
+                    <Text style={styles.dayRankText}>#{index + 1}</Text>
                   </View>
-                  {recommendation.aplicada && (
-                    <View style={styles.appliedBadge}>
-                      <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={16} color={colors.success} />
-                      <Text style={styles.appliedText}>Aplicada</Text>
-                    </View>
-                  )}
+                  <Text style={styles.dayValue}>{dayNames[day.day]}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Bottom Spacer */}
+        <View style={{ height: 100 }} />
+      </ScrollView>
+
+      {/* Recommendation Detail Modal */}
+      <Modal
+        visible={showRecommendationModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowRecommendationModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            {selectedRecommendation && (
+              <>
+                <View style={styles.modalHeader}>
+                  <View style={[styles.modalPriorityBadge, { backgroundColor: getPriorityColor(selectedRecommendation.prioridad) }]}>
+                    <IconSymbol name={getPriorityIcon(selectedRecommendation.prioridad) as any} size={20} color="#FFFFFF" />
+                    <Text style={styles.modalPriorityText}>{selectedRecommendation.prioridad.toUpperCase()}</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => setShowRecommendationModal(false)} style={styles.modalCloseButton}>
+                    <IconSymbol name="xmark.circle.fill" size={32} color={colors.textSecondary} />
+                  </TouchableOpacity>
                 </View>
 
-                <Text style={styles.recommendationTitle}>{recommendation.titulo}</Text>
-                <Text style={styles.recommendationDescription}>{recommendation.descripcion}</Text>
+                <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+                  <Text style={styles.modalTitle}>{selectedRecommendation.titulo}</Text>
+                  <Text style={styles.modalDescription}>{selectedRecommendation.descripcion}</Text>
 
-                {!recommendation.aplicada && (
-                  <TouchableOpacity
-                    onPress={() => handleMarkAsApplied(recommendation.id)}
-                    style={styles.applyButton}
+                  <View style={styles.modalMetrics}>
+                    <View style={styles.modalMetric}>
+                      <IconSymbol name="chart.bar.fill" size={20} color="#10B981" />
+                      <Text style={styles.modalMetricLabel}>Impacto Esperado</Text>
+                      <Text style={styles.modalMetricValue}>{selectedRecommendation.impacto_estimado}</Text>
+                    </View>
+                    <View style={styles.modalMetric}>
+                      <IconSymbol name="checkmark.seal.fill" size={20} color="#3B82F6" />
+                      <Text style={styles.modalMetricLabel}>Confianza</Text>
+                      <Text style={styles.modalMetricValue}>{Math.round(selectedRecommendation.confianza * 100)}%</Text>
+                    </View>
+                  </View>
+
+                  {selectedRecommendation.acciones_sugeridas && selectedRecommendation.acciones_sugeridas.length > 0 && (
+                    <View style={styles.modalSection}>
+                      <Text style={styles.modalSectionTitle}>Qué Puedes Hacer</Text>
+                      <Text style={styles.modalSectionHelp}>Sigue estos pasos para mejorar tu local:</Text>
+                      {selectedRecommendation.acciones_sugeridas.map((accion, index) => (
+                        <View key={index} style={styles.modalActionItem}>
+                          <View style={styles.modalActionBullet}>
+                            <Text style={styles.modalActionBulletText}>{index + 1}</Text>
+                          </View>
+                          <Text style={styles.modalActionText}>{accion}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </ScrollView>
+
+                <TouchableOpacity 
+                  style={styles.modalActionButton}
+                  onPress={() => setShowRecommendationModal(false)}
+                >
+                  <LinearGradient
+                    colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+                    style={styles.modalActionButtonGradient}
                   >
-                    <Text style={styles.applyButtonText}>Marcar como aplicada</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            ))
-          )}
+                    <Text style={styles.modalActionButtonText}>Entendido</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
         </View>
-      </ScrollView>
+      </Modal>
     </View>
   );
 }
@@ -431,204 +1049,489 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-  },
   header: {
+    paddingTop: Platform.OS === 'ios' ? 50 : 40,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+  },
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    marginBottom: 16,
   },
-  backButton: {
-    padding: 8,
+  headerBackButton: {
+    padding: 4,
     marginRight: 8,
+  },
+  headerContent: {
+    flex: 1,
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '600',
-    color: colors.text,
+    fontWeight: 'bold',
+    color: colors.headerText,
   },
-  scrollView: {
-    flex: 1,
+  headerSubtitle: {
+    fontSize: 13,
+    color: colors.headerText,
+    opacity: 0.9,
+    marginTop: 2,
   },
-  timeRangeSelector: {
+  headerActionButton: {
+    padding: 4,
+    marginLeft: 8,
+  },
+  timeRangeContainer: {
     flexDirection: 'row',
-    padding: 16,
     gap: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 10,
+    padding: 4,
   },
-  timeRangeButton: {
+  timeButton: {
     flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: colors.card,
     alignItems: 'center',
   },
-  timeRangeButtonActive: {
-    backgroundColor: colors.primary,
+  timeButtonActive: {
+    backgroundColor: colors.white,
   },
-  timeRangeButtonText: {
+  timeButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.headerText,
+  },
+  timeButtonTextActive: {
+    color: colors.primary,
+  },
+  loadingText: {
+    marginTop: 12,
     fontSize: 14,
-    fontWeight: '500',
-    color: colors.text,
+    color: colors.textSecondary,
   },
-  timeRangeButtonTextActive: {
-    color: colors.background,
+  backButton: {
+    marginTop: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+  },
+  backButtonText: {
+    color: colors.white,
+    fontSize: 14,
     fontWeight: '600',
   },
-  analyticsSection: {
+  content: {
+    flex: 1,
+  },
+  scrollContent: {
     padding: 16,
   },
+  infoCard: {
+    backgroundColor: '#EFF6FF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  infoCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  infoCardTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1E40AF',
+  },
+  infoCardText: {
+    fontSize: 14,
+    color: '#1E40AF',
+    lineHeight: 20,
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: 'bold',
     color: colors.text,
+  },
+  sectionDescription: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
     marginBottom: 16,
   },
-  metricsGrid: {
+  statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
-    marginBottom: 16,
   },
-  metricCard: {
-    flex: 1,
-    minWidth: (SCREEN_WIDTH - 56) / 2,
-    backgroundColor: colors.card,
-    borderRadius: 12,
+  statCard: {
+    width: (width - 44) / 2,
+    borderRadius: 16,
     padding: 16,
     alignItems: 'center',
   },
-  metricValue: {
+  statValue: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginTop: 8,
+  },
+  statLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  statHelp: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  recommendationCard: {
+    flexDirection: 'row',
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    gap: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  recPriorityDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  recContent: {
+    flex: 1,
+  },
+  recTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 6,
+  },
+  recDescription: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    lineHeight: 18,
+    marginBottom: 10,
+  },
+  recFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  recBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#D1FAE5',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    flexShrink: 1,
+  },
+  recBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#065F46',
+    flexShrink: 1,
+  },
+  recConfidenceBadge: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  recConfidenceText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  platformGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  platformCard: {
+    width: (width - 44) / 2,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  platformIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  platformValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  platformLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  platformHelp: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 14,
+  },
+  contentGrid: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  contentCard: {
+    flex: 1,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  contentValue: {
     fontSize: 24,
     fontWeight: 'bold',
     color: colors.text,
     marginTop: 8,
   },
-  metricLabel: {
+  contentLabel: {
     fontSize: 12,
     color: colors.textSecondary,
     marginTop: 4,
+    textAlign: 'center',
   },
-  engagementCard: {
-    backgroundColor: colors.card,
+  timesContainer: {
+    gap: 12,
+  },
+  timeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.cardBackground,
     borderRadius: 12,
-    padding: 20,
+    padding: 16,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  timeRank: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  engagementLabel: {
-    fontSize: 14,
+  timeRankText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  timeValue: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  timeHelp: {
+    fontSize: 11,
     color: colors.textSecondary,
+  },
+  daysContainer: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  dayCard: {
+    flex: 1,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  dayRank: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 8,
   },
-  engagementValue: {
-    fontSize: 32,
+  dayRankText: {
+    fontSize: 12,
     fontWeight: 'bold',
-    color: colors.primary,
+    color: '#FFFFFF',
   },
-  recommendationsSection: {
-    padding: 16,
+  dayValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
   },
-  recommendationsHeader: {
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '90%',
+    paddingTop: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
+  modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
   },
-  generateButton: {
+  modalPriorityBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
   },
-  generateButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.background,
+  modalPriorityText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
   },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 64,
+  modalCloseButton: {
+    padding: 4,
   },
-  emptyStateText: {
-    fontSize: 18,
-    fontWeight: '600',
+  modalScroll: {
+    maxHeight: '70%',
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
     color: colors.text,
-    marginTop: 16,
+    marginBottom: 12,
   },
-  emptyStateSubtext: {
-    fontSize: 14,
+  modalDescription: {
+    fontSize: 16,
     color: colors.textSecondary,
-    marginTop: 8,
+    lineHeight: 24,
+    marginBottom: 20,
   },
-  recommendationCard: {
-    backgroundColor: colors.card,
+  modalMetrics: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 24,
+  },
+  modalMetric: {
+    flex: 1,
+    backgroundColor: colors.cardBackground,
     borderRadius: 12,
     padding: 16,
-    marginBottom: 12,
-  },
-  recommendationHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-    gap: 8,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
-  priorityBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
+  modalMetricLabel: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 8,
+    textAlign: 'center',
   },
-  priorityText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: colors.background,
+  modalMetricValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginTop: 4,
   },
-  appliedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    backgroundColor: colors.success + '20',
+  modalSection: {
+    marginBottom: 24,
   },
-  appliedText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: colors.success,
-  },
-  recommendationTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+  modalSectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
     color: colors.text,
     marginBottom: 8,
   },
-  recommendationDescription: {
+  modalSectionHelp: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: 16,
+  },
+  modalActionItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 12,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  modalActionBullet: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalActionBulletText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  modalActionText: {
+    flex: 1,
     fontSize: 14,
     color: colors.text,
     lineHeight: 20,
-    marginBottom: 12,
   },
-  applyButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: colors.primary,
+  modalActionButton: {
+    marginTop: 16,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  modalActionButtonGradient: {
+    paddingVertical: 16,
     alignItems: 'center',
   },
-  applyButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.background,
+  modalActionButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
   },
 });

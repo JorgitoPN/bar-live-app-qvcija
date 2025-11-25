@@ -95,28 +95,28 @@ const createUserProfileManually = async (userId: string, email: string, nombre: 
 
 // Helper to get the correct redirect URL based on environment
 const getRedirectUrl = (): string => {
-  console.log('[Auth] ========================================');
-  console.log('[Auth] Determinando redirect URL');
-  console.log('[Auth] Platform:', Platform.OS);
-  console.log('[Auth] App Ownership:', Constants.appOwnership);
-  console.log('[Auth] ========================================');
-  
   if (Platform.OS === 'web') {
     // For web, use the current origin + callback path
     if (typeof window !== 'undefined') {
-      const webUrl = `${window.location.origin}/auth/callback`;
-      console.log('[Auth] Web redirect URL:', webUrl);
-      return webUrl;
+      return `${window.location.origin}/auth/callback`;
     }
     return 'http://localhost:19006/auth/callback';
   }
   
-  // For iOS and Android native apps, use custom URL scheme
-  // This is more reliable than Universal Links for OAuth callbacks
-  const customScheme = 'com.barlive.app://auth/callback';
+  // For native apps, check if running in Expo Go
+  const isExpoGo = Constants.appOwnership === 'expo';
   
-  console.log('[Auth] Native redirect URL:', customScheme);
-  return customScheme;
+  if (isExpoGo) {
+    // In Expo Go, use the exp:// scheme with the project slug
+    const expoProjectId = Constants.expoConfig?.extra?.eas?.projectId || Constants.expoConfig?.slug;
+    if (expoProjectId) {
+      // Use the Expo Go deep link format
+      return `exp://127.0.0.1:8081/--/auth/callback`;
+    }
+  }
+  
+  // For standalone apps, use the custom scheme
+  return 'natively://auth/callback';
 };
 
 // BarLive Authentication (Email/Password)
@@ -142,13 +142,9 @@ export const signUpWithBarLive = async (
       return { user: mockUser, error: null };
     }
 
-    // Normalize email
-    const normalizedEmail = email.toLowerCase().trim();
-    console.log('[Auth] Email normalizado:', normalizedEmail);
-
     // Sign up with Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: normalizedEmail,
+      email,
       password,
       options: {
         data: {
@@ -161,14 +157,6 @@ export const signUpWithBarLive = async (
 
     if (authError) {
       console.error('[Auth] Error en signup:', authError);
-      
-      // Provide user-friendly error messages
-      if (authError.message.includes('already registered')) {
-        return { user: null, error: 'Este email ya está registrado. ¿Quieres iniciar sesión?' };
-      } else if (authError.message.includes('Password')) {
-        return { user: null, error: 'La contraseña debe tener al menos 6 caracteres' };
-      }
-      
       return { user: null, error: authError.message };
     }
 
@@ -177,7 +165,6 @@ export const signUpWithBarLive = async (
     }
 
     console.log('[Auth] Usuario creado en Auth:', authData.user.id);
-    console.log('[Auth] ⚠️ IMPORTANTE: Verifica tu email para activar tu cuenta');
 
     // Wait for trigger to create profile
     const { success, profile } = await waitForUserProfile(authData.user.id);
@@ -189,7 +176,7 @@ export const signUpWithBarLive = async (
 
     const user: AuthUser = {
       id: authData.user.id,
-      email: authData.user.email || normalizedEmail,
+      email: authData.user.email || email,
       nombre: profile.nombre,
       avatar: profile.avatar,
       rol_app: profile.rol_app || 'cliente',
@@ -210,10 +197,7 @@ export const signInWithBarLive = async (
   password: string
 ): Promise<{ user: AuthUser | null; error: string | null }> => {
   try {
-    console.log('[Auth] ========================================');
-    console.log('[Auth] Iniciando sesión con BarLive');
-    console.log('[Auth] Email original:', email);
-    console.log('[Auth] ========================================');
+    console.log('[Auth] Iniciando sesión con BarLive:', email);
     
     if (!isSupabaseConfigured()) {
       console.log('[Auth] Supabase no configurado, usando modo simulado');
@@ -229,155 +213,38 @@ export const signInWithBarLive = async (
       return { user: mockUser, error: null };
     }
 
-    // Normalize email: trim whitespace and convert to lowercase
-    const normalizedEmail = email.toLowerCase().trim();
-    console.log('[Auth] Email normalizado:', normalizedEmail);
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(normalizedEmail)) {
-      console.error('[Auth] ❌ Formato de email inválido');
-      return { 
-        user: null, 
-        error: 'Por favor, introduce un email válido' 
-      };
-    }
-
-    // Validate password
-    if (!password || password.length < 6) {
-      console.error('[Auth] ❌ Contraseña muy corta');
-      return { 
-        user: null, 
-        error: 'La contraseña debe tener al menos 6 caracteres' 
-      };
-    }
-
     // Sign in with Supabase Auth
-    console.log('[Auth] Llamando a supabase.auth.signInWithPassword...');
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email: normalizedEmail,
+      email,
       password,
     });
 
     if (authError) {
-      console.error('[Auth] ❌ Error en signin:', authError);
-      console.error('[Auth] Error code:', authError.status);
-      console.error('[Auth] Error message:', authError.message);
-      console.error('[Auth] Error name:', authError.name);
-      
-      // Provide more specific and user-friendly error messages
-      const errorMessage = authError.message.toLowerCase();
-      
-      if (errorMessage.includes('invalid login credentials') || 
-          errorMessage.includes('invalid') ||
-          authError.status === 400) {
-        return { 
-          user: null, 
-          error: '❌ Email o contraseña incorrectos\n\n' +
-                 '✓ Verifica que el email esté escrito correctamente\n' +
-                 '✓ Verifica que la contraseña sea correcta\n' +
-                 '✓ Asegúrate de haber verificado tu email\n\n' +
-                 '💡 ¿Olvidaste tu contraseña? Usa "Recuperar contraseña"'
-        };
-      } else if (errorMessage.includes('email not confirmed')) {
-        return { 
-          user: null, 
-          error: '📧 Email no verificado\n\n' +
-                 'Por favor, verifica tu correo electrónico antes de iniciar sesión.\n\n' +
-                 'Revisa tu bandeja de entrada (y spam) y haz clic en el enlace de verificación.'
-        };
-      } else if (errorMessage.includes('user not found')) {
-        return { 
-          user: null, 
-          error: '❌ No existe una cuenta con este email\n\n' +
-                 '¿Quieres crear una cuenta nueva?'
-        };
-      } else if (errorMessage.includes('too many requests')) {
-        return { 
-          user: null, 
-          error: '⏱️ Demasiados intentos\n\n' +
-                 'Por favor, espera unos minutos e intenta nuevamente.'
-        };
-      } else if (errorMessage.includes('network')) {
-        return { 
-          user: null, 
-          error: '🌐 Error de conexión\n\n' +
-                 'Verifica tu conexión a internet e intenta nuevamente.'
-        };
-      }
-      
-      return { user: null, error: `Error: ${authError.message}` };
+      console.error('[Auth] Error en signin:', authError);
+      return { user: null, error: 'Email o contraseña incorrectos' };
     }
 
     if (!authData.user) {
-      console.error('[Auth] ❌ No se obtuvo usuario de la respuesta');
-      return { user: null, error: 'No se pudo iniciar sesión. Por favor, intenta nuevamente.' };
+      return { user: null, error: 'No se pudo iniciar sesión' };
     }
 
-    console.log('[Auth] ✅ Sesión iniciada en Auth');
-    console.log('[Auth] User ID:', authData.user.id);
-    console.log('[Auth] Email:', authData.user.email);
-    console.log('[Auth] Email confirmado:', authData.user.email_confirmed_at ? 'Sí' : 'No');
-
-    // Check if email is confirmed
-    if (!authData.user.email_confirmed_at) {
-      console.warn('[Auth] ⚠️ Email no confirmado');
-      // Sign out the user since email is not confirmed
-      await supabase.auth.signOut();
-      return { 
-        user: null, 
-        error: '📧 Email no verificado\n\n' +
-               'Por favor, verifica tu correo electrónico antes de iniciar sesión.\n\n' +
-               'Revisa tu bandeja de entrada (y spam) y haz clic en el enlace de verificación.'
-      };
-    }
+    console.log('[Auth] Sesión iniciada en Auth:', authData.user.id);
 
     // Get user profile from database
-    console.log('[Auth] Obteniendo perfil de usuario...');
     const { data: profileData, error: profileError } = await supabase
       .from('usuarios')
       .select('*')
       .eq('id', authData.user.id)
       .maybeSingle();
 
-    if (profileError) {
-      console.error('[Auth] ❌ Error obteniendo perfil:', profileError);
-      return { user: null, error: 'No se pudo obtener el perfil de usuario. Por favor, intenta nuevamente.' };
-    }
-
-    if (!profileData) {
-      console.log('[Auth] ⚠️ Perfil no encontrado, intentando crear...');
-      // Try to create profile if it doesn't exist
-      const createResult = await createUserProfileManually(
-        authData.user.id,
-        authData.user.email || normalizedEmail,
-        authData.user.user_metadata?.nombre || normalizedEmail.split('@')[0],
-        authData.user.user_metadata?.avatar,
-        'barlive'
-      );
-      
-      if (!createResult.success || !createResult.profile) {
-        console.error('[Auth] ❌ No se pudo crear el perfil');
-        return { user: null, error: 'No se pudo crear el perfil de usuario. Por favor, contacta con soporte.' };
-      }
-      
-      const user: AuthUser = {
-        id: authData.user.id,
-        email: authData.user.email || normalizedEmail,
-        nombre: createResult.profile.nombre || 'Usuario',
-        avatar: createResult.profile.avatar,
-        rol_app: createResult.profile.rol_app || 'cliente',
-        provider: 'barlive',
-        ha_visto_mensaje_propietario: createResult.profile.ha_visto_mensaje_propietario || false,
-      };
-
-      console.log('[Auth] ✅ Inicio de sesión completado (perfil creado)');
-      return { user, error: null };
+    if (profileError || !profileData) {
+      console.error('[Auth] Error obteniendo perfil:', profileError);
+      return { user: null, error: 'No se pudo obtener el perfil de usuario' };
     }
 
     const user: AuthUser = {
       id: authData.user.id,
-      email: authData.user.email || normalizedEmail,
+      email: authData.user.email || email,
       nombre: profileData.nombre || 'Usuario',
       avatar: profileData.avatar,
       rol_app: profileData.rol_app || 'cliente',
@@ -385,30 +252,20 @@ export const signInWithBarLive = async (
       ha_visto_mensaje_propietario: profileData.ha_visto_mensaje_propietario || false,
     };
 
-    console.log('[Auth] ✅ Inicio de sesión completado exitosamente');
-    console.log('[Auth] Usuario:', user.nombre);
-    console.log('[Auth] ========================================');
+    console.log('[Auth] Inicio de sesión completado exitosamente');
     return { user, error: null };
   } catch (error: any) {
-    console.error('[Auth] ❌ Excepción en signInWithBarLive:', error);
-    console.error('[Auth] Error stack:', error.stack);
-    return { 
-      user: null, 
-      error: '❌ Error inesperado al iniciar sesión\n\n' +
-             'Por favor, verifica tu conexión a internet e intenta nuevamente.\n\n' +
-             `Detalles técnicos: ${error.message}`
-    };
+    console.error('[Auth] Error en signInWithBarLive:', error);
+    return { user: null, error: error.message || 'Error desconocido' };
   }
 };
 
 // Google Sign-In with proper OAuth flow
 export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error: string | null; isNewUser?: boolean }> => {
   try {
-    console.log('[Google Auth] ========================================');
     console.log('[Google Auth] Iniciando Google Sign-In');
     console.log('[Google Auth] Platform:', Platform.OS);
     console.log('[Google Auth] App Ownership:', Constants.appOwnership);
-    console.log('[Google Auth] ========================================');
     
     if (!isSupabaseConfigured()) {
       console.log('[Google Auth] Supabase no configurado');
@@ -423,12 +280,11 @@ export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error
     console.log('[Google Auth] Redirect URL configurada:', redirectUrl);
 
     // Start the OAuth flow
-    console.log('[Google Auth] Iniciando OAuth flow con Supabase...');
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: redirectUrl,
-        skipBrowserRedirect: Platform.OS !== 'web', // Skip for native, let us handle it
+        skipBrowserRedirect: Platform.OS !== 'web', // Skip auto redirect on native
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
@@ -437,19 +293,13 @@ export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error
     });
 
     if (error) {
-      console.error('[Google Auth] ❌ Error en Google OAuth:', error);
+      console.error('[Google Auth] Error en Google OAuth:', error);
       
       // Check if it's a configuration error
       if (error.message.includes('Provider') || error.message.includes('not enabled')) {
         return { 
           user: null, 
-          error: 'Google Sign-In no está configurado correctamente en Supabase.\n\n' +
-                 'Pasos para configurar:\n' +
-                 '1. Ve a tu Dashboard de Supabase\n' +
-                 '2. Authentication > Providers > Google\n' +
-                 '3. Habilita el proveedor\n' +
-                 '4. Configura el Client ID y Secret de Google Cloud Console\n' +
-                 '5. Asegúrate de que la URL de redirección esté configurada correctamente'
+          error: 'Google Sign-In no está configurado en Supabase. Por favor, habilita el proveedor de Google en tu Dashboard de Supabase (Authentication > Providers > Google) y configura el Client ID para Android.' 
         };
       }
       
@@ -469,155 +319,126 @@ export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error
 
     // For native apps, open the auth URL in a browser
     if (data?.url) {
-      console.log('[Google Auth] 🌐 Abriendo navegador para autenticación');
+      console.log('[Google Auth] Abriendo navegador para autenticación');
       console.log('[Google Auth] OAuth URL:', data.url);
       
-      try {
-        // Warm up the browser for better UX
-        await WebBrowser.warmUpAsync();
+      // Use WebBrowser to open the OAuth URL
+      const result = await WebBrowser.openAuthSessionAsync(
+        data.url,
+        redirectUrl
+      );
+
+      console.log('[Google Auth] Resultado de autenticación:', result.type);
+
+      if (result.type === 'success') {
+        // Extract the URL from the result
+        const url = result.url;
+        console.log('[Google Auth] URL de callback recibida:', url);
         
-        // Use WebBrowser to open the OAuth URL
-        console.log('[Google Auth] Llamando a WebBrowser.openAuthSessionAsync...');
-        const result = await WebBrowser.openAuthSessionAsync(
-          data.url,
-          redirectUrl
-        );
+        // Parse the URL to get the tokens
+        // The URL can have tokens in either hash (#) or query (?) parameters
+        let accessToken: string | null = null;
+        let refreshToken: string | null = null;
+        
+        // Try to get from hash first
+        if (url.includes('#')) {
+          const hashParams = new URLSearchParams(url.split('#')[1]);
+          accessToken = hashParams.get('access_token');
+          refreshToken = hashParams.get('refresh_token');
+        }
+        
+        // If not in hash, try query params
+        if (!accessToken && url.includes('?')) {
+          const queryParams = new URLSearchParams(url.split('?')[1]);
+          accessToken = queryParams.get('access_token');
+          refreshToken = queryParams.get('refresh_token');
+        }
 
-        console.log('[Google Auth] 📱 Resultado de WebBrowser:', result.type);
+        console.log('[Google Auth] Tokens encontrados:', {
+          hasAccessToken: !!accessToken,
+          hasRefreshToken: !!refreshToken,
+        });
 
-        // Cool down the browser
-        await WebBrowser.coolDownAsync();
-
-        if (result.type === 'success' && result.url) {
-          console.log('[Google Auth] ✅ Autenticación exitosa');
-          console.log('[Google Auth] Callback URL:', result.url);
+        if (accessToken && refreshToken) {
+          console.log('[Google Auth] Tokens obtenidos, estableciendo sesión');
           
-          // Extract tokens from the callback URL
-          let accessToken: string | null = null;
-          let refreshToken: string | null = null;
-          
-          // Try hash parameters first
-          if (result.url.includes('#')) {
-            const hashPart = result.url.split('#')[1];
-            const hashParams = new URLSearchParams(hashPart);
-            accessToken = hashParams.get('access_token');
-            refreshToken = hashParams.get('refresh_token');
-            console.log('[Google Auth] Tokens del hash:', { hasAccess: !!accessToken, hasRefresh: !!refreshToken });
+          // Set the session with the tokens
+          const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+
+          if (sessionError) {
+            console.error('[Google Auth] Error estableciendo sesión:', sessionError);
+            return { user: null, error: sessionError.message };
           }
-          
-          // Try query parameters if not in hash
-          if (!accessToken && result.url.includes('?')) {
-            const queryString = result.url.split('?')[1].split('#')[0];
-            const queryParams = new URLSearchParams(queryString);
-            accessToken = queryParams.get('access_token');
-            refreshToken = queryParams.get('refresh_token');
-            console.log('[Google Auth] Tokens de query:', { hasAccess: !!accessToken, hasRefresh: !!refreshToken });
-          }
-          
-          if (accessToken && refreshToken) {
-            console.log('[Google Auth] ✅ Tokens encontrados, estableciendo sesión...');
+
+          if (sessionData.user) {
+            console.log('[Google Auth] Sesión establecida para usuario:', sessionData.user.id);
+            console.log('[Google Auth] User metadata:', sessionData.user.user_metadata);
             
-            const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken,
-            });
+            // Wait for trigger to create profile
+            let profileResult = await waitForUserProfile(sessionData.user.id);
             
-            if (sessionError) {
-              console.error('[Google Auth] ❌ Error estableciendo sesión:', sessionError);
-              return { user: null, error: 'Error al establecer la sesión. Por favor, intenta nuevamente.' };
+            // If profile not found, try to create it manually
+            if (!profileResult.success || !profileResult.profile) {
+              console.log('[Google Auth] Perfil no encontrado por trigger, intentando crear manualmente...');
+              
+              const nombre = sessionData.user.user_metadata?.full_name || 
+                            sessionData.user.user_metadata?.name || 
+                            sessionData.user.email?.split('@')[0] || 
+                            'Usuario';
+              const avatar = sessionData.user.user_metadata?.avatar_url || 
+                            sessionData.user.user_metadata?.picture;
+              
+              profileResult = await createUserProfileManually(
+                sessionData.user.id,
+                sessionData.user.email || '',
+                nombre,
+                avatar,
+                'google'
+              );
             }
             
-            if (sessionData.user) {
-              console.log('[Google Auth] ✅ Sesión establecida para:', sessionData.user.email);
-              
-              // Wait a bit for the database trigger to create the profile
-              console.log('[Google Auth] ⏳ Esperando a que se cree el perfil...');
-              await new Promise(resolve => setTimeout(resolve, 2000));
-              
-              // Get user profile
-              let profileResult = await waitForUserProfile(sessionData.user.id);
-              
-              // If profile not found, try to create it manually
-              if (!profileResult.success || !profileResult.profile) {
-                console.log('[Google Auth] ⚠️ Perfil no encontrado por trigger, intentando crear manualmente...');
-                
-                const nombre = sessionData.user.user_metadata?.full_name || 
-                              sessionData.user.user_metadata?.name || 
-                              sessionData.user.email?.split('@')[0] || 
-                              'Usuario';
-                const avatar = sessionData.user.user_metadata?.avatar_url || 
-                              sessionData.user.user_metadata?.picture;
-                
-                profileResult = await createUserProfileManually(
-                  sessionData.user.id,
-                  sessionData.user.email || '',
-                  nombre,
-                  avatar,
-                  'google'
-                );
-              }
-              
-              if (!profileResult.success || !profileResult.profile) {
-                console.error('[Google Auth] ❌ No se pudo obtener ni crear el perfil del usuario');
-                return { 
-                  user: null, 
-                  error: 'Error al obtener el perfil de usuario. Por favor, intenta cerrar sesión y volver a iniciar sesión.' 
-                };
-              }
-
-              const isNewUser = !profileResult.profile.ha_visto_mensaje_propietario;
-
-              const user: AuthUser = {
-                id: sessionData.user.id,
-                email: sessionData.user.email || '',
-                nombre: profileResult.profile.nombre || 'Usuario',
-                avatar: profileResult.profile.avatar,
-                rol_app: profileResult.profile.rol_app || 'cliente',
-                provider: 'google',
-                ha_visto_mensaje_propietario: profileResult.profile.ha_visto_mensaje_propietario || false,
+            if (!profileResult.success || !profileResult.profile) {
+              console.error('[Google Auth] No se pudo obtener ni crear el perfil del usuario');
+              return { 
+                user: null, 
+                error: 'Error al obtener el perfil de usuario. Por favor, intenta cerrar sesión y volver a iniciar sesión.' 
               };
-
-              console.log('[Google Auth] ✅ Google Sign-In completado exitosamente');
-              return { user, error: null, isNewUser };
             }
-          } else {
-            console.error('[Google Auth] ❌ No se encontraron tokens en la URL de callback');
-            return { 
-              user: null, 
-              error: 'No se pudieron obtener los tokens de autenticación. Por favor, intenta nuevamente.' 
+
+            const isNewUser = !profileResult.profile.ha_visto_mensaje_propietario;
+
+            const user: AuthUser = {
+              id: sessionData.user.id,
+              email: sessionData.user.email || '',
+              nombre: profileResult.profile.nombre || 'Usuario',
+              avatar: profileResult.profile.avatar,
+              rol_app: profileResult.profile.rol_app || 'cliente',
+              provider: 'google',
+              ha_visto_mensaje_propietario: profileResult.profile.ha_visto_mensaje_propietario || false,
             };
+
+            console.log('[Google Auth] Google Sign-In completado exitosamente');
+            return { user, error: null, isNewUser };
           }
-        } else if (result.type === 'cancel') {
-          console.log('[Google Auth] ℹ️ Usuario canceló la autenticación');
-          return { user: null, error: null }; // Don't show error for user cancellation
-        } else if (result.type === 'dismiss') {
-          console.log('[Google Auth] ℹ️ Usuario cerró el navegador');
-          return { user: null, error: null }; // Don't show error for user dismissal
         } else {
-          console.log('[Google Auth] ⚠️ Resultado inesperado:', result.type);
-          return { user: null, error: 'Resultado inesperado de autenticación' };
+          console.error('[Google Auth] No se encontraron tokens en la URL de callback');
+          return { user: null, error: 'No se pudieron obtener los tokens de autenticación' };
         }
-      } catch (browserError: any) {
-        console.error('[Google Auth] ❌ Error abriendo navegador:', browserError);
-        
-        // Clean up browser
-        try {
-          await WebBrowser.coolDownAsync();
-        } catch (e) {
-          // Ignore cleanup errors
-        }
-        
-        return { user: null, error: `Error abriendo navegador: ${browserError.message}` };
+      } else if (result.type === 'cancel') {
+        console.log('[Google Auth] Usuario canceló la autenticación');
+        return { user: null, error: 'Autenticación cancelada' };
+      } else if (result.type === 'dismiss') {
+        console.log('[Google Auth] Usuario cerró el navegador');
+        return { user: null, error: 'Autenticación cancelada' };
       }
-    } else {
-      console.error('[Google Auth] ❌ No se obtuvo URL de OAuth');
-      return { user: null, error: 'No se pudo obtener la URL de autenticación' };
     }
 
     return { user: null, error: 'No se pudo completar la autenticación' };
   } catch (error: any) {
-    console.error('[Google Auth] ❌ Error en signInWithGoogle:', error);
-    console.error('[Google Auth] Error stack:', error.stack);
+    console.error('[Google Auth] Error en signInWithGoogle:', error);
     return { user: null, error: error.message || 'Error al iniciar sesión con Google' };
   }
 };
@@ -772,14 +593,11 @@ export const resetPassword = async (email: string): Promise<{ error: string | nu
       return { error: null };
     }
 
-    // Normalize email
-    const normalizedEmail = email.toLowerCase().trim();
-
     const redirectUrl = Platform.OS === 'web'
       ? `${window.location.origin}/auth/reset-password`
-      : 'com.barlive.app://auth/reset-password';
+      : 'natively://auth/reset-password';
     
-    const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: redirectUrl,
     });
 

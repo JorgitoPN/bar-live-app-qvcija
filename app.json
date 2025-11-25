@@ -20,18 +20,16 @@
         "ITSAppUsesNonExemptEncryption": false,
         "NSUserTrackingUsageDescription": "Esta app necesita tu permiso para enviarte notificaciones sobre eventos, ofertas y actividad social.",
         "NSLocationWhenInUseUsageDescription": "BarLive necesita tu ubicación para mostrarte locales cercanos.",
-        "NSFaceIDUsageDescription": "BarLive usa Face ID para permitirte iniciar sesión de forma rápida y segura.",
         "CFBundleURLTypes": [
           {
             "CFBundleURLSchemes": [
-              "com.barlive.app"
+              "natively",
+              "com.barlive.app",
+              "exp"
             ]
           }
         ]
-      },
-      "associatedDomains": [
-        "applinks:embntaqwlwmgazvrglaf.supabase.co"
-      ]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -45,9 +43,7 @@
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE",
-        "android.permission.INTERNET",
-        "android.permission.USE_BIOMETRIC",
-        "android.permission.USE_FINGERPRINT"
+        "android.permission.INTERNET"
       ],
       "useNextNotificationsApi": true,
       "intentFilters": [
@@ -59,18 +55,15 @@
               "scheme": "https",
               "host": "embntaqwlwmgazvrglaf.supabase.co",
               "pathPrefix": "/auth/v1/callback"
-            }
-          ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
-        },
-        {
-          "action": "VIEW",
-          "data": [
+            },
+            {
+              "scheme": "natively"
+            },
             {
               "scheme": "com.barlive.app"
+            },
+            {
+              "scheme": "exp"
             }
           ],
           "category": [
@@ -89,12 +82,6 @@
       "expo-router",
       "expo-web-browser",
       [
-        "expo-local-authentication",
-        {
-          "faceIDPermission": "BarLive usa Face ID para permitirte iniciar sesión de forma rápida y segura."
-        }
-      ],
-      [
         "expo-notifications",
         {
           "icon": "./assets/images/natively-dark.png",
@@ -105,7 +92,7 @@
         }
       ]
     ],
-    "scheme": "com.barlive.app",
+    "scheme": "natively",
     "experiments": {
       "typedRoutes": true
     },
@@ -118,5 +105,6 @@
       "androidMode": "default",
       "androidCollapsedTitle": "BarLive"
     }
-  }
+  },
+  "scheme": "BarLive"
 }

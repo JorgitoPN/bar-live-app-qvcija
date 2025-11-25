@@ -1,36 +1,10 @@
 
-import React, { memo, useEffect, useMemo } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Image,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { colors } from '@/styles/commonStyles';
+import React, { memo, useEffect, useMemo, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
-
-interface Historia {
-  id: string;
-  imagen: string;
-  autor_id?: string;
-  local_id?: string;
-  tipo: 'usuario' | 'local';
-  visto_por_usuario?: boolean;
-  autor?: {
-    id: string;
-    nombre: string;
-    username: string;
-    avatar_url?: string;
-  };
-  local?: {
-    id: string;
-    nombre: string;
-    avatar_url?: string;
-  };
-}
+import { Historia } from '@/types';
+import { colors } from '@/styles/commonStyles';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface BarraHistoriasProps {
   historias: Historia[];
@@ -38,52 +12,121 @@ interface BarraHistoriasProps {
   onCrearHistoria?: () => void;
 }
 
-const CreateStoryButton = memo(function CreateStoryButton({ onPress }: { onPress: () => void }) {
-  return (
-    <TouchableOpacity onPress={onPress} style={styles.storyItem}>
-      <View style={styles.createStoryCircle}>
-        <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={24} color={colors.background} />
-      </View>
-      <Text style={styles.storyUsername}>Tu historia</Text>
-    </TouchableOpacity>
-  );
-});
-
-const StoryItem = memo(function StoryItem({
-  historia,
-  onPress,
-}: {
-  historia: Historia;
+// ✅ ULTRA-OPTIMIZED: Memoized story item with INSTANT image preloading
+const StoryItem = memo(({ 
+  historia, 
+  onPress 
+}: { 
+  historia: Historia; 
   onPress: () => void;
-}) {
+}) => {
+  const hasBeenViewed = historia.visto_por_usuario === true;
+  
+  // ✅ CRITICAL: Preload BOTH avatar AND story image immediately
+  useEffect(() => {
+    const imagesToPreload: string[] = [];
+    
+    if (historia.autorAvatar) {
+      imagesToPreload.push(historia.autorAvatar);
+    }
+    
+    // ✅ CRITICAL: Preload story image IMMEDIATELY when avatar is visible
+    if (historia.imagen) {
+      imagesToPreload.push(historia.imagen);
+    }
+    
+    if (imagesToPreload.length > 0) {
+      // Preload in parallel without blocking
+      Promise.allSettled(imagesToPreload.map(uri => Image.prefetch(uri)))
+        .catch(() => {
+          console.log('[BarraHistorias] Failed to prefetch images for story:', historia.id);
+        });
+    }
+  }, [historia.autorAvatar, historia.imagen, historia.id]);
+  
+  // ✅ Memoize display name
+  const displayName = useMemo(() => {
+    return historia.tipo === 'local'
+      ? (historia.autorNombre || 'Local')
+      : (historia.autor?.username || historia.autorUsername || historia.autorNombre || historia.autor?.nombre || 'Usuario').replace(/^@/, '');
+  }, [historia.tipo, historia.autorNombre, historia.autor?.username, historia.autorUsername, historia.autor?.nombre]);
+  
+  // ✅ Memoize gradient colors
+  const gradientColors = useMemo(() => {
+    return hasBeenViewed ? ['#E5E7EB', '#E5E7EB'] : ['#FFD700', '#00FF00'];
+  }, [hasBeenViewed]);
+  
   return (
-    <TouchableOpacity onPress={onPress} style={styles.storyItem}>
+    <TouchableOpacity
+      style={styles.historiaContainer}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
       <LinearGradient
-        colors={historia.visto_por_usuario ? [colors.border, colors.border] : [colors.primary, colors.secondary]}
-        style={styles.storyGradient}
+        colors={gradientColors}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.historiaGradient}
       >
-        <Image source={{ uri: historia.imagen }} style={styles.storyImage} />
+        <View style={styles.historiaImageContainer}>
+          {historia.autorAvatar ? (
+            <Image 
+              source={{ uri: historia.autorAvatar }} 
+              style={styles.historiaImage}
+              fadeDuration={0}
+              cache="force-cache"
+              resizeMethod="resize"
+            />
+          ) : (
+            <View style={styles.historiaPlaceholder}>
+              <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={32} color={colors.textSecondary} />
+            </View>
+          )}
+        </View>
       </LinearGradient>
-      <Text style={styles.storyUsername} numberOfLines={1}>
-        {historia.tipo === 'usuario' ? historia.autor?.username : historia.local?.nombre}
+      <Text style={styles.historiaNombre} numberOfLines={1}>
+        {displayName}
       </Text>
     </TouchableOpacity>
   );
 }, (prevProps, nextProps) => {
+  // ✅ Only re-render if essential props change
   return (
     prevProps.historia.id === nextProps.historia.id &&
-    prevProps.historia.visto_por_usuario === nextProps.historia.visto_por_usuario
+    prevProps.historia.visto_por_usuario === nextProps.historia.visto_por_usuario &&
+    prevProps.historia.autorAvatar === nextProps.historia.autorAvatar
   );
 });
 
+StoryItem.displayName = 'StoryItem';
+
+// Memoized create story button
+const CreateStoryButton = memo(({ onPress }: { onPress: () => void }) => (
+  <TouchableOpacity style={styles.crearHistoria} onPress={onPress} activeOpacity={0.7}>
+    <View style={styles.avatarWithAddButton}>
+      <View style={styles.avatarBackground}>
+        <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={40} color={colors.textSecondary} />
+      </View>
+      <View style={styles.addButtonOverlay}>
+        <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={28} color={colors.primary} />
+      </View>
+    </View>
+    <Text style={styles.crearText}>Tu historia</Text>
+  </TouchableOpacity>
+));
+
+CreateStoryButton.displayName = 'CreateStoryButton';
+
+// ✅ ULTRA-OPTIMIZED: Main component with aggressive memoization
 const BarraHistorias = memo(function BarraHistorias({
   historias,
   onHistoriaPress,
   onCrearHistoria,
 }: BarraHistoriasProps) {
-  // ✅ FIXED: Removed unnecessary dependencies
-  const memoizedHistorias = useMemo(() => historias, [historias]);
+  // ✅ Memoize historias to prevent unnecessary re-renders
+  const memoizedHistorias = useMemo(() => historias, [historias.length, historias[0]?.id]);
   
+  // ✅ CRITICAL: Preload ALL story images when component mounts
   useEffect(() => {
     const allStoryImages: string[] = [];
     
@@ -96,6 +139,7 @@ const BarraHistorias = memo(function BarraHistorias({
     if (allStoryImages.length > 0) {
       console.log('[BarraHistorias] 🚀 Preloading ALL', allStoryImages.length, 'story images...');
       
+      // Preload in background without blocking
       Promise.allSettled(allStoryImages.map(uri => Image.prefetch(uri)))
         .then(results => {
           const successCount = results.filter(r => r.status === 'fulfilled').length;
@@ -116,13 +160,16 @@ const BarraHistorias = memo(function BarraHistorias({
         removeClippedSubviews={true}
         scrollEventThrottle={16}
         decelerationRate="fast"
+        // ✅ Performance optimizations
         pagingEnabled={false}
         snapToInterval={100}
         snapToAlignment="start"
         disableIntervalMomentum={true}
       >
+        {/* Crear historia */}
         {onCrearHistoria && <CreateStoryButton onPress={onCrearHistoria} />}
 
+        {/* Historias */}
         {memoizedHistorias.map((historia) => (
           <StoryItem
             key={historia.id}
@@ -134,6 +181,7 @@ const BarraHistorias = memo(function BarraHistorias({
     </View>
   );
 }, (prevProps, nextProps) => {
+  // ✅ Custom comparison for better memoization
   return (
     prevProps.historias.length === nextProps.historias.length &&
     prevProps.historias[0]?.id === nextProps.historias[0]?.id &&
@@ -141,48 +189,91 @@ const BarraHistorias = memo(function BarraHistorias({
   );
 });
 
-export default BarraHistorias;
-
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 12,
+    backgroundColor: colors.cardBackground,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.cardBorder,
+    paddingVertical: 12,
   },
   scrollContent: {
     paddingHorizontal: 12,
+    gap: 12,
   },
-  storyItem: {
+  crearHistoria: {
     alignItems: 'center',
-    marginRight: 12,
-    width: 70,
+    width: 88,
   },
-  createStoryCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 4,
+  avatarWithAddButton: {
+    width: 84,
+    height: 84,
+    position: 'relative',
+    marginBottom: 6,
   },
-  storyGradient: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    padding: 2,
-    marginBottom: 4,
-  },
-  storyImage: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+  avatarBackground: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    backgroundColor: colors.cardBackground,
     borderWidth: 2,
-    borderColor: colors.background,
+    borderColor: colors.cardBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
-  storyUsername: {
+  addButtonOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.cardBackground,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+  },
+  crearText: {
+    fontSize: 12,
+    color: colors.text,
+    textAlign: 'center',
+  },
+  historiaContainer: {
+    alignItems: 'center',
+    width: 88,
+  },
+  historiaGradient: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    padding: 2,
+    marginBottom: 6,
+  },
+  historiaImageContainer: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 40,
+    overflow: 'hidden',
+    borderWidth: 3,
+    borderColor: colors.cardBackground,
+  },
+  historiaImage: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: colors.cardBorder,
+  },
+  historiaPlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  historiaNombre: {
     fontSize: 12,
     color: colors.text,
     textAlign: 'center',
   },
 });
+
+export default BarraHistorias;

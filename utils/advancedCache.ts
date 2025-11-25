@@ -1,77 +1,215 @@
 
+/**
+ * Advanced Multi-Layer Caching System
+ * Instagram-like performance with aggressive caching strategies
+ */
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Image } from 'react-native';
 
 interface CacheEntry<T> {
   data: T;
   timestamp: number;
-  priority: 'high' | 'medium' | 'low';
   expiresAt: number;
+  priority: 'high' | 'medium' | 'low';
+}
+
+interface CacheConfig {
+  maxMemorySize: number;
+  maxDiskSize: number;
+  defaultTTL: number;
+  highPriorityTTL: number;
+  mediumPriorityTTL: number;
+  lowPriorityTTL: number;
 }
 
 class AdvancedCache {
   private memoryCache: Map<string, CacheEntry<any>> = new Map();
-  private readonly MAX_MEMORY_ITEMS = 100;
-  private readonly DEFAULT_TTL = 5 * 60 * 1000; // 5 minutes
-  private readonly HIGH_PRIORITY_TTL = 15 * 60 * 1000; // 15 minutes
-  private readonly LOW_PRIORITY_TTL = 2 * 60 * 1000; // 2 minutes
+  private accessCount: Map<string, number> = new Map();
+  private lastAccess: Map<string, number> = new Map();
+  
+  private config: CacheConfig = {
+    maxMemorySize: 1000,
+    maxDiskSize: 5000,
+    defaultTTL: 5 * 60 * 1000, // 5 minutes
+    highPriorityTTL: 30 * 60 * 1000, // 30 minutes
+    mediumPriorityTTL: 15 * 60 * 1000, // 15 minutes
+    lowPriorityTTL: 5 * 60 * 1000, // 5 minutes
+  };
 
-  async get<T>(key: string): Promise<T | null> {
-    // Check memory cache first
-    const memoryEntry = this.memoryCache.get(key);
-    if (memoryEntry && Date.now() < memoryEntry.expiresAt) {
-      console.log('[AdvancedCache] ⚡ Memory cache hit:', key);
-      return memoryEntry.data as T;
+  /**
+   * Get TTL based on priority
+   */
+  private getTTL(priority: 'high' | 'medium' | 'low'): number {
+    switch (priority) {
+      case 'high':
+        return this.config.highPriorityTTL;
+      case 'medium':
+        return this.config.mediumPriorityTTL;
+      case 'low':
+        return this.config.lowPriorityTTL;
+      default:
+        return this.config.defaultTTL;
     }
+  }
 
-    // Check AsyncStorage
-    try {
-      const stored = await AsyncStorage.getItem(key);
-      if (stored) {
-        const entry: CacheEntry<T> = JSON.parse(stored);
-        if (Date.now() < entry.expiresAt) {
-          console.log('[AdvancedCache] 💾 Storage cache hit:', key);
-          // Restore to memory cache
-          this.memoryCache.set(key, entry);
-          return entry.data;
-        } else {
-          // Expired, remove it
-          await AsyncStorage.removeItem(key);
-        }
+  /**
+   * LRU eviction - Remove least recently used items
+   */
+  private evictLRU(): void {
+    if (this.memoryCache.size < this.config.maxMemorySize) return;
+
+    let oldestKey: string | null = null;
+    let oldestTime = Date.now();
+
+    this.lastAccess.forEach((time, key) => {
+      if (time < oldestTime) {
+        oldestTime = time;
+        oldestKey = key;
       }
-    } catch (error) {
-      console.error('[AdvancedCache] Error reading from storage:', error);
+    });
+
+    if (oldestKey) {
+      this.memoryCache.delete(oldestKey);
+      this.accessCount.delete(oldestKey);
+      this.lastAccess.delete(oldestKey);
+      console.log('[AdvancedCache] 🗑️ Evicted LRU item:', oldestKey);
+    }
+  }
+
+  /**
+   * Set item in memory cache with priority
+   */
+  setMemory<T>(
+    key: string,
+    data: T,
+    priority: 'high' | 'medium' | 'low' = 'medium'
+  ): void {
+    this.evictLRU();
+
+    const ttl = this.getTTL(priority);
+    const entry: CacheEntry<T> = {
+      data,
+      timestamp: Date.now(),
+      expiresAt: Date.now() + ttl,
+      priority,
+    };
+
+    this.memoryCache.set(key, entry);
+    this.lastAccess.set(key, Date.now());
+    this.accessCount.set(key, (this.accessCount.get(key) || 0) + 1);
+  }
+
+  /**
+   * Get item from memory cache
+   */
+  getMemory<T>(key: string): T | null {
+    const entry = this.memoryCache.get(key);
+    
+    if (!entry) return null;
+
+    // Check expiration
+    if (Date.now() > entry.expiresAt) {
+      this.memoryCache.delete(key);
+      this.accessCount.delete(key);
+      this.lastAccess.delete(key);
+      return null;
     }
 
+    // Update access tracking
+    this.lastAccess.set(key, Date.now());
+    this.accessCount.set(key, (this.accessCount.get(key) || 0) + 1);
+
+    return entry.data as T;
+  }
+
+  /**
+   * Set item in persistent storage
+   */
+  async setDisk<T>(
+    key: string,
+    data: T,
+    priority: 'high' | 'medium' | 'low' = 'medium'
+  ): Promise<void> {
+    try {
+      const ttl = this.getTTL(priority);
+      const entry: CacheEntry<T> = {
+        data,
+        timestamp: Date.now(),
+        expiresAt: Date.now() + ttl,
+        priority,
+      };
+
+      await AsyncStorage.setItem(`adv_cache:${key}`, JSON.stringify(entry));
+    } catch (error) {
+      console.error('[AdvancedCache] Error setting disk cache:', error);
+    }
+  }
+
+  /**
+   * Get item from persistent storage
+   */
+  async getDisk<T>(key: string): Promise<T | null> {
+    try {
+      const value = await AsyncStorage.getItem(`adv_cache:${key}`);
+      
+      if (!value) return null;
+
+      const entry: CacheEntry<T> = JSON.parse(value);
+
+      // Check expiration
+      if (Date.now() > entry.expiresAt) {
+        await AsyncStorage.removeItem(`adv_cache:${key}`);
+        return null;
+      }
+
+      // Promote to memory cache
+      this.setMemory(key, entry.data, entry.priority);
+
+      return entry.data;
+    } catch (error) {
+      console.error('[AdvancedCache] Error getting disk cache:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Hybrid get - Memory first, then disk
+   */
+  async get<T>(key: string): Promise<T | null> {
+    // Try memory first (instant)
+    const memoryData = this.getMemory<T>(key);
+    if (memoryData) {
+      console.log(`[AdvancedCache] ⚡ INSTANT from memory: ${key}`);
+      return memoryData;
+    }
+
+    // Try disk
+    const diskData = await this.getDisk<T>(key);
+    if (diskData) {
+      console.log(`[AdvancedCache] 💾 From disk: ${key}`);
+      return diskData;
+    }
+
+    console.log(`[AdvancedCache] ❌ MISS: ${key}`);
     return null;
   }
 
+  /**
+   * Hybrid set - Both memory and disk
+   */
   async set<T>(
     key: string,
     data: T,
     priority: 'high' | 'medium' | 'low' = 'medium'
   ): Promise<void> {
-    const ttl = this.getTTL(priority);
-    const entry: CacheEntry<T> = {
-      data,
-      timestamp: Date.now(),
-      priority,
-      expiresAt: Date.now() + ttl,
-    };
-
-    // Store in memory cache
-    this.memoryCache.set(key, entry);
-    this.enforceMemoryLimit();
-
-    // Store in AsyncStorage
-    try {
-      await AsyncStorage.setItem(key, JSON.stringify(entry));
-      console.log('[AdvancedCache] ✅ Cached:', key, 'Priority:', priority);
-    } catch (error) {
-      console.error('[AdvancedCache] Error writing to storage:', error);
-    }
+    this.setMemory(key, data, priority);
+    await this.setDisk(key, data, priority);
   }
 
-  // ✅ FIXED: Changed Array<T> to T[]
+  /**
+   * Batch get - Parallel retrieval
+   */
   async batchGet<T>(keys: string[]): Promise<Map<string, T>> {
     const results = new Map<string, T>();
 
@@ -87,9 +225,11 @@ class AdvancedCache {
     return results;
   }
 
-  // ✅ FIXED: Changed Array<T> to T[]
+  /**
+   * Batch set - Parallel storage
+   */
   async batchSet<T>(
-    entries: { key: string; data: T; priority?: 'high' | 'medium' | 'low' }[]
+    entries: Array<{ key: string; data: T; priority?: 'high' | 'medium' | 'low' }>
   ): Promise<void> {
     await Promise.all(
       entries.map(({ key, data, priority = 'medium' }) =>
@@ -98,79 +238,120 @@ class AdvancedCache {
     );
   }
 
-  async invalidate(keyPattern: string): Promise<void> {
-    console.log('[AdvancedCache] 🗑️ Invalidating pattern:', keyPattern);
+  /**
+   * Preload data with priority
+   */
+  async preload<T>(
+    keys: string[],
+    fetchFn: (key: string) => Promise<T>,
+    priority: 'high' | 'medium' | 'low' = 'medium'
+  ): Promise<void> {
+    console.log(`[AdvancedCache] 🚀 Preloading ${keys.length} items with priority: ${priority}`);
 
-    // Clear from memory cache
+    await Promise.all(
+      keys.map(async (key) => {
+        try {
+          // Check if already cached
+          const cached = await this.get<T>(key);
+          if (cached) return;
+
+          // Fetch and cache
+          const data = await fetchFn(key);
+          await this.set(key, data, priority);
+        } catch (error) {
+          console.error(`[AdvancedCache] Error preloading ${key}:`, error);
+        }
+      })
+    );
+
+    console.log(`[AdvancedCache] ✅ Preloading complete`);
+  }
+
+  /**
+   * Invalidate cache entries matching pattern
+   */
+  async invalidate(pattern: string): Promise<void> {
+    // Clear from memory
     const keysToDelete: string[] = [];
     this.memoryCache.forEach((_, key) => {
-      if (key.startsWith(keyPattern)) {
+      if (key.includes(pattern)) {
         keysToDelete.push(key);
       }
     });
-    keysToDelete.forEach(key => this.memoryCache.delete(key));
 
-    // Clear from AsyncStorage
-    try {
-      const allKeys = await AsyncStorage.getAllKeys();
-      const matchingKeys = allKeys.filter(key => key.startsWith(keyPattern));
-      if (matchingKeys.length > 0) {
-        await AsyncStorage.multiRemove(matchingKeys);
-      }
-    } catch (error) {
-      console.error('[AdvancedCache] Error invalidating storage:', error);
-    }
-  }
-
-  async clear(): Promise<void> {
-    console.log('[AdvancedCache] 🗑️ Clearing all cache');
-    this.memoryCache.clear();
-    try {
-      await AsyncStorage.clear();
-    } catch (error) {
-      console.error('[AdvancedCache] Error clearing storage:', error);
-    }
-  }
-
-  private getTTL(priority: 'high' | 'medium' | 'low'): number {
-    switch (priority) {
-      case 'high':
-        return this.HIGH_PRIORITY_TTL;
-      case 'low':
-        return this.LOW_PRIORITY_TTL;
-      default:
-        return this.DEFAULT_TTL;
-    }
-  }
-
-  private enforceMemoryLimit(): void {
-    if (this.memoryCache.size <= this.MAX_MEMORY_ITEMS) {
-      return;
-    }
-
-    // Remove oldest low-priority items first
-    const entries = Array.from(this.memoryCache.entries());
-    entries.sort((a, b) => {
-      if (a[1].priority !== b[1].priority) {
-        const priorityOrder = { low: 0, medium: 1, high: 2 };
-        return priorityOrder[a[1].priority] - priorityOrder[b[1].priority];
-      }
-      return a[1].timestamp - b[1].timestamp;
+    keysToDelete.forEach(key => {
+      this.memoryCache.delete(key);
+      this.accessCount.delete(key);
+      this.lastAccess.delete(key);
     });
 
-    const toRemove = entries.slice(0, this.memoryCache.size - this.MAX_MEMORY_ITEMS);
-    toRemove.forEach(([key]) => this.memoryCache.delete(key));
+    // Clear from disk
+    try {
+      const allKeys = await AsyncStorage.getAllKeys();
+      const cacheKeys = allKeys.filter(
+        key => key.startsWith('adv_cache:') && key.includes(pattern)
+      );
+      await AsyncStorage.multiRemove(cacheKeys);
+    } catch (error) {
+      console.error('[AdvancedCache] Error invalidating disk cache:', error);
+    }
+
+    console.log(`[AdvancedCache] 🗑️ Invalidated pattern: ${pattern}`);
   }
 
-  getStats(): {
+  /**
+   * Clear all caches
+   */
+  async clearAll(): Promise<void> {
+    this.memoryCache.clear();
+    this.accessCount.clear();
+    this.lastAccess.clear();
+
+    try {
+      const allKeys = await AsyncStorage.getAllKeys();
+      const cacheKeys = allKeys.filter(key => key.startsWith('adv_cache:'));
+      await AsyncStorage.multiRemove(cacheKeys);
+    } catch (error) {
+      console.error('[AdvancedCache] Error clearing disk cache:', error);
+    }
+
+    console.log('[AdvancedCache] 🗑️ All caches cleared');
+  }
+
+  /**
+   * Get cache statistics
+   */
+  async getStats(): Promise<{
     memorySize: number;
-    maxMemorySize: number;
-  } {
+    memoryKeys: string[];
+    diskSize: number;
+    hotKeys: Array<{ key: string; accessCount: number }>;
+  }> {
+    const diskKeys = await AsyncStorage.getAllKeys();
+    const cacheKeys = diskKeys.filter(key => key.startsWith('adv_cache:'));
+
+    // Get hot keys (most accessed)
+    const hotKeys = Array.from(this.accessCount.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([key, accessCount]) => ({ key, accessCount }));
+
     return {
       memorySize: this.memoryCache.size,
-      maxMemorySize: this.MAX_MEMORY_ITEMS,
+      memoryKeys: Array.from(this.memoryCache.keys()),
+      diskSize: cacheKeys.length,
+      hotKeys,
     };
+  }
+
+  /**
+   * Warm up cache with frequently accessed data
+   */
+  async warmUp(keys: string[], fetchFn: (key: string) => Promise<any>): Promise<void> {
+    console.log(`[AdvancedCache] 🔥 Warming up cache with ${keys.length} items...`);
+    await this.preload(keys, fetchFn, 'high');
   }
 }
 
+// Export singleton instance
 export const advancedCache = new AdvancedCache();

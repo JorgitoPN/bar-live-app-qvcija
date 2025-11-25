@@ -527,12 +527,6 @@ export default function DetalleLocalScreen() {
   const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
 
   const cargarLocal = useCallback(async () => {
-    if (!params.id) {
-      console.log('[DetalleLocal] No local ID provided');
-      setLoading(false);
-      return;
-    }
-
     try {
       setLoading(true);
       const { data, error } = await supabase
@@ -543,7 +537,6 @@ export default function DetalleLocalScreen() {
 
       if (error) {
         console.error('[DetalleLocal] Error loading local:', error);
-        setLoading(false);
         return;
       }
 
@@ -557,10 +550,6 @@ export default function DetalleLocalScreen() {
   }, [params.id]);
 
   const cargarReviewsBarlive = useCallback(async () => {
-    if (!params.id) {
-      return;
-    }
-
     try {
       const { data, error } = await supabase
         .from('reviews_barlive')
@@ -805,7 +794,7 @@ export default function DetalleLocalScreen() {
             <Image source={{ uri: local.imagen_url }} style={styles.image} resizeMode="cover" />
           ) : (
             <View style={[styles.image, { backgroundColor: colors.cardBorder, justifyContent: 'center', alignItems: 'center' }]}>
-              <IconSymbol ios_icon_name="photo" android_material_icon_name="image" size={64} color={colors.textSecondary} />
+              <IconSymbol name="photo" size={64} color={colors.textSecondary} />
             </View>
           )}
 
@@ -821,7 +810,7 @@ export default function DetalleLocalScreen() {
           {/* Valoración - Esquina superior derecha debajo del botón compartir */}
           {ratingCombinado && (
             <View style={styles.ratingBadgeOverlay}>
-              <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={16} color={colors.badgeDestacado} />
+              <IconSymbol name="star.fill" size={16} color={colors.badgeDestacado} />
               <Text style={styles.ratingTextOverlay}>{ratingCombinado}</Text>
             </View>
           )}
@@ -834,8 +823,7 @@ export default function DetalleLocalScreen() {
           >
             <View style={styles.favoritoBackgroundOverlay}>
               <IconSymbol
-                ios_icon_name={isFavorito ? 'heart.fill' : 'heart'}
-                android_material_icon_name={isFavorito ? 'heart' : 'heart-outline'}
+                name={isFavorito ? 'heart.fill' : 'heart'}
                 size={24}
                 color={isFavorito ? colors.badgeNuevo : colors.headerText}
               />
@@ -846,10 +834,10 @@ export default function DetalleLocalScreen() {
         {/* Header Buttons */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.headerButton} onPress={() => router.back()}>
-            <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="chevron-back" size={24} color={colors.headerText} />
+            <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerButton} onPress={() => console.log('Share')}>
-            <IconSymbol ios_icon_name="square.and.arrow.up" android_material_icon_name="share-social" size={24} color={colors.headerText} />
+            <IconSymbol name="square.and.arrow.up" size={24} color={colors.headerText} />
           </TouchableOpacity>
         </View>
 
@@ -890,7 +878,7 @@ export default function DetalleLocalScreen() {
           {/* Dirección */}
           {local.direccion && (
             <View style={styles.direccionContainer}>
-              <IconSymbol ios_icon_name="mappin" android_material_icon_name="pin" size={20} color={colors.primary} />
+              <IconSymbol name="mappin" size={20} color={colors.primary} />
               <Text style={styles.direccionText}>{local.direccion}</Text>
             </View>
           )}
@@ -904,19 +892,19 @@ export default function DetalleLocalScreen() {
           <View style={styles.actionButtons}>
             {local.telefono && (
               <TouchableOpacity style={[styles.actionButton, styles.actionButtonPrimary]} onPress={handleLlamar}>
-                <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="call" size={20} color={colors.headerText} />
+                <IconSymbol name="phone.fill" size={20} color={colors.headerText} />
                 <Text style={styles.actionButtonText}>Llamar</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity style={[styles.actionButton, styles.actionButtonSecondary]} onPress={handleComoLlegar}>
-              <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={20} color={colors.headerText} />
+              <IconSymbol name="map.fill" size={20} color={colors.headerText} />
               <Text style={styles.actionButtonText}>Cómo llegar</Text>
             </TouchableOpacity>
           </View>
 
           {local.website && (
             <TouchableOpacity style={[styles.actionButton, styles.actionButtonPrimary, { marginTop: 12 }]} onPress={handleWeb}>
-              <IconSymbol ios_icon_name="globe" android_material_icon_name="globe" size={20} color={colors.headerText} />
+              <IconSymbol name="globe" size={20} color={colors.headerText} />
               <Text style={styles.actionButtonText}>Visitar Web</Text>
             </TouchableOpacity>
           )}
@@ -1028,7 +1016,7 @@ export default function DetalleLocalScreen() {
                 style={styles.escribirReviewButton}
                 onPress={() => setMostrarModalReview(true)}
               >
-                <IconSymbol ios_icon_name="pencil" android_material_icon_name="pencil" size={20} color={colors.headerText} />
+                <IconSymbol name="pencil" size={20} color={colors.headerText} />
                 <Text style={styles.escribirReviewButtonText}>Escribir reseña</Text>
               </TouchableOpacity>
             )}
@@ -1041,7 +1029,7 @@ export default function DetalleLocalScreen() {
                       {review.author_avatar ? (
                         <Image source={{ uri: review.author_avatar }} style={styles.reviewAvatarImage} />
                       ) : (
-                        <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={20} color={colors.textSecondary} />
+                        <IconSymbol name="person.fill" size={20} color={colors.textSecondary} />
                       )}
                     </View>
                     <View style={styles.reviewHeaderInfo}>
@@ -1061,7 +1049,7 @@ export default function DetalleLocalScreen() {
                       </Text>
                     </View>
                     <View style={styles.reviewRating}>
-                      <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={14} color={colors.badgeDestacado} />
+                      <IconSymbol name="star.fill" size={14} color={colors.badgeDestacado} />
                       <Text style={styles.reviewRatingText}>{review.rating}</Text>
                     </View>
                   </View>
@@ -1079,8 +1067,7 @@ export default function DetalleLocalScreen() {
                   {mostrarTodasReviews ? 'Ver menos' : `Ver más (${todasLasReviews.length - 2} más)`}
                 </Text>
                 <IconSymbol
-                  ios_icon_name={mostrarTodasReviews ? 'chevron.up' : 'chevron.down'}
-                  android_material_icon_name={mostrarTodasReviews ? 'chevron-up' : 'chevron-down'}
+                  name={mostrarTodasReviews ? 'chevron.up' : 'chevron.down'}
                   size={16}
                   color={colors.primary}
                 />
@@ -1107,7 +1094,7 @@ export default function DetalleLocalScreen() {
                 style={styles.modalCloseButton}
                 onPress={() => setMostrarModalReview(false)}
               >
-                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={20} color={colors.text} />
+                <IconSymbol name="xmark" size={20} color={colors.text} />
               </TouchableOpacity>
             </View>
 
@@ -1119,8 +1106,7 @@ export default function DetalleLocalScreen() {
                   onPress={() => setReviewRating(star)}
                 >
                   <IconSymbol
-                    ios_icon_name={star <= reviewRating ? 'star.fill' : 'star'}
-                    android_material_icon_name={star <= reviewRating ? 'star' : 'star-outline'}
+                    name={star <= reviewRating ? 'star.fill' : 'star'}
                     size={32}
                     color={colors.badgeDestacado}
                   />

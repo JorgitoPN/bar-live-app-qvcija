@@ -4,7 +4,7 @@ import { useFonts } from 'expo-font';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import 'react-native-reanimated';
 import { useColorScheme } from 'react-native';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
@@ -16,6 +16,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as Linking from 'expo-linking';
 import { supabase } from '@/utils/supabase';
 
+// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 function RootLayoutNav() {
@@ -23,125 +24,68 @@ function RootLayoutNav() {
   const { user, loading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
-  const isHandlingDeepLink = useRef(false);
 
+  // Handle deep links for OAuth callbacks
   useEffect(() => {
     const handleDeepLink = async (event: { url: string }) => {
-      console.log('[DeepLink] ========================================');
-      console.log('[DeepLink] Received URL:', event.url);
-      console.log('[DeepLink] Is handling:', isHandlingDeepLink.current);
-      console.log('[DeepLink] ========================================');
+      console.log('[RootLayout] Deep link received:', event.url);
       
-      if (isHandlingDeepLink.current) {
-        console.log('[DeepLink] Already handling a deep link, ignoring...');
-        return;
-      }
-
       // Check if this is an OAuth callback
-      const isOAuthCallback = event.url.includes('access_token') || 
-                             event.url.includes('auth/callback') || 
-                             event.url.includes('auth/v1/callback') ||
-                             event.url.includes('com.barlive.app://auth/callback');
-      
-      if (!isOAuthCallback) {
-        console.log('[DeepLink] Not an OAuth callback, ignoring...');
-        return;
-      }
-
-      isHandlingDeepLink.current = true;
-      console.log('[DeepLink] 🔄 Processing OAuth callback...');
-      
-      try {
+      if (event.url.includes('access_token') || event.url.includes('auth/callback')) {
+        console.log('[RootLayout] OAuth callback detected, navigating to callback screen');
+        
+        // Extract tokens from URL
         let accessToken: string | null = null;
         let refreshToken: string | null = null;
-        let errorParam: string | null = null;
-        let errorDescription: string | null = null;
         
-        // Try to extract tokens from hash first
+        // Try to get from hash first
         if (event.url.includes('#')) {
-          const hashPart = event.url.split('#')[1];
-          console.log('[DeepLink] Hash part:', hashPart);
-          const hashParams = new URLSearchParams(hashPart);
+          const hashParams = new URLSearchParams(event.url.split('#')[1]);
           accessToken = hashParams.get('access_token');
           refreshToken = hashParams.get('refresh_token');
-          errorParam = hashParams.get('error');
-          errorDescription = hashParams.get('error_description');
-          
-          console.log('[DeepLink] Tokens from hash:', {
-            hasAccessToken: !!accessToken,
-            hasRefreshToken: !!refreshToken,
-            error: errorParam,
-          });
         }
         
         // If not in hash, try query params
         if (!accessToken && event.url.includes('?')) {
           const queryString = event.url.split('?')[1].split('#')[0];
-          console.log('[DeepLink] Query part:', queryString);
           const queryParams = new URLSearchParams(queryString);
           accessToken = queryParams.get('access_token');
           refreshToken = queryParams.get('refresh_token');
-          errorParam = queryParams.get('error');
-          errorDescription = queryParams.get('error_description');
-          
-          console.log('[DeepLink] Tokens from query:', {
-            hasAccessToken: !!accessToken,
-            hasRefreshToken: !!refreshToken,
-            error: errorParam,
-          });
         }
 
-        // Check for OAuth errors
-        if (errorParam) {
-          console.error('[DeepLink] ❌ OAuth error:', errorParam);
-          router.replace('/auth/callback');
-          return;
-        }
-
-        // If we have tokens, set the session
         if (accessToken && refreshToken) {
-          console.log('[DeepLink] ✅ Tokens found, setting session...');
+          console.log('[RootLayout] Tokens found in deep link, setting session');
           
-          const { data, error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
+          try {
+            const { error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
 
-          if (error) {
-            console.error('[DeepLink] ❌ Error setting session:', error);
-            router.replace('/auth/callback');
-          } else if (data.user) {
-            console.log('[DeepLink] ✅ Session set for user:', data.user.email);
-            // Wait a bit for session to propagate
-            await new Promise(resolve => setTimeout(resolve, 500));
-            router.replace('/auth/callback');
-          } else {
-            console.error('[DeepLink] ❌ No user in session data');
-            router.replace('/auth/callback');
+            if (error) {
+              console.error('[RootLayout] Error setting session from deep link:', error);
+            } else {
+              console.log('[RootLayout] Session set successfully from deep link');
+              // Navigate to callback screen to complete the flow
+              router.replace('/auth/callback');
+            }
+          } catch (error) {
+            console.error('[RootLayout] Exception setting session from deep link:', error);
           }
         } else {
-          console.log('[DeepLink] ⚠️ No tokens found, redirecting to callback...');
+          // No tokens, just navigate to callback screen
           router.replace('/auth/callback');
         }
-      } catch (error) {
-        console.error('[DeepLink] ❌ Exception handling deep link:', error);
-        router.replace('/auth/callback');
-      } finally {
-        // Reset the flag after a delay to allow for new deep links
-        setTimeout(() => {
-          console.log('[DeepLink] 🧹 Resetting handler flag');
-          isHandlingDeepLink.current = false;
-        }, 3000);
       }
     };
 
     // Listen for deep links
     const subscription = Linking.addEventListener('url', handleDeepLink);
 
-    // Check for initial URL (app opened via deep link)
+    // Check if app was opened with a deep link
     Linking.getInitialURL().then((url) => {
       if (url) {
-        console.log('[DeepLink] Initial URL:', url);
+        console.log('[RootLayout] App opened with URL:', url);
         handleDeepLink({ url });
       }
     });
@@ -153,35 +97,37 @@ function RootLayoutNav() {
 
   useEffect(() => {
     if (loading) {
+      console.log('[RootLayout] Auth loading...');
       return;
     }
 
-    const inAuthGroup = segments[0] === 'auth';
+    console.log('[RootLayout] Auth state:', { user: user?.email, segments });
 
+    const inAuthGroup = segments[0] === 'auth';
+    const inTabsGroup = segments[0] === '(tabs)';
+
+    // If user is logged in and trying to access auth screens, redirect to tabs
     if (user && inAuthGroup && segments[1] !== 'callback') {
+      console.log('[RootLayout] User logged in, redirecting from auth to tabs');
       router.replace('/(tabs)/explorar');
     }
+    // If user is not logged in and trying to access protected screens, allow it
+    // (we handle login requirements at the component level)
   }, [user, loading, segments, router]);
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="auth/login-popup" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="auth/callback" />
-        <Stack.Screen name="auth/terms-acceptance" />
-        <Stack.Screen name="auth/completar-perfil" />
-        <Stack.Screen name="auth/bienvenida" />
-        <Stack.Screen name="auth/bienvenida-propietario" />
-        <Stack.Screen name="auth/onboarding" />
-        <Stack.Screen name="auth/local-ownership-request" />
-        <Stack.Screen name="auth/propietario-request-status" />
-        <Stack.Screen name="auth/registro-email" />
-        <Stack.Screen name="auth/verificar-email" />
-        <Stack.Screen name="auth/datos-basicos" />
-        <Stack.Screen name="auth/crear-usuario-password" />
-        <Stack.Screen name="auth/completar-perfil-opcional" />
-        <Stack.Screen name="auth/crear-password-google" />
+      <Stack>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/login-popup" options={{ presentation: 'modal', headerShown: false }} />
+        <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/terms-acceptance" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/completar-perfil" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/bienvenida" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/bienvenida-propietario" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/onboarding" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/local-ownership-request" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/propietario-request-status" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />

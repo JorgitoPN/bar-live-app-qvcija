@@ -1,19 +1,11 @@
 
 import {
+  signUpWithBarLive,
   signInWithBarLive,
   signInWithGoogle,
   resetPassword,
 } from '@/utils/auth';
-import {
-  isBiometricSupported,
-  isBiometricEnrolled,
-  getSupportedBiometricTypes,
-  getBiometricTypeName,
-  authenticateWithBiometric,
-  getBiometricCredentials,
-  hasBiometricCredentials,
-  enableBiometricAuth,
-} from '@/utils/biometricAuth';
+import { sendWelcomeEmail } from '@/utils/email';
 import React, { useState, useEffect } from 'react';
 import * as WebBrowser from 'expo-web-browser';
 import { useAuth } from '@/contexts/AuthContext';
@@ -30,6 +22,7 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -39,14 +32,12 @@ WebBrowser.maybeCompleteAuthSession();
 export default function LoginPopupScreen() {
   const router = useRouter();
   const { user, refreshUser } = useAuth();
+  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [nombre, setNombre] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [biometricLoading, setBiometricLoading] = useState(false);
-  const [biometricAvailable, setBiometricAvailable] = useState(false);
-  const [biometricName, setBiometricName] = useState('');
-  const [hasSavedCredentials, setHasSavedCredentials] = useState(false);
 
   useEffect(() => {
     // If user is already logged in, redirect
@@ -56,150 +47,71 @@ export default function LoginPopupScreen() {
     }
   }, [user, router]);
 
-  useEffect(() => {
-    // Check if biometric authentication is available
-    const checkBiometric = async () => {
-      const isSupported = await isBiometricSupported();
-      const isEnrolled = await isBiometricEnrolled();
-      const hasCredentials = await hasBiometricCredentials();
-      
-      if (isSupported && isEnrolled) {
-        const types = await getSupportedBiometricTypes();
-        const name = getBiometricTypeName(types);
-        setBiometricName(name);
-        setBiometricAvailable(true);
-        setHasSavedCredentials(hasCredentials);
-        
-        console.log('[LoginPopup] Biometric available:', name);
-        console.log('[LoginPopup] Has saved credentials:', hasCredentials);
-      }
-    };
-
-    checkBiometric();
-  }, []);
-
-  const handleBiometricAuth = async () => {
-    setBiometricLoading(true);
-
-    try {
-      console.log('[LoginPopup] 🔐 Iniciando autenticación biométrica...');
-      
-      // Authenticate with biometric
-      const authResult = await authenticateWithBiometric(
-        `Usa ${biometricName} para iniciar sesión en BarLive`
-      );
-
-      if (!authResult.success) {
-        console.log('[LoginPopup] ❌ Autenticación biométrica fallida:', authResult.error);
-        if (authResult.error && !authResult.error.includes('cancelada')) {
-          Alert.alert('Error', authResult.error);
-        }
-        setBiometricLoading(false);
-        return;
-      }
-
-      // Get saved credentials
-      const credentials = await getBiometricCredentials();
-      if (!credentials) {
-        Alert.alert('Error', 'No se encontraron credenciales guardadas');
-        setBiometricLoading(false);
-        return;
-      }
-
-      console.log('[LoginPopup] ✅ Autenticación biométrica exitosa, iniciando sesión...');
-
-      // Sign in with saved credentials
-      const { user: userData, error } = await signInWithBarLive(
-        credentials.email,
-        credentials.password
-      );
-
-      if (error) {
-        console.log('[LoginPopup] ❌ Error en login:', error);
-        Alert.alert('Error', error);
-        setBiometricLoading(false);
-        return;
-      }
-
-      if (userData) {
-        console.log('[LoginPopup] ✅ Login exitoso con biométrica');
-        
-        // Wait for auth context to update
-        await new Promise(resolve => setTimeout(resolve, 500));
-        await refreshUser();
-        
-        // Close modal and let AuthContext handle navigation
-        router.back();
-      }
-    } catch (error: any) {
-      console.error('[LoginPopup] ❌ Error:', error);
-      Alert.alert('Error', error.message || 'Error en la autenticación biométrica');
-    } finally {
-      setBiometricLoading(false);
-    }
-  };
-
   const handleBarLiveAuth = async () => {
     if (!email || !password) {
       Alert.alert('Error', 'Por favor, completa todos los campos');
       return;
     }
 
+    if (!isLogin && !nombre) {
+      Alert.alert('Error', 'Por favor, ingresa tu nombre');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      console.log('[LoginPopup] 🔐 Iniciando sesión...');
-      const { user: userData, error } = await signInWithBarLive(email, password);
-      
-      if (error) {
-        console.log('[LoginPopup] ❌ Error en login:', error);
-        Alert.alert('Error', error);
-        setLoading(false);
-        return;
-      }
-
-      if (userData) {
-        console.log('[LoginPopup] ✅ Login exitoso');
+      if (isLogin) {
+        // Login
+        console.log('[LoginPopup] 🔐 Iniciando sesión...');
+        const { user: userData, error } = await signInWithBarLive(email, password);
         
-        // Ask if user wants to enable biometric authentication
-        if (biometricAvailable && !hasSavedCredentials) {
-          Alert.alert(
-            'Inicio de sesión rápido',
-            `¿Quieres habilitar ${biometricName} para iniciar sesión más rápido la próxima vez?`,
-            [
-              {
-                text: 'Ahora no',
-                style: 'cancel',
-                onPress: async () => {
-                  await new Promise(resolve => setTimeout(resolve, 500));
-                  await refreshUser();
-                  router.back();
-                },
-              },
-              {
-                text: 'Habilitar',
-                onPress: async () => {
-                  const result = await enableBiometricAuth(email, password);
-                  if (result.success) {
-                    console.log('[LoginPopup] ✅ Autenticación biométrica habilitada');
-                    setHasSavedCredentials(true);
-                  } else {
-                    console.log('[LoginPopup] ❌ Error habilitando biométrica:', result.error);
-                  }
-                  await new Promise(resolve => setTimeout(resolve, 500));
-                  await refreshUser();
-                  router.back();
-                },
-              },
-            ]
-          );
-        } else {
+        if (error) {
+          console.log('[LoginPopup] ❌ Error en login:', error);
+          Alert.alert('Error', error);
+          return;
+        }
+
+        if (userData) {
+          console.log('[LoginPopup] ✅ Login exitoso');
+          
           // Wait for auth context to update
           await new Promise(resolve => setTimeout(resolve, 500));
           await refreshUser();
           
           // Close modal and let AuthContext handle navigation
           router.back();
+        }
+      } else {
+        // Signup
+        console.log('[LoginPopup] 📝 Creando cuenta...');
+        const { user: userData, error } = await signUpWithBarLive(email, password, nombre);
+        
+        if (error) {
+          console.log('[LoginPopup] ❌ Error en signup:', error);
+          Alert.alert('Error', error);
+          return;
+        }
+
+        if (userData) {
+          console.log('[LoginPopup] ✅ Cuenta creada');
+          
+          // Send welcome email (non-blocking)
+          sendWelcomeEmail(email, nombre).catch(() => {});
+
+          Alert.alert(
+            '¡Cuenta creada!',
+            'Por favor, verifica tu correo electrónico para confirmar tu cuenta.',
+            [
+              {
+                text: 'OK',
+                onPress: () => {
+                  setIsLogin(true);
+                  setPassword('');
+                },
+              },
+            ]
+          );
         }
       }
     } catch (error: any) {
@@ -285,12 +197,8 @@ export default function LoginPopupScreen() {
     }
   };
 
-  const handleCreateAccount = () => {
-    router.push('/auth/registro-email');
-  };
-
   const handleClose = () => {
-    if (!loading && !googleLoading && !biometricLoading) {
+    if (!loading && !googleLoading) {
       router.back();
     }
   };
@@ -303,9 +211,9 @@ export default function LoginPopupScreen() {
       <TouchableOpacity 
         style={styles.closeButton} 
         onPress={handleClose}
-        disabled={loading || googleLoading || biometricLoading}
+        disabled={loading || googleLoading}
       >
-        <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={20} color={colors.text} />
+        <IconSymbol name="xmark" size={20} color={colors.text} />
       </TouchableOpacity>
 
       <ScrollView
@@ -313,41 +221,21 @@ export default function LoginPopupScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
-          <Text style={styles.title}>Iniciar Sesión</Text>
+          <Text style={styles.title}>
+            {isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
+          </Text>
           <Text style={styles.subtitle}>
-            Bienvenido de nuevo a BarLive
+            {isLogin
+              ? 'Bienvenido de nuevo a BarLive'
+              : 'Únete a la comunidad de BarLive'}
           </Text>
         </View>
-
-        {biometricAvailable && hasSavedCredentials && (
-          <TouchableOpacity
-            style={[styles.biometricButton]}
-            onPress={handleBiometricAuth}
-            disabled={loading || googleLoading || biometricLoading}
-          >
-            {biometricLoading ? (
-              <ActivityIndicator color={colors.primary} />
-            ) : (
-              <>
-                <IconSymbol 
-                  ios_icon_name="faceid" 
-                  android_material_icon_name="fingerprint" 
-                  size={32} 
-                  color={colors.primary} 
-                />
-                <Text style={styles.biometricButtonText}>
-                  Iniciar sesión con {biometricName}
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
-        )}
 
         <View style={styles.socialButtons}>
           <TouchableOpacity
             style={[styles.socialButton, googleLoading && styles.socialButtonLoading]}
             onPress={handleGoogleSignIn}
-            disabled={loading || googleLoading || biometricLoading}
+            disabled={loading || googleLoading}
           >
             {googleLoading ? (
               <>
@@ -356,7 +244,7 @@ export default function LoginPopupScreen() {
               </>
             ) : (
               <>
-                <IconSymbol ios_icon_name="globe" android_material_icon_name="language" size={24} color={colors.text} />
+                <IconSymbol name="globe" size={24} color={colors.text} />
                 <Text style={styles.socialButtonText}>Continuar con Google</Text>
               </>
             )}
@@ -370,6 +258,21 @@ export default function LoginPopupScreen() {
         </View>
 
         <View style={styles.form}>
+          {!isLogin && (
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Nombre</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Tu nombre"
+                placeholderTextColor={colors.textSecondary}
+                value={nombre}
+                onChangeText={setNombre}
+                autoCapitalize="words"
+                editable={!loading && !googleLoading}
+              />
+            </View>
+          )}
+
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Correo electrónico</Text>
             <TextInput
@@ -381,7 +284,7 @@ export default function LoginPopupScreen() {
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
-              editable={!loading && !googleLoading && !biometricLoading}
+              editable={!loading && !googleLoading}
             />
           </View>
 
@@ -395,44 +298,46 @@ export default function LoginPopupScreen() {
               onChangeText={setPassword}
               secureTextEntry
               autoCapitalize="none"
-              editable={!loading && !googleLoading && !biometricLoading}
+              editable={!loading && !googleLoading}
             />
           </View>
 
-          <TouchableOpacity 
-            onPress={handleForgotPassword} 
-            disabled={loading || googleLoading || biometricLoading}
-          >
-            <Text style={[styles.link, { textAlign: 'right', marginTop: -8 }]}>
-              ¿Olvidaste tu contraseña?
-            </Text>
-          </TouchableOpacity>
+          {isLogin && (
+            <TouchableOpacity 
+              onPress={handleForgotPassword} 
+              disabled={loading || googleLoading}
+            >
+              <Text style={[styles.link, { textAlign: 'right', marginTop: -8 }]}>
+                ¿Olvidaste tu contraseña?
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         <TouchableOpacity
           style={[styles.button, styles.buttonPrimary]}
           onPress={handleBarLiveAuth}
-          disabled={loading || googleLoading || biometricLoading}
+          disabled={loading || googleLoading}
         >
           {loading ? (
             <ActivityIndicator color="#FFFFFF" />
           ) : (
             <Text style={[styles.buttonText, styles.buttonTextPrimary]}>
-              Iniciar Sesión
+              {isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
             </Text>
           )}
         </TouchableOpacity>
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            ¿No tienes cuenta?
+            {isLogin ? '¿No tienes cuenta?' : '¿Ya tienes cuenta?'}
           </Text>
           <TouchableOpacity 
-            onPress={handleCreateAccount} 
-            disabled={loading || googleLoading || biometricLoading}
+            onPress={() => setIsLogin(!isLogin)} 
+            disabled={loading || googleLoading}
           >
             <Text style={styles.link}>
-              Crear cuenta
+              {isLogin ? 'Crear cuenta' : 'Iniciar sesión'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -465,23 +370,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.textSecondary,
     textAlign: 'center',
-  },
-  biometricButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary + '15',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
-    borderWidth: 2,
-    borderColor: colors.primary,
-  },
-  biometricButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.primary,
-    marginLeft: 12,
   },
   form: {
     marginBottom: 24,
