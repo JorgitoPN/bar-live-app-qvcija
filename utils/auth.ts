@@ -111,13 +111,12 @@ const getRedirectUrl = (): string => {
     return 'http://localhost:19006/auth/callback';
   }
   
-  // For native apps, ALWAYS use the Supabase callback URL
-  // This is the most reliable approach for OAuth on mobile
-  const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://embntaqwlwmgazvrglaf.supabase.co';
-  const redirectUrl = `${supabaseUrl}/auth/v1/callback`;
+  // For iOS and Android native apps, use custom URL scheme
+  // This is more reliable than Universal Links for OAuth callbacks
+  const customScheme = 'com.barlive.app://auth/callback';
   
-  console.log('[Auth] Native redirect URL:', redirectUrl);
-  return redirectUrl;
+  console.log('[Auth] Native redirect URL:', customScheme);
+  return customScheme;
 };
 
 // BarLive Authentication (Email/Password)
@@ -429,7 +428,7 @@ export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error
       provider: 'google',
       options: {
         redirectTo: redirectUrl,
-        skipBrowserRedirect: false, // Let Supabase handle the redirect
+        skipBrowserRedirect: Platform.OS !== 'web', // Skip for native, let us handle it
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
@@ -489,78 +488,103 @@ export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error
         // Cool down the browser
         await WebBrowser.coolDownAsync();
 
-        if (result.type === 'success') {
-          console.log('[Google Auth] ✅ Autenticación exitosa, esperando callback...');
+        if (result.type === 'success' && result.url) {
+          console.log('[Google Auth] ✅ Autenticación exitosa');
+          console.log('[Google Auth] Callback URL:', result.url);
           
-          // Wait for the session to be established by the deep link handler
-          // The deep link handler in _layout.tsx will process the callback
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          // Extract tokens from the callback URL
+          let accessToken: string | null = null;
+          let refreshToken: string | null = null;
           
-          // Check if session was established
-          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-          
-          if (sessionError) {
-            console.error('[Google Auth] ❌ Error obteniendo sesión:', sessionError);
-            return { user: null, error: 'Error al verificar la sesión. Por favor, intenta nuevamente.' };
+          // Try hash parameters first
+          if (result.url.includes('#')) {
+            const hashPart = result.url.split('#')[1];
+            const hashParams = new URLSearchParams(hashPart);
+            accessToken = hashParams.get('access_token');
+            refreshToken = hashParams.get('refresh_token');
+            console.log('[Google Auth] Tokens del hash:', { hasAccess: !!accessToken, hasRefresh: !!refreshToken });
           }
           
-          if (session?.user) {
-            console.log('[Google Auth] ✅ Sesión encontrada para:', session.user.email);
+          // Try query parameters if not in hash
+          if (!accessToken && result.url.includes('?')) {
+            const queryString = result.url.split('?')[1].split('#')[0];
+            const queryParams = new URLSearchParams(queryString);
+            accessToken = queryParams.get('access_token');
+            refreshToken = queryParams.get('refresh_token');
+            console.log('[Google Auth] Tokens de query:', { hasAccess: !!accessToken, hasRefresh: !!refreshToken });
+          }
+          
+          if (accessToken && refreshToken) {
+            console.log('[Google Auth] ✅ Tokens encontrados, estableciendo sesión...');
             
-            // Wait a bit for the database trigger to create the profile
-            console.log('[Google Auth] ⏳ Esperando a que se cree el perfil...');
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
             
-            // Get user profile
-            let profileResult = await waitForUserProfile(session.user.id);
-            
-            // If profile not found, try to create it manually
-            if (!profileResult.success || !profileResult.profile) {
-              console.log('[Google Auth] ⚠️ Perfil no encontrado por trigger, intentando crear manualmente...');
-              
-              const nombre = session.user.user_metadata?.full_name || 
-                            session.user.user_metadata?.name || 
-                            session.user.email?.split('@')[0] || 
-                            'Usuario';
-              const avatar = session.user.user_metadata?.avatar_url || 
-                            session.user.user_metadata?.picture;
-              
-              profileResult = await createUserProfileManually(
-                session.user.id,
-                session.user.email || '',
-                nombre,
-                avatar,
-                'google'
-              );
+            if (sessionError) {
+              console.error('[Google Auth] ❌ Error estableciendo sesión:', sessionError);
+              return { user: null, error: 'Error al establecer la sesión. Por favor, intenta nuevamente.' };
             }
             
-            if (!profileResult.success || !profileResult.profile) {
-              console.error('[Google Auth] ❌ No se pudo obtener ni crear el perfil del usuario');
-              return { 
-                user: null, 
-                error: 'Error al obtener el perfil de usuario. Por favor, intenta cerrar sesión y volver a iniciar sesión.' 
+            if (sessionData.user) {
+              console.log('[Google Auth] ✅ Sesión establecida para:', sessionData.user.email);
+              
+              // Wait a bit for the database trigger to create the profile
+              console.log('[Google Auth] ⏳ Esperando a que se cree el perfil...');
+              await new Promise(resolve => setTimeout(resolve, 2000));
+              
+              // Get user profile
+              let profileResult = await waitForUserProfile(sessionData.user.id);
+              
+              // If profile not found, try to create it manually
+              if (!profileResult.success || !profileResult.profile) {
+                console.log('[Google Auth] ⚠️ Perfil no encontrado por trigger, intentando crear manualmente...');
+                
+                const nombre = sessionData.user.user_metadata?.full_name || 
+                              sessionData.user.user_metadata?.name || 
+                              sessionData.user.email?.split('@')[0] || 
+                              'Usuario';
+                const avatar = sessionData.user.user_metadata?.avatar_url || 
+                              sessionData.user.user_metadata?.picture;
+                
+                profileResult = await createUserProfileManually(
+                  sessionData.user.id,
+                  sessionData.user.email || '',
+                  nombre,
+                  avatar,
+                  'google'
+                );
+              }
+              
+              if (!profileResult.success || !profileResult.profile) {
+                console.error('[Google Auth] ❌ No se pudo obtener ni crear el perfil del usuario');
+                return { 
+                  user: null, 
+                  error: 'Error al obtener el perfil de usuario. Por favor, intenta cerrar sesión y volver a iniciar sesión.' 
+                };
+              }
+
+              const isNewUser = !profileResult.profile.ha_visto_mensaje_propietario;
+
+              const user: AuthUser = {
+                id: sessionData.user.id,
+                email: sessionData.user.email || '',
+                nombre: profileResult.profile.nombre || 'Usuario',
+                avatar: profileResult.profile.avatar,
+                rol_app: profileResult.profile.rol_app || 'cliente',
+                provider: 'google',
+                ha_visto_mensaje_propietario: profileResult.profile.ha_visto_mensaje_propietario || false,
               };
+
+              console.log('[Google Auth] ✅ Google Sign-In completado exitosamente');
+              return { user, error: null, isNewUser };
             }
-
-            const isNewUser = !profileResult.profile.ha_visto_mensaje_propietario;
-
-            const user: AuthUser = {
-              id: session.user.id,
-              email: session.user.email || '',
-              nombre: profileResult.profile.nombre || 'Usuario',
-              avatar: profileResult.profile.avatar,
-              rol_app: profileResult.profile.rol_app || 'cliente',
-              provider: 'google',
-              ha_visto_mensaje_propietario: profileResult.profile.ha_visto_mensaje_propietario || false,
-            };
-
-            console.log('[Google Auth] ✅ Google Sign-In completado exitosamente');
-            return { user, error: null, isNewUser };
           } else {
-            console.error('[Google Auth] ❌ No se encontró sesión después de la autenticación');
+            console.error('[Google Auth] ❌ No se encontraron tokens en la URL de callback');
             return { 
               user: null, 
-              error: 'No se pudo completar la autenticación. Por favor, intenta nuevamente.' 
+              error: 'No se pudieron obtener los tokens de autenticación. Por favor, intenta nuevamente.' 
             };
           }
         } else if (result.type === 'cancel') {
@@ -753,7 +777,7 @@ export const resetPassword = async (email: string): Promise<{ error: string | nu
 
     const redirectUrl = Platform.OS === 'web'
       ? `${window.location.origin}/auth/reset-password`
-      : 'natively://auth/reset-password';
+      : 'com.barlive.app://auth/reset-password';
     
     const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
       redirectTo: redirectUrl,

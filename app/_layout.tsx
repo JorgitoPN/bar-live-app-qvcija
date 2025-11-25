@@ -40,7 +40,8 @@ function RootLayoutNav() {
       // Check if this is an OAuth callback
       const isOAuthCallback = event.url.includes('access_token') || 
                              event.url.includes('auth/callback') || 
-                             event.url.includes('auth/v1/callback');
+                             event.url.includes('auth/v1/callback') ||
+                             event.url.includes('com.barlive.app://auth/callback');
       
       if (!isOAuthCallback) {
         console.log('[DeepLink] Not an OAuth callback, ignoring...');
