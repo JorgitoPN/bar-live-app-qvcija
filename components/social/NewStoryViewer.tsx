@@ -25,6 +25,7 @@ import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import StoryStatsModal from './StoryStatsModal';
 
 const { width, height } = Dimensions.get('window');
 const STORY_DURATION = 5000; // 5 seconds per story
@@ -163,255 +164,7 @@ const progressStyles = StyleSheet.create({
   },
 });
 
-// Story Stats Modal
-const StoryStatsModal = memo(({ 
-  visible, 
-  onClose, 
-  storyId,
-  viewsCount,
-  likesCount,
-}: {
-  visible: boolean;
-  onClose: () => void;
-  storyId: string;
-  viewsCount: number;
-  likesCount: number;
-}) => {
-  const [views, setViews] = useState<any[]>([]);
-  const [likes, setLikes] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'views' | 'likes'>('views');
-
-  useEffect(() => {
-    if (visible) {
-      loadStats();
-    }
-  }, [visible, storyId]);
-
-  const loadStats = async () => {
-    setLoading(true);
-    try {
-      const [viewsData, likesData] = await Promise.all([
-        supabase
-          .from('historia_views')
-          .select('id, usuario_id, viewed_at, usuario:usuarios(nombre, avatar, username)')
-          .eq('historia_id', storyId)
-          .order('viewed_at', { ascending: false }),
-        supabase
-          .from('historia_likes')
-          .select('id, usuario_id, created_at, usuario:usuarios(nombre, avatar, username)')
-          .eq('historia_id', storyId)
-          .order('created_at', { ascending: false }),
-      ]);
-
-      setViews(viewsData.data || []);
-      setLikes(likesData.data || []);
-    } catch (error) {
-      console.error('[StoryStats] Error loading stats:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const renderUser = (item: any) => {
-    const user = item.usuario;
-    if (!user) return null;
-
-    return (
-      <View key={item.id} style={statsStyles.userItem}>
-        {user.avatar ? (
-          <Image source={{ uri: user.avatar }} style={statsStyles.userAvatar} />
-        ) : (
-          <View style={[statsStyles.userAvatar, statsStyles.avatarPlaceholder]}>
-            <Text style={statsStyles.avatarText}>
-              {user.nombre?.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        )}
-        <View style={statsStyles.userInfo}>
-          <Text style={statsStyles.userName}>{user.nombre}</Text>
-          {user.username && (
-            <Text style={statsStyles.userUsername}>@{user.username}</Text>
-          )}
-        </View>
-      </View>
-    );
-  };
-
-  return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
-    >
-      <Pressable style={statsStyles.overlay} onPress={onClose}>
-        <Pressable style={statsStyles.modal} onPress={(e) => e.stopPropagation()}>
-          <View style={statsStyles.header}>
-            <Text style={statsStyles.title}>Estadísticas</Text>
-            <TouchableOpacity onPress={onClose} style={statsStyles.closeButton}>
-              <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
-            </TouchableOpacity>
-          </View>
-
-          <View style={statsStyles.tabs}>
-            <TouchableOpacity
-              style={[statsStyles.tab, activeTab === 'views' && statsStyles.tabActive]}
-              onPress={() => setActiveTab('views')}
-            >
-              <IconSymbol ios_icon_name="eye.fill" android_material_icon_name="visibility" size={20} color={activeTab === 'views' ? colors.primary : colors.textSecondary} />
-              <Text style={[statsStyles.tabText, activeTab === 'views' && statsStyles.tabTextActive]}>
-                {viewsCount} {viewsCount === 1 ? 'vista' : 'vistas'}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[statsStyles.tab, activeTab === 'likes' && statsStyles.tabActive]}
-              onPress={() => setActiveTab('likes')}
-            >
-              <IconSymbol ios_icon_name="heart.fill" android_material_icon_name="favorite" size={20} color={activeTab === 'likes' ? colors.primary : colors.textSecondary} />
-              <Text style={[statsStyles.tabText, activeTab === 'likes' && statsStyles.tabTextActive]}>
-                {likesCount} {likesCount === 1 ? 'me gusta' : 'me gusta'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={statsStyles.content}>
-            {loading ? (
-              <View style={statsStyles.loadingContainer}>
-                <ActivityIndicator size="large" color={colors.primary} />
-              </View>
-            ) : (
-              <>
-                {activeTab === 'views' && views.map(renderUser)}
-                {activeTab === 'likes' && likes.map(renderUser)}
-                {activeTab === 'views' && views.length === 0 && (
-                  <Text style={statsStyles.emptyText}>Aún no hay vistas</Text>
-                )}
-                {activeTab === 'likes' && likes.length === 0 && (
-                  <Text style={statsStyles.emptyText}>Aún no hay me gusta</Text>
-                )}
-              </>
-            )}
-          </View>
-        </Pressable>
-      </Pressable>
-    </Modal>
-  );
-});
-
-StoryStatsModal.displayName = 'StoryStatsModal';
-
-const statsStyles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modal: {
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '80%',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.text,
-  },
-  closeButton: {
-    padding: 4,
-  },
-  tabs: {
-    flexDirection: 'row',
-    padding: 16,
-    gap: 12,
-  },
-  tab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  tabActive: {
-    backgroundColor: colors.primary + '20',
-    borderColor: colors.primary,
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  tabTextActive: {
-    color: colors.primary,
-  },
-  content: {
-    padding: 16,
-    maxHeight: 400,
-  },
-  loadingContainer: {
-    padding: 40,
-    alignItems: 'center',
-  },
-  userItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  userAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    marginRight: 12,
-  },
-  avatarPlaceholder: {
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.headerText,
-  },
-  userInfo: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  userUsername: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  emptyText: {
-    fontSize: 15,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    paddingVertical: 40,
-  },
-});
-
-// Main Story Viewer Component - OPTIMIZED FOR INSTANT OPENING
+// Main Story Viewer Component - ULTRA-OPTIMIZED FOR INSTANT OPENING
 function NewStoryViewer({
   visible,
   stories,
@@ -430,6 +183,9 @@ function NewStoryViewer({
   const [sendingMessage, setSendingMessage] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [storyViews, setStoryViews] = useState<any[]>([]);
+  const [storyLikes, setStoryLikes] = useState<any[]>([]);
+  const [loadingStats, setLoadingStats] = useState(false);
   
   const currentStory = stories[currentIndex];
   const isOwner = user && (
@@ -437,39 +193,44 @@ function NewStoryViewer({
     (currentStory?.tipo === 'local' && activeLocalProfileId === currentStory.local_id)
   );
 
-  // ✅ CRITICAL: Preload ALL images immediately when viewer opens
+  // ✅ CRITICAL: Preload ALL images INSTANTLY when viewer opens
   useEffect(() => {
     if (visible && stories.length > 0) {
-      console.log('[NewStoryViewer] ⚡ INSTANT PRELOAD: Starting aggressive preload of', stories.length, 'images');
+      console.log('[NewStoryViewer] ⚡⚡⚡ INSTANT PRELOAD: Starting ultra-fast preload of', stories.length, 'images');
       
-      // Preload current image with highest priority
+      // Preload current image with HIGHEST priority - NO WAITING
       if (stories[currentIndex]?.imagen) {
-        Image.prefetch(stories[currentIndex].imagen)
-          .then(() => {
-            console.log('[NewStoryViewer] ✅ Current image preloaded instantly');
-            setImageLoaded(true);
-          })
-          .catch(() => {
-            console.log('[NewStoryViewer] ❌ Failed to preload current image');
-            setImageLoaded(true); // Show anyway
-          });
+        const currentImageUri = stories[currentIndex].imagen;
+        console.log('[NewStoryViewer] ⚡ Preloading current image INSTANTLY:', currentImageUri);
+        
+        // Use Promise.race to ensure we don't wait more than 50ms
+        Promise.race([
+          Image.prefetch(currentImageUri),
+          new Promise((resolve) => setTimeout(resolve, 50))
+        ]).then(() => {
+          console.log('[NewStoryViewer] ✅ Current image ready');
+          setImageLoaded(true);
+        }).catch(() => {
+          console.log('[NewStoryViewer] ⚠️ Current image timeout - showing anyway');
+          setImageLoaded(true); // Show anyway after timeout
+        });
+      } else {
+        setImageLoaded(true);
       }
       
-      // Preload all other images in background
+      // Preload all other images in background (non-blocking)
       const otherImages = stories
         .filter((_, idx) => idx !== currentIndex)
         .map(s => s.imagen)
         .filter(Boolean);
       
       if (otherImages.length > 0) {
-        Promise.allSettled(otherImages.map(uri => Image.prefetch(uri)))
-          .then(results => {
-            const successCount = results.filter(r => r.status === 'fulfilled').length;
-            console.log('[NewStoryViewer] ✅ Preloaded', successCount, '/', otherImages.length, 'background images');
-          })
-          .catch(() => {
-            console.log('[NewStoryViewer] Error preloading background images');
+        console.log('[NewStoryViewer] 🔄 Background preload:', otherImages.length, 'images');
+        otherImages.forEach(uri => {
+          Image.prefetch(uri).catch(() => {
+            console.log('[NewStoryViewer] Background prefetch failed for:', uri);
           });
+        });
       }
     }
   }, [visible, stories, currentIndex]);
@@ -478,15 +239,18 @@ function NewStoryViewer({
   useEffect(() => {
     setImageLoaded(false);
     
-    // Immediately try to load the new image
+    // Immediately try to load the new image with timeout
     if (currentStory?.imagen) {
-      Image.prefetch(currentStory.imagen)
-        .then(() => {
-          setImageLoaded(true);
-        })
-        .catch(() => {
-          setImageLoaded(true); // Show anyway
-        });
+      Promise.race([
+        Image.prefetch(currentStory.imagen),
+        new Promise((resolve) => setTimeout(resolve, 50))
+      ]).then(() => {
+        setImageLoaded(true);
+      }).catch(() => {
+        setImageLoaded(true); // Show anyway
+      });
+    } else {
+      setImageLoaded(true);
     }
   }, [currentIndex, currentStory?.imagen]);
 
@@ -681,12 +445,45 @@ function NewStoryViewer({
     );
   };
 
-  const handleViewStats = useCallback(() => {
-    console.log('[NewStoryViewer] ⚡ Stats button clicked - opening immediately');
-    setShowStats(true);
-    setIsPaused(true);
-  }, []);
+  // ✅ FIXED: Stats button handler - opens INSTANTLY
+  const handleViewStats = useCallback(async () => {
+    if (!currentStory || !user || !isOwner) return;
 
+    console.log('[NewStoryViewer] ⚡⚡⚡ Stats button clicked - opening INSTANTLY');
+    
+    // ✅ CRITICAL: Pause story IMMEDIATELY
+    setIsPaused(true);
+    
+    // ✅ CRITICAL: Show modal IMMEDIATELY (don't wait for data)
+    setShowStats(true);
+    
+    // Load stats in background
+    setLoadingStats(true);
+    
+    try {
+      const [viewsData, likesData] = await Promise.all([
+        supabase
+          .from('historia_views')
+          .select('id, usuario_id, viewed_at, usuario:usuarios(nombre, avatar, username)')
+          .eq('historia_id', currentStory.id)
+          .order('viewed_at', { ascending: false }),
+        supabase
+          .from('historia_likes')
+          .select('id, usuario_id, created_at, usuario:usuarios(nombre, avatar, username)')
+          .eq('historia_id', currentStory.id)
+          .order('created_at', { ascending: false }),
+      ]);
+
+      setStoryViews(viewsData.data || []);
+      setStoryLikes(likesData.data || []);
+    } catch (error) {
+      console.error('[NewStoryViewer] Error loading stats:', error);
+    } finally {
+      setLoadingStats(false);
+    }
+  }, [currentStory, user, isOwner]);
+
+  // ✅ FIXED: Close stats handler - resumes story
   const handleCloseStats = useCallback(() => {
     console.log('[NewStoryViewer] ⚡ Stats modal closed - resuming story');
     setShowStats(false);
@@ -941,12 +738,20 @@ function NewStoryViewer({
           )}
         </View>
 
+        {/* ✅ FIXED: Stats Modal - opens INSTANTLY */}
         <StoryStatsModal
           visible={showStats}
           onClose={handleCloseStats}
+          onNavigateToProfile={() => {
+            handleCloseStats();
+            onClose();
+          }}
           storyId={currentStory.id}
           viewsCount={currentStory.views_count || 0}
-          likesCount={currentStory.likes_count || 0}
+          likesCount={storyLikes.length}
+          views={storyViews}
+          likes={storyLikes}
+          loading={loadingStats}
         />
       </KeyboardAvoidingView>
     </Modal>

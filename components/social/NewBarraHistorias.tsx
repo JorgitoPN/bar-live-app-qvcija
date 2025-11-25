@@ -27,11 +27,15 @@ const StoryItem = memo(({
 }) => {
   const hasBeenViewed = historia.visto_por_usuario === true;
   
-  // Preload story image immediately
+  // ✅ CRITICAL: Preload story image IMMEDIATELY and AGGRESSIVELY
   useEffect(() => {
     if (historia.imagen) {
-      Image.prefetch(historia.imagen).catch(() => {
-        console.log('[StoryItem] Failed to prefetch image:', historia.imagen);
+      // Use Promise.race to ensure we don't wait too long
+      Promise.race([
+        Image.prefetch(historia.imagen),
+        new Promise((_, reject) => setTimeout(() => reject('timeout'), 100))
+      ]).catch(() => {
+        console.log('[StoryItem] Prefetch timeout or failed for:', historia.imagen);
       });
     }
   }, [historia.imagen]);
@@ -52,15 +56,6 @@ const StoryItem = memo(({
     return historia.autorAvatar || historia.autor?.avatar || null;
   }, [historia.autorAvatar, historia.autor?.avatar]);
   
-  console.log('[StoryItem] Rendering story:', {
-    id: historia.id,
-    displayName,
-    avatarUrl,
-    hasAutor: !!historia.autor,
-    autorAvatar: historia.autorAvatar,
-    autorAvatarFromObject: historia.autor?.avatar,
-  });
-  
   return (
     <TouchableOpacity
       style={styles.storyContainer}
@@ -79,9 +74,6 @@ const StoryItem = memo(({
               source={{ uri: avatarUrl }} 
               style={styles.storyImage}
               fadeDuration={0}
-              onError={(error) => {
-                console.log('[StoryItem] Error loading avatar:', avatarUrl, error.nativeEvent.error);
-              }}
             />
           ) : (
             <View style={styles.storyPlaceholder}>
@@ -117,8 +109,6 @@ const CreateStoryButton = memo(({
   userAvatar?: string;
   userName?: string;
 }) => {
-  console.log('[CreateStoryButton] Rendering with avatar:', userAvatar);
-  
   return (
     <TouchableOpacity style={styles.createStory} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.createAvatarContainer}>
@@ -128,9 +118,6 @@ const CreateStoryButton = memo(({
               source={{ uri: userAvatar }} 
               style={styles.userAvatarImage}
               fadeDuration={0}
-              onError={(error) => {
-                console.log('[CreateStoryButton] Error loading avatar:', userAvatar, error.nativeEvent.error);
-              }}
             />
           ) : (
             <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={44} color={colors.textSecondary} />
@@ -157,13 +144,6 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
 }: NewBarraHistoriasProps) {
   const { user } = useAuth();
   
-  console.log('[NewBarraHistorias] Rendering with:', {
-    historiasCount: historias.length,
-    userAvatar,
-    userName,
-    userId: user?.id,
-  });
-  
   // Separate user's own stories from others
   const { userStories, otherStories } = useMemo(() => {
     const userStories = historias.filter(h => 
@@ -173,27 +153,24 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
       !(h.tipo === 'usuario' && h.autor_id === user?.id)
     );
     
-    console.log('[NewBarraHistorias] Stories separated:', {
-      userStories: userStories.length,
-      otherStories: otherStories.length,
-    });
-    
     return { userStories, otherStories };
   }, [historias, user?.id]);
   
-  // Preload ALL story images in background
+  // ✅ CRITICAL: Preload ALL story images IMMEDIATELY and AGGRESSIVELY
   useEffect(() => {
     const allImages = historias.map(h => h.imagen).filter(Boolean);
     if (allImages.length > 0) {
-      console.log('[NewBarraHistorias] Preloading', allImages.length, 'story images...');
-      Promise.allSettled(allImages.map(uri => Image.prefetch(uri)))
-        .then(results => {
-          const successCount = results.filter(r => r.status === 'fulfilled').length;
-          console.log('[NewBarraHistorias] ✅ Preloaded', successCount, '/', allImages.length, 'images');
-        })
-        .catch(() => {
-          console.log('[NewBarraHistorias] Error preloading images');
+      console.log('[NewBarraHistorias] ⚡⚡⚡ INSTANT PRELOAD:', allImages.length, 'images');
+      
+      // Preload all images in parallel with timeout
+      allImages.forEach(uri => {
+        Promise.race([
+          Image.prefetch(uri),
+          new Promise((_, reject) => setTimeout(() => reject('timeout'), 500))
+        ]).catch(() => {
+          console.log('[NewBarraHistorias] Prefetch timeout for:', uri);
         });
+      });
     }
   }, [historias]);
   
@@ -252,7 +229,9 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: colors.cardBackground,
-    paddingVertical: 0, // ✅ FIXED: Removed padding to stick to header
+    // ✅ FIXED: Completely removed all padding and borders to stick to header
+    paddingVertical: 0,
+    borderBottomWidth: 0,
   },
   scrollContent: {
     paddingHorizontal: 12,
