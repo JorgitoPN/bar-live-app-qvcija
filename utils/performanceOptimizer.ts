@@ -6,11 +6,113 @@
  */
 
 import { InteractionManager } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 class PerformanceOptimizer {
   private pendingTasks: Map<string, any> = new Map();
   private taskQueue: Array<() => Promise<void>> = [];
   private isProcessing: boolean = false;
+  private memoryCache: Map<string, { data: any; timestamp: number; ttl: number }> = new Map();
+
+  /**
+   * Get data from cache
+   */
+  async getCache<T>(key: string): Promise<T | null> {
+    try {
+      // Check memory cache first
+      const memoryCached = this.memoryCache.get(key);
+      if (memoryCached) {
+        const now = Date.now();
+        if (now - memoryCached.timestamp < memoryCached.ttl) {
+          console.log(`[PerformanceOptimizer] ⚡ Memory cache HIT for key: ${key}`);
+          return memoryCached.data as T;
+        } else {
+          // Expired, remove from memory cache
+          this.memoryCache.delete(key);
+        }
+      }
+
+      // Check AsyncStorage cache
+      const cached = await AsyncStorage.getItem(`cache_${key}`);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        const now = Date.now();
+        if (now - parsed.timestamp < parsed.ttl) {
+          console.log(`[PerformanceOptimizer] 💾 Disk cache HIT for key: ${key}`);
+          // Store in memory cache for faster access next time
+          this.memoryCache.set(key, {
+            data: parsed.data,
+            timestamp: parsed.timestamp,
+            ttl: parsed.ttl,
+          });
+          return parsed.data as T;
+        } else {
+          // Expired, remove from storage
+          await AsyncStorage.removeItem(`cache_${key}`);
+        }
+      }
+
+      console.log(`[PerformanceOptimizer] ❌ Cache MISS for key: ${key}`);
+      return null;
+    } catch (error) {
+      console.error(`[PerformanceOptimizer] Error getting cache for key ${key}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Set data in cache with TTL (time to live in milliseconds)
+   */
+  async setCache<T>(key: string, data: T, ttl: number = 5 * 60 * 1000): Promise<void> {
+    try {
+      const timestamp = Date.now();
+      const cacheData = { data, timestamp, ttl };
+
+      // Store in memory cache
+      this.memoryCache.set(key, cacheData);
+
+      // Store in AsyncStorage
+      await AsyncStorage.setItem(`cache_${key}`, JSON.stringify(cacheData));
+
+      console.log(`[PerformanceOptimizer] ✅ Cached data for key: ${key} (TTL: ${ttl}ms)`);
+
+      // Clean up old memory cache entries (keep last 50)
+      if (this.memoryCache.size > 50) {
+        const firstKey = this.memoryCache.keys().next().value;
+        this.memoryCache.delete(firstKey);
+      }
+    } catch (error) {
+      console.error(`[PerformanceOptimizer] Error setting cache for key ${key}:`, error);
+    }
+  }
+
+  /**
+   * Clear cache for a specific key
+   */
+  async clearCache(key: string): Promise<void> {
+    try {
+      this.memoryCache.delete(key);
+      await AsyncStorage.removeItem(`cache_${key}`);
+      console.log(`[PerformanceOptimizer] 🗑️ Cleared cache for key: ${key}`);
+    } catch (error) {
+      console.error(`[PerformanceOptimizer] Error clearing cache for key ${key}:`, error);
+    }
+  }
+
+  /**
+   * Clear all caches
+   */
+  async clearAllCaches(): Promise<void> {
+    try {
+      this.memoryCache.clear();
+      const keys = await AsyncStorage.getAllKeys();
+      const cacheKeys = keys.filter(key => key.startsWith('cache_'));
+      await AsyncStorage.multiRemove(cacheKeys);
+      console.log(`[PerformanceOptimizer] 🗑️ Cleared all caches (${cacheKeys.length} items)`);
+    } catch (error) {
+      console.error('[PerformanceOptimizer] Error clearing all caches:', error);
+    }
+  }
 
   /**
    * Run task after interactions complete (non-blocking)
