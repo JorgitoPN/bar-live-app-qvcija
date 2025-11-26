@@ -32,6 +32,16 @@ export default function ImageGalleryModal({
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const scrollViewRef = useRef<ScrollView>(null);
 
+  // Reset to initial index when modal opens
+  React.useEffect(() => {
+    if (visible) {
+      setCurrentIndex(initialIndex);
+      setTimeout(() => {
+        scrollViewRef.current?.scrollTo({ x: initialIndex * width, animated: false });
+      }, 100);
+    }
+  }, [visible, initialIndex]);
+
   const handleScroll = (event: any) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
     const index = Math.round(contentOffsetX / width);
@@ -65,7 +75,7 @@ export default function ImageGalleryModal({
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <IconSymbol name="xmark" size={24} color={colors.headerText} />
+            <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.headerText} />
           </TouchableOpacity>
           <Text style={styles.counter}>
             {currentIndex + 1} / {images.length}
@@ -81,7 +91,6 @@ export default function ImageGalleryModal({
           showsHorizontalScrollIndicator={false}
           onScroll={handleScroll}
           scrollEventThrottle={16}
-          contentOffset={{ x: initialIndex * width, y: 0 }}
         >
           {images.map((imageUrl, index) => (
             <View key={index} style={styles.imageContainer}>
@@ -98,7 +107,7 @@ export default function ImageGalleryModal({
         {currentIndex > 0 && (
           <TouchableOpacity style={styles.leftArrow} onPress={goToPrevious}>
             <View style={styles.arrowBackground}>
-              <IconSymbol name="chevron.left" size={32} color={colors.headerText} />
+              <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="chevron_left" size={32} color={colors.headerText} />
             </View>
           </TouchableOpacity>
         )}
@@ -106,7 +115,7 @@ export default function ImageGalleryModal({
         {currentIndex < images.length - 1 && (
           <TouchableOpacity style={styles.rightArrow} onPress={goToNext}>
             <View style={styles.arrowBackground}>
-              <IconSymbol name="chevron.right" size={32} color={colors.headerText} />
+              <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={32} color={colors.headerText} />
             </View>
           </TouchableOpacity>
         )}

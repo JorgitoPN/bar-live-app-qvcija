@@ -66,7 +66,36 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
   const [mentionedUsers, setMentionedUsers] = useState<MentionedUser[]>([]);
   const [taggedUsers, setTaggedUsers] = useState<TaggedUser[]>([]);
   const [showTagsOverlay, setShowTagsOverlay] = useState(false);
+  const [authorData, setAuthorData] = useState<{ nombre: string; avatar: string | null } | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
+
+  // Fetch author data
+  useEffect(() => {
+    const fetchAuthorData = async () => {
+      if (!post?.autorId) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('usuarios')
+          .select('nombre, avatar')
+          .eq('id', post.autorId)
+          .single();
+
+        if (error) {
+          console.error('[PublicacionCard] Error fetching author:', error);
+          return;
+        }
+
+        if (data) {
+          setAuthorData(data);
+        }
+      } catch (error) {
+        console.error('[PublicacionCard] Error fetching author:', error);
+      }
+    };
+
+    fetchAuthorData();
+  }, [post?.autorId]);
 
   const handleLike = useCallback(async () => {
     if (!user) {
@@ -157,12 +186,12 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
       params: { 
         sharePostId: post.id,
         sharePostImage: postImage || '',
-        sharePostAuthor: post.autorNombre || 'Usuario',
+        sharePostAuthor: authorData?.nombre || post.autorNombre || 'Usuario',
       }
     });
     
     if (onShare) onShare();
-  }, [user, router, post, onShare]);
+  }, [user, router, post, onShare, authorData]);
 
   const handleDelete = useCallback(async () => {
     if (!user) return;
@@ -355,8 +384,9 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
       ? [post.imagen] 
       : [];
 
-  const displayName = post?.autorNombre || 'Usuario';
-  const avatarUrl = post?.autorAvatar || null;
+  // Use fetched author data if available, otherwise fallback to post data
+  const displayName = authorData?.nombre || post?.autorNombre || 'Usuario';
+  const avatarUrl = authorData?.avatar || post?.autorAvatar || null;
   const displayDate = post?.fecha ? formatearFecha(post.fecha) : post?.created_at ? formatearFecha(post.created_at) : 'Fecha desconocida';
   const isAuthor = user && post.tipo === 'usuario' && post.autorId === user.id;
 
