@@ -14,6 +14,7 @@ import * as Location from 'expo-location';
 import ImageGalleryModal from '../../components/detalle/ImageGalleryModal';
 import { CATEGORIAS_EXCLUIDAS } from '../../utils/constants';
 import { getEstadoLocal } from '../../utils/timeUtils';
+import { useAuth } from '../../contexts/AuthContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -221,6 +222,8 @@ const summarizeText = (text: string, maxLength: number = 120): { summary: string
 export default function DetalleLocalScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
+  const { user } = useAuth();
+  
   const [local, setLocal] = useState<Local | null>(null);
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -264,6 +267,30 @@ export default function DetalleLocalScreen() {
       setDistance(dist);
     }
   }, [userLocation, local]);
+
+  // Check if local is favorite
+  useEffect(() => {
+    const checkFavorite = async () => {
+      if (!user || !params.id) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('locales_favoritos')
+          .select('id')
+          .eq('usuario_id', user.id)
+          .eq('local_id', params.id)
+          .single();
+        
+        if (!error && data) {
+          setIsFavorite(true);
+        }
+      } catch (error) {
+        console.error('[DetalleLocal] Error checking favorite:', error);
+      }
+    };
+    
+    checkFavorite();
+  }, [user, params.id]);
 
   const cargarReviewsBarlive = useCallback(async () => {
     try {
@@ -330,9 +357,8 @@ export default function DetalleLocalScreen() {
 
   const cargarLocal = useCallback(async () => {
     try {
-      // ULTRA AGGRESSIVE CACHE BUSTING v3: Force fresh data with timestamp
       const timestamp = Date.now();
-      console.log('[DetalleLocal v3 ULTRA] 🔥 FORCE Loading local with timestamp:', timestamp);
+      console.log('[DetalleLocal] Loading local with timestamp:', timestamp);
       
       setLoading(true);
       const { data, error } = await supabase
@@ -342,12 +368,12 @@ export default function DetalleLocalScreen() {
         .single();
 
       if (error) {
-        console.error('[DetalleLocal v3 ULTRA] ❌ Error loading local:', error);
+        console.error('[DetalleLocal] Error loading local:', error);
         setLoading(false);
         return;
       }
 
-      console.log('[DetalleLocal v3 ULTRA] ✅✅✅ Loaded local from Supabase:', {
+      console.log('[DetalleLocal] Loaded local from Supabase:', {
         id: data.id,
         nombre: data.nombre,
         hasServicios: !!data.servicios_disponibles,
@@ -356,7 +382,8 @@ export default function DetalleLocalScreen() {
         planActivo: data.plan_activo,
         destacado: data.destacado,
         hasAmbiente: !!data.ambiente_completo,
-        hasClientela: !!data.clientela
+        hasClientela: !!data.clientela,
+        hasAnalisisReviews: !!data.analisis_reviews
       });
       
       setLocal(data);
@@ -364,7 +391,7 @@ export default function DetalleLocalScreen() {
       cargarReviewsBarlive();
       cargarEventos();
     } catch (error) {
-      console.error('[DetalleLocal v3 ULTRA] ❌ Error:', error);
+      console.error('[DetalleLocal] Error:', error);
       setLoading(false);
     }
   }, [params.id, cargarReviewsBarlive, cargarEventos]);
@@ -375,19 +402,6 @@ export default function DetalleLocalScreen() {
     }
   }, [params.id, cargarLocal]);
 
-  // Debug log to verify data is loaded
-  useEffect(() => {
-    if (local) {
-      console.log('[DetalleLocal] Loaded local data:', {
-        nombre: local.nombre,
-        hasServicios: !!local.servicios_disponibles,
-        planActivo: local.plan_activo,
-        destacado: local.destacado,
-        hasHorarios: !!local.horarios_completos
-      });
-    }
-  }, [local]);
-
   const handleCall = () => {
     if (local?.telefono) {
       Linking.openURL(`tel:${local.telefono}`);
@@ -396,7 +410,6 @@ export default function DetalleLocalScreen() {
 
   const handleDirections = () => {
     if (local?.latitud && local?.longitud) {
-      // Show action sheet to choose navigation app
       Alert.alert(
         'Cómo llegar',
         'Elige tu aplicación de navegación',
@@ -413,7 +426,6 @@ export default function DetalleLocalScreen() {
                 if (supported) {
                   Linking.openURL(url);
                 } else {
-                  // Fallback to web
                   Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${local.latitud},${local.longitud}`);
                 }
               });
@@ -475,9 +487,10 @@ export default function DetalleLocalScreen() {
 
   const handleToggleFavorite = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      console.log('[DetalleLocal] Toggle favorite - User:', user?.id);
+      
       if (!user) {
-        Alert.alert('Error', 'Debes iniciar sesión para agregar favoritos');
+        Alert.alert('Error', 'Debes iniciar sesión para agregar a favoritos');
         return;
       }
 
@@ -488,6 +501,7 @@ export default function DetalleLocalScreen() {
           .eq('usuario_id', user.id)
           .eq('local_id', params.id);
         setIsFavorite(false);
+        Alert.alert('Eliminado', 'Local eliminado de favoritos');
       } else {
         await supabase
           .from('locales_favoritos')
@@ -496,13 +510,19 @@ export default function DetalleLocalScreen() {
             local_id: params.id,
           });
         setIsFavorite(true);
+        Alert.alert('Añadido', 'Local añadido a favoritos');
       }
     } catch (error) {
       console.error('[DetalleLocal] Error toggling favorite:', error);
+      Alert.alert('Error', 'No se pudo actualizar favoritos');
     }
   };
 
   const handleAddReview = () => {
+    if (!user) {
+      Alert.alert('Error', 'Debes iniciar sesión para añadir una reseña');
+      return;
+    }
     Alert.alert('Añadir Reseña', 'Funcionalidad de añadir reseña próximamente');
   };
 
@@ -551,12 +571,12 @@ export default function DetalleLocalScreen() {
     ...(local.galeria_urls || [])
   ].filter(Boolean).map(img => `${img}?v=${Date.now()}`);
 
-  // FIXED: Use comprehensive status calculation from timeUtils
+  // Use comprehensive status calculation from timeUtils
   const estadoLocal = getEstadoLocal(local);
   const isOpen = estadoLocal.estaAbierto === true;
   const hasSocialProfile = local.plan_activo === 'estandar' || local.plan_activo === 'premium';
 
-  // FIXED: Extract services from servicios_disponibles
+  // Extract services from servicios_disponibles
   const allServices: string[] = [];
   if (local.servicios_disponibles) {
     Object.values(local.servicios_disponibles).forEach((category: any) => {
@@ -603,7 +623,7 @@ export default function DetalleLocalScreen() {
   // Calculate rating to display (Google or BarLive)
   const displayRating = local.google_rating || averageRating || 0;
 
-  // FIXED: Show only BarLive reviews count, including up to 2 Google reviews
+  // Show only BarLive reviews count, including up to 2 Google reviews
   const barliveReviewsCount = reviews.length;
   const googleReviewsToShow = Math.min(2, (local.reviews_google || []).length);
   const totalReviewsToShow = barliveReviewsCount + googleReviewsToShow;
@@ -618,7 +638,7 @@ export default function DetalleLocalScreen() {
     }))
   ].slice(0, 3);
 
-  // FIXED: Get all categories and filter out excluded ones
+  // Get all categories and filter out excluded ones
   const allCategories = (local.barlive_types && local.barlive_types.length > 0 
     ? local.barlive_types 
     : local.barlive_type 
@@ -627,6 +647,9 @@ export default function DetalleLocalScreen() {
         ? [local.categoria] 
         : []
   ).filter(cat => !CATEGORIAS_EXCLUIDAS.some(excluded => cat.toLowerCase().includes(excluded.toLowerCase())));
+
+  // Calculate back button position based on destacado badge
+  const backButtonTop = local.destacado ? 92 : 52;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
@@ -681,8 +704,8 @@ export default function DetalleLocalScreen() {
             </View>
           )}
 
-          {/* Back Button - Below Destacado Badge */}
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          {/* Back Button - Position depends on destacado badge */}
+          <TouchableOpacity style={[styles.backButton, { top: backButtonTop }]} onPress={() => router.back()}>
             <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
               <Ionicons name="arrow-back" size={24} color="#fff" />
             </BlurView>
@@ -762,7 +785,7 @@ export default function DetalleLocalScreen() {
           <Text style={styles.title}>{local.nombre}</Text>
         </View>
 
-        {/* FIXED: Display ALL categories (excluding lounge, terraza, rooftop, salón, azotea) */}
+        {/* Display ALL categories (excluding lounge, terraza, rooftop, salón, azotea) */}
         {allCategories.length > 0 && (
           <View style={styles.categoriesContainer}>
             {allCategories.map((categoria, index) => {
@@ -997,6 +1020,46 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
+        {/* Reviews Analysis Section */}
+        {local.analisis_reviews && Object.keys(local.analisis_reviews).length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={[styles.sectionIconContainer, { backgroundColor: '#8B5CF6' }]}>
+                <IconSymbol ios_icon_name="chart.bar.fill" android_material_icon_name="analytics" size={26} color="#fff" />
+              </View>
+              <Text style={styles.sectionTitle}>Análisis de Reseñas</Text>
+            </View>
+            <View style={styles.analysisCard}>
+              {local.analisis_reviews.sentimiento_general && (
+                <View style={styles.analysisRow}>
+                  <Text style={styles.analysisLabel}>Sentimiento:</Text>
+                  <Text style={[styles.analysisValue, { color: local.analisis_reviews.sentimiento_general === 'positivo' ? '#10B981' : '#EF4444' }]}>
+                    {local.analisis_reviews.sentimiento_general}
+                  </Text>
+                </View>
+              )}
+              {local.analisis_reviews.palabras_destacadas_google && local.analisis_reviews.palabras_destacadas_google.length > 0 && (
+                <View style={styles.analysisKeywords}>
+                  <Text style={styles.analysisLabel}>Palabras clave:</Text>
+                  <View style={styles.keywordsContainer}>
+                    {local.analisis_reviews.palabras_destacadas_google.slice(0, 5).map((keyword: string, index: number) => (
+                      <View key={index} style={styles.keywordChip}>
+                        <Text style={styles.keywordText}>{keyword}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+              {local.analisis_reviews.resumen_automatico && (
+                <View style={styles.analysisSummary}>
+                  <Text style={styles.analysisLabel}>Resumen:</Text>
+                  <Text style={styles.analysisSummaryText}>{local.analisis_reviews.resumen_automatico}</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
         {/* Reviews Section with Avatars */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -1206,7 +1269,6 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: 'absolute',
-    top: 92,
     left: 16,
     width: 44,
     height: 44,
@@ -1605,6 +1667,61 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontWeight: '600',
     textTransform: 'capitalize',
+  },
+  analysisCard: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    padding: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 5,
+    elevation: 4,
+  },
+  analysisRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 10,
+  },
+  analysisLabel: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  analysisValue: {
+    fontSize: 15,
+    fontWeight: '600',
+    textTransform: 'capitalize',
+  },
+  analysisKeywords: {
+    marginBottom: 12,
+  },
+  keywordsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
+  },
+  keywordChip: {
+    backgroundColor: colors.primary + '20',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  keywordText: {
+    fontSize: 13,
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  analysisSummary: {
+    marginTop: 4,
+  },
+  analysisSummaryText: {
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 20,
+    marginTop: 6,
   },
   reviewCardCompact: {
     backgroundColor: colors.card,

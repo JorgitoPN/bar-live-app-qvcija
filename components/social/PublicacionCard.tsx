@@ -235,6 +235,8 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
   }, [post?.id]);
 
   const handleLike = useCallback(async () => {
+    console.log('[PublicacionCard] handleLike - User:', user?.id);
+    
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para dar me gusta');
       return;
@@ -267,6 +269,8 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
   }, [liked, likesCount, onLike, user, post.id]);
 
   const handleSave = useCallback(async () => {
+    console.log('[PublicacionCard] handleSave - User:', user?.id);
+    
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para guardar publicaciones');
       return;
@@ -298,6 +302,8 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
   }, [saved, user, post.id]);
 
   const handleComment = useCallback(() => {
+    console.log('[PublicacionCard] handleComment - User:', user?.id);
+    
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para comentar');
       return;
@@ -307,6 +313,8 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
   }, [user, router, post.id, onComment]);
 
   const handleShare = useCallback(async () => {
+    console.log('[PublicacionCard] handleShare - User:', user?.id);
+    
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para compartir');
       return;
@@ -331,7 +339,12 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
   }, [user, router, post, onShare, authorData]);
 
   const handleDelete = useCallback(async () => {
-    if (!user) return;
+    console.log('[PublicacionCard] handleDelete - User:', user?.id, 'Post autor:', post.autorId);
+    
+    if (!user) {
+      Alert.alert('Error', 'Debes iniciar sesión para eliminar publicaciones');
+      return;
+    }
 
     const isAuthor = post.tipo === 'usuario' 
       ? post.autorId === user.id 
@@ -437,7 +450,9 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
     displayName,
     hasAvatar: !!avatarUrl,
     isAuthor,
-    loadingAuthor
+    loadingAuthor,
+    userId: user?.id,
+    postAutorId: post.autorId
   });
 
   return (
@@ -455,7 +470,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
           activeOpacity={0.7}
         >
           {avatarUrl ? (
-            <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+            <Image source={{ uri: `${avatarUrl}?v=${Date.now()}` }} style={styles.avatar} />
           ) : (
             <View style={styles.avatarPlaceholder}>
               <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={28} color="#FF6B6B" />
