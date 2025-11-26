@@ -3,7 +3,6 @@ import { supabase, isSupabaseConfigured } from './supabase';
 import { Alert, Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
-import Constants from 'expo-constants';
 
 export interface AuthUser {
   id: string;
@@ -91,32 +90,6 @@ const createUserProfileManually = async (userId: string, email: string, nombre: 
     console.error('[Auth] Excepción al crear perfil manualmente:', error);
     return { success: false, error: error.message };
   }
-};
-
-// Helper to get the correct redirect URL based on environment
-const getRedirectUrl = (): string => {
-  if (Platform.OS === 'web') {
-    // For web, use the current origin + callback path
-    if (typeof window !== 'undefined') {
-      return `${window.location.origin}/auth/callback`;
-    }
-    return 'http://localhost:19006/auth/callback';
-  }
-  
-  // For native apps, check if running in Expo Go
-  const isExpoGo = Constants.appOwnership === 'expo';
-  
-  if (isExpoGo) {
-    // In Expo Go, use the exp:// scheme with the project slug
-    const expoProjectId = Constants.expoConfig?.extra?.eas?.projectId || Constants.expoConfig?.slug;
-    if (expoProjectId) {
-      // Use the Expo Go deep link format
-      return `exp://127.0.0.1:8081/--/auth/callback`;
-    }
-  }
-  
-  // For standalone apps, use the custom scheme
-  return 'natively://auth/callback';
 };
 
 // BarLive Authentication (Email/Password)
@@ -265,7 +238,6 @@ export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error
   try {
     console.log('[Google Auth] Iniciando Google Sign-In');
     console.log('[Google Auth] Platform:', Platform.OS);
-    console.log('[Google Auth] App Ownership:', Constants.appOwnership);
     
     if (!isSupabaseConfigured()) {
       console.log('[Google Auth] Supabase no configurado');
@@ -275,8 +247,24 @@ export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error
       };
     }
 
-    // Get the appropriate redirect URL
-    const redirectUrl = getRedirectUrl();
+    // Determine redirect URL based on platform
+    let redirectUrl: string;
+    
+    if (Platform.OS === 'web') {
+      // For web, use the current origin + callback path
+      if (typeof window !== 'undefined') {
+        redirectUrl = `${window.location.origin}/auth/callback`;
+        console.log('[Google Auth] Web redirect URL:', redirectUrl);
+      } else {
+        redirectUrl = 'http://localhost:19006/auth/callback';
+      }
+    } else {
+      // For native apps, use the app scheme with proper deep link
+      // This matches the intent filter in app.json
+      redirectUrl = 'natively://auth/callback';
+      console.log('[Google Auth] Native redirect URL:', redirectUrl);
+    }
+
     console.log('[Google Auth] Redirect URL configurada:', redirectUrl);
 
     // Start the OAuth flow
@@ -284,7 +272,7 @@ export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error
       provider: 'google',
       options: {
         redirectTo: redirectUrl,
-        skipBrowserRedirect: Platform.OS !== 'web', // Skip auto redirect on native
+        skipBrowserRedirect: false, // Let Supabase handle the redirect
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
@@ -322,10 +310,12 @@ export const signInWithGoogle = async (): Promise<{ user: AuthUser | null; error
       console.log('[Google Auth] Abriendo navegador para autenticación');
       console.log('[Google Auth] OAuth URL:', data.url);
       
-      // Use WebBrowser to open the OAuth URL
       const result = await WebBrowser.openAuthSessionAsync(
         data.url,
-        redirectUrl
+        redirectUrl,
+        {
+          showInRecents: true,
+        }
       );
 
       console.log('[Google Auth] Resultado de autenticación:', result.type);

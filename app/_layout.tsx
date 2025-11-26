@@ -1,139 +1,21 @@
 
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 import { useColorScheme } from 'react-native';
-import { AuthProvider, useAuth } from '@/contexts/AuthContext';
-import { GlobalDataProvider } from '@/contexts/GlobalDataContext';
+import { AuthProvider } from '@/contexts/AuthContext';
 import { ModeProvider } from '@/contexts/ModeContext';
+import { GlobalDataProvider } from '@/contexts/GlobalDataContext';
 import { SelectedLocalProvider } from '@/contexts/SelectedLocalContext';
-import { WidgetProvider } from '@/contexts/WidgetContext';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import * as Linking from 'expo-linking';
-import { supabase } from '@/utils/supabase';
+import { scheduleStoryCleanup } from '@/utils/storyCleanup';
+import { performanceManager } from '@/utils/performanceManager';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
-
-function RootLayoutNav() {
-  const colorScheme = useColorScheme();
-  const { user, loading } = useAuth();
-  const segments = useSegments();
-  const router = useRouter();
-
-  // Handle deep links for OAuth callbacks
-  useEffect(() => {
-    const handleDeepLink = async (event: { url: string }) => {
-      console.log('[RootLayout] Deep link received:', event.url);
-      
-      // Check if this is an OAuth callback
-      if (event.url.includes('access_token') || event.url.includes('auth/callback')) {
-        console.log('[RootLayout] OAuth callback detected, navigating to callback screen');
-        
-        // Extract tokens from URL
-        let accessToken: string | null = null;
-        let refreshToken: string | null = null;
-        
-        // Try to get from hash first
-        if (event.url.includes('#')) {
-          const hashParams = new URLSearchParams(event.url.split('#')[1]);
-          accessToken = hashParams.get('access_token');
-          refreshToken = hashParams.get('refresh_token');
-        }
-        
-        // If not in hash, try query params
-        if (!accessToken && event.url.includes('?')) {
-          const queryString = event.url.split('?')[1].split('#')[0];
-          const queryParams = new URLSearchParams(queryString);
-          accessToken = queryParams.get('access_token');
-          refreshToken = queryParams.get('refresh_token');
-        }
-
-        if (accessToken && refreshToken) {
-          console.log('[RootLayout] Tokens found in deep link, setting session');
-          
-          try {
-            const { error } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken,
-            });
-
-            if (error) {
-              console.error('[RootLayout] Error setting session from deep link:', error);
-            } else {
-              console.log('[RootLayout] Session set successfully from deep link');
-              // Navigate to callback screen to complete the flow
-              router.replace('/auth/callback');
-            }
-          } catch (error) {
-            console.error('[RootLayout] Exception setting session from deep link:', error);
-          }
-        } else {
-          // No tokens, just navigate to callback screen
-          router.replace('/auth/callback');
-        }
-      }
-    };
-
-    // Listen for deep links
-    const subscription = Linking.addEventListener('url', handleDeepLink);
-
-    // Check if app was opened with a deep link
-    Linking.getInitialURL().then((url) => {
-      if (url) {
-        console.log('[RootLayout] App opened with URL:', url);
-        handleDeepLink({ url });
-      }
-    });
-
-    return () => {
-      subscription.remove();
-    };
-  }, [router]);
-
-  useEffect(() => {
-    if (loading) {
-      console.log('[RootLayout] Auth loading...');
-      return;
-    }
-
-    console.log('[RootLayout] Auth state:', { user: user?.email, segments });
-
-    const inAuthGroup = segments[0] === 'auth';
-    const inTabsGroup = segments[0] === '(tabs)';
-
-    // If user is logged in and trying to access auth screens, redirect to tabs
-    if (user && inAuthGroup && segments[1] !== 'callback') {
-      console.log('[RootLayout] User logged in, redirecting from auth to tabs');
-      router.replace('/(tabs)/explorar');
-    }
-    // If user is not logged in and trying to access protected screens, allow it
-    // (we handle login requirements at the component level)
-  }, [user, loading, segments, router]);
-
-  return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="auth/login-popup" options={{ presentation: 'modal', headerShown: false }} />
-        <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
-        <Stack.Screen name="auth/terms-acceptance" options={{ headerShown: false }} />
-        <Stack.Screen name="auth/completar-perfil" options={{ headerShown: false }} />
-        <Stack.Screen name="auth/bienvenida" options={{ headerShown: false }} />
-        <Stack.Screen name="auth/bienvenida-propietario" options={{ headerShown: false }} />
-        <Stack.Screen name="auth/onboarding" options={{ headerShown: false }} />
-        <Stack.Screen name="auth/local-ownership-request" options={{ headerShown: false }} />
-        <Stack.Screen name="auth/propietario-request-status" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
-  );
-}
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -143,7 +25,29 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (loaded) {
+      // Hide splash screen after fonts are loaded
+      // GlobalDataProvider will handle data loading
       SplashScreen.hideAsync();
+      
+      // ✅ Initialize Instagram-like performance optimizations
+      console.log('[App] 🚀 Initializing performance optimizations...');
+      performanceManager.initialize(undefined, {
+        enableAdvancedCache: true,
+        enableIntelligentPreload: true,
+        enableRealtimeMessaging: true,
+        enableImageOptimization: true,
+        enableOptimisticUI: true,
+        enableBackgroundSync: true,
+        enableRequestDedup: true,
+        cacheStrategy: 'aggressive', // Instagram-like aggressive caching
+      }).then(() => {
+        console.log('[App] ✅ Performance optimizations initialized');
+      }).catch(error => {
+        console.error('[App] ❌ Error initializing performance:', error);
+      });
+      
+      // ✅ Schedule automatic cleanup of expired stories
+      scheduleStoryCleanup();
     }
   }, [loaded]);
 
@@ -152,18 +56,71 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <AuthProvider>
-        <GlobalDataProvider>
+        <SelectedLocalProvider>
           <ModeProvider>
-            <SelectedLocalProvider>
-              <WidgetProvider>
-                <RootLayoutNav />
-              </WidgetProvider>
-            </SelectedLocalProvider>
+            <GlobalDataProvider>
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  animation: 'none', // Instant navigation - no animations
+                  animationDuration: 0,
+                }}
+              >
+                <Stack.Screen name="index" options={{ headerShown: false }} />
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="auth/login-popup" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="auth/bienvenida" options={{ headerShown: false }} />
+                <Stack.Screen name="auth/bienvenida-propietario" options={{ headerShown: false }} />
+                <Stack.Screen name="auth/completar-perfil" options={{ headerShown: false }} />
+                <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
+                <Stack.Screen name="crear/publicacion" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="crear/historia" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="crear/local" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="crear/evento" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="crear/oferta-trabajo" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="crear/perfil-profesional" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="detalle/local" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="detalle/local-updated" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="detalle/evento" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="detalle/sala-virtual" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="editar/perfil" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="social/amigos" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="social/configuracion" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="social/favoritos" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="social/post" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="perfil/usuario" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="perfil/seguidores" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="perfil/seguidos" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="solicitudes/solicitar-rol-propietario" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="admin/importacion-osm" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="admin/enriquecimiento-google" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="admin/control-costes-api" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="admin/gestionar-locales" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="admin/gestionar-usuarios" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="admin/vision-finanzas" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="admin/configuracion-general" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="admin/configuracion-supabase" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="admin/datos-maestros" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="admin/sincronizacion" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="admin/backups" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="admin/contenido-legal" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="admin/gestion-emails" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="admin/probar-emails" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="admin/solicitudes-propietario" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="admin/ver-ficha" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="admin/importacion-masiva" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="admin/navegacion-paginas" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="gestion/mis-locales" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="gestion/planes-suscripcion" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="+not-found" />
+              </Stack>
+              <StatusBar style="auto" />
+            </GlobalDataProvider>
           </ModeProvider>
-        </GlobalDataProvider>
+        </SelectedLocalProvider>
       </AuthProvider>
-    </GestureHandlerRootView>
+    </ThemeProvider>
   );
 }
