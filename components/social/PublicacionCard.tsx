@@ -456,7 +456,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
         </TouchableOpacity>
         {isAuthor && (
           <TouchableOpacity style={styles.deleteButton} onPress={handleDelete} activeOpacity={0.7}>
-            <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={22} color={colors.error} />
+            <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={22} color="#000" />
           </TouchableOpacity>
         )}
       </View>
@@ -721,6 +721,8 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     padding: 8,
+    backgroundColor: colors.background,
+    borderRadius: 20,
   },
   mentionsContainer: {
     paddingHorizontal: 16,

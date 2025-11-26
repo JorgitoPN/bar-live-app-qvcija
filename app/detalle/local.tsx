@@ -98,7 +98,7 @@ const getCategoryIcon = (categoria?: string): { ios: string; android: string } =
   return categoryMap[categoria?.toLowerCase() || ''] || { ios: 'mappin.circle.fill', android: 'location_on' };
 };
 
-// Helper function to get service icon
+// Helper function to get service icon with colors
 const getServiceIcon = (servicio: string): { ios: string; android: string; color: string } => {
   const serviceMap: Record<string, { ios: string; android: string; color: string }> = {
     'cerveza': { ios: 'wineglass', android: 'sports_bar', color: '#F59E0B' },
@@ -155,7 +155,7 @@ const deg2rad = (deg: number): number => {
 };
 
 // Helper function to summarize text
-const summarizeText = (text: string, maxLength: number = 150): { summary: string; needsExpansion: boolean } => {
+const summarizeText = (text: string, maxLength: number = 120): { summary: string; needsExpansion: boolean } => {
   if (!text || text.length <= maxLength) {
     return { summary: text, needsExpansion: false };
   }
@@ -223,7 +223,7 @@ export default function DetalleLocalScreen() {
         `)
         .eq('local_id', params.id)
         .order('created_at', { ascending: false })
-        .limit(5);
+        .limit(3);
 
       if (error) {
         console.error('[DetalleLocal] Error loading reviews:', error);
@@ -501,20 +501,20 @@ export default function DetalleLocalScreen() {
   // Calculate rating to display (Google or BarLive)
   const displayRating = local.google_rating || averageRating || 0;
 
-  // FIXED: Show only BarLive reviews count, including up to 5 Google reviews
+  // FIXED: Show only BarLive reviews count, including up to 2 Google reviews
   const barliveReviewsCount = reviews.length;
-  const googleReviewsToShow = Math.min(5, (local.reviews_google || []).length);
+  const googleReviewsToShow = Math.min(2, (local.reviews_google || []).length);
   const totalReviewsToShow = barliveReviewsCount + googleReviewsToShow;
 
-  // Combine and limit reviews to 5
+  // Combine and limit reviews to 3 total (compact)
   const allReviews = [
     ...reviews.map(r => ({ ...r, isGoogle: false })),
-    ...(local.reviews_google || []).slice(0, 5 - reviews.length).map((r: any) => ({
+    ...(local.reviews_google || []).slice(0, 3 - reviews.length).map((r: any) => ({
       ...r,
       isGoogle: true,
       id: r.time?.toString() || Math.random().toString(),
     }))
-  ].slice(0, 5);
+  ].slice(0, 3);
 
   // FIXED: Get all categories and filter out excluded ones
   const allCategories = (local.barlive_types && local.barlive_types.length > 0 
@@ -528,7 +528,7 @@ export default function DetalleLocalScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      {/* Cover Photo with Status Badge and Rating - FIXED: NO PAGINATION DOTS */}
+      {/* Cover Photo with Status Badge and Rating - NO PAGINATION DOTS */}
       {allImages.length > 0 && (
         <View style={styles.coverContainer}>
           <TouchableOpacity
@@ -556,7 +556,7 @@ export default function DetalleLocalScreen() {
             </ScrollView>
           </TouchableOpacity>
           
-          {/* FIXED: Status Badge WITHOUT Animation */}
+          {/* Status Badge WITHOUT Animation */}
           <View style={styles.statusBadgeTop}>
             <BlurView intensity={80} tint="dark" style={styles.statusBlur}>
               <View style={[styles.statusDot, isOpen ? styles.statusDotOpen : styles.statusDotClosed]} />
@@ -645,8 +645,15 @@ export default function DetalleLocalScreen() {
 
       {/* Content Card */}
       <View style={styles.contentCard}>
-        {/* Title */}
-        <Text style={styles.title}>{local.nombre}</Text>
+        {/* Title with Gradient Background */}
+        <LinearGradient
+          colors={[colors.primary + '20', colors.secondary + '20']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.titleContainer}
+        >
+          <Text style={styles.title}>{local.nombre}</Text>
+        </LinearGradient>
 
         {/* FIXED: Display ALL categories (excluding lounge, terraza, rooftop, salón, azotea) */}
         {allCategories.length > 0 && (
@@ -655,14 +662,19 @@ export default function DetalleLocalScreen() {
               const icon = getCategoryIcon(categoria);
               return (
                 <View key={index} style={styles.categoryChip}>
-                  <View style={styles.categoryIconSmall}>
+                  <LinearGradient
+                    colors={[colors.primary, colors.secondary]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.categoryIconSmall}
+                  >
                     <IconSymbol 
                       ios_icon_name={icon.ios} 
                       android_material_icon_name={icon.android} 
                       size={18} 
-                      color={colors.primary} 
+                      color="#fff" 
                     />
-                  </View>
+                  </LinearGradient>
                   <Text style={styles.categoryChipText}>{categoria}</Text>
                 </View>
               );
@@ -673,22 +685,29 @@ export default function DetalleLocalScreen() {
         {/* Address */}
         {local.direccion && (
           <TouchableOpacity style={styles.addressRow} onPress={handleDirections}>
-            <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={18} color={colors.primary} />
+            <View style={styles.addressIconContainer}>
+              <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={20} color={colors.primary} />
+            </View>
             <Text style={styles.addressText}>{local.direccion}</Text>
+            {distance && (
+              <View style={styles.distanceBadge}>
+                <Text style={styles.distanceText}>{distance}</Text>
+              </View>
+            )}
           </TouchableOpacity>
         )}
 
-        {/* FIXED: Action Buttons - Same Size */}
+        {/* FIXED: Action Buttons - Same Size with Gradient */}
         <View style={styles.actionButtonsRow}>
           {local.telefono && (
             <TouchableOpacity style={styles.actionButton} onPress={handleCall}>
               <LinearGradient
-                colors={[colors.primary, colors.secondary]}
+                colors={['#10B981', '#059669']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.actionButtonGradient}
               >
-                <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="phone" size={20} color="#fff" />
+                <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="phone" size={22} color="#fff" />
                 <Text style={styles.actionButtonText}>Llamar</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -697,16 +716,13 @@ export default function DetalleLocalScreen() {
           {local.latitud && local.longitud && (
             <TouchableOpacity style={styles.actionButton} onPress={handleDirections}>
               <LinearGradient
-                colors={[colors.primary, colors.secondary]}
+                colors={['#3B82F6', '#2563EB']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.actionButtonGradient}
               >
-                <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={20} color="#fff" />
+                <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={22} color="#fff" />
                 <Text style={styles.actionButtonText}>Cómo llegar</Text>
-                {distance && (
-                  <Text style={styles.distanceText}>{distance}</Text>
-                )}
               </LinearGradient>
             </TouchableOpacity>
           )}
@@ -720,7 +736,7 @@ export default function DetalleLocalScreen() {
             end={{ x: 1, y: 0 }}
             style={styles.virtualRoomGradient}
           >
-            <IconSymbol ios_icon_name="cube.fill" android_material_icon_name="view_in_ar" size={22} color="#fff" />
+            <IconSymbol ios_icon_name="cube.fill" android_material_icon_name="view_in_ar" size={24} color="#fff" />
             <Text style={styles.virtualRoomText}>Ver Sala Virtual</Text>
           </LinearGradient>
         </TouchableOpacity>
@@ -734,7 +750,7 @@ export default function DetalleLocalScreen() {
               end={{ x: 1, y: 0 }}
               style={styles.socialProfileGradient}
             >
-              <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={22} color="#fff" />
+              <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={24} color="#fff" />
               <Text style={styles.socialProfileText}>Ver Perfil Social</Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -744,9 +760,14 @@ export default function DetalleLocalScreen() {
         {local.horarios_completos && Object.keys(local.horarios_completos).length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <View style={styles.sectionIconContainer}>
-                <IconSymbol ios_icon_name="clock.fill" android_material_icon_name="schedule" size={24} color={colors.primary} />
-              </View>
+              <LinearGradient
+                colors={['#F59E0B', '#D97706']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.sectionIconContainer}
+              >
+                <IconSymbol ios_icon_name="clock.fill" android_material_icon_name="schedule" size={26} color="#fff" />
+              </LinearGradient>
               <Text style={styles.sectionTitle}>Horarios</Text>
             </View>
             <View style={styles.scheduleContainer}>
@@ -759,9 +780,14 @@ export default function DetalleLocalScreen() {
                         {day.charAt(0).toUpperCase() + day.slice(1)}
                       </Text>
                       {isToday && (
-                        <View style={styles.todayBadge}>
+                        <LinearGradient
+                          colors={[colors.primary, colors.secondary]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                          style={styles.todayBadge}
+                        >
                           <Text style={styles.todayBadgeText}>Hoy</Text>
-                        </View>
+                        </LinearGradient>
                       )}
                     </View>
                     <Text style={[styles.scheduleHours, isToday && styles.scheduleHoursToday]}>
@@ -778,9 +804,14 @@ export default function DetalleLocalScreen() {
         {allServices.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <View style={styles.sectionIconContainer}>
-                <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={24} color={colors.primary} />
-              </View>
+              <LinearGradient
+                colors={['#8B5CF6', '#7C3AED']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.sectionIconContainer}
+              >
+                <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={26} color="#fff" />
+              </LinearGradient>
               <Text style={styles.sectionTitle}>Servicios Disponibles</Text>
             </View>
             <View style={styles.servicesGrid}>
@@ -792,7 +823,7 @@ export default function DetalleLocalScreen() {
                       <IconSymbol 
                         ios_icon_name={icon.ios} 
                         android_material_icon_name={icon.android} 
-                        size={20} 
+                        size={22} 
                         color={icon.color} 
                       />
                     </View>
@@ -808,16 +839,27 @@ export default function DetalleLocalScreen() {
         {ambienteTags.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <View style={styles.sectionIconContainer}>
-                <IconSymbol ios_icon_name="sparkles" android_material_icon_name="auto_awesome" size={24} color={colors.primary} />
-              </View>
+              <LinearGradient
+                colors={['#EC4899', '#DB2777']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.sectionIconContainer}
+              >
+                <IconSymbol ios_icon_name="sparkles" android_material_icon_name="auto_awesome" size={26} color="#fff" />
+              </LinearGradient>
               <Text style={styles.sectionTitle}>Ambiente</Text>
             </View>
             <View style={styles.chipContainer}>
               {ambienteTags.map((tag, index) => (
-                <View key={index} style={styles.chip}>
+                <LinearGradient
+                  key={index}
+                  colors={[colors.primary + '30', colors.secondary + '30']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.chip}
+                >
                   <Text style={styles.chipText}>{tag}</Text>
-                </View>
+                </LinearGradient>
               ))}
             </View>
           </View>
@@ -827,67 +869,50 @@ export default function DetalleLocalScreen() {
         {clientelaTags.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <View style={styles.sectionIconContainer}>
-                <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={24} color={colors.primary} />
-              </View>
+              <LinearGradient
+                colors={['#10B981', '#059669']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.sectionIconContainer}
+              >
+                <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={26} color="#fff" />
+              </LinearGradient>
               <Text style={styles.sectionTitle}>Clientela Típica</Text>
             </View>
             <View style={styles.chipContainer}>
               {clientelaTags.map((tag, index) => (
-                <View key={index} style={styles.chip}>
+                <LinearGradient
+                  key={index}
+                  colors={['#10B981' + '30', '#059669' + '30']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.chip}
+                >
                   <Text style={styles.chipText}>{tag}</Text>
-                </View>
+                </LinearGradient>
               ))}
             </View>
           </View>
         )}
 
-        {/* Review Analysis Section */}
-        {local.analisis_reviews && Object.keys(local.analisis_reviews).length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionIconContainer}>
-                <IconSymbol ios_icon_name="brain" android_material_icon_name="psychology" size={24} color={colors.primary} />
-              </View>
-              <Text style={styles.sectionTitle}>Análisis de Reseñas</Text>
-            </View>
-            <View style={styles.analysisCard}>
-              {local.analisis_reviews.sentimiento_general && (
-                <Text style={styles.analysisTitle}>
-                  Sentimiento: {local.analisis_reviews.sentimiento_general}
-                </Text>
-              )}
-              {local.analisis_reviews.resumen_automatico && (
-                <Text style={styles.analysisText}>
-                  {local.analisis_reviews.resumen_automatico}
-                </Text>
-              )}
-              {local.analisis_reviews.palabras_destacadas_google && local.analisis_reviews.palabras_destacadas_google.length > 0 && (
-                <View style={styles.analysisTagsContainer}>
-                  {local.analisis_reviews.palabras_destacadas_google.map((palabra: string, index: number) => (
-                    <View key={index} style={styles.analysisTag}>
-                      <Text style={styles.analysisTagText}>{palabra}</Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-            </View>
-          </View>
-        )}
-
-        {/* FIXED: Reviews Section */}
+        {/* FIXED: Compact Reviews Section with Avatars */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <View style={styles.sectionIconContainer}>
-              <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={24} color={colors.primary} />
-            </View>
+            <LinearGradient
+              colors={['#F59E0B', '#D97706']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.sectionIconContainer}
+            >
+              <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={26} color="#fff" />
+            </LinearGradient>
             <Text style={styles.sectionTitle}>Reseñas</Text>
             {totalReviewsToShow > 0 && (
               <Text style={styles.reviewCount}>({totalReviewsToShow})</Text>
             )}
           </View>
 
-          {/* All Reviews (BarLive + up to 5 Google, max 5 total) */}
+          {/* All Reviews (BarLive + up to 2 Google, max 3 total) - COMPACT */}
           {allReviews.length > 0 ? (
             <>
               {allReviews.map((review: any) => {
@@ -897,40 +922,35 @@ export default function DetalleLocalScreen() {
                 const displayText = isExpanded ? reviewText : summary;
                 
                 return (
-                  <View key={review.id} style={styles.reviewCard}>
-                    <View style={styles.reviewHeader}>
-                      <View style={styles.reviewAuthor}>
-                        {review.isGoogle ? (
-                          <View style={styles.reviewAvatarPlaceholder}>
-                            <Ionicons name="person" size={20} color={colors.textSecondary} />
-                          </View>
-                        ) : review.usuario?.avatar ? (
-                          <OptimizedImage
-                            source={{ uri: review.usuario.avatar }}
-                            style={styles.reviewAvatar}
-                          />
-                        ) : (
-                          <View style={styles.reviewAvatarPlaceholder}>
-                            <Ionicons name="person" size={20} color={colors.textSecondary} />
-                          </View>
-                        )}
-                        <View>
-                          <Text style={styles.reviewAuthorName}>
-                            {review.isGoogle ? 'Cliente' : (review.usuario?.nombre || 'Usuario')}
-                          </Text>
-                          {!review.isGoogle && (
-                            <Text style={styles.reviewSource}>BarLive</Text>
-                          )}
+                  <View key={review.id} style={styles.reviewCardCompact}>
+                    <View style={styles.reviewHeaderCompact}>
+                      {review.isGoogle ? (
+                        <View style={styles.reviewAvatarCompact}>
+                          <Ionicons name="logo-google" size={18} color="#4285F4" />
                         </View>
-                      </View>
-                      <View style={styles.reviewRating}>
-                        <Ionicons name="star" size={16} color="#FFD700" />
-                        <Text style={styles.reviewRatingText}>{review.rating}</Text>
+                      ) : review.usuario?.avatar ? (
+                        <OptimizedImage
+                          source={{ uri: review.usuario.avatar }}
+                          style={styles.reviewAvatarCompact}
+                        />
+                      ) : (
+                        <View style={styles.reviewAvatarCompact}>
+                          <Ionicons name="person" size={18} color={colors.textSecondary} />
+                        </View>
+                      )}
+                      <View style={styles.reviewInfoCompact}>
+                        <Text style={styles.reviewAuthorNameCompact}>
+                          {review.isGoogle ? 'Cliente Google' : (review.usuario?.nombre || 'Usuario')}
+                        </Text>
+                        <View style={styles.reviewRatingCompact}>
+                          <Ionicons name="star" size={14} color="#FFD700" />
+                          <Text style={styles.reviewRatingTextCompact}>{review.rating}</Text>
+                        </View>
                       </View>
                     </View>
                     {reviewText && (
                       <>
-                        <Text style={styles.reviewComment}>{displayText}</Text>
+                        <Text style={styles.reviewCommentCompact}>{displayText}</Text>
                         {needsExpansion && (
                           <TouchableOpacity onPress={() => toggleReviewExpansion(review.id)}>
                             <Text style={styles.verMasText}>
@@ -940,34 +960,28 @@ export default function DetalleLocalScreen() {
                         )}
                       </>
                     )}
-                    <Text style={styles.reviewDate}>
-                      {review.isGoogle && review.time
-                        ? new Date(review.time * 1000).toLocaleDateString('es-ES', {
-                            day: 'numeric',
-                            month: 'long',
-                            year: 'numeric'
-                          })
-                        : new Date(review.created_at).toLocaleDateString('es-ES', {
-                            day: 'numeric',
-                            month: 'long',
-                            year: 'numeric'
-                          })}
-                    </Text>
                   </View>
                 );
               })}
             </>
           ) : (
             <View style={styles.noReviewsCard}>
-              <Ionicons name="chatbubbles-outline" size={48} color={colors.textSecondary} />
+              <Ionicons name="chatbubbles-outline" size={40} color={colors.textSecondary} />
               <Text style={styles.noReviews}>No hay reseñas todavía</Text>
             </View>
           )}
 
           {/* Add Review Button */}
           <TouchableOpacity style={styles.addReviewButton} onPress={handleAddReview}>
-            <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={20} color="#fff" />
-            <Text style={styles.addReviewButtonText}>Añadir Reseña de BarLive</Text>
+            <LinearGradient
+              colors={[colors.primary, colors.secondary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.addReviewGradient}
+            >
+              <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={22} color="#fff" />
+              <Text style={styles.addReviewButtonText}>Añadir Reseña</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
       </View>
@@ -1137,7 +1151,7 @@ const styles = StyleSheet.create({
   galleryItem: {
     width: 100,
     height: 100,
-    borderRadius: 8,
+    borderRadius: 12,
     overflow: 'hidden',
     marginRight: 8,
     position: 'relative',
@@ -1161,51 +1175,83 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     padding: 20,
   },
+  titleContainer: {
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 16,
+  },
   title: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 'bold',
     color: colors.text,
-    marginBottom: 16,
+    textAlign: 'center',
   },
   categoriesContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 16,
+    gap: 10,
+    marginBottom: 20,
   },
   categoryChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.primary + '15',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    gap: 6,
+    backgroundColor: colors.card,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 24,
+    gap: 8,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   categoryIconSmall: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: colors.background,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
   categoryChipText: {
-    fontSize: 14,
-    color: colors.primary,
+    fontSize: 15,
+    color: colors.text,
     fontWeight: '600',
     textTransform: 'capitalize',
   },
   addressRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
-    gap: 8,
+    backgroundColor: colors.card,
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    gap: 12,
+  },
+  addressIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.primary + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   addressText: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.text,
     flex: 1,
+    fontWeight: '500',
+  },
+  distanceBadge: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  distanceText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#fff',
   },
   actionButtonsRow: {
     flexDirection: 'row',
@@ -1214,92 +1260,112 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
-    borderRadius: 12,
+    borderRadius: 14,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
   },
   actionButtonGradient: {
-    flexDirection: 'column',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
-    paddingVertical: 14,
+    gap: 8,
+    paddingVertical: 16,
     paddingHorizontal: 12,
   },
   actionButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
     color: '#fff',
   },
-  distanceText: {
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginTop: 2,
-  },
   virtualRoomButton: {
-    borderRadius: 12,
+    borderRadius: 14,
     overflow: 'hidden',
     marginBottom: 12,
+    shadowColor: '#9333EA',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
   },
   virtualRoomGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
+    gap: 10,
+    paddingVertical: 16,
   },
   virtualRoomText: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
     color: '#fff',
   },
   socialProfileButton: {
-    borderRadius: 12,
+    borderRadius: 14,
     overflow: 'hidden',
     marginBottom: 24,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
   },
   socialProfileGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
+    gap: 10,
+    paddingVertical: 16,
   },
   socialProfileText: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
     color: '#fff',
   },
   section: {
-    marginBottom: 24,
+    marginBottom: 28,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginBottom: 16,
+    gap: 14,
+    marginBottom: 18,
   },
   sectionIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.primary + '15',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
     color: colors.text,
     flex: 1,
   },
   reviewCount: {
-    fontSize: 16,
+    fontSize: 18,
     color: colors.textSecondary,
+    fontWeight: '600',
   },
   scheduleContainer: {
     backgroundColor: colors.card,
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   scheduleRow: {
     flexDirection: 'row',
@@ -1310,20 +1376,20 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   scheduleRowToday: {
-    backgroundColor: colors.primary + '20',
+    backgroundColor: colors.primary + '15',
     marginHorizontal: -16,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 10,
     borderBottomWidth: 0,
     marginVertical: 4,
   },
   scheduleDayContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
   scheduleDay: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '600',
     color: colors.text,
     textTransform: 'capitalize',
@@ -1331,27 +1397,26 @@ const styles = StyleSheet.create({
   scheduleDayToday: {
     color: colors.primary,
     fontWeight: '700',
-    fontSize: 16,
+    fontSize: 17,
   },
   todayBadge: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 14,
   },
   todayBadgeText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
     color: '#fff',
   },
   scheduleHours: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.textSecondary,
   },
   scheduleHoursToday: {
     color: colors.text,
     fontWeight: '600',
-    fontSize: 15,
+    fontSize: 16,
   },
   servicesGrid: {
     flexDirection: 'row',
@@ -1366,167 +1431,134 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 24,
     gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   serviceIconBg: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
   serviceText: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.text,
-    fontWeight: '500',
+    fontWeight: '600',
     textTransform: 'capitalize',
   },
   chipContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 10,
   },
   chip: {
-    backgroundColor: colors.primary + '20',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 22,
   },
   chipText: {
-    fontSize: 14,
-    color: colors.primary,
-    fontWeight: '600',
-    textTransform: 'capitalize',
-  },
-  analysisCard: {
-    backgroundColor: colors.card,
-    padding: 16,
-    borderRadius: 12,
-  },
-  analysisTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.primary,
-    marginBottom: 8,
-    textTransform: 'capitalize',
-  },
-  analysisText: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.text,
-    lineHeight: 20,
-    marginBottom: 12,
-  },
-  analysisTagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  analysisTag: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  analysisTagText: {
-    fontSize: 13,
-    color: '#fff',
     fontWeight: '600',
+    textTransform: 'capitalize',
   },
-  reviewCard: {
+  reviewCardCompact: {
     backgroundColor: colors.card,
-    padding: 16,
+    padding: 14,
     borderRadius: 12,
-    marginBottom: 12,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
-  reviewHeader: {
+  reviewHeaderCompact: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
+    gap: 10,
   },
-  reviewAuthor: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  reviewAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-  },
-  reviewAvatarPlaceholder: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  reviewAvatarCompact: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  reviewAuthorName: {
-    fontSize: 15,
+  reviewInfoCompact: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  reviewAuthorNameCompact: {
+    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
   },
-  reviewSource: {
-    fontSize: 12,
-    color: colors.primary,
-    marginTop: 2,
-  },
-  reviewRating: {
+  reviewRatingCompact: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     backgroundColor: colors.background,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 10,
   },
-  reviewRatingText: {
-    fontSize: 14,
+  reviewRatingTextCompact: {
+    fontSize: 13,
     fontWeight: '700',
     color: colors.text,
   },
-  reviewComment: {
+  reviewCommentCompact: {
     fontSize: 14,
     color: colors.text,
     lineHeight: 20,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   verMasText: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.primary,
     fontWeight: '600',
-    marginBottom: 8,
-  },
-  reviewDate: {
-    fontSize: 12,
-    color: colors.textSecondary,
   },
   addReviewButton: {
-    backgroundColor: colors.primary,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
     borderRadius: 12,
-    alignItems: 'center',
-    marginTop: 8,
+    overflow: 'hidden',
+    marginTop: 12,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  addReviewGradient: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+    paddingVertical: 14,
   },
   addReviewButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
     color: '#fff',
   },
   noReviewsCard: {
     backgroundColor: colors.card,
-    padding: 32,
+    padding: 28,
     borderRadius: 12,
     alignItems: 'center',
   },
   noReviews: {
-    fontSize: 16,
+    fontSize: 15,
     color: colors.text,
     fontWeight: '600',
-    marginTop: 12,
+    marginTop: 10,
   },
 });
