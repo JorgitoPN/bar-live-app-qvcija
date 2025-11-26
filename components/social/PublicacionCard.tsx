@@ -43,12 +43,12 @@ const PostImage = memo(({ uri, onPress }: { uri: string; onPress: () => void }) 
     style={styles.imageContainer}
   >
     <Image 
-      source={{ uri }} 
+      source={{ uri: `${uri}?v=${Date.now()}` }} 
       style={styles.imagen} 
       resizeMode="cover"
       fadeDuration={0}
       progressiveRenderingEnabled={true}
-      cache="force-cache"
+      cache="reload"
     />
   </TouchableOpacity>
 ));
@@ -70,37 +70,41 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
   const [loadingAuthor, setLoadingAuthor] = useState(true);
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // CRITICAL FIX: Fetch author data based on post type
+  // ULTRA AGGRESSIVE CACHE BUSTING v3: Force fresh data with timestamp
   useEffect(() => {
     const fetchAuthorData = async () => {
       if (!post) {
-        console.log('[PublicacionCard] No post data, skipping author fetch');
+        console.log('[PublicacionCard v3 ULTRA] No post data, skipping author fetch');
         setLoadingAuthor(false);
         return;
       }
 
       try {
-        console.log('[PublicacionCard] Fetching author for post:', post.id, 'Type:', post.tipo, 'AutorId:', post.autorId, 'LocalId:', post.localId);
+        const timestamp = Date.now();
+        console.log('[PublicacionCard v3 ULTRA] 🔥 FORCE FETCHING author with timestamp:', timestamp, 'Post:', post.id, 'Type:', post.tipo, 'AutorId:', post.autorId, 'LocalId:', post.localId);
         
         if (post.tipo === 'local' && post.localId) {
-          // Fetch local data
-          console.log('[PublicacionCard] Fetching local data for:', post.localId);
+          // Fetch local data with cache busting
+          console.log('[PublicacionCard v3 ULTRA] 🔥 Fetching local data for:', post.localId);
           const { data, error } = await supabase
             .from('locales')
-            .select('nombre, imagen_url')
+            .select('nombre, imagen_url, logo')
             .eq('id', post.localId)
             .single();
 
           if (error) {
-            console.error('[PublicacionCard] Error fetching local:', error);
+            console.error('[PublicacionCard v3 ULTRA] ❌ Error fetching local:', error);
             setAuthorData({ nombre: 'Local', avatar: null });
           } else if (data) {
-            console.log('[PublicacionCard] Local data fetched:', data);
-            setAuthorData({ nombre: data.nombre, avatar: data.imagen_url });
+            console.log('[PublicacionCard v3 ULTRA] ✅ Local data fetched:', data);
+            setAuthorData({ 
+              nombre: data.nombre, 
+              avatar: data.logo || data.imagen_url 
+            });
           }
         } else if (post.autorId) {
-          // Fetch user data - FIXED: Always fetch from usuarios table
-          console.log('[PublicacionCard] Fetching user data for:', post.autorId);
+          // Fetch user data - ULTRA AGGRESSIVE: Always fetch fresh
+          console.log('[PublicacionCard v3 ULTRA] 🔥 FORCE FETCHING user data for:', post.autorId);
           const { data, error } = await supabase
             .from('usuarios')
             .select('nombre, avatar, username')
@@ -108,10 +112,15 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
             .single();
 
           if (error) {
-            console.error('[PublicacionCard] Error fetching user:', error);
+            console.error('[PublicacionCard v3 ULTRA] ❌ Error fetching user:', error);
             setAuthorData({ nombre: 'Usuario', avatar: null });
           } else if (data) {
-            console.log('[PublicacionCard] User data fetched:', data);
+            console.log('[PublicacionCard v3 ULTRA] ✅✅✅ User data fetched successfully:', {
+              nombre: data.nombre,
+              username: data.username,
+              hasAvatar: !!data.avatar,
+              avatarUrl: data.avatar
+            });
             setAuthorData({ 
               nombre: data.nombre || 'Usuario', 
               avatar: data.avatar,
@@ -119,11 +128,11 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
             });
           }
         } else {
-          console.log('[PublicacionCard] No valid author ID found');
+          console.log('[PublicacionCard v3 ULTRA] ⚠️ No valid author ID found');
           setAuthorData({ nombre: 'Usuario', avatar: null });
         }
       } catch (error) {
-        console.error('[PublicacionCard] Error fetching author:', error);
+        console.error('[PublicacionCard v3 ULTRA] ❌ Error fetching author:', error);
         setAuthorData({ nombre: 'Usuario', avatar: null });
       } finally {
         setLoadingAuthor(false);
@@ -420,13 +429,25 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
       ? [post.imagen] 
       : [];
 
-  // CRITICAL FIX: Use fetched author data with username fallback
+  // ULTRA VISIBLE v3: Use fetched author data with username fallback and BRIGHT COLORS
   const displayName = loadingAuthor 
     ? 'Cargando...' 
     : (authorData?.username ? `@${authorData.username}` : authorData?.nombre || 'Usuario');
-  const avatarUrl = authorData?.avatar || null;
+  const avatarUrl = authorData?.avatar ? `${authorData.avatar}?v=${Date.now()}` : null;
   const displayDate = post?.fecha ? formatearFecha(post.fecha) : post?.created_at ? formatearFecha(post.created_at) : 'Fecha desconocida';
   const isAuthor = user && post.tipo === 'usuario' && post.autorId === user.id;
+
+  // Debug log to verify data is being used
+  useEffect(() => {
+    if (!loadingAuthor && authorData) {
+      console.log('[PublicacionCard v3 ULTRA] 🎨 Rendering with author data:', {
+        displayName,
+        hasAvatar: !!avatarUrl,
+        isAuthor,
+        avatarUrl
+      });
+    }
+  }, [loadingAuthor, authorData, displayName, avatarUrl, isAuthor]);
 
   return (
     <View style={styles.card}>
@@ -446,7 +467,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
             <Image source={{ uri: avatarUrl }} style={styles.avatar} />
           ) : (
             <View style={styles.avatarPlaceholder}>
-              <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={24} color={colors.textSecondary} />
+              <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={28} color="#FF6B6B" />
             </View>
           )}
           <View style={styles.headerContent}>
@@ -456,7 +477,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
         </TouchableOpacity>
         {isAuthor && (
           <TouchableOpacity style={styles.deleteButton} onPress={handleDelete} activeOpacity={0.7}>
-            <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={22} color="#000" />
+            <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={24} color="#FF3B30" />
           </TouchableOpacity>
         )}
       </View>
@@ -498,7 +519,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
                 activeOpacity={0.7}
               >
                 {taggedUser.avatar ? (
-                  <Image source={{ uri: taggedUser.avatar }} style={styles.taggedAvatarImage} />
+                  <Image source={{ uri: `${taggedUser.avatar}?v=${Date.now()}` }} style={styles.taggedAvatarImage} />
                 ) : (
                   <View style={styles.taggedAvatarPlaceholder}>
                     <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={14} color={colors.textSecondary} />
@@ -581,7 +602,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
           <IconSymbol
             ios_icon_name={liked ? 'heart.fill' : 'heart'}
             android_material_icon_name={liked ? 'favorite' : 'favorite_border'}
-            size={26}
+            size={28}
             color={liked ? '#EF4444' : colors.text}
           />
           <Text style={[styles.accionText, liked && styles.accionTextLiked]}>
@@ -590,19 +611,19 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.accionButton} onPress={handleComment} activeOpacity={0.7}>
-          <IconSymbol ios_icon_name="bubble.left" android_material_icon_name="chat_bubble_outline" size={26} color={colors.text} />
+          <IconSymbol ios_icon_name="bubble.left" android_material_icon_name="chat_bubble_outline" size={28} color={colors.text} />
           <Text style={styles.accionText}>{post?.comentarios || 0}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.accionButton} onPress={handleShare} activeOpacity={0.7}>
-          <IconSymbol ios_icon_name="paperplane" android_material_icon_name="send" size={26} color={colors.text} />
+          <IconSymbol ios_icon_name="paperplane" android_material_icon_name="send" size={28} color={colors.text} />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.accionButton} onPress={handleSave} activeOpacity={0.7}>
           <IconSymbol 
             ios_icon_name={saved ? 'bookmark.fill' : 'bookmark'} 
             android_material_icon_name={saved ? 'bookmark' : 'bookmark_border'} 
-            size={26} 
+            size={28} 
             color={saved ? colors.primary : colors.text} 
           />
         </TouchableOpacity>
@@ -621,7 +642,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
         >
           <View style={styles.tagsImageContainer}>
             <Image 
-              source={{ uri: images[currentImageIndex] }} 
+              source={{ uri: `${images[currentImageIndex]}?v=${Date.now()}` }} 
               style={styles.tagsImage} 
               resizeMode="contain" 
             />
@@ -685,6 +706,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     gap: 12,
+    backgroundColor: colors.cardBackground,
   },
   headerTouchable: {
     flexDirection: 'row',
@@ -693,36 +715,44 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: colors.cardBorder,
+    borderWidth: 2,
+    borderColor: colors.primary,
   },
   avatarPlaceholder: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.background,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#FFE5E5',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#FF6B6B',
   },
   headerContent: {
     flex: 1,
   },
   autorNombre: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 17,
+    fontWeight: '800',
     color: colors.text,
+    letterSpacing: 0.3,
   },
   fecha: {
-    fontSize: 13,
+    fontSize: 14,
     color: colors.textSecondary,
-    marginTop: 2,
+    marginTop: 3,
+    fontWeight: '500',
   },
   deleteButton: {
-    padding: 8,
-    backgroundColor: colors.background,
-    borderRadius: 20,
+    padding: 10,
+    backgroundColor: '#FFE5E5',
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: '#FF3B30',
   },
   mentionsContainer: {
     paddingHorizontal: 16,
@@ -848,8 +878,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   accionText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
     color: colors.text,
   },
   accionTextLiked: {
