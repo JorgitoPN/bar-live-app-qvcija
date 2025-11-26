@@ -21,18 +21,33 @@ const FeedSocial = memo(function FeedSocial({
   onEndReached,
   ListHeaderComponent,
 }: FeedSocialProps) {
+  // ✅ CRITICAL FIX: Filter out undefined/null posts before rendering
+  const validPosts = useMemo(() => {
+    const filtered = posts.filter(post => post && post.id);
+    if (filtered.length !== posts.length) {
+      console.warn('[FeedSocial] Filtered out', posts.length - filtered.length, 'invalid posts');
+    }
+    return filtered;
+  }, [posts]);
+  
   // ✅ Extract complex expressions
-  const postsLength = posts.length;
-  const firstPostId = posts[0]?.id;
+  const postsLength = validPosts.length;
+  const firstPostId = validPosts[0]?.id;
   
   // ✅ Memoize posts to prevent unnecessary re-renders
-  const memoizedPosts = useMemo(() => posts, [posts, postsLength, firstPostId]);
+  const memoizedPosts = useMemo(() => validPosts, [validPosts, postsLength, firstPostId]);
 
-  const renderItem = ({ item }: { item: Publicacion }) => (
-    <PublicacionCard publicacion={item} />
-  );
+  // ✅ CRITICAL FIX: Changed prop name from 'publicacion' to 'post' to match PublicacionCard interface
+  const renderItem = ({ item }: { item: Publicacion }) => {
+    // ✅ Double-check that item is valid before rendering
+    if (!item || !item.id) {
+      console.error('[FeedSocial] Attempted to render invalid post:', item);
+      return null;
+    }
+    return <PublicacionCard post={item} />;
+  };
 
-  const keyExtractor = (item: Publicacion) => item.id;
+  const keyExtractor = (item: Publicacion) => item?.id || `post-${Math.random()}`;
 
   return (
     <View style={styles.container}>

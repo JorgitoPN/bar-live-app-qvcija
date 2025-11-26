@@ -62,10 +62,16 @@ export default function SocialScreen() {
       if (globalPosts.length > 0) {
         console.log('[Social] ⚡⚡⚡ INSTANT posts from global data:', globalPosts.length);
         
-        let filteredPosts = globalPosts;
+        // ✅ CRITICAL FIX: Filter out invalid posts first
+        let validPosts = globalPosts.filter(p => p && p.id);
+        if (validPosts.length !== globalPosts.length) {
+          console.warn('[Social] Filtered out', globalPosts.length - validPosts.length, 'invalid posts from global data');
+        }
+        
+        let filteredPosts = validPosts;
         
         if (isOwnerMode && activeLocalProfileId) {
-          filteredPosts = globalPosts.filter(p => p.tipo === 'local' && p.local_id === activeLocalProfileId);
+          filteredPosts = validPosts.filter(p => p.tipo === 'local' && p.local_id === activeLocalProfileId);
           console.log('[Social] 🏢 Owner mode - Filtered posts for local:', activeLocalProfileId, 'Count:', filteredPosts.length);
         } else {
           if (user) {
@@ -76,13 +82,13 @@ export default function SocialScreen() {
 
             const followedLocalIds = new Set(followedLocals?.map(f => f.local_id) || []);
             
-            filteredPosts = globalPosts.filter(p => 
+            filteredPosts = validPosts.filter(p => 
               p.tipo === 'usuario' || 
               (p.tipo === 'local' && p.local_id && followedLocalIds.has(p.local_id))
             );
             console.log('[Social] 👤 User mode - Filtered user posts + followed locals, Count:', filteredPosts.length);
           } else {
-            filteredPosts = globalPosts.filter(p => p.tipo === 'usuario');
+            filteredPosts = validPosts.filter(p => p.tipo === 'usuario');
             console.log('[Social] 👤 User mode - Filtered user posts only (not logged in), Count:', filteredPosts.length);
           }
         }
@@ -122,19 +128,33 @@ export default function SocialScreen() {
             comentarios: commentCounts[post.id] || 0,
           }));
           
-          setPosts(postsWithStatus);
+          // ✅ CRITICAL FIX: Final validation before setting state
+          const finalValidPosts = postsWithStatus.filter(p => p && p.id);
+          setPosts(finalValidPosts);
+          console.log('[Social] ✅ Set', finalValidPosts.length, 'valid posts with user status');
         } else {
-          setPosts(filteredPosts);
+          // ✅ CRITICAL FIX: Final validation before setting state
+          const finalValidPosts = filteredPosts.filter(p => p && p.id);
+          setPosts(finalValidPosts);
+          console.log('[Social] ✅ Set', finalValidPosts.length, 'valid posts');
         }
+      } else {
+        setPosts([]);
       }
 
       if (globalStories.length > 0) {
         console.log('[Social] ⚡⚡⚡ INSTANT stories from global data:', globalStories.length);
         
-        let filteredStories = globalStories;
+        // ✅ CRITICAL FIX: Filter out invalid stories first
+        let validStories = globalStories.filter(s => s && s.id);
+        if (validStories.length !== globalStories.length) {
+          console.warn('[Social] Filtered out', globalStories.length - validStories.length, 'invalid stories from global data');
+        }
+        
+        let filteredStories = validStories;
         
         if (isOwnerMode && activeLocalProfileId) {
-          filteredStories = globalStories.filter(s => s.tipo === 'local' && s.local_id === activeLocalProfileId);
+          filteredStories = validStories.filter(s => s.tipo === 'local' && s.local_id === activeLocalProfileId);
           console.log('[Social] 🏢 Owner mode - Filtered stories for local:', activeLocalProfileId, 'Count:', filteredStories.length);
         } else {
           if (user) {
@@ -145,23 +165,28 @@ export default function SocialScreen() {
 
             const followedLocalIds = new Set(followedLocals?.map(f => f.local_id) || []);
             
-            filteredStories = globalStories.filter(s => 
+            filteredStories = validStories.filter(s => 
               s.tipo === 'usuario' || 
               (s.tipo === 'local' && s.local_id && followedLocalIds.has(s.local_id))
             );
             console.log('[Social] 👤 User mode - Filtered user stories + followed locals, Count:', filteredStories.length);
           } else {
-            filteredStories = globalStories.filter(s => s.tipo === 'usuario');
+            filteredStories = validStories.filter(s => s.tipo === 'usuario');
             console.log('[Social] 👤 User mode - Filtered user stories only (not logged in), Count:', filteredStories.length);
           }
         }
         
         setHistorias(filteredStories);
+      } else {
+        setHistorias([]);
       }
 
       console.log('[Social] ⚡ User-specific data loaded');
     } catch (error) {
       console.error('[Social] Error loading data:', error);
+      // ✅ CRITICAL FIX: Set empty arrays on error to prevent undefined state
+      setPosts([]);
+      setHistorias([]);
     } finally {
       isLoadingRef.current = false;
       setIsInitialLoad(false);

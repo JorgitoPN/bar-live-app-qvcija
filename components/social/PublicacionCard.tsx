@@ -57,8 +57,16 @@ PostImage.displayName = 'PostImage';
 
 const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment, onShare }: PublicacionCardProps) {
   const router = useRouter();
-  const [liked, setLiked] = useState(post.liked || false);
-  const [likesCount, setLikesCount] = useState(post.likes);
+  
+  // ✅ CRITICAL FIX: Add defensive checks for undefined post
+  if (!post) {
+    console.error('[PublicacionCard] Post is undefined, skipping render');
+    return null;
+  }
+
+  // ✅ CRITICAL FIX: Use optional chaining and provide default values
+  const [liked, setLiked] = useState(post?.liked || false);
+  const [likesCount, setLikesCount] = useState(post?.likes || 0);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [mentionedUsers, setMentionedUsers] = useState<MentionedUser[]>([]);
   const [taggedUsers, setTaggedUsers] = useState<TaggedUser[]>([]);
@@ -72,6 +80,12 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
       : [];
 
   useEffect(() => {
+    // ✅ CRITICAL FIX: Guard against undefined post.id
+    if (!post?.id) {
+      console.error('[PublicacionCard] Post ID is undefined, skipping mentions load');
+      return;
+    }
+
     const loadMentions = async () => {
       try {
         const { data, error } = await supabase
@@ -118,9 +132,15 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
     };
 
     loadMentions();
-  }, [post.id]);
+  }, [post?.id]);
 
   useEffect(() => {
+    // ✅ CRITICAL FIX: Guard against undefined post.id
+    if (!post?.id) {
+      console.error('[PublicacionCard] Post ID is undefined, skipping tags load');
+      return;
+    }
+
     const loadTags = async () => {
       try {
         const { data, error } = await supabase
@@ -155,7 +175,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
     };
 
     loadTags();
-  }, [post.id]);
+  }, [post?.id]);
 
   const handleLike = useCallback(() => {
     setLiked(!liked);
@@ -190,7 +210,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
     } else {
       router.push(`/social/post?id=${post.id}`);
     }
-  }, [taggedUsers.length, router, post.id]);
+  }, [taggedUsers.length, router, post?.id]);
 
   const navigateToProfile = useCallback((user: MentionedUser | TaggedUser, tipo?: 'usuario' | 'local') => {
     const userType = tipo || (user as MentionedUser).tipo || 'usuario';
@@ -203,24 +223,24 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
 
   // ✅ CRITICAL FIX: Display username WITHOUT @ symbol, prioritize username over full name
   // Username does NOT have @ in database, so we display it directly
-  const displayName = post.autorUsername 
+  const displayName = post?.autorUsername 
     ? post.autorUsername.replace(/^@/, '') // Remove @ if present (shouldn't be in DB but just in case)
-    : post.autorNombre || 'Usuario';
+    : post?.autorNombre || 'Usuario';
 
   return (
     <View style={styles.card}>
       <TouchableOpacity
         style={styles.header}
         onPress={() => {
-          if (post.tipo === 'local' && post.localId) {
+          if (post?.tipo === 'local' && post?.localId) {
             router.push(`/perfil/local?localId=${post.localId}`);
-          } else {
+          } else if (post?.autorId) {
             router.push(`/perfil/usuario?userId=${post.autorId}`);
           }
         }}
         activeOpacity={0.7}
       >
-        {post.autorAvatar ? (
+        {post?.autorAvatar ? (
           <Image source={{ uri: post.autorAvatar }} style={styles.avatar} />
         ) : (
           <View style={styles.avatarPlaceholder}>
@@ -229,7 +249,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
         )}
         <View style={styles.headerContent}>
           <Text style={styles.autorNombre}>{displayName}</Text>
-          <Text style={styles.fecha}>{formatearFecha(post.fecha)}</Text>
+          <Text style={styles.fecha}>{post?.fecha ? formatearFecha(post.fecha) : 'Fecha desconocida'}</Text>
         </View>
         <TouchableOpacity style={styles.moreButton} activeOpacity={0.7}>
           <IconSymbol ios_icon_name="ellipsis" android_material_icon_name="more_vert" size={20} color={colors.text} />
@@ -285,7 +305,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
         </View>
       )}
 
-      {post.contenido && (
+      {post?.contenido && (
         <View style={styles.contenidoContainer}>
           <ParsedText text={post.contenido} style={styles.contenido} />
         </View>
@@ -342,7 +362,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
         </View>
       )}
 
-      {post.ubicacion && (
+      {post?.ubicacion && (
         <View style={styles.locationContainer}>
           <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={16} color={colors.primary} />
           <Text style={styles.locationText}>{post.ubicacion}</Text>
@@ -364,7 +384,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
 
         <TouchableOpacity style={styles.accionButton} onPress={onComment} activeOpacity={0.7}>
           <IconSymbol ios_icon_name="bubble.left" android_material_icon_name="chat_bubble_outline" size={24} color={colors.text} />
-          <Text style={styles.accionText}>{post.comentarios}</Text>
+          <Text style={styles.accionText}>{post?.comentarios || 0}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.accionButton} onPress={onShare} activeOpacity={0.7}>

@@ -326,6 +326,9 @@ export interface Post {
   ubicacion?: string;
 }
 
+// ✅ Type alias for consistency - Publicacion is the same as Post
+export type Publicacion = Post;
+
 export interface Historia {
   id: string;
   autorId: string;
