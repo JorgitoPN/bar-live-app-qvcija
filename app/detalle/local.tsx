@@ -248,6 +248,42 @@ const summarizeText = (text: string, maxLength: number = 120): { summary: string
   return { summary, needsExpansion: true };
 };
 
+// Helper function to calculate sentiment based on rating
+const calculateSentiment = (rating: number): { sentiment: string; color: string } => {
+  if (rating >= 4) {
+    return { sentiment: 'Muy Positivo', color: '#10B981' };
+  } else if (rating >= 3) {
+    return { sentiment: 'Positivo', color: '#3B82F6' };
+  } else if (rating >= 2) {
+    return { sentiment: 'Neutral', color: '#F59E0B' };
+  } else {
+    return { sentiment: 'Negativo', color: '#EF4444' };
+  }
+};
+
+// Helper function to get current day info considering nighttime schedules
+const getCurrentDayInfo = () => {
+  const now = new Date();
+  const dayNames = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+  const currentHour = now.getHours();
+  
+  // If it's early morning (before 8 AM), consider it as the previous day's nighttime
+  if (currentHour < 8) {
+    const yesterdayIndex = (now.getDay() - 1 + 7) % 7;
+    return {
+      currentDayName: dayNames[yesterdayIndex],
+      isNighttime: true,
+      displayNote: '(Horario nocturno)'
+    };
+  }
+  
+  return {
+    currentDayName: dayNames[now.getDay()],
+    isNighttime: false,
+    displayNote: null
+  };
+};
+
 export default function DetalleLocalScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
@@ -676,12 +712,22 @@ export default function DetalleLocalScreen() {
     });
   }
 
-  // Get current day for schedule
-  const dayNames = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-  const currentDayName = dayNames[new Date().getDay()];
+  // Get current day for schedule with nighttime consideration
+  const dayInfo = getCurrentDayInfo();
+  const currentDayName = dayInfo.currentDayName;
 
   // Calculate rating to display (Google or BarLive)
   const displayRating = local.rating || local.google_rating || averageRating || 0;
+
+  // Calculate average rating from all reviews for sentiment analysis
+  const allReviewsForSentiment = [
+    ...reviews,
+    ...(local.reviews_google || [])
+  ];
+  
+  const averageRatingForSentiment = allReviewsForSentiment.length > 0
+    ? allReviewsForSentiment.reduce((sum, r) => sum + (r.rating || 0), 0) / allReviewsForSentiment.length
+    : displayRating;
 
   // Show only BarLive reviews, including up to 2 Google reviews
   const barliveReviewsCount = reviews.length;
@@ -955,7 +1001,7 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* Schedule Section with Current Day Highlighted */}
+        {/* Schedule Section with Current Day Highlighted and Nighttime Support */}
         {local.horarios_completos && Object.keys(local.horarios_completos).length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -964,6 +1010,9 @@ export default function DetalleLocalScreen() {
               </View>
               <Text style={styles.sectionTitle}>Horarios</Text>
             </View>
+            {dayInfo.isNighttime && dayInfo.displayNote && (
+              <Text style={styles.nighttimeNote}>{dayInfo.displayNote}</Text>
+            )}
             <View style={styles.scheduleContainer}>
               {Object.entries(local.horarios_completos).map(([day, hours]) => {
                 const isToday = day.toLowerCase() === currentDayName.toLowerCase();
@@ -1079,8 +1128,8 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* Reviews Analysis Section - ALWAYS SHOW IF THERE IS ANALYSIS DATA */}
-        {local.analisis_reviews && Object.keys(local.analisis_reviews).length > 0 && (
+        {/* Reviews Analysis Section - ALWAYS SHOW IF THERE IS ANALYSIS DATA OR REVIEWS */}
+        {(local.analisis_reviews && Object.keys(local.analisis_reviews).length > 0) || allReviewsForSentiment.length > 0 ? (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <View style={[styles.sectionIconContainer, { backgroundColor: '#8B5CF6' }]}>
@@ -1089,15 +1138,16 @@ export default function DetalleLocalScreen() {
               <Text style={styles.sectionTitle}>Análisis de Reseñas</Text>
             </View>
             <View style={styles.analysisCard}>
-              {local.analisis_reviews.sentimiento_general && (
+              {/* Calculate sentiment based on actual ratings */}
+              {averageRatingForSentiment > 0 && (
                 <View style={styles.analysisRow}>
                   <Text style={styles.analysisLabel}>Sentimiento:</Text>
-                  <Text style={[styles.analysisValue, { color: local.analisis_reviews.sentimiento_general === 'positivo' ? '#10B981' : '#EF4444' }]}>
-                    {local.analisis_reviews.sentimiento_general === 'positivo' ? 'Muy Positivo' : 'Negativo'}
+                  <Text style={[styles.analysisValue, { color: calculateSentiment(averageRatingForSentiment).color }]}>
+                    {calculateSentiment(averageRatingForSentiment).sentiment}
                   </Text>
                 </View>
               )}
-              {local.analisis_reviews.palabras_destacadas_google && local.analisis_reviews.palabras_destacadas_google.length > 0 && (
+              {local.analisis_reviews?.palabras_destacadas_google && local.analisis_reviews.palabras_destacadas_google.length > 0 && (
                 <View style={styles.analysisKeywords}>
                   <Text style={styles.analysisLabel}>Palabras clave destacadas:</Text>
                   <View style={styles.keywordsContainer}>
@@ -1109,7 +1159,7 @@ export default function DetalleLocalScreen() {
                   </View>
                 </View>
               )}
-              {local.analisis_reviews.resumen_automatico && (
+              {local.analisis_reviews?.resumen_automatico && (
                 <View style={styles.analysisSummary}>
                   <Text style={styles.analysisLabel}>Resumen automático:</Text>
                   <Text style={styles.analysisSummaryText}>{local.analisis_reviews.resumen_automatico}</Text>
@@ -1117,7 +1167,7 @@ export default function DetalleLocalScreen() {
               )}
             </View>
           </View>
-        )}
+        ) : null}
 
         {/* Reviews Section with Avatars - NO TOTAL COUNT */}
         <View style={styles.section}>
@@ -1594,6 +1644,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
     fontWeight: '600',
+  },
+  nighttimeNote: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+    marginBottom: 8,
+    textAlign: 'center',
   },
   scheduleContainer: {
     backgroundColor: colors.card,
