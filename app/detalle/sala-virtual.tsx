@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  FlatList,
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/utils/supabase';
@@ -54,7 +55,7 @@ export default function SalaVirtualScreen() {
   const [sending, setSending] = useState(false);
   const [activeUsers, setActiveUsers] = useState<number>(0);
   
-  const scrollViewRef = useRef<ScrollView>(null);
+  const flatListRef = useRef<FlatList>(null);
   const localId = params.localId as string;
 
   const loadLocalData = useCallback(async () => {
@@ -79,6 +80,7 @@ export default function SalaVirtualScreen() {
         return;
       }
 
+      console.log('[SalaVirtual] Local loaded:', data);
       setLocal(data);
     } catch (error) {
       console.error('[SalaVirtual] Error:', error);
@@ -115,10 +117,11 @@ export default function SalaVirtualScreen() {
         return;
       }
 
+      console.log('[SalaVirtual] Messages loaded:', data?.length || 0);
       setMessages(data || []);
       
       setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: false });
+        flatListRef.current?.scrollToEnd({ animated: false });
       }, 100);
     } catch (error) {
       console.error('[SalaVirtual] Error:', error);
@@ -133,6 +136,8 @@ export default function SalaVirtualScreen() {
       return () => {};
     }
 
+    console.log('[SalaVirtual] Subscribing to messages for local:', localId);
+
     const channel = supabase
       .channel(`sala_virtual:${localId}`)
       .on(
@@ -144,7 +149,7 @@ export default function SalaVirtualScreen() {
           filter: `local_id=eq.${localId}`,
         },
         async (payload) => {
-          console.log('[SalaVirtual] New message:', payload);
+          console.log('[SalaVirtual] New message received:', payload);
           
           const { data: userData } = await supabase
             .from('usuarios')
@@ -163,13 +168,16 @@ export default function SalaVirtualScreen() {
           setMessages((prev) => [...prev, newMessage]);
           
           setTimeout(() => {
-            scrollViewRef.current?.scrollToEnd({ animated: true });
+            flatListRef.current?.scrollToEnd({ animated: true });
           }, 100);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[SalaVirtual] Subscription status:', status);
+      });
 
     return () => {
+      console.log('[SalaVirtual] Unsubscribing from messages');
       supabase.removeChannel(channel);
     };
   }, [localId]);
@@ -196,6 +204,7 @@ export default function SalaVirtualScreen() {
 
       const uniqueUsers = new Set(data?.map(m => m.usuario_id) || []);
       setActiveUsers(uniqueUsers.size);
+      console.log('[SalaVirtual] Active users:', uniqueUsers.size);
     } catch (error) {
       console.error('[SalaVirtual] Error:', error);
     }
@@ -208,6 +217,7 @@ export default function SalaVirtualScreen() {
       return;
     }
 
+    console.log('[SalaVirtual] Initializing with localId:', localId);
     loadLocalData();
     loadMessages();
     const unsubscribe = subscribeToMessages();
@@ -238,6 +248,7 @@ export default function SalaVirtualScreen() {
 
     try {
       setSending(true);
+      console.log('[SalaVirtual] Sending message:', newMessage.trim());
 
       const { error } = await supabase
         .from('sala_virtual_interacciones')
@@ -254,6 +265,7 @@ export default function SalaVirtualScreen() {
         return;
       }
 
+      console.log('[SalaVirtual] Message sent successfully');
       setNewMessage('');
     } catch (error) {
       console.error('[SalaVirtual] Error:', error);
@@ -275,6 +287,8 @@ export default function SalaVirtualScreen() {
     }
 
     try {
+      console.log('[SalaVirtual] Sending emoticon:', emoticon);
+
       const { error } = await supabase
         .from('sala_virtual_interacciones')
         .insert({
@@ -288,6 +302,8 @@ export default function SalaVirtualScreen() {
         console.error('[SalaVirtual] Error sending emoticon:', error);
         return;
       }
+
+      console.log('[SalaVirtual] Emoticon sent successfully');
     } catch (error) {
       console.error('[SalaVirtual] Error:', error);
     }
@@ -318,7 +334,9 @@ export default function SalaVirtualScreen() {
           ]}
         >
           {!isOwnMessage && (
-            <Text style={styles.messageSender}>{item.usuario.nombre}</Text>
+            <Text style={styles.messageSender}>
+              {item.usuario.username ? `@${item.usuario.username}` : item.usuario.nombre}
+            </Text>
           )}
           <Text
             style={[
@@ -377,20 +395,28 @@ export default function SalaVirtualScreen() {
       />
 
       <View style={styles.content}>
-        <ScrollView
-          ref={scrollViewRef}
-          style={styles.messagesContainer}
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          renderItem={renderMessage}
+          keyExtractor={(item) => item.id}
           contentContainerStyle={styles.messagesContent}
           onContentSizeChange={() => {
-            scrollViewRef.current?.scrollToEnd({ animated: true });
+            flatListRef.current?.scrollToEnd({ animated: true });
           }}
-        >
-          {messages.map((message) => (
-            <View key={message.id}>
-              {renderMessage({ item: message })}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <IconSymbol
+                ios_icon_name="bubble.left.and.bubble.right"
+                android_material_icon_name="chat"
+                size={64}
+                color={colors.textSecondary}
+              />
+              <Text style={styles.emptyText}>No hay mensajes todavía</Text>
+              <Text style={styles.emptySubtext}>Sé el primero en enviar un mensaje</Text>
             </View>
-          ))}
-        </ScrollView>
+          }
+        />
 
         <View style={styles.reactionsContainer}>
           <ScrollView
@@ -475,11 +501,26 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  messagesContainer: {
-    flex: 1,
-  },
   messagesContent: {
     padding: 16,
+    flexGrow: 1,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.text,
+    marginTop: 16,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 8,
   },
   messageContainer: {
     flexDirection: 'row',

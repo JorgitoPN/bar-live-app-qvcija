@@ -70,7 +70,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
   const [loadingAuthor, setLoadingAuthor] = useState(true);
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // Fetch author data
+  // Fetch author data - FIXED VERSION
   useEffect(() => {
     const fetchAuthorData = async () => {
       if (!post) {
@@ -80,14 +80,25 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
       }
 
       try {
-        console.log('[PublicacionCard] Fetching author data for post:', post.id, 'Type:', post.tipo, 'AutorId:', post.autorId, 'LocalId:', post.localId);
+        console.log('[PublicacionCard] Fetching author data for post:', {
+          postId: post.id,
+          tipo: post.tipo,
+          autorId: post.autorId,
+          autor_id: post.autor_id,
+          localId: post.localId,
+          local_id: post.local_id
+        });
         
-        if (post.tipo === 'local' && post.localId) {
+        // Use correct field names from database
+        const actualAutorId = post.autor_id || post.autorId;
+        const actualLocalId = post.local_id || post.localId;
+        
+        if (post.tipo === 'local' && actualLocalId) {
           // Fetch local data
           const { data, error } = await supabase
             .from('locales')
             .select('nombre, imagen_url, logo')
-            .eq('id', post.localId)
+            .eq('id', actualLocalId)
             .single();
 
           if (error) {
@@ -100,12 +111,12 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
               avatar: data.logo || data.imagen_url 
             });
           }
-        } else if (post.autorId) {
+        } else if (actualAutorId) {
           // Fetch user data
           const { data, error } = await supabase
             .from('usuarios')
             .select('nombre, avatar, username')
-            .eq('id', post.autorId)
+            .eq('id', actualAutorId)
             .single();
 
           if (error) {
@@ -136,7 +147,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
     };
 
     fetchAuthorData();
-  }, [post?.id, post?.tipo, post?.autorId, post?.localId]);
+  }, [post?.id, post?.tipo, post?.autorId, post?.autor_id, post?.localId, post?.local_id]);
 
   useEffect(() => {
     if (!post?.id) {
@@ -339,15 +350,16 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
   }, [user, router, post, onShare, authorData]);
 
   const handleDelete = useCallback(async () => {
-    console.log('[PublicacionCard] handleDelete - User:', user?.id, 'Post autor:', post.autorId);
+    console.log('[PublicacionCard] handleDelete - User:', user?.id, 'Post autor:', post.autor_id || post.autorId);
     
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para eliminar publicaciones');
       return;
     }
 
+    const actualAutorId = post.autor_id || post.autorId;
     const isAuthor = post.tipo === 'usuario' 
-      ? post.autorId === user.id 
+      ? actualAutorId === user.id 
       : false;
 
     if (!isAuthor) {
@@ -438,13 +450,18 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
       ? [post.imagen] 
       : [];
 
-  // Use fetched author data with username fallback
+  // Use fetched author data with username fallback - FIXED
   const displayName = loadingAuthor 
     ? 'Cargando...' 
-    : (authorData?.username ? `@${authorData.username}` : authorData?.nombre || 'Usuario');
+    : authorData?.username 
+      ? `@${authorData.username}` 
+      : authorData?.nombre || 'Usuario';
+  
   const avatarUrl = authorData?.avatar || null;
   const displayDate = post?.fecha ? formatearFecha(post.fecha) : post?.created_at ? formatearFecha(post.created_at) : 'Fecha desconocida';
-  const isAuthor = user && post.tipo === 'usuario' && post.autorId === user.id;
+  const actualAutorId = post.autor_id || post.autorId;
+  const isAuthor = user && post.tipo === 'usuario' && actualAutorId === user.id;
+  const actualLocalId = post.local_id || post.localId;
 
   console.log('[PublicacionCard] Rendering with:', {
     displayName,
@@ -452,7 +469,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
     isAuthor,
     loadingAuthor,
     userId: user?.id,
-    postAutorId: post.autorId
+    postAutorId: actualAutorId
   });
 
   return (
@@ -461,10 +478,10 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
         <TouchableOpacity
           style={styles.headerTouchable}
           onPress={() => {
-            if (post?.tipo === 'local' && post?.localId) {
-              router.push(`/perfil/local?localId=${post.localId}`);
-            } else if (post?.autorId) {
-              router.push(`/perfil/usuario?userId=${post.autorId}`);
+            if (post?.tipo === 'local' && actualLocalId) {
+              router.push(`/perfil/local?localId=${actualLocalId}`);
+            } else if (actualAutorId) {
+              router.push(`/perfil/usuario?userId=${actualAutorId}`);
             }
           }}
           activeOpacity={0.7}
