@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Linking, Platform, Alert, Dimensions, Share as RNShare, Animated } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Linking, Platform, Alert, Dimensions, Share as RNShare } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../integrations/supabase/client';
@@ -179,27 +179,6 @@ export default function DetalleLocalScreen() {
   const [galleryVisible, setGalleryVisible] = useState(false);
   const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
   const [expandedReviews, setExpandedReviews] = useState<Set<string>>(new Set());
-  const [pulseAnim] = useState(new Animated.Value(1));
-
-  // Pulse animation for status badge when open
-  useEffect(() => {
-    const pulse = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.15,
-          duration: 1200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1200,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    pulse.start();
-    return () => pulse.stop();
-  }, []);
 
   useEffect(() => {
     (async () => {
@@ -577,8 +556,8 @@ export default function DetalleLocalScreen() {
             </ScrollView>
           </TouchableOpacity>
           
-          {/* FIXED: Status Badge with Real-Time Info */}
-          <Animated.View style={[styles.statusBadgeTop, { transform: [{ scale: isOpen ? pulseAnim : 1 }] }]}>
+          {/* FIXED: Status Badge WITHOUT Animation */}
+          <View style={styles.statusBadgeTop}>
             <BlurView intensity={80} tint="dark" style={styles.statusBlur}>
               <View style={[styles.statusDot, isOpen ? styles.statusDotOpen : styles.statusDotClosed]} />
               <Text style={styles.statusText}>
@@ -588,7 +567,7 @@ export default function DetalleLocalScreen() {
                 <Text style={styles.statusSubtext}>• {estadoLocal.tiempoRestante}</Text>
               )}
             </BlurView>
-          </Animated.View>
+          </View>
 
           {/* Rating Badge - Top Right */}
           {displayRating > 0 && (

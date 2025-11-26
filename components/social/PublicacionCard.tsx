@@ -66,7 +66,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
   const [mentionedUsers, setMentionedUsers] = useState<MentionedUser[]>([]);
   const [taggedUsers, setTaggedUsers] = useState<TaggedUser[]>([]);
   const [showTagsOverlay, setShowTagsOverlay] = useState(false);
-  const [authorData, setAuthorData] = useState<{ nombre: string; avatar: string | null } | null>(null);
+  const [authorData, setAuthorData] = useState<{ nombre: string; avatar: string | null; username?: string } | null>(null);
   const [loadingAuthor, setLoadingAuthor] = useState(true);
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -80,7 +80,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
       }
 
       try {
-        console.log('[PublicacionCard] Fetching author for post:', post.id, 'Type:', post.tipo);
+        console.log('[PublicacionCard] Fetching author for post:', post.id, 'Type:', post.tipo, 'AutorId:', post.autorId, 'LocalId:', post.localId);
         
         if (post.tipo === 'local' && post.localId) {
           // Fetch local data
@@ -98,12 +98,12 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
             console.log('[PublicacionCard] Local data fetched:', data);
             setAuthorData({ nombre: data.nombre, avatar: data.imagen_url });
           }
-        } else if (post.tipo === 'usuario' && post.autorId) {
-          // Fetch user data
+        } else if (post.autorId) {
+          // Fetch user data - FIXED: Always fetch from usuarios table
           console.log('[PublicacionCard] Fetching user data for:', post.autorId);
           const { data, error } = await supabase
             .from('usuarios')
-            .select('nombre, avatar')
+            .select('nombre, avatar, username')
             .eq('id', post.autorId)
             .single();
 
@@ -112,7 +112,11 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
             setAuthorData({ nombre: 'Usuario', avatar: null });
           } else if (data) {
             console.log('[PublicacionCard] User data fetched:', data);
-            setAuthorData({ nombre: data.nombre, avatar: data.avatar });
+            setAuthorData({ 
+              nombre: data.nombre || 'Usuario', 
+              avatar: data.avatar,
+              username: data.username 
+            });
           }
         } else {
           console.log('[PublicacionCard] No valid author ID found');
@@ -416,42 +420,46 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
       ? [post.imagen] 
       : [];
 
-  // CRITICAL FIX: Use fetched author data
-  const displayName = loadingAuthor ? 'Cargando...' : (authorData?.nombre || 'Usuario');
+  // CRITICAL FIX: Use fetched author data with username fallback
+  const displayName = loadingAuthor 
+    ? 'Cargando...' 
+    : (authorData?.username ? `@${authorData.username}` : authorData?.nombre || 'Usuario');
   const avatarUrl = authorData?.avatar || null;
   const displayDate = post?.fecha ? formatearFecha(post.fecha) : post?.created_at ? formatearFecha(post.created_at) : 'Fecha desconocida';
   const isAuthor = user && post.tipo === 'usuario' && post.autorId === user.id;
 
   return (
     <View style={styles.card}>
-      <TouchableOpacity
-        style={styles.header}
-        onPress={() => {
-          if (post?.tipo === 'local' && post?.localId) {
-            router.push(`/perfil/local?localId=${post.localId}`);
-          } else if (post?.autorId) {
-            router.push(`/perfil/usuario?userId=${post.autorId}`);
-          }
-        }}
-        activeOpacity={0.7}
-      >
-        {avatarUrl ? (
-          <Image source={{ uri: avatarUrl }} style={styles.avatar} />
-        ) : (
-          <View style={styles.avatarPlaceholder}>
-            <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={24} color={colors.textSecondary} />
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.headerTouchable}
+          onPress={() => {
+            if (post?.tipo === 'local' && post?.localId) {
+              router.push(`/perfil/local?localId=${post.localId}`);
+            } else if (post?.autorId) {
+              router.push(`/perfil/usuario?userId=${post.autorId}`);
+            }
+          }}
+          activeOpacity={0.7}
+        >
+          {avatarUrl ? (
+            <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+          ) : (
+            <View style={styles.avatarPlaceholder}>
+              <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={24} color={colors.textSecondary} />
+            </View>
+          )}
+          <View style={styles.headerContent}>
+            <Text style={styles.autorNombre}>{displayName}</Text>
+            <Text style={styles.fecha}>{displayDate}</Text>
           </View>
-        )}
-        <View style={styles.headerContent}>
-          <Text style={styles.autorNombre}>{displayName}</Text>
-          <Text style={styles.fecha}>{displayDate}</Text>
-        </View>
-        {isAuthor ? (
+        </TouchableOpacity>
+        {isAuthor && (
           <TouchableOpacity style={styles.deleteButton} onPress={handleDelete} activeOpacity={0.7}>
             <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={22} color={colors.error} />
           </TouchableOpacity>
-        ) : null}
-      </TouchableOpacity>
+        )}
+      </View>
 
       {mentionedUsers.length > 0 && (
         <View style={styles.mentionsContainer}>
@@ -691,6 +699,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     gap: 12,
+  },
+  headerTouchable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
   },
   avatar: {
     width: 48,
