@@ -1,31 +1,129 @@
 
+import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
+import 'react-native-reanimated';
+import { useColorScheme } from 'react-native';
 import { AuthProvider } from '@/contexts/AuthContext';
-import { SelectedLocalProvider } from '@/contexts/SelectedLocalContext';
 import { ModeProvider } from '@/contexts/ModeContext';
 import { GlobalDataProvider } from '@/contexts/GlobalDataContext';
+import { SelectedLocalProvider } from '@/contexts/SelectedLocalContext';
 import { StoryStateProvider } from '@/contexts/StoryStateContext';
+import { scheduleStoryCleanup } from '@/utils/storyCleanup';
+import { performanceManager } from '@/utils/performanceManager';
+
+// Prevent the splash screen from auto-hiding before asset loading is complete.
+SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const colorScheme = useColorScheme();
+  const [loaded] = useFonts({
+    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+  });
+
+  useEffect(() => {
+    if (loaded) {
+      SplashScreen.hideAsync();
+      
+      console.log('[App] 🚀 Initializing performance optimizations...');
+      performanceManager.initialize(undefined, {
+        enableAdvancedCache: true,
+        enableIntelligentPreload: true,
+        enableRealtimeMessaging: true,
+        enableImageOptimization: true,
+        enableOptimisticUI: true,
+        enableBackgroundSync: false,
+        enableRequestDedup: true,
+        cacheStrategy: 'aggressive',
+      }).then(() => {
+        console.log('[App] ✅ Performance optimizations initialized');
+      }).catch(error => {
+        console.error('[App] ❌ Error initializing performance:', error);
+      });
+      
+      scheduleStoryCleanup();
+    }
+  }, [loaded]);
+
+  if (!loaded) {
+    return null;
+  }
+
   return (
-    <AuthProvider>
-      <SelectedLocalProvider>
-        <ModeProvider>
-          <GlobalDataProvider>
-            <StoryStateProvider>
-              <Stack
-                screenOptions={{
-                  headerShown: false,
-                  animation: 'default',
-                }}
-              >
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen name="index" options={{ headerShown: false }} />
-              </Stack>
-            </StoryStateProvider>
-          </GlobalDataProvider>
-        </ModeProvider>
-      </SelectedLocalProvider>
-    </AuthProvider>
+    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <AuthProvider>
+        <SelectedLocalProvider>
+          <ModeProvider>
+            <GlobalDataProvider>
+              <StoryStateProvider>
+                <Stack
+                  screenOptions={{
+                    headerShown: false,
+                    animation: 'none',
+                    animationDuration: 0,
+                  }}
+                >
+                  <Stack.Screen name="index" options={{ headerShown: false }} />
+                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                  <Stack.Screen name="auth/login-popup" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="auth/bienvenida" options={{ headerShown: false }} />
+                  <Stack.Screen name="auth/bienvenida-propietario" options={{ headerShown: false }} />
+                  <Stack.Screen name="auth/completar-perfil" options={{ headerShown: false }} />
+                  <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
+                  <Stack.Screen name="crear/publicacion" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="crear/historia" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="crear/local" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="crear/evento" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="crear/oferta-trabajo" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="crear/perfil-profesional" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="detalle/local" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="detalle/local-updated" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="detalle/evento" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="detalle/sala-virtual" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="detalle/historia" options={{ presentation: 'fullScreenModal', headerShown: false, animation: 'fade' }} />
+                  <Stack.Screen name="editar/perfil" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="social/amigos" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="social/configuracion" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="social/favoritos" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="social/post" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="social/comentar" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="perfil/usuario" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="perfil/seguidores" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="perfil/seguidos" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="chat/conversacion" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="chat/nuevo-chat" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="solicitudes/solicitar-rol-propietario" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="admin/importacion-osm" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="admin/enriquecimiento-google" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="admin/control-costes-api" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="admin/gestionar-locales" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="admin/gestionar-usuarios" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="admin/vision-finanzas" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="admin/configuracion-general" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="admin/configuracion-supabase" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="admin/datos-maestros" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="admin/sincronizacion" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="admin/backups" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="admin/contenido-legal" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="admin/gestion-emails" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="admin/probar-emails" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="admin/solicitudes-propietario" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="admin/ver-ficha" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="admin/importacion-masiva" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="admin/navegacion-paginas" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="gestion/mis-locales" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="gestion/planes-suscripcion" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="+not-found" />
+                </Stack>
+                <StatusBar style="auto" />
+              </StoryStateProvider>
+            </GlobalDataProvider>
+          </ModeProvider>
+        </SelectedLocalProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
