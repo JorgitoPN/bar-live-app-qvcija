@@ -67,6 +67,7 @@ interface Local {
   reviews_google?: any[];
   google_rating?: number;
   google_user_ratings_total?: number;
+  destacado?: boolean;
 }
 
 interface Review {
@@ -82,20 +83,31 @@ interface Review {
   };
 }
 
+interface Evento {
+  id: string;
+  titulo: string;
+  descripcion?: string;
+  fecha: string;
+  hora_inicio?: string;
+  hora_fin?: string;
+  imagen_url?: string;
+  precio?: number;
+}
+
 // Helper function to get category icon
-const getCategoryIcon = (categoria?: string): { ios: string; android: string } => {
-  const categoryMap: Record<string, { ios: string; android: string }> = {
-    'bar': { ios: 'wineglass.fill', android: 'local_bar' },
-    'restaurante': { ios: 'fork.knife', android: 'restaurant' },
-    'cafe': { ios: 'cup.and.saucer.fill', android: 'local_cafe' },
-    'cafetería': { ios: 'cup.and.saucer.fill', android: 'local_cafe' },
-    'pub': { ios: 'wineglass', android: 'sports_bar' },
-    'discoteca': { ios: 'music.note', android: 'nightlife' },
-    'cocteleria': { ios: 'wineglass.fill', android: 'local_bar' },
-    'coctelería': { ios: 'wineglass.fill', android: 'local_bar' },
-    'sala_conciertos': { ios: 'music.note.list', android: 'music_note' },
+const getCategoryIcon = (categoria?: string): { ios: string; android: string; color: string } => {
+  const categoryMap: Record<string, { ios: string; android: string; color: string }> = {
+    'bar': { ios: 'wineglass.fill', android: 'local_bar', color: '#F59E0B' },
+    'restaurante': { ios: 'fork.knife', android: 'restaurant', color: '#EF4444' },
+    'cafe': { ios: 'cup.and.saucer.fill', android: 'local_cafe', color: '#8B5CF6' },
+    'cafetería': { ios: 'cup.and.saucer.fill', android: 'local_cafe', color: '#8B5CF6' },
+    'pub': { ios: 'wineglass', android: 'sports_bar', color: '#10B981' },
+    'discoteca': { ios: 'music.note', android: 'nightlife', color: '#EC4899' },
+    'cocteleria': { ios: 'wineglass.fill', android: 'local_bar', color: '#3B82F6' },
+    'coctelería': { ios: 'wineglass.fill', android: 'local_bar', color: '#3B82F6' },
+    'sala_conciertos': { ios: 'music.note.list', android: 'music_note', color: '#F59E0B' },
   };
-  return categoryMap[categoria?.toLowerCase() || ''] || { ios: 'mappin.circle.fill', android: 'location_on' };
+  return categoryMap[categoria?.toLowerCase() || ''] || { ios: 'mappin.circle.fill', android: 'location_on', color: colors.primary };
 };
 
 // Helper function to get service icon with colors
@@ -130,6 +142,48 @@ const getServiceIcon = (servicio: string): { ios: string; android: string; color
   }
   
   return { ios: 'checkmark.circle.fill', android: 'check_circle', color: colors.primary };
+};
+
+// Helper function to get ambiente icon
+const getAmbienteIcon = (ambiente: string): { ios: string; android: string; color: string } => {
+  const ambienteMap: Record<string, { ios: string; android: string; color: string }> = {
+    'familiar': { ios: 'person.3.fill', android: 'family_restroom', color: '#14B8A6' },
+    'tranquilo': { ios: 'leaf.fill', android: 'spa', color: '#06B6D4' },
+    'animado': { ios: 'bolt.fill', android: 'celebration', color: '#F59E0B' },
+    'romántico': { ios: 'heart.fill', android: 'favorite', color: '#EC4899' },
+    'romantico': { ios: 'heart.fill', android: 'favorite', color: '#EC4899' },
+    'moderno': { ios: 'sparkles', android: 'auto_awesome', color: '#8B5CF6' },
+    'elegante': { ios: 'star.fill', android: 'star', color: '#F59E0B' },
+  };
+  
+  const lowerAmbiente = ambiente.toLowerCase();
+  for (const [key, value] of Object.entries(ambienteMap)) {
+    if (lowerAmbiente.includes(key)) {
+      return value;
+    }
+  }
+  
+  return { ios: 'sparkles', android: 'auto_awesome', color: colors.primary };
+};
+
+// Helper function to get clientela icon
+const getClientelaIcon = (clientela: string): { ios: string; android: string; color: string } => {
+  const clientelaMap: Record<string, { ios: string; android: string; color: string }> = {
+    'grupos': { ios: 'person.3.fill', android: 'groups', color: '#10B981' },
+    'familias': { ios: 'house.fill', android: 'family_restroom', color: '#059669' },
+    'parejas': { ios: 'heart.fill', android: 'favorite', color: '#EC4899' },
+    'estudiantes': { ios: 'book.fill', android: 'school', color: '#3B82F6' },
+    'turistas': { ios: 'airplane', android: 'flight', color: '#F59E0B' },
+  };
+  
+  const lowerClientela = clientela.toLowerCase();
+  for (const [key, value] of Object.entries(clientelaMap)) {
+    if (lowerClientela.includes(key)) {
+      return value;
+    }
+  }
+  
+  return { ios: 'person.2.fill', android: 'people', color: colors.primary };
 };
 
 // Helper function to calculate distance
@@ -179,6 +233,8 @@ export default function DetalleLocalScreen() {
   const [galleryVisible, setGalleryVisible] = useState(false);
   const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
   const [expandedReviews, setExpandedReviews] = useState<Set<string>>(new Set());
+  const [eventos, setEventos] = useState<Evento[]>([]);
+  const [loadingEventos, setLoadingEventos] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -246,6 +302,32 @@ export default function DetalleLocalScreen() {
     }
   }, [params.id]);
 
+  const cargarEventos = useCallback(async () => {
+    try {
+      setLoadingEventos(true);
+      const { data, error } = await supabase
+        .from('eventos')
+        .select('*')
+        .eq('local_id', params.id)
+        .eq('activo', true)
+        .gte('fecha', new Date().toISOString().split('T')[0])
+        .order('fecha', { ascending: true })
+        .limit(3);
+
+      if (error) {
+        console.error('[DetalleLocal] Error loading eventos:', error);
+        return;
+      }
+
+      console.log('[DetalleLocal] Loaded eventos:', data);
+      setEventos(data || []);
+      setLoadingEventos(false);
+    } catch (error) {
+      console.error('[DetalleLocal] Error loading eventos:', error);
+      setLoadingEventos(false);
+    }
+  }, [params.id]);
+
   const cargarLocal = useCallback(async () => {
     try {
       const cachedData = localPreloader.getCached(params.id as string);
@@ -254,6 +336,7 @@ export default function DetalleLocalScreen() {
         setLocal(cachedData);
         setLoading(false);
         cargarReviewsBarlive();
+        cargarEventos();
         return;
       }
 
@@ -274,11 +357,12 @@ export default function DetalleLocalScreen() {
       setLocal(data);
       setLoading(false);
       cargarReviewsBarlive();
+      cargarEventos();
     } catch (error) {
       console.error('[DetalleLocal] Error:', error);
       setLoading(false);
     }
-  }, [params.id, cargarReviewsBarlive]);
+  }, [params.id, cargarReviewsBarlive, cargarEventos]);
 
   useEffect(() => {
     if (params.id) {
@@ -579,6 +663,21 @@ export default function DetalleLocalScreen() {
             </View>
           )}
 
+          {/* Destacado Badge - Below Rating */}
+          {local.destacado && (
+            <View style={styles.destacadoBadgeTop}>
+              <LinearGradient
+                colors={['#F59E0B', '#D97706']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.destacadoGradient}
+              >
+                <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={16} color="#fff" />
+                <Text style={styles.destacadoText}>Destacado</Text>
+              </LinearGradient>
+            </View>
+          )}
+
           {/* Back Button */}
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
@@ -662,19 +761,14 @@ export default function DetalleLocalScreen() {
               const icon = getCategoryIcon(categoria);
               return (
                 <View key={index} style={styles.categoryChip}>
-                  <LinearGradient
-                    colors={[colors.primary, colors.secondary]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.categoryIconSmall}
-                  >
+                  <View style={[styles.categoryIconSmall, { backgroundColor: icon.color }]}>
                     <IconSymbol 
                       ios_icon_name={icon.ios} 
                       android_material_icon_name={icon.android} 
                       size={18} 
                       color="#fff" 
                     />
-                  </LinearGradient>
+                  </View>
                   <Text style={styles.categoryChipText}>{categoria}</Text>
                 </View>
               );
@@ -756,6 +850,46 @@ export default function DetalleLocalScreen() {
           </TouchableOpacity>
         )}
 
+        {/* FIXED: Events Banner (if there are active or upcoming events) */}
+        {eventos.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <LinearGradient
+                colors={['#EC4899', '#DB2777']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.sectionIconContainer}
+              >
+                <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={26} color="#fff" />
+              </LinearGradient>
+              <Text style={styles.sectionTitle}>Eventos Próximos</Text>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.eventosScroll}>
+              {eventos.map((evento) => (
+                <TouchableOpacity
+                  key={evento.id}
+                  style={styles.eventoCard}
+                  onPress={() => router.push({ pathname: '/detalle/evento', params: { id: evento.id } })}
+                >
+                  {evento.imagen_url && (
+                    <OptimizedImage
+                      source={{ uri: evento.imagen_url }}
+                      style={styles.eventoImage}
+                      resizeMode="cover"
+                    />
+                  )}
+                  <View style={styles.eventoInfo}>
+                    <Text style={styles.eventoTitulo} numberOfLines={2}>{evento.titulo}</Text>
+                    <Text style={styles.eventoFecha}>
+                      {new Date(evento.fecha).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
         {/* FIXED: Schedule Section with Current Day Highlighted */}
         {local.horarios_completos && Object.keys(local.horarios_completos).length > 0 && (
           <View style={styles.section}>
@@ -835,7 +969,7 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* Atmosphere Section */}
+        {/* Atmosphere Section with Icons */}
         {ambienteTags.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -850,22 +984,27 @@ export default function DetalleLocalScreen() {
               <Text style={styles.sectionTitle}>Ambiente</Text>
             </View>
             <View style={styles.chipContainer}>
-              {ambienteTags.map((tag, index) => (
-                <LinearGradient
-                  key={index}
-                  colors={[colors.primary + '30', colors.secondary + '30']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.chip}
-                >
-                  <Text style={styles.chipText}>{tag}</Text>
-                </LinearGradient>
-              ))}
+              {ambienteTags.map((tag, index) => {
+                const icon = getAmbienteIcon(tag);
+                return (
+                  <View key={index} style={styles.chipWithIcon}>
+                    <View style={[styles.chipIconBg, { backgroundColor: icon.color + '30' }]}>
+                      <IconSymbol 
+                        ios_icon_name={icon.ios} 
+                        android_material_icon_name={icon.android} 
+                        size={18} 
+                        color={icon.color} 
+                      />
+                    </View>
+                    <Text style={styles.chipText}>{tag}</Text>
+                  </View>
+                );
+              })}
             </View>
           </View>
         )}
 
-        {/* Typical Clientele Section */}
+        {/* Typical Clientele Section with Icons */}
         {clientelaTags.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -880,17 +1019,22 @@ export default function DetalleLocalScreen() {
               <Text style={styles.sectionTitle}>Clientela Típica</Text>
             </View>
             <View style={styles.chipContainer}>
-              {clientelaTags.map((tag, index) => (
-                <LinearGradient
-                  key={index}
-                  colors={['#10B981' + '30', '#059669' + '30']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.chip}
-                >
-                  <Text style={styles.chipText}>{tag}</Text>
-                </LinearGradient>
-              ))}
+              {clientelaTags.map((tag, index) => {
+                const icon = getClientelaIcon(tag);
+                return (
+                  <View key={index} style={styles.chipWithIcon}>
+                    <View style={[styles.chipIconBg, { backgroundColor: icon.color + '30' }]}>
+                      <IconSymbol 
+                        ios_icon_name={icon.ios} 
+                        android_material_icon_name={icon.android} 
+                        size={18} 
+                        color={icon.color} 
+                      />
+                    </View>
+                    <Text style={styles.chipText}>{tag}</Text>
+                  </View>
+                );
+              })}
             </View>
           </View>
         )}
@@ -1104,6 +1248,26 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#fff',
   },
+  destacadoBadgeTop: {
+    position: 'absolute',
+    top: 52,
+    right: 16,
+    borderRadius: 20,
+    overflow: 'hidden',
+    zIndex: 10,
+  },
+  destacadoGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    gap: 6,
+  },
+  destacadoText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#fff',
+  },
   backButton: {
     position: 'absolute',
     top: 64,
@@ -1200,9 +1364,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 24,
     gap: 8,
-    shadowColor: colors.primary,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
@@ -1357,6 +1521,39 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontWeight: '600',
   },
+  eventosScroll: {
+    paddingRight: 16,
+    gap: 12,
+  },
+  eventoCard: {
+    width: 200,
+    backgroundColor: colors.card,
+    borderRadius: 14,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  eventoImage: {
+    width: '100%',
+    height: 120,
+  },
+  eventoInfo: {
+    padding: 12,
+  },
+  eventoTitulo: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 6,
+  },
+  eventoFecha: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
   scheduleContainer: {
     backgroundColor: colors.card,
     borderRadius: 14,
@@ -1455,10 +1652,26 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 10,
   },
-  chip: {
-    paddingHorizontal: 18,
+  chipWithIcon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 22,
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  chipIconBg: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   chipText: {
     fontSize: 15,
