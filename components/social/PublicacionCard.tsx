@@ -70,22 +70,20 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
   const [loadingAuthor, setLoadingAuthor] = useState(true);
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // ULTRA AGGRESSIVE CACHE BUSTING v3: Force fresh data with timestamp
+  // Fetch author data
   useEffect(() => {
     const fetchAuthorData = async () => {
       if (!post) {
-        console.log('[PublicacionCard v3 ULTRA] No post data, skipping author fetch');
+        console.log('[PublicacionCard] No post data, skipping author fetch');
         setLoadingAuthor(false);
         return;
       }
 
       try {
-        const timestamp = Date.now();
-        console.log('[PublicacionCard v3 ULTRA] 🔥 FORCE FETCHING author with timestamp:', timestamp, 'Post:', post.id, 'Type:', post.tipo, 'AutorId:', post.autorId, 'LocalId:', post.localId);
+        console.log('[PublicacionCard] Fetching author data for post:', post.id, 'Type:', post.tipo, 'AutorId:', post.autorId, 'LocalId:', post.localId);
         
         if (post.tipo === 'local' && post.localId) {
-          // Fetch local data with cache busting
-          console.log('[PublicacionCard v3 ULTRA] 🔥 Fetching local data for:', post.localId);
+          // Fetch local data
           const { data, error } = await supabase
             .from('locales')
             .select('nombre, imagen_url, logo')
@@ -93,18 +91,17 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
             .single();
 
           if (error) {
-            console.error('[PublicacionCard v3 ULTRA] ❌ Error fetching local:', error);
+            console.error('[PublicacionCard] Error fetching local:', error);
             setAuthorData({ nombre: 'Local', avatar: null });
           } else if (data) {
-            console.log('[PublicacionCard v3 ULTRA] ✅ Local data fetched:', data);
+            console.log('[PublicacionCard] Local data fetched:', data);
             setAuthorData({ 
               nombre: data.nombre, 
               avatar: data.logo || data.imagen_url 
             });
           }
         } else if (post.autorId) {
-          // Fetch user data - ULTRA AGGRESSIVE: Always fetch fresh
-          console.log('[PublicacionCard v3 ULTRA] 🔥 FORCE FETCHING user data for:', post.autorId);
+          // Fetch user data
           const { data, error } = await supabase
             .from('usuarios')
             .select('nombre, avatar, username')
@@ -112,14 +109,13 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
             .single();
 
           if (error) {
-            console.error('[PublicacionCard v3 ULTRA] ❌ Error fetching user:', error);
+            console.error('[PublicacionCard] Error fetching user:', error);
             setAuthorData({ nombre: 'Usuario', avatar: null });
           } else if (data) {
-            console.log('[PublicacionCard v3 ULTRA] ✅✅✅ User data fetched successfully:', {
+            console.log('[PublicacionCard] User data fetched:', {
               nombre: data.nombre,
               username: data.username,
-              hasAvatar: !!data.avatar,
-              avatarUrl: data.avatar
+              hasAvatar: !!data.avatar
             });
             setAuthorData({ 
               nombre: data.nombre || 'Usuario', 
@@ -128,11 +124,11 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
             });
           }
         } else {
-          console.log('[PublicacionCard v3 ULTRA] ⚠️ No valid author ID found');
+          console.log('[PublicacionCard] No valid author ID found');
           setAuthorData({ nombre: 'Usuario', avatar: null });
         }
       } catch (error) {
-        console.error('[PublicacionCard v3 ULTRA] ❌ Error fetching author:', error);
+        console.error('[PublicacionCard] Error fetching author:', error);
         setAuthorData({ nombre: 'Usuario', avatar: null });
       } finally {
         setLoadingAuthor(false);
@@ -141,22 +137,6 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
 
     fetchAuthorData();
   }, [post?.id, post?.tipo, post?.autorId, post?.localId]);
-
-  // Debug log to verify data is being used - MOVED BEFORE ANY EARLY RETURNS
-  useEffect(() => {
-    if (!loadingAuthor && authorData) {
-      const displayName = authorData?.username ? `@${authorData.username}` : authorData?.nombre || 'Usuario';
-      const avatarUrl = authorData?.avatar ? `${authorData.avatar}?v=${Date.now()}` : null;
-      const isAuthor = user && post?.tipo === 'usuario' && post?.autorId === user.id;
-
-      console.log('[PublicacionCard v3 ULTRA] 🎨 Rendering with author data:', {
-        displayName,
-        hasAvatar: !!avatarUrl,
-        isAuthor,
-        avatarUrl
-      });
-    }
-  }, [loadingAuthor, authorData, user, post?.tipo, post?.autorId]);
 
   useEffect(() => {
     if (!post?.id) {
@@ -445,13 +425,20 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
       ? [post.imagen] 
       : [];
 
-  // ULTRA VISIBLE v3: Use fetched author data with username fallback and BRIGHT COLORS
+  // Use fetched author data with username fallback
   const displayName = loadingAuthor 
     ? 'Cargando...' 
     : (authorData?.username ? `@${authorData.username}` : authorData?.nombre || 'Usuario');
-  const avatarUrl = authorData?.avatar ? `${authorData.avatar}?v=${Date.now()}` : null;
+  const avatarUrl = authorData?.avatar || null;
   const displayDate = post?.fecha ? formatearFecha(post.fecha) : post?.created_at ? formatearFecha(post.created_at) : 'Fecha desconocida';
   const isAuthor = user && post.tipo === 'usuario' && post.autorId === user.id;
+
+  console.log('[PublicacionCard] Rendering with:', {
+    displayName,
+    hasAvatar: !!avatarUrl,
+    isAuthor,
+    loadingAuthor
+  });
 
   return (
     <View style={styles.card}>
@@ -723,27 +710,22 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 26,
     backgroundColor: colors.cardBorder,
-    borderWidth: 2,
-    borderColor: colors.primary,
   },
   avatarPlaceholder: {
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#FFE5E5',
+    backgroundColor: colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#FF6B6B',
   },
   headerContent: {
     flex: 1,
   },
   autorNombre: {
-    fontSize: 17,
-    fontWeight: '800',
+    fontSize: 16,
+    fontWeight: '700',
     color: colors.text,
-    letterSpacing: 0.3,
   },
   fecha: {
     fontSize: 14,
@@ -752,11 +734,9 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   deleteButton: {
-    padding: 10,
-    backgroundColor: '#FFE5E5',
-    borderRadius: 24,
-    borderWidth: 2,
-    borderColor: '#FF3B30',
+    padding: 8,
+    backgroundColor: colors.background,
+    borderRadius: 20,
   },
   mentionsContainer: {
     paddingHorizontal: 16,

@@ -33,7 +33,7 @@ export const colors = {
   
   // General
   text: '#11181C',
-  textSecondary: '#4B5563', // FIXED: Darker gray for better visibility (was #6B7280)
+  textSecondary: '#6B7280',
   background: '#F9FAFB',
   primary: barLiveColors.teal400,
   secondary: barLiveColors.cyan500,

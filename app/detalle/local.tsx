@@ -375,58 +375,18 @@ export default function DetalleLocalScreen() {
     }
   }, [params.id, cargarLocal]);
 
-  // Debug log to verify new design is loaded - MOVED BEFORE ANY EARLY RETURNS
+  // Debug log to verify data is loaded
   useEffect(() => {
     if (local) {
-      const allServices: string[] = [];
-      if (local.servicios_disponibles) {
-        Object.values(local.servicios_disponibles).forEach((category: any) => {
-          if (typeof category === 'object') {
-            Object.entries(category).forEach(([key, value]) => {
-              if (value === true) {
-                allServices.push(key.replace(/_/g, ' '));
-              }
-            });
-          }
-        });
-      }
-      if (local.servicios && local.servicios.length > 0) {
-        allServices.push(...local.servicios);
-      }
-
-      const ambienteTags: string[] = [];
-      if (local.ambiente_completo) {
-        Object.entries(local.ambiente_completo).forEach(([key, value]) => {
-          if (value === true) {
-            ambienteTags.push(key.replace(/_/g, ' '));
-          }
-        });
-      }
-      if (local.ambiente && !ambienteTags.length) {
-        ambienteTags.push(local.ambiente);
-      }
-
-      const clientelaTags: string[] = [];
-      if (local.clientela) {
-        Object.entries(local.clientela).forEach(([key, value]) => {
-          if (value === true) {
-            clientelaTags.push(key.replace(/_/g, ' '));
-          }
-        });
-      }
-
-      const hasSocialProfile = local.plan_activo === 'estandar' || local.plan_activo === 'premium';
-
-      console.log('[DetalleLocal v3 ULTRA] 🎨🎨🎨 Rendering with ULTRA VISIBLE design:', {
-        hasServices: allServices.length > 0,
-        hasAmbiente: ambienteTags.length > 0,
-        hasClientela: clientelaTags.length > 0,
-        hasEventos: eventos.length > 0,
-        hasSocialProfile: hasSocialProfile,
-        isDestacado: local.destacado
+      console.log('[DetalleLocal] Loaded local data:', {
+        nombre: local.nombre,
+        hasServicios: !!local.servicios_disponibles,
+        planActivo: local.plan_activo,
+        destacado: local.destacado,
+        hasHorarios: !!local.horarios_completos
       });
     }
-  }, [local, eventos.length]);
+  }, [local]);
 
   const handleCall = () => {
     if (local?.telefono) {
@@ -670,20 +630,7 @@ export default function DetalleLocalScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      {/* ULTRA VISIBLE BANNER - NEW DESIGN LOADED */}
-      <View style={styles.ultraVisibleBanner}>
-        <LinearGradient
-          colors={['#FF6B6B', '#FF3B30']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.ultraBannerGradient}
-        >
-          <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={28} color="#fff" />
-          <Text style={styles.ultraBannerText}>✨ NUEVO DISEÑO CARGADO v3 ✨</Text>
-        </LinearGradient>
-      </View>
-
-      {/* Cover Photo with Status Badge and Rating - NO PAGINATION DOTS */}
+      {/* Cover Photo with Status Badge and Rating */}
       {allImages.length > 0 && (
         <View style={styles.coverContainer}>
           <TouchableOpacity
@@ -711,14 +658,9 @@ export default function DetalleLocalScreen() {
             </ScrollView>
           </TouchableOpacity>
           
-          {/* Status Badge WITHOUT Animation - ULTRA VISIBLE */}
+          {/* Status Badge - Top Left */}
           <View style={styles.statusBadgeTop}>
-            <LinearGradient
-              colors={isOpen ? ['#10B981', '#059669'] : ['#EF4444', '#DC2626']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.statusGradient}
-            >
+            <BlurView intensity={90} tint="dark" style={styles.statusBlur}>
               <View style={[styles.statusDot, isOpen ? styles.statusDotOpen : styles.statusDotClosed]} />
               <Text style={styles.statusText}>
                 {estadoLocal.badge}
@@ -726,45 +668,35 @@ export default function DetalleLocalScreen() {
               {estadoLocal.tiempoRestante && (
                 <Text style={styles.statusSubtext}>• {estadoLocal.tiempoRestante}</Text>
               )}
-            </LinearGradient>
+            </BlurView>
           </View>
 
-          {/* Rating Badge - Top Right - ULTRA VISIBLE */}
-          {displayRating > 0 && (
-            <View style={styles.ratingBadgeTop}>
-              <LinearGradient
-                colors={['#FFD700', '#FFA500']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.ratingGradient}
-              >
-                <Ionicons name="star" size={20} color="#fff" />
-                <Text style={styles.ratingTextTop}>{displayRating.toFixed(1)}</Text>
-              </LinearGradient>
-            </View>
-          )}
-
-          {/* Destacado Badge - Below Rating - ULTRA VISIBLE */}
+          {/* Destacado Badge - Below Status Badge, Above Back Button */}
           {local.destacado && (
             <View style={styles.destacadoBadgeTop}>
-              <LinearGradient
-                colors={['#F59E0B', '#D97706']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.destacadoGradient}
-              >
-                <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={18} color="#fff" />
-                <Text style={styles.destacadoText}>⭐ DESTACADO ⭐</Text>
-              </LinearGradient>
+              <BlurView intensity={90} tint="dark" style={styles.destacadoBlur}>
+                <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={16} color="#F59E0B" />
+                <Text style={styles.destacadoText}>Destacado</Text>
+              </BlurView>
             </View>
           )}
 
-          {/* Back Button */}
+          {/* Back Button - Below Destacado Badge */}
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
               <Ionicons name="arrow-back" size={24} color="#fff" />
             </BlurView>
           </TouchableOpacity>
+
+          {/* Rating Badge - Top Right */}
+          {displayRating > 0 && (
+            <View style={styles.ratingBadgeTop}>
+              <BlurView intensity={90} tint="dark" style={styles.ratingBlur}>
+                <Ionicons name="star" size={18} color="#FFD700" />
+                <Text style={styles.ratingTextTop}>{displayRating.toFixed(1)}</Text>
+              </BlurView>
+            </View>
+          )}
 
           {/* Share Button */}
           <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
@@ -825,15 +757,10 @@ export default function DetalleLocalScreen() {
 
       {/* Content Card */}
       <View style={styles.contentCard}>
-        {/* Title with ULTRA VISIBLE Gradient Background */}
-        <LinearGradient
-          colors={['#FF6B6B', '#FF3B30', '#EC4899']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.titleContainer}
-        >
+        {/* Title */}
+        <View style={styles.titleContainer}>
           <Text style={styles.title}>{local.nombre}</Text>
-        </LinearGradient>
+        </View>
 
         {/* FIXED: Display ALL categories (excluding lounge, terraza, rooftop, salón, azotea) */}
         {allCategories.length > 0 && (
@@ -872,78 +799,53 @@ export default function DetalleLocalScreen() {
           </TouchableOpacity>
         )}
 
-        {/* FIXED: Action Buttons - Same Size with ULTRA VISIBLE Gradient */}
+        {/* Action Buttons */}
         <View style={styles.actionButtonsRow}>
           {local.telefono && (
             <TouchableOpacity style={styles.actionButton} onPress={handleCall}>
-              <LinearGradient
-                colors={['#10B981', '#059669']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.actionButtonGradient}
-              >
-                <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="phone" size={24} color="#fff" />
+              <View style={[styles.actionButtonContent, { backgroundColor: colors.primary }]}>
+                <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="phone" size={22} color="#fff" />
                 <Text style={styles.actionButtonText}>Llamar</Text>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           )}
           
           {local.latitud && local.longitud && (
             <TouchableOpacity style={styles.actionButton} onPress={handleDirections}>
-              <LinearGradient
-                colors={['#3B82F6', '#2563EB']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.actionButtonGradient}
-              >
-                <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={24} color="#fff" />
+              <View style={[styles.actionButtonContent, { backgroundColor: colors.secondary }]}>
+                <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={22} color="#fff" />
                 <Text style={styles.actionButtonText}>Cómo llegar</Text>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           )}
         </View>
 
         {/* Virtual Room Button */}
         <TouchableOpacity style={styles.virtualRoomButton} onPress={handleVirtualRoom}>
-          <LinearGradient
-            colors={['#9333EA', '#C026D3']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.virtualRoomGradient}
-          >
-            <IconSymbol ios_icon_name="cube.fill" android_material_icon_name="view_in_ar" size={26} color="#fff" />
+          <View style={[styles.virtualRoomContent, { backgroundColor: '#8B5CF6' }]}>
+            <IconSymbol ios_icon_name="cube.fill" android_material_icon_name="view_in_ar" size={24} color="#fff" />
             <Text style={styles.virtualRoomText}>Ver Sala Virtual</Text>
-          </LinearGradient>
+          </View>
         </TouchableOpacity>
 
-        {/* Social Profile Button (if plan is standard or premium) - ULTRA VISIBLE */}
+        {/* Social Profile Button (if plan is standard or premium) */}
         {hasSocialProfile && (
           <TouchableOpacity style={styles.socialProfileButton} onPress={handleSocialProfile}>
-            <LinearGradient
-              colors={['#FF6B6B', '#FF3B30', '#EC4899']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.socialProfileGradient}
-            >
-              <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={26} color="#fff" />
-              <Text style={styles.socialProfileText}>🎉 VER PERFIL SOCIAL 🎉</Text>
-            </LinearGradient>
+            <View style={[styles.socialProfileContent, { backgroundColor: colors.primary }]}>
+              <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={24} color="#fff" />
+              <Text style={styles.socialProfileText}>Ver Perfil Social</Text>
+            </View>
           </TouchableOpacity>
         )}
 
-        {/* FIXED: Events Banner (if there are active or upcoming events) - ULTRA VISIBLE */}
+        {/* Events Banner (if there are active or upcoming events) */}
         {eventos.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <LinearGradient
-                colors={['#EC4899', '#DB2777']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.sectionIconContainer}
-              >
-                <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={28} color="#fff" />
-              </LinearGradient>
-              <Text style={styles.sectionTitle}>🎊 Eventos Próximos 🎊</Text>
+              <View style={[styles.sectionIconContainer, { backgroundColor: colors.primary }]}>
+                <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={26} color="#fff" />
+              </View>
+              <Text style={styles.sectionTitle}>Eventos Próximos</Text>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.eventosScroll}>
               {eventos.map((evento) => (
@@ -971,19 +873,14 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* FIXED: Schedule Section with Current Day ULTRA HIGHLIGHTED */}
+        {/* Schedule Section with Current Day Highlighted */}
         {local.horarios_completos && Object.keys(local.horarios_completos).length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <LinearGradient
-                colors={['#F59E0B', '#D97706']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.sectionIconContainer}
-              >
-                <IconSymbol ios_icon_name="clock.fill" android_material_icon_name="schedule" size={28} color="#fff" />
-              </LinearGradient>
-              <Text style={styles.sectionTitle}>⏰ Horarios ⏰</Text>
+              <View style={[styles.sectionIconContainer, { backgroundColor: colors.primary }]}>
+                <IconSymbol ios_icon_name="clock.fill" android_material_icon_name="schedule" size={26} color="#fff" />
+              </View>
+              <Text style={styles.sectionTitle}>Horarios</Text>
             </View>
             <View style={styles.scheduleContainer}>
               {Object.entries(local.horarios_completos).map(([day, hours]) => {
@@ -995,14 +892,9 @@ export default function DetalleLocalScreen() {
                         {day.charAt(0).toUpperCase() + day.slice(1)}
                       </Text>
                       {isToday && (
-                        <LinearGradient
-                          colors={['#FF6B6B', '#FF3B30']}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 0 }}
-                          style={styles.todayBadge}
-                        >
-                          <Text style={styles.todayBadgeText}>🔥 HOY 🔥</Text>
-                        </LinearGradient>
+                        <View style={styles.todayBadge}>
+                          <Text style={styles.todayBadgeText}>Hoy</Text>
+                        </View>
                       )}
                     </View>
                     <Text style={[styles.scheduleHours, isToday && styles.scheduleHoursToday]}>
@@ -1015,30 +907,25 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* FIXED: Services Section with ULTRA VISIBLE Colored Icons */}
+        {/* Services Section */}
         {allServices.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <LinearGradient
-                colors={['#8B5CF6', '#7C3AED']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.sectionIconContainer}
-              >
-                <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={28} color="#fff" />
-              </LinearGradient>
-              <Text style={styles.sectionTitle}>✨ Servicios Disponibles ✨</Text>
+              <View style={[styles.sectionIconContainer, { backgroundColor: colors.primary }]}>
+                <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={26} color="#fff" />
+              </View>
+              <Text style={styles.sectionTitle}>Servicios Disponibles</Text>
             </View>
             <View style={styles.servicesGrid}>
               {allServices.map((servicio, index) => {
                 const icon = getServiceIcon(servicio);
                 return (
                   <View key={index} style={styles.serviceItem}>
-                    <View style={[styles.serviceIconBg, { backgroundColor: icon.color + '20' }]}>
+                    <View style={[styles.serviceIconBg, { backgroundColor: icon.color + '15' }]}>
                       <IconSymbol 
                         ios_icon_name={icon.ios} 
                         android_material_icon_name={icon.android} 
-                        size={24} 
+                        size={20} 
                         color={icon.color} 
                       />
                     </View>
@@ -1050,30 +937,25 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* Atmosphere Section with ULTRA VISIBLE Icons */}
+        {/* Atmosphere Section */}
         {ambienteTags.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <LinearGradient
-                colors={['#EC4899', '#DB2777']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.sectionIconContainer}
-              >
-                <IconSymbol ios_icon_name="sparkles" android_material_icon_name="auto_awesome" size={28} color="#fff" />
-              </LinearGradient>
-              <Text style={styles.sectionTitle}>🌟 Ambiente 🌟</Text>
+              <View style={[styles.sectionIconContainer, { backgroundColor: colors.secondary }]}>
+                <IconSymbol ios_icon_name="sparkles" android_material_icon_name="auto_awesome" size={26} color="#fff" />
+              </View>
+              <Text style={styles.sectionTitle}>Ambiente</Text>
             </View>
             <View style={styles.chipContainer}>
               {ambienteTags.map((tag, index) => {
                 const icon = getAmbienteIcon(tag);
                 return (
                   <View key={index} style={styles.chipWithIcon}>
-                    <View style={[styles.chipIconBg, { backgroundColor: icon.color + '30' }]}>
+                    <View style={[styles.chipIconBg, { backgroundColor: icon.color + '15' }]}>
                       <IconSymbol 
                         ios_icon_name={icon.ios} 
                         android_material_icon_name={icon.android} 
-                        size={20} 
+                        size={18} 
                         color={icon.color} 
                       />
                     </View>
@@ -1085,30 +967,25 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* Typical Clientele Section with ULTRA VISIBLE Icons */}
+        {/* Typical Clientele Section */}
         {clientelaTags.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <LinearGradient
-                colors={['#10B981', '#059669']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.sectionIconContainer}
-              >
-                <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={28} color="#fff" />
-              </LinearGradient>
-              <Text style={styles.sectionTitle}>👥 Clientela Típica 👥</Text>
+              <View style={[styles.sectionIconContainer, { backgroundColor: colors.primary }]}>
+                <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={26} color="#fff" />
+              </View>
+              <Text style={styles.sectionTitle}>Clientela Típica</Text>
             </View>
             <View style={styles.chipContainer}>
               {clientelaTags.map((tag, index) => {
                 const icon = getClientelaIcon(tag);
                 return (
                   <View key={index} style={styles.chipWithIcon}>
-                    <View style={[styles.chipIconBg, { backgroundColor: icon.color + '30' }]}>
+                    <View style={[styles.chipIconBg, { backgroundColor: icon.color + '15' }]}>
                       <IconSymbol 
                         ios_icon_name={icon.ios} 
                         android_material_icon_name={icon.android} 
-                        size={20} 
+                        size={18} 
                         color={icon.color} 
                       />
                     </View>
@@ -1120,18 +997,13 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* FIXED: ULTRA COMPACT Reviews Section with Avatars */}
+        {/* Reviews Section with Avatars */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <LinearGradient
-              colors={['#F59E0B', '#D97706']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.sectionIconContainer}
-            >
-              <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={28} color="#fff" />
-            </LinearGradient>
-            <Text style={styles.sectionTitle}>⭐ Reseñas ⭐</Text>
+            <View style={[styles.sectionIconContainer, { backgroundColor: '#F59E0B' }]}>
+              <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={26} color="#fff" />
+            </View>
+            <Text style={styles.sectionTitle}>Reseñas</Text>
             {totalReviewsToShow > 0 && (
               <Text style={styles.reviewCount}>({totalReviewsToShow})</Text>
             )}
@@ -1230,23 +1102,6 @@ const styles = StyleSheet.create({
   contentContainer: {
     paddingBottom: 120,
   },
-  ultraVisibleBanner: {
-    width: '100%',
-    overflow: 'hidden',
-  },
-  ultraBannerGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    gap: 12,
-  },
-  ultraBannerText: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#fff',
-    letterSpacing: 1,
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -1295,106 +1150,89 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 12,
     left: 16,
-    borderRadius: 24,
+    borderRadius: 20,
     overflow: 'hidden',
     zIndex: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
   },
-  statusGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    gap: 8,
-  },
-  statusDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
-  statusDotOpen: {
-    backgroundColor: '#fff',
-  },
-  statusDotClosed: {
-    backgroundColor: '#fff',
-  },
-  statusText: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#fff',
-    letterSpacing: 0.5,
-  },
-  statusSubtext: {
-    fontSize: 13,
-    color: '#fff',
-    fontWeight: '600',
-  },
-  ratingBadgeTop: {
-    position: 'absolute',
-    top: 12,
-    right: 16,
-    borderRadius: 24,
-    overflow: 'hidden',
-    zIndex: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  ratingGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    gap: 6,
-  },
-  ratingTextTop: {
-    fontSize: 17,
-    fontWeight: '900',
-    color: '#fff',
-  },
-  destacadoBadgeTop: {
-    position: 'absolute',
-    top: 56,
-    right: 16,
-    borderRadius: 24,
-    overflow: 'hidden',
-    zIndex: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  destacadoGradient: {
+  statusBlur: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 14,
     paddingVertical: 8,
     gap: 8,
   },
-  destacadoText: {
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  statusDotOpen: {
+    backgroundColor: '#10B981',
+  },
+  statusDotClosed: {
+    backgroundColor: '#EF4444',
+  },
+  statusText: {
     fontSize: 14,
-    fontWeight: '900',
+    fontWeight: '700',
     color: '#fff',
-    letterSpacing: 0.5,
+  },
+  statusSubtext: {
+    fontSize: 12,
+    color: '#fff',
+    fontWeight: '600',
+  },
+  destacadoBadgeTop: {
+    position: 'absolute',
+    top: 52,
+    left: 16,
+    borderRadius: 20,
+    overflow: 'hidden',
+    zIndex: 9,
+  },
+  destacadoBlur: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    gap: 6,
+  },
+  destacadoText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#fff',
   },
   backButton: {
     position: 'absolute',
-    top: 64,
+    top: 92,
     left: 16,
     width: 44,
     height: 44,
     borderRadius: 22,
     overflow: 'hidden',
-    zIndex: 5,
+    zIndex: 8,
+  },
+  ratingBadgeTop: {
+    position: 'absolute',
+    top: 12,
+    right: 16,
+    borderRadius: 20,
+    overflow: 'hidden',
+    zIndex: 10,
+  },
+  ratingBlur: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 6,
+  },
+  ratingTextTop: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
   },
   shareButton: {
     position: 'absolute',
@@ -1458,21 +1296,13 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   titleContainer: {
-    padding: 24,
-    borderRadius: 20,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    marginBottom: 16,
   },
   title: {
-    fontSize: 36,
-    fontWeight: '900',
-    color: '#fff',
-    textAlign: 'center',
-    letterSpacing: 0.5,
+    fontSize: 28,
+    fontWeight: '800',
+    color: colors.text,
+    letterSpacing: 0.3,
   },
   categoriesContainer: {
     flexDirection: 'row',
@@ -1548,71 +1378,55 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
-    borderRadius: 16,
+    borderRadius: 12,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 5,
   },
-  actionButtonGradient: {
+  actionButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+  },
+  actionButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  virtualRoomButton: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  virtualRoomContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    paddingVertical: 18,
-    paddingHorizontal: 12,
-  },
-  actionButtonText: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: '#fff',
-  },
-  virtualRoomButton: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    marginBottom: 12,
-    shadowColor: '#9333EA',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 5,
-  },
-  virtualRoomGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    paddingVertical: 18,
+    paddingVertical: 14,
   },
   virtualRoomText: {
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: 16,
+    fontWeight: '700',
     color: '#fff',
   },
   socialProfileButton: {
-    borderRadius: 16,
+    borderRadius: 12,
     overflow: 'hidden',
     marginBottom: 24,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 5,
   },
-  socialProfileGradient: {
+  socialProfileContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
-    paddingVertical: 18,
+    gap: 10,
+    paddingVertical: 14,
   },
   socialProfileText: {
-    fontSize: 18,
-    fontWeight: '900',
+    fontSize: 16,
+    fontWeight: '700',
     color: '#fff',
-    letterSpacing: 0.5,
   },
   section: {
     marginBottom: 28,
@@ -1624,28 +1438,22 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   sectionIconContainer: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 5,
   },
   sectionTitle: {
-    fontSize: 24,
-    fontWeight: '900',
+    fontSize: 20,
+    fontWeight: '700',
     color: colors.text,
     flex: 1,
-    letterSpacing: 0.3,
   },
   reviewCount: {
-    fontSize: 19,
+    fontSize: 16,
     color: colors.textSecondary,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   eventosScroll: {
     paddingRight: 16,
@@ -1699,113 +1507,103 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   scheduleRowToday: {
-    backgroundColor: '#FFE5E5',
+    backgroundColor: colors.primary + '10',
     marginHorizontal: -18,
     paddingHorizontal: 18,
-    borderRadius: 12,
+    borderRadius: 10,
     borderBottomWidth: 0,
-    marginVertical: 6,
-    borderWidth: 3,
-    borderColor: '#FF6B6B',
+    marginVertical: 4,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.primary,
   },
   scheduleDayContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   scheduleDay: {
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: '600',
     color: colors.text,
     textTransform: 'capitalize',
   },
   scheduleDayToday: {
-    color: '#FF3B30',
-    fontWeight: '900',
-    fontSize: 19,
+    color: colors.primary,
+    fontWeight: '700',
+    fontSize: 16,
   },
   todayBadge: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 16,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   todayBadgeText: {
-    fontSize: 13,
-    fontWeight: '900',
+    fontSize: 11,
+    fontWeight: '700',
     color: '#fff',
-    letterSpacing: 0.5,
   },
   scheduleHours: {
-    fontSize: 16,
+    fontSize: 14,
     color: colors.textSecondary,
   },
   scheduleHoursToday: {
     color: colors.text,
-    fontWeight: '700',
-    fontSize: 17,
+    fontWeight: '600',
+    fontSize: 15,
   },
   servicesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 14,
+    gap: 10,
   },
   serviceItem: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.card,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    borderRadius: 28,
-    gap: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 20,
+    gap: 8,
   },
   serviceIconBg: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
   serviceText: {
-    fontSize: 16,
+    fontSize: 14,
     color: colors.text,
-    fontWeight: '700',
+    fontWeight: '600',
     textTransform: 'capitalize',
   },
   chipContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 10,
   },
   chipWithIcon: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.card,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 26,
-    gap: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 20,
+    gap: 8,
   },
   chipIconBg: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
   },
   chipText: {
-    fontSize: 16,
+    fontSize: 14,
     color: colors.text,
-    fontWeight: '700',
+    fontWeight: '600',
     textTransform: 'capitalize',
   },
   reviewCardCompact: {
