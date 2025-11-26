@@ -806,12 +806,13 @@ export default function DetalleLocalScreen() {
               scrollEventThrottle={16}
             >
               {allImages.map((image, index) => (
-                <OptimizedImage
-                  key={index}
-                  source={{ uri: image }}
-                  style={styles.coverImage}
-                  resizeMode="cover"
-                />
+                <View key={index} style={{ width: SCREEN_WIDTH, height: 300 }}>
+                  <OptimizedImage
+                    source={{ uri: image }}
+                    style={styles.coverImage}
+                    resizeMode="cover"
+                  />
+                </View>
               ))}
             </ScrollView>
           </TouchableOpacity>

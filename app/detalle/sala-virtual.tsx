@@ -4,7 +4,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   TextInput,
   Image,
@@ -14,6 +13,7 @@ import {
   ActivityIndicator,
   FlatList,
   Animated,
+  Dimensions,
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/utils/supabase';
@@ -22,14 +22,10 @@ import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getEstadoLocal } from '@/utils/timeUtils';
+import { Audio } from 'expo-av';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Import components
-import { QuickMessagesBar } from '@/components/sala-virtual/QuickMessagesBar';
-import { RankingModal } from '@/components/sala-virtual/RankingModal';
-import { ChallengeModal } from '@/components/sala-virtual/ChallengeModal';
-import { ReportUserModal } from '@/components/sala-virtual/ReportUserModal';
-import { BadgeNotification } from '@/components/sala-virtual/BadgeNotification';
-import { FloatingEmoticons } from '@/components/sala-virtual/FloatingEmoticons';
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface InteractionMessage {
   id: string;
@@ -76,11 +72,19 @@ interface ActiveUser {
   checked_in_at?: string;
 }
 
-interface Badge {
+interface DirectMessage {
   id: string;
-  tipo_badge: string;
-  fecha_obtencion: string;
-  puntos: number;
+  sender_id: string;
+  recipient_id: string;
+  tipo: 'mensaje' | 'emoticon';
+  contenido: string;
+  created_at: string;
+  sender: {
+    id: string;
+    nombre: string;
+    username?: string;
+    avatar?: string;
+  };
 }
 
 const EMOTICONS = ['❤️', '🔥', '😎', '😄', '👏', '🍹', '🎶', '😍', '🤝'];
@@ -99,23 +103,85 @@ export default function SalaVirtualScreen() {
   const [isCheckedIn, setIsCheckedIn] = useState(false);
   const [checkingIn, setCheckingIn] = useState(false);
   
-  // Tab state
-  const [activeTab, setActiveTab] = useState<'chat' | 'users'>('chat');
+  // Tab state - Users tab first as requested
+  const [activeTab, setActiveTab] = useState<'users' | 'chat'>('users');
   
-  // Modal states
-  const [showRanking, setShowRanking] = useState(false);
-  const [showChallenge, setShowChallenge] = useState(false);
-  const [showReport, setShowReport] = useState(false);
+  // Direct messages state
+  const [directMessages, setDirectMessages] = useState<DirectMessage[]>([]);
   const [selectedUser, setSelectedUser] = useState<ActiveUser | null>(null);
+  const [showDirectMessageModal, setShowDirectMessageModal] = useState(false);
+  const [directMessageText, setDirectMessageText] = useState('');
+  
+  // Sound control
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [notificationSound, setNotificationSound] = useState<Audio.Sound | null>(null);
   
   // Animation states
-  const [userJoinedAnimation] = useState(new Animated.Value(0));
-  const [floatingEmoticons, setFloatingEmoticons] = useState<{ emoji: string; id: string; timestamp: number }[]>([]);
-  const [newBadge, setNewBadge] = useState<Badge | null>(null);
+  const [floatingEmoticons, setFloatingEmoticons] = useState<{ emoji: string; id: string; x: number; y: number }[]>([]);
+  const [notifications, setNotifications] = useState<{ id: string; message: string; type: 'dm' | 'emoticon' }[]>([]);
   
   const flatListRef = useRef<FlatList>(null);
   const channelRef = useRef<any>(null);
   const localId = params.localId as string;
+
+  // Load sound settings
+  useEffect(() => {
+    loadSoundSettings();
+    loadNotificationSound();
+    
+    return () => {
+      if (notificationSound) {
+        notificationSound.unloadAsync();
+      }
+    };
+  }, []);
+
+  const loadSoundSettings = async () => {
+    try {
+      const saved = await AsyncStorage.getItem('virtualRoomSoundEnabled');
+      if (saved !== null) {
+        setSoundEnabled(JSON.parse(saved));
+      }
+    } catch (error) {
+      console.error('[SalaVirtual] Error loading sound settings:', error);
+    }
+  };
+
+  const toggleSound = async () => {
+    try {
+      const newValue = !soundEnabled;
+      setSoundEnabled(newValue);
+      await AsyncStorage.setItem('virtualRoomSoundEnabled', JSON.stringify(newValue));
+      Alert.alert(
+        'Sonido',
+        newValue ? 'Sonidos activados' : 'Sonidos desactivados'
+      );
+    } catch (error) {
+      console.error('[SalaVirtual] Error toggling sound:', error);
+    }
+  };
+
+  const loadNotificationSound = async () => {
+    try {
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: 'https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3' },
+        { shouldPlay: false }
+      );
+      setNotificationSound(sound);
+    } catch (error) {
+      console.error('[SalaVirtual] Error loading notification sound:', error);
+    }
+  };
+
+  const playNotificationSound = async () => {
+    if (soundEnabled && notificationSound) {
+      try {
+        await notificationSound.replayAsync();
+      } catch (error) {
+        console.error('[SalaVirtual] Error playing sound:', error);
+      }
+    }
+  };
 
   // Load local data
   const loadLocalData = useCallback(async () => {
@@ -335,6 +401,7 @@ export default function SalaVirtualScreen() {
         `)
         .eq('local_id', localId)
         .eq('tipo', 'mensaje')
+        .is('recipient_id', null)
         .order('created_at', { ascending: true })
         .limit(100);
 
@@ -369,6 +436,48 @@ export default function SalaVirtualScreen() {
       setLoading(false);
     }
   }, [localId]);
+
+  // Load direct messages
+  const loadDirectMessages = useCallback(async () => {
+    if (!user || !localId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('sala_virtual_interacciones')
+        .select(`
+          *,
+          usuario:usuarios!sala_virtual_interacciones_usuario_id_fkey(
+            id,
+            nombre,
+            username,
+            avatar
+          )
+        `)
+        .eq('local_id', localId)
+        .or(`recipient_id.eq.${user.id},usuario_id.eq.${user.id}`)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.error('[SalaVirtual] Error loading direct messages:', error);
+        return;
+      }
+
+      const dms: DirectMessage[] = (data || []).map(msg => ({
+        id: msg.id,
+        sender_id: msg.usuario_id,
+        recipient_id: msg.recipient_id || '',
+        tipo: msg.tipo as 'mensaje' | 'emoticon',
+        contenido: msg.contenido,
+        created_at: msg.created_at,
+        sender: msg.usuario,
+      }));
+
+      setDirectMessages(dms);
+    } catch (error) {
+      console.error('[SalaVirtual] Error:', error);
+    }
+  }, [user, localId]);
 
   // Update active users
   const updateActiveUsers = useCallback(async () => {
@@ -416,43 +525,95 @@ export default function SalaVirtualScreen() {
 
   // Subscribe to real-time updates
   const subscribeToUpdates = useCallback(() => {
-    if (!localId) return () => {};
+    if (!localId || !user) return () => {};
 
     console.log('[SalaVirtual] Subscribing to real-time updates for local:', localId);
 
-    const channel = supabase
-      .channel(`room:${localId}:interactions`, {
-        config: { private: true },
+    // Public chat channel
+    const chatChannel = supabase
+      .channel(`room:${localId}:chat`, {
+        config: { broadcast: { self: false } },
       })
-      .on('broadcast', { event: 'INSERT' }, async (payload) => {
-        console.log('[SalaVirtual] New interaction received:', payload);
+      .on('broadcast', { event: 'message_created' }, async (payload) => {
+        console.log('[SalaVirtual] New message received:', payload);
         
-        if (payload.new.tipo === 'mensaje') {
-          const { data: userData } = await supabase
-            .from('usuarios')
-            .select('id, nombre, username, avatar')
-            .eq('id', payload.new.usuario_id)
-            .single();
+        const { data: userData } = await supabase
+          .from('usuarios')
+          .select('id, nombre, username, avatar')
+          .eq('id', payload.payload.usuario_id)
+          .single();
 
-          const newInteraction: InteractionMessage = {
-            ...payload.new,
-            usuario: userData || { id: payload.new.usuario_id, nombre: 'Usuario' },
-            reactions: [],
-          };
+        const newMessage: InteractionMessage = {
+          ...payload.payload,
+          usuario: userData || { id: payload.payload.usuario_id, nombre: 'Usuario' },
+          reactions: [],
+        };
 
-          setMessages((prev) => [...prev, newInteraction]);
-          
-          setTimeout(() => {
-            flatListRef.current?.scrollToEnd({ animated: true });
-          }, 100);
-        } else if (payload.new.tipo === 'emoticon') {
-          const emojiId = `${payload.new.usuario_id}-${Date.now()}`;
+        setMessages((prev) => [...prev, newMessage]);
+        
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      })
+      .subscribe();
+
+    // Direct messages channel
+    const dmChannel = supabase
+      .channel(`user:${user.id}:dm`, {
+        config: { broadcast: { self: false } },
+      })
+      .on('broadcast', { event: 'direct_message' }, async (payload) => {
+        console.log('[SalaVirtual] Direct message received:', payload);
+        
+        const { data: senderData } = await supabase
+          .from('usuarios')
+          .select('id, nombre, username, avatar')
+          .eq('id', payload.payload.sender_id)
+          .single();
+
+        const dm: DirectMessage = {
+          id: payload.payload.id,
+          sender_id: payload.payload.sender_id,
+          recipient_id: payload.payload.recipient_id,
+          tipo: payload.payload.tipo,
+          contenido: payload.payload.contenido,
+          created_at: payload.payload.created_at,
+          sender: senderData || { id: payload.payload.sender_id, nombre: 'Usuario' },
+        };
+
+        setDirectMessages(prev => [dm, ...prev]);
+        
+        // Show notification
+        const notifId = `notif-${Date.now()}`;
+        setNotifications(prev => [
+          ...prev,
+          {
+            id: notifId,
+            message: payload.payload.tipo === 'emoticon' 
+              ? `${senderData?.nombre || 'Alguien'} te envió ${payload.payload.contenido}`
+              : `Mensaje de ${senderData?.nombre || 'Alguien'}`,
+            type: payload.payload.tipo === 'emoticon' ? 'emoticon' : 'dm',
+          }
+        ]);
+
+        // Play sound
+        playNotificationSound();
+
+        // Remove notification after 3 seconds
+        setTimeout(() => {
+          setNotifications(prev => prev.filter(n => n.id !== notifId));
+        }, 3000);
+
+        // Add floating emoticon if it's an emoticon
+        if (payload.payload.tipo === 'emoticon') {
+          const emojiId = `emoji-${Date.now()}`;
           setFloatingEmoticons(prev => [
             ...prev,
             {
-              emoji: payload.new.contenido,
+              emoji: payload.payload.contenido,
               id: emojiId,
-              timestamp: Date.now(),
+              x: Math.random() * (SCREEN_WIDTH - 60),
+              y: SCREEN_HEIGHT * 0.3,
             }
           ]);
 
@@ -460,60 +621,31 @@ export default function SalaVirtualScreen() {
             setFloatingEmoticons(prev => prev.filter(e => e.id !== emojiId));
           }, 3000);
         }
+      })
+      .subscribe();
 
-        if (payload.new.usuario_id !== user?.id) {
-          Animated.sequence([
-            Animated.timing(userJoinedAnimation, {
-              toValue: 1,
-              duration: 300,
-              useNativeDriver: true,
-            }),
-            Animated.timing(userJoinedAnimation, {
-              toValue: 0,
-              duration: 300,
-              delay: 2000,
-              useNativeDriver: true,
-            }),
-          ]).start();
-        }
-
+    // User presence channel
+    const presenceChannel = supabase
+      .channel(`room:${localId}:presence`, {
+        config: { broadcast: { self: false } },
+      })
+      .on('broadcast', { event: 'user_joined' }, () => {
+        updateActiveUsers();
+      })
+      .on('broadcast', { event: 'user_left' }, () => {
         updateActiveUsers();
       })
       .subscribe();
 
-    const checkinChannel = supabase
-      .channel(`room:${localId}:checkins`, {
-        config: { private: true },
-      })
-      .on('broadcast', { event: 'INSERT' }, () => {
-        updateActiveUsers();
-      })
-      .on('broadcast', { event: 'UPDATE' }, () => {
-        updateActiveUsers();
-      })
-      .subscribe();
-
-    const badgeChannel = supabase
-      .channel(`room:${localId}:badges`, {
-        config: { private: true },
-      })
-      .on('broadcast', { event: 'INSERT' }, (payload) => {
-        if (payload.new.usuario_id === user?.id) {
-          setNewBadge(payload.new);
-          setTimeout(() => setNewBadge(null), 5000);
-        }
-      })
-      .subscribe();
-
-    channelRef.current = { channel, checkinChannel, badgeChannel };
+    channelRef.current = { chatChannel, dmChannel, presenceChannel };
 
     return () => {
       console.log('[SalaVirtual] Unsubscribing from real-time updates');
-      supabase.removeChannel(channel);
-      supabase.removeChannel(checkinChannel);
-      supabase.removeChannel(badgeChannel);
+      supabase.removeChannel(chatChannel);
+      supabase.removeChannel(dmChannel);
+      supabase.removeChannel(presenceChannel);
     };
-  }, [localId, user, userJoinedAnimation, updateActiveUsers]);
+  }, [localId, user, updateActiveUsers, playNotificationSound]);
 
   // Initialize
   useEffect(() => {
@@ -527,6 +659,7 @@ export default function SalaVirtualScreen() {
     loadLocalData();
     checkUserCheckin();
     loadMessages();
+    loadDirectMessages();
     const unsubscribe = subscribeToUpdates();
     updateActiveUsers();
 
@@ -536,10 +669,10 @@ export default function SalaVirtualScreen() {
       clearInterval(interval);
       unsubscribe();
     };
-  }, [localId, loadLocalData, checkUserCheckin, loadMessages, subscribeToUpdates, updateActiveUsers, router]);
+  }, [localId, loadLocalData, checkUserCheckin, loadMessages, loadDirectMessages, subscribeToUpdates, updateActiveUsers, router]);
 
-  // Send message
-  const sendMessage = async (messageText?: string) => {
+  // Send public message
+  const sendMessage = async () => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para enviar mensajes');
       return;
@@ -550,7 +683,7 @@ export default function SalaVirtualScreen() {
       return;
     }
 
-    const content = messageText || newMessage.trim();
+    const content = newMessage.trim();
     if (!content) return;
 
     if (!localId) {
@@ -562,14 +695,16 @@ export default function SalaVirtualScreen() {
       setSending(true);
       console.log('[SalaVirtual] Sending message:', content);
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('sala_virtual_interacciones')
         .insert({
           usuario_id: user.id,
           local_id: localId,
           tipo: 'mensaje',
           contenido: content,
-        });
+        })
+        .select()
+        .single();
 
       if (error) {
         console.error('[SalaVirtual] Error sending message:', error);
@@ -577,10 +712,15 @@ export default function SalaVirtualScreen() {
         return;
       }
 
+      // Broadcast to all users in the room
+      await supabase.channel(`room:${localId}:chat`).send({
+        type: 'broadcast',
+        event: 'message_created',
+        payload: data,
+      });
+
       console.log('[SalaVirtual] Message sent successfully');
-      if (!messageText) {
-        setNewMessage('');
-      }
+      setNewMessage('');
     } catch (error) {
       console.error('[SalaVirtual] Error:', error);
       Alert.alert('Error', 'Ocurrió un error al enviar el mensaje');
@@ -589,105 +729,82 @@ export default function SalaVirtualScreen() {
     }
   };
 
-  // Send emoticon
-  const sendEmoticon = async (emoticon: string) => {
-    if (!user) {
-      Alert.alert('Error', 'Debes iniciar sesión para enviar reacciones');
-      return;
-    }
-
-    if (!isCheckedIn) {
-      Alert.alert('Error', 'Debes entrar en la sala para enviar reacciones');
-      return;
-    }
-
-    if (!localId) return;
+  // Send direct message or emoticon
+  const sendDirectMessage = async (recipientId: string, tipo: 'mensaje' | 'emoticon', contenido: string) => {
+    if (!user || !localId) return;
 
     try {
-      console.log('[SalaVirtual] Sending emoticon:', emoticon);
-
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('sala_virtual_interacciones')
         .insert({
           usuario_id: user.id,
           local_id: localId,
-          tipo: 'emoticon',
-          contenido: emoticon,
-        });
+          tipo,
+          contenido,
+          recipient_id: recipientId,
+        })
+        .select()
+        .single();
 
       if (error) {
-        console.error('[SalaVirtual] Error sending emoticon:', error);
+        console.error('[SalaVirtual] Error sending direct message:', error);
+        Alert.alert('Error', 'No se pudo enviar');
         return;
       }
 
-      console.log('[SalaVirtual] Emoticon sent successfully');
+      // Broadcast to recipient
+      await supabase.channel(`user:${recipientId}:dm`).send({
+        type: 'broadcast',
+        event: 'direct_message',
+        payload: {
+          ...data,
+          sender_id: user.id,
+        },
+      });
+
+      Alert.alert('Enviado', tipo === 'emoticon' ? 'Emoticono enviado' : 'Mensaje enviado');
+      setShowDirectMessageModal(false);
+      setDirectMessageText('');
     } catch (error) {
       console.error('[SalaVirtual] Error:', error);
     }
   };
 
-  // Add reaction to message
-  const addReaction = async (messageId: string, emoticon: string) => {
-    if (!user) return;
-
-    try {
-      const { error } = await supabase
-        .from('sala_virtual_reacciones')
-        .insert({
-          mensaje_id: messageId,
-          usuario_id: user.id,
-          emoticon,
-        });
-
-      if (error) {
-        console.error('[SalaVirtual] Error adding reaction:', error);
-        return;
-      }
-
-      setMessages(prev => prev.map(msg => {
-        if (msg.id === messageId) {
-          return {
-            ...msg,
-            reactions: [
-              ...(msg.reactions || []),
-              {
-                id: `temp-${Date.now()}`,
-                mensaje_id: messageId,
-                usuario_id: user.id,
-                emoticon,
-                created_at: new Date().toISOString(),
-              },
-            ],
-          };
-        }
-        return msg;
-      }));
-    } catch (error) {
-      console.error('[SalaVirtual] Error:', error);
-    }
-  };
-
-  // Send private message to user
-  const sendPrivateMessage = async (userId: string) => {
-    if (!user) return;
-
+  // Handle user selection
+  const handleUserSelect = (selectedUser: ActiveUser) => {
+    if (selectedUser.id === user?.id) return;
+    
+    setSelectedUser(selectedUser);
     Alert.alert(
-      'Mensaje Privado',
+      selectedUser.nombre,
       '¿Qué quieres enviar?',
       [
         {
-          text: 'Enviar mensaje',
+          text: 'Mensaje Directo',
           onPress: () => {
-            router.push({
-              pathname: '/chat/nuevo-chat',
-              params: { userId },
-            });
+            setShowDirectMessageModal(true);
           },
         },
         {
-          text: 'Invitar a un brindis',
-          onPress: async () => {
-            await sendMessage(`🍹 ¡Brindemos juntos!`);
+          text: 'Emoticono',
+          onPress: () => {
+            Alert.alert(
+              'Selecciona un emoticono',
+              '',
+              EMOTICONS.map(emoji => ({
+                text: emoji,
+                onPress: () => sendDirectMessage(selectedUser.id, 'emoticon', emoji),
+              })).concat([{ text: 'Cancelar', style: 'cancel' }])
+            );
+          },
+        },
+        {
+          text: 'Ver Perfil',
+          onPress: () => {
+            router.push({
+              pathname: '/perfil/usuario',
+              params: { userId: selectedUser.id },
+            });
           },
         },
         { text: 'Cancelar', style: 'cancel' },
@@ -699,16 +816,8 @@ export default function SalaVirtualScreen() {
   const renderMessage = ({ item }: { item: InteractionMessage }) => {
     const isOwnMessage = user && item.usuario_id === user.id;
 
-    const reactionGroups = (item.reactions || []).reduce((acc, reaction) => {
-      if (!acc[reaction.emoticon]) {
-        acc[reaction.emoticon] = [];
-      }
-      acc[reaction.emoticon].push(reaction);
-      return acc;
-    }, {} as Record<string, MessageReaction[]>);
-
     return (
-      <View
+      <Animated.View
         style={[
           styles.messageContainer,
           isOwnMessage ? styles.ownMessage : styles.otherMessage,
@@ -720,8 +829,7 @@ export default function SalaVirtualScreen() {
             onPress={() => {
               const activeUser = activeUsers.find(u => u.id === item.usuario_id);
               if (activeUser) {
-                setSelectedUser(activeUser);
-                setActiveTab('users');
+                handleUserSelect(activeUser);
               }
             }}
           >
@@ -774,43 +882,8 @@ export default function SalaVirtualScreen() {
               })}
             </Text>
           </View>
-          
-          {Object.keys(reactionGroups).length > 0 && (
-            <View style={styles.reactionsRow}>
-              {Object.entries(reactionGroups).map(([emoticon, reactions]) => (
-                <TouchableOpacity
-                  key={emoticon}
-                  style={styles.reactionBadge}
-                  onPress={() => addReaction(item.id, emoticon)}
-                >
-                  <Text style={styles.reactionEmoji}>{emoticon}</Text>
-                  <Text style={styles.reactionCount}>{reactions.length}</Text>
-                </TouchableOpacity>
-              ))}
-              <TouchableOpacity
-                style={styles.addReactionButton}
-                onPress={() => {
-                  Alert.alert(
-                    'Añadir Reacción',
-                    'Selecciona un emoticono',
-                    EMOTICONS.map(emoji => ({
-                      text: emoji,
-                      onPress: () => addReaction(item.id, emoji),
-                    }))
-                  );
-                }}
-              >
-                <IconSymbol
-                  ios_icon_name="plus.circle"
-                  android_material_icon_name="add_circle"
-                  size={16}
-                  color={colors.textSecondary}
-                />
-              </TouchableOpacity>
-            </View>
-          )}
         </View>
-      </View>
+      </Animated.View>
     );
   };
 
@@ -823,69 +896,101 @@ export default function SalaVirtualScreen() {
         style={styles.userCard}
         onPress={() => {
           if (!isCurrentUser) {
-            setSelectedUser(item);
+            handleUserSelect(item);
           }
         }}
         disabled={isCurrentUser}
       >
-        <View style={styles.userCardContent}>
-          {item.avatar ? (
-            <Image
-              source={{ uri: item.avatar }}
-              style={styles.userCardAvatar}
-            />
+        <LinearGradient
+          colors={isCurrentUser ? [colors.primary + '20', colors.secondary + '20'] : ['transparent', 'transparent']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.userCardGradient}
+        >
+          <View style={styles.userCardContent}>
+            {item.avatar ? (
+              <Image
+                source={{ uri: item.avatar }}
+                style={styles.userCardAvatar}
+              />
+            ) : (
+              <View style={styles.userCardAvatarPlaceholder}>
+                <IconSymbol
+                  ios_icon_name="person.fill"
+                  android_material_icon_name="person"
+                  size={24}
+                  color={colors.textSecondary}
+                />
+              </View>
+            )}
+            <View style={styles.userCardOnlineDot} />
+            
+            <View style={styles.userCardInfo}>
+              <Text style={styles.userCardName}>
+                {item.nombre} {isCurrentUser && '(Tú)'}
+              </Text>
+              {item.username && (
+                <Text style={styles.userCardUsername}>@{item.username}</Text>
+              )}
+            </View>
+          </View>
+
+          {!isCurrentUser && (
+            <View style={styles.userCardActions}>
+              <IconSymbol
+                ios_icon_name="chevron.right"
+                android_material_icon_name="chevron_right"
+                size={20}
+                color={colors.primary}
+              />
+            </View>
+          )}
+        </LinearGradient>
+      </TouchableOpacity>
+    );
+  };
+
+  // Render direct message item
+  const renderDirectMessageItem = ({ item }: { item: DirectMessage }) => {
+    const isSent = item.sender_id === user?.id;
+    const otherUser = isSent 
+      ? activeUsers.find(u => u.id === item.recipient_id)
+      : activeUsers.find(u => u.id === item.sender_id);
+
+    return (
+      <View style={styles.dmCard}>
+        <View style={styles.dmHeader}>
+          {otherUser?.avatar ? (
+            <Image source={{ uri: otherUser.avatar }} style={styles.dmAvatar} />
           ) : (
-            <View style={styles.userCardAvatarPlaceholder}>
+            <View style={styles.dmAvatarPlaceholder}>
               <IconSymbol
                 ios_icon_name="person.fill"
                 android_material_icon_name="person"
-                size={24}
+                size={16}
                 color={colors.textSecondary}
               />
             </View>
           )}
-          <View style={styles.userCardOnlineDot} />
-          
-          <View style={styles.userCardInfo}>
-            <Text style={styles.userCardName}>
-              {item.nombre} {isCurrentUser && '(Tú)'}
+          <View style={styles.dmInfo}>
+            <Text style={styles.dmName}>
+              {isSent ? `Para: ${otherUser?.nombre || 'Usuario'}` : `De: ${item.sender.nombre}`}
             </Text>
-            {item.username && (
-              <Text style={styles.userCardUsername}>@{item.username}</Text>
-            )}
+            <Text style={styles.dmTime}>
+              {new Date(item.created_at).toLocaleTimeString('es-ES', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </Text>
+          </View>
+          <View style={[styles.dmTypeBadge, item.tipo === 'emoticon' && styles.dmTypeEmoticon]}>
+            <Text style={styles.dmTypeText}>
+              {item.tipo === 'emoticon' ? '😊' : '💬'}
+            </Text>
           </View>
         </View>
-
-        {!isCurrentUser && (
-          <View style={styles.userCardActions}>
-            <TouchableOpacity
-              style={styles.userActionButton}
-              onPress={() => sendPrivateMessage(item.id)}
-            >
-              <IconSymbol
-                ios_icon_name="message.fill"
-                android_material_icon_name="message"
-                size={20}
-                color={colors.primary}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.userActionButton}
-              onPress={() => {
-                setSelectedUser(item);
-                setShowReport(true);
-              }}
-            >
-              <IconSymbol
-                ios_icon_name="exclamationmark.triangle.fill"
-                android_material_icon_name="report"
-                size={20}
-                color={colors.error}
-              />
-            </TouchableOpacity>
-          </View>
-        )}
-      </TouchableOpacity>
+        <Text style={styles.dmContent}>{item.contenido}</Text>
+      </View>
     );
   };
 
@@ -912,20 +1017,20 @@ export default function SalaVirtualScreen() {
         />
         <View style={styles.checkInContainer}>
           <LinearGradient
-            colors={[colors.primary + '20', colors.secondary + '20']}
+            colors={['#8B5CF6', '#EC4899', '#F59E0B']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.checkInCard}
           >
             <View style={styles.checkInIconCircle}>
               <IconSymbol
-                ios_icon_name="door.left.hand.open"
-                android_material_icon_name="meeting_room"
+                ios_icon_name="sparkles"
+                android_material_icon_name="auto_awesome"
                 size={48}
-                color={colors.primary}
+                color="#fff"
               />
             </View>
-            <Text style={styles.checkInTitle}>Bienvenido a la Sala Virtual</Text>
+            <Text style={styles.checkInTitle}>Sala Virtual</Text>
             <Text style={styles.checkInSubtitle}>
               {local?.nombre}
             </Text>
@@ -951,8 +1056,8 @@ export default function SalaVirtualScreen() {
                 <IconSymbol
                   ios_icon_name="person.3.fill"
                   android_material_icon_name="group"
-                  size={24}
-                  color={colors.primary}
+                  size={32}
+                  color="#fff"
                 />
                 <Text style={styles.checkInStatNumber}>{activeUsers.length}</Text>
                 <Text style={styles.checkInStatLabel}>Usuarios activos</Text>
@@ -965,12 +1070,7 @@ export default function SalaVirtualScreen() {
                 onPress={handleCheckIn}
                 disabled={checkingIn}
               >
-                <LinearGradient
-                  colors={[colors.primary, colors.secondary]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.checkInButtonGradient}
-                >
+                <View style={styles.checkInButtonContent}>
                   {checkingIn ? (
                     <ActivityIndicator size="small" color="#fff" />
                   ) : (
@@ -984,7 +1084,7 @@ export default function SalaVirtualScreen() {
                       <Text style={styles.checkInButtonText}>Entrar en la Sala Virtual</Text>
                     </React.Fragment>
                   )}
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
             )}
           </LinearGradient>
@@ -1006,112 +1106,179 @@ export default function SalaVirtualScreen() {
             <View style={styles.headerRight}>
               <TouchableOpacity
                 style={styles.headerButton}
-                onPress={() => setShowRanking(true)}
+                onPress={toggleSound}
               >
                 <IconSymbol
-                  ios_icon_name="chart.bar.fill"
-                  android_material_icon_name="leaderboard"
+                  ios_icon_name={soundEnabled ? "speaker.wave.2.fill" : "speaker.slash.fill"}
+                  android_material_icon_name={soundEnabled ? "volume_up" : "volume_off"}
                   size={24}
                   color={colors.primary}
                 />
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.headerButton}
-                onPress={() => setShowChallenge(true)}
-              >
-                <IconSymbol
-                  ios_icon_name="gamecontroller.fill"
-                  android_material_icon_name="sports_esports"
-                  size={24}
-                  color={colors.primary}
-                />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.activeUsersIndicator}
-                onPress={() => setActiveTab('users')}
-              >
+              <View style={styles.activeUsersIndicator}>
                 <View style={styles.activeUsersDot} />
                 <Text style={styles.activeUsersText}>{activeUsers.length}</Text>
-              </TouchableOpacity>
+              </View>
             </View>
           ),
         }}
       />
 
-      <View style={styles.content}>
-        {/* Tab Bar */}
-        <View style={styles.tabBar}>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'chat' && styles.tabActive]}
-            onPress={() => setActiveTab('chat')}
+      {/* Floating Emoticons */}
+      {floatingEmoticons.map((item) => (
+        <Animated.View
+          key={item.id}
+          style={[
+            styles.floatingEmoticon,
+            {
+              left: item.x,
+              top: item.y,
+            },
+          ]}
+        >
+          <Text style={styles.floatingEmoticonText}>{item.emoji}</Text>
+        </Animated.View>
+      ))}
+
+      {/* Notifications */}
+      {notifications.map((notif) => (
+        <Animated.View
+          key={notif.id}
+          style={styles.notification}
+        >
+          <LinearGradient
+            colors={['#8B5CF6', '#EC4899']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.notificationGradient}
           >
             <IconSymbol
-              ios_icon_name="bubble.left.and.bubble.right.fill"
-              android_material_icon_name="chat"
-              size={20}
-              color={activeTab === 'chat' ? colors.primary : colors.textSecondary}
+              ios_icon_name={notif.type === 'emoticon' ? "face.smiling" : "envelope.fill"}
+              android_material_icon_name={notif.type === 'emoticon' ? "emoji_emotions" : "mail"}
+              size={18}
+              color="#fff"
             />
-            <Text style={[styles.tabText, activeTab === 'chat' && styles.tabTextActive]}>
-              Chat Público
-            </Text>
-          </TouchableOpacity>
+            <Text style={styles.notificationText}>{notif.message}</Text>
+          </LinearGradient>
+        </Animated.View>
+      ))}
+
+      <View style={styles.content}>
+        {/* Tab Bar - Users first as requested */}
+        <View style={styles.tabBar}>
           <TouchableOpacity
             style={[styles.tab, activeTab === 'users' && styles.tabActive]}
             onPress={() => setActiveTab('users')}
           >
-            <IconSymbol
-              ios_icon_name="person.3.fill"
-              android_material_icon_name="group"
-              size={20}
-              color={activeTab === 'users' ? colors.primary : colors.textSecondary}
-            />
-            <Text style={[styles.tabText, activeTab === 'users' && styles.tabTextActive]}>
-              Usuarios ({activeUsers.length})
-            </Text>
+            <LinearGradient
+              colors={activeTab === 'users' ? [colors.primary, colors.secondary] : ['transparent', 'transparent']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.tabGradient}
+            >
+              <IconSymbol
+                ios_icon_name="person.3.fill"
+                android_material_icon_name="group"
+                size={20}
+                color={activeTab === 'users' ? '#fff' : colors.textSecondary}
+              />
+              <Text style={[styles.tabText, activeTab === 'users' && styles.tabTextActive]}>
+                Usuarios ({activeUsers.length})
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'chat' && styles.tabActive]}
+            onPress={() => setActiveTab('chat')}
+          >
+            <LinearGradient
+              colors={activeTab === 'chat' ? [colors.primary, colors.secondary] : ['transparent', 'transparent']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.tabGradient}
+            >
+              <IconSymbol
+                ios_icon_name="bubble.left.and.bubble.right.fill"
+                android_material_icon_name="chat"
+                size={20}
+                color={activeTab === 'chat' ? '#fff' : colors.textSecondary}
+              />
+              <Text style={[styles.tabText, activeTab === 'chat' && styles.tabTextActive]}>
+                Chat Público
+              </Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
 
-        {/* User Joined Animation */}
-        <Animated.View
-          style={[
-            styles.userJoinedBanner,
-            {
-              opacity: userJoinedAnimation,
-              transform: [
-                {
-                  translateY: userJoinedAnimation.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [-50, 0],
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          <LinearGradient
-            colors={[colors.primary, colors.secondary]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.userJoinedGradient}
-          >
-            <IconSymbol
-              ios_icon_name="person.badge.plus"
-              android_material_icon_name="person_add"
-              size={18}
-              color="#fff"
-            />
-            <Text style={styles.userJoinedText}>Nuevo usuario en la sala</Text>
-          </LinearGradient>
-        </Animated.View>
-
-        {/* Floating Emoticons */}
-        <FloatingEmoticons emoticons={floatingEmoticons} />
-
-        {/* Badge Notification */}
-        {newBadge && <BadgeNotification badge={newBadge} />}
-
         {/* Tab Content */}
-        {activeTab === 'chat' ? (
+        {activeTab === 'users' ? (
+          <React.Fragment>
+            {/* Users List */}
+            <FlatList
+              data={activeUsers}
+              renderItem={renderUserItem}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.usersContent}
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <LinearGradient
+                    colors={[colors.primary + '20', colors.secondary + '20']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.emptyIconCircle}
+                  >
+                    <IconSymbol
+                      ios_icon_name="person.3"
+                      android_material_icon_name="group"
+                      size={48}
+                      color={colors.primary}
+                    />
+                  </LinearGradient>
+                  <Text style={styles.emptyText}>No hay usuarios activos</Text>
+                  <Text style={styles.emptySubtext}>Sé el primero en entrar</Text>
+                </View>
+              }
+            />
+
+            {/* Direct Messages Section */}
+            {directMessages.length > 0 && (
+              <View style={styles.dmSection}>
+                <Text style={styles.dmSectionTitle}>Mensajes Directos</Text>
+                <FlatList
+                  data={directMessages.slice(0, 3)}
+                  renderItem={renderDirectMessageItem}
+                  keyExtractor={(item) => item.id}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.dmList}
+                />
+              </View>
+            )}
+
+            {/* Check Out Button */}
+            <View style={styles.usersFooter}>
+              <TouchableOpacity
+                style={styles.checkOutButtonLarge}
+                onPress={handleCheckOut}
+              >
+                <LinearGradient
+                  colors={['#EF4444', '#DC2626']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.checkOutButtonGradient}
+                >
+                  <IconSymbol
+                    ios_icon_name="rectangle.portrait.and.arrow.right"
+                    android_material_icon_name="logout"
+                    size={24}
+                    color="#fff"
+                  />
+                  <Text style={styles.checkOutButtonText}>Salir de la Sala</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </React.Fragment>
+        ) : (
           <React.Fragment>
             {/* Messages List */}
             <FlatList
@@ -1144,28 +1311,6 @@ export default function SalaVirtualScreen() {
               }
             />
 
-            {/* Quick Messages Bar */}
-            <QuickMessagesBar onSelectMessage={sendMessage} />
-
-            {/* Reactions Bar */}
-            <View style={styles.reactionsContainer}>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.reactionsContent}
-              >
-                {EMOTICONS.map((emoji) => (
-                  <TouchableOpacity
-                    key={emoji}
-                    style={styles.reactionButton}
-                    onPress={() => sendEmoticon(emoji)}
-                  >
-                    <Text style={styles.reactionEmoji}>{emoji}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-
             {/* Input Container */}
             <View style={styles.inputContainer}>
               <TextInput
@@ -1182,7 +1327,7 @@ export default function SalaVirtualScreen() {
                   styles.sendButton,
                   (!newMessage.trim() || sending) && styles.sendButtonDisabled,
                 ]}
-                onPress={() => sendMessage()}
+                onPress={sendMessage}
                 disabled={!newMessage.trim() || sending}
               >
                 <LinearGradient
@@ -1207,96 +1352,57 @@ export default function SalaVirtualScreen() {
                   )}
                 </LinearGradient>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.checkOutButton}
-                onPress={handleCheckOut}
-              >
-                <IconSymbol
-                  ios_icon_name="rectangle.portrait.and.arrow.right"
-                  android_material_icon_name="logout"
-                  size={20}
-                  color={colors.error}
-                />
-              </TouchableOpacity>
-            </View>
-          </React.Fragment>
-        ) : (
-          <React.Fragment>
-            {/* Users List */}
-            <FlatList
-              data={activeUsers}
-              renderItem={renderUserItem}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.usersContent}
-              ListEmptyComponent={
-                <View style={styles.emptyContainer}>
-                  <LinearGradient
-                    colors={[colors.primary + '20', colors.secondary + '20']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.emptyIconCircle}
-                  >
-                    <IconSymbol
-                      ios_icon_name="person.3"
-                      android_material_icon_name="group"
-                      size={48}
-                      color={colors.primary}
-                    />
-                  </LinearGradient>
-                  <Text style={styles.emptyText}>No hay usuarios activos</Text>
-                  <Text style={styles.emptySubtext}>Sé el primero en entrar</Text>
-                </View>
-              }
-            />
-
-            {/* Check Out Button */}
-            <View style={styles.usersFooter}>
-              <TouchableOpacity
-                style={styles.checkOutButtonLarge}
-                onPress={handleCheckOut}
-              >
-                <LinearGradient
-                  colors={[colors.error, colors.error + 'CC']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.checkOutButtonGradient}
-                >
-                  <IconSymbol
-                    ios_icon_name="rectangle.portrait.and.arrow.right"
-                    android_material_icon_name="logout"
-                    size={24}
-                    color="#fff"
-                  />
-                  <Text style={styles.checkOutButtonText}>Salir de la Sala</Text>
-                </LinearGradient>
-              </TouchableOpacity>
             </View>
           </React.Fragment>
         )}
       </View>
 
-      {/* Modals */}
-      <RankingModal
-        visible={showRanking}
-        onClose={() => setShowRanking(false)}
-        localId={localId}
-      />
-
-      <ChallengeModal
-        visible={showChallenge}
-        onClose={() => setShowChallenge(false)}
-        localId={localId}
-      />
-
-      <ReportUserModal
-        visible={showReport}
-        onClose={() => {
-          setShowReport(false);
-          setSelectedUser(null);
-        }}
-        reportedUser={selectedUser}
-        localId={localId}
-      />
+      {/* Direct Message Modal */}
+      {showDirectMessageModal && selectedUser && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Mensaje para {selectedUser.nombre}</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Escribe tu mensaje..."
+              placeholderTextColor={colors.textSecondary}
+              value={directMessageText}
+              onChangeText={setDirectMessageText}
+              multiline
+              maxLength={200}
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.modalButtonCancel}
+                onPress={() => {
+                  setShowDirectMessageModal(false);
+                  setDirectMessageText('');
+                }}
+              >
+                <Text style={styles.modalButtonCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalButtonSend}
+                onPress={() => {
+                  if (directMessageText.trim()) {
+                    sendDirectMessage(selectedUser.id, 'mensaje', directMessageText.trim());
+                  }
+                }}
+                disabled={!directMessageText.trim()}
+              >
+                <LinearGradient
+                  colors={[colors.primary, colors.secondary]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.modalButtonSendGradient}
+                >
+                  <Text style={styles.modalButtonSendText}>Enviar</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
     </KeyboardAvoidingView>
   );
 }
@@ -1326,37 +1432,43 @@ const styles = StyleSheet.create({
   checkInCard: {
     width: '100%',
     maxWidth: 400,
-    borderRadius: 24,
-    padding: 32,
+    borderRadius: 32,
+    padding: 40,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
   },
   checkInIconCircle: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: colors.background,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 24,
   },
   checkInTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.text,
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#fff',
     textAlign: 'center',
     marginBottom: 8,
   },
   checkInSubtitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
-    color: colors.primary,
+    color: '#fff',
     textAlign: 'center',
     marginBottom: 16,
+    opacity: 0.9,
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#10B981' + '20',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
@@ -1364,7 +1476,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   statusBadgeClosed: {
-    backgroundColor: '#EF4444' + '20',
+    backgroundColor: 'rgba(239, 68, 68, 0.3)',
   },
   statusDot: {
     width: 10,
@@ -1382,19 +1494,21 @@ const styles = StyleSheet.create({
   statusBadgeText: {
     fontSize: 14,
     fontWeight: '700',
-    color: colors.text,
+    color: '#fff',
   },
   statusBadgeSubtext: {
     fontSize: 12,
     fontWeight: '600',
-    color: colors.textSecondary,
+    color: '#fff',
+    opacity: 0.8,
   },
   checkInDescription: {
-    fontSize: 14,
-    color: colors.textSecondary,
+    fontSize: 15,
+    color: '#fff',
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 22,
     marginBottom: 24,
+    opacity: 0.9,
   },
   checkInStats: {
     flexDirection: 'row',
@@ -1406,30 +1520,32 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   checkInStatNumber: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: colors.text,
+    fontSize: 36,
+    fontWeight: '800',
+    color: '#fff',
   },
   checkInStatLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
+    fontSize: 13,
+    color: '#fff',
+    opacity: 0.8,
   },
   checkInButton: {
     width: '100%',
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: 'hidden',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
-  checkInButtonGradient: {
+  checkInButtonContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
-    paddingVertical: 16,
+    paddingVertical: 18,
     paddingHorizontal: 24,
   },
   checkInButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 17,
+    fontWeight: '800',
     color: '#fff',
   },
   headerRight: {
@@ -1477,16 +1593,18 @@ const styles = StyleSheet.create({
   },
   tab: {
     flex: 1,
+  },
+  tabActive: {
+    borderBottomWidth: 3,
+    borderBottomColor: colors.primary,
+  },
+  tabGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 16,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  tabActive: {
-    borderBottomColor: colors.primary,
+    borderRadius: 8,
   },
   tabText: {
     fontSize: 14,
@@ -1494,28 +1612,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   tabTextActive: {
-    color: colors.primary,
-  },
-  userJoinedBanner: {
-    position: 'absolute',
-    top: 0,
-    left: 16,
-    right: 16,
-    zIndex: 100,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  userJoinedGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-  },
-  userJoinedText: {
-    fontSize: 14,
-    fontWeight: '700',
     color: '#fff',
   },
   messagesContent: {
@@ -1617,55 +1713,6 @@ const styles = StyleSheet.create({
   otherMessageTime: {
     color: colors.textSecondary,
   },
-  reactionsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 4,
-    marginTop: 4,
-  },
-  reactionBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    gap: 4,
-  },
-  reactionEmoji: {
-    fontSize: 14,
-  },
-  reactionCount: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  addReactionButton: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: colors.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  reactionsContainer: {
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    backgroundColor: colors.card,
-  },
-  reactionsContent: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  reactionButton: {
-    width: 44,
-    height: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 4,
-    borderRadius: 22,
-    backgroundColor: colors.background,
-  },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -1701,22 +1748,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  checkOutButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.error + '20',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   userCard: {
-    backgroundColor: colors.card,
     borderRadius: 16,
-    padding: 16,
     marginBottom: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  userCardGradient: {
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    backgroundColor: colors.card,
   },
   userCardContent: {
     flexDirection: 'row',
@@ -1766,13 +1813,79 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
-  userActionButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  dmSection: {
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    backgroundColor: colors.card,
+  },
+  dmSectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  dmList: {
+    gap: 12,
+  },
+  dmCard: {
+    width: 250,
     backgroundColor: colors.background,
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  dmHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  dmAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginRight: 8,
+  },
+  dmAvatarPlaceholder: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 8,
+  },
+  dmInfo: {
+    flex: 1,
+  },
+  dmName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  dmTime: {
+    fontSize: 11,
+    color: colors.textSecondary,
+  },
+  dmTypeBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.primary + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dmTypeEmoticon: {
+    backgroundColor: '#F59E0B' + '20',
+  },
+  dmTypeText: {
+    fontSize: 14,
+  },
+  dmContent: {
+    fontSize: 13,
+    color: colors.text,
+    lineHeight: 18,
   },
   usersFooter: {
     padding: 16,
@@ -1794,6 +1907,103 @@ const styles = StyleSheet.create({
   },
   checkOutButtonText: {
     fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  floatingEmoticon: {
+    position: 'absolute',
+    zIndex: 1000,
+  },
+  floatingEmoticonText: {
+    fontSize: 48,
+  },
+  notification: {
+    position: 'absolute',
+    top: 100,
+    left: 16,
+    right: 16,
+    zIndex: 1000,
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  notificationGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  notificationText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2000,
+  },
+  modalContent: {
+    width: '85%',
+    backgroundColor: colors.card,
+    borderRadius: 20,
+    padding: 24,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 16,
+  },
+  modalInput: {
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 14,
+    color: colors.text,
+    minHeight: 80,
+    textAlignVertical: 'top',
+    marginBottom: 16,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalButtonCancel: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+  },
+  modalButtonCancelText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  modalButtonSend: {
+    flex: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  modalButtonSendGradient: {
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  modalButtonSendText: {
+    fontSize: 15,
     fontWeight: '700',
     color: '#fff',
   },
