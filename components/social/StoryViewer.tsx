@@ -24,6 +24,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useStoryState } from '@/contexts/StoryStateContext';
 import StoryStatsModal from './StoryStatsModal';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -252,6 +253,7 @@ function StoryViewer({
 }: StoryViewerProps) {
   const router = useRouter();
   const { user } = useAuth();
+  const { markStoryAsViewed } = useStoryState();
   
   const [currentStoryIndex, setCurrentStoryIndex] = useState(initialIndex);
   const [isPaused, setIsPaused] = useState(false);
@@ -299,46 +301,14 @@ function StoryViewer({
     }
   }, [visible, currentStoryIndex, stories]);
 
-  const markStoryAsViewed = useCallback(async (storyId: string) => {
-    if (!user) return;
-    
-    // ✅ CRITICAL: Check if this is the user's own story
-    const story = stories.find(s => s.id === storyId);
-    if (!story) return;
-    
-    const isOwner = story.tipo === 'usuario' 
-      ? story.autor_id === user.id
-      : story.tipo === 'local' && activeLocalProfileId === story.local_id;
-    
-    // ✅ Don't mark own stories as viewed
-    if (isOwner) {
-      console.log('[StoryViewer] ⚠️ Skipping view count for own story');
-      return;
-    }
-
-    try {
-      const { data: existingView } = await supabase
-        .from('historia_views')
-        .select('id')
-        .eq('historia_id', storyId)
-        .eq('usuario_id', user.id)
-        .maybeSingle();
-
-      if (!existingView) {
-        console.log('[StoryViewer] ✅ Marking story as viewed by other user');
-        await supabase.from('historia_views').insert({
-          historia_id: storyId,
-          usuario_id: user.id,
-        });
-      }
-    } catch (error) {
-      console.error('[StoryViewer] Error marking story as viewed:', error);
-    }
-  }, [user, stories, activeLocalProfileId]);
+  // Use global story state for marking as viewed
+  const markStoryAsViewedLocal = useCallback(async (storyId: string) => {
+    await markStoryAsViewed(storyId);
+  }, [markStoryAsViewed]);
 
   const handleNextStory = useCallback(() => {
     if (currentStory && user) {
-      markStoryAsViewed(currentStory.id);
+      markStoryAsViewedLocal(currentStory.id);
     }
     
     if (currentStoryIndex < stories.length - 1) {
@@ -349,7 +319,7 @@ function StoryViewer({
     } else {
       onClose();
     }
-  }, [currentStoryIndex, stories.length, currentStory, user, markStoryAsViewed, onClose, onStoryChange]);
+  }, [currentStoryIndex, stories.length, currentStory, user, markStoryAsViewedLocal, onClose, onStoryChange]);
 
   const handlePreviousStory = useCallback(() => {
     if (currentStoryIndex > 0) {
@@ -777,9 +747,9 @@ function StoryViewer({
   // Mark story as viewed when it appears
   useEffect(() => {
     if (visible && currentStory && user) {
-      markStoryAsViewed(currentStory.id);
+      markStoryAsViewedLocal(currentStory.id);
     }
-  }, [visible, currentStory, user, markStoryAsViewed]);
+  }, [visible, currentStory, user, markStoryAsViewedLocal]);
 
   // Reset to initial index when modal opens
   useEffect(() => {
@@ -1163,7 +1133,7 @@ const styles = StyleSheet.create({
   storyOwnerControls: {
     position: 'absolute',
     bottom: Platform.OS === 'ios' ? 50 : 30,
-    left: 16,
+    right: 16,
     flexDirection: 'row',
     gap: 12,
     zIndex: 10,
