@@ -11,20 +11,16 @@ interface BarraHistoriasProps {
   onCrearHistoria?: () => void;
 }
 
-// ✅ FIXED: Extracted complex expression to separate variable and added historias to dependency array
+// ✅ FIXED: Removed unnecessary dependencies from useMemo
 const BarraHistorias = memo(function BarraHistorias({
   historias,
   onHistoriaPress,
   onCrearHistoria,
 }: BarraHistoriasProps) {
   const router = useRouter();
-
-  // ✅ Extract complex expressions
-  const historiasLength = historias.length;
-  const firstHistoriaId = historias[0]?.id;
   
-  // ✅ Memoize historias to prevent unnecessary re-renders
-  const memoizedHistorias = useMemo(() => historias, [historias, historiasLength, firstHistoriaId]);
+  // ✅ FIXED: Only depend on historias array itself
+  const memoizedHistorias = useMemo(() => historias, [historias]);
 
   const handleHistoriaPress = (historia: Historia) => {
     if (onHistoriaPress) {
@@ -52,7 +48,6 @@ const BarraHistorias = memo(function BarraHistorias({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Botón para crear historia */}
         <TouchableOpacity
           style={styles.crearHistoriaContainer}
           onPress={handleCrearHistoria}
@@ -63,7 +58,6 @@ const BarraHistorias = memo(function BarraHistorias({
           <Text style={styles.historiaLabel}>Tu historia</Text>
         </TouchableOpacity>
 
-        {/* Historias existentes */}
         {memoizedHistorias.map((historia, index) => (
           <TouchableOpacity
             key={index}
@@ -96,7 +90,6 @@ const BarraHistorias = memo(function BarraHistorias({
     </View>
   );
 }, (prevProps, nextProps) => {
-  // ✅ Custom comparison for better memoization
   return (
     prevProps.historias.length === nextProps.historias.length &&
     prevProps.historias[0]?.id === nextProps.historias[0]?.id &&

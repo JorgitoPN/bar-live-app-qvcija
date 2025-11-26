@@ -13,7 +13,7 @@ interface FeedSocialProps {
   ListHeaderComponent?: React.ComponentType<any> | React.ReactElement | null;
 }
 
-// ✅ FIXED: Extracted complex expression to separate variable and added posts to dependency array
+// ✅ FIXED: Removed unnecessary dependencies from useMemo
 const FeedSocial = memo(function FeedSocial({
   posts,
   onRefresh,
@@ -30,16 +30,10 @@ const FeedSocial = memo(function FeedSocial({
     return filtered;
   }, [posts]);
   
-  // ✅ Extract complex expressions
-  const postsLength = validPosts.length;
-  const firstPostId = validPosts[0]?.id;
-  
-  // ✅ Memoize posts to prevent unnecessary re-renders
-  const memoizedPosts = useMemo(() => validPosts, [validPosts, postsLength, firstPostId]);
+  // ✅ FIXED: Only depend on validPosts array itself
+  const memoizedPosts = useMemo(() => validPosts, [validPosts]);
 
-  // ✅ CRITICAL FIX: Changed prop name from 'publicacion' to 'post' to match PublicacionCard interface
   const renderItem = ({ item }: { item: Publicacion }) => {
-    // ✅ Double-check that item is valid before rendering
     if (!item || !item.id) {
       console.error('[FeedSocial] Attempted to render invalid post:', item);
       return null;
@@ -79,7 +73,6 @@ const FeedSocial = memo(function FeedSocial({
     </View>
   );
 }, (prevProps, nextProps) => {
-  // ✅ Custom comparison for better memoization
   return (
     prevProps.posts.length === nextProps.posts.length &&
     prevProps.refreshing === nextProps.refreshing &&

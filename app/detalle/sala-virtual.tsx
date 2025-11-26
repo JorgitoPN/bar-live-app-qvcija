@@ -59,27 +59,7 @@ export default function SalaVirtualScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
   const localId = params.id as string;
 
-  // Load local data
-  useEffect(() => {
-    if (!localId) {
-      Alert.alert('Error', 'No se especificó el local');
-      router.back();
-      return;
-    }
-
-    loadLocalData();
-    loadMessages();
-    subscribeToMessages();
-    updateActiveUsers();
-
-    const interval = setInterval(updateActiveUsers, 30000); // Update every 30 seconds
-
-    return () => {
-      clearInterval(interval);
-    };
-  }, [localId]);
-
-  const loadLocalData = async () => {
+  const loadLocalData = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('locales')
@@ -98,9 +78,9 @@ export default function SalaVirtualScreen() {
     } catch (error) {
       console.error('[SalaVirtual] Error:', error);
     }
-  };
+  }, [localId, router]);
 
-  const loadMessages = async () => {
+  const loadMessages = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -136,9 +116,9 @@ export default function SalaVirtualScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [localId]);
 
-  const subscribeToMessages = () => {
+  const subscribeToMessages = useCallback(() => {
     const channel = supabase
       .channel(`sala_virtual:${localId}`)
       .on(
@@ -180,9 +160,9 @@ export default function SalaVirtualScreen() {
     return () => {
       supabase.removeChannel(channel);
     };
-  };
+  }, [localId]);
 
-  const updateActiveUsers = async () => {
+  const updateActiveUsers = useCallback(async () => {
     try {
       // Count users who have interacted in the last 5 minutes
       const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
@@ -203,7 +183,27 @@ export default function SalaVirtualScreen() {
     } catch (error) {
       console.error('[SalaVirtual] Error:', error);
     }
-  };
+  }, [localId]);
+
+  // ✅ FIXED: Added all function dependencies to useEffect
+  useEffect(() => {
+    if (!localId) {
+      Alert.alert('Error', 'No se especificó el local');
+      router.back();
+      return;
+    }
+
+    loadLocalData();
+    loadMessages();
+    subscribeToMessages();
+    updateActiveUsers();
+
+    const interval = setInterval(updateActiveUsers, 30000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [localId, loadLocalData, loadMessages, subscribeToMessages, updateActiveUsers, router]);
 
   const sendMessage = async () => {
     if (!user) {

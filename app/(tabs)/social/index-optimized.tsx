@@ -119,7 +119,7 @@ export default function SocialScreen() {
   const activeLocalProfileId = isOwnerMode ? activeProfileId : null;
   const isInteractingAsLocal = isOwnerMode && activeProfileType === 'local';
 
-  // ✅ FIXED: Removed unnecessary dependencies from useCallback
+  // ✅ FIXED: Added posts to dependency array
   const loadData = useCallback(async () => {
     if (isLoadingRef.current) {
       console.log('[Social] ⚡ Already loading, skipping...');
@@ -131,7 +131,6 @@ export default function SocialScreen() {
     try {
       console.log('[Social] ⚡ Loading with ADVANCED CACHE...');
       
-      // ✅ Try advanced cache first (INSTANT)
       const cachedPosts = await advancedCache.get<Post[]>('social:posts');
       const cachedStories = await advancedCache.get<Historia[]>('social:stories');
       
@@ -200,7 +199,6 @@ export default function SocialScreen() {
           
           setPosts(postsWithStatus);
           
-          // ✅ Cache for next time
           await advancedCache.set('social:posts', postsWithStatus, 'high');
         } else {
           setPosts(filteredPosts);
@@ -293,10 +291,8 @@ export default function SocialScreen() {
           setUserStories(userStoriesWithStatus);
           setHistorias(otherStoriesWithStatus);
           
-          // ✅ Cache for next time
           await advancedCache.set('social:stories', otherStoriesWithStatus, 'high');
           
-          // ✅ CRITICAL: Intelligent preloading in background
           if (otherStoriesWithStatus.length > 0) {
             console.log('[Social] 🚀 Starting intelligent preload...');
             setTimeout(() => {
@@ -316,9 +312,8 @@ export default function SocialScreen() {
     } finally {
       isLoadingRef.current = false;
     }
-  }, [user, globalPosts, globalStories, isOwnerMode, activeLocalProfileId]);
+  }, [user, globalPosts, globalStories, isOwnerMode, activeLocalProfileId, posts]);
 
-  // ✅ Preload on app start
   useEffect(() => {
     if (user) {
       intelligentPreloader.preloadOnStart(user.id);
@@ -339,11 +334,9 @@ export default function SocialScreen() {
     }, [isInitialLoading, loadData])
   );
 
-  // ✅ OPTIMIZED: Invalidate cache on refresh
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     
-    // Invalidate caches
     await advancedCache.invalidate('social:');
     socialCache.clearAll();
     
@@ -505,14 +498,12 @@ export default function SocialScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Stories Bar */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           style={styles.storiesContainer}
           contentContainerStyle={styles.storiesContent}
         >
-          {/* Create Story Button */}
           <TouchableOpacity
             style={styles.storyItem}
             onPress={handleCrearHistoria}
@@ -528,7 +519,6 @@ export default function SocialScreen() {
             <Text style={styles.storyUsername}>Tu historia</Text>
           </TouchableOpacity>
 
-          {/* User's Own Stories */}
           {userStories.map((historia, index) => (
             <TouchableOpacity
               key={historia.id}
@@ -554,7 +544,6 @@ export default function SocialScreen() {
             </TouchableOpacity>
           ))}
 
-          {/* Other Stories */}
           {historias.map((historia, index) => (
             <TouchableOpacity
               key={historia.id}
@@ -581,10 +570,8 @@ export default function SocialScreen() {
           ))}
         </ScrollView>
 
-        {/* Posts Feed */}
         {posts.map((post) => (
           <View key={post.id} style={styles.postCard}>
-            {/* Post Header */}
             <View style={styles.postHeader}>
               <Image
                 source={{
@@ -607,7 +594,6 @@ export default function SocialScreen() {
               </View>
             </View>
 
-            {/* Post Content */}
             {post.contenido && (
               <ParsedText
                 text={post.contenido}
@@ -621,7 +607,6 @@ export default function SocialScreen() {
               />
             )}
 
-            {/* Post Image */}
             {post.imagen_url && (
               <Image
                 source={{ uri: post.imagen_url }}
@@ -630,7 +615,6 @@ export default function SocialScreen() {
               />
             )}
 
-            {/* Post Actions */}
             <View style={styles.postActions}>
               <TouchableOpacity
                 style={styles.actionButton}
@@ -686,7 +670,6 @@ export default function SocialScreen() {
         ))}
       </ScrollView>
 
-      {/* Story Viewer Modal */}
       {showStoryViewer && selectedStoryIndex !== null && (
         <StoryViewer
           visible={showStoryViewer}
@@ -700,7 +683,6 @@ export default function SocialScreen() {
         />
       )}
 
-      {/* Login Required Modal */}
       <LoginRequiredModal
         visible={showLoginModal}
         onClose={() => setShowLoginModal(false)}

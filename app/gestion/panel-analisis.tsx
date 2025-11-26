@@ -4,7 +4,7 @@
 export default function PanelAnalisisScreen() {
   // ... (keep all state and hooks)
 
-  // ✅ FIXED: Wrapped functions in useCallback
+  // ✅ FIXED: Removed unnecessary dependencies - localId, router, timeRange, user are outer scope values
   const loadAnalyticsData = useCallback(async () => {
     if (!localId || !user) return;
 
@@ -21,8 +21,9 @@ export default function PanelAnalisisScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [localId, user, timeRange, router]);
+  }, []);
 
+  // ✅ FIXED: Removed unnecessary dependency - localId is outer scope value
   const loadRecommendations = useCallback(async () => {
     if (!localId) return;
 
@@ -44,8 +45,9 @@ export default function PanelAnalisisScreen() {
     } catch (error) {
       console.error('[PanelAnalisis] Error:', error);
     }
-  }, [localId]);
+  }, []);
 
+  // ✅ FIXED: Removed unnecessary dependency - localId is outer scope value
   const checkAndGenerateRecommendations = useCallback(async () => {
     if (!localId) return;
 
@@ -62,7 +64,6 @@ export default function PanelAnalisisScreen() {
         return;
       }
 
-      // If no recommendations exist, generate them automatically
       if (!data || data.length === 0) {
         console.log('[PanelAnalisis] 🤖 No recommendations found, auto-generating...');
         await generateRecommendations();
@@ -70,9 +71,9 @@ export default function PanelAnalisisScreen() {
     } catch (error) {
       console.error('[PanelAnalisis] Error checking recommendations:', error);
     }
-  }, [localId]);
+  }, []);
 
-  // ✅ FIXED: Added dependencies to useEffect
+  // ✅ FIXED: Removed unnecessary dependencies - localId, router, timeRange are outer scope values
   useEffect(() => {
     if (!localId) {
       Alert.alert('Error', 'No se especificó el local');
@@ -86,7 +87,7 @@ export default function PanelAnalisisScreen() {
     checkAndGenerateRecommendations();
 
     // ... (keep rest of useEffect)
-  }, [localId, timeRange, loadAnalyticsData, loadRecommendations, checkAndGenerateRecommendations, router]);
+  }, [loadAnalyticsData, loadRecommendations, checkAndGenerateRecommendations]);
 
   // ... (keep rest of the component)
 }

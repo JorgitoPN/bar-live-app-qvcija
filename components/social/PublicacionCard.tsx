@@ -45,7 +45,6 @@ const PostImage = memo(({ uri, onPress }: { uri: string; onPress: () => void }) 
       source={{ uri }} 
       style={styles.imagen} 
       resizeMode="cover"
-      // Performance optimizations
       fadeDuration={0}
       progressiveRenderingEnabled={true}
       cache="force-cache"
@@ -58,13 +57,7 @@ PostImage.displayName = 'PostImage';
 const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment, onShare }: PublicacionCardProps) {
   const router = useRouter();
   
-  // ✅ CRITICAL FIX: Add defensive checks for undefined post
-  if (!post) {
-    console.error('[PublicacionCard] Post is undefined, skipping render');
-    return null;
-  }
-
-  // ✅ CRITICAL FIX: Use optional chaining and provide default values
+  // ✅ CRITICAL FIX: Move all hooks BEFORE any early returns
   const [liked, setLiked] = useState(post?.liked || false);
   const [likesCount, setLikesCount] = useState(post?.likes || 0);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -73,6 +66,12 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
   const [showTagsOverlay, setShowTagsOverlay] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
+  // ✅ CRITICAL FIX: Add defensive checks for undefined post AFTER all hooks
+  if (!post) {
+    console.error('[PublicacionCard] Post is undefined, skipping render');
+    return null;
+  }
+
   const images = post.imagenes && post.imagenes.length > 0 
     ? post.imagenes 
     : post.imagen 
@@ -80,7 +79,6 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
       : [];
 
   useEffect(() => {
-    // ✅ CRITICAL FIX: Guard against undefined post.id
     if (!post?.id) {
       console.error('[PublicacionCard] Post ID is undefined, skipping mentions load');
       return;
@@ -135,7 +133,6 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
   }, [post?.id]);
 
   useEffect(() => {
-    // ✅ CRITICAL FIX: Guard against undefined post.id
     if (!post?.id) {
       console.error('[PublicacionCard] Post ID is undefined, skipping tags load');
       return;
@@ -221,10 +218,8 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
     }
   }, [router]);
 
-  // ✅ CRITICAL FIX: Display username WITHOUT @ symbol, prioritize username over full name
-  // Username does NOT have @ in database, so we display it directly
   const displayName = post?.autorUsername 
-    ? post.autorUsername.replace(/^@/, '') // Remove @ if present (shouldn't be in DB but just in case)
+    ? post.autorUsername.replace(/^@/, '')
     : post?.autorNombre || 'Usuario';
 
   return (
@@ -270,7 +265,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
                   {user.tipo === 'local' 
                     ? user.nombre 
                     : user.username 
-                      ? user.username.replace(/^@/, '') // Remove @ if present
+                      ? user.username.replace(/^@/, '')
                       : user.nombre}
                 </Text>
               </React.Fragment>
@@ -326,7 +321,6 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
             decelerationRate="fast"
             snapToInterval={SCREEN_WIDTH}
             snapToAlignment="center"
-            // Performance optimizations
             removeClippedSubviews={true}
           >
             {images.map((imageUrl, index) => (

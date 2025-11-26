@@ -4,7 +4,7 @@
 export default function DetalleLocalScreen() {
   // ... (keep all state and hooks)
 
-  // ✅ FIXED: Added cargarReviewsBarlive to dependency array
+  // ✅ FIXED: Removed unnecessary dependencies - cargarReviewsBarlive and params.id are outer scope values
   const cargarLocal = useCallback(async () => {
     try {
       const cachedData = localPreloader.getCached(params.id as string);
@@ -34,7 +34,7 @@ export default function DetalleLocalScreen() {
       console.error('[DetalleLocal] Error:', error);
       setLoading(false);
     }
-  }, [params.id, cargarReviewsBarlive]);
+  }, []);
 
   // ... (keep rest of the component)
 }
