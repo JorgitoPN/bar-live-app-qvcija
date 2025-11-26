@@ -20,7 +20,8 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
-import StoryViewer from '@/components/social/StoryViewer';
+import UnifiedStoryViewer from '@/components/social/UnifiedStoryViewer';
+import { useStoryState } from '@/contexts/StoryStateContext';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -30,6 +31,7 @@ interface HistoriaConAutor {
   autor_id: string;
   tipo: string;
   imagen: string;
+  imagen_url?: string;
   created_at: string;
   expires_at: string;
   visto: boolean;
@@ -51,6 +53,8 @@ export default function UsuarioPerfilScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { user: currentUser } = useAuth();
+  const { hasUnviewedStories } = useStoryState();
+  
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [usuario, setUsuario] = useState<any>(null);
@@ -161,7 +165,6 @@ export default function UsuarioPerfilScreen() {
 
       setUsuario(userData);
 
-      // ✅ FIXED: Load posts and count them properly
       const { data: postsData, error: postsError } = await supabase
         .from('posts')
         .select('*')
@@ -176,7 +179,6 @@ export default function UsuarioPerfilScreen() {
 
       const followerCounts = await loadFollowerCounts(userId);
 
-      // ✅ FIXED: Use actual post count from loaded posts
       const actualPostCount = postsData?.length || 0;
 
       setStats({
@@ -187,17 +189,10 @@ export default function UsuarioPerfilScreen() {
 
       console.log('[UsuarioPerfil] ✅ User stats loaded - Posts:', actualPostCount, 'Seguidores:', followerCounts.seguidores, 'Seguidos:', followerCounts.seguidos);
 
+      // ✅ Load user stories
       const { data: userStoriesData } = await supabase
         .from('historias')
-        .select(`
-          id,
-          autor_id,
-          tipo,
-          imagen,
-          created_at,
-          expires_at,
-          visto
-        `)
+        .select('id, autor_id, tipo, imagen, imagen_url, created_at, expires_at, visto')
         .eq('autor_id', userId)
         .eq('tipo', 'usuario')
         .gt('expires_at', new Date().toISOString())
@@ -226,6 +221,7 @@ export default function UsuarioPerfilScreen() {
         }));
 
         setUserStories(storiesWithStatus);
+        console.log('[UsuarioPerfil] ✅ Loaded', storiesWithStatus.length, 'user stories');
       }
 
       if (currentUser) {
@@ -536,7 +532,7 @@ export default function UsuarioPerfilScreen() {
   }
 
   const hasActiveStory = userStories.length > 0;
-  const hasUnviewedStories = userStories.some(s => !s.visto_por_usuario);
+  const showStoryOutline = hasActiveStory && hasUnviewedStories(userId, userStories);
 
   return (
     <View style={styles.container}>
@@ -580,9 +576,10 @@ export default function UsuarioPerfilScreen() {
               activeOpacity={0.8}
               disabled={!hasActiveStory}
             >
-              {hasActiveStory && hasUnviewedStories && (
+              {/* ✅ INSTAGRAM-STYLE: Show outline for unviewed stories */}
+              {showStoryOutline && (
                 <LinearGradient
-                  colors={[colors.primary, colors.secondary]}
+                  colors={['#10B981', '#3B82F6']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.storyRing}
@@ -685,10 +682,11 @@ export default function UsuarioPerfilScreen() {
         )}
       </ScrollView>
 
-      <StoryViewer
+      {/* ✅ UNIFIED STORY VIEWER */}
+      <UnifiedStoryViewer
         visible={showStoryViewer}
         stories={userStories}
-        initialIndex={currentStoryIndex}
+        initialStoryIndex={currentStoryIndex}
         onClose={() => {
           console.log('[UsuarioPerfil] Closing story viewer');
           setShowStoryViewer(false);
@@ -876,6 +874,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 60,
+    width: '100%',
   },
   emptyText: {
     fontSize: 16,

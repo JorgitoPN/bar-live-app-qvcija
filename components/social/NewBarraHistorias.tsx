@@ -7,6 +7,7 @@ import { colors } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
+import { useStoryState } from '@/contexts/StoryStateContext';
 
 interface NewBarraHistoriasProps {
   historias: Historia[];
@@ -17,30 +18,35 @@ interface NewBarraHistoriasProps {
   onStoriesUpdate?: (historias: Historia[]) => void;
 }
 
+// ✅ INSTAGRAM-STYLE: Story outline colors
+const STORY_OUTLINE_COLORS = ['#10B981', '#3B82F6']; // Green to Blue gradient
+const VIEWED_OUTLINE_COLORS = ['#E5E7EB', '#E5E7EB']; // Gray for viewed
+
 // Story Item Component
 const StoryItem = memo(({ 
   historia, 
   onPress,
   isOwnStory = false,
+  hasUnviewedStories = false,
 }: { 
   historia: Historia; 
   onPress: () => void;
   isOwnStory?: boolean;
+  hasUnviewedStories?: boolean;
 }) => {
-  const hasBeenViewed = historia.visto_por_usuario === true;
-  
   // ✅ CRITICAL: Preload story image IMMEDIATELY and AGGRESSIVELY
   useEffect(() => {
-    if (historia.imagen) {
+    const imageUrl = historia.imagen_url || historia.imagen;
+    if (imageUrl) {
       // Use Promise.race to ensure we don't wait too long
       Promise.race([
-        Image.prefetch(historia.imagen),
+        Image.prefetch(imageUrl),
         new Promise((_, reject) => setTimeout(() => reject('timeout'), 100))
       ]).catch(() => {
-        console.log('[StoryItem] Prefetch timeout or failed for:', historia.imagen);
+        console.log('[StoryItem] Prefetch timeout or failed for:', imageUrl);
       });
     }
-  }, [historia.imagen]);
+  }, [historia.imagen_url, historia.imagen]);
   
   const displayName = useMemo(() => {
     if (isOwnStory) return 'Tu historia';
@@ -49,9 +55,10 @@ const StoryItem = memo(({
       : (historia.autor?.username || historia.autorUsername || historia.autorNombre || historia.autor?.nombre || 'Usuario').replace(/^@/, '');
   }, [historia.tipo, historia.autorNombre, historia.autor?.username, historia.autorUsername, historia.autor?.nombre, isOwnStory]);
   
+  // ✅ INSTAGRAM-STYLE: Show outline for unviewed stories, gray for viewed
   const gradientColors = useMemo(() => {
-    return hasBeenViewed ? ['#E5E7EB', '#E5E7EB'] : ['#FFD700', '#00FF00'];
-  }, [hasBeenViewed]);
+    return hasUnviewedStories ? STORY_OUTLINE_COLORS : VIEWED_OUTLINE_COLORS;
+  }, [hasUnviewedStories]);
   
   // Get avatar URL - check all possible sources
   const avatarUrl = useMemo(() => {
@@ -92,7 +99,7 @@ const StoryItem = memo(({
 }, (prevProps, nextProps) => {
   return (
     prevProps.historia.id === nextProps.historia.id &&
-    prevProps.historia.visto_por_usuario === nextProps.historia.visto_por_usuario &&
+    prevProps.hasUnviewedStories === nextProps.hasUnviewedStories &&
     prevProps.historia.autorAvatar === nextProps.historia.autorAvatar &&
     prevProps.historia.autor?.avatar === nextProps.historia.autor?.avatar &&
     prevProps.isOwnStory === nextProps.isOwnStory
@@ -101,7 +108,7 @@ const StoryItem = memo(({
 
 StoryItem.displayName = 'StoryItem';
 
-// Create Story Button (shown when user has no stories)
+// ✅ INSTAGRAM-STYLE: Create Story Button (shown when user has no stories)
 const CreateStoryButton = memo(({ 
   onPress,
   userAvatar,
@@ -146,6 +153,7 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
   onStoriesUpdate,
 }: NewBarraHistoriasProps) {
   const { user } = useAuth();
+  const { hasUnviewedStories } = useStoryState();
   
   // Separate user's own stories from others
   const { userStories, otherStories } = useMemo(() => {
@@ -161,7 +169,10 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
   
   // ✅ CRITICAL: Preload ALL story images IMMEDIATELY and AGGRESSIVELY
   useEffect(() => {
-    const allImages = historias.map(h => h.imagen).filter(Boolean);
+    const allImages = historias
+      .map(h => h.imagen_url || h.imagen)
+      .filter(Boolean) as string[];
+    
     if (allImages.length > 0) {
       console.log('[NewBarraHistorias] ⚡⚡⚡ INSTANT PRELOAD:', allImages.length, 'images');
       
@@ -177,7 +188,7 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
     }
   }, [historias]);
 
-  // ✅ NEW: Real-time story updates subscription
+  // ✅ REAL-TIME: Story updates subscription
   useEffect(() => {
     if (!user || !onStoriesUpdate) return;
 
@@ -245,6 +256,12 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
     };
   }, [user, historias, onStoriesUpdate]);
   
+  // ✅ INSTAGRAM-STYLE: Check if user has unviewed stories for outline
+  const userHasUnviewedStories = useMemo(() => {
+    if (!user || userStories.length === 0) return false;
+    return hasUnviewedStories(user.id, userStories);
+  }, [user, userStories, hasUnviewedStories]);
+  
   return (
     <View style={styles.container}>
       <ScrollView
@@ -255,18 +272,19 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
         scrollEventThrottle={16}
         decelerationRate="fast"
       >
-        {/* User's Own Story or Create Story Button */}
+        {/* ✅ INSTAGRAM-STYLE: User's Own Story or Create Story Button (FIRST ELEMENT) */}
         {user && onCrearHistoria && (
           userStories.length > 0 ? (
-            // Show user's story with their avatar
+            // Show user's story with their avatar and outline if unviewed
             <StoryItem
               key={userStories[0].id}
               historia={userStories[0]}
               onPress={() => onHistoriaPress(userStories[0])}
               isOwnStory={true}
+              hasUnviewedStories={userHasUnviewedStories}
             />
           ) : (
-            // Show create story button with user's avatar
+            // Show create story button with user's avatar and "+" icon
             <CreateStoryButton 
               onPress={onCrearHistoria}
               userAvatar={userAvatar || user.avatar}
@@ -275,14 +293,28 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
           )
         )}
 
-        {/* Other Users' Stories */}
-        {otherStories.map((historia) => (
-          <StoryItem
-            key={historia.id}
-            historia={historia}
-            onPress={() => onHistoriaPress(historia)}
-          />
-        ))}
+        {/* ✅ INSTAGRAM-STYLE: Other Users' Stories (chronological order by last story) */}
+        {otherStories.map((historia) => {
+          // Get all stories from this author
+          const authorId = historia.tipo === 'usuario' ? historia.autor_id : historia.local_id;
+          const authorStories = otherStories.filter(h => 
+            historia.tipo === 'usuario' 
+              ? h.autor_id === authorId && h.tipo === 'usuario'
+              : h.local_id === authorId && h.tipo === 'local'
+          );
+          
+          // Check if this author has unviewed stories
+          const hasUnviewed = hasUnviewedStories(authorId || '', authorStories);
+          
+          return (
+            <StoryItem
+              key={historia.id}
+              historia={historia}
+              onPress={() => onHistoriaPress(historia)}
+              hasUnviewedStories={hasUnviewed}
+            />
+          );
+        })}
       </ScrollView>
     </View>
   );

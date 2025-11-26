@@ -21,7 +21,7 @@ interface StoryStateContextType {
 
 const StoryStateContext = createContext<StoryStateContextType | undefined>(undefined);
 
-export function StoryStateProvider({ children }: { children: React.Node }) {
+export function StoryStateProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [storyStates, setStoryStates] = useState<Map<string, StoryState>>(new Map());
   const channelRef = useRef<any>(null);
@@ -36,10 +36,10 @@ export function StoryStateProvider({ children }: { children: React.Node }) {
     try {
       console.log('[StoryState] 🔄 Loading story states for user:', user.id);
 
-      // Get all active stories
+      // Get all active stories (not expired)
       const { data: stories, error: storiesError } = await supabase
         .from('historias')
-        .select('id, expires_at, autor_id')
+        .select('id, expires_at, autor_id, tipo, local_id')
         .gt('expires_at', new Date().toISOString());
 
       if (storiesError) {
@@ -63,7 +63,7 @@ export function StoryStateProvider({ children }: { children: React.Node }) {
 
       stories?.forEach(story => {
         const isExpired = new Date(story.expires_at) < new Date();
-        const isOwn = story.autor_id === user.id;
+        const isOwn = story.tipo === 'usuario' && story.autor_id === user.id;
         
         newStates.set(story.id, {
           id: story.id,
@@ -80,7 +80,7 @@ export function StoryStateProvider({ children }: { children: React.Node }) {
     }
   }, [user]);
 
-  // Mark a story as viewed
+  // ✅ GLOBAL SYNC: Mark a story as viewed and broadcast to all components
   const markStoryAsViewed = useCallback(async (storyId: string) => {
     if (!user) return;
 
@@ -95,9 +95,7 @@ export function StoryStateProvider({ children }: { children: React.Node }) {
       if (!story) return;
 
       // Don't mark own stories as viewed
-      const isOwn = story.tipo === 'usuario' 
-        ? story.autor_id === user.id
-        : false; // For local stories, we'd need to check activeLocalProfileId
+      const isOwn = story.tipo === 'usuario' && story.autor_id === user.id;
 
       if (isOwn) {
         console.log('[StoryState] ⚠️ Skipping view for own story');
@@ -129,17 +127,19 @@ export function StoryStateProvider({ children }: { children: React.Node }) {
         }
       }
 
-      // Update local state immediately
+      // ✅ GLOBAL SYNC: Update local state immediately
       setStoryStates(prev => {
         const newStates = new Map(prev);
         const currentState = newStates.get(storyId);
         if (currentState) {
           newStates.set(storyId, { ...currentState, viewed: true });
+        } else {
+          newStates.set(storyId, { id: storyId, viewed: true, expired: false, deleted: false });
         }
         return newStates;
       });
 
-      console.log('[StoryState] ✅ Story marked as viewed');
+      console.log('[StoryState] ✅ Story marked as viewed globally');
     } catch (error) {
       console.error('[StoryState] Error marking story as viewed:', error);
     }
@@ -165,7 +165,7 @@ export function StoryStateProvider({ children }: { children: React.Node }) {
     return state?.viewed || state?.expired || state?.deleted || false;
   }, [storyStates]);
 
-  // Check if a user has unviewed stories
+  // ✅ GLOBAL SYNC: Check if a user has unviewed stories
   const hasUnviewedStories = useCallback((userId: string, stories: any[]): boolean => {
     if (!user) return false;
     
@@ -191,7 +191,7 @@ export function StoryStateProvider({ children }: { children: React.Node }) {
     loadStoryStates();
   }, [loadStoryStates]);
 
-  // Subscribe to real-time updates
+  // ✅ REAL-TIME: Subscribe to story view updates
   useEffect(() => {
     if (!user) return;
 
@@ -217,6 +217,8 @@ export function StoryStateProvider({ children }: { children: React.Node }) {
             const currentState = newStates.get(storyId);
             if (currentState) {
               newStates.set(storyId, { ...currentState, viewed: true });
+            } else {
+              newStates.set(storyId, { id: storyId, viewed: true, expired: false, deleted: false });
             }
             return newStates;
           });

@@ -17,7 +17,7 @@ interface StoryAvatarProps {
   labelText?: string;
 }
 
-// ✅ FIXED: Consistent story outline color across all components
+// ✅ INSTAGRAM-STYLE: Consistent story outline color across all components
 const STORY_OUTLINE_COLORS = ['#10B981', '#3B82F6']; // Green to Blue gradient
 
 const StoryAvatar = memo(function StoryAvatar({
@@ -48,6 +48,7 @@ const StoryAvatar = memo(function StoryAvatar({
       disabled={!hasActiveStories || !onPress}
     >
       <View style={styles.avatarWrapper}>
+        {/* ✅ INSTAGRAM-STYLE: Show outline only for unviewed stories */}
         {showOutline && (
           <LinearGradient
             colors={STORY_OUTLINE_COLORS}

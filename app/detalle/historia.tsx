@@ -2,7 +2,7 @@
 import React, { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import NewStoryViewer from '@/components/social/NewStoryViewer';
+import UnifiedStoryViewer from '@/components/social/UnifiedStoryViewer';
 import { useGlobalData } from '@/contexts/GlobalDataContext';
 import { useMode } from '@/contexts/ModeContext';
 
@@ -41,10 +41,10 @@ export default function HistoriaDetalleScreen() {
 
   return (
     <View style={styles.container}>
-      <NewStoryViewer
+      <UnifiedStoryViewer
         visible={true}
         stories={authorStories}
-        initialIndex={authorStoryIndex >= 0 ? authorStoryIndex : 0}
+        initialStoryIndex={authorStoryIndex >= 0 ? authorStoryIndex : 0}
         onClose={() => router.back()}
         onStoryChange={(index) => {
           console.log('[HistoriaDetalle] Story changed to index:', index);

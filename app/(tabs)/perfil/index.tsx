@@ -26,7 +26,8 @@ import { useMode } from '@/contexts/ModeContext';
 import { supabase } from '@/utils/supabase';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
-import StoryViewer from '@/components/social/StoryViewer';
+import UnifiedStoryViewer from '@/components/social/UnifiedStoryViewer';
+import { useStoryState } from '@/contexts/StoryStateContext';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -65,6 +66,7 @@ interface PerfilProfesional {
 export default function PerfilScreen() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const { hasUnviewedStories } = useStoryState();
   const { 
     currentMode, 
     ownedLocals,
@@ -89,14 +91,13 @@ export default function PerfilScreen() {
   const [taggedPosts, setTaggedPosts] = useState<Post[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
   
-  // ✅ Employment profile state
   const [perfilProfesional, setPerfilProfesional] = useState<PerfilProfesional | null>(null);
   const [loadingEmpleo, setLoadingEmpleo] = useState(false);
 
-  // ✅ NEW: User stories state
+  // ✅ User stories state
   const [userStories, setUserStories] = useState<any[]>([]);
   
-  // ✅ NEW: Story viewer state
+  // ✅ Story viewer state
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
 
@@ -327,7 +328,6 @@ export default function PerfilScreen() {
     }
   }, [user]);
 
-  // ✅ Load employment profile
   const cargarPerfilProfesional = useCallback(async () => {
     if (!user) return;
 
@@ -359,14 +359,13 @@ export default function PerfilScreen() {
     }
   }, [user]);
 
-  // ✅ NEW: Load user stories
   const cargarHistorias = useCallback(async () => {
     if (!user) return;
 
     try {
       const { data: userStoriesData } = await supabase
         .from('historias')
-        .select('id, autor_id, tipo, imagen, created_at, expires_at, visto')
+        .select('id, autor_id, tipo, imagen, imagen_url, created_at, expires_at, visto')
         .eq('autor_id', user.id)
         .eq('tipo', 'usuario')
         .gt('expires_at', new Date().toISOString())
@@ -374,7 +373,20 @@ export default function PerfilScreen() {
 
       if (userStoriesData) {
         console.log('[Perfil] ✅ Loaded', userStoriesData.length, 'user stories');
-        setUserStories(userStoriesData);
+        
+        const storiesWithAuthor = userStoriesData.map(story => ({
+          ...story,
+          autorNombre: user.nombre,
+          autorAvatar: user.avatar,
+          autor: {
+            id: user.id,
+            nombre: user.nombre,
+            avatar: user.avatar,
+            username: user.username,
+          },
+        }));
+        
+        setUserStories(storiesWithAuthor);
       }
     } catch (error) {
       console.error('[Perfil] Error loading stories:', error);
@@ -513,7 +525,6 @@ export default function PerfilScreen() {
     }
   };
 
-  // ✅ Handle creating/editing professional profile
   const handleCrearPerfilProfesional = () => {
     if (!user) {
       setShowLoginModal(true);
@@ -527,7 +538,7 @@ export default function PerfilScreen() {
     router.push(`/empleo/perfil-detalle?id=${perfilProfesional.id}`);
   };
 
-  // ✅ FIXED: Handle avatar press to view stories or create new one
+  // ✅ INSTAGRAM-STYLE: Handle avatar press to view stories or create new one
   const handleAvatarPress = useCallback(() => {
     if (!user) {
       setShowLoginModal(true);
@@ -586,20 +597,21 @@ export default function PerfilScreen() {
 
   const renderProfileHeader = () => {
     const hasStories = userStories.length > 0;
+    const showStoryOutline = hasStories && user && hasUnviewedStories(user.id, userStories);
 
     return (
       <View style={styles.profileSection}>
         <View style={styles.profileHeader}>
-          {/* ✅ FIXED: Wrap entire avatar container in TouchableOpacity */}
+          {/* ✅ INSTAGRAM-STYLE: Avatar with story outline */}
           <TouchableOpacity 
             style={styles.avatarContainer}
             onPress={handleAvatarPress}
             activeOpacity={0.8}
           >
-            {/* ✅ Story ring if user has stories */}
-            {hasStories && (
+            {/* ✅ Story ring if user has unviewed stories */}
+            {showStoryOutline && (
               <LinearGradient
-                colors={[colors.primary, colors.secondary]}
+                colors={['#10B981', '#3B82F6']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.storyRing}
@@ -1064,15 +1076,11 @@ export default function PerfilScreen() {
         onClose={() => setShowProfileSwitcher(false)}
       />
 
-      {/* ✅ Story Viewer */}
-      <StoryViewer
+      {/* ✅ UNIFIED STORY VIEWER */}
+      <UnifiedStoryViewer
         visible={showStoryViewer}
-        stories={userStories.map(story => ({
-          ...story,
-          autorNombre: user?.nombre || 'Usuario',
-          autorAvatar: user?.avatar,
-        }))}
-        initialIndex={currentStoryIndex}
+        stories={userStories}
+        initialStoryIndex={currentStoryIndex}
         onClose={() => {
           console.log('[Perfil] Closing story viewer');
           setShowStoryViewer(false);
