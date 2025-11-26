@@ -57,7 +57,7 @@ PostImage.displayName = 'PostImage';
 const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment, onShare }: PublicacionCardProps) {
   const router = useRouter();
   
-  // ✅ CRITICAL FIX: Move all hooks BEFORE any early returns
+  // ✅ CRITICAL FIX: All hooks MUST be called before any conditional returns
   const [liked, setLiked] = useState(post?.liked || false);
   const [likesCount, setLikesCount] = useState(post?.likes || 0);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -66,17 +66,49 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
   const [showTagsOverlay, setShowTagsOverlay] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // ✅ CRITICAL FIX: Add defensive checks for undefined post AFTER all hooks
-  if (!post) {
-    console.error('[PublicacionCard] Post is undefined, skipping render');
-    return null;
-  }
+  const handleLike = useCallback(() => {
+    setLiked(!liked);
+    setLikesCount(liked ? likesCount - 1 : likesCount + 1);
+    if (onLike) onLike();
+  }, [liked, likesCount, onLike]);
 
-  const images = post.imagenes && post.imagenes.length > 0 
-    ? post.imagenes 
-    : post.imagen 
-      ? [post.imagen] 
-      : [];
+  const formatearFecha = useCallback((fecha: string) => {
+    const date = new Date(fecha);
+    const ahora = new Date();
+    const diff = ahora.getTime() - date.getTime();
+    const minutos = Math.floor(diff / 60000);
+    const horas = Math.floor(diff / 3600000);
+    const dias = Math.floor(diff / 86400000);
+
+    if (minutos < 1) return 'Ahora';
+    if (minutos < 60) return `Hace ${minutos}m`;
+    if (horas < 24) return `Hace ${horas}h`;
+    if (dias < 7) return `Hace ${dias}d`;
+    return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+  }, []);
+
+  const handleScroll = useCallback((event: any) => {
+    const contentOffsetX = event.nativeEvent.contentOffset.x;
+    const index = Math.round(contentOffsetX / SCREEN_WIDTH);
+    setCurrentImageIndex(index);
+  }, []);
+
+  const handleImagePress = useCallback(() => {
+    if (taggedUsers.length > 0) {
+      setShowTagsOverlay(true);
+    } else {
+      router.push(`/social/post?id=${post?.id || ''}`);
+    }
+  }, [taggedUsers.length, router, post?.id]);
+
+  const navigateToProfile = useCallback((user: MentionedUser | TaggedUser, tipo?: 'usuario' | 'local') => {
+    const userType = tipo || (user as MentionedUser).tipo || 'usuario';
+    if (userType === 'local') {
+      router.push(`/perfil/local?localId=${user.id}`);
+    } else {
+      router.push(`/perfil/usuario?userId=${user.id}`);
+    }
+  }, [router]);
 
   useEffect(() => {
     if (!post?.id) {
@@ -174,49 +206,17 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
     loadTags();
   }, [post?.id]);
 
-  const handleLike = useCallback(() => {
-    setLiked(!liked);
-    setLikesCount(liked ? likesCount - 1 : likesCount + 1);
-    if (onLike) onLike();
-  }, [liked, likesCount, onLike]);
+  // ✅ CRITICAL FIX: Early return AFTER all hooks
+  if (!post) {
+    console.error('[PublicacionCard] Post is undefined, skipping render');
+    return null;
+  }
 
-  const formatearFecha = useCallback((fecha: string) => {
-    const date = new Date(fecha);
-    const ahora = new Date();
-    const diff = ahora.getTime() - date.getTime();
-    const minutos = Math.floor(diff / 60000);
-    const horas = Math.floor(diff / 3600000);
-    const dias = Math.floor(diff / 86400000);
-
-    if (minutos < 1) return 'Ahora';
-    if (minutos < 60) return `Hace ${minutos}m`;
-    if (horas < 24) return `Hace ${horas}h`;
-    if (dias < 7) return `Hace ${dias}d`;
-    return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
-  }, []);
-
-  const handleScroll = useCallback((event: any) => {
-    const contentOffsetX = event.nativeEvent.contentOffset.x;
-    const index = Math.round(contentOffsetX / SCREEN_WIDTH);
-    setCurrentImageIndex(index);
-  }, []);
-
-  const handleImagePress = useCallback(() => {
-    if (taggedUsers.length > 0) {
-      setShowTagsOverlay(true);
-    } else {
-      router.push(`/social/post?id=${post.id}`);
-    }
-  }, [taggedUsers.length, router, post?.id]);
-
-  const navigateToProfile = useCallback((user: MentionedUser | TaggedUser, tipo?: 'usuario' | 'local') => {
-    const userType = tipo || (user as MentionedUser).tipo || 'usuario';
-    if (userType === 'local') {
-      router.push(`/perfil/local?localId=${user.id}`);
-    } else {
-      router.push(`/perfil/usuario?userId=${user.id}`);
-    }
-  }, [router]);
+  const images = post.imagenes && post.imagenes.length > 0 
+    ? post.imagenes 
+    : post.imagen 
+      ? [post.imagen] 
+      : [];
 
   const displayName = post?.autorUsername 
     ? post.autorUsername.replace(/^@/, '')

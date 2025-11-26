@@ -65,7 +65,6 @@ interface ProgressBarProps {
 const ProgressBar = memo(({ isActive, isPaused, duration, onComplete, progress }: ProgressBarProps) => {
   const animationRef = useRef<Animated.CompositeAnimation | null>(null);
 
-  // ✅ FIXED: Removed unnecessary dependencies
   useEffect(() => {
     if (!isActive) {
       progress.setValue(0);
@@ -96,7 +95,7 @@ const ProgressBar = memo(({ isActive, isPaused, duration, onComplete, progress }
     return () => {
       animationRef.current?.stop();
     };
-  }, [isActive, isPaused]);
+  }, [isActive, isPaused, duration, onComplete, progress]);
 
   const width = progress.interpolate({
     inputRange: [0, 1],
@@ -156,19 +155,18 @@ function NewStoryViewer({
     }
   }, [user]);
 
-  // ✅ FIXED: Removed unnecessary dependencies
   useEffect(() => {
     if (visible && currentStory && user && !isOwner) {
       markAsViewed(currentStory.id);
     }
-  }, [visible]);
+  }, [visible, currentStory, user, isOwner, markAsViewed]);
 
   useEffect(() => {
     if (visible) {
       setCurrentIndex(initialIndex);
       progressValues.forEach(p => p.setValue(0));
     }
-  }, [visible, initialIndex]);
+  }, [visible, initialIndex, progressValues]);
 
   const handleNext = useCallback(() => {
     if (currentIndex < stories.length - 1) {
