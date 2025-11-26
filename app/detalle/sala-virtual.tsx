@@ -14,6 +14,7 @@ import {
   ActivityIndicator,
   FlatList,
   Animated,
+  Modal,
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/utils/supabase';
@@ -21,6 +22,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import { LinearGradient } from 'expo-linear-gradient';
+
+// Import components
+import { QuickMessagesBar } from '@/components/sala-virtual/QuickMessagesBar';
+import { UserListModal } from '@/components/sala-virtual/UserListModal';
+import { RankingModal } from '@/components/sala-virtual/RankingModal';
+import { ChallengeModal } from '@/components/sala-virtual/ChallengeModal';
+import { ReportUserModal } from '@/components/sala-virtual/ReportUserModal';
+import { BadgeNotification } from '@/components/sala-virtual/BadgeNotification';
+import { FloatingEmoticons } from '@/components/sala-virtual/FloatingEmoticons';
 
 interface InteractionMessage {
   id: string;
@@ -36,6 +46,15 @@ interface InteractionMessage {
     username?: string;
     avatar?: string;
   };
+  reactions?: MessageReaction[];
+}
+
+interface MessageReaction {
+  id: string;
+  mensaje_id: string;
+  usuario_id: string;
+  emoticon: string;
+  created_at: string;
 }
 
 interface Local {
@@ -43,6 +62,7 @@ interface Local {
   nombre: string;
   imagen_url?: string;
   descripcion?: string;
+  abierto?: boolean;
 }
 
 interface ActiveUser {
@@ -51,7 +71,17 @@ interface ActiveUser {
   username?: string;
   avatar?: string;
   last_activity: string;
+  checked_in_at?: string;
 }
+
+interface Badge {
+  id: string;
+  tipo_badge: string;
+  fecha_obtencion: string;
+  puntos: number;
+}
+
+const EMOTICONS = ['❤️', '🔥', '😎', '😄', '👏', '🍹', '🎶', '😍', '🤝'];
 
 export default function SalaVirtualScreen() {
   const params = useLocalSearchParams();
@@ -64,13 +94,26 @@ export default function SalaVirtualScreen() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [activeUsers, setActiveUsers] = useState<ActiveUser[]>([]);
+  const [isCheckedIn, setIsCheckedIn] = useState(false);
+  const [checkingIn, setCheckingIn] = useState(false);
+  
+  // Modal states
+  const [showUserList, setShowUserList] = useState(false);
+  const [showRanking, setShowRanking] = useState(false);
+  const [showChallenge, setShowChallenge] = useState(false);
+  const [showReport, setShowReport] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<ActiveUser | null>(null);
+  
+  // Animation states
   const [userJoinedAnimation] = useState(new Animated.Value(0));
-  const [recentEmoticons, setRecentEmoticons] = useState<{ emoji: string; userId: string; timestamp: number }[]>([]);
+  const [floatingEmoticons, setFloatingEmoticons] = useState<{ emoji: string; id: string; timestamp: number }[]>([]);
+  const [newBadge, setNewBadge] = useState<Badge | null>(null);
   
   const flatListRef = useRef<FlatList>(null);
   const channelRef = useRef<any>(null);
   const localId = params.localId as string;
 
+  // Load local data
   const loadLocalData = useCallback(async () => {
     if (!localId) {
       console.error('[SalaVirtual] No localId provided');
@@ -82,7 +125,7 @@ export default function SalaVirtualScreen() {
     try {
       const { data, error } = await supabase
         .from('locales')
-        .select('id, nombre, imagen_url, descripcion')
+        .select('id, nombre, imagen_url, descripcion, abierto')
         .eq('id', localId)
         .single();
 
@@ -95,16 +138,167 @@ export default function SalaVirtualScreen() {
 
       console.log('[SalaVirtual] Local loaded:', data);
       setLocal(data);
+      
+      // Check if local is closed
+      if (data.abierto === false) {
+        Alert.alert(
+          'Local Cerrado',
+          'Este local está cerrado actualmente. No puedes acceder a la sala virtual.',
+          [{ text: 'OK', onPress: () => router.back() }]
+        );
+      }
     } catch (error) {
       console.error('[SalaVirtual] Error:', error);
     }
   }, [localId, router]);
 
-  const loadMessages = useCallback(async () => {
-    if (!localId) {
-      console.error('[SalaVirtual] No localId provided for loading messages');
+  // Check if user is checked in
+  const checkUserCheckin = useCallback(async () => {
+    if (!user || !localId) {
+      console.log('[SalaVirtual] No user or localId');
       return;
     }
+
+    try {
+      const { data, error } = await supabase
+        .from('sala_virtual_checkins')
+        .select('*')
+        .eq('usuario_id', user.id)
+        .eq('local_id', localId)
+        .eq('activo', true)
+        .maybeSingle();
+
+      if (error) {
+        console.error('[SalaVirtual] Error checking checkin:', error);
+        return;
+      }
+
+      setIsCheckedIn(!!data);
+      console.log('[SalaVirtual] User checked in:', !!data);
+    } catch (error) {
+      console.error('[SalaVirtual] Error:', error);
+    }
+  }, [user, localId]);
+
+  // Handle check-in
+  const handleCheckIn = async () => {
+    if (!user || !localId) {
+      Alert.alert('Error', 'Debes iniciar sesión para entrar en la sala');
+      return;
+    }
+
+    try {
+      setCheckingIn(true);
+
+      // Check if user is checked in to another room
+      const { data: existingCheckin } = await supabase
+        .from('sala_virtual_checkins')
+        .select('*, locales(nombre)')
+        .eq('usuario_id', user.id)
+        .eq('activo', true)
+        .neq('local_id', localId)
+        .maybeSingle();
+
+      if (existingCheckin) {
+        Alert.alert(
+          'Cambiar de Sala',
+          `Vas a salir de la sala actual para entrar en la sala de ${local?.nombre}. ¿Deseas continuar?`,
+          [
+            { text: 'Cancelar', style: 'cancel' },
+            {
+              text: 'Continuar',
+              onPress: async () => {
+                // Check out from previous room
+                await supabase
+                  .from('sala_virtual_checkins')
+                  .update({
+                    activo: false,
+                    checked_out_at: new Date().toISOString(),
+                  })
+                  .eq('id', existingCheckin.id);
+
+                // Check in to new room
+                await performCheckIn();
+              },
+            },
+          ]
+        );
+      } else {
+        await performCheckIn();
+      }
+    } catch (error) {
+      console.error('[SalaVirtual] Error checking in:', error);
+      Alert.alert('Error', 'No se pudo entrar en la sala');
+    } finally {
+      setCheckingIn(false);
+    }
+  };
+
+  const performCheckIn = async () => {
+    if (!user || !localId) return;
+
+    const { error } = await supabase
+      .from('sala_virtual_checkins')
+      .insert({
+        usuario_id: user.id,
+        local_id: localId,
+        activo: true,
+      });
+
+    if (error) {
+      console.error('[SalaVirtual] Error inserting checkin:', error);
+      Alert.alert('Error', 'No se pudo entrar en la sala');
+      return;
+    }
+
+    setIsCheckedIn(true);
+    console.log('[SalaVirtual] Checked in successfully');
+  };
+
+  // Handle check-out
+  const handleCheckOut = async () => {
+    if (!user || !localId) return;
+
+    Alert.alert(
+      'Salir de la Sala',
+      '¿Estás seguro de que quieres salir de la sala virtual?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Salir',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('sala_virtual_checkins')
+                .update({
+                  activo: false,
+                  checked_out_at: new Date().toISOString(),
+                })
+                .eq('usuario_id', user.id)
+                .eq('local_id', localId)
+                .eq('activo', true);
+
+              if (error) {
+                console.error('[SalaVirtual] Error checking out:', error);
+                Alert.alert('Error', 'No se pudo salir de la sala');
+                return;
+              }
+
+              setIsCheckedIn(false);
+              console.log('[SalaVirtual] Checked out successfully');
+            } catch (error) {
+              console.error('[SalaVirtual] Error:', error);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Load messages
+  const loadMessages = useCallback(async () => {
+    if (!localId) return;
 
     try {
       setLoading(true);
@@ -130,8 +324,23 @@ export default function SalaVirtualScreen() {
         return;
       }
 
-      console.log('[SalaVirtual] Messages loaded:', data?.length || 0);
-      setMessages(data || []);
+      // Load reactions for each message
+      const messagesWithReactions = await Promise.all(
+        (data || []).map(async (msg) => {
+          const { data: reactions } = await supabase
+            .from('sala_virtual_reacciones')
+            .select('*')
+            .eq('mensaje_id', msg.id);
+
+          return {
+            ...msg,
+            reactions: reactions || [],
+          };
+        })
+      );
+
+      console.log('[SalaVirtual] Messages loaded:', messagesWithReactions.length);
+      setMessages(messagesWithReactions);
       
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: false });
@@ -143,21 +352,17 @@ export default function SalaVirtualScreen() {
     }
   }, [localId]);
 
+  // Update active users
   const updateActiveUsers = useCallback(async () => {
-    if (!localId) {
-      console.error('[SalaVirtual] No localId provided for active users count');
-      return;
-    }
+    if (!localId) return;
 
     try {
-      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-      
       const { data, error } = await supabase
-        .from('sala_virtual_interacciones')
+        .from('sala_virtual_checkins')
         .select(`
           usuario_id,
-          created_at,
-          usuario:usuarios!sala_virtual_interacciones_usuario_id_fkey(
+          checked_in_at,
+          usuario:usuarios!sala_virtual_checkins_usuario_id_fkey(
             id,
             nombre,
             username,
@@ -165,56 +370,46 @@ export default function SalaVirtualScreen() {
           )
         `)
         .eq('local_id', localId)
-        .gte('created_at', fiveMinutesAgo)
-        .order('created_at', { ascending: false });
+        .eq('activo', true)
+        .order('checked_in_at', { ascending: false });
 
       if (error) {
-        console.error('[SalaVirtual] Error counting active users:', error);
+        console.error('[SalaVirtual] Error loading active users:', error);
         return;
       }
 
-      const uniqueUsersMap = new Map<string, ActiveUser>();
-      data?.forEach(item => {
-        if (item.usuario && !uniqueUsersMap.has(item.usuario_id)) {
-          uniqueUsersMap.set(item.usuario_id, {
-            id: item.usuario.id,
-            nombre: item.usuario.nombre,
-            username: item.usuario.username,
-            avatar: item.usuario.avatar,
-            last_activity: item.created_at,
-          });
-        }
-      });
+      const users: ActiveUser[] = (data || [])
+        .filter(item => item.usuario)
+        .map(item => ({
+          id: item.usuario.id,
+          nombre: item.usuario.nombre,
+          username: item.usuario.username,
+          avatar: item.usuario.avatar,
+          last_activity: item.checked_in_at,
+          checked_in_at: item.checked_in_at,
+        }));
 
-      const activeUsersList = Array.from(uniqueUsersMap.values());
-      setActiveUsers(activeUsersList);
-      console.log('[SalaVirtual] Active users:', activeUsersList.length);
+      setActiveUsers(users);
+      console.log('[SalaVirtual] Active users:', users.length);
     } catch (error) {
       console.error('[SalaVirtual] Error:', error);
     }
   }, [localId]);
 
-  const subscribeToMessages = useCallback(() => {
-    if (!localId) {
-      console.error('[SalaVirtual] No localId provided for subscription');
-      return () => {};
-    }
+  // Subscribe to real-time updates
+  const subscribeToUpdates = useCallback(() => {
+    if (!localId) return () => {};
 
-    console.log('[SalaVirtual] Subscribing to messages for local:', localId);
+    console.log('[SalaVirtual] Subscribing to real-time updates for local:', localId);
 
     const channel = supabase
-      .channel(`sala_virtual:${localId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'sala_virtual_interacciones',
-          filter: `local_id=eq.${localId}`,
-        },
-        async (payload) => {
-          console.log('[SalaVirtual] New interaction received:', payload);
-          
+      .channel(`room:${localId}:interactions`, {
+        config: { private: true },
+      })
+      .on('broadcast', { event: 'INSERT' }, async (payload) => {
+        console.log('[SalaVirtual] New interaction received:', payload);
+        
+        if (payload.new.tipo === 'mensaje') {
           const { data: userData } = await supabase
             .from('usuarios')
             .select('id, nombre, username, avatar')
@@ -222,67 +417,89 @@ export default function SalaVirtualScreen() {
             .single();
 
           const newInteraction: InteractionMessage = {
-            ...payload.new as any,
-            usuario: userData || {
-              id: payload.new.usuario_id,
-              nombre: 'Usuario',
-            },
+            ...payload.new,
+            usuario: userData || { id: payload.new.usuario_id, nombre: 'Usuario' },
+            reactions: [],
           };
 
-          if (newInteraction.tipo === 'mensaje') {
-            setMessages((prev) => [...prev, newInteraction]);
-            
-            setTimeout(() => {
-              flatListRef.current?.scrollToEnd({ animated: true });
-            }, 100);
-          } else if (newInteraction.tipo === 'emoticon') {
-            setRecentEmoticons(prev => [
-              ...prev,
-              {
-                emoji: newInteraction.contenido,
-                userId: newInteraction.usuario_id,
-                timestamp: Date.now(),
-              }
-            ]);
+          setMessages((prev) => [...prev, newInteraction]);
+          
+          setTimeout(() => {
+            flatListRef.current?.scrollToEnd({ animated: true });
+          }, 100);
+        } else if (payload.new.tipo === 'emoticon') {
+          const emojiId = `${payload.new.usuario_id}-${Date.now()}`;
+          setFloatingEmoticons(prev => [
+            ...prev,
+            {
+              emoji: payload.new.contenido,
+              id: emojiId,
+              timestamp: Date.now(),
+            }
+          ]);
 
-            setTimeout(() => {
-              setRecentEmoticons(prev => 
-                prev.filter(e => Date.now() - e.timestamp < 3000)
-              );
-            }, 3000);
-          }
-
-          if (newInteraction.usuario_id !== user?.id) {
-            Animated.sequence([
-              Animated.timing(userJoinedAnimation, {
-                toValue: 1,
-                duration: 300,
-                useNativeDriver: true,
-              }),
-              Animated.timing(userJoinedAnimation, {
-                toValue: 0,
-                duration: 300,
-                delay: 2000,
-                useNativeDriver: true,
-              }),
-            ]).start();
-          }
-
-          updateActiveUsers();
+          setTimeout(() => {
+            setFloatingEmoticons(prev => prev.filter(e => e.id !== emojiId));
+          }, 3000);
         }
-      )
-      .subscribe((status) => {
-        console.log('[SalaVirtual] Subscription status:', status);
-      });
 
-    channelRef.current = channel;
+        if (payload.new.usuario_id !== user?.id) {
+          Animated.sequence([
+            Animated.timing(userJoinedAnimation, {
+              toValue: 1,
+              duration: 300,
+              useNativeDriver: true,
+            }),
+            Animated.timing(userJoinedAnimation, {
+              toValue: 0,
+              duration: 300,
+              delay: 2000,
+              useNativeDriver: true,
+            }),
+          ]).start();
+        }
+
+        updateActiveUsers();
+      })
+      .subscribe();
+
+    // Subscribe to checkins
+    const checkinChannel = supabase
+      .channel(`room:${localId}:checkins`, {
+        config: { private: true },
+      })
+      .on('broadcast', { event: 'INSERT' }, () => {
+        updateActiveUsers();
+      })
+      .on('broadcast', { event: 'UPDATE' }, () => {
+        updateActiveUsers();
+      })
+      .subscribe();
+
+    // Subscribe to badges
+    const badgeChannel = supabase
+      .channel(`room:${localId}:badges`, {
+        config: { private: true },
+      })
+      .on('broadcast', { event: 'INSERT' }, (payload) => {
+        if (payload.new.usuario_id === user?.id) {
+          setNewBadge(payload.new);
+          setTimeout(() => setNewBadge(null), 5000);
+        }
+      })
+      .subscribe();
+
+    channelRef.current = { channel, checkinChannel, badgeChannel };
 
     return () => {
-      console.log('[SalaVirtual] Unsubscribing from messages');
+      console.log('[SalaVirtual] Unsubscribing from real-time updates');
       supabase.removeChannel(channel);
+      supabase.removeChannel(checkinChannel);
+      supabase.removeChannel(badgeChannel);
     };
   }, [localId, user, userJoinedAnimation, updateActiveUsers]);
 
+  // Initialize
   useEffect(() => {
     if (!localId) {
       Alert.alert('Error', 'No se especificó el local');
@@ -292,8 +509,9 @@ export default function SalaVirtualScreen() {
 
     console.log('[SalaVirtual] Initializing with localId:', localId);
     loadLocalData();
+    checkUserCheckin();
     loadMessages();
-    const unsubscribe = subscribeToMessages();
+    const unsubscribe = subscribeToUpdates();
     updateActiveUsers();
 
     const interval = setInterval(updateActiveUsers, 30000);
@@ -302,17 +520,22 @@ export default function SalaVirtualScreen() {
       clearInterval(interval);
       unsubscribe();
     };
-  }, [localId, loadLocalData, loadMessages, subscribeToMessages, updateActiveUsers, router]);
+  }, [localId, loadLocalData, checkUserCheckin, loadMessages, subscribeToUpdates, updateActiveUsers, router]);
 
-  const sendMessage = async () => {
+  // Send message
+  const sendMessage = async (messageText?: string) => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para enviar mensajes');
       return;
     }
 
-    if (!newMessage.trim()) {
+    if (!isCheckedIn) {
+      Alert.alert('Error', 'Debes entrar en la sala para enviar mensajes');
       return;
     }
+
+    const content = messageText || newMessage.trim();
+    if (!content) return;
 
     if (!localId) {
       Alert.alert('Error', 'No se especificó el local');
@@ -321,7 +544,7 @@ export default function SalaVirtualScreen() {
 
     try {
       setSending(true);
-      console.log('[SalaVirtual] Sending message:', newMessage.trim());
+      console.log('[SalaVirtual] Sending message:', content);
 
       const { error } = await supabase
         .from('sala_virtual_interacciones')
@@ -329,7 +552,7 @@ export default function SalaVirtualScreen() {
           usuario_id: user.id,
           local_id: localId,
           tipo: 'mensaje',
-          contenido: newMessage.trim(),
+          contenido: content,
         });
 
       if (error) {
@@ -339,7 +562,9 @@ export default function SalaVirtualScreen() {
       }
 
       console.log('[SalaVirtual] Message sent successfully');
-      setNewMessage('');
+      if (!messageText) {
+        setNewMessage('');
+      }
     } catch (error) {
       console.error('[SalaVirtual] Error:', error);
       Alert.alert('Error', 'Ocurrió un error al enviar el mensaje');
@@ -348,16 +573,19 @@ export default function SalaVirtualScreen() {
     }
   };
 
+  // Send emoticon
   const sendEmoticon = async (emoticon: string) => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para enviar reacciones');
       return;
     }
 
-    if (!localId) {
-      Alert.alert('Error', 'No se especificó el local');
+    if (!isCheckedIn) {
+      Alert.alert('Error', 'Debes entrar en la sala para enviar reacciones');
       return;
     }
+
+    if (!localId) return;
 
     try {
       console.log('[SalaVirtual] Sending emoticon:', emoticon);
@@ -382,8 +610,60 @@ export default function SalaVirtualScreen() {
     }
   };
 
+  // Add reaction to message
+  const addReaction = async (messageId: string, emoticon: string) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('sala_virtual_reacciones')
+        .insert({
+          mensaje_id: messageId,
+          usuario_id: user.id,
+          emoticon,
+        });
+
+      if (error) {
+        console.error('[SalaVirtual] Error adding reaction:', error);
+        return;
+      }
+
+      // Update local state
+      setMessages(prev => prev.map(msg => {
+        if (msg.id === messageId) {
+          return {
+            ...msg,
+            reactions: [
+              ...(msg.reactions || []),
+              {
+                id: `temp-${Date.now()}`,
+                mensaje_id: messageId,
+                usuario_id: user.id,
+                emoticon,
+                created_at: new Date().toISOString(),
+              },
+            ],
+          };
+        }
+        return msg;
+      }));
+    } catch (error) {
+      console.error('[SalaVirtual] Error:', error);
+    }
+  };
+
+  // Render message
   const renderMessage = ({ item }: { item: InteractionMessage }) => {
     const isOwnMessage = user && item.usuario_id === user.id;
+
+    // Group reactions by emoticon
+    const reactionGroups = (item.reactions || []).reduce((acc, reaction) => {
+      if (!acc[reaction.emoticon]) {
+        acc[reaction.emoticon] = [];
+      }
+      acc[reaction.emoticon].push(reaction);
+      return acc;
+    }, {} as Record<string, MessageReaction[]>);
 
     return (
       <View
@@ -393,7 +673,16 @@ export default function SalaVirtualScreen() {
         ]}
       >
         {!isOwnMessage && (
-          <View style={styles.messageAvatar}>
+          <TouchableOpacity
+            style={styles.messageAvatar}
+            onPress={() => {
+              const activeUser = activeUsers.find(u => u.id === item.usuario_id);
+              if (activeUser) {
+                setSelectedUser(activeUser);
+                setShowUserList(true);
+              }
+            }}
+          >
             {item.usuario.avatar ? (
               <Image
                 source={{ uri: item.usuario.avatar }}
@@ -409,38 +698,77 @@ export default function SalaVirtualScreen() {
                 />
               </View>
             )}
-          </View>
+          </TouchableOpacity>
         )}
-        <View
-          style={[
-            styles.messageBubble,
-            isOwnMessage ? styles.ownMessageBubble : styles.otherMessageBubble,
-          ]}
-        >
-          {!isOwnMessage && (
-            <Text style={styles.messageSender}>
-              {item.usuario.username ? `@${item.usuario.username}` : item.usuario.nombre}
+        <View style={{ flex: 1 }}>
+          <View
+            style={[
+              styles.messageBubble,
+              isOwnMessage ? styles.ownMessageBubble : styles.otherMessageBubble,
+            ]}
+          >
+            {!isOwnMessage && (
+              <Text style={styles.messageSender}>
+                {item.usuario.username ? `@${item.usuario.username}` : item.usuario.nombre}
+              </Text>
+            )}
+            <Text
+              style={[
+                styles.messageText,
+                isOwnMessage ? styles.ownMessageText : styles.otherMessageText,
+              ]}
+            >
+              {item.contenido}
             </Text>
+            <Text
+              style={[
+                styles.messageTime,
+                isOwnMessage ? styles.ownMessageTime : styles.otherMessageTime,
+              ]}
+            >
+              {new Date(item.created_at).toLocaleTimeString('es-ES', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </Text>
+          </View>
+          
+          {/* Reactions */}
+          {Object.keys(reactionGroups).length > 0 && (
+            <View style={styles.reactionsRow}>
+              {Object.entries(reactionGroups).map(([emoticon, reactions]) => (
+                <TouchableOpacity
+                  key={emoticon}
+                  style={styles.reactionBadge}
+                  onPress={() => addReaction(item.id, emoticon)}
+                >
+                  <Text style={styles.reactionEmoji}>{emoticon}</Text>
+                  <Text style={styles.reactionCount}>{reactions.length}</Text>
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity
+                style={styles.addReactionButton}
+                onPress={() => {
+                  // Show reaction picker
+                  Alert.alert(
+                    'Añadir Reacción',
+                    'Selecciona un emoticono',
+                    EMOTICONS.map(emoji => ({
+                      text: emoji,
+                      onPress: () => addReaction(item.id, emoji),
+                    }))
+                  );
+                }}
+              >
+                <IconSymbol
+                  ios_icon_name="plus.circle"
+                  android_material_icon_name="add_circle"
+                  size={16}
+                  color={colors.textSecondary}
+                />
+              </TouchableOpacity>
+            </View>
           )}
-          <Text
-            style={[
-              styles.messageText,
-              isOwnMessage ? styles.ownMessageText : styles.otherMessageText,
-            ]}
-          >
-            {item.contenido}
-          </Text>
-          <Text
-            style={[
-              styles.messageTime,
-              isOwnMessage ? styles.ownMessageTime : styles.otherMessageTime,
-            ]}
-          >
-            {new Date(item.created_at).toLocaleTimeString('es-ES', {
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
-          </Text>
         </View>
       </View>
     );
@@ -451,6 +779,83 @@ export default function SalaVirtualScreen() {
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Cargando sala virtual...</Text>
+      </View>
+    );
+  }
+
+  // If not checked in, show check-in screen
+  if (!isCheckedIn) {
+    return (
+      <View style={styles.container}>
+        <Stack.Screen
+          options={{
+            title: local?.nombre || 'Sala Virtual',
+          }}
+        />
+        <View style={styles.checkInContainer}>
+          <LinearGradient
+            colors={[colors.primary + '20', colors.secondary + '20']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.checkInCard}
+          >
+            <View style={styles.checkInIconCircle}>
+              <IconSymbol
+                ios_icon_name="door.left.hand.open"
+                android_material_icon_name="meeting_room"
+                size={48}
+                color={colors.primary}
+              />
+            </View>
+            <Text style={styles.checkInTitle}>Bienvenido a la Sala Virtual</Text>
+            <Text style={styles.checkInSubtitle}>
+              {local?.nombre}
+            </Text>
+            <Text style={styles.checkInDescription}>
+              Entra en la sala para chatear, conocer gente y divertirte con otros usuarios que están aquí ahora mismo.
+            </Text>
+            
+            <View style={styles.checkInStats}>
+              <View style={styles.checkInStat}>
+                <IconSymbol
+                  ios_icon_name="person.3.fill"
+                  android_material_icon_name="group"
+                  size={24}
+                  color={colors.primary}
+                />
+                <Text style={styles.checkInStatNumber}>{activeUsers.length}</Text>
+                <Text style={styles.checkInStatLabel}>Usuarios activos</Text>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={styles.checkInButton}
+              onPress={handleCheckIn}
+              disabled={checkingIn}
+            >
+              <LinearGradient
+                colors={[colors.primary, colors.secondary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.checkInButtonGradient}
+              >
+                {checkingIn ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <>
+                    <IconSymbol
+                      ios_icon_name="arrow.right.circle.fill"
+                      android_material_icon_name="login"
+                      size={24}
+                      color="#fff"
+                    />
+                    <Text style={styles.checkInButtonText}>Entrar en la Sala Virtual</Text>
+                  </>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+          </LinearGradient>
+        </View>
       </View>
     );
   }
@@ -466,10 +871,35 @@ export default function SalaVirtualScreen() {
           title: local?.nombre || 'Sala Virtual',
           headerRight: () => (
             <View style={styles.headerRight}>
-              <View style={styles.activeUsersIndicator}>
+              <TouchableOpacity
+                style={styles.headerButton}
+                onPress={() => setShowRanking(true)}
+              >
+                <IconSymbol
+                  ios_icon_name="chart.bar.fill"
+                  android_material_icon_name="leaderboard"
+                  size={24}
+                  color={colors.primary}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.headerButton}
+                onPress={() => setShowChallenge(true)}
+              >
+                <IconSymbol
+                  ios_icon_name="gamecontroller.fill"
+                  android_material_icon_name="sports_esports"
+                  size={24}
+                  color={colors.primary}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.activeUsersIndicator}
+                onPress={() => setShowUserList(true)}
+              >
                 <View style={styles.activeUsersDot} />
                 <Text style={styles.activeUsersText}>{activeUsers.length}</Text>
-              </View>
+              </TouchableOpacity>
             </View>
           ),
         }}
@@ -484,8 +914,15 @@ export default function SalaVirtualScreen() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.activeUsersScroll}
             >
-              {activeUsers.map((activeUser) => (
-                <View key={activeUser.id} style={styles.activeUserItem}>
+              {activeUsers.slice(0, 10).map((activeUser) => (
+                <TouchableOpacity
+                  key={activeUser.id}
+                  style={styles.activeUserItem}
+                  onPress={() => {
+                    setSelectedUser(activeUser);
+                    setShowUserList(true);
+                  }}
+                >
                   {activeUser.avatar ? (
                     <Image
                       source={{ uri: activeUser.avatar }}
@@ -502,8 +939,16 @@ export default function SalaVirtualScreen() {
                     </View>
                   )}
                   <View style={styles.activeUserOnlineDot} />
-                </View>
+                </TouchableOpacity>
               ))}
+              {activeUsers.length > 10 && (
+                <TouchableOpacity
+                  style={styles.moreUsersButton}
+                  onPress={() => setShowUserList(true)}
+                >
+                  <Text style={styles.moreUsersText}>+{activeUsers.length - 10}</Text>
+                </TouchableOpacity>
+              )}
             </ScrollView>
           </View>
         )}
@@ -542,20 +987,10 @@ export default function SalaVirtualScreen() {
         </Animated.View>
 
         {/* Floating Emoticons */}
-        {recentEmoticons.map((item, index) => (
-          <Animated.Text
-            key={`${item.userId}-${item.timestamp}`}
-            style={[
-              styles.floatingEmoticon,
-              {
-                right: 20 + (index * 30) % 100,
-                opacity: userJoinedAnimation,
-              },
-            ]}
-          >
-            {item.emoji}
-          </Animated.Text>
-        ))}
+        <FloatingEmoticons emoticons={floatingEmoticons} />
+
+        {/* Badge Notification */}
+        {newBadge && <BadgeNotification badge={newBadge} />}
 
         {/* Messages List */}
         <FlatList
@@ -588,6 +1023,9 @@ export default function SalaVirtualScreen() {
           }
         />
 
+        {/* Quick Messages Bar */}
+        <QuickMessagesBar onSelectMessage={sendMessage} />
+
         {/* Reactions Bar */}
         <View style={styles.reactionsContainer}>
           <ScrollView
@@ -595,7 +1033,7 @@ export default function SalaVirtualScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.reactionsContent}
           >
-            {['👋', '🎉', '❤️', '🔥', '👏', '😂', '🍻', '🎵', '💃', '🕺'].map((emoji) => (
+            {EMOTICONS.map((emoji) => (
               <TouchableOpacity
                 key={emoji}
                 style={styles.reactionButton}
@@ -623,7 +1061,7 @@ export default function SalaVirtualScreen() {
               styles.sendButton,
               (!newMessage.trim() || sending) && styles.sendButtonDisabled,
             ]}
-            onPress={sendMessage}
+            onPress={() => sendMessage()}
             disabled={!newMessage.trim() || sending}
           >
             <LinearGradient
@@ -648,8 +1086,58 @@ export default function SalaVirtualScreen() {
               )}
             </LinearGradient>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.checkOutButton}
+            onPress={handleCheckOut}
+          >
+            <IconSymbol
+              ios_icon_name="rectangle.portrait.and.arrow.right"
+              android_material_icon_name="logout"
+              size={20}
+              color={colors.error}
+            />
+          </TouchableOpacity>
         </View>
       </View>
+
+      {/* Modals */}
+      <UserListModal
+        visible={showUserList}
+        onClose={() => {
+          setShowUserList(false);
+          setSelectedUser(null);
+        }}
+        users={activeUsers}
+        selectedUser={selectedUser}
+        localId={localId}
+        onReport={(userId) => {
+          setShowUserList(false);
+          setSelectedUser(activeUsers.find(u => u.id === userId) || null);
+          setShowReport(true);
+        }}
+      />
+
+      <RankingModal
+        visible={showRanking}
+        onClose={() => setShowRanking(false)}
+        localId={localId}
+      />
+
+      <ChallengeModal
+        visible={showChallenge}
+        onClose={() => setShowChallenge(false)}
+        localId={localId}
+      />
+
+      <ReportUserModal
+        visible={showReport}
+        onClose={() => {
+          setShowReport(false);
+          setSelectedUser(null);
+        }}
+        reportedUser={selectedUser}
+        localId={localId}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -670,10 +1158,98 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.textSecondary,
   },
+  checkInContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  checkInCard: {
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: 24,
+    padding: 32,
+    alignItems: 'center',
+  },
+  checkInIconCircle: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
+  checkInTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.text,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  checkInSubtitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.primary,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  checkInDescription: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  checkInStats: {
+    flexDirection: 'row',
+    gap: 24,
+    marginBottom: 32,
+  },
+  checkInStat: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  checkInStatNumber: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  checkInStatLabel: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  checkInButton: {
+    width: '100%',
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  checkInButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+  },
+  checkInButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
+  },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
     marginRight: 8,
+    gap: 8,
+  },
+  headerButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.card,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   activeUsersIndicator: {
     flexDirection: 'row',
@@ -739,6 +1315,19 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.card,
   },
+  moreUsersButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.primary + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  moreUsersText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.primary,
+  },
   userJoinedBanner: {
     position: 'absolute',
     top: 0,
@@ -760,12 +1349,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#fff',
-  },
-  floatingEmoticon: {
-    position: 'absolute',
-    top: 100,
-    fontSize: 32,
-    zIndex: 99,
   },
   messagesContent: {
     padding: 16,
@@ -799,7 +1382,7 @@ const styles = StyleSheet.create({
   messageContainer: {
     flexDirection: 'row',
     marginBottom: 12,
-    alignItems: 'flex-end',
+    alignItems: 'flex-start',
   },
   ownMessage: {
     justifyContent: 'flex-end',
@@ -862,6 +1445,37 @@ const styles = StyleSheet.create({
   otherMessageTime: {
     color: colors.textSecondary,
   },
+  reactionsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    marginTop: 4,
+  },
+  reactionBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    gap: 4,
+  },
+  reactionEmoji: {
+    fontSize: 14,
+  },
+  reactionCount: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  addReactionButton: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   reactionsContainer: {
     borderTopWidth: 1,
     borderTopColor: colors.border,
@@ -879,9 +1493,6 @@ const styles = StyleSheet.create({
     marginRight: 4,
     borderRadius: 22,
     backgroundColor: colors.background,
-  },
-  reactionEmoji: {
-    fontSize: 24,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -917,5 +1528,13 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  checkOutButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.error + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
