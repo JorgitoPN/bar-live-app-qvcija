@@ -843,15 +843,6 @@ export default function DetalleLocalScreen() {
             </BlurView>
           </TouchableOpacity>
 
-          {displayRating > 0 && (
-            <View style={styles.ratingBadgeTop}>
-              <BlurView intensity={90} tint="dark" style={styles.ratingBlur}>
-                <Ionicons name="star" size={18} color="#FFD700" />
-                <Text style={styles.ratingTextTop}>{displayRating.toFixed(1)}</Text>
-              </BlurView>
-            </View>
-          )}
-
           <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
             <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
               <IconSymbol ios_icon_name="square.and.arrow.up" android_material_icon_name="share" size={22} color="#fff" />
@@ -909,54 +900,37 @@ export default function DetalleLocalScreen() {
 
       {/* Content Card - REDESIGNED */}
       <View style={styles.contentCard}>
-        {/* ✅ IMPROVED: More elegant and compact header */}
+        {/* ✅ IMPROVED: More elegant and compact header - REMOVED NAME, RATING, PRICE */}
         <View style={styles.headerSection}>
-          <View style={styles.titleRow}>
-            <Text style={styles.title}>{local.nombre}</Text>
-            {displayRating > 0 && (
-              <View style={styles.ratingChip}>
-                <Ionicons name="star" size={16} color="#FFD700" />
-                <Text style={styles.ratingChipText}>{displayRating.toFixed(1)}</Text>
-              </View>
-            )}
-          </View>
-          
+          {/* ✅ HIGHLIGHTED: Category badges with more prominence */}
           {allCategories.length > 0 && (
             <View style={styles.categoriesRow}>
               {allCategories.map((categoria, index) => {
                 const icon = getCategoryIcon(categoria);
                 return (
-                  <View key={index} style={[styles.categoryChip, { backgroundColor: icon.color + '15' }]}>
+                  <View key={index} style={[styles.categoryChipHighlighted, { backgroundColor: icon.color }]}>
                     <IconSymbol 
                       ios_icon_name={icon.ios} 
                       android_material_icon_name={icon.android} 
-                      size={14} 
-                      color={icon.color} 
+                      size={18} 
+                      color="#fff" 
                     />
-                    <Text style={[styles.categoryChipText, { color: icon.color }]}>{categoria}</Text>
+                    <Text style={styles.categoryChipTextHighlighted}>{categoria.toUpperCase()}</Text>
                   </View>
                 );
               })}
             </View>
           )}
 
-          {/* ✅ IMPROVED: Compact address with distance */}
+          {/* ✅ IMPROVED: Compact address with distance in single line */}
           {local.direccion && (
-            <View style={styles.addressRow}>
-              <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={16} color={colors.textSecondary} />
-              <Text style={styles.addressText}>{local.direccion}</Text>
-              {distance && (
-                <>
-                  <Text style={styles.addressSeparator}>•</Text>
-                  <Text style={styles.distanceText}>{distance}</Text>
-                </>
-              )}
+            <View style={styles.addressCompact}>
+              <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={18} color={colors.primary} />
+              <Text style={styles.addressTextCompact} numberOfLines={1}>
+                {local.direccion}
+                {distance && ` • ${distance}`}
+              </Text>
             </View>
-          )}
-
-          {/* Price Range */}
-          {local.rango_precios && (
-            <Text style={styles.priceRange}>{local.rango_precios}</Text>
           )}
         </View>
 
@@ -1428,26 +1402,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     zIndex: 8,
   },
-  ratingBadgeTop: {
-    position: 'absolute',
-    top: 12,
-    right: 16,
-    borderRadius: 20,
-    overflow: 'hidden',
-    zIndex: 10,
-  },
-  ratingBlur: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    gap: 6,
-  },
-  ratingTextTop: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#fff',
-  },
   shareButton: {
     position: 'absolute',
     top: 64,
@@ -1512,79 +1466,45 @@ const styles = StyleSheet.create({
   headerSection: {
     marginBottom: 16,
   },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  title: {
-    flex: 1,
-    fontSize: 24,
-    fontWeight: '800',
-    color: colors.text,
-    marginRight: 12,
-  },
-  ratingChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 4,
-  },
-  ratingChipText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.text,
-  },
   categoriesRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 8,
+    gap: 8,
+    marginBottom: 12,
   },
-  categoryChip: {
+  categoryChipHighlighted: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 16,
+    gap: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  categoryChipTextHighlighted: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#fff',
+    letterSpacing: 0.5,
+  },
+  addressCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.card,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     borderRadius: 12,
-    gap: 4,
   },
-  categoryChipText: {
-    fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'capitalize',
-  },
-  addressRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 4,
-  },
-  addressText: {
+  addressTextCompact: {
     flex: 1,
-    fontSize: 13,
-    color: colors.text,
-    fontWeight: '500',
-  },
-  addressSeparator: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    fontWeight: '600',
-  },
-  distanceText: {
-    fontSize: 13,
-    color: colors.primary,
-    fontWeight: '700',
-  },
-  priceRange: {
     fontSize: 14,
-    fontWeight: '700',
-    color: colors.primary,
-    marginTop: 6,
+    color: colors.text,
+    fontWeight: '600',
   },
   descriptionSection: {
     marginBottom: 16,
