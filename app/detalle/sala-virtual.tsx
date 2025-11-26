@@ -65,7 +65,8 @@ interface Local {
   descripcion?: string;
   abierto?: boolean;
   horarios_completos?: Record<string, string[]>;
-  estado_negocio?: string;
+  google_business_status?: string;
+  estado_actual?: string;
 }
 
 interface ActiveUser {
@@ -126,9 +127,10 @@ export default function SalaVirtualScreen() {
     }
 
     try {
+      // ✅ FIXED: Removed estado_negocio from query (column doesn't exist)
       const { data, error } = await supabase
         .from('locales')
-        .select('id, nombre, imagen_url, descripcion, abierto, horarios_completos, estado_negocio')
+        .select('id, nombre, imagen_url, descripcion, abierto, horarios_completos, google_business_status, estado_actual')
         .eq('id', localId)
         .single();
 
@@ -142,7 +144,7 @@ export default function SalaVirtualScreen() {
       console.log('[SalaVirtual] Local loaded:', data);
       setLocal(data);
       
-      // ✅ FIXED: Check if local is open using real-time schedule detection
+      // ✅ Check if local is open using real-time schedule detection
       const estadoLocal = getEstadoLocal(data);
       const isOpen = estadoLocal.estaAbierto === true;
       
@@ -195,7 +197,7 @@ export default function SalaVirtualScreen() {
       return;
     }
 
-    // ✅ FIXED: Check if local is open before allowing check-in
+    // ✅ Check if local is open before allowing check-in
     if (local) {
       const estadoLocal = getEstadoLocal(local);
       const isOpen = estadoLocal.estaAbierto === true;
@@ -808,7 +810,7 @@ export default function SalaVirtualScreen() {
 
   // If not checked in, show check-in screen
   if (!isCheckedIn) {
-    // ✅ FIXED: Show real-time status on check-in screen
+    // ✅ Show real-time status on check-in screen
     const estadoLocal = local ? getEstadoLocal(local) : null;
     const isOpen = estadoLocal?.estaAbierto === true;
 
@@ -839,7 +841,7 @@ export default function SalaVirtualScreen() {
               {local?.nombre}
             </Text>
             
-            {/* ✅ FIXED: Show real-time status */}
+            {/* ✅ Show real-time status */}
             {estadoLocal && (
               <View style={[styles.statusBadge, !isOpen && styles.statusBadgeClosed]}>
                 <View style={[styles.statusDot, isOpen ? styles.statusDotOpen : styles.statusDotClosed]} />
