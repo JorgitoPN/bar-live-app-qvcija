@@ -11,7 +11,6 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  FlatList,
   ActivityIndicator,
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -20,7 +19,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 
-// ✅ FIXED: Changed Array<T> to T[]
 interface InteractionMessage {
   id: string;
   usuario_id: string;
@@ -57,9 +55,16 @@ export default function SalaVirtualScreen() {
   const [activeUsers, setActiveUsers] = useState<number>(0);
   
   const scrollViewRef = useRef<ScrollView>(null);
-  const localId = params.id as string;
+  const localId = params.localId as string;
 
   const loadLocalData = useCallback(async () => {
+    if (!localId) {
+      console.error('[SalaVirtual] No localId provided');
+      Alert.alert('Error', 'No se especificó el local');
+      router.back();
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('locales')
@@ -81,6 +86,11 @@ export default function SalaVirtualScreen() {
   }, [localId, router]);
 
   const loadMessages = useCallback(async () => {
+    if (!localId) {
+      console.error('[SalaVirtual] No localId provided for loading messages');
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -107,7 +117,6 @@ export default function SalaVirtualScreen() {
 
       setMessages(data || []);
       
-      // Scroll to bottom after loading
       setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: false });
       }, 100);
@@ -119,6 +128,11 @@ export default function SalaVirtualScreen() {
   }, [localId]);
 
   const subscribeToMessages = useCallback(() => {
+    if (!localId) {
+      console.error('[SalaVirtual] No localId provided for subscription');
+      return () => {};
+    }
+
     const channel = supabase
       .channel(`sala_virtual:${localId}`)
       .on(
@@ -132,7 +146,6 @@ export default function SalaVirtualScreen() {
         async (payload) => {
           console.log('[SalaVirtual] New message:', payload);
           
-          // Fetch user data for the new message
           const { data: userData } = await supabase
             .from('usuarios')
             .select('id, nombre, username, avatar')
@@ -149,7 +162,6 @@ export default function SalaVirtualScreen() {
 
           setMessages((prev) => [...prev, newMessage]);
           
-          // Scroll to bottom
           setTimeout(() => {
             scrollViewRef.current?.scrollToEnd({ animated: true });
           }, 100);
@@ -163,8 +175,12 @@ export default function SalaVirtualScreen() {
   }, [localId]);
 
   const updateActiveUsers = useCallback(async () => {
+    if (!localId) {
+      console.error('[SalaVirtual] No localId provided for active users count');
+      return;
+    }
+
     try {
-      // Count users who have interacted in the last 5 minutes
       const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
       
       const { data, error } = await supabase
@@ -185,7 +201,6 @@ export default function SalaVirtualScreen() {
     }
   }, [localId]);
 
-  // ✅ FIXED: Added all function dependencies to useEffect
   useEffect(() => {
     if (!localId) {
       Alert.alert('Error', 'No se especificó el local');
@@ -195,13 +210,14 @@ export default function SalaVirtualScreen() {
 
     loadLocalData();
     loadMessages();
-    subscribeToMessages();
+    const unsubscribe = subscribeToMessages();
     updateActiveUsers();
 
     const interval = setInterval(updateActiveUsers, 30000);
 
     return () => {
       clearInterval(interval);
+      unsubscribe();
     };
   }, [localId, loadLocalData, loadMessages, subscribeToMessages, updateActiveUsers, router]);
 
@@ -212,6 +228,11 @@ export default function SalaVirtualScreen() {
     }
 
     if (!newMessage.trim()) {
+      return;
+    }
+
+    if (!localId) {
+      Alert.alert('Error', 'No se especificó el local');
       return;
     }
 
@@ -245,6 +266,11 @@ export default function SalaVirtualScreen() {
   const sendEmoticon = async (emoticon: string) => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para enviar reacciones');
+      return;
+    }
+
+    if (!localId) {
+      Alert.alert('Error', 'No se especificó el local');
       return;
     }
 
@@ -351,7 +377,6 @@ export default function SalaVirtualScreen() {
       />
 
       <View style={styles.content}>
-        {/* Messages */}
         <ScrollView
           ref={scrollViewRef}
           style={styles.messagesContainer}
@@ -367,7 +392,6 @@ export default function SalaVirtualScreen() {
           ))}
         </ScrollView>
 
-        {/* Quick Reactions */}
         <View style={styles.reactionsContainer}>
           <ScrollView
             horizontal
@@ -386,7 +410,6 @@ export default function SalaVirtualScreen() {
           </ScrollView>
         </View>
 
-        {/* Input */}
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}

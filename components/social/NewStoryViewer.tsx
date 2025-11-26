@@ -89,7 +89,7 @@ const ProgressBar = memo(({ isActive, isPaused, duration, onComplete, progress }
       toValue: 1,
       duration: remainingDuration,
       easing: Easing.linear,
-      useNativeDriver: true,
+      useNativeDriver: false,
     });
 
     animationRef.current.start(({ finished }) => {
@@ -103,14 +103,19 @@ const ProgressBar = memo(({ isActive, isPaused, duration, onComplete, progress }
     };
   }, [isActive, isPaused, duration, onComplete, progress]);
 
-  const width = progress.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0%', '100%'],
-  });
-
   return (
     <View style={styles.progressBarContainer}>
-      <Animated.View style={[styles.progressBarFill, { width }]} />
+      <Animated.View 
+        style={[
+          styles.progressBarFill, 
+          { 
+            width: progress.interpolate({
+              inputRange: [0, 1],
+              outputRange: ['0%', '100%'],
+            })
+          }
+        ]} 
+      />
     </View>
   );
 });
@@ -139,7 +144,6 @@ function NewStoryViewer({
     ? currentStory?.autor_id === user?.id
     : currentStory?.local_id === activeLocalProfileId;
 
-  // Get the story image URL
   const storyImageUrl = currentStory?.imagen_url || currentStory?.imagen || '';
 
   const markAsViewed = useCallback(async (storyId: string) => {
@@ -271,7 +275,6 @@ function NewStoryViewer({
     return null;
   }
 
-  // Get author info
   const authorAvatar = currentStory.tipo === 'usuario'
     ? (currentStory.autor?.avatar || currentStory.autorAvatar)
     : (currentStory.local?.logo);
@@ -291,7 +294,6 @@ function NewStoryViewer({
     >
       <StatusBar barStyle="light-content" backgroundColor="#000" />
       <View style={styles.container} {...panResponder.panHandlers}>
-        {/* Story Image */}
         {storyImageUrl ? (
           <Image
             source={{ uri: storyImageUrl }}
@@ -311,14 +313,12 @@ function NewStoryViewer({
           </View>
         )}
 
-        {/* Loading Indicator */}
         {loading && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.headerText} />
           </View>
         )}
 
-        {/* Progress Bars */}
         <BlurView intensity={20} tint="dark" style={styles.progressContainer}>
           {stories.map((_, index) => (
             <View key={index} style={styles.progressBarWrapper}>
@@ -333,7 +333,6 @@ function NewStoryViewer({
           ))}
         </BlurView>
 
-        {/* Header */}
         <BlurView intensity={30} tint="dark" style={styles.header}>
           <View style={styles.authorInfo}>
             {authorAvatar ? (

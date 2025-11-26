@@ -381,7 +381,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
           <Image source={{ uri: avatarUrl }} style={styles.avatar} />
         ) : (
           <View style={styles.avatarPlaceholder}>
-            <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={20} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={24} color={colors.textSecondary} />
           </View>
         )}
         <View style={styles.headerContent}>
@@ -389,14 +389,10 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
           <Text style={styles.fecha}>{displayDate}</Text>
         </View>
         {isAuthor ? (
-          <TouchableOpacity style={styles.moreButton} onPress={handleDelete} activeOpacity={0.7}>
-            <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={20} color={colors.error} />
+          <TouchableOpacity style={styles.deleteButton} onPress={handleDelete} activeOpacity={0.7}>
+            <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={22} color={colors.error} />
           </TouchableOpacity>
-        ) : (
-          <TouchableOpacity style={styles.moreButton} activeOpacity={0.7}>
-            <IconSymbol ios_icon_name="ellipsis" android_material_icon_name="more_vert" size={20} color={colors.text} />
-          </TouchableOpacity>
-        )}
+        ) : null}
       </TouchableOpacity>
 
       {mentionedUsers.length > 0 && (
@@ -439,7 +435,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
                   <Image source={{ uri: taggedUser.avatar }} style={styles.taggedAvatarImage} />
                 ) : (
                   <View style={styles.taggedAvatarPlaceholder}>
-                    <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={12} color={colors.textSecondary} />
+                    <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={14} color={colors.textSecondary} />
                   </View>
                 )}
               </TouchableOpacity>
@@ -624,25 +620,33 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.cardBackground,
-    marginBottom: 2,
-    paddingBottom: 12,
+    marginBottom: 4,
+    paddingBottom: 16,
+    borderRadius: 12,
+    marginHorizontal: 8,
+    marginTop: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
+    padding: 16,
     gap: 12,
   },
   avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: colors.cardBorder,
   },
   avatarPlaceholder: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
@@ -651,53 +655,53 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   autorNombre: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '700',
     color: colors.text,
   },
   fecha: {
-    fontSize: 12,
+    fontSize: 13,
     color: colors.textSecondary,
     marginTop: 2,
   },
-  moreButton: {
-    padding: 4,
+  deleteButton: {
+    padding: 8,
   },
   mentionsContainer: {
-    paddingHorizontal: 14,
-    paddingBottom: 10,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
   },
   mentionsText: {
-    fontSize: 13,
+    fontSize: 14,
     color: colors.textSecondary,
   },
   mentionedUsername: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     color: colors.secondary,
   },
   taggedContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingBottom: 10,
-    gap: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    gap: 10,
   },
   taggedAvatarsRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   taggedMiniAvatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     borderWidth: 2,
     borderColor: colors.cardBackground,
     overflow: 'hidden',
     backgroundColor: colors.background,
   },
   taggedMiniAvatarOverlap: {
-    marginLeft: -8,
+    marginLeft: -10,
   },
   taggedAvatarImage: {
     width: '100%',
@@ -711,33 +715,37 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   taggedText: {
-    fontSize: 13,
+    fontSize: 14,
     color: colors.textSecondary,
     flex: 1,
   },
   taggedUsername: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     color: colors.primary,
   },
   contenidoContainer: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     paddingBottom: 12,
   },
   contenido: {
     fontSize: 15,
     color: colors.text,
-    lineHeight: 21,
+    lineHeight: 22,
   },
   imageCarouselContainer: {
     position: 'relative',
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginHorizontal: 16,
+    marginBottom: 12,
   },
   imageCarousel: {
-    width: SCREEN_WIDTH,
+    width: SCREEN_WIDTH - 32,
   },
   imageContainer: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_WIDTH,
+    width: SCREEN_WIDTH - 32,
+    height: SCREEN_WIDTH - 32,
     position: 'relative',
   },
   imagen: {
@@ -784,8 +792,8 @@ const styles = StyleSheet.create({
   locationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
     gap: 6,
   },
   locationText: {
@@ -796,9 +804,8 @@ const styles = StyleSheet.create({
   acciones: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingTop: 4,
-    gap: 18,
+    paddingHorizontal: 16,
+    gap: 20,
   },
   accionButton: {
     flexDirection: 'row',

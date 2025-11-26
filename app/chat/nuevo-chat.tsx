@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
   FlatList,
   ActivityIndicator,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -27,10 +27,16 @@ interface Usuario {
 
 export default function NuevoChatScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const { user } = useAuth();
   const [busqueda, setBusqueda] = useState('');
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Get shared post data from params
+  const sharePostId = params.sharePostId as string | undefined;
+  const sharePostImage = params.sharePostImage as string | undefined;
+  const sharePostAuthor = params.sharePostAuthor as string | undefined;
 
   const buscarUsuarios = async (query: string) => {
     if (!user || query.trim().length < 2) {
@@ -60,7 +66,20 @@ export default function NuevoChatScreen() {
   };
 
   const handleSelectUser = (usuario: Usuario) => {
-    router.push(`/chat/conversacion?userId=${usuario.id}`);
+    // If sharing a post, pass the post data to the conversation
+    if (sharePostId && sharePostImage) {
+      router.push({
+        pathname: `/chat/conversacion`,
+        params: { 
+          userId: usuario.id,
+          sharePostId,
+          sharePostImage,
+          sharePostAuthor: sharePostAuthor || 'Usuario',
+        }
+      });
+    } else {
+      router.push(`/chat/conversacion?userId=${usuario.id}`);
+    }
   };
 
   return (
@@ -70,14 +89,26 @@ export default function NuevoChatScreen() {
         style={styles.header}
       >
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Nuevo Mensaje</Text>
+        <Text style={styles.headerTitle}>
+          {sharePostId ? 'Compartir publicación' : 'Nuevo Mensaje'}
+        </Text>
         <View style={{ width: 40 }} />
       </LinearGradient>
 
+      {sharePostId && sharePostImage && (
+        <View style={styles.sharePreviewContainer}>
+          <Image source={{ uri: sharePostImage }} style={styles.sharePreviewImage} />
+          <View style={styles.sharePreviewInfo}>
+            <Text style={styles.sharePreviewTitle}>Publicación de {sharePostAuthor}</Text>
+            <Text style={styles.sharePreviewSubtitle}>Selecciona un usuario para compartir</Text>
+          </View>
+        </View>
+      )}
+
       <View style={styles.searchContainer}>
-        <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
+        <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
         <TextInput
           style={styles.searchInput}
           placeholder="Buscar usuario..."
@@ -113,19 +144,19 @@ export default function NuevoChatScreen() {
                 <Text style={styles.userName}>{item.nombre}</Text>
                 {item.username && <Text style={styles.userUsername}>@{item.username}</Text>}
               </View>
-              <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+              <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           )}
           ListEmptyComponent={
             <View style={styles.emptyState}>
               {busqueda.trim().length < 2 ? (
                 <>
-                  <IconSymbol name="magnifyingglass" size={64} color={colors.textSecondary} />
-                  <Text style={styles.emptyText}>Busca un usuario para iniciar un chat</Text>
+                  <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={64} color={colors.textSecondary} />
+                  <Text style={styles.emptyText}>Busca un usuario para {sharePostId ? 'compartir' : 'iniciar un chat'}</Text>
                 </>
               ) : (
                 <>
-                  <IconSymbol name="person.crop.circle.badge.xmark" size={64} color={colors.textSecondary} />
+                  <IconSymbol ios_icon_name="person.crop.circle.badge.xmark" android_material_icon_name="person_off" size={64} color={colors.textSecondary} />
                   <Text style={styles.emptyText}>No se encontraron usuarios</Text>
                 </>
               )}
@@ -157,6 +188,36 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: colors.headerText,
+  },
+  sharePreviewContainer: {
+    flexDirection: 'row',
+    backgroundColor: colors.card,
+    margin: 16,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    gap: 12,
+  },
+  sharePreviewImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    backgroundColor: colors.cardBorder,
+  },
+  sharePreviewInfo: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  sharePreviewTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  sharePreviewSubtitle: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 4,
   },
   searchContainer: {
     flexDirection: 'row',
