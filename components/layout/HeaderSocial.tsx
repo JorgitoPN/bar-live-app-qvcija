@@ -1,30 +1,45 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Pressable, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Pressable, ScrollView, Platform, TextInput, FlatList, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
 import { useRouter } from 'expo-router';
+import { supabase } from '@/app/integrations/supabase/client';
 
 interface HeaderSocialProps {
   unreadNotifications?: number;
   unreadMessages?: number;
-  onSearchPress?: () => void;
-  onCreatePress?: () => void;
+  onCreatePost?: () => void;
+  onCreateStory?: () => void;
+}
+
+interface SearchResult {
+  id: string;
+  type: 'user' | 'local';
+  nombre: string;
+  username?: string;
+  avatar?: string;
+  imagen_url?: string;
+  plan_activo?: string;
 }
 
 export default function HeaderSocial({
   unreadNotifications = 0,
   unreadMessages = 0,
-  onSearchPress,
-  onCreatePress,
+  onCreatePost,
+  onCreateStory,
 }: HeaderSocialProps) {
   const router = useRouter();
   const { user } = useAuth();
   const { currentMode, setCurrentMode } = useMode();
   const [showModeSelector, setShowModeSelector] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
 
   const userRole = user?.rol_app || 'cliente';
   const canSwitchMode = userRole === 'propietario' || userRole === 'admin';
@@ -74,6 +89,119 @@ export default function HeaderSocial({
     return count.toString();
   };
 
+  // ✅ RESTORED: Search functionality
+  const handleSearch = async (query: string) => {
+    setSearchQuery(query);
+    
+    if (query.trim().length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    setSearching(true);
+    try {
+      const searchTerm = query.trim().replace('@', '');
+      
+      // Search users by username or name
+      const { data: users, error: usersError } = await supabase
+        .from('usuarios')
+        .select('id, nombre, username, avatar')
+        .or(`username.ilike.%${searchTerm}%,nombre.ilike.%${searchTerm}%`)
+        .limit(5);
+
+      // Search locals with active standard or premium plans
+      const { data: locales, error: localesError } = await supabase
+        .from('locales')
+        .select('id, nombre, imagen_url, plan_activo')
+        .ilike('nombre', `%${searchTerm}%`)
+        .in('plan_activo', ['estandar', 'premium'])
+        .limit(5);
+
+      const results: SearchResult[] = [];
+
+      if (users && !usersError) {
+        results.push(...users.map(u => ({
+          id: u.id,
+          type: 'user' as const,
+          nombre: u.nombre,
+          username: u.username,
+          avatar: u.avatar,
+        })));
+      }
+
+      if (locales && !localesError) {
+        results.push(...locales.map(l => ({
+          id: l.id,
+          type: 'local' as const,
+          nombre: l.nombre,
+          imagen_url: l.imagen_url,
+          plan_activo: l.plan_activo,
+        })));
+      }
+
+      setSearchResults(results);
+    } catch (error) {
+      console.error('[HeaderSocial] Search error:', error);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleResultPress = (result: SearchResult) => {
+    setShowSearch(false);
+    setSearchQuery('');
+    setSearchResults([]);
+    
+    if (result.type === 'user') {
+      if (user && result.id === user.id) {
+        router.push('/(tabs)/perfil');
+      } else {
+        router.push(`/perfil/usuario?userId=${result.id}`);
+      }
+    } else {
+      router.push(`/perfil/local?localId=${result.id}`);
+    }
+  };
+
+  const renderSearchResult = ({ item }: { item: SearchResult }) => (
+    <TouchableOpacity
+      style={styles.searchResultItem}
+      onPress={() => handleResultPress(item)}
+      activeOpacity={0.7}
+    >
+      {item.avatar || item.imagen_url ? (
+        <Image
+          source={{ uri: item.avatar || item.imagen_url }}
+          style={styles.searchResultAvatar}
+        />
+      ) : (
+        <View style={styles.searchResultAvatarPlaceholder}>
+          <IconSymbol
+            ios_icon_name={item.type === 'user' ? 'person.fill' : 'building.2.fill'}
+            android_material_icon_name={item.type === 'user' ? 'person' : 'business'}
+            size={20}
+            color={colors.textSecondary}
+          />
+        </View>
+      )}
+      <View style={styles.searchResultInfo}>
+        <Text style={styles.searchResultName}>{item.nombre}</Text>
+        {item.username && (
+          <Text style={styles.searchResultUsername}>@{item.username}</Text>
+        )}
+        {item.type === 'local' && item.plan_activo && (
+          <Text style={styles.searchResultPlan}>{item.plan_activo}</Text>
+        )}
+      </View>
+      <IconSymbol
+        ios_icon_name="chevron.right"
+        android_material_icon_name="chevron_right"
+        size={20}
+        color={colors.textSecondary}
+      />
+    </TouchableOpacity>
+  );
+
   return (
     <>
       <LinearGradient
@@ -89,20 +217,29 @@ export default function HeaderSocial({
                 onPress={() => setShowModeSelector(true)}
                 activeOpacity={0.7}
               >
-                <IconSymbol name={getModeIcon(currentMode)} size={16} color={colors.headerText} />
+                <IconSymbol ios_icon_name={getModeIcon(currentMode)} android_material_icon_name={getModeIcon(currentMode)} size={16} color={colors.headerText} />
                 <Text style={styles.modeSelectorText}>{getModeLabel(currentMode)}</Text>
-                <IconSymbol name="chevron.down" size={14} color={colors.headerText} />
+                <IconSymbol ios_icon_name="chevron.down" android_material_icon_name="expand_more" size={14} color={colors.headerText} />
               </TouchableOpacity>
             )}
           </View>
 
           <View style={styles.headerButtons}>
+            {/* ✅ RESTORED: Search button */}
+            <TouchableOpacity
+              style={styles.headerButton}
+              onPress={() => setShowSearch(true)}
+              activeOpacity={0.7}
+            >
+              <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={24} color={colors.headerText} />
+            </TouchableOpacity>
+
             <TouchableOpacity
               style={styles.headerButton}
               onPress={() => router.push('/(tabs)/perfil/chats')}
               activeOpacity={0.7}
             >
-              <IconSymbol name="message.fill" size={24} color={colors.headerText} />
+              <IconSymbol ios_icon_name="message.fill" android_material_icon_name="message" size={24} color={colors.headerText} />
               {unreadMessages > 0 && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>
@@ -117,7 +254,7 @@ export default function HeaderSocial({
               onPress={() => router.push('/(tabs)/perfil/notificaciones')}
               activeOpacity={0.7}
             >
-              <IconSymbol name="bell.fill" size={24} color={colors.headerText} />
+              <IconSymbol ios_icon_name="bell.fill" android_material_icon_name="notifications" size={24} color={colors.headerText} />
               {unreadNotifications > 0 && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>
@@ -126,29 +263,85 @@ export default function HeaderSocial({
                 </View>
               )}
             </TouchableOpacity>
-
-            {onSearchPress && (
-              <TouchableOpacity
-                style={styles.headerButton}
-                onPress={onSearchPress}
-                activeOpacity={0.7}
-              >
-                <IconSymbol name="magnifyingglass" size={24} color={colors.headerText} />
-              </TouchableOpacity>
-            )}
-
-            {onCreatePress && (
-              <TouchableOpacity
-                style={styles.headerButton}
-                onPress={onCreatePress}
-                activeOpacity={0.7}
-              >
-                <IconSymbol name="plus" size={24} color={colors.headerText} />
-              </TouchableOpacity>
-            )}
           </View>
         </View>
       </LinearGradient>
+
+      {/* ✅ RESTORED: Search Modal */}
+      <Modal
+        visible={showSearch}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setShowSearch(false)}
+      >
+        <View style={styles.searchModal}>
+          <LinearGradient
+            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+            style={styles.searchHeader}
+          >
+            <TouchableOpacity
+              style={styles.searchBackButton}
+              onPress={() => {
+                setShowSearch(false);
+                setSearchQuery('');
+                setSearchResults([]);
+              }}
+              activeOpacity={0.7}
+            >
+              <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
+            </TouchableOpacity>
+            <View style={styles.searchInputContainer}>
+              <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Buscar usuarios o locales..."
+                placeholderTextColor={colors.textSecondary}
+                value={searchQuery}
+                onChangeText={handleSearch}
+                autoFocus
+                returnKeyType="search"
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => {
+                    setSearchQuery('');
+                    setSearchResults([]);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={20} color={colors.textSecondary} />
+                </TouchableOpacity>
+              )}
+            </View>
+          </LinearGradient>
+
+          <View style={styles.searchContent}>
+            {searching ? (
+              <View style={styles.searchLoading}>
+                <Text style={styles.searchLoadingText}>Buscando...</Text>
+              </View>
+            ) : searchResults.length > 0 ? (
+              <FlatList
+                data={searchResults}
+                renderItem={renderSearchResult}
+                keyExtractor={(item) => `${item.type}-${item.id}`}
+                contentContainerStyle={styles.searchResultsList}
+              />
+            ) : searchQuery.length >= 2 ? (
+              <View style={styles.searchEmpty}>
+                <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={48} color={colors.textSecondary} />
+                <Text style={styles.searchEmptyText}>No se encontraron resultados</Text>
+              </View>
+            ) : (
+              <View style={styles.searchEmpty}>
+                <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={48} color={colors.textSecondary} />
+                <Text style={styles.searchEmptyText}>Busca usuarios o locales</Text>
+                <Text style={styles.searchEmptySubtext}>Escribe al menos 2 caracteres</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
 
       {/* Mode Selector Modal */}
       <Modal
@@ -165,7 +358,7 @@ export default function HeaderSocial({
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Cambiar Modo</Text>
               <TouchableOpacity onPress={() => setShowModeSelector(false)}>
-                <IconSymbol name="xmark" size={24} color={colors.text} />
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
 
@@ -185,7 +378,8 @@ export default function HeaderSocial({
                     currentMode === mode && styles.modeIconContainerActive,
                   ]}>
                     <IconSymbol 
-                      name={getModeIcon(mode)} 
+                      ios_icon_name={getModeIcon(mode)}
+                      android_material_icon_name={getModeIcon(mode)}
                       size={24} 
                       color={currentMode === mode ? colors.headerText : colors.primary} 
                     />
@@ -204,7 +398,7 @@ export default function HeaderSocial({
                     </Text>
                   </View>
                   {currentMode === mode && (
-                    <IconSymbol name="checkmark.circle.fill" size={24} color={colors.primary} />
+                    <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color={colors.primary} />
                   )}
                 </TouchableOpacity>
               ))}
@@ -284,6 +478,113 @@ const styles = StyleSheet.create({
     lineHeight: Platform.OS === 'android' ? 12 : 10,
     includeFontPadding: false,
     textAlignVertical: 'center',
+  },
+  searchModal: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  searchHeader: {
+    paddingTop: Platform.OS === 'ios' ? 50 : 40,
+    paddingBottom: 12,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  searchBackButton: {
+    padding: 4,
+  },
+  searchInputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: colors.headerText,
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+  },
+  searchContent: {
+    flex: 1,
+  },
+  searchLoading: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  searchLoadingText: {
+    fontSize: 16,
+    color: colors.textSecondary,
+  },
+  searchResultsList: {
+    padding: 16,
+  },
+  searchResultItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  searchResultAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 12,
+  },
+  searchResultAvatarPlaceholder: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  searchResultInfo: {
+    flex: 1,
+  },
+  searchResultName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 2,
+  },
+  searchResultUsername: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  searchResultPlan: {
+    fontSize: 12,
+    color: colors.primary,
+    fontWeight: '600',
+    textTransform: 'capitalize',
+  },
+  searchEmpty: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  searchEmptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.text,
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  searchEmptySubtext: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 8,
+    textAlign: 'center',
   },
   modalOverlay: {
     flex: 1,
