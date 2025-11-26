@@ -69,12 +69,16 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
   const [authorData, setAuthorData] = useState<{ nombre: string; avatar: string | null } | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // Fetch author data
+  // Fetch author data - ALWAYS fetch from database
   useEffect(() => {
     const fetchAuthorData = async () => {
-      if (!post?.autorId) return;
+      if (!post?.autorId) {
+        console.log('[PublicacionCard] No autorId, skipping author fetch');
+        return;
+      }
 
       try {
+        console.log('[PublicacionCard] Fetching author data for:', post.autorId);
         const { data, error } = await supabase
           .from('usuarios')
           .select('nombre, avatar')
@@ -87,6 +91,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
         }
 
         if (data) {
+          console.log('[PublicacionCard] Author data fetched:', data);
           setAuthorData(data);
         }
       } catch (error) {
@@ -384,9 +389,9 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
       ? [post.imagen] 
       : [];
 
-  // Use fetched author data if available, otherwise fallback to post data
-  const displayName = authorData?.nombre || post?.autorNombre || 'Usuario';
-  const avatarUrl = authorData?.avatar || post?.autorAvatar || null;
+  // ALWAYS use fetched author data, never fallback to post data
+  const displayName = authorData?.nombre || 'Cargando...';
+  const avatarUrl = authorData?.avatar || null;
   const displayDate = post?.fecha ? formatearFecha(post.fecha) : post?.created_at ? formatearFecha(post.created_at) : 'Fecha desconocida';
   const isAuthor = user && post.tipo === 'usuario' && post.autorId === user.id;
 
