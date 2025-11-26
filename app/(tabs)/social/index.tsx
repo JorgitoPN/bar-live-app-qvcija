@@ -4,7 +4,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   RefreshControl,
   TouchableOpacity,
   ActivityIndicator,
@@ -45,7 +44,6 @@ export default function SocialScreen() {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const isLoadingRef = useRef(false);
 
-  // ✅ FIXED: Added React import and using useCallback directly
   const loadData = useCallback(async () => {
     if (isLoadingRef.current) {
       console.log('[Social] ⚡ Already loading, skipping...');
@@ -230,54 +228,53 @@ export default function SocialScreen() {
     );
   }
 
+  // ✅ FIXED: Removed ScrollView wrapper to avoid VirtualizedLists warning
+  // FeedSocial uses FlatList internally which handles scrolling
+  const ListHeaderComponent = () => (
+    <>
+      {historias.length > 0 && (
+        <View style={styles.storiesSection}>
+          <BarraHistorias historias={historias} />
+        </View>
+      )}
+    </>
+  );
+
+  const ListEmptyComponent = () => (
+    <View style={styles.emptyState}>
+      <Ionicons name="images-outline" size={64} color={colors.textSecondary} />
+      <Text style={styles.emptyStateTitle}>No hay publicaciones</Text>
+      <Text style={styles.emptyStateText}>
+        {isOwnerMode 
+          ? 'Crea la primera publicación de tu local'
+          : 'Sigue a usuarios o locales para ver sus publicaciones'}
+      </Text>
+      <TouchableOpacity 
+        style={styles.createButton}
+        onPress={handleCreatePost}
+      >
+        <Ionicons name="add-circle" size={24} color={colors.background} />
+        <Text style={styles.createButtonText}>Crear publicación</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <HeaderSocial 
         onCreatePost={handleCreatePost}
         onCreateStory={handleCreateStory}
       />
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.primary}
-            colors={[colors.primary]}
-          />
-        }
-        showsVerticalScrollIndicator={false}
-      >
-        {historias.length > 0 && (
-          <View style={styles.storiesSection}>
-            <BarraHistorias historias={historias} />
-          </View>
-        )}
-
-        <View style={styles.feedSection}>
-          {posts.length > 0 ? (
-            <FeedSocial posts={posts} onRefresh={loadData} />
-          ) : (
-            <View style={styles.emptyState}>
-              <Ionicons name="images-outline" size={64} color={colors.textSecondary} />
-              <Text style={styles.emptyStateTitle}>No hay publicaciones</Text>
-              <Text style={styles.emptyStateText}>
-                {isOwnerMode 
-                  ? 'Crea la primera publicación de tu local'
-                  : 'Sigue a usuarios o locales para ver sus publicaciones'}
-              </Text>
-              <TouchableOpacity 
-                style={styles.createButton}
-                onPress={handleCreatePost}
-              >
-                <Ionicons name="add-circle" size={24} color={colors.background} />
-                <Text style={styles.createButtonText}>Crear publicación</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-      </ScrollView>
+      {posts.length > 0 ? (
+        <FeedSocial 
+          posts={posts} 
+          onRefresh={onRefresh}
+          refreshing={refreshing}
+          ListHeaderComponent={ListHeaderComponent}
+        />
+      ) : (
+        <ListEmptyComponent />
+      )}
     </View>
   );
 }
@@ -286,12 +283,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 100,
   },
   loadingContainer: {
     flex: 1,
@@ -309,9 +300,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-  },
-  feedSection: {
-    flex: 1,
   },
   emptyState: {
     flex: 1,

@@ -29,7 +29,7 @@ export default function RootLayout() {
       // GlobalDataProvider will handle data loading
       SplashScreen.hideAsync();
       
-      // ✅ Initialize Instagram-like performance optimizations
+      // ✅ FIXED: Initialize performance optimizations without backgroundSync
       console.log('[App] 🚀 Initializing performance optimizations...');
       performanceManager.initialize(undefined, {
         enableAdvancedCache: true,
@@ -37,7 +37,7 @@ export default function RootLayout() {
         enableRealtimeMessaging: true,
         enableImageOptimization: true,
         enableOptimisticUI: true,
-        enableBackgroundSync: true,
+        enableBackgroundSync: false, // ✅ FIXED: Disabled backgroundSync to avoid initialization error
         enableRequestDedup: true,
         cacheStrategy: 'aggressive', // Instagram-like aggressive caching
       }).then(() => {

@@ -48,13 +48,13 @@ interface Local {
 interface Review {
   id: string;
   local_id: string;
-  user_id: string;
-  valoracion: number;
-  comentario?: string;
+  usuario_id: string;
+  rating: number;
+  texto?: string;
   created_at: string;
   usuario?: {
     nombre?: string;
-    avatar_url?: string;
+    avatar?: string;
   };
 }
 
@@ -66,48 +66,17 @@ export default function DetalleLocalScreen() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
 
-  // ✅ FIXED: Removed unnecessary dependencies - cargarReviewsBarlive and params.id are outer scope values
-  const cargarLocal = useCallback(async () => {
-    try {
-      const cachedData = localPreloader.getCached(params.id as string);
-      if (cachedData) {
-        console.log('[DetalleLocal] Using cached data - INSTANT LOAD');
-        setLocal(cachedData);
-        cargarReviewsBarlive();
-        return;
-      }
-
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('locales')
-        .select('*')
-        .eq('id', params.id)
-        .single();
-
-      if (error) {
-        console.error('[DetalleLocal] Error loading local:', error);
-        return;
-      }
-
-      console.log('[DetalleLocal] Loaded local from Supabase:', data);
-      setLocal(data);
-      setLoading(false);
-    } catch (error) {
-      console.error('[DetalleLocal] Error:', error);
-      setLoading(false);
-    }
-  }, []);
-
-  const cargarReviewsBarlive = async () => {
+  const cargarReviewsBarlive = useCallback(async () => {
     try {
       setLoadingReviews(true);
+      // ✅ FIXED: Changed from 'reviews' to 'reviews_barlive'
       const { data, error } = await supabase
-        .from('reviews')
+        .from('reviews_barlive')
         .select(`
           *,
-          usuario:user_id (
+          usuario:usuario_id (
             nombre,
-            avatar_url
+            avatar
           )
         `)
         .eq('local_id', params.id)
@@ -126,7 +95,41 @@ export default function DetalleLocalScreen() {
       console.error('[DetalleLocal] Error loading reviews:', error);
       setLoadingReviews(false);
     }
-  };
+  }, [params.id]);
+
+  const cargarLocal = useCallback(async () => {
+    try {
+      const cachedData = localPreloader.getCached(params.id as string);
+      if (cachedData) {
+        console.log('[DetalleLocal] Using cached data - INSTANT LOAD');
+        setLocal(cachedData);
+        setLoading(false);
+        cargarReviewsBarlive();
+        return;
+      }
+
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('locales')
+        .select('*')
+        .eq('id', params.id)
+        .single();
+
+      if (error) {
+        console.error('[DetalleLocal] Error loading local:', error);
+        setLoading(false);
+        return;
+      }
+
+      console.log('[DetalleLocal] Loaded local from Supabase:', data);
+      setLocal(data);
+      setLoading(false);
+      cargarReviewsBarlive();
+    } catch (error) {
+      console.error('[DetalleLocal] Error:', error);
+      setLoading(false);
+    }
+  }, [params.id, cargarReviewsBarlive]);
 
   useEffect(() => {
     if (params.id) {
@@ -355,11 +358,11 @@ export default function DetalleLocalScreen() {
                   </Text>
                   <View style={styles.reviewRating}>
                     <Ionicons name="star" size={16} color={colors.warning} />
-                    <Text style={styles.reviewRatingText}>{review.valoracion}</Text>
+                    <Text style={styles.reviewRatingText}>{review.rating}</Text>
                   </View>
                 </View>
-                {review.comentario && (
-                  <Text style={styles.reviewComment}>{review.comentario}</Text>
+                {review.texto && (
+                  <Text style={styles.reviewComment}>{review.texto}</Text>
                 )}
                 <Text style={styles.reviewDate}>
                   {new Date(review.created_at).toLocaleDateString()}

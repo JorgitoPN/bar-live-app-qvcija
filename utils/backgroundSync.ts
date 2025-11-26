@@ -17,6 +17,26 @@ class BackgroundSyncManager {
   private isProcessing: boolean = false;
   private maxConcurrent: number = 3;
   private activeCount: number = 0;
+  private initialized: boolean = false;
+
+  /**
+   * Initialize the background sync manager
+   */
+  async initialize(): Promise<void> {
+    if (this.initialized) {
+      console.log('[BackgroundSync] ✅ Already initialized');
+      return;
+    }
+
+    try {
+      console.log('[BackgroundSync] 🚀 Initializing...');
+      this.initialized = true;
+      console.log('[BackgroundSync] ✅ Initialized successfully');
+    } catch (error) {
+      console.error('[BackgroundSync] ❌ Initialization failed:', error);
+      throw error;
+    }
+  }
 
   /**
    * Schedule a background task
