@@ -1,7 +1,7 @@
 
 import { InteractionManager } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// ✅ FIXED: Changed Array<T> to T[]
 class PerformanceOptimizer {
   private pendingTasks: Map<string, any> = new Map();
   private taskQueue: (() => Promise<void>)[] = [];
@@ -136,11 +136,85 @@ class PerformanceOptimizer {
   }
 
   /**
+   * Get data from cache
+   */
+  async getCache<T>(key: string): Promise<T | null> {
+    try {
+      // Check memory cache first
+      const memCached = this.memoryCache.get(key);
+      if (memCached && Date.now() - memCached.timestamp < memCached.ttl) {
+        console.log('[PerformanceOptimizer] Memory cache hit:', key);
+        return memCached.data as T;
+      }
+
+      // Check AsyncStorage
+      const cached = await AsyncStorage.getItem(`cache_${key}`);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Date.now() - parsed.timestamp < parsed.ttl) {
+          console.log('[PerformanceOptimizer] AsyncStorage cache hit:', key);
+          // Update memory cache
+          this.memoryCache.set(key, parsed);
+          return parsed.data as T;
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.error('[PerformanceOptimizer] Error getting cache:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Set data in cache
+   */
+  async setCache<T>(key: string, data: T, ttl: number = 5 * 60 * 1000): Promise<void> {
+    try {
+      const cacheData = {
+        data,
+        timestamp: Date.now(),
+        ttl,
+      };
+
+      // Set in memory cache
+      this.memoryCache.set(key, cacheData);
+
+      // Set in AsyncStorage
+      await AsyncStorage.setItem(`cache_${key}`, JSON.stringify(cacheData));
+      
+      console.log('[PerformanceOptimizer] Cache set:', key);
+    } catch (error) {
+      console.error('[PerformanceOptimizer] Error setting cache:', error);
+    }
+  }
+
+  /**
    * Clear memory cache
    */
   clearCache(): void {
     this.memoryCache.clear();
     console.log('[PerformanceOptimizer] Cache cleared');
+  }
+
+  /**
+   * Clear all caches including AsyncStorage
+   */
+  async clearAllCaches(): Promise<void> {
+    try {
+      this.memoryCache.clear();
+      
+      // Get all keys from AsyncStorage
+      const keys = await AsyncStorage.getAllKeys();
+      const cacheKeys = keys.filter(key => key.startsWith('cache_'));
+      
+      // Remove all cache keys
+      await AsyncStorage.multiRemove(cacheKeys);
+      
+      console.log('[PerformanceOptimizer] All caches cleared');
+    } catch (error) {
+      console.error('[PerformanceOptimizer] Error clearing all caches:', error);
+    }
   }
 
   /**

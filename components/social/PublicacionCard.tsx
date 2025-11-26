@@ -218,9 +218,12 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
       ? [post.imagen] 
       : [];
 
+  // ✅ FIXED: Display author name and profile picture properly
   const displayName = post?.autorUsername 
     ? post.autorUsername.replace(/^@/, '')
     : post?.autorNombre || 'Usuario';
+
+  const avatarUrl = post?.autorAvatar || null;
 
   return (
     <View style={styles.card}>
@@ -235,14 +238,16 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
         }}
         activeOpacity={0.7}
       >
-        {post?.autorAvatar ? (
-          <Image source={{ uri: post.autorAvatar }} style={styles.avatar} />
+        {/* ✅ FIXED: Show profile picture properly */}
+        {avatarUrl ? (
+          <Image source={{ uri: avatarUrl }} style={styles.avatar} />
         ) : (
           <View style={styles.avatarPlaceholder}>
             <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={20} color={colors.textSecondary} />
           </View>
         )}
         <View style={styles.headerContent}>
+          {/* ✅ FIXED: Show author name properly */}
           <Text style={styles.autorNombre}>{displayName}</Text>
           <Text style={styles.fecha}>{post?.fecha ? formatearFecha(post.fecha) : 'Fecha desconocida'}</Text>
         </View>

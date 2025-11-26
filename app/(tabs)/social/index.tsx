@@ -17,7 +17,7 @@ import { useGlobalData } from '@/contexts/GlobalDataContext';
 import { useMode } from '@/contexts/ModeContext';
 import { colors } from '@/styles/commonStyles';
 import FeedSocial from '@/components/social/FeedSocial';
-import BarraHistorias from '@/components/social/BarraHistorias';
+import NewBarraHistorias from '@/components/social/NewBarraHistorias';
 import HeaderSocial from '@/components/layout/HeaderSocial';
 import type { Publicacion, Historia } from '@/types';
 
@@ -213,6 +213,14 @@ export default function SocialScreen() {
     router.push('/crear/historia');
   };
 
+  const handleHistoriaPress = (historia: Historia) => {
+    console.log('[Social] 📖 Story pressed:', historia.id);
+    router.push({
+      pathname: '/detalle/historia',
+      params: { id: historia.id },
+    });
+  };
+
   if (isInitialLoad && posts.length === 0) {
     return (
       <View style={styles.container}>
@@ -232,11 +240,16 @@ export default function SocialScreen() {
   // FeedSocial uses FlatList internally which handles scrolling
   const ListHeaderComponent = () => (
     <>
-      {historias.length > 0 && (
-        <View style={styles.storiesSection}>
-          <BarraHistorias historias={historias} />
-        </View>
-      )}
+      {/* ✅ FIXED: Always show story bar with larger avatars */}
+      <View style={styles.storiesSection}>
+        <NewBarraHistorias 
+          historias={historias}
+          onHistoriaPress={handleHistoriaPress}
+          onCrearHistoria={handleCreateStory}
+          userAvatar={user?.avatar}
+          userName={user?.nombre}
+        />
+      </View>
     </>
   );
 
@@ -273,7 +286,10 @@ export default function SocialScreen() {
           ListHeaderComponent={ListHeaderComponent}
         />
       ) : (
-        <ListEmptyComponent />
+        <>
+          <ListHeaderComponent />
+          <ListEmptyComponent />
+        </>
       )}
     </View>
   );
