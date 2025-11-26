@@ -13,6 +13,7 @@ import { IconSymbol } from '../../components/IconSymbol';
 import * as Location from 'expo-location';
 import ImageGalleryModal from '../../components/detalle/ImageGalleryModal';
 import { CATEGORIAS_EXCLUIDAS } from '../../utils/constants';
+import { getEstadoLocal } from '../../utils/timeUtils';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -98,27 +99,27 @@ const getCategoryIcon = (categoria?: string): { ios: string; android: string } =
 };
 
 // Helper function to get service icon
-const getServiceIcon = (servicio: string): { ios: string; android: string } => {
-  const serviceMap: Record<string, { ios: string; android: string }> = {
-    'cerveza': { ios: 'wineglass', android: 'sports_bar' },
-    'cócteles': { ios: 'wineglass.fill', android: 'local_bar' },
-    'cocktails': { ios: 'wineglass.fill', android: 'local_bar' },
-    'efectivo': { ios: 'banknote', android: 'payments' },
-    'tarjetas': { ios: 'creditcard.fill', android: 'credit_card' },
-    'wifi': { ios: 'wifi', android: 'wifi' },
-    'terraza': { ios: 'sun.max.fill', android: 'wb_sunny' },
-    'parking': { ios: 'car.fill', android: 'local_parking' },
-    'accesibilidad': { ios: 'figure.roll', android: 'accessible' },
-    'reservas': { ios: 'calendar', android: 'event' },
-    'delivery': { ios: 'bicycle', android: 'delivery_dining' },
-    'takeaway': { ios: 'bag.fill', android: 'takeout_dining' },
-    'comida': { ios: 'fork.knife', android: 'restaurant' },
-    'bebidas': { ios: 'cup.and.saucer.fill', android: 'local_cafe' },
-    'musica en vivo': { ios: 'music.note', android: 'music_note' },
-    'música en vivo': { ios: 'music.note', android: 'music_note' },
-    'karaoke': { ios: 'mic.fill', android: 'mic' },
-    'tv': { ios: 'tv.fill', android: 'tv' },
-    'juegos': { ios: 'gamecontroller.fill', android: 'sports_esports' },
+const getServiceIcon = (servicio: string): { ios: string; android: string; color: string } => {
+  const serviceMap: Record<string, { ios: string; android: string; color: string }> = {
+    'cerveza': { ios: 'wineglass', android: 'sports_bar', color: '#F59E0B' },
+    'cócteles': { ios: 'wineglass.fill', android: 'local_bar', color: '#EC4899' },
+    'cocktails': { ios: 'wineglass.fill', android: 'local_bar', color: '#EC4899' },
+    'efectivo': { ios: 'banknote', android: 'payments', color: '#10B981' },
+    'tarjetas': { ios: 'creditcard.fill', android: 'credit_card', color: '#3B82F6' },
+    'wifi': { ios: 'wifi', android: 'wifi', color: '#8B5CF6' },
+    'terraza': { ios: 'sun.max.fill', android: 'wb_sunny', color: '#F59E0B' },
+    'parking': { ios: 'car.fill', android: 'local_parking', color: '#6366F1' },
+    'accesibilidad': { ios: 'figure.roll', android: 'accessible', color: '#10B981' },
+    'reservas': { ios: 'calendar', android: 'event', color: '#EF4444' },
+    'delivery': { ios: 'bicycle', android: 'delivery_dining', color: '#F59E0B' },
+    'takeaway': { ios: 'bag.fill', android: 'takeout_dining', color: '#8B5CF6' },
+    'comida': { ios: 'fork.knife', android: 'restaurant', color: '#EF4444' },
+    'bebidas': { ios: 'cup.and.saucer.fill', android: 'local_cafe', color: '#F59E0B' },
+    'musica en vivo': { ios: 'music.note', android: 'music_note', color: '#EC4899' },
+    'música en vivo': { ios: 'music.note', android: 'music_note', color: '#EC4899' },
+    'karaoke': { ios: 'mic.fill', android: 'mic', color: '#8B5CF6' },
+    'tv': { ios: 'tv.fill', android: 'tv', color: '#3B82F6' },
+    'juegos': { ios: 'gamecontroller.fill', android: 'sports_esports', color: '#10B981' },
   };
   
   const lowerServicio = servicio.toLowerCase();
@@ -128,85 +129,7 @@ const getServiceIcon = (servicio: string): { ios: string; android: string } => {
     }
   }
   
-  return { ios: 'checkmark.circle.fill', android: 'check_circle' };
-};
-
-// FIXED: Helper function to calculate time until closing/opening with proper real-time logic
-const getTimeUntilClosing = (horarios?: Record<string, string[]>): { text: string; isOpen: boolean } | null => {
-  if (!horarios) return null;
-  
-  const now = new Date();
-  const dayNames = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-  const currentDay = dayNames[now.getDay()];
-  const todayHours = horarios[currentDay];
-  
-  if (!todayHours || todayHours.length === 0) {
-    // Find next opening day
-    for (let i = 1; i <= 7; i++) {
-      const nextDayIndex = (now.getDay() + i) % 7;
-      const nextDay = dayNames[nextDayIndex];
-      const nextDayHours = horarios[nextDay];
-      if (nextDayHours && nextDayHours.length > 0) {
-        const dayName = nextDay.charAt(0).toUpperCase() + nextDay.slice(1);
-        return { text: `Abre ${dayName}`, isOpen: false };
-      }
-    }
-    return null;
-  }
-  
-  const currentTime = now.getHours() * 60 + now.getMinutes();
-  
-  // Check all time ranges for today
-  for (const range of todayHours) {
-    const [openStr, closeStr] = range.split('–').map(t => t.trim());
-    const [openH, openM] = openStr.split(':').map(Number);
-    const [closeH, closeM] = closeStr.split(':').map(Number);
-    
-    let openTime = openH * 60 + openM;
-    let closeTime = closeH * 60 + closeM;
-    
-    // Handle overnight hours (e.g., 23:00-03:00)
-    if (closeTime < openTime) {
-      closeTime += 24 * 60;
-    }
-    
-    // Check if currently open
-    if (currentTime >= openTime && currentTime < closeTime) {
-      const minutesUntilClose = closeTime - currentTime;
-      const hours = Math.floor(minutesUntilClose / 60);
-      const minutes = minutesUntilClose % 60;
-      
-      if (hours > 0) {
-        return { text: `Cierra en ${hours}h ${minutes}min`, isOpen: true };
-      }
-      return { text: `Cierra en ${minutes}min`, isOpen: true };
-    }
-    
-    // Check if opening soon today
-    if (currentTime < openTime) {
-      const minutesUntilOpen = openTime - currentTime;
-      const hours = Math.floor(minutesUntilOpen / 60);
-      const minutes = minutesUntilOpen % 60;
-      
-      if (hours > 0) {
-        return { text: `Abre en ${hours}h ${minutes}min`, isOpen: false };
-      }
-      return { text: `Abre en ${minutes}min`, isOpen: false };
-    }
-  }
-  
-  // If we're past all today's hours, find next opening
-  for (let i = 1; i <= 7; i++) {
-    const nextDayIndex = (now.getDay() + i) % 7;
-    const nextDay = dayNames[nextDayIndex];
-    const nextDayHours = horarios[nextDay];
-    if (nextDayHours && nextDayHours.length > 0) {
-      const dayName = nextDay.charAt(0).toUpperCase() + nextDay.slice(1);
-      return { text: `Abre ${dayName}`, isOpen: false };
-    }
-  }
-  
-  return null;
+  return { ios: 'checkmark.circle.fill', android: 'check_circle', color: colors.primary };
 };
 
 // Helper function to calculate distance
@@ -258,18 +181,18 @@ export default function DetalleLocalScreen() {
   const [expandedReviews, setExpandedReviews] = useState<Set<string>>(new Set());
   const [pulseAnim] = useState(new Animated.Value(1));
 
-  // Pulse animation for status badge
+  // Pulse animation for status badge when open
   useEffect(() => {
     const pulse = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
-          toValue: 1.1,
-          duration: 1000,
+          toValue: 1.15,
+          duration: 1200,
           useNativeDriver: true,
         }),
         Animated.timing(pulseAnim, {
           toValue: 1,
-          duration: 1000,
+          duration: 1200,
           useNativeDriver: true,
         }),
       ])
@@ -547,9 +470,9 @@ export default function DetalleLocalScreen() {
     ...(local.galeria_urls || [])
   ].filter(Boolean);
 
-  // FIXED: Calculate real-time status
-  const timeInfo = getTimeUntilClosing(local.horarios_completos);
-  const isOpen = timeInfo?.isOpen || false;
+  // FIXED: Use comprehensive status calculation from timeUtils
+  const estadoLocal = getEstadoLocal(local);
+  const isOpen = estadoLocal.estaAbierto === true;
   const hasSocialProfile = local.plan_activo === 'estandar' || local.plan_activo === 'premium';
 
   // FIXED: Extract services from servicios_disponibles
@@ -654,20 +577,20 @@ export default function DetalleLocalScreen() {
             </ScrollView>
           </TouchableOpacity>
           
-          {/* FIXED: Status Badge and Time - Top Left - HIGHER POSITION with animation */}
+          {/* FIXED: Status Badge with Real-Time Info */}
           <Animated.View style={[styles.statusBadgeTop, { transform: [{ scale: isOpen ? pulseAnim : 1 }] }]}>
             <BlurView intensity={80} tint="dark" style={styles.statusBlur}>
               <View style={[styles.statusDot, isOpen ? styles.statusDotOpen : styles.statusDotClosed]} />
               <Text style={styles.statusText}>
-                {isOpen ? 'Abierto' : 'Cerrado'}
+                {estadoLocal.badge}
               </Text>
-              {timeInfo && (
-                <Text style={styles.statusSubtext}>• {timeInfo.text}</Text>
+              {estadoLocal.tiempoRestante && (
+                <Text style={styles.statusSubtext}>• {estadoLocal.tiempoRestante}</Text>
               )}
             </BlurView>
           </Animated.View>
 
-          {/* Rating Badge - Top Right - HIGHER POSITION */}
+          {/* Rating Badge - Top Right */}
           {displayRating > 0 && (
             <View style={styles.ratingBadgeTop}>
               <BlurView intensity={80} tint="dark" style={styles.ratingBlur}>
@@ -677,21 +600,21 @@ export default function DetalleLocalScreen() {
             </View>
           )}
 
-          {/* Back Button - Below Status */}
+          {/* Back Button */}
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
               <Ionicons name="arrow-back" size={24} color="#fff" />
             </BlurView>
           </TouchableOpacity>
 
-          {/* Share Button - Below Rating */}
+          {/* Share Button */}
           <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
             <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
               <IconSymbol ios_icon_name="square.and.arrow.up" android_material_icon_name="share" size={22} color="#fff" />
             </BlurView>
           </TouchableOpacity>
 
-          {/* Favorite Button - Bottom Right */}
+          {/* Favorite Button */}
           <TouchableOpacity style={styles.favoriteButton} onPress={handleToggleFavorite}>
             <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
               <IconSymbol 
@@ -816,12 +739,10 @@ export default function DetalleLocalScreen() {
                 style={styles.actionButtonGradient}
               >
                 <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={20} color="#fff" />
-                <View style={styles.actionButtonTextContainer}>
-                  <Text style={styles.actionButtonText}>Cómo llegar</Text>
-                  {distance && (
-                    <Text style={styles.distanceText}>{distance}</Text>
-                  )}
-                </View>
+                <Text style={styles.actionButtonText}>Cómo llegar</Text>
+                {distance && (
+                  <Text style={styles.distanceText}>{distance}</Text>
+                )}
               </LinearGradient>
             </TouchableOpacity>
           )}
@@ -889,12 +810,12 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* FIXED: Services Section with Icons */}
+        {/* FIXED: Services Section with Colored Icons */}
         {allServices.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionIconContainer}>
-                <IconSymbol ios_icon_name="bell.fill" android_material_icon_name="notifications" size={24} color={colors.primary} />
+                <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={24} color={colors.primary} />
               </View>
               <Text style={styles.sectionTitle}>Servicios Disponibles</Text>
             </View>
@@ -903,12 +824,12 @@ export default function DetalleLocalScreen() {
                 const icon = getServiceIcon(servicio);
                 return (
                   <View key={index} style={styles.serviceItem}>
-                    <View style={styles.serviceIconBg}>
+                    <View style={[styles.serviceIconBg, { backgroundColor: icon.color + '20' }]}>
                       <IconSymbol 
                         ios_icon_name={icon.ios} 
                         android_material_icon_name={icon.android} 
                         size={20} 
-                        color={colors.primary} 
+                        color={icon.color} 
                       />
                     </View>
                     <Text style={styles.serviceText}>{servicio}</Text>
@@ -990,7 +911,7 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* FIXED: Reviews Section - Show only BarLive count */}
+        {/* FIXED: Reviews Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionIconContainer}>
@@ -1352,15 +1273,12 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   actionButtonGradient: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 4,
     paddingVertical: 14,
     paddingHorizontal: 12,
-  },
-  actionButtonTextContainer: {
-    alignItems: 'center',
   },
   actionButtonText: {
     fontSize: 14,
@@ -1447,11 +1365,12 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   scheduleRowToday: {
-    backgroundColor: colors.primary + '15',
+    backgroundColor: colors.primary + '20',
     marginHorizontal: -16,
     paddingHorizontal: 16,
     borderRadius: 8,
     borderBottomWidth: 0,
+    marginVertical: 4,
   },
   scheduleDayContainer: {
     flexDirection: 'row',
@@ -1507,7 +1426,6 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: colors.primary + '15',
     alignItems: 'center',
     justifyContent: 'center',
   },
