@@ -240,6 +240,26 @@ export default function TabLayout() {
   const tabs = getTabsForRole();
   console.log('[TabLayout] ⚡ Rendering tabs:', tabs.map(t => t.name));
 
+  // ✅ FIX: Only show tabs on main tab pages (explorar, eventos, favoritos, social, perfil, gestion, admin)
+  const shouldShowTabs = () => {
+    // Only show tabs on these specific routes
+    const showTabsRoutes = [
+      '/(tabs)/explorar',
+      '/(tabs)/eventos',
+      '/(tabs)/favoritos',
+      '/(tabs)/social',
+      '/(tabs)/perfil',
+      '/(tabs)/gestion',
+      '/(tabs)/admin',
+    ];
+
+    // Check if current pathname matches any of the show routes
+    const shouldShow = showTabsRoutes.some(route => pathname === route || pathname === route + '/');
+    
+    console.log('[TabLayout] Should show tabs:', shouldShow, 'for pathname:', pathname);
+    return shouldShow;
+  };
+
   return (
     <>
       <Tabs
@@ -328,12 +348,14 @@ export default function TabLayout() {
         />
       </Tabs>
       
-      {/* ⚡ Floating Tab Bar - Optimized for instant navigation */}
-      <FloatingTabBar 
-        tabs={tabs} 
-        containerWidth={screenWidth} 
-        key={`${userRole}-${currentMode}`} 
-      />
+      {/* ⚡ Floating Tab Bar - Only show on main tab pages */}
+      {shouldShowTabs() && (
+        <FloatingTabBar 
+          tabs={tabs} 
+          containerWidth={screenWidth} 
+          key={`${userRole}-${currentMode}`} 
+        />
+      )}
     </>
   );
 }
