@@ -5,7 +5,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../integrations/supabase/client';
 import { colors } from '../../styles/commonStyles';
-import { localPreloader } from '../../utils/localPreloader';
 import OptimizedImage from '../../components/common/OptimizedImage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -25,7 +24,7 @@ interface Local {
   direccion?: string;
   telefono?: string;
   email?: string;
-  web?: string;
+  website?: string;
   horario?: string;
   categoria?: string;
   subcategoria?: string;
@@ -68,6 +67,8 @@ interface Local {
   google_rating?: number;
   google_user_ratings_total?: number;
   destacado?: boolean;
+  rating?: number;
+  metodos_pago_completos?: Record<string, boolean>;
 }
 
 interface Review {
@@ -115,28 +116,50 @@ const getServiceIcon = (servicio: string): { ios: string; android: string; color
   const serviceMap: Record<string, { ios: string; android: string; color: string }> = {
     'cerveza': { ios: 'wineglass', android: 'sports_bar', color: '#F59E0B' },
     'cócteles': { ios: 'wineglass.fill', android: 'local_bar', color: '#EC4899' },
+    'cocteles': { ios: 'wineglass.fill', android: 'local_bar', color: '#EC4899' },
     'cocktails': { ios: 'wineglass.fill', android: 'local_bar', color: '#EC4899' },
     'efectivo': { ios: 'banknote', android: 'payments', color: '#10B981' },
+    'pago_efectivo': { ios: 'banknote', android: 'payments', color: '#10B981' },
     'tarjetas': { ios: 'creditcard.fill', android: 'credit_card', color: '#3B82F6' },
+    'pago_tarjetas': { ios: 'creditcard.fill', android: 'credit_card', color: '#3B82F6' },
+    'tarjetas_credito': { ios: 'creditcard.fill', android: 'credit_card', color: '#3B82F6' },
+    'tarjetas_debito': { ios: 'creditcard.fill', android: 'credit_card', color: '#3B82F6' },
     'wifi': { ios: 'wifi', android: 'wifi', color: '#8B5CF6' },
+    'wifi_gratis': { ios: 'wifi', android: 'wifi', color: '#8B5CF6' },
     'terraza': { ios: 'sun.max.fill', android: 'wb_sunny', color: '#F59E0B' },
+    'terraza_exterior': { ios: 'sun.max.fill', android: 'wb_sunny', color: '#F59E0B' },
     'parking': { ios: 'car.fill', android: 'local_parking', color: '#6366F1' },
+    'aparcamiento': { ios: 'car.fill', android: 'local_parking', color: '#6366F1' },
     'accesibilidad': { ios: 'figure.roll', android: 'accessible', color: '#10B981' },
+    'accesible_silla_ruedas': { ios: 'figure.roll', android: 'accessible', color: '#10B981' },
     'reservas': { ios: 'calendar', android: 'event', color: '#EF4444' },
     'delivery': { ios: 'bicycle', android: 'delivery_dining', color: '#F59E0B' },
+    'entrega_domicilio': { ios: 'bicycle', android: 'delivery_dining', color: '#F59E0B' },
     'takeaway': { ios: 'bag.fill', android: 'takeout_dining', color: '#8B5CF6' },
+    'para_llevar': { ios: 'bag.fill', android: 'takeout_dining', color: '#8B5CF6' },
     'comida': { ios: 'fork.knife', android: 'restaurant', color: '#EF4444' },
+    'almuerzo': { ios: 'fork.knife', android: 'restaurant', color: '#EF4444' },
+    'cena': { ios: 'fork.knife', android: 'restaurant', color: '#EF4444' },
+    'desayuno': { ios: 'cup.and.saucer.fill', android: 'local_cafe', color: '#F59E0B' },
     'bebidas': { ios: 'cup.and.saucer.fill', android: 'local_cafe', color: '#F59E0B' },
+    'cafe': { ios: 'cup.and.saucer.fill', android: 'local_cafe', color: '#F59E0B' },
+    'vino': { ios: 'wineglass.fill', android: 'wine_bar', color: '#8B5CF6' },
     'musica en vivo': { ios: 'music.note', android: 'music_note', color: '#EC4899' },
     'música en vivo': { ios: 'music.note', android: 'music_note', color: '#EC4899' },
+    'musica_vivo': { ios: 'music.note', android: 'music_note', color: '#EC4899' },
     'karaoke': { ios: 'mic.fill', android: 'mic', color: '#8B5CF6' },
     'tv': { ios: 'tv.fill', android: 'tv', color: '#3B82F6' },
+    'deportes_tv': { ios: 'tv.fill', android: 'tv', color: '#3B82F6' },
     'juegos': { ios: 'gamecontroller.fill', android: 'sports_esports', color: '#10B981' },
+    'dj': { ios: 'music.note.list', android: 'music_note', color: '#EC4899' },
+    'sin_gluten': { ios: 'leaf.fill', android: 'eco', color: '#10B981' },
+    'opciones_veganas': { ios: 'leaf.fill', android: 'eco', color: '#10B981' },
+    'comida_vegetariana': { ios: 'leaf.fill', android: 'eco', color: '#10B981' },
   };
   
-  const lowerServicio = servicio.toLowerCase();
+  const lowerServicio = servicio.toLowerCase().replace(/ /g, '_');
   for (const [key, value] of Object.entries(serviceMap)) {
-    if (lowerServicio.includes(key)) {
+    if (lowerServicio.includes(key) || key.includes(lowerServicio)) {
       return value;
     }
   }
@@ -160,9 +183,9 @@ const getAmbienteIcon = (ambiente: string): { ios: string; android: string; colo
     'tematico': { ios: 'star.fill', android: 'star', color: '#8B5CF6' },
   };
   
-  const lowerAmbiente = ambiente.toLowerCase();
+  const lowerAmbiente = ambiente.toLowerCase().replace(/ /g, '_');
   for (const [key, value] of Object.entries(ambienteMap)) {
-    if (lowerAmbiente.includes(key)) {
+    if (lowerAmbiente.includes(key) || key.includes(lowerAmbiente)) {
       return value;
     }
   }
@@ -183,9 +206,9 @@ const getClientelaIcon = (clientela: string): { ios: string; android: string; co
     'locales': { ios: 'person.2.fill', android: 'people', color: '#8B5CF6' },
   };
   
-  const lowerClientela = clientela.toLowerCase();
+  const lowerClientela = clientela.toLowerCase().replace(/ /g, '_');
   for (const [key, value] of Object.entries(clientelaMap)) {
-    if (lowerClientela.includes(key)) {
+    if (lowerClientela.includes(key) || key.includes(lowerClientela)) {
       return value;
     }
   }
@@ -612,18 +635,22 @@ export default function DetalleLocalScreen() {
   // Extract services from servicios_disponibles
   const allServices: string[] = [];
   if (local.servicios_disponibles) {
-    Object.values(local.servicios_disponibles).forEach((category: any) => {
-      if (typeof category === 'object') {
-        Object.entries(category).forEach(([key, value]) => {
-          if (value === true) {
-            allServices.push(key.replace(/_/g, ' '));
-          }
-        });
+    Object.entries(local.servicios_disponibles).forEach(([key, value]) => {
+      if (value === true) {
+        allServices.push(key.replace(/_/g, ' '));
       }
     });
   }
   if (local.servicios && local.servicios.length > 0) {
     allServices.push(...local.servicios);
+  }
+  // Add payment methods to services
+  if (local.metodos_pago_completos) {
+    Object.entries(local.metodos_pago_completos).forEach(([key, value]) => {
+      if (value === true) {
+        allServices.push(key.replace(/_/g, ' '));
+      }
+    });
   }
 
   // Extract ambiente tags
@@ -654,7 +681,7 @@ export default function DetalleLocalScreen() {
   const currentDayName = dayNames[new Date().getDay()];
 
   // Calculate rating to display (Google or BarLive)
-  const displayRating = local.google_rating || averageRating || 0;
+  const displayRating = local.rating || local.google_rating || averageRating || 0;
 
   // Show only BarLive reviews, including up to 2 Google reviews
   const barliveReviewsCount = reviews.length;
@@ -962,7 +989,7 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* Services Section */}
+        {/* Services Section - ALWAYS SHOW IF THERE ARE SERVICES */}
         {allServices.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -992,7 +1019,7 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* Atmosphere Section */}
+        {/* Atmosphere Section - ALWAYS SHOW IF THERE ARE AMBIENTE TAGS */}
         {ambienteTags.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -1022,7 +1049,7 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* Typical Clientele Section */}
+        {/* Typical Clientele Section - ALWAYS SHOW IF THERE ARE CLIENTELA TAGS */}
         {clientelaTags.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -1052,7 +1079,7 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* Reviews Analysis Section */}
+        {/* Reviews Analysis Section - ALWAYS SHOW IF THERE IS ANALYSIS DATA */}
         {local.analisis_reviews && Object.keys(local.analisis_reviews).length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
