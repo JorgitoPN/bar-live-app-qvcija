@@ -61,7 +61,6 @@ interface Local {
   estado_actual?: 'abierto_ahora' | 'cerrado_ahora';
   clientela?: Record<string, boolean>;
   plan_activo?: string;
-  logo?: string;
   barlive_type?: string;
   barlive_types?: string[];
   analisis_reviews?: Record<string, any>;
@@ -285,7 +284,7 @@ export default function DetalleLocalScreen() {
         .select('id')
         .eq('usuario_id', user.id)
         .eq('local_id', params.id)
-        .single();
+        .maybeSingle();
       
       if (!error && data) {
         setIsFavorite(true);
@@ -512,26 +511,40 @@ export default function DetalleLocalScreen() {
       }
 
       if (isFavorite) {
-        await supabase
+        const { error } = await supabase
           .from('locales_favoritos')
           .delete()
           .eq('usuario_id', user.id)
           .eq('local_id', params.id);
+        
+        if (error) {
+          console.error('[DetalleLocal] Error removing favorite:', error);
+          Alert.alert('Error', 'No se pudo eliminar de favoritos');
+          return;
+        }
+        
         setIsFavorite(false);
         Alert.alert('Eliminado', 'Local eliminado de favoritos');
       } else {
-        await supabase
+        const { error } = await supabase
           .from('locales_favoritos')
           .insert({
             usuario_id: user.id,
             local_id: params.id,
           });
+        
+        if (error) {
+          console.error('[DetalleLocal] Error adding favorite:', error);
+          Alert.alert('Error', 'No se pudo añadir a favoritos');
+          return;
+        }
+        
         setIsFavorite(true);
         Alert.alert('Añadido', 'Local añadido a favoritos');
       }
       
       // Refresh to sync with card
-      checkIfFavorite();
+      await checkIfFavorite();
     } catch (error) {
       console.error('[DetalleLocal] Error toggling favorite:', error);
       Alert.alert('Error', 'No se pudo actualizar favoritos');
@@ -643,12 +656,11 @@ export default function DetalleLocalScreen() {
   // Calculate rating to display (Google or BarLive)
   const displayRating = local.google_rating || averageRating || 0;
 
-  // Show only BarLive reviews count, including up to 2 Google reviews
+  // Show only BarLive reviews, including up to 2 Google reviews
   const barliveReviewsCount = reviews.length;
   const googleReviewsToShow = Math.min(2, (local.reviews_google || []).length);
-  const totalReviewsToShow = barliveReviewsCount + googleReviewsToShow;
 
-  // Combine and limit reviews to 3 total (compact)
+  // Combine and limit reviews to 3 total (compact) - DO NOT SHOW TOTAL COUNT
   const allReviews = [
     ...reviews.map(r => ({ ...r, isGoogle: false })),
     ...(local.reviews_google || []).slice(0, 3 - reviews.length).map((r: any) => ({
@@ -1080,16 +1092,13 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* Reviews Section with Avatars */}
+        {/* Reviews Section with Avatars - NO TOTAL COUNT */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <View style={[styles.sectionIconContainer, { backgroundColor: '#F59E0B' }]}>
               <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={26} color="#fff" />
             </View>
             <Text style={styles.sectionTitle}>Reseñas</Text>
-            {totalReviewsToShow > 0 && (
-              <Text style={styles.reviewCount}>({totalReviewsToShow})</Text>
-            )}
           </View>
 
           {/* All Reviews (BarLive + up to 2 Google, max 3 total) - ULTRA COMPACT */}
@@ -1104,23 +1113,12 @@ export default function DetalleLocalScreen() {
                 return (
                   <View key={review.id} style={styles.reviewCardCompact}>
                     <View style={styles.reviewHeaderCompact}>
-                      {review.isGoogle ? (
-                        <View style={styles.reviewAvatarCompact}>
-                          <Ionicons name="logo-google" size={20} color="#4285F4" />
-                        </View>
-                      ) : review.usuario?.avatar ? (
-                        <OptimizedImage
-                          source={{ uri: `${review.usuario.avatar}?v=${Date.now()}` }}
-                          style={styles.reviewAvatarCompact}
-                        />
-                      ) : (
-                        <View style={styles.reviewAvatarCompact}>
-                          <Ionicons name="person" size={20} color={colors.textSecondary} />
-                        </View>
-                      )}
+                      <View style={styles.reviewAvatarCompact}>
+                        <Ionicons name="person" size={20} color={colors.textSecondary} />
+                      </View>
                       <View style={styles.reviewInfoCompact}>
                         <Text style={styles.reviewAuthorNameCompact}>
-                          {review.isGoogle ? '🌐 Cliente Google' : (review.usuario?.nombre || 'Usuario')}
+                          Cliente del local
                         </Text>
                         <View style={styles.reviewRatingCompact}>
                           <Ionicons name="star" size={16} color="#FFD700" />

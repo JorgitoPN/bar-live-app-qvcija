@@ -38,7 +38,7 @@ interface InteractionMessage {
 interface Local {
   id: string;
   nombre: string;
-  logo?: string;
+  imagen_url?: string;
   descripcion?: string;
 }
 
@@ -68,7 +68,7 @@ export default function SalaVirtualScreen() {
     try {
       const { data, error } = await supabase
         .from('locales')
-        .select('id, nombre, logo, descripcion')
+        .select('id, nombre, imagen_url, descripcion')
         .eq('id', localId)
         .single();
 
