@@ -1,6 +1,8 @@
 
 # Guía: Cambiar OAuth de Web Application a iOS y Android
 
+> **⚠️ NOTA IMPORTANTE**: Esta es una guía resumida. Para una guía completa paso a paso con todos los detalles, comandos y solución de problemas, consulta: **[GOOGLE_OAUTH_SETUP_COMPLETO.md](./GOOGLE_OAUTH_SETUP_COMPLETO.md)**
+
 ## 📋 Resumen
 
 Actualmente tu app usa OAuth 2.0 con **Type: Web Application**. Para una mejor experiencia en móviles nativos, debes crear credenciales específicas para **iOS** y **Android**.
@@ -209,6 +211,7 @@ Antes de considerar que todo está listo:
 
 ## 📚 Recursos Adicionales
 
+- **[Guía Completa Detallada](./GOOGLE_OAUTH_SETUP_COMPLETO.md)** ⭐ (RECOMENDADO)
 - [Supabase Auth with Google](https://supabase.com/docs/guides/auth/social-login/auth-google)
 - [Google OAuth 2.0 Setup](https://developers.google.com/identity/protocols/oauth2)
 - [Expo Deep Linking](https://docs.expo.dev/guides/deep-linking/)
@@ -217,9 +220,10 @@ Antes de considerar que todo está listo:
 
 **No te preocupes si algo no funciona a la primera**. El OAuth puede ser complicado. Si tienes problemas:
 
-1. Revisa los logs de la consola
-2. Verifica que todos los Client IDs estén correctos
-3. Espera 5-10 minutos después de hacer cambios en Google Cloud Console
-4. Asegúrate de haber rebuildeado la app
+1. Consulta la **[Guía Completa](./GOOGLE_OAUTH_SETUP_COMPLETO.md)** para solución de problemas detallada
+2. Revisa los logs de la consola
+3. Verifica que todos los Client IDs estén correctos
+4. Espera 5-10 minutos después de hacer cambios en Google Cloud Console
+5. Asegúrate de haber rebuildeado la app
 
 ¡Buena suerte! 🚀
