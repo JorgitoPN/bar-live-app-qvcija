@@ -500,7 +500,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
         </TouchableOpacity>
         {isAuthor && (
           <TouchableOpacity style={styles.deleteButton} onPress={handleDelete} activeOpacity={0.7}>
-            <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={24} color="#FF3B30" />
+            <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={20} color="#000" />
           </TouchableOpacity>
         )}
       </View>

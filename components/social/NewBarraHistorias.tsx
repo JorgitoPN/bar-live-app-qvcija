@@ -6,6 +6,7 @@ import { Historia } from '@/types';
 import { colors } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/utils/supabase';
 
 interface NewBarraHistoriasProps {
   historias: Historia[];
@@ -13,6 +14,7 @@ interface NewBarraHistoriasProps {
   onCrearHistoria?: () => void;
   userAvatar?: string;
   userName?: string;
+  onStoriesUpdate?: (historias: Historia[]) => void;
 }
 
 // Story Item Component
@@ -141,6 +143,7 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
   onCrearHistoria,
   userAvatar,
   userName,
+  onStoriesUpdate,
 }: NewBarraHistoriasProps) {
   const { user } = useAuth();
   
@@ -173,6 +176,74 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
       });
     }
   }, [historias]);
+
+  // ✅ NEW: Real-time story updates subscription
+  useEffect(() => {
+    if (!user || !onStoriesUpdate) return;
+
+    console.log('[NewBarraHistorias] ⚡ Setting up real-time story subscription');
+
+    const channel = supabase
+      .channel('stories_realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'historias',
+        },
+        async (payload) => {
+          console.log('[NewBarraHistorias] ⚡ New story detected:', payload);
+          
+          // Fetch the complete story data with author info
+          const { data: newStory, error } = await supabase
+            .from('historias')
+            .select(`
+              *,
+              autor:usuarios!historias_autor_id_fkey(
+                id,
+                nombre,
+                username,
+                avatar
+              )
+            `)
+            .eq('id', payload.new.id)
+            .single();
+
+          if (error) {
+            console.error('[NewBarraHistorias] Error fetching new story:', error);
+            return;
+          }
+
+          if (newStory) {
+            console.log('[NewBarraHistorias] ✅ Adding new story to list');
+            // Add the new story to the existing list
+            onStoriesUpdate([...historias, newStory as Historia]);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'historias',
+        },
+        (payload) => {
+          console.log('[NewBarraHistorias] ⚡ Story deleted:', payload);
+          // Remove the deleted story from the list
+          onStoriesUpdate(historias.filter(h => h.id !== payload.old.id));
+        }
+      )
+      .subscribe((status) => {
+        console.log('[NewBarraHistorias] Subscription status:', status);
+      });
+
+    return () => {
+      console.log('[NewBarraHistorias] Unsubscribing from stories');
+      supabase.removeChannel(channel);
+    };
+  }, [user, historias, onStoriesUpdate]);
   
   return (
     <View style={styles.container}>

@@ -783,6 +783,9 @@ export default function DetalleLocalScreen() {
   const description = local.descripcion_google || local.descripcion || '';
   const { summary: descriptionSummary, needsExpansion: needsDescriptionExpansion } = summarizeText(description, 150);
 
+  // ✅ FIXED: Correct day order Monday to Sunday
+  const orderedDays = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       {/* Cover Photo - PRESERVED */}
@@ -906,26 +909,48 @@ export default function DetalleLocalScreen() {
 
       {/* Content Card - REDESIGNED */}
       <View style={styles.contentCard}>
-        {/* Title & Categories */}
+        {/* ✅ IMPROVED: More elegant and compact header */}
         <View style={styles.headerSection}>
-          <Text style={styles.title}>{local.nombre}</Text>
+          <View style={styles.titleRow}>
+            <Text style={styles.title}>{local.nombre}</Text>
+            {displayRating > 0 && (
+              <View style={styles.ratingChip}>
+                <Ionicons name="star" size={16} color="#FFD700" />
+                <Text style={styles.ratingChipText}>{displayRating.toFixed(1)}</Text>
+              </View>
+            )}
+          </View>
           
           {allCategories.length > 0 && (
             <View style={styles.categoriesRow}>
               {allCategories.map((categoria, index) => {
                 const icon = getCategoryIcon(categoria);
                 return (
-                  <View key={index} style={[styles.categoryBadge, { backgroundColor: icon.color + '15' }]}>
+                  <View key={index} style={[styles.categoryChip, { backgroundColor: icon.color + '15' }]}>
                     <IconSymbol 
                       ios_icon_name={icon.ios} 
                       android_material_icon_name={icon.android} 
-                      size={16} 
+                      size={14} 
                       color={icon.color} 
                     />
-                    <Text style={[styles.categoryBadgeText, { color: icon.color }]}>{categoria}</Text>
+                    <Text style={[styles.categoryChipText, { color: icon.color }]}>{categoria}</Text>
                   </View>
                 );
               })}
+            </View>
+          )}
+
+          {/* ✅ IMPROVED: Compact address with distance */}
+          {local.direccion && (
+            <View style={styles.addressRow}>
+              <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={16} color={colors.textSecondary} />
+              <Text style={styles.addressText}>{local.direccion}</Text>
+              {distance && (
+                <>
+                  <Text style={styles.addressSeparator}>•</Text>
+                  <Text style={styles.distanceText}>{distance}</Text>
+                </>
+              )}
             </View>
           )}
 
@@ -949,24 +974,6 @@ export default function DetalleLocalScreen() {
               </TouchableOpacity>
             )}
           </View>
-        )}
-
-        {/* Address & Distance */}
-        {local.direccion && (
-          <TouchableOpacity style={styles.addressCard} onPress={handleDirections}>
-            <View style={styles.addressIconCircle}>
-              <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={20} color={colors.primary} />
-            </View>
-            <View style={styles.addressTextContainer}>
-              <Text style={styles.addressLabel}>Dirección</Text>
-              <Text style={styles.addressValue}>{local.direccion}</Text>
-            </View>
-            {distance && (
-              <View style={styles.distanceChip}>
-                <Text style={styles.distanceChipText}>{distance}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
         )}
 
         {/* Action Buttons Row */}
@@ -1064,7 +1071,7 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* Schedule */}
+        {/* ✅ IMPROVED: More compact and clear schedule with correct day order */}
         {local.horarios_completos && Object.keys(local.horarios_completos).length > 0 && (
           <View style={styles.compactSection}>
             <View style={styles.compactSectionHeader}>
@@ -1076,22 +1083,19 @@ export default function DetalleLocalScreen() {
             {dayInfo.isNighttime && dayInfo.displayNote && (
               <Text style={styles.nightNote}>{dayInfo.displayNote}</Text>
             )}
-            <View style={styles.scheduleList}>
-              {Object.entries(local.horarios_completos).map(([day, hours]) => {
+            <View style={styles.scheduleCompact}>
+              {orderedDays.map((day) => {
+                const hours = local.horarios_completos?.[day] || [];
                 const isToday = day.toLowerCase() === currentDayName.toLowerCase();
                 return (
-                  <View key={day} style={[styles.scheduleItem, isToday && styles.scheduleItemToday]}>
-                    <View style={styles.scheduleDayRow}>
-                      <Text style={[styles.scheduleDay, isToday && styles.scheduleDayToday]}>
-                        {day.charAt(0).toUpperCase() + day.slice(1)}
+                  <View key={day} style={[styles.scheduleRow, isToday && styles.scheduleRowToday]}>
+                    <View style={styles.scheduleDayContainer}>
+                      <Text style={[styles.scheduleDayCompact, isToday && styles.scheduleDayTodayCompact]}>
+                        {day.charAt(0).toUpperCase() + day.slice(1, 3)}
                       </Text>
-                      {isToday && (
-                        <View style={styles.todayChip}>
-                          <Text style={styles.todayChipText}>Hoy</Text>
-                        </View>
-                      )}
+                      {isToday && <View style={styles.todayDot} />}
                     </View>
-                    <Text style={[styles.scheduleHours, isToday && styles.scheduleHoursToday]}>
+                    <Text style={[styles.scheduleHoursCompact, isToday && styles.scheduleHoursTodayCompact]} numberOfLines={1}>
                       {hours.length > 0 ? hours.join(', ') : 'Cerrado'}
                     </Text>
                   </View>
@@ -1508,36 +1512,79 @@ const styles = StyleSheet.create({
   headerSection: {
     marginBottom: 16,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
   title: {
-    fontSize: 26,
+    flex: 1,
+    fontSize: 24,
     fontWeight: '800',
     color: colors.text,
-    marginBottom: 10,
+    marginRight: 12,
+  },
+  ratingChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 4,
+  },
+  ratingChipText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.text,
   },
   categoriesRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
     marginBottom: 8,
   },
-  categoryBadge: {
+  categoryChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    gap: 4,
   },
-  categoryBadgeText: {
-    fontSize: 13,
+  categoryChipText: {
+    fontSize: 12,
     fontWeight: '700',
     textTransform: 'capitalize',
   },
+  addressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+  },
+  addressText: {
+    flex: 1,
+    fontSize: 13,
+    color: colors.text,
+    fontWeight: '500',
+  },
+  addressSeparator: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
+  distanceText: {
+    fontSize: 13,
+    color: colors.primary,
+    fontWeight: '700',
+  },
   priceRange: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
     color: colors.primary,
-    marginTop: 4,
+    marginTop: 6,
   },
   descriptionSection: {
     marginBottom: 16,
@@ -1552,48 +1599,6 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: '700',
     marginTop: 6,
-  },
-  addressCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    padding: 14,
-    borderRadius: 12,
-    marginBottom: 12,
-    gap: 12,
-  },
-  addressIconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.primary + '20',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addressTextContainer: {
-    flex: 1,
-  },
-  addressLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  addressValue: {
-    fontSize: 14,
-    color: colors.text,
-    fontWeight: '600',
-  },
-  distanceChip: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  distanceChipText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#fff',
   },
   actionsRow: {
     flexDirection: 'row',
@@ -1692,62 +1697,57 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     textAlign: 'center',
   },
-  scheduleList: {
+  scheduleCompact: {
     backgroundColor: colors.card,
     borderRadius: 12,
-    padding: 12,
+    padding: 10,
+    gap: 6,
   },
-  scheduleItem: {
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  scheduleItemToday: {
-    backgroundColor: colors.primary + '10',
-    marginHorizontal: -12,
-    paddingHorizontal: 12,
+  scheduleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 8,
     borderRadius: 8,
-    borderBottomWidth: 0,
-    marginVertical: 2,
+  },
+  scheduleRowToday: {
+    backgroundColor: colors.primary + '15',
     borderLeftWidth: 3,
     borderLeftColor: colors.primary,
   },
-  scheduleDayRow: {
+  scheduleDayContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
+    width: 50,
+    gap: 4,
   },
-  scheduleDay: {
-    fontSize: 14,
+  scheduleDayCompact: {
+    fontSize: 13,
     fontWeight: '600',
     color: colors.text,
     textTransform: 'capitalize',
   },
-  scheduleDayToday: {
+  scheduleDayTodayCompact: {
     color: colors.primary,
-    fontWeight: '700',
-    fontSize: 15,
+    fontWeight: '800',
+    fontSize: 14,
   },
-  todayChip: {
+  todayDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: colors.primary,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
   },
-  todayChipText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  scheduleHours: {
-    fontSize: 13,
+  scheduleHoursCompact: {
+    flex: 1,
+    fontSize: 12,
     color: colors.textSecondary,
+    fontWeight: '500',
   },
-  scheduleHoursToday: {
+  scheduleHoursTodayCompact: {
     color: colors.text,
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: 13,
   },
   tagsGrid: {
     flexDirection: 'row',

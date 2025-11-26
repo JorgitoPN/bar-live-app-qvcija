@@ -221,6 +221,12 @@ export default function SocialScreen() {
     });
   };
 
+  // ✅ NEW: Handle real-time story updates
+  const handleStoriesUpdate = useCallback((updatedStories: Historia[]) => {
+    console.log('[Social] ⚡ Stories updated in real-time:', updatedStories.length);
+    setHistorias(updatedStories);
+  }, []);
+
   if (isInitialLoad && posts.length === 0) {
     return (
       <View style={styles.container}>
@@ -240,7 +246,7 @@ export default function SocialScreen() {
   // FeedSocial uses FlatList internally which handles scrolling
   const ListHeaderComponent = () => (
     <>
-      {/* ✅ FIXED: Always show story bar with larger avatars */}
+      {/* ✅ FIXED: Always show story bar with larger avatars and real-time updates */}
       <View style={styles.storiesSection}>
         <NewBarraHistorias 
           historias={historias}
@@ -248,6 +254,7 @@ export default function SocialScreen() {
           onCrearHistoria={handleCreateStory}
           userAvatar={user?.avatar}
           userName={user?.nombre}
+          onStoriesUpdate={handleStoriesUpdate}
         />
       </View>
     </>
