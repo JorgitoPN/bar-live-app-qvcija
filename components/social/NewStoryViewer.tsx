@@ -12,17 +12,20 @@ import {
   Easing,
   PanResponder,
   ActivityIndicator,
+  StatusBar,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
+import { BlurView } from 'expo-blur';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface Story {
   id: string;
-  imagen_url: string;
+  imagen_url?: string;
+  imagen?: string;
   tipo: 'usuario' | 'local';
   autor_id?: string;
   local_id?: string;
@@ -37,6 +40,9 @@ interface Story {
     username?: string;
     avatar?: string;
   };
+  autorNombre?: string;
+  autorAvatar?: string;
+  autorUsername?: string;
   local?: {
     id: string;
     nombre: string;
@@ -133,8 +139,11 @@ function NewStoryViewer({
     ? currentStory?.autor_id === user?.id
     : currentStory?.local_id === activeLocalProfileId;
 
+  // Get the story image URL
+  const storyImageUrl = currentStory?.imagen_url || currentStory?.imagen || '';
+
   const markAsViewed = useCallback(async (storyId: string) => {
-    if (!user) return;
+    if (!user || !storyId) return;
 
     try {
       const { error } = await supabase
@@ -164,6 +173,7 @@ function NewStoryViewer({
   useEffect(() => {
     if (visible) {
       setCurrentIndex(initialIndex);
+      setLoading(true);
       progressValues.forEach(p => p.setValue(0));
     }
   }, [visible, initialIndex, progressValues]);
@@ -172,6 +182,7 @@ function NewStoryViewer({
     if (currentIndex < stories.length - 1) {
       progressValues[currentIndex].setValue(1);
       setCurrentIndex(currentIndex + 1);
+      setLoading(true);
       if (onStoryChange) {
         onStoryChange(currentIndex + 1);
       }
@@ -184,6 +195,7 @@ function NewStoryViewer({
     if (currentIndex > 0) {
       progressValues[currentIndex].setValue(0);
       setCurrentIndex(currentIndex - 1);
+      setLoading(true);
       if (onStoryChange) {
         onStoryChange(currentIndex - 1);
       }
@@ -259,6 +271,15 @@ function NewStoryViewer({
     return null;
   }
 
+  // Get author info
+  const authorAvatar = currentStory.tipo === 'usuario'
+    ? (currentStory.autor?.avatar || currentStory.autorAvatar)
+    : (currentStory.local?.logo);
+  
+  const authorName = currentStory.tipo === 'usuario'
+    ? (currentStory.autor?.nombre || currentStory.autorNombre || 'Usuario')
+    : (currentStory.local?.nombre || 'Local');
+
   return (
     <Modal
       visible={visible}
@@ -266,23 +287,39 @@ function NewStoryViewer({
       animationType="fade"
       onRequestClose={onClose}
       statusBarTranslucent
+      hardwareAccelerated
     >
+      <StatusBar barStyle="light-content" backgroundColor="#000" />
       <View style={styles.container} {...panResponder.panHandlers}>
-        <Image
-          source={{ uri: currentStory.imagen_url }}
-          style={styles.storyImage}
-          resizeMode="contain"
-          onLoadStart={() => setLoading(true)}
-          onLoadEnd={() => setLoading(false)}
-        />
+        {/* Story Image */}
+        {storyImageUrl ? (
+          <Image
+            source={{ uri: storyImageUrl }}
+            style={styles.storyImage}
+            resizeMode="contain"
+            onLoadStart={() => setLoading(true)}
+            onLoadEnd={() => setLoading(false)}
+            onError={() => {
+              console.error('[NewStoryViewer] Error loading image:', storyImageUrl);
+              setLoading(false);
+            }}
+          />
+        ) : (
+          <View style={styles.errorContainer}>
+            <IconSymbol ios_icon_name="exclamationmark.triangle" android_material_icon_name="error" size={48} color="#fff" />
+            <Text style={styles.errorText}>Error al cargar la historia</Text>
+          </View>
+        )}
 
+        {/* Loading Indicator */}
         {loading && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.headerText} />
           </View>
         )}
 
-        <View style={styles.progressContainer}>
+        {/* Progress Bars */}
+        <BlurView intensity={20} tint="dark" style={styles.progressContainer}>
           {stories.map((_, index) => (
             <View key={index} style={styles.progressBarWrapper}>
               <ProgressBar
@@ -294,26 +331,30 @@ function NewStoryViewer({
               />
             </View>
           ))}
-        </View>
+        </BlurView>
 
-        <View style={styles.header}>
+        {/* Header */}
+        <BlurView intensity={30} tint="dark" style={styles.header}>
           <View style={styles.authorInfo}>
-            <Image
-              source={{
-                uri: currentStory.tipo === 'usuario'
-                  ? currentStory.autor?.avatar || 'https://via.placeholder.com/40'
-                  : currentStory.local?.logo || 'https://via.placeholder.com/40',
-              }}
-              style={styles.authorAvatar}
-            />
-            <Text style={styles.authorName}>
-              {currentStory.tipo === 'usuario'
-                ? currentStory.autor?.nombre || 'Usuario'
-                : currentStory.local?.nombre || 'Local'}
-            </Text>
-            <Text style={styles.storyTime}>
-              {new Date(currentStory.created_at).toLocaleDateString()}
-            </Text>
+            {authorAvatar ? (
+              <Image
+                source={{ uri: authorAvatar }}
+                style={styles.authorAvatar}
+              />
+            ) : (
+              <View style={styles.authorAvatarPlaceholder}>
+                <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={16} color="#fff" />
+              </View>
+            )}
+            <View style={styles.authorTextContainer}>
+              <Text style={styles.authorName}>{authorName}</Text>
+              <Text style={styles.storyTime}>
+                {new Date(currentStory.created_at).toLocaleDateString('es-ES', {
+                  day: 'numeric',
+                  month: 'short'
+                })}
+              </Text>
+            </View>
           </View>
 
           <View style={styles.headerActions}>
@@ -321,11 +362,12 @@ function NewStoryViewer({
               <TouchableOpacity
                 style={styles.headerButton}
                 onPress={handleDelete}
+                activeOpacity={0.7}
               >
                 <IconSymbol
                   ios_icon_name="trash"
                   android_material_icon_name="delete"
-                  size={24}
+                  size={22}
                   color={colors.headerText}
                 />
               </TouchableOpacity>
@@ -333,16 +375,17 @@ function NewStoryViewer({
             <TouchableOpacity
               style={styles.headerButton}
               onPress={onClose}
+              activeOpacity={0.7}
             >
               <IconSymbol
                 ios_icon_name="xmark"
                 android_material_icon_name="close"
-                size={24}
+                size={22}
                 color={colors.headerText}
               />
             </TouchableOpacity>
           </View>
-        </View>
+        </BlurView>
       </View>
     </Modal>
   );
@@ -356,12 +399,24 @@ const styles = StyleSheet.create({
   storyImage: {
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT,
+    backgroundColor: '#000',
   },
   loadingContainer: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000',
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#fff',
+    marginTop: 16,
   },
   progressContainer: {
     position: 'absolute',
@@ -370,6 +425,10 @@ const styles = StyleSheet.create({
     right: 8,
     flexDirection: 'row',
     gap: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    borderRadius: 8,
+    overflow: 'hidden',
   },
   progressBarWrapper: {
     flex: 1,
@@ -395,6 +454,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 16,
+    marginHorizontal: 8,
+    overflow: 'hidden',
   },
   authorInfo: {
     flexDirection: 'row',
@@ -402,20 +465,36 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   authorAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    marginRight: 8,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginRight: 10,
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  authorAvatarPlaceholder: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginRight: 10,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  authorTextContainer: {
+    flex: 1,
   },
   authorName: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
     color: colors.headerText,
-    marginRight: 8,
   },
   storyTime: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginTop: 2,
   },
   headerActions: {
     flexDirection: 'row',

@@ -1,12 +1,16 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Linking, Platform, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Linking, Platform, Alert, Dimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../integrations/supabase/client';
 import { colors } from '../../styles/commonStyles';
 import { localPreloader } from '../../utils/localPreloader';
 import OptimizedImage from '../../components/common/OptimizedImage';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface Local {
   id: string;
@@ -23,6 +27,7 @@ interface Local {
   valoracion?: number;
   foto_principal?: string;
   fotos?: string[];
+  galeria_urls?: string[];
   latitud?: number;
   longitud?: number;
   ciudad?: string;
@@ -65,11 +70,11 @@ export default function DetalleLocalScreen() {
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const cargarReviewsBarlive = useCallback(async () => {
     try {
       setLoadingReviews(true);
-      // ✅ FIXED: Changed from 'reviews' to 'reviews_barlive'
       const { data, error } = await supabase
         .from('reviews_barlive')
         .select(`
@@ -174,6 +179,13 @@ export default function DetalleLocalScreen() {
     Alert.alert('Favoritos', 'Funcionalidad de favoritos próximamente');
   };
 
+  const handleVirtualRoom = () => {
+    router.push({
+      pathname: '/detalle/sala-virtual',
+      params: { localId: params.id }
+    });
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -195,40 +207,84 @@ export default function DetalleLocalScreen() {
     );
   }
 
+  // Get all images
+  const allImages = [
+    local.foto_principal,
+    ...(local.fotos || []),
+    ...(local.galeria_urls || [])
+  ].filter(Boolean);
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      {/* Header Image */}
-      {local.foto_principal && (
-        <OptimizedImage
-          source={{ uri: local.foto_principal }}
-          style={styles.headerImage}
-          resizeMode="cover"
-        />
+      {/* Image Gallery */}
+      {allImages.length > 0 && (
+        <View style={styles.galleryContainer}>
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onScroll={(event) => {
+              const index = Math.round(event.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+              setCurrentImageIndex(index);
+            }}
+            scrollEventThrottle={16}
+          >
+            {allImages.map((image, index) => (
+              <OptimizedImage
+                key={index}
+                source={{ uri: image }}
+                style={styles.headerImage}
+                resizeMode="cover"
+              />
+            ))}
+          </ScrollView>
+          
+          {/* Image Indicators */}
+          {allImages.length > 1 && (
+            <View style={styles.imageIndicators}>
+              {allImages.map((_, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.indicator,
+                    currentImageIndex === index && styles.indicatorActive
+                  ]}
+                />
+              ))}
+            </View>
+          )}
+        </View>
       )}
 
       {/* Back Button */}
       <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <Ionicons name="arrow-back" size={24} color="#fff" />
+        <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
+          <Ionicons name="arrow-back" size={24} color="#fff" />
+        </BlurView>
       </TouchableOpacity>
 
       {/* Action Buttons */}
       <View style={styles.actionButtons}>
         <TouchableOpacity style={styles.actionButton} onPress={handleShare}>
-          <Ionicons name="share-outline" size={24} color="#fff" />
+          <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
+            <Ionicons name="share-outline" size={22} color="#fff" />
+          </BlurView>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton} onPress={handleFavorite}>
-          <Ionicons name="heart-outline" size={24} color="#fff" />
+          <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
+            <Ionicons name="heart-outline" size={22} color="#fff" />
+          </BlurView>
         </TouchableOpacity>
       </View>
 
-      {/* Content */}
-      <View style={styles.content}>
+      {/* Content Card */}
+      <View style={styles.contentCard}>
         {/* Title and Rating */}
         <View style={styles.titleContainer}>
           <Text style={styles.title}>{local.nombre}</Text>
           {local.valoracion && (
-            <View style={styles.ratingContainer}>
-              <Ionicons name="star" size={20} color={colors.warning} />
+            <View style={styles.ratingBadge}>
+              <Ionicons name="star" size={18} color="#FFD700" />
               <Text style={styles.rating}>{local.valoracion.toFixed(1)}</Text>
             </View>
           )}
@@ -236,7 +292,8 @@ export default function DetalleLocalScreen() {
 
         {/* Category */}
         {local.categoria && (
-          <View style={styles.categoryContainer}>
+          <View style={styles.categoryRow}>
+            <Ionicons name="pricetag" size={16} color={colors.primary} />
             <Text style={styles.category}>{local.categoria}</Text>
             {local.subcategoria && (
               <Text style={styles.subcategory}> • {local.subcategoria}</Text>
@@ -244,43 +301,104 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
+        {/* Quick Action Buttons */}
+        <View style={styles.quickActions}>
+          {local.telefono && (
+            <TouchableOpacity style={styles.quickActionButton} onPress={handleCall}>
+              <LinearGradient
+                colors={[colors.primary, colors.secondary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.quickActionGradient}
+              >
+                <Ionicons name="call" size={20} color="#fff" />
+                <Text style={styles.quickActionText}>Llamar</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+          
+          {local.latitud && local.longitud && (
+            <TouchableOpacity style={styles.quickActionButton} onPress={handleDirections}>
+              <LinearGradient
+                colors={[colors.primary, colors.secondary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.quickActionGradient}
+              >
+                <Ionicons name="navigate" size={20} color="#fff" />
+                <Text style={styles.quickActionText}>Cómo llegar</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+          
+          <TouchableOpacity style={styles.quickActionButton} onPress={handleVirtualRoom}>
+            <LinearGradient
+              colors={['#9333EA', '#C026D3']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.quickActionGradient}
+            >
+              <Ionicons name="cube" size={20} color="#fff" />
+              <Text style={styles.quickActionText}>Sala Virtual</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+
         {/* Description */}
         {local.descripcion && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Descripción</Text>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="information-circle" size={22} color={colors.primary} />
+              <Text style={styles.sectionTitle}>Descripción</Text>
+            </View>
             <Text style={styles.description}>{local.descripcion}</Text>
           </View>
         )}
 
         {/* Contact Info */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Información de contacto</Text>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="call" size={22} color={colors.primary} />
+            <Text style={styles.sectionTitle}>Información de contacto</Text>
+          </View>
           
           {local.direccion && (
             <TouchableOpacity style={styles.infoRow} onPress={handleDirections}>
-              <Ionicons name="location-outline" size={24} color={colors.primary} />
+              <View style={styles.infoIcon}>
+                <Ionicons name="location" size={20} color={colors.primary} />
+              </View>
               <Text style={styles.infoText}>{local.direccion}</Text>
+              <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           )}
 
           {local.telefono && (
             <TouchableOpacity style={styles.infoRow} onPress={handleCall}>
-              <Ionicons name="call-outline" size={24} color={colors.primary} />
+              <View style={styles.infoIcon}>
+                <Ionicons name="call" size={20} color={colors.primary} />
+              </View>
               <Text style={styles.infoText}>{local.telefono}</Text>
+              <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           )}
 
           {local.email && (
             <TouchableOpacity style={styles.infoRow} onPress={handleEmail}>
-              <Ionicons name="mail-outline" size={24} color={colors.primary} />
+              <View style={styles.infoIcon}>
+                <Ionicons name="mail" size={20} color={colors.primary} />
+              </View>
               <Text style={styles.infoText}>{local.email}</Text>
+              <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           )}
 
           {local.web && (
             <TouchableOpacity style={styles.infoRow} onPress={handleWebsite}>
-              <Ionicons name="globe-outline" size={24} color={colors.primary} />
-              <Text style={styles.infoText}>{local.web}</Text>
+              <View style={styles.infoIcon}>
+                <Ionicons name="globe" size={20} color={colors.primary} />
+              </View>
+              <Text style={styles.infoText} numberOfLines={1}>{local.web}</Text>
+              <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           )}
         </View>
@@ -288,18 +406,72 @@ export default function DetalleLocalScreen() {
         {/* Schedule */}
         {local.horario && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Horario</Text>
-            <Text style={styles.infoText}>{local.horario}</Text>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="time" size={22} color={colors.primary} />
+              <Text style={styles.sectionTitle}>Horario</Text>
+            </View>
+            <View style={styles.scheduleCard}>
+              <Text style={styles.scheduleText}>{local.horario}</Text>
+            </View>
           </View>
         )}
+
+        {/* Features Grid */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="checkmark-circle" size={22} color={colors.primary} />
+            <Text style={styles.sectionTitle}>Características</Text>
+          </View>
+          <View style={styles.featuresGrid}>
+            {local.parking && (
+              <View style={styles.featureCard}>
+                <Ionicons name="car" size={24} color={colors.primary} />
+                <Text style={styles.featureText}>Parking</Text>
+              </View>
+            )}
+            {local.terraza && (
+              <View style={styles.featureCard}>
+                <Ionicons name="sunny" size={24} color={colors.primary} />
+                <Text style={styles.featureText}>Terraza</Text>
+              </View>
+            )}
+            {local.wifi && (
+              <View style={styles.featureCard}>
+                <Ionicons name="wifi" size={24} color={colors.primary} />
+                <Text style={styles.featureText}>WiFi</Text>
+              </View>
+            )}
+            {local.accesibilidad && (
+              <View style={styles.featureCard}>
+                <Ionicons name="accessibility" size={24} color={colors.primary} />
+                <Text style={styles.featureText}>Accesible</Text>
+              </View>
+            )}
+            {local.reservas && (
+              <View style={styles.featureCard}>
+                <Ionicons name="calendar" size={24} color={colors.primary} />
+                <Text style={styles.featureText}>Reservas</Text>
+              </View>
+            )}
+            {local.delivery && (
+              <View style={styles.featureCard}>
+                <Ionicons name="bicycle" size={24} color={colors.primary} />
+                <Text style={styles.featureText}>Delivery</Text>
+              </View>
+            )}
+          </View>
+        </View>
 
         {/* Services */}
         {local.servicios && local.servicios.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Servicios</Text>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="list" size={22} color={colors.primary} />
+              <Text style={styles.sectionTitle}>Servicios</Text>
+            </View>
             <View style={styles.servicesContainer}>
               {local.servicios.map((servicio, index) => (
-                <View key={index} style={styles.serviceTag}>
+                <View key={index} style={styles.serviceChip}>
                   <Text style={styles.serviceText}>{servicio}</Text>
                 </View>
               ))}
@@ -307,57 +479,35 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* Features */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Características</Text>
-          <View style={styles.featuresContainer}>
-            {local.parking && (
-              <View style={styles.featureItem}>
-                <Ionicons name="car-outline" size={20} color={colors.primary} />
-                <Text style={styles.featureText}>Parking</Text>
-              </View>
-            )}
-            {local.terraza && (
-              <View style={styles.featureItem}>
-                <Ionicons name="sunny-outline" size={20} color={colors.primary} />
-                <Text style={styles.featureText}>Terraza</Text>
-              </View>
-            )}
-            {local.wifi && (
-              <View style={styles.featureItem}>
-                <Ionicons name="wifi-outline" size={20} color={colors.primary} />
-                <Text style={styles.featureText}>WiFi</Text>
-              </View>
-            )}
-            {local.accesibilidad && (
-              <View style={styles.featureItem}>
-                <Ionicons name="accessibility-outline" size={20} color={colors.primary} />
-                <Text style={styles.featureText}>Accesible</Text>
-              </View>
-            )}
-            {local.reservas && (
-              <View style={styles.featureItem}>
-                <Ionicons name="calendar-outline" size={20} color={colors.primary} />
-                <Text style={styles.featureText}>Reservas</Text>
-              </View>
-            )}
-          </View>
-        </View>
-
         {/* Reviews */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Reseñas</Text>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="star" size={22} color={colors.primary} />
+            <Text style={styles.sectionTitle}>Reseñas</Text>
+          </View>
           {loadingReviews ? (
             <ActivityIndicator size="small" color={colors.primary} />
           ) : reviews.length > 0 ? (
             reviews.map((review) => (
               <View key={review.id} style={styles.reviewCard}>
                 <View style={styles.reviewHeader}>
-                  <Text style={styles.reviewAuthor}>
-                    {review.usuario?.nombre || 'Usuario anónimo'}
-                  </Text>
+                  <View style={styles.reviewAuthor}>
+                    {review.usuario?.avatar ? (
+                      <OptimizedImage
+                        source={{ uri: review.usuario.avatar }}
+                        style={styles.reviewAvatar}
+                      />
+                    ) : (
+                      <View style={styles.reviewAvatarPlaceholder}>
+                        <Ionicons name="person" size={20} color={colors.textSecondary} />
+                      </View>
+                    )}
+                    <Text style={styles.reviewAuthorName}>
+                      {review.usuario?.nombre || 'Usuario anónimo'}
+                    </Text>
+                  </View>
                   <View style={styles.reviewRating}>
-                    <Ionicons name="star" size={16} color={colors.warning} />
+                    <Ionicons name="star" size={16} color="#FFD700" />
                     <Text style={styles.reviewRatingText}>{review.rating}</Text>
                   </View>
                 </View>
@@ -365,12 +515,20 @@ export default function DetalleLocalScreen() {
                   <Text style={styles.reviewComment}>{review.texto}</Text>
                 )}
                 <Text style={styles.reviewDate}>
-                  {new Date(review.created_at).toLocaleDateString()}
+                  {new Date(review.created_at).toLocaleDateString('es-ES', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                  })}
                 </Text>
               </View>
             ))
           ) : (
-            <Text style={styles.noReviews}>No hay reseñas todavía</Text>
+            <View style={styles.noReviewsCard}>
+              <Ionicons name="chatbubbles-outline" size={48} color={colors.textSecondary} />
+              <Text style={styles.noReviews}>No hay reseñas todavía</Text>
+              <Text style={styles.noReviewsSubtext}>Sé el primero en dejar una reseña</Text>
+            </View>
           )}
         </View>
       </View>
@@ -384,7 +542,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   contentContainer: {
-    paddingBottom: 100,
+    paddingBottom: 120,
   },
   loadingContainer: {
     flex: 1,
@@ -415,53 +573,81 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 12,
     backgroundColor: colors.primary,
-    borderRadius: 8,
+    borderRadius: 12,
   },
   retryButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
+  galleryContainer: {
+    position: 'relative',
+  },
   headerImage: {
-    width: '100%',
-    height: 300,
+    width: SCREEN_WIDTH,
+    height: 400,
+  },
+  imageIndicators: {
+    position: 'absolute',
+    bottom: 16,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  indicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  indicatorActive: {
+    backgroundColor: '#fff',
+    width: 24,
   },
   backButton: {
     position: 'absolute',
     top: 48,
     left: 16,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    overflow: 'hidden',
+    zIndex: 10,
+  },
+  buttonBlur: {
+    width: '100%',
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 10,
   },
   actionButtons: {
     position: 'absolute',
     top: 48,
     right: 16,
     flexDirection: 'row',
-    gap: 8,
+    gap: 12,
     zIndex: 10,
   },
   actionButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    overflow: 'hidden',
   },
-  content: {
+  contentCard: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    marginTop: -24,
     padding: 20,
   },
   titleContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   title: {
     flex: 1,
@@ -470,89 +656,146 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginRight: 12,
   },
-  ratingContainer: {
+  ratingBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    backgroundColor: colors.card,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
   },
   rating: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
     color: colors.text,
   },
-  categoryContainer: {
+  categoryRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 20,
+    gap: 6,
   },
   category: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    fontWeight: '500',
+    fontSize: 15,
+    color: colors.text,
+    fontWeight: '600',
   },
   subcategory: {
-    fontSize: 16,
+    fontSize: 15,
     color: colors.textSecondary,
+  },
+  quickActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 24,
+  },
+  quickActionButton: {
+    flex: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  quickActionGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+  },
+  quickActionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
   },
   section: {
     marginBottom: 24,
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: colors.text,
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     marginBottom: 12,
   },
-  description: {
-    fontSize: 16,
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
     color: colors.text,
-    lineHeight: 24,
+  },
+  description: {
+    fontSize: 15,
+    color: colors.text,
+    lineHeight: 22,
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginBottom: 12,
+    backgroundColor: colors.card,
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  infoIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.primary + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
   },
   infoText: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
     color: colors.text,
+  },
+  scheduleCard: {
+    backgroundColor: colors.card,
+    padding: 16,
+    borderRadius: 12,
+  },
+  scheduleText: {
+    fontSize: 15,
+    color: colors.text,
+    lineHeight: 22,
+  },
+  featuresGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  featureCard: {
+    width: (SCREEN_WIDTH - 64) / 3,
+    backgroundColor: colors.card,
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    gap: 8,
+  },
+  featureText: {
+    fontSize: 13,
+    color: colors.text,
+    fontWeight: '500',
+    textAlign: 'center',
   },
   servicesContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
-  serviceTag: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  serviceChip: {
     backgroundColor: colors.primary + '20',
-    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
   serviceText: {
     fontSize: 14,
     color: colors.primary,
-    fontWeight: '500',
-  },
-  featuresContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    width: '45%',
-  },
-  featureText: {
-    fontSize: 14,
-    color: colors.text,
+    fontWeight: '600',
   },
   reviewCard: {
-    padding: 16,
     backgroundColor: colors.card,
+    padding: 16,
     borderRadius: 12,
     marginBottom: 12,
   },
@@ -560,10 +803,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   reviewAuthor: {
-    fontSize: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  reviewAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  reviewAvatarPlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reviewAuthorName: {
+    fontSize: 15,
     fontWeight: '600',
     color: colors.text,
   },
@@ -571,10 +832,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    backgroundColor: colors.background,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   reviewRatingText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
     color: colors.text,
   },
   reviewComment: {
@@ -587,9 +852,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
   },
+  noReviewsCard: {
+    backgroundColor: colors.card,
+    padding: 32,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
   noReviews: {
+    fontSize: 16,
+    color: colors.text,
+    fontWeight: '600',
+    marginTop: 12,
+  },
+  noReviewsSubtext: {
     fontSize: 14,
     color: colors.textSecondary,
-    fontStyle: 'italic',
+    marginTop: 4,
   },
 });

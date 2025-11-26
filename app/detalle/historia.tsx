@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { View } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import NewStoryViewer from '@/components/social/NewStoryViewer';
 import { useGlobalData } from '@/contexts/GlobalDataContext';
@@ -18,9 +18,14 @@ export default function HistoriaDetalleScreen() {
   const storyIndex = stories.findIndex(s => s.id === storyId);
   const story = stories[storyIndex];
 
+  useEffect(() => {
+    if (!story || storyIndex === -1) {
+      console.log('[HistoriaDetalle] Story not found, going back');
+      router.back();
+    }
+  }, [story, storyIndex, router]);
+
   if (!story || storyIndex === -1) {
-    // Story not found, go back
-    router.back();
     return null;
   }
 
@@ -35,7 +40,7 @@ export default function HistoriaDetalleScreen() {
   const authorStoryIndex = authorStories.findIndex(s => s.id === storyId);
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={styles.container}>
       <NewStoryViewer
         visible={true}
         stories={authorStories}
@@ -46,7 +51,6 @@ export default function HistoriaDetalleScreen() {
         }}
         onStoryDelete={(deletedStoryId) => {
           console.log('[HistoriaDetalle] Story deleted:', deletedStoryId);
-          // If we deleted the last story, go back
           if (authorStories.length <= 1) {
             router.back();
           }
@@ -56,3 +60,10 @@ export default function HistoriaDetalleScreen() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+});

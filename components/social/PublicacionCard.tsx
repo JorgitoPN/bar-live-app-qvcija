@@ -8,6 +8,7 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import ParsedText from './ParsedText';
+import * as Clipboard from 'expo-clipboard';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -59,7 +60,6 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
   const router = useRouter();
   const { user } = useAuth();
   
-  // ✅ CRITICAL FIX: All hooks MUST be called before any conditional returns
   const [liked, setLiked] = useState(post?.liked || false);
   const [saved, setSaved] = useState(post?.saved || false);
   const [likesCount, setLikesCount] = useState(post?.likes || 0);
@@ -94,7 +94,6 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
       }
     } catch (error) {
       console.error('[PublicacionCard] Error toggling like:', error);
-      // Revert on error
       setLiked(!newLiked);
       setLikesCount(newLiked ? likesCount : likesCount + 1);
     }
@@ -128,7 +127,6 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
       }
     } catch (error) {
       console.error('[PublicacionCard] Error toggling save:', error);
-      // Revert on error
       setSaved(!newSaved);
       Alert.alert('Error', 'No se pudo guardar la publicación');
     }
@@ -143,22 +141,36 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
     if (onComment) onComment();
   }, [user, router, post.id, onComment]);
 
-  const handleShare = useCallback(() => {
+  const handleShare = useCallback(async () => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para compartir');
       return;
     }
-    router.push(`/chat/nuevo-chat?sharePostId=${post.id}`);
+    
+    // Get the first image from the post
+    const postImage = post.imagenes && post.imagenes.length > 0 
+      ? post.imagenes[0] 
+      : post.imagen || null;
+    
+    // Navigate to new chat with post data
+    router.push({
+      pathname: '/chat/nuevo-chat',
+      params: { 
+        sharePostId: post.id,
+        sharePostImage: postImage || '',
+        sharePostAuthor: post.autorNombre || 'Usuario',
+      }
+    });
+    
     if (onShare) onShare();
-  }, [user, router, post.id, onShare]);
+  }, [user, router, post, onShare]);
 
   const handleDelete = useCallback(async () => {
     if (!user) return;
 
-    // Check if user is the author
     const isAuthor = post.tipo === 'usuario' 
       ? post.autorId === user.id 
-      : false; // For now, only allow users to delete their own posts
+      : false;
 
     if (!isAuthor) {
       Alert.alert('Error', 'No tienes permisos para eliminar esta publicación');
@@ -183,8 +195,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
               if (error) throw error;
 
               Alert.alert('Éxito', 'Publicación eliminada');
-              // Refresh the feed
-              if (onLike) onLike(); // Reuse onLike to trigger refresh
+              if (onLike) onLike();
             } catch (error) {
               console.error('[PublicacionCard] Error deleting post:', error);
               Alert.alert('Error', 'No se pudo eliminar la publicación');
@@ -334,7 +345,6 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
     loadTags();
   }, [post?.id]);
 
-  // ✅ CRITICAL FIX: Early return AFTER all hooks
   if (!post) {
     console.error('[PublicacionCard] Post is undefined, skipping render');
     return null;
@@ -346,17 +356,12 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
       ? [post.imagen] 
       : [];
 
-  // ✅ FIXED: Display author name and profile picture properly
   const displayName = post?.autorUsername 
     ? post.autorUsername.replace(/^@/, '')
     : post?.autorNombre || 'Usuario';
 
   const avatarUrl = post?.autorAvatar || null;
-
-  // ✅ FIXED: Format date properly
   const displayDate = post?.fecha ? formatearFecha(post.fecha) : post?.created_at ? formatearFecha(post.created_at) : 'Fecha desconocida';
-
-  // Check if current user is the author
   const isAuthor = user && post.tipo === 'usuario' && post.autorId === user.id;
 
   return (
@@ -372,7 +377,6 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
         }}
         activeOpacity={0.7}
       >
-        {/* ✅ FIXED: Show profile picture properly */}
         {avatarUrl ? (
           <Image source={{ uri: avatarUrl }} style={styles.avatar} />
         ) : (
@@ -381,12 +385,9 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
           </View>
         )}
         <View style={styles.headerContent}>
-          {/* ✅ FIXED: Show author name properly */}
           <Text style={styles.autorNombre}>{displayName}</Text>
-          {/* ✅ FIXED: Show date properly */}
           <Text style={styles.fecha}>{displayDate}</Text>
         </View>
-        {/* ✅ FIXED: Replace three dots with trash icon for author */}
         {isAuthor ? (
           <TouchableOpacity style={styles.moreButton} onPress={handleDelete} activeOpacity={0.7}>
             <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={20} color={colors.error} />
@@ -426,17 +427,34 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
 
       {taggedUsers.length > 0 && (
         <View style={styles.taggedContainer}>
-          <IconSymbol ios_icon_name="person.crop.circle.badge.checkmark" android_material_icon_name="person_add" size={16} color={colors.primary} />
+          <View style={styles.taggedAvatarsRow}>
+            {taggedUsers.slice(0, 2).map((taggedUser, index) => (
+              <TouchableOpacity
+                key={taggedUser.id}
+                style={[styles.taggedMiniAvatar, index > 0 && styles.taggedMiniAvatarOverlap]}
+                onPress={() => navigateToProfile(taggedUser, 'usuario')}
+                activeOpacity={0.7}
+              >
+                {taggedUser.avatar ? (
+                  <Image source={{ uri: taggedUser.avatar }} style={styles.taggedAvatarImage} />
+                ) : (
+                  <View style={styles.taggedAvatarPlaceholder}>
+                    <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={12} color={colors.textSecondary} />
+                  </View>
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
           <Text style={styles.taggedText}>
-            Foto etiquetada de{' '}
-            {taggedUsers.slice(0, 2).map((user, index) => (
-              <React.Fragment key={user.id}>
+            Etiquetado{' '}
+            {taggedUsers.slice(0, 2).map((taggedUser, index) => (
+              <React.Fragment key={taggedUser.id}>
                 {index > 0 && ' y '}
                 <Text
                   style={styles.taggedUsername}
-                  onPress={() => navigateToProfile(user, 'usuario')}
+                  onPress={() => navigateToProfile(taggedUser, 'usuario')}
                 >
-                  {user.username ? user.username.replace(/^@/, '') : user.nombre}
+                  {taggedUser.username ? taggedUser.username.replace(/^@/, '') : taggedUser.nombre}
                 </Text>
               </React.Fragment>
             ))}
@@ -511,12 +529,11 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
       )}
 
       <View style={styles.acciones}>
-        {/* ✅ FIXED: Like button works */}
         <TouchableOpacity style={styles.accionButton} onPress={handleLike} activeOpacity={0.7}>
           <IconSymbol
             ios_icon_name={liked ? 'heart.fill' : 'heart'}
             android_material_icon_name={liked ? 'favorite' : 'favorite_border'}
-            size={24}
+            size={26}
             color={liked ? '#EF4444' : colors.text}
           />
           <Text style={[styles.accionText, liked && styles.accionTextLiked]}>
@@ -524,23 +541,20 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
           </Text>
         </TouchableOpacity>
 
-        {/* ✅ FIXED: Comment button works */}
         <TouchableOpacity style={styles.accionButton} onPress={handleComment} activeOpacity={0.7}>
-          <IconSymbol ios_icon_name="bubble.left" android_material_icon_name="chat_bubble_outline" size={24} color={colors.text} />
+          <IconSymbol ios_icon_name="bubble.left" android_material_icon_name="chat_bubble_outline" size={26} color={colors.text} />
           <Text style={styles.accionText}>{post?.comentarios || 0}</Text>
         </TouchableOpacity>
 
-        {/* ✅ FIXED: Share button works */}
         <TouchableOpacity style={styles.accionButton} onPress={handleShare} activeOpacity={0.7}>
-          <IconSymbol ios_icon_name="paperplane" android_material_icon_name="send" size={24} color={colors.text} />
+          <IconSymbol ios_icon_name="paperplane" android_material_icon_name="send" size={26} color={colors.text} />
         </TouchableOpacity>
 
-        {/* ✅ FIXED: Save button works */}
         <TouchableOpacity style={styles.accionButton} onPress={handleSave} activeOpacity={0.7}>
           <IconSymbol 
             ios_icon_name={saved ? 'bookmark.fill' : 'bookmark'} 
             android_material_icon_name={saved ? 'bookmark' : 'bookmark_border'} 
-            size={24} 
+            size={26} 
             color={saved ? colors.primary : colors.text} 
           />
         </TouchableOpacity>
@@ -563,29 +577,29 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
               style={styles.tagsImage} 
               resizeMode="contain" 
             />
-            {taggedUsers.map((user) => {
-              if (user.position_x !== undefined && user.position_y !== undefined) {
+            {taggedUsers.map((taggedUser) => {
+              if (taggedUser.position_x !== undefined && taggedUser.position_y !== undefined) {
                 return (
                   <TouchableOpacity
-                    key={user.id}
+                    key={taggedUser.id}
                     style={[
                       styles.tagMarker,
                       {
-                        left: `${user.position_x * 100}%`,
-                        top: `${user.position_y * 100}%`,
+                        left: `${taggedUser.position_x * 100}%`,
+                        top: `${taggedUser.position_y * 100}%`,
                       },
                     ]}
                     onPress={(e) => {
                       e.stopPropagation();
                       setShowTagsOverlay(false);
-                      navigateToProfile(user, 'usuario');
+                      navigateToProfile(taggedUser, 'usuario');
                     }}
                     activeOpacity={0.7}
                   >
                     <View style={styles.tagMarkerDot} />
                     <View style={styles.tagMarkerLabel}>
                       <Text style={styles.tagMarkerText}>
-                        {user.username ? user.username.replace(/^@/, '') : user.nombre}
+                        {taggedUser.username ? taggedUser.username.replace(/^@/, '') : taggedUser.nombre}
                       </Text>
                     </View>
                   </TouchableOpacity>
@@ -610,26 +624,25 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.cardBackground,
-    marginBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
+    marginBottom: 2,
+    paddingBottom: 12,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
+    padding: 14,
     gap: 12,
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: colors.cardBorder,
   },
   avatarPlaceholder: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
@@ -651,8 +664,8 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   mentionsContainer: {
-    paddingHorizontal: 12,
-    paddingBottom: 8,
+    paddingHorizontal: 14,
+    paddingBottom: 10,
   },
   mentionsText: {
     fontSize: 13,
@@ -666,13 +679,41 @@ const styles = StyleSheet.create({
   taggedContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingBottom: 8,
-    gap: 6,
+    paddingHorizontal: 14,
+    paddingBottom: 10,
+    gap: 8,
+  },
+  taggedAvatarsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  taggedMiniAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.cardBackground,
+    overflow: 'hidden',
+    backgroundColor: colors.background,
+  },
+  taggedMiniAvatarOverlap: {
+    marginLeft: -8,
+  },
+  taggedAvatarImage: {
+    width: '100%',
+    height: '100%',
+  },
+  taggedAvatarPlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: colors.cardBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   taggedText: {
     fontSize: 13,
     color: colors.textSecondary,
+    flex: 1,
   },
   taggedUsername: {
     fontSize: 13,
@@ -680,13 +721,13 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   contenidoContainer: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingBottom: 12,
   },
   contenido: {
     fontSize: 15,
     color: colors.text,
-    lineHeight: 20,
+    lineHeight: 21,
   },
   imageCarouselContainer: {
     position: 'relative',
@@ -703,18 +744,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     backgroundColor: colors.cardBorder,
-  },
-  tagIconBadge: {
-    position: 'absolute',
-    bottom: 12,
-    left: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
   },
   imageIndicatorContainer: {
     position: 'absolute',
@@ -755,7 +784,7 @@ const styles = StyleSheet.create({
   locationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 8,
     gap: 6,
   },
@@ -767,9 +796,9 @@ const styles = StyleSheet.create({
   acciones: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    gap: 16,
+    paddingHorizontal: 14,
+    paddingTop: 4,
+    gap: 18,
   },
   accionButton: {
     flexDirection: 'row',
