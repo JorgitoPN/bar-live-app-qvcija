@@ -42,7 +42,46 @@ export default function SocialScreen() {
   const [historias, setHistorias] = useState<Historia[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const isLoadingRef = useRef(false);
+
+  // ✅ Load unread counts
+  const loadUnreadCounts = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      const { count: notifCount } = await supabase
+        .from('notificaciones')
+        .select('*', { count: 'exact', head: true })
+        .eq('usuario_id', user.id)
+        .eq('leida', false);
+
+      setUnreadNotifications(notifCount || 0);
+
+      const { data: chatsData } = await supabase
+        .from('chats')
+        .select('id')
+        .or(`usuario1_id.eq.${user.id},usuario2_id.eq.${user.id}`);
+
+      if (chatsData) {
+        let totalUnread = 0;
+        for (const chat of chatsData) {
+          const { count } = await supabase
+            .from('mensajes')
+            .select('*', { count: 'exact', head: true })
+            .eq('chat_id', chat.id)
+            .eq('leido', false)
+            .neq('remitente_id', user.id);
+          
+          totalUnread += count || 0;
+        }
+        setUnreadMessages(totalUnread);
+      }
+    } catch (error) {
+      console.error('[Social] Error loading unread counts:', error);
+    }
+  }, [user]);
 
   const loadData = useCallback(async () => {
     if (isLoadingRef.current) {
@@ -56,6 +95,9 @@ export default function SocialScreen() {
       console.log('[Social] ⚡ Loading user-specific data...');
       console.log('[Social] 📍 Global posts available:', globalPosts.length);
       console.log('[Social] 📍 Global stories available:', globalStories.length);
+
+      // Load unread counts
+      await loadUnreadCounts();
 
       if (globalPosts.length > 0) {
         console.log('[Social] ⚡⚡⚡ INSTANT posts from global data:', globalPosts.length);
@@ -189,7 +231,7 @@ export default function SocialScreen() {
       isLoadingRef.current = false;
       setIsInitialLoad(false);
     }
-  }, [user, globalPosts, globalStories, isOwnerMode, activeLocalProfileId]);
+  }, [user, globalPosts, globalStories, isOwnerMode, activeLocalProfileId, loadUnreadCounts]);
 
   useEffect(() => {
     console.log('[Social] 🔄 Effect triggered - loading data');
@@ -233,6 +275,8 @@ export default function SocialScreen() {
         <HeaderSocial 
           onCreatePost={handleCreatePost}
           onCreateStory={handleCreateStory}
+          unreadNotifications={unreadNotifications}
+          unreadMessages={unreadMessages}
         />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -284,6 +328,8 @@ export default function SocialScreen() {
       <HeaderSocial 
         onCreatePost={handleCreatePost}
         onCreateStory={handleCreateStory}
+        unreadNotifications={unreadNotifications}
+        unreadMessages={unreadMessages}
       />
       {posts.length > 0 ? (
         <FeedSocial 

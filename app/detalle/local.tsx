@@ -589,11 +589,12 @@ export default function DetalleLocalScreen() {
         setIsFavorite(false);
         Alert.alert('Eliminado', 'Local eliminado de favoritos');
       } else {
+        // ✅ FIXED: Ensure both usuario_id and local_id are provided
         const { error } = await supabase
           .from('locales_favoritos')
           .insert({
             usuario_id: user.id,
-            local_id: params.id,
+            local_id: params.id as string,
           });
         
         if (error) {
@@ -786,6 +787,9 @@ export default function DetalleLocalScreen() {
   // ✅ FIXED: Correct day order Monday to Sunday
   const orderedDays = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 
+  // ✅ NEW: Calculate total review count for badge
+  const totalReviewCount = (local.google_user_ratings_total || 0) + reviews.length;
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       {/* Cover Photo - PRESERVED */}
@@ -816,6 +820,19 @@ export default function DetalleLocalScreen() {
               ))}
             </ScrollView>
           </TouchableOpacity>
+          
+          {/* ✅ NEW: Rating badge in top-right corner of cover photo */}
+          {displayRating > 0 && (
+            <View style={styles.ratingBadgeTopRight}>
+              <BlurView intensity={90} tint="dark" style={styles.ratingBlur}>
+                <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={16} color="#FFD700" />
+                <Text style={styles.ratingText}>{displayRating.toFixed(1)}</Text>
+                {totalReviewCount > 0 && (
+                  <Text style={styles.ratingCount}>({totalReviewCount})</Text>
+                )}
+              </BlurView>
+            </View>
+          )}
           
           <View style={styles.statusBadgeTop}>
             <BlurView intensity={90} tint="dark" style={styles.statusBlur}>
@@ -1340,6 +1357,33 @@ const styles = StyleSheet.create({
   coverImage: {
     width: SCREEN_WIDTH,
     height: 300,
+  },
+  // ✅ NEW: Rating badge in top-right corner
+  ratingBadgeTopRight: {
+    position: 'absolute',
+    top: 12,
+    right: 16,
+    borderRadius: 20,
+    overflow: 'hidden',
+    zIndex: 11,
+  },
+  ratingBlur: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 6,
+  },
+  ratingText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#fff',
+  },
+  ratingCount: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#fff',
+    opacity: 0.9,
   },
   statusBadgeTop: {
     position: 'absolute',

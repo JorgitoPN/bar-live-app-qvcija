@@ -8,6 +8,7 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import ParsedText from './ParsedText';
+import { SOCIAL_ICONS } from '@/constants/SocialIcons';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -623,9 +624,9 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
       <View style={styles.acciones}>
         <TouchableOpacity style={styles.accionButton} onPress={handleLike} activeOpacity={0.7}>
           <IconSymbol
-            ios_icon_name={liked ? 'heart.fill' : 'heart'}
-            android_material_icon_name={liked ? 'favorite' : 'favorite_border'}
-            size={28}
+            ios_icon_name={liked ? SOCIAL_ICONS.LIKE.iosFilled : SOCIAL_ICONS.LIKE.ios}
+            android_material_icon_name={liked ? SOCIAL_ICONS.LIKE.androidFilled : SOCIAL_ICONS.LIKE.android}
+            size={26}
             color={liked ? '#EF4444' : colors.text}
           />
           <Text style={[styles.accionText, liked && styles.accionTextLiked]}>
@@ -634,21 +635,31 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.accionButton} onPress={handleComment} activeOpacity={0.7}>
-          <IconSymbol ios_icon_name="bubble.left" android_material_icon_name="chat_bubble_outline" size={28} color={colors.text} />
+          <IconSymbol 
+            ios_icon_name={SOCIAL_ICONS.COMMENT.ios} 
+            android_material_icon_name={SOCIAL_ICONS.COMMENT.android} 
+            size={26} 
+            color={colors.text} 
+          />
           <Text style={styles.accionText}>{post?.comentarios || 0}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.accionButton} onPress={handleShare} activeOpacity={0.7}>
-          <IconSymbol ios_icon_name="paperplane" android_material_icon_name="send" size={28} color={colors.text} />
+          <IconSymbol 
+            ios_icon_name={SOCIAL_ICONS.SHARE.ios} 
+            android_material_icon_name={SOCIAL_ICONS.SHARE.android} 
+            size={26} 
+            color={colors.text} 
+          />
         </TouchableOpacity>
 
         <View style={styles.spacer} />
 
         <TouchableOpacity style={styles.accionButton} onPress={handleSave} activeOpacity={0.7}>
           <IconSymbol 
-            ios_icon_name={saved ? 'bookmark.fill' : 'bookmark'} 
-            android_material_icon_name={saved ? 'bookmark' : 'bookmark_border'} 
-            size={28} 
+            ios_icon_name={saved ? SOCIAL_ICONS.SAVE.iosFilled : SOCIAL_ICONS.SAVE.ios} 
+            android_material_icon_name={saved ? SOCIAL_ICONS.SAVE.androidFilled : SOCIAL_ICONS.SAVE.android} 
+            size={26} 
             color={saved ? colors.primary : colors.text} 
           />
         </TouchableOpacity>
