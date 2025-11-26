@@ -60,6 +60,7 @@ interface Local {
   plan_activo?: string;
   logo?: string;
   barlive_type?: string;
+  barlive_types?: string[];
   analisis_reviews?: Record<string, any>;
   reviews_google?: any[];
   google_rating?: number;
@@ -347,12 +348,55 @@ export default function DetalleLocalScreen() {
 
   const handleDirections = () => {
     if (local?.latitud && local?.longitud) {
-      const url = Platform.select({
-        ios: `maps:0,0?q=${local.latitud},${local.longitud}`,
-        android: `geo:0,0?q=${local.latitud},${local.longitud}`,
-        default: `https://www.google.com/maps/search/?api=1&query=${local.latitud},${local.longitud}`
-      });
-      Linking.openURL(url);
+      // Show action sheet to choose navigation app
+      Alert.alert(
+        'Cómo llegar',
+        'Elige tu aplicación de navegación',
+        [
+          {
+            text: 'Google Maps',
+            onPress: () => {
+              const url = Platform.select({
+                ios: `comgooglemaps://?q=${local.latitud},${local.longitud}`,
+                android: `google.navigation:q=${local.latitud},${local.longitud}`,
+                default: `https://www.google.com/maps/search/?api=1&query=${local.latitud},${local.longitud}`
+              });
+              Linking.canOpenURL(url).then(supported => {
+                if (supported) {
+                  Linking.openURL(url);
+                } else {
+                  // Fallback to web
+                  Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${local.latitud},${local.longitud}`);
+                }
+              });
+            }
+          },
+          {
+            text: 'Apple Maps',
+            onPress: () => {
+              const url = `maps:0,0?q=${local.latitud},${local.longitud}`;
+              Linking.openURL(url);
+            }
+          },
+          {
+            text: 'Waze',
+            onPress: () => {
+              const url = `waze://?ll=${local.latitud},${local.longitud}&navigate=yes`;
+              Linking.canOpenURL(url).then(supported => {
+                if (supported) {
+                  Linking.openURL(url);
+                } else {
+                  Alert.alert('Error', 'Waze no está instalado');
+                }
+              });
+            }
+          },
+          {
+            text: 'Cancelar',
+            style: 'cancel'
+          }
+        ]
+      );
     }
   };
 
@@ -509,17 +553,30 @@ export default function DetalleLocalScreen() {
 
   // Calculate rating to display (Google or BarLive)
   const displayRating = local.google_rating || averageRating || 0;
-  const displayRatingCount = local.google_user_ratings_total || reviews.length || 0;
+
+  // FIXED: Show only BarLive reviews count, including up to 5 Google reviews
+  const barliveReviewsCount = reviews.length;
+  const googleReviewsToShow = Math.min(5, (local.reviews_google || []).length);
+  const totalReviewsToShow = barliveReviewsCount + googleReviewsToShow;
 
   // Combine and limit reviews to 5
   const allReviews = [
-    ...(local.reviews_google || []).slice(0, 5).map((r: any) => ({
+    ...reviews.map(r => ({ ...r, isGoogle: false })),
+    ...(local.reviews_google || []).slice(0, 5 - reviews.length).map((r: any) => ({
       ...r,
       isGoogle: true,
       id: r.time?.toString() || Math.random().toString(),
-    })),
-    ...reviews.map(r => ({ ...r, isGoogle: false }))
+    }))
   ].slice(0, 5);
+
+  // FIXED: Get all categories to display
+  const allCategories = local.barlive_types && local.barlive_types.length > 0 
+    ? local.barlive_types 
+    : local.barlive_type 
+      ? [local.barlive_type] 
+      : local.categoria 
+        ? [local.categoria] 
+        : [];
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
@@ -551,7 +608,7 @@ export default function DetalleLocalScreen() {
             </ScrollView>
           </TouchableOpacity>
           
-          {/* Status Badge and Time - Top Left */}
+          {/* Status Badge and Time - Top Left - HIGHER POSITION */}
           <View style={styles.statusBadgeTop}>
             <BlurView intensity={80} tint="dark" style={styles.statusBlur}>
               <View style={[styles.statusDot, isOpen ? styles.statusDotOpen : styles.statusDotClosed]} />
@@ -564,7 +621,7 @@ export default function DetalleLocalScreen() {
             </BlurView>
           </View>
 
-          {/* Rating Badge - Top Right */}
+          {/* Rating Badge - Top Right - HIGHER POSITION */}
           {displayRating > 0 && (
             <View style={styles.ratingBadgeTop}>
               <BlurView intensity={80} tint="dark" style={styles.ratingBlur}>
@@ -658,31 +715,25 @@ export default function DetalleLocalScreen() {
         {/* Title */}
         <Text style={styles.title}>{local.nombre}</Text>
 
-        {/* Category with Enhanced Icon */}
-        {(local.barlive_type || local.categoria) && (
-          <View style={styles.categoryCard}>
-            <LinearGradient
-              colors={[colors.primary + '20', colors.secondary + '20']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.categoryGradient}
-            >
-              <View style={styles.categoryIconContainer}>
-                <IconSymbol 
-                  ios_icon_name={getCategoryIcon(local.barlive_type || local.categoria).ios} 
-                  android_material_icon_name={getCategoryIcon(local.barlive_type || local.categoria).android} 
-                  size={28} 
-                  color={colors.primary} 
-                />
-              </View>
-              <View style={styles.categoryTextContainer}>
-                <Text style={styles.categoryLabel}>Categoría</Text>
-                <Text style={styles.categoryText}>{local.barlive_type || local.categoria}</Text>
-                {local.subcategoria && (
-                  <Text style={styles.subcategoryText}>{local.subcategoria}</Text>
-                )}
-              </View>
-            </LinearGradient>
+        {/* FIXED: Display ALL categories */}
+        {allCategories.length > 0 && (
+          <View style={styles.categoriesContainer}>
+            {allCategories.map((categoria, index) => {
+              const icon = getCategoryIcon(categoria);
+              return (
+                <View key={index} style={styles.categoryChip}>
+                  <View style={styles.categoryIconSmall}>
+                    <IconSymbol 
+                      ios_icon_name={icon.ios} 
+                      android_material_icon_name={icon.android} 
+                      size={18} 
+                      color={colors.primary} 
+                    />
+                  </View>
+                  <Text style={styles.categoryChipText}>{categoria}</Text>
+                </View>
+              );
+            })}
           </View>
         )}
 
@@ -694,7 +745,7 @@ export default function DetalleLocalScreen() {
           </TouchableOpacity>
         )}
 
-        {/* Action Buttons */}
+        {/* FIXED: Action Buttons - Same Size */}
         <View style={styles.actionButtonsRow}>
           {local.telefono && (
             <TouchableOpacity style={styles.actionButton} onPress={handleCall}>
@@ -719,7 +770,7 @@ export default function DetalleLocalScreen() {
                 style={styles.actionButtonGradient}
               >
                 <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={20} color="#fff" />
-                <View style={styles.actionButtonContent}>
+                <View style={styles.actionButtonTextContainer}>
                   <Text style={styles.actionButtonText}>Cómo llegar</Text>
                   {distance && (
                     <Text style={styles.distanceText}>{distance}</Text>
@@ -758,7 +809,7 @@ export default function DetalleLocalScreen() {
           </TouchableOpacity>
         )}
 
-        {/* Schedule Section */}
+        {/* FIXED: Schedule Section with Current Day Highlighted */}
         {local.horarios_completos && Object.keys(local.horarios_completos).length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -893,19 +944,19 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* Reviews Section */}
+        {/* FIXED: Reviews Section - Show only BarLive count */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionIconContainer}>
               <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={24} color={colors.primary} />
             </View>
             <Text style={styles.sectionTitle}>Reseñas</Text>
-            {displayRatingCount > 0 && (
-              <Text style={styles.reviewCount}>({displayRatingCount})</Text>
+            {totalReviewsToShow > 0 && (
+              <Text style={styles.reviewCount}>({totalReviewsToShow})</Text>
             )}
           </View>
 
-          {/* All Reviews (Google + BarLive, max 5) */}
+          {/* All Reviews (BarLive + up to 5 Google, max 5 total) */}
           {allReviews.length > 0 ? (
             <>
               {allReviews.map((review: any) => {
@@ -1055,7 +1106,7 @@ const styles = StyleSheet.create({
   },
   statusBadgeTop: {
     position: 'absolute',
-    top: 48,
+    top: 16,
     left: 16,
     borderRadius: 20,
     overflow: 'hidden',
@@ -1090,7 +1141,7 @@ const styles = StyleSheet.create({
   },
   ratingBadgeTop: {
     position: 'absolute',
-    top: 48,
+    top: 16,
     right: 16,
     borderRadius: 20,
     overflow: 'hidden',
@@ -1110,7 +1161,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: 'absolute',
-    top: 100,
+    top: 68,
     left: 16,
     width: 44,
     height: 44,
@@ -1120,7 +1171,7 @@ const styles = StyleSheet.create({
   },
   shareButton: {
     position: 'absolute',
-    top: 100,
+    top: 68,
     right: 16,
     width: 44,
     height: 44,
@@ -1204,45 +1255,34 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 16,
   },
-  categoryCard: {
+  categoriesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
     marginBottom: 16,
-    borderRadius: 16,
-    overflow: 'hidden',
   },
-  categoryGradient: {
+  categoryChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    gap: 16,
+    backgroundColor: colors.primary + '15',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 6,
   },
-  categoryIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  categoryIconSmall: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  categoryTextContainer: {
-    flex: 1,
-  },
-  categoryLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    marginBottom: 4,
-  },
-  categoryText: {
-    fontSize: 20,
-    color: colors.text,
-    fontWeight: '700',
-    textTransform: 'capitalize',
-  },
-  subcategoryText: {
+  categoryChipText: {
     fontSize: 14,
-    color: colors.textSecondary,
-    marginTop: 2,
+    color: colors.primary,
+    fontWeight: '600',
+    textTransform: 'capitalize',
   },
   addressRow: {
     flexDirection: 'row',
@@ -1271,8 +1311,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 14,
+    paddingHorizontal: 12,
   },
-  actionButtonContent: {
+  actionButtonTextContainer: {
     alignItems: 'center',
   },
   actionButtonText: {

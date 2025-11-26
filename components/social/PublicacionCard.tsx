@@ -67,40 +67,67 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
   const [taggedUsers, setTaggedUsers] = useState<TaggedUser[]>([]);
   const [showTagsOverlay, setShowTagsOverlay] = useState(false);
   const [authorData, setAuthorData] = useState<{ nombre: string; avatar: string | null } | null>(null);
+  const [loadingAuthor, setLoadingAuthor] = useState(true);
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // Fetch author data - ALWAYS fetch from database
+  // CRITICAL FIX: Fetch author data based on post type
   useEffect(() => {
     const fetchAuthorData = async () => {
-      if (!post?.autorId) {
-        console.log('[PublicacionCard] No autorId, skipping author fetch');
+      if (!post) {
+        console.log('[PublicacionCard] No post data, skipping author fetch');
+        setLoadingAuthor(false);
         return;
       }
 
       try {
-        console.log('[PublicacionCard] Fetching author data for:', post.autorId);
-        const { data, error } = await supabase
-          .from('usuarios')
-          .select('nombre, avatar')
-          .eq('id', post.autorId)
-          .single();
+        console.log('[PublicacionCard] Fetching author for post:', post.id, 'Type:', post.tipo);
+        
+        if (post.tipo === 'local' && post.localId) {
+          // Fetch local data
+          console.log('[PublicacionCard] Fetching local data for:', post.localId);
+          const { data, error } = await supabase
+            .from('locales')
+            .select('nombre, imagen_url')
+            .eq('id', post.localId)
+            .single();
 
-        if (error) {
-          console.error('[PublicacionCard] Error fetching author:', error);
-          return;
-        }
+          if (error) {
+            console.error('[PublicacionCard] Error fetching local:', error);
+            setAuthorData({ nombre: 'Local', avatar: null });
+          } else if (data) {
+            console.log('[PublicacionCard] Local data fetched:', data);
+            setAuthorData({ nombre: data.nombre, avatar: data.imagen_url });
+          }
+        } else if (post.tipo === 'usuario' && post.autorId) {
+          // Fetch user data
+          console.log('[PublicacionCard] Fetching user data for:', post.autorId);
+          const { data, error } = await supabase
+            .from('usuarios')
+            .select('nombre, avatar')
+            .eq('id', post.autorId)
+            .single();
 
-        if (data) {
-          console.log('[PublicacionCard] Author data fetched:', data);
-          setAuthorData(data);
+          if (error) {
+            console.error('[PublicacionCard] Error fetching user:', error);
+            setAuthorData({ nombre: 'Usuario', avatar: null });
+          } else if (data) {
+            console.log('[PublicacionCard] User data fetched:', data);
+            setAuthorData({ nombre: data.nombre, avatar: data.avatar });
+          }
+        } else {
+          console.log('[PublicacionCard] No valid author ID found');
+          setAuthorData({ nombre: 'Usuario', avatar: null });
         }
       } catch (error) {
         console.error('[PublicacionCard] Error fetching author:', error);
+        setAuthorData({ nombre: 'Usuario', avatar: null });
+      } finally {
+        setLoadingAuthor(false);
       }
     };
 
     fetchAuthorData();
-  }, [post?.autorId]);
+  }, [post?.id, post?.tipo, post?.autorId, post?.localId]);
 
   const handleLike = useCallback(async () => {
     if (!user) {
@@ -191,7 +218,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
       params: { 
         sharePostId: post.id,
         sharePostImage: postImage || '',
-        sharePostAuthor: authorData?.nombre || post.autorNombre || 'Usuario',
+        sharePostAuthor: authorData?.nombre || 'Usuario',
       }
     });
     
@@ -389,8 +416,8 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
       ? [post.imagen] 
       : [];
 
-  // ALWAYS use fetched author data, never fallback to post data
-  const displayName = authorData?.nombre || 'Cargando...';
+  // CRITICAL FIX: Use fetched author data
+  const displayName = loadingAuthor ? 'Cargando...' : (authorData?.nombre || 'Usuario');
   const avatarUrl = authorData?.avatar || null;
   const displayDate = post?.fecha ? formatearFecha(post.fecha) : post?.created_at ? formatearFecha(post.created_at) : 'Fecha desconocida';
   const isAuthor = user && post.tipo === 'usuario' && post.autorId === user.id;
