@@ -375,6 +375,59 @@ export default function DetalleLocalScreen() {
     }
   }, [params.id, cargarLocal]);
 
+  // Debug log to verify new design is loaded - MOVED BEFORE ANY EARLY RETURNS
+  useEffect(() => {
+    if (local) {
+      const allServices: string[] = [];
+      if (local.servicios_disponibles) {
+        Object.values(local.servicios_disponibles).forEach((category: any) => {
+          if (typeof category === 'object') {
+            Object.entries(category).forEach(([key, value]) => {
+              if (value === true) {
+                allServices.push(key.replace(/_/g, ' '));
+              }
+            });
+          }
+        });
+      }
+      if (local.servicios && local.servicios.length > 0) {
+        allServices.push(...local.servicios);
+      }
+
+      const ambienteTags: string[] = [];
+      if (local.ambiente_completo) {
+        Object.entries(local.ambiente_completo).forEach(([key, value]) => {
+          if (value === true) {
+            ambienteTags.push(key.replace(/_/g, ' '));
+          }
+        });
+      }
+      if (local.ambiente && !ambienteTags.length) {
+        ambienteTags.push(local.ambiente);
+      }
+
+      const clientelaTags: string[] = [];
+      if (local.clientela) {
+        Object.entries(local.clientela).forEach(([key, value]) => {
+          if (value === true) {
+            clientelaTags.push(key.replace(/_/g, ' '));
+          }
+        });
+      }
+
+      const hasSocialProfile = local.plan_activo === 'estandar' || local.plan_activo === 'premium';
+
+      console.log('[DetalleLocal v3 ULTRA] 🎨🎨🎨 Rendering with ULTRA VISIBLE design:', {
+        hasServices: allServices.length > 0,
+        hasAmbiente: ambienteTags.length > 0,
+        hasClientela: clientelaTags.length > 0,
+        hasEventos: eventos.length > 0,
+        hasSocialProfile: hasSocialProfile,
+        isDestacado: local.destacado
+      });
+    }
+  }, [local, eventos.length]);
+
   const handleCall = () => {
     if (local?.telefono) {
       Linking.openURL(`tel:${local.telefono}`);
@@ -614,20 +667,6 @@ export default function DetalleLocalScreen() {
         ? [local.categoria] 
         : []
   ).filter(cat => !CATEGORIAS_EXCLUIDAS.some(excluded => cat.toLowerCase().includes(excluded.toLowerCase())));
-
-  // Debug log to verify new design is loaded
-  useEffect(() => {
-    if (local) {
-      console.log('[DetalleLocal v3 ULTRA] 🎨🎨🎨 Rendering with ULTRA VISIBLE design:', {
-        hasServices: allServices.length > 0,
-        hasAmbiente: ambienteTags.length > 0,
-        hasClientela: clientelaTags.length > 0,
-        hasEventos: eventos.length > 0,
-        hasSocialProfile: hasSocialProfile,
-        isDestacado: local.destacado
-      });
-    }
-  }, [local, allServices.length, ambienteTags.length, clientelaTags.length, eventos.length, hasSocialProfile]);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>

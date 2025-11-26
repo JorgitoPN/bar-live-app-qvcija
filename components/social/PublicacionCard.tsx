@@ -142,6 +142,118 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
     fetchAuthorData();
   }, [post?.id, post?.tipo, post?.autorId, post?.localId]);
 
+  // Debug log to verify data is being used - MOVED BEFORE ANY EARLY RETURNS
+  useEffect(() => {
+    if (!loadingAuthor && authorData) {
+      const displayName = authorData?.username ? `@${authorData.username}` : authorData?.nombre || 'Usuario';
+      const avatarUrl = authorData?.avatar ? `${authorData.avatar}?v=${Date.now()}` : null;
+      const isAuthor = user && post?.tipo === 'usuario' && post?.autorId === user.id;
+
+      console.log('[PublicacionCard v3 ULTRA] 🎨 Rendering with author data:', {
+        displayName,
+        hasAvatar: !!avatarUrl,
+        isAuthor,
+        avatarUrl
+      });
+    }
+  }, [loadingAuthor, authorData, user, post?.tipo, post?.autorId]);
+
+  useEffect(() => {
+    if (!post?.id) {
+      console.error('[PublicacionCard] Post ID is undefined, skipping mentions load');
+      return;
+    }
+
+    const loadMentions = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('post_mentions')
+          .select(`
+            usuario_id,
+            local_id,
+            username,
+            usuarios:usuario_id(nombre, username, avatar),
+            locales:local_id(nombre, imagen_url)
+          `)
+          .eq('post_id', post.id);
+
+        if (error) {
+          console.error('[PublicacionCard] Error loading mentions:', error);
+          return;
+        }
+
+        const mentions: MentionedUser[] = (data || []).map((m: any) => {
+          if (m.usuario_id && m.usuarios) {
+            return {
+              id: m.usuario_id,
+              nombre: m.usuarios.nombre,
+              username: m.usuarios.username,
+              avatar: m.usuarios.avatar,
+              tipo: 'usuario' as const,
+            };
+          } else if (m.local_id && m.locales) {
+            return {
+              id: m.local_id,
+              nombre: m.locales.nombre,
+              username: m.locales.nombre,
+              avatar: m.locales.imagen_url,
+              tipo: 'local' as const,
+            };
+          }
+          return null;
+        }).filter(Boolean);
+
+        setMentionedUsers(mentions);
+      } catch (error) {
+        console.error('[PublicacionCard] Error loading mentions:', error);
+      }
+    };
+
+    loadMentions();
+  }, [post?.id]);
+
+  useEffect(() => {
+    if (!post?.id) {
+      console.error('[PublicacionCard] Post ID is undefined, skipping tags load');
+      return;
+    }
+
+    const loadTags = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('post_tags')
+          .select(`
+            usuario_id,
+            position_x,
+            position_y,
+            usuarios:usuario_id(nombre, username, avatar)
+          `)
+          .eq('post_id', post.id)
+          .in('estado', ['aceptado', 'pendiente']);
+
+        if (error) {
+          console.error('[PublicacionCard] Error loading tags:', error);
+          return;
+        }
+
+        const tags: TaggedUser[] = (data || []).map((t: any) => ({
+          id: t.usuario_id,
+          nombre: t.usuarios?.nombre || 'Usuario',
+          username: t.usuarios?.username,
+          avatar: t.usuarios?.avatar,
+          position_x: t.position_x,
+          position_y: t.position_y,
+        }));
+
+        setTaggedUsers(tags);
+      } catch (error) {
+        console.error('[PublicacionCard] Error loading tags:', error);
+      }
+    };
+
+    loadTags();
+  }, [post?.id]);
+
   const handleLike = useCallback(async () => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para dar me gusta');
@@ -322,102 +434,6 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
     }
   }, [router]);
 
-  useEffect(() => {
-    if (!post?.id) {
-      console.error('[PublicacionCard] Post ID is undefined, skipping mentions load');
-      return;
-    }
-
-    const loadMentions = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('post_mentions')
-          .select(`
-            usuario_id,
-            local_id,
-            username,
-            usuarios:usuario_id(nombre, username, avatar),
-            locales:local_id(nombre, imagen_url)
-          `)
-          .eq('post_id', post.id);
-
-        if (error) {
-          console.error('[PublicacionCard] Error loading mentions:', error);
-          return;
-        }
-
-        const mentions: MentionedUser[] = (data || []).map((m: any) => {
-          if (m.usuario_id && m.usuarios) {
-            return {
-              id: m.usuario_id,
-              nombre: m.usuarios.nombre,
-              username: m.usuarios.username,
-              avatar: m.usuarios.avatar,
-              tipo: 'usuario' as const,
-            };
-          } else if (m.local_id && m.locales) {
-            return {
-              id: m.local_id,
-              nombre: m.locales.nombre,
-              username: m.locales.nombre,
-              avatar: m.locales.imagen_url,
-              tipo: 'local' as const,
-            };
-          }
-          return null;
-        }).filter(Boolean);
-
-        setMentionedUsers(mentions);
-      } catch (error) {
-        console.error('[PublicacionCard] Error loading mentions:', error);
-      }
-    };
-
-    loadMentions();
-  }, [post?.id]);
-
-  useEffect(() => {
-    if (!post?.id) {
-      console.error('[PublicacionCard] Post ID is undefined, skipping tags load');
-      return;
-    }
-
-    const loadTags = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('post_tags')
-          .select(`
-            usuario_id,
-            position_x,
-            position_y,
-            usuarios:usuario_id(nombre, username, avatar)
-          `)
-          .eq('post_id', post.id)
-          .in('estado', ['aceptado', 'pendiente']);
-
-        if (error) {
-          console.error('[PublicacionCard] Error loading tags:', error);
-          return;
-        }
-
-        const tags: TaggedUser[] = (data || []).map((t: any) => ({
-          id: t.usuario_id,
-          nombre: t.usuarios?.nombre || 'Usuario',
-          username: t.usuarios?.username,
-          avatar: t.usuarios?.avatar,
-          position_x: t.position_x,
-          position_y: t.position_y,
-        }));
-
-        setTaggedUsers(tags);
-      } catch (error) {
-        console.error('[PublicacionCard] Error loading tags:', error);
-      }
-    };
-
-    loadTags();
-  }, [post?.id]);
-
   if (!post) {
     console.error('[PublicacionCard] Post is undefined, skipping render');
     return null;
@@ -436,18 +452,6 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
   const avatarUrl = authorData?.avatar ? `${authorData.avatar}?v=${Date.now()}` : null;
   const displayDate = post?.fecha ? formatearFecha(post.fecha) : post?.created_at ? formatearFecha(post.created_at) : 'Fecha desconocida';
   const isAuthor = user && post.tipo === 'usuario' && post.autorId === user.id;
-
-  // Debug log to verify data is being used
-  useEffect(() => {
-    if (!loadingAuthor && authorData) {
-      console.log('[PublicacionCard v3 ULTRA] 🎨 Rendering with author data:', {
-        displayName,
-        hasAvatar: !!avatarUrl,
-        isAuthor,
-        avatarUrl
-      });
-    }
-  }, [loadingAuthor, authorData, displayName, avatarUrl, isAuthor]);
 
   return (
     <View style={styles.card}>
