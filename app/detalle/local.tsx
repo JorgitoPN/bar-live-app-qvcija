@@ -10,6 +10,7 @@ import OptimizedImage from '../../components/common/OptimizedImage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { IconSymbol } from '../../components/IconSymbol';
+import * as Location from 'expo-location';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -27,6 +28,7 @@ interface Local {
   precio_medio?: number;
   valoracion?: number;
   foto_principal?: string;
+  imagen_url?: string;
   fotos?: string[];
   galeria_urls?: string[];
   latitud?: number;
@@ -36,7 +38,9 @@ interface Local {
   codigo_postal?: string;
   capacidad?: number;
   servicios?: string[];
+  servicios_disponibles?: Record<string, any>;
   ambiente?: string;
+  ambiente_completo?: Record<string, boolean>;
   musica?: string;
   dress_code?: string;
   edad_minima?: number;
@@ -54,6 +58,8 @@ interface Local {
   clientela?: Record<string, boolean>;
   plan_activo?: string;
   logo?: string;
+  barlive_type?: string;
+  analisis_reviews?: Record<string, any>;
 }
 
 interface Review {
@@ -92,6 +98,13 @@ const getServiceIcon = (servicio: string): string => {
     'cócteles': 'wine',
     'efectivo': 'cash',
     'tarjetas': 'card',
+    'wifi': 'wifi',
+    'terraza': 'sunny',
+    'parking': 'car',
+    'accesibilidad': 'accessibility',
+    'reservas': 'calendar',
+    'delivery': 'bicycle',
+    'takeaway': 'bag',
   };
   return serviceMap[servicio.toLowerCase()] || 'checkmark-circle';
 };
@@ -130,6 +143,28 @@ const getTimeUntilClosing = (horarios?: Record<string, string[]>): string | null
   return null;
 };
 
+// Helper function to calculate distance
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): string => {
+  const R = 6371; // Radius of the earth in km
+  const dLat = deg2rad(lat2 - lat1);
+  const dLon = deg2rad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const d = R * c; // Distance in km
+  
+  if (d < 1) {
+    return `${Math.round(d * 1000)} m`;
+  }
+  return `${d.toFixed(1)} km`;
+};
+
+const deg2rad = (deg: number): number => {
+  return deg * (Math.PI / 180);
+};
+
 export default function DetalleLocalScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
@@ -139,6 +174,37 @@ export default function DetalleLocalScreen() {
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [averageRating, setAverageRating] = useState(0);
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [distance, setDistance] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const location = await Location.getCurrentPositionAsync({});
+          setUserLocation({
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+          });
+        }
+      } catch (error) {
+        console.error('[DetalleLocal] Error getting location:', error);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (userLocation && local?.latitud && local?.longitud) {
+      const dist = calculateDistance(
+        userLocation.latitude,
+        userLocation.longitude,
+        Number(local.latitud),
+        Number(local.longitud)
+      );
+      setDistance(dist);
+    }
+  }, [userLocation, local]);
 
   const cargarReviewsBarlive = useCallback(async () => {
     try {
@@ -248,6 +314,10 @@ export default function DetalleLocalScreen() {
     });
   };
 
+  const handleAddReview = () => {
+    Alert.alert('Añadir Reseña', 'Funcionalidad de añadir reseña próximamente');
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -271,7 +341,7 @@ export default function DetalleLocalScreen() {
 
   // Get all images
   const allImages = [
-    local.foto_principal,
+    local.imagen_url || local.foto_principal,
     ...(local.fotos || []),
     ...(local.galeria_urls || [])
   ].filter(Boolean);
@@ -279,6 +349,36 @@ export default function DetalleLocalScreen() {
   const isOpen = local.estado_actual === 'abierto_ahora';
   const timeUntilClosing = getTimeUntilClosing(local.horarios_completos);
   const hasSocialProfile = local.plan_activo === 'estandar' || local.plan_activo === 'premium';
+
+  // Extract services from servicios_disponibles
+  const allServices: string[] = [];
+  if (local.servicios_disponibles) {
+    Object.values(local.servicios_disponibles).forEach((category: any) => {
+      if (typeof category === 'object') {
+        Object.entries(category).forEach(([key, value]) => {
+          if (value === true) {
+            allServices.push(key.replace(/_/g, ' '));
+          }
+        });
+      }
+    });
+  }
+  if (local.servicios && local.servicios.length > 0) {
+    allServices.push(...local.servicios);
+  }
+
+  // Extract ambiente tags
+  const ambienteTags: string[] = [];
+  if (local.ambiente_completo) {
+    Object.entries(local.ambiente_completo).forEach(([key, value]) => {
+      if (value === true) {
+        ambienteTags.push(key.replace(/_/g, ' '));
+      }
+    });
+  }
+  if (local.ambiente && !ambienteTags.length) {
+    ambienteTags.push(local.ambiente);
+  }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
@@ -352,21 +452,50 @@ export default function DetalleLocalScreen() {
         </BlurView>
       </TouchableOpacity>
 
+      {/* Photo Gallery Below Cover */}
+      {allImages.length > 1 && (
+        <View style={styles.gallerySection}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryScroll}>
+            {allImages.slice(1, 6).map((image, index) => (
+              <TouchableOpacity key={index} style={styles.galleryItem}>
+                <OptimizedImage
+                  source={{ uri: image }}
+                  style={styles.galleryImage}
+                  resizeMode="cover"
+                />
+              </TouchableOpacity>
+            ))}
+            {allImages.length > 6 && (
+              <TouchableOpacity style={styles.galleryItem}>
+                <OptimizedImage
+                  source={{ uri: allImages[6] }}
+                  style={styles.galleryImage}
+                  resizeMode="cover"
+                />
+                <View style={styles.galleryOverlay}>
+                  <Text style={styles.galleryOverlayText}>+{allImages.length - 6}</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+          </ScrollView>
+        </View>
+      )}
+
       {/* Content Card */}
       <View style={styles.contentCard}>
         {/* Title */}
         <Text style={styles.title}>{local.nombre}</Text>
 
         {/* Category with Icon */}
-        {local.categoria && (
+        {(local.barlive_type || local.categoria) && (
           <View style={styles.categoryRow}>
             <IconSymbol 
-              ios_icon_name={getCategoryIcon(local.categoria)} 
-              android_material_icon_name={getCategoryIcon(local.categoria)} 
+              ios_icon_name={getCategoryIcon(local.barlive_type || local.categoria)} 
+              android_material_icon_name={getCategoryIcon(local.barlive_type || local.categoria)} 
               size={18} 
               color={colors.primary} 
             />
-            <Text style={styles.category}>{local.categoria}</Text>
+            <Text style={styles.category}>{local.barlive_type || local.categoria}</Text>
             {local.subcategoria && (
               <Text style={styles.subcategory}> • {local.subcategoria}</Text>
             )}
@@ -407,8 +536,8 @@ export default function DetalleLocalScreen() {
               >
                 <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={20} color="#fff" />
                 <Text style={styles.actionButtonText}>Cómo llegar</Text>
-                {local.latitud && (
-                  <Text style={styles.distanceText}>• 2.5 km</Text>
+                {distance && (
+                  <Text style={styles.distanceText}>• {distance}</Text>
                 )}
               </LinearGradient>
             </TouchableOpacity>
@@ -424,7 +553,7 @@ export default function DetalleLocalScreen() {
             style={styles.virtualRoomGradient}
           >
             <IconSymbol ios_icon_name="cube.fill" android_material_icon_name="view_in_ar" size={22} color="#fff" />
-            <Text style={styles.virtualRoomText}>Sala Virtual</Text>
+            <Text style={styles.virtualRoomText}>Ver Sala Virtual</Text>
           </LinearGradient>
         </TouchableOpacity>
 
@@ -464,14 +593,14 @@ export default function DetalleLocalScreen() {
         )}
 
         {/* Services Section with Icons */}
-        {local.servicios && local.servicios.length > 0 && (
+        {allServices.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <IconSymbol ios_icon_name="bell.fill" android_material_icon_name="notifications" size={22} color={colors.primary} />
               <Text style={styles.sectionTitle}>Servicios Disponibles</Text>
             </View>
             <View style={styles.servicesGrid}>
-              {local.servicios.map((servicio, index) => (
+              {allServices.map((servicio, index) => (
                 <View key={index} style={styles.serviceItem}>
                   <IconSymbol 
                     ios_icon_name={getServiceIcon(servicio)} 
@@ -487,16 +616,18 @@ export default function DetalleLocalScreen() {
         )}
 
         {/* Atmosphere Section */}
-        {local.ambiente && (
+        {ambienteTags.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <IconSymbol ios_icon_name="sparkles" android_material_icon_name="auto_awesome" size={22} color={colors.primary} />
               <Text style={styles.sectionTitle}>Ambiente</Text>
             </View>
             <View style={styles.chipContainer}>
-              <View style={styles.chip}>
-                <Text style={styles.chipText}>{local.ambiente}</Text>
-              </View>
+              {ambienteTags.map((tag, index) => (
+                <View key={index} style={styles.chip}>
+                  <Text style={styles.chipText}>{tag}</Text>
+                </View>
+              ))}
             </View>
           </View>
         )}
@@ -513,7 +644,7 @@ export default function DetalleLocalScreen() {
                 .filter(([_, value]) => value)
                 .map(([key, _]) => (
                   <View key={key} style={styles.chip}>
-                    <Text style={styles.chipText}>{key}</Text>
+                    <Text style={styles.chipText}>{key.replace(/_/g, ' ')}</Text>
                   </View>
                 ))}
             </View>
@@ -521,28 +652,28 @@ export default function DetalleLocalScreen() {
         )}
 
         {/* Review Analysis Section */}
-        {reviews.length > 0 && (
+        {local.analisis_reviews && Object.keys(local.analisis_reviews).length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <IconSymbol ios_icon_name="chart.bar.fill" android_material_icon_name="bar_chart" size={22} color={colors.primary} />
               <Text style={styles.sectionTitle}>Análisis de Reseñas</Text>
             </View>
             <View style={styles.analysisCard}>
-              <Text style={styles.analysisTitle}>Sentimiento: positivo</Text>
-              <Text style={styles.analysisText}>
-                Los usuarios destacan comida, precio, calidad.
+              <Text style={styles.analysisTitle}>
+                Sentimiento: {local.analisis_reviews.sentimiento_general || 'positivo'}
               </Text>
-              <View style={styles.analysisTagsContainer}>
-                <View style={styles.analysisTag}>
-                  <Text style={styles.analysisTagText}>comida</Text>
+              <Text style={styles.analysisText}>
+                {local.analisis_reviews.resumen_automatico || 'Los usuarios destacan comida, precio, calidad.'}
+              </Text>
+              {local.analisis_reviews.palabras_destacadas_google && (
+                <View style={styles.analysisTagsContainer}>
+                  {local.analisis_reviews.palabras_destacadas_google.slice(0, 5).map((palabra: string, index: number) => (
+                    <View key={index} style={styles.analysisTag}>
+                      <Text style={styles.analysisTagText}>{palabra}</Text>
+                    </View>
+                  ))}
                 </View>
-                <View style={styles.analysisTag}>
-                  <Text style={styles.analysisTagText}>precio</Text>
-                </View>
-                <View style={styles.analysisTag}>
-                  <Text style={styles.analysisTagText}>calidad</Text>
-                </View>
-              </View>
+              )}
             </View>
           </View>
         )}
@@ -592,7 +723,7 @@ export default function DetalleLocalScreen() {
                   </Text>
                 </View>
               ))}
-              <TouchableOpacity style={styles.addReviewButton}>
+              <TouchableOpacity style={styles.addReviewButton} onPress={handleAddReview}>
                 <Text style={styles.addReviewButtonText}>Añadir Reseña de BarLive</Text>
               </TouchableOpacity>
             </>
@@ -600,7 +731,7 @@ export default function DetalleLocalScreen() {
             <View style={styles.noReviewsCard}>
               <Ionicons name="chatbubbles-outline" size={48} color={colors.textSecondary} />
               <Text style={styles.noReviews}>No hay reseñas todavía</Text>
-              <TouchableOpacity style={styles.addReviewButton}>
+              <TouchableOpacity style={styles.addReviewButton} onPress={handleAddReview}>
                 <Text style={styles.addReviewButtonText}>Sé el primero en añadir una reseña</Text>
               </TouchableOpacity>
             </View>
@@ -751,11 +882,39 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  gallerySection: {
+    backgroundColor: colors.background,
+    paddingVertical: 12,
+  },
+  galleryScroll: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  galleryItem: {
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+    overflow: 'hidden',
+    marginRight: 8,
+    position: 'relative',
+  },
+  galleryImage: {
+    width: '100%',
+    height: '100%',
+  },
+  galleryOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  galleryOverlayText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#fff',
+  },
   contentCard: {
     backgroundColor: colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    marginTop: -24,
     padding: 20,
   },
   title: {
@@ -774,6 +933,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.text,
     fontWeight: '600',
+    textTransform: 'capitalize',
   },
   subcategory: {
     fontSize: 15,
@@ -904,6 +1064,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.text,
     fontWeight: '500',
+    textTransform: 'capitalize',
   },
   chipContainer: {
     flexDirection: 'row',
@@ -920,6 +1081,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.primary,
     fontWeight: '600',
+    textTransform: 'capitalize',
   },
   analysisCard: {
     backgroundColor: colors.card,
@@ -931,6 +1093,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.primary,
     marginBottom: 8,
+    textTransform: 'capitalize',
   },
   analysisText: {
     fontSize: 14,
