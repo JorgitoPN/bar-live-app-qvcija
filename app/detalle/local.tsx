@@ -898,9 +898,14 @@ export default function DetalleLocalScreen() {
         </View>
       )}
 
+      {/* ✅ NEW: Local Name Prominently Displayed Below Gallery */}
+      <View style={styles.localNameSection}>
+        <Text style={styles.localNameText}>{local.nombre}</Text>
+      </View>
+
       {/* Content Card - REDESIGNED */}
       <View style={styles.contentCard}>
-        {/* ✅ IMPROVED: More elegant and compact header - REMOVED NAME, RATING, PRICE */}
+        {/* ✅ IMPROVED: More elegant and compact header */}
         <View style={styles.headerSection}>
           {/* ✅ HIGHLIGHTED: Category badges with more prominence */}
           {allCategories.length > 0 && (
@@ -1458,6 +1463,20 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     color: '#fff',
+  },
+  localNameSection: {
+    backgroundColor: colors.background,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  localNameText: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: colors.text,
+    letterSpacing: 0.5,
+    textAlign: 'center',
   },
   contentCard: {
     backgroundColor: colors.background,
