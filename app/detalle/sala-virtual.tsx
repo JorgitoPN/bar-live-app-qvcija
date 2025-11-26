@@ -22,6 +22,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import { LinearGradient } from 'expo-linear-gradient';
+import { getEstadoLocal } from '@/utils/timeUtils';
 
 // Import components
 import { QuickMessagesBar } from '@/components/sala-virtual/QuickMessagesBar';
@@ -63,6 +64,8 @@ interface Local {
   imagen_url?: string;
   descripcion?: string;
   abierto?: boolean;
+  horarios_completos?: Record<string, string[]>;
+  estado_negocio?: string;
 }
 
 interface ActiveUser {
@@ -125,7 +128,7 @@ export default function SalaVirtualScreen() {
     try {
       const { data, error } = await supabase
         .from('locales')
-        .select('id, nombre, imagen_url, descripcion, abierto')
+        .select('id, nombre, imagen_url, descripcion, abierto, horarios_completos, estado_negocio')
         .eq('id', localId)
         .single();
 
@@ -139,11 +142,16 @@ export default function SalaVirtualScreen() {
       console.log('[SalaVirtual] Local loaded:', data);
       setLocal(data);
       
-      // Check if local is closed
-      if (data.abierto === false) {
+      // ✅ FIXED: Check if local is open using real-time schedule detection
+      const estadoLocal = getEstadoLocal(data);
+      const isOpen = estadoLocal.estaAbierto === true;
+      
+      console.log('[SalaVirtual] Estado del local:', estadoLocal);
+      
+      if (!isOpen) {
         Alert.alert(
           'Local Cerrado',
-          'Este local está cerrado actualmente. No puedes acceder a la sala virtual.',
+          `Este local está cerrado actualmente (${estadoLocal.badge}). No puedes acceder a la sala virtual.`,
           [{ text: 'OK', onPress: () => router.back() }]
         );
       }
@@ -185,6 +193,21 @@ export default function SalaVirtualScreen() {
     if (!user || !localId) {
       Alert.alert('Error', 'Debes iniciar sesión para entrar en la sala');
       return;
+    }
+
+    // ✅ FIXED: Check if local is open before allowing check-in
+    if (local) {
+      const estadoLocal = getEstadoLocal(local);
+      const isOpen = estadoLocal.estaAbierto === true;
+      
+      if (!isOpen) {
+        Alert.alert(
+          'Local Cerrado',
+          `Este local está cerrado actualmente (${estadoLocal.badge}). No puedes entrar en la sala virtual.`,
+          [{ text: 'OK' }]
+        );
+        return;
+      }
     }
 
     try {
@@ -785,6 +808,10 @@ export default function SalaVirtualScreen() {
 
   // If not checked in, show check-in screen
   if (!isCheckedIn) {
+    // ✅ FIXED: Show real-time status on check-in screen
+    const estadoLocal = local ? getEstadoLocal(local) : null;
+    const isOpen = estadoLocal?.estaAbierto === true;
+
     return (
       <View style={styles.container}>
         <Stack.Screen
@@ -811,8 +838,22 @@ export default function SalaVirtualScreen() {
             <Text style={styles.checkInSubtitle}>
               {local?.nombre}
             </Text>
+            
+            {/* ✅ FIXED: Show real-time status */}
+            {estadoLocal && (
+              <View style={[styles.statusBadge, !isOpen && styles.statusBadgeClosed]}>
+                <View style={[styles.statusDot, isOpen ? styles.statusDotOpen : styles.statusDotClosed]} />
+                <Text style={styles.statusBadgeText}>{estadoLocal.badge}</Text>
+                {estadoLocal.tiempoRestante && (
+                  <Text style={styles.statusBadgeSubtext}>• {estadoLocal.tiempoRestante}</Text>
+                )}
+              </View>
+            )}
+            
             <Text style={styles.checkInDescription}>
-              Entra en la sala para chatear, conocer gente y divertirte con otros usuarios que están aquí ahora mismo.
+              {isOpen 
+                ? 'Entra en la sala para chatear, conocer gente y divertirte con otros usuarios que están aquí ahora mismo.'
+                : 'Este local está cerrado actualmente. Vuelve cuando esté abierto para acceder a la sala virtual.'}
             </Text>
             
             <View style={styles.checkInStats}>
@@ -828,32 +869,34 @@ export default function SalaVirtualScreen() {
               </View>
             </View>
 
-            <TouchableOpacity
-              style={styles.checkInButton}
-              onPress={handleCheckIn}
-              disabled={checkingIn}
-            >
-              <LinearGradient
-                colors={[colors.primary, colors.secondary]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.checkInButtonGradient}
+            {isOpen && (
+              <TouchableOpacity
+                style={styles.checkInButton}
+                onPress={handleCheckIn}
+                disabled={checkingIn}
               >
-                {checkingIn ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <>
-                    <IconSymbol
-                      ios_icon_name="arrow.right.circle.fill"
-                      android_material_icon_name="login"
-                      size={24}
-                      color="#fff"
-                    />
-                    <Text style={styles.checkInButtonText}>Entrar en la Sala Virtual</Text>
-                  </>
-                )}
-              </LinearGradient>
-            </TouchableOpacity>
+                <LinearGradient
+                  colors={[colors.primary, colors.secondary]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.checkInButtonGradient}
+                >
+                  {checkingIn ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <>
+                      <IconSymbol
+                        ios_icon_name="arrow.right.circle.fill"
+                        android_material_icon_name="login"
+                        size={24}
+                        color="#fff"
+                      />
+                      <Text style={styles.checkInButtonText}>Entrar en la Sala Virtual</Text>
+                    </>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
           </LinearGradient>
         </View>
       </View>
@@ -1193,6 +1236,42 @@ const styles = StyleSheet.create({
     color: colors.primary,
     textAlign: 'center',
     marginBottom: 16,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#10B981' + '20',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginBottom: 16,
+    gap: 8,
+  },
+  statusBadgeClosed: {
+    backgroundColor: '#EF4444' + '20',
+  },
+  statusDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  statusDotOpen: {
+    backgroundColor: '#10B981',
+  },
+  statusDotClosed: {
+    backgroundColor: '#EF4444',
+  },
+  statusBadgeText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  statusBadgeSubtext: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textSecondary,
   },
   checkInDescription: {
     fontSize: 14,

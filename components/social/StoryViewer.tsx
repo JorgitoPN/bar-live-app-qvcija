@@ -113,7 +113,7 @@ const StoryImage = memo(({ uri, onLoad }: { uri: string; onLoad?: () => void }) 
 
 StoryImage.displayName = 'StoryImage';
 
-// ✅ ULTRA-OPTIMIZED: Progress bar with native driver for 60fps animation
+// ✅ FIXED: Progress bar with green-to-blue gradient
 const ProgressBar = memo(({ 
   index, 
   currentIndex, 
@@ -219,8 +219,9 @@ const ProgressBar = memo(({
     <View style={styles.progressBarContainer}>
       <View style={styles.progressBarBackground}>
         <Animated.View style={[styles.progressBarFill, { width: widthInterpolate }]}>
+          {/* ✅ FIXED: Green-to-blue gradient for progress bar */}
           <LinearGradient
-            colors={['#FFD700', '#00FF00']}
+            colors={['#10B981', '#3B82F6']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.progressGradient}
@@ -390,6 +391,7 @@ function StoryViewer({
     }
   }, [user, currentStory]);
 
+  // ✅ FIXED: Add eye button for viewing statistics
   const handleViewStoryStats = useCallback(async () => {
     if (!currentStory || !user) {
       return;
@@ -860,7 +862,7 @@ function StoryViewer({
                   </View>
                 )}
                 <LinearGradient
-                  colors={['rgba(255, 215, 0, 0.3)', 'rgba(0, 255, 0, 0.3)']}
+                  colors={['rgba(16, 185, 129, 0.3)', 'rgba(59, 130, 246, 0.3)']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.avatarRing}
@@ -898,6 +900,7 @@ function StoryViewer({
           {/* Owner controls */}
           {isCurrentStoryOwner && (
             <BlurView intensity={30} tint="dark" style={styles.storyOwnerControls}>
+              {/* ✅ FIXED: Eye button for viewing statistics */}
               <TouchableOpacity
                 style={styles.storyControlButton}
                 onPress={handleViewStoryStats}
