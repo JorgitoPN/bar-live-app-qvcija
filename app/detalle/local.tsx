@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Linking, Platform, Alert, Dimensions, Share as RNShare } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Linking, Platform, Alert, Dimensions, Share as RNShare, Animated } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../integrations/supabase/client';
@@ -14,6 +14,9 @@ import * as Location from 'expo-location';
 import ImageGalleryModal from '../../components/detalle/ImageGalleryModal';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// FIXED: Categories to exclude from display
+const EXCLUDED_CATEGORIES = ['lounge', 'terraza', 'rooftop'];
 
 interface Local {
   id: string;
@@ -91,9 +94,7 @@ const getCategoryIcon = (categoria?: string): { ios: string; android: string } =
     'discoteca': { ios: 'music.note', android: 'nightlife' },
     'cocteleria': { ios: 'wineglass.fill', android: 'local_bar' },
     'coctelería': { ios: 'wineglass.fill', android: 'local_bar' },
-    'lounge': { ios: 'sofa', android: 'weekend' },
-    'terraza': { ios: 'sun.max.fill', android: 'wb_sunny' },
-    'rooftop': { ios: 'arrow.up.circle.fill', android: 'roofing' },
+    'sala_conciertos': { ios: 'music.note.list', android: 'music_note' },
   };
   return categoryMap[categoria?.toLowerCase() || ''] || { ios: 'mappin.circle.fill', android: 'location_on' };
 };
@@ -132,8 +133,8 @@ const getServiceIcon = (servicio: string): { ios: string; android: string } => {
   return { ios: 'checkmark.circle.fill', android: 'check_circle' };
 };
 
-// Helper function to calculate time until closing/opening
-const getTimeUntilClosing = (horarios?: Record<string, string[]>, estado?: string): { text: string; isClosing: boolean } | null => {
+// FIXED: Helper function to calculate time until closing/opening with proper real-time logic
+const getTimeUntilClosing = (horarios?: Record<string, string[]>): { text: string; isOpen: boolean } | null => {
   if (!horarios) return null;
   
   const now = new Date();
@@ -148,7 +149,8 @@ const getTimeUntilClosing = (horarios?: Record<string, string[]>, estado?: strin
       const nextDay = dayNames[nextDayIndex];
       const nextDayHours = horarios[nextDay];
       if (nextDayHours && nextDayHours.length > 0) {
-        return { text: `Abre ${nextDay}`, isClosing: false };
+        const dayName = nextDay.charAt(0).toUpperCase() + nextDay.slice(1);
+        return { text: `Abre ${dayName}`, isOpen: false };
       }
     }
     return null;
@@ -156,30 +158,53 @@ const getTimeUntilClosing = (horarios?: Record<string, string[]>, estado?: strin
   
   const currentTime = now.getHours() * 60 + now.getMinutes();
   
+  // Check all time ranges for today
   for (const range of todayHours) {
-    const [open, close] = range.split('–').map(t => {
-      const [h, m] = t.trim().split(':').map(Number);
-      return h * 60 + m;
-    });
+    const [openStr, closeStr] = range.split('–').map(t => t.trim());
+    const [openH, openM] = openStr.split(':').map(Number);
+    const [closeH, closeM] = closeStr.split(':').map(Number);
     
-    if (currentTime >= open && currentTime < close) {
-      const minutesUntilClose = close - currentTime;
+    let openTime = openH * 60 + openM;
+    let closeTime = closeH * 60 + closeM;
+    
+    // Handle overnight hours (e.g., 23:00-03:00)
+    if (closeTime < openTime) {
+      closeTime += 24 * 60;
+    }
+    
+    // Check if currently open
+    if (currentTime >= openTime && currentTime < closeTime) {
+      const minutesUntilClose = closeTime - currentTime;
       const hours = Math.floor(minutesUntilClose / 60);
       const minutes = minutesUntilClose % 60;
       
       if (hours > 0) {
-        return { text: `Cierra en ${hours} h ${minutes} min`, isClosing: true };
+        return { text: `Cierra en ${hours}h ${minutes}min`, isOpen: true };
       }
-      return { text: `Cierra en ${minutes} min`, isClosing: true };
-    } else if (currentTime < open) {
-      const minutesUntilOpen = open - currentTime;
+      return { text: `Cierra en ${minutes}min`, isOpen: true };
+    }
+    
+    // Check if opening soon today
+    if (currentTime < openTime) {
+      const minutesUntilOpen = openTime - currentTime;
       const hours = Math.floor(minutesUntilOpen / 60);
       const minutes = minutesUntilOpen % 60;
       
       if (hours > 0) {
-        return { text: `Abre en ${hours} h ${minutes} min`, isClosing: false };
+        return { text: `Abre en ${hours}h ${minutes}min`, isOpen: false };
       }
-      return { text: `Abre en ${minutes} min`, isClosing: false };
+      return { text: `Abre en ${minutes}min`, isOpen: false };
+    }
+  }
+  
+  // If we're past all today's hours, find next opening
+  for (let i = 1; i <= 7; i++) {
+    const nextDayIndex = (now.getDay() + i) % 7;
+    const nextDay = dayNames[nextDayIndex];
+    const nextDayHours = horarios[nextDay];
+    if (nextDayHours && nextDayHours.length > 0) {
+      const dayName = nextDay.charAt(0).toUpperCase() + nextDay.slice(1);
+      return { text: `Abre ${dayName}`, isOpen: false };
     }
   }
   
@@ -233,6 +258,27 @@ export default function DetalleLocalScreen() {
   const [galleryVisible, setGalleryVisible] = useState(false);
   const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
   const [expandedReviews, setExpandedReviews] = useState<Set<string>>(new Set());
+  const [pulseAnim] = useState(new Animated.Value(1));
+
+  // Pulse animation for status badge
+  useEffect(() => {
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -503,11 +549,12 @@ export default function DetalleLocalScreen() {
     ...(local.galeria_urls || [])
   ].filter(Boolean);
 
-  const isOpen = local.estado_actual === 'abierto_ahora';
-  const timeInfo = getTimeUntilClosing(local.horarios_completos, local.estado_actual);
+  // FIXED: Calculate real-time status
+  const timeInfo = getTimeUntilClosing(local.horarios_completos);
+  const isOpen = timeInfo?.isOpen || false;
   const hasSocialProfile = local.plan_activo === 'estandar' || local.plan_activo === 'premium';
 
-  // Extract services from servicios_disponibles
+  // FIXED: Extract services from servicios_disponibles
   const allServices: string[] = [];
   if (local.servicios_disponibles) {
     Object.values(local.servicios_disponibles).forEach((category: any) => {
@@ -569,14 +616,15 @@ export default function DetalleLocalScreen() {
     }))
   ].slice(0, 5);
 
-  // FIXED: Get all categories to display
-  const allCategories = local.barlive_types && local.barlive_types.length > 0 
+  // FIXED: Get all categories and filter out excluded ones
+  const allCategories = (local.barlive_types && local.barlive_types.length > 0 
     ? local.barlive_types 
     : local.barlive_type 
       ? [local.barlive_type] 
       : local.categoria 
         ? [local.categoria] 
-        : [];
+        : []
+  ).filter(cat => !EXCLUDED_CATEGORIES.includes(cat.toLowerCase()));
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
@@ -608,8 +656,8 @@ export default function DetalleLocalScreen() {
             </ScrollView>
           </TouchableOpacity>
           
-          {/* Status Badge and Time - Top Left - HIGHER POSITION */}
-          <View style={styles.statusBadgeTop}>
+          {/* FIXED: Status Badge and Time - Top Left - HIGHER POSITION with animation */}
+          <Animated.View style={[styles.statusBadgeTop, { transform: [{ scale: isOpen ? pulseAnim : 1 }] }]}>
             <BlurView intensity={80} tint="dark" style={styles.statusBlur}>
               <View style={[styles.statusDot, isOpen ? styles.statusDotOpen : styles.statusDotClosed]} />
               <Text style={styles.statusText}>
@@ -619,7 +667,7 @@ export default function DetalleLocalScreen() {
                 <Text style={styles.statusSubtext}>• {timeInfo.text}</Text>
               )}
             </BlurView>
-          </View>
+          </Animated.View>
 
           {/* Rating Badge - Top Right - HIGHER POSITION */}
           {displayRating > 0 && (
@@ -715,7 +763,7 @@ export default function DetalleLocalScreen() {
         {/* Title */}
         <Text style={styles.title}>{local.nombre}</Text>
 
-        {/* FIXED: Display ALL categories */}
+        {/* FIXED: Display ALL categories (excluding lounge, terraza, rooftop) */}
         {allCategories.length > 0 && (
           <View style={styles.categoriesContainer}>
             {allCategories.map((categoria, index) => {
@@ -843,7 +891,7 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* Services Section with Icons */}
+        {/* FIXED: Services Section with Icons */}
         {allServices.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -1106,7 +1154,7 @@ const styles = StyleSheet.create({
   },
   statusBadgeTop: {
     position: 'absolute',
-    top: 16,
+    top: 12,
     left: 16,
     borderRadius: 20,
     overflow: 'hidden',
@@ -1141,7 +1189,7 @@ const styles = StyleSheet.create({
   },
   ratingBadgeTop: {
     position: 'absolute',
-    top: 16,
+    top: 12,
     right: 16,
     borderRadius: 20,
     overflow: 'hidden',
@@ -1161,7 +1209,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: 'absolute',
-    top: 68,
+    top: 64,
     left: 16,
     width: 44,
     height: 44,
@@ -1171,7 +1219,7 @@ const styles = StyleSheet.create({
   },
   shareButton: {
     position: 'absolute',
-    top: 68,
+    top: 64,
     right: 16,
     width: 44,
     height: 44,
