@@ -558,20 +558,6 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
               />
             ))}
           </ScrollView>
-          
-          {images.length > 1 && (
-            <View style={styles.imageIndicatorContainer}>
-              {images.map((_, index) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.imageIndicatorDot,
-                    currentImageIndex === index && styles.imageIndicatorDotActive,
-                  ]}
-                />
-              ))}
-            </View>
-          )}
 
           {images.length > 1 && (
             <View style={styles.imageCountBadge}>
@@ -821,28 +807,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     backgroundColor: colors.cardBorder,
-  },
-  imageIndicatorContainer: {
-    position: 'absolute',
-    bottom: 12,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 6,
-  },
-  imageIndicatorDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-  },
-  imageIndicatorDotActive: {
-    backgroundColor: 'rgba(255, 255, 255, 1)',
-    width: 8,
-    height: 8,
-    borderRadius: 4,
   },
   imageCountBadge: {
     position: 'absolute',

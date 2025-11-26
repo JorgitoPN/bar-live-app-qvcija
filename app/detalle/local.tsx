@@ -528,7 +528,7 @@ export default function DetalleLocalScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      {/* Cover Photo with Status Badge and Rating */}
+      {/* Cover Photo with Status Badge and Rating - FIXED: NO PAGINATION DOTS */}
       {allImages.length > 0 && (
         <View style={styles.coverContainer}>
           <TouchableOpacity
@@ -604,21 +604,6 @@ export default function DetalleLocalScreen() {
               />
             </BlurView>
           </TouchableOpacity>
-          
-          {/* Image Indicators */}
-          {allImages.length > 1 && (
-            <View style={styles.imageIndicators}>
-              {allImages.map((_, index) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.indicator,
-                    currentImageIndex === index && styles.indicatorActive
-                  ]}
-                />
-              ))}
-            </View>
-          )}
         </View>
       )}
 
@@ -1140,25 +1125,6 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  imageIndicators: {
-    position: 'absolute',
-    bottom: 16,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  indicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-  },
-  indicatorActive: {
-    backgroundColor: '#fff',
-    width: 24,
   },
   gallerySection: {
     backgroundColor: colors.background,
