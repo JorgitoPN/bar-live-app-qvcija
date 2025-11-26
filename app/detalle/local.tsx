@@ -155,6 +155,10 @@ const getAmbienteIcon = (ambiente: string): { ios: string; android: string; colo
     'romantico': { ios: 'heart.fill', android: 'favorite', color: '#EC4899' },
     'moderno': { ios: 'sparkles', android: 'auto_awesome', color: '#8B5CF6' },
     'elegante': { ios: 'star.fill', android: 'star', color: '#F59E0B' },
+    'acogedor': { ios: 'house.fill', android: 'home', color: '#F59E0B' },
+    'de_moda': { ios: 'sparkles', android: 'auto_awesome', color: '#EC4899' },
+    'juvenil': { ios: 'bolt.fill', android: 'celebration', color: '#3B82F6' },
+    'tematico': { ios: 'star.fill', android: 'star', color: '#8B5CF6' },
   };
   
   const lowerAmbiente = ambiente.toLowerCase();
@@ -175,6 +179,9 @@ const getClientelaIcon = (clientela: string): { ios: string; android: string; co
     'parejas': { ios: 'heart.fill', android: 'favorite', color: '#EC4899' },
     'estudiantes': { ios: 'book.fill', android: 'school', color: '#3B82F6' },
     'turistas': { ios: 'airplane', android: 'flight', color: '#F59E0B' },
+    'ninos_bienvenidos': { ios: 'figure.2.and.child.holdinghands', android: 'child_care', color: '#14B8A6' },
+    'lgtbi_friendly': { ios: 'heart.fill', android: 'favorite', color: '#EC4899' },
+    'locales': { ios: 'person.2.fill', android: 'people', color: '#8B5CF6' },
   };
   
   const lowerClientela = clientela.toLowerCase();
@@ -269,28 +276,33 @@ export default function DetalleLocalScreen() {
   }, [userLocation, local]);
 
   // Check if local is favorite
-  useEffect(() => {
-    const checkFavorite = async () => {
-      if (!user || !params.id) return;
-      
-      try {
-        const { data, error } = await supabase
-          .from('locales_favoritos')
-          .select('id')
-          .eq('usuario_id', user.id)
-          .eq('local_id', params.id)
-          .single();
-        
-        if (!error && data) {
-          setIsFavorite(true);
-        }
-      } catch (error) {
-        console.error('[DetalleLocal] Error checking favorite:', error);
-      }
-    };
+  const checkIfFavorite = useCallback(async () => {
+    if (!user || !params.id) return;
     
-    checkFavorite();
+    try {
+      const { data, error } = await supabase
+        .from('locales_favoritos')
+        .select('id')
+        .eq('usuario_id', user.id)
+        .eq('local_id', params.id)
+        .single();
+      
+      if (!error && data) {
+        setIsFavorite(true);
+      } else {
+        setIsFavorite(false);
+      }
+    } catch (error) {
+      console.error('[DetalleLocal] Error checking favorite:', error);
+      setIsFavorite(false);
+    }
   }, [user, params.id]);
+
+  useEffect(() => {
+    if (user) {
+      checkIfFavorite();
+    }
+  }, [user, checkIfFavorite]);
 
   const cargarReviewsBarlive = useCallback(async () => {
     try {
@@ -461,6 +473,11 @@ export default function DetalleLocalScreen() {
   };
 
   const handleVirtualRoom = () => {
+    if (!params.id) {
+      Alert.alert('Error', 'No se pudo cargar la sala virtual');
+      return;
+    }
+    
     router.push({
       pathname: '/detalle/sala-virtual',
       params: { localId: params.id }
@@ -512,6 +529,9 @@ export default function DetalleLocalScreen() {
         setIsFavorite(true);
         Alert.alert('Añadido', 'Local añadido a favoritos');
       }
+      
+      // Refresh to sync with card
+      checkIfFavorite();
     } catch (error) {
       console.error('[DetalleLocal] Error toggling favorite:', error);
       Alert.alert('Error', 'No se pudo actualizar favoritos');
@@ -1034,13 +1054,13 @@ export default function DetalleLocalScreen() {
                 <View style={styles.analysisRow}>
                   <Text style={styles.analysisLabel}>Sentimiento:</Text>
                   <Text style={[styles.analysisValue, { color: local.analisis_reviews.sentimiento_general === 'positivo' ? '#10B981' : '#EF4444' }]}>
-                    {local.analisis_reviews.sentimiento_general}
+                    {local.analisis_reviews.sentimiento_general === 'positivo' ? 'Muy Positivo' : 'Negativo'}
                   </Text>
                 </View>
               )}
               {local.analisis_reviews.palabras_destacadas_google && local.analisis_reviews.palabras_destacadas_google.length > 0 && (
                 <View style={styles.analysisKeywords}>
-                  <Text style={styles.analysisLabel}>Palabras clave:</Text>
+                  <Text style={styles.analysisLabel}>Palabras clave destacadas:</Text>
                   <View style={styles.keywordsContainer}>
                     {local.analisis_reviews.palabras_destacadas_google.slice(0, 5).map((keyword: string, index: number) => (
                       <View key={index} style={styles.keywordChip}>
@@ -1052,7 +1072,7 @@ export default function DetalleLocalScreen() {
               )}
               {local.analisis_reviews.resumen_automatico && (
                 <View style={styles.analysisSummary}>
-                  <Text style={styles.analysisLabel}>Resumen:</Text>
+                  <Text style={styles.analysisLabel}>Resumen automático:</Text>
                   <Text style={styles.analysisSummaryText}>{local.analisis_reviews.resumen_automatico}</Text>
                 </View>
               )}

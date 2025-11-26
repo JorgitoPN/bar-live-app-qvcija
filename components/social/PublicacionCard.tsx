@@ -625,6 +625,8 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
           <IconSymbol ios_icon_name="paperplane" android_material_icon_name="send" size={28} color={colors.text} />
         </TouchableOpacity>
 
+        <View style={styles.spacer} />
+
         <TouchableOpacity style={styles.accionButton} onPress={handleSave} activeOpacity={0.7}>
           <IconSymbol 
             ios_icon_name={saved ? 'bookmark.fill' : 'bookmark'} 
@@ -883,6 +885,9 @@ const styles = StyleSheet.create({
   },
   accionTextLiked: {
     color: '#EF4444',
+  },
+  spacer: {
+    flex: 1,
   },
   tagsOverlay: {
     flex: 1,
