@@ -20,8 +20,8 @@ export const TIPOS_LOCAL = [
   { id: 'discoteca', label: 'Discoteca', icon: 'music.note' },
 ];
 
-// Categories to exclude from display throughout the app
-export const CATEGORIAS_EXCLUIDAS = ['terrazas', 'rooftops', 'lounge'];
+// FIXED: Categories to exclude from display throughout the app
+export const CATEGORIAS_EXCLUIDAS = ['terraza', 'rooftop', 'lounge', 'terrazas', 'rooftops', 'salón', 'salon', 'azotea'];
 
 export const TIPOS_MUSICA = [
   'Rock', 'Pop', 'Jazz', 'Electrónica', 'Reggaeton', 'Indie',

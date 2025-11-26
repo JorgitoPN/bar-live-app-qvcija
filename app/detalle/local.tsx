@@ -12,11 +12,9 @@ import { BlurView } from 'expo-blur';
 import { IconSymbol } from '../../components/IconSymbol';
 import * as Location from 'expo-location';
 import ImageGalleryModal from '../../components/detalle/ImageGalleryModal';
+import { CATEGORIAS_EXCLUIDAS } from '../../utils/constants';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-// FIXED: Categories to exclude from display
-const EXCLUDED_CATEGORIES = ['lounge', 'terraza', 'rooftop'];
 
 interface Local {
   id: string;
@@ -624,7 +622,7 @@ export default function DetalleLocalScreen() {
       : local.categoria 
         ? [local.categoria] 
         : []
-  ).filter(cat => !EXCLUDED_CATEGORIES.includes(cat.toLowerCase()));
+  ).filter(cat => !CATEGORIAS_EXCLUIDAS.some(excluded => cat.toLowerCase().includes(excluded.toLowerCase())));
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
@@ -763,7 +761,7 @@ export default function DetalleLocalScreen() {
         {/* Title */}
         <Text style={styles.title}>{local.nombre}</Text>
 
-        {/* FIXED: Display ALL categories (excluding lounge, terraza, rooftop) */}
+        {/* FIXED: Display ALL categories (excluding lounge, terraza, rooftop, salón, azotea) */}
         {allCategories.length > 0 && (
           <View style={styles.categoriesContainer}>
             {allCategories.map((categoria, index) => {

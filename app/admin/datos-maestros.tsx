@@ -28,6 +28,7 @@ interface Categoria {
 export default function DatosMaestrosScreen() {
   const router = useRouter();
   const [cargando, setCargando] = useState(false);
+  // FIXED: Removed "Terraza", "Lounge", and "Rooftop" categories
   const [categorias, setCategorias] = useState<Categoria[]>([
     { id: '1', nombre: 'Bar', emoji: '🍺', activo: true, orden: 1 },
     { id: '2', nombre: 'Pub', emoji: '🍻', activo: true, orden: 2 },
@@ -35,9 +36,6 @@ export default function DatosMaestrosScreen() {
     { id: '4', nombre: 'Café', emoji: '☕', activo: true, orden: 4 },
     { id: '5', nombre: 'Restaurante', emoji: '🍽️', activo: true, orden: 5 },
     { id: '6', nombre: 'Coctelería', emoji: '🍸', activo: true, orden: 6 },
-    { id: '7', nombre: 'Terraza', emoji: '☀️', activo: true, orden: 7 },
-    { id: '8', nombre: 'Lounge', emoji: '🛋️', activo: true, orden: 8 },
-    { id: '9', nombre: 'Rooftop', emoji: '🌆', activo: true, orden: 9 },
   ]);
 
   const [modalVisible, setModalVisible] = useState(false);
@@ -114,7 +112,7 @@ export default function DatosMaestrosScreen() {
     <View style={styles.container}>
       <LinearGradient colors={[colors.primary, colors.secondary]} style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <IconSymbol name="chevron.left" size={24} color="white" />
+          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="chevron_left" size={24} color="white" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Gestión de Datos Maestros</Text>
         <Text style={styles.headerSubtitle}>
@@ -134,7 +132,7 @@ export default function DatosMaestrosScreen() {
                 setModalVisible(true);
               }}
             >
-              <IconSymbol name="plus" size={20} color="white" />
+              <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={20} color="white" />
             </TouchableOpacity>
           </View>
 
@@ -162,13 +160,13 @@ export default function DatosMaestrosScreen() {
                     style={styles.iconButton}
                     onPress={() => handleEditar(categoria)}
                   >
-                    <IconSymbol name="pencil" size={18} color={colors.primary} />
+                    <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={18} color={colors.primary} />
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.iconButton}
                     onPress={() => handleEliminar(categoria.id)}
                   >
-                    <IconSymbol name="trash" size={18} color="#EF4444" />
+                    <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={18} color="#EF4444" />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -177,7 +175,7 @@ export default function DatosMaestrosScreen() {
         </View>
 
         <View style={styles.infoCard}>
-          <IconSymbol name="info.circle" size={24} color={colors.primary} />
+          <IconSymbol ios_icon_name="info.circle" android_material_icon_name="info" size={24} color={colors.primary} />
           <View style={styles.infoContent}>
             <Text style={styles.infoTitle}>Información</Text>
             <Text style={styles.infoText}>
