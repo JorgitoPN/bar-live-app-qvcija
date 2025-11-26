@@ -9,6 +9,7 @@ import {
   Image,
   ActivityIndicator,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -23,7 +24,7 @@ interface Seguidor {
   username?: string;
   avatar?: string;
   bio?: string;
-  tipo: 'usuario' | 'local'; // ✅ NEW: Distinguish between users and locals
+  tipo: 'usuario' | 'local';
 }
 
 const styles = StyleSheet.create({
@@ -91,17 +92,17 @@ const styles = StyleSheet.create({
     color: colors.text,
     lineHeight: 18,
   },
-  typeBadge: {
-    backgroundColor: colors.primary + '20',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+  removeButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: colors.error + '20',
+    borderRadius: 16,
     marginLeft: 8,
   },
-  typeBadgeText: {
-    fontSize: 11,
+  removeButtonText: {
+    fontSize: 13,
     fontWeight: '600',
-    color: colors.primary,
+    color: colors.error,
   },
   emptyContainer: {
     flex: 1,
@@ -126,15 +127,14 @@ export default function SeguidoresScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const userId = params.userId as string || user?.id;
+  const isOwnProfile = user && userId === user.id;
 
-  // ✅ UPDATED: Load both user followers and local followers
   const loadSeguidores = useCallback(async () => {
     if (!userId) return;
 
     try {
-      console.log('[Seguidores] ⚡ Loading followers (users + locals) for user:', userId);
+      console.log('[Seguidores] ⚡ Loading followers for user:', userId);
 
-      // Load user followers (from seguidores table)
       const { data: userFollowers, error: userError } = await supabase
         .from('seguidores')
         .select(`
@@ -150,10 +150,9 @@ export default function SeguidoresScreen() {
         .eq('seguido_id', userId);
 
       if (userError) {
-        console.error('[Seguidores] Error loading user followers:', userError);
+        console.error('[Seguidores] Error loading followers:', userError);
       }
 
-      // ✅ NEW: Load local followers (users who favorited locals owned by this user)
       const { data: ownedLocals, error: localsError } = await supabase
         .from('locales')
         .select('id')
@@ -182,10 +181,8 @@ export default function SeguidoresScreen() {
         }
       }
 
-      // Combine and deduplicate followers
       const allFollowers = new Map<string, Seguidor>();
 
-      // Add user followers
       if (userFollowers) {
         userFollowers
           .filter(s => s.usuarios)
@@ -201,7 +198,6 @@ export default function SeguidoresScreen() {
           });
       }
 
-      // Add local followers (deduplicate if user already follows directly)
       if (localFollowers) {
         localFollowers
           .filter(s => s.usuarios)
@@ -232,7 +228,6 @@ export default function SeguidoresScreen() {
   useEffect(() => {
     loadSeguidores();
 
-    // ✅ Subscribe to real-time changes for INSTANT updates
     if (userId) {
       const channel = supabase
         .channel(`seguidores-changes-${userId}`)
@@ -285,6 +280,40 @@ export default function SeguidoresScreen() {
     }
   };
 
+  // ✅ NEW: Remove follower functionality
+  const handleRemoveFollower = useCallback(async (followerId: string, followerName: string) => {
+    if (!user || !isOwnProfile) return;
+
+    Alert.alert(
+      'Eliminar seguidor',
+      `¿Estás seguro de que quieres eliminar a ${followerName} de tus seguidores?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('seguidores')
+                .delete()
+                .eq('seguidor_id', followerId)
+                .eq('seguido_id', user.id);
+
+              if (error) throw error;
+
+              Alert.alert('Éxito', 'Seguidor eliminado');
+              await loadSeguidores();
+            } catch (error) {
+              console.error('[Seguidores] Error removing follower:', error);
+              Alert.alert('Error', 'No se pudo eliminar el seguidor');
+            }
+          },
+        },
+      ]
+    );
+  }, [user, isOwnProfile, loadSeguidores]);
+
   if (loading) {
     return (
       <View style={styles.container}>
@@ -293,7 +322,7 @@ export default function SeguidoresScreen() {
           style={styles.header}
         >
           <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
-            <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+            <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Seguidores</Text>
           <View style={{ width: 24 }} />
@@ -312,7 +341,7 @@ export default function SeguidoresScreen() {
         style={styles.header}
       >
         <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
-          <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Seguidores</Text>
         <View style={{ width: 24 }} />
@@ -349,11 +378,21 @@ export default function SeguidoresScreen() {
                 </Text>
               )}
             </View>
+            {/* ✅ NEW: Show remove button only on own profile */}
+            {isOwnProfile && (
+              <TouchableOpacity
+                style={styles.removeButton}
+                onPress={() => handleRemoveFollower(item.id, item.nombre)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.removeButtonText}>Eliminar</Text>
+              </TouchableOpacity>
+            )}
           </TouchableOpacity>
         )}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <IconSymbol name="person.2" size={64} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="person.2" android_material_icon_name="people" size={64} color={colors.textSecondary} />
             <Text style={styles.emptyText}>No hay seguidores aún</Text>
           </View>
         }

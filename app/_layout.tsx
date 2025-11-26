@@ -25,11 +25,8 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (loaded) {
-      // Hide splash screen after fonts are loaded
-      // GlobalDataProvider will handle data loading
       SplashScreen.hideAsync();
       
-      // ✅ FIXED: Initialize performance optimizations without backgroundSync
       console.log('[App] 🚀 Initializing performance optimizations...');
       performanceManager.initialize(undefined, {
         enableAdvancedCache: true,
@@ -37,16 +34,15 @@ export default function RootLayout() {
         enableRealtimeMessaging: true,
         enableImageOptimization: true,
         enableOptimisticUI: true,
-        enableBackgroundSync: false, // ✅ FIXED: Disabled backgroundSync to avoid initialization error
+        enableBackgroundSync: false,
         enableRequestDedup: true,
-        cacheStrategy: 'aggressive', // Instagram-like aggressive caching
+        cacheStrategy: 'aggressive',
       }).then(() => {
         console.log('[App] ✅ Performance optimizations initialized');
       }).catch(error => {
         console.error('[App] ❌ Error initializing performance:', error);
       });
       
-      // ✅ Schedule automatic cleanup of expired stories
       scheduleStoryCleanup();
     }
   }, [loaded]);
@@ -64,7 +60,7 @@ export default function RootLayout() {
               <Stack
                 screenOptions={{
                   headerShown: false,
-                  animation: 'none', // Instant navigation - no animations
+                  animation: 'none',
                   animationDuration: 0,
                 }}
               >
@@ -85,14 +81,18 @@ export default function RootLayout() {
                 <Stack.Screen name="detalle/local-updated" options={{ presentation: 'modal', headerShown: false }} />
                 <Stack.Screen name="detalle/evento" options={{ presentation: 'modal', headerShown: false }} />
                 <Stack.Screen name="detalle/sala-virtual" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="detalle/historia" options={{ presentation: 'fullScreenModal', headerShown: false, animation: 'fade' }} />
                 <Stack.Screen name="editar/perfil" options={{ presentation: 'modal', headerShown: false }} />
                 <Stack.Screen name="social/amigos" options={{ presentation: 'modal', headerShown: false }} />
                 <Stack.Screen name="social/configuracion" options={{ presentation: 'modal', headerShown: false }} />
                 <Stack.Screen name="social/favoritos" options={{ presentation: 'modal', headerShown: false }} />
                 <Stack.Screen name="social/post" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="social/comentar" options={{ presentation: 'modal', headerShown: false }} />
                 <Stack.Screen name="perfil/usuario" options={{ presentation: 'modal', headerShown: false }} />
                 <Stack.Screen name="perfil/seguidores" options={{ presentation: 'modal', headerShown: false }} />
                 <Stack.Screen name="perfil/seguidos" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="chat/conversacion" options={{ presentation: 'modal', headerShown: false }} />
+                <Stack.Screen name="chat/nuevo-chat" options={{ presentation: 'modal', headerShown: false }} />
                 <Stack.Screen name="solicitudes/solicitar-rol-propietario" options={{ presentation: 'modal', headerShown: false }} />
                 <Stack.Screen name="admin/importacion-osm" options={{ presentation: 'modal', headerShown: false }} />
                 <Stack.Screen name="admin/enriquecimiento-google" options={{ presentation: 'modal', headerShown: false }} />

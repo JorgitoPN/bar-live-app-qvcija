@@ -9,6 +9,7 @@ import {
   Image,
   ActivityIndicator,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -23,7 +24,7 @@ interface Seguido {
   username?: string;
   avatar?: string;
   bio?: string;
-  tipo: 'usuario' | 'local'; // ✅ NEW: Distinguish between users and locals
+  tipo: 'usuario' | 'local';
 }
 
 const styles = StyleSheet.create({
@@ -103,6 +104,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.primary,
   },
+  unfollowButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: colors.error + '20',
+    borderRadius: 16,
+    marginLeft: 8,
+  },
+  unfollowButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.error,
+  },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -126,15 +139,14 @@ export default function SeguidosScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const userId = params.userId as string || user?.id;
+  const isOwnProfile = user && userId === user.id;
 
-  // ✅ UPDATED: Load both user following and local following
   const loadSeguidos = useCallback(async () => {
     if (!userId) return;
 
     try {
-      console.log('[Seguidos] ⚡ Loading following (users + locals) for user:', userId);
+      console.log('[Seguidos] ⚡ Loading following for user:', userId);
 
-      // Load user following (from seguidores table)
       const { data: userFollowing, error: userError } = await supabase
         .from('seguidores')
         .select(`
@@ -150,10 +162,9 @@ export default function SeguidosScreen() {
         .eq('seguidor_id', userId);
 
       if (userError) {
-        console.error('[Seguidos] Error loading user following:', userError);
+        console.error('[Seguidos] Error loading following:', userError);
       }
 
-      // ✅ NEW: Load local following (locals favorited by this user)
       const { data: localFollowing, error: localError } = await supabase
         .from('locales_favoritos')
         .select(`
@@ -171,10 +182,8 @@ export default function SeguidosScreen() {
         console.error('[Seguidos] Error loading local following:', localError);
       }
 
-      // Combine users and locals
       const allSeguidos: Seguido[] = [];
 
-      // Add user following
       if (userFollowing) {
         userFollowing
           .filter(s => s.usuarios)
@@ -190,7 +199,6 @@ export default function SeguidosScreen() {
           });
       }
 
-      // ✅ NEW: Add local following
       if (localFollowing) {
         localFollowing
           .filter(s => s.locales)
@@ -206,7 +214,7 @@ export default function SeguidosScreen() {
       }
 
       setSeguidos(allSeguidos);
-      console.log('[Seguidos] ⚡ Loaded following:', allSeguidos.length, '(users + locals)');
+      console.log('[Seguidos] ⚡ Loaded following:', allSeguidos.length);
     } catch (error) {
       console.error('[Seguidos] Error:', error);
     } finally {
@@ -217,7 +225,6 @@ export default function SeguidosScreen() {
   useEffect(() => {
     loadSeguidos();
 
-    // ✅ Subscribe to real-time changes for INSTANT updates
     if (userId) {
       const channel = supabase
         .channel(`seguidos-changes-${userId}`)
@@ -271,6 +278,50 @@ export default function SeguidosScreen() {
     }
   };
 
+  // ✅ NEW: Unfollow functionality
+  const handleUnfollow = useCallback(async (id: string, nombre: string, tipo: 'usuario' | 'local') => {
+    if (!user || !isOwnProfile) return;
+
+    Alert.alert(
+      'Dejar de seguir',
+      `¿Estás seguro de que quieres dejar de seguir a ${nombre}?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Dejar de seguir',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              if (tipo === 'usuario') {
+                const { error } = await supabase
+                  .from('seguidores')
+                  .delete()
+                  .eq('seguidor_id', user.id)
+                  .eq('seguido_id', id);
+
+                if (error) throw error;
+              } else {
+                const { error } = await supabase
+                  .from('locales_favoritos')
+                  .delete()
+                  .eq('usuario_id', user.id)
+                  .eq('local_id', id);
+
+                if (error) throw error;
+              }
+
+              Alert.alert('Éxito', `Has dejado de seguir a ${nombre}`);
+              await loadSeguidos();
+            } catch (error) {
+              console.error('[Seguidos] Error unfollowing:', error);
+              Alert.alert('Error', 'No se pudo dejar de seguir');
+            }
+          },
+        },
+      ]
+    );
+  }, [user, isOwnProfile, loadSeguidos]);
+
   if (loading) {
     return (
       <View style={styles.container}>
@@ -279,7 +330,7 @@ export default function SeguidosScreen() {
           style={styles.header}
         >
           <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
-            <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+            <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Siguiendo</Text>
           <View style={{ width: 24 }} />
@@ -298,7 +349,7 @@ export default function SeguidosScreen() {
         style={styles.header}
       >
         <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
-          <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Siguiendo</Text>
         <View style={{ width: 24 }} />
@@ -340,11 +391,21 @@ export default function SeguidosScreen() {
                 </Text>
               )}
             </View>
+            {/* ✅ NEW: Show unfollow button only on own profile */}
+            {isOwnProfile && (
+              <TouchableOpacity
+                style={styles.unfollowButton}
+                onPress={() => handleUnfollow(item.id, item.nombre, item.tipo)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.unfollowButtonText}>Dejar de seguir</Text>
+              </TouchableOpacity>
+            )}
           </TouchableOpacity>
         )}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <IconSymbol name="person.2" size={64} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="person.2" android_material_icon_name="people" size={64} color={colors.textSecondary} />
             <Text style={styles.emptyText}>No sigues a nadie aún</Text>
           </View>
         }

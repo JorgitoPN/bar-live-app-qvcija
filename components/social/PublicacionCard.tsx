@@ -1,11 +1,12 @@
 
 import React, { useState, useRef, useEffect, memo, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Dimensions, Modal, Pressable } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Dimensions, Modal, Pressable, Alert } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { Post } from '@/types';
 import { colors } from '@/styles/commonStyles';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/utils/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 import ParsedText from './ParsedText';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -56,9 +57,11 @@ PostImage.displayName = 'PostImage';
 
 const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment, onShare }: PublicacionCardProps) {
   const router = useRouter();
+  const { user } = useAuth();
   
   // ✅ CRITICAL FIX: All hooks MUST be called before any conditional returns
   const [liked, setLiked] = useState(post?.liked || false);
+  const [saved, setSaved] = useState(post?.saved || false);
   const [likesCount, setLikesCount] = useState(post?.likes || 0);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [mentionedUsers, setMentionedUsers] = useState<MentionedUser[]>([]);
@@ -66,25 +69,150 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
   const [showTagsOverlay, setShowTagsOverlay] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
-  const handleLike = useCallback(() => {
-    setLiked(!liked);
-    setLikesCount(liked ? likesCount - 1 : likesCount + 1);
+  const handleLike = useCallback(async () => {
+    if (!user) {
+      Alert.alert('Error', 'Debes iniciar sesión para dar me gusta');
+      return;
+    }
+
+    const newLiked = !liked;
+    setLiked(newLiked);
+    setLikesCount(newLiked ? likesCount + 1 : likesCount - 1);
+
+    try {
+      if (newLiked) {
+        await supabase.from('likes').insert({
+          post_id: post.id,
+          usuario_id: user.id,
+        });
+      } else {
+        await supabase
+          .from('likes')
+          .delete()
+          .eq('post_id', post.id)
+          .eq('usuario_id', user.id);
+      }
+    } catch (error) {
+      console.error('[PublicacionCard] Error toggling like:', error);
+      // Revert on error
+      setLiked(!newLiked);
+      setLikesCount(newLiked ? likesCount : likesCount + 1);
+    }
+
     if (onLike) onLike();
-  }, [liked, likesCount, onLike]);
+  }, [liked, likesCount, onLike, user, post.id]);
+
+  const handleSave = useCallback(async () => {
+    if (!user) {
+      Alert.alert('Error', 'Debes iniciar sesión para guardar publicaciones');
+      return;
+    }
+
+    const newSaved = !saved;
+    setSaved(newSaved);
+
+    try {
+      if (newSaved) {
+        await supabase.from('posts_guardados').insert({
+          post_id: post.id,
+          usuario_id: user.id,
+        });
+        Alert.alert('Guardado', 'Publicación guardada en favoritos');
+      } else {
+        await supabase
+          .from('posts_guardados')
+          .delete()
+          .eq('post_id', post.id)
+          .eq('usuario_id', user.id);
+        Alert.alert('Eliminado', 'Publicación eliminada de favoritos');
+      }
+    } catch (error) {
+      console.error('[PublicacionCard] Error toggling save:', error);
+      // Revert on error
+      setSaved(!newSaved);
+      Alert.alert('Error', 'No se pudo guardar la publicación');
+    }
+  }, [saved, user, post.id]);
+
+  const handleComment = useCallback(() => {
+    if (!user) {
+      Alert.alert('Error', 'Debes iniciar sesión para comentar');
+      return;
+    }
+    router.push(`/social/comentar?postId=${post.id}`);
+    if (onComment) onComment();
+  }, [user, router, post.id, onComment]);
+
+  const handleShare = useCallback(() => {
+    if (!user) {
+      Alert.alert('Error', 'Debes iniciar sesión para compartir');
+      return;
+    }
+    router.push(`/chat/nuevo-chat?sharePostId=${post.id}`);
+    if (onShare) onShare();
+  }, [user, router, post.id, onShare]);
+
+  const handleDelete = useCallback(async () => {
+    if (!user) return;
+
+    // Check if user is the author
+    const isAuthor = post.tipo === 'usuario' 
+      ? post.autorId === user.id 
+      : false; // For now, only allow users to delete their own posts
+
+    if (!isAuthor) {
+      Alert.alert('Error', 'No tienes permisos para eliminar esta publicación');
+      return;
+    }
+
+    Alert.alert(
+      'Eliminar publicación',
+      '¿Estás seguro de que quieres eliminar esta publicación?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('posts')
+                .delete()
+                .eq('id', post.id);
+
+              if (error) throw error;
+
+              Alert.alert('Éxito', 'Publicación eliminada');
+              // Refresh the feed
+              if (onLike) onLike(); // Reuse onLike to trigger refresh
+            } catch (error) {
+              console.error('[PublicacionCard] Error deleting post:', error);
+              Alert.alert('Error', 'No se pudo eliminar la publicación');
+            }
+          },
+        },
+      ]
+    );
+  }, [user, post, onLike]);
 
   const formatearFecha = useCallback((fecha: string) => {
-    const date = new Date(fecha);
-    const ahora = new Date();
-    const diff = ahora.getTime() - date.getTime();
-    const minutos = Math.floor(diff / 60000);
-    const horas = Math.floor(diff / 3600000);
-    const dias = Math.floor(diff / 86400000);
+    try {
+      const date = new Date(fecha);
+      const ahora = new Date();
+      const diff = ahora.getTime() - date.getTime();
+      const minutos = Math.floor(diff / 60000);
+      const horas = Math.floor(diff / 3600000);
+      const dias = Math.floor(diff / 86400000);
 
-    if (minutos < 1) return 'Ahora';
-    if (minutos < 60) return `Hace ${minutos}m`;
-    if (horas < 24) return `Hace ${horas}h`;
-    if (dias < 7) return `Hace ${dias}d`;
-    return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+      if (minutos < 1) return 'Ahora';
+      if (minutos < 60) return `Hace ${minutos}m`;
+      if (horas < 24) return `Hace ${horas}h`;
+      if (dias < 7) return `Hace ${dias}d`;
+      return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+    } catch (error) {
+      console.error('[PublicacionCard] Error formatting date:', error);
+      return 'Fecha desconocida';
+    }
   }, []);
 
   const handleScroll = useCallback((event: any) => {
@@ -225,6 +353,12 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
 
   const avatarUrl = post?.autorAvatar || null;
 
+  // ✅ FIXED: Format date properly
+  const displayDate = post?.fecha ? formatearFecha(post.fecha) : post?.created_at ? formatearFecha(post.created_at) : 'Fecha desconocida';
+
+  // Check if current user is the author
+  const isAuthor = user && post.tipo === 'usuario' && post.autorId === user.id;
+
   return (
     <View style={styles.card}>
       <TouchableOpacity
@@ -249,11 +383,19 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
         <View style={styles.headerContent}>
           {/* ✅ FIXED: Show author name properly */}
           <Text style={styles.autorNombre}>{displayName}</Text>
-          <Text style={styles.fecha}>{post?.fecha ? formatearFecha(post.fecha) : 'Fecha desconocida'}</Text>
+          {/* ✅ FIXED: Show date properly */}
+          <Text style={styles.fecha}>{displayDate}</Text>
         </View>
-        <TouchableOpacity style={styles.moreButton} activeOpacity={0.7}>
-          <IconSymbol ios_icon_name="ellipsis" android_material_icon_name="more_vert" size={20} color={colors.text} />
-        </TouchableOpacity>
+        {/* ✅ FIXED: Replace three dots with trash icon for author */}
+        {isAuthor ? (
+          <TouchableOpacity style={styles.moreButton} onPress={handleDelete} activeOpacity={0.7}>
+            <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={20} color={colors.error} />
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={styles.moreButton} activeOpacity={0.7}>
+            <IconSymbol ios_icon_name="ellipsis" android_material_icon_name="more_vert" size={20} color={colors.text} />
+          </TouchableOpacity>
+        )}
       </TouchableOpacity>
 
       {mentionedUsers.length > 0 && (
@@ -369,6 +511,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
       )}
 
       <View style={styles.acciones}>
+        {/* ✅ FIXED: Like button works */}
         <TouchableOpacity style={styles.accionButton} onPress={handleLike} activeOpacity={0.7}>
           <IconSymbol
             ios_icon_name={liked ? 'heart.fill' : 'heart'}
@@ -381,17 +524,25 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.accionButton} onPress={onComment} activeOpacity={0.7}>
+        {/* ✅ FIXED: Comment button works */}
+        <TouchableOpacity style={styles.accionButton} onPress={handleComment} activeOpacity={0.7}>
           <IconSymbol ios_icon_name="bubble.left" android_material_icon_name="chat_bubble_outline" size={24} color={colors.text} />
           <Text style={styles.accionText}>{post?.comentarios || 0}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.accionButton} onPress={onShare} activeOpacity={0.7}>
+        {/* ✅ FIXED: Share button works */}
+        <TouchableOpacity style={styles.accionButton} onPress={handleShare} activeOpacity={0.7}>
           <IconSymbol ios_icon_name="paperplane" android_material_icon_name="send" size={24} color={colors.text} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.accionButton} activeOpacity={0.7}>
-          <IconSymbol ios_icon_name="bookmark" android_material_icon_name="bookmark_border" size={24} color={colors.text} />
+        {/* ✅ FIXED: Save button works */}
+        <TouchableOpacity style={styles.accionButton} onPress={handleSave} activeOpacity={0.7}>
+          <IconSymbol 
+            ios_icon_name={saved ? 'bookmark.fill' : 'bookmark'} 
+            android_material_icon_name={saved ? 'bookmark' : 'bookmark_border'} 
+            size={24} 
+            color={saved ? colors.primary : colors.text} 
+          />
         </TouchableOpacity>
       </View>
 

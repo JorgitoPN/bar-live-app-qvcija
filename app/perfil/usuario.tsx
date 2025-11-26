@@ -63,7 +63,6 @@ export default function UsuarioPerfilScreen() {
     seguidos: 0,
   });
 
-  // ✅ FIXED: Use centralized StoryViewer component
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [userStories, setUserStories] = useState<HistoriaConAutor[]>([]);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
@@ -162,6 +161,7 @@ export default function UsuarioPerfilScreen() {
 
       setUsuario(userData);
 
+      // ✅ FIXED: Load posts and count them properly
       const { data: postsData, error: postsError } = await supabase
         .from('posts')
         .select('*')
@@ -169,26 +169,24 @@ export default function UsuarioPerfilScreen() {
         .eq('tipo', 'usuario')
         .order('created_at', { ascending: false });
 
-      if (!postsError) {
-        setPosts(postsData || []);
+      if (!postsError && postsData) {
+        setPosts(postsData);
+        console.log('[UsuarioPerfil] ✅ Loaded posts:', postsData.length);
       }
 
       const followerCounts = await loadFollowerCounts(userId);
 
-      const { count: postsCount } = await supabase
-        .from('posts')
-        .select('*', { count: 'exact', head: true })
-        .eq('autor_id', userId);
+      // ✅ FIXED: Use actual post count from loaded posts
+      const actualPostCount = postsData?.length || 0;
 
       setStats({
-        posts: postsCount || 0,
+        posts: actualPostCount,
         seguidores: followerCounts.seguidores,
         seguidos: followerCounts.seguidos,
       });
 
-      console.log('[UsuarioPerfil] ✅ User stats loaded - Posts:', postsCount, 'Seguidores:', followerCounts.seguidores, 'Seguidos:', followerCounts.seguidos);
+      console.log('[UsuarioPerfil] ✅ User stats loaded - Posts:', actualPostCount, 'Seguidores:', followerCounts.seguidores, 'Seguidos:', followerCounts.seguidos);
 
-      // ✅ Load user stories
       const { data: userStoriesData } = await supabase
         .from('historias')
         .select(`
@@ -294,6 +292,19 @@ export default function UsuarioPerfilScreen() {
               ...prev,
               seguidos: followerCounts.seguidos,
             }));
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'posts',
+            filter: `autor_id=eq.${userId}`,
+          },
+          async () => {
+            console.log('[UsuarioPerfil] ⚡ INSTANT update - Posts changed');
+            await loadUserData();
           }
         )
         .subscribe();
@@ -494,7 +505,6 @@ export default function UsuarioPerfilScreen() {
     router.push(`/perfil/seguidos?userId=${userId}`);
   };
 
-  // ✅ FIXED: Handle avatar press to view stories
   const handleAvatarPress = useCallback(() => {
     if (!currentUser) {
       Alert.alert('Error', 'Debes iniciar sesión para ver historias');
@@ -675,7 +685,6 @@ export default function UsuarioPerfilScreen() {
         )}
       </ScrollView>
 
-      {/* ✅ FIXED: Use centralized StoryViewer component */}
       <StoryViewer
         visible={showStoryViewer}
         stories={userStories}
