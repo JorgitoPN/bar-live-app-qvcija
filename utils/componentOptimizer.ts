@@ -1,20 +1,13 @@
 
-/**
- * Component Optimizer
- * Utilities for optimizing React component performance
- */
-
 import React from 'react';
 
-/**
- * Deep comparison for React.memo
- */
+// ✅ FIXED: Changed Array<T> to T[]
 export function deepCompare<T extends Record<string, any>>(
   prevProps: T,
   nextProps: T,
-  keys?: Array<keyof T>
+  keys?: (keyof T)[]
 ): boolean {
-  const keysToCompare = keys || (Object.keys(prevProps) as Array<keyof T>);
+  const keysToCompare = keys || (Object.keys(prevProps) as (keyof T)[]);
 
   for (const key of keysToCompare) {
     if (prevProps[key] !== nextProps[key]) {
@@ -40,8 +33,8 @@ export function deepCompare<T extends Record<string, any>>(
       // Special handling for objects
       if (
         typeof prevProps[key] === 'object' &&
-        typeof nextProps[key] === 'object' &&
         prevProps[key] !== null &&
+        typeof nextProps[key] === 'object' &&
         nextProps[key] !== null
       ) {
         const prevObj = prevProps[key] as Record<string, any>;
@@ -71,7 +64,19 @@ export function deepCompare<T extends Record<string, any>>(
 }
 
 /**
- * Shallow comparison for React.memo
+ * Create optimized memo component
+ */
+export function createOptimizedMemo<P extends Record<string, any>>(
+  Component: React.ComponentType<P>,
+  compareKeys?: (keyof P)[]
+): React.MemoExoticComponent<React.ComponentType<P>> {
+  return React.memo(Component, (prevProps, nextProps) => {
+    return deepCompare(prevProps, nextProps, compareKeys);
+  });
+}
+
+/**
+ * Shallow compare for simple props
  */
 export function shallowCompare<T extends Record<string, any>>(
   prevProps: T,
@@ -94,84 +99,34 @@ export function shallowCompare<T extends Record<string, any>>(
 }
 
 /**
- * Create optimized memo component
+ * Create shallow memo component
  */
-export function createOptimizedMemo<P extends Record<string, any>>(
-  Component: React.ComponentType<P>,
-  compareKeys?: Array<keyof P>
+export function createShallowMemo<P extends Record<string, any>>(
+  Component: React.ComponentType<P>
 ): React.MemoExoticComponent<React.ComponentType<P>> {
-  return React.memo(Component, (prevProps, nextProps) => {
-    return deepCompare(prevProps, nextProps, compareKeys);
+  return React.memo(Component, shallowCompare);
+}
+
+/**
+ * Optimize list rendering
+ */
+export function optimizeListItem<T>(
+  item: T,
+  index: number,
+  getKey: (item: T, index: number) => string
+): { key: string; item: T; index: number } {
+  return {
+    key: getKey(item, index),
+    item,
+    index,
+  };
+}
+
+/**
+ * Batch updates to reduce re-renders
+ */
+export function batchUpdates(updates: (() => void)[]): void {
+  requestAnimationFrame(() => {
+    updates.forEach(update => update());
   });
-}
-
-/**
- * Debounce function for expensive operations
- */
-export function debounce<T extends (...args: any[]) => any>(
-  func: T,
-  wait: number
-): (...args: Parameters<T>) => void {
-  let timeout: NodeJS.Timeout | null = null;
-
-  return (...args: Parameters<T>) => {
-    if (timeout) clearTimeout(timeout);
-    
-    timeout = setTimeout(() => {
-      func(...args);
-    }, wait);
-  };
-}
-
-/**
- * Throttle function for frequent operations
- */
-export function throttle<T extends (...args: any[]) => any>(
-  func: T,
-  limit: number
-): (...args: Parameters<T>) => void {
-  let inThrottle: boolean = false;
-  let lastResult: ReturnType<T>;
-
-  return (...args: Parameters<T>) => {
-    if (!inThrottle) {
-      lastResult = func(...args);
-      inThrottle = true;
-      
-      setTimeout(() => {
-        inThrottle = false;
-      }, limit);
-    }
-    
-    return lastResult;
-  };
-}
-
-/**
- * Memoize expensive computations
- */
-export function memoize<T extends (...args: any[]) => any>(
-  func: T,
-  keyGenerator?: (...args: Parameters<T>) => string
-): T {
-  const cache = new Map<string, ReturnType<T>>();
-
-  return ((...args: Parameters<T>) => {
-    const key = keyGenerator ? keyGenerator(...args) : JSON.stringify(args);
-    
-    if (cache.has(key)) {
-      return cache.get(key)!;
-    }
-
-    const result = func(...args);
-    cache.set(key, result);
-    
-    // Limit cache size
-    if (cache.size > 100) {
-      const firstKey = cache.keys().next().value;
-      cache.delete(firstKey);
-    }
-
-    return result;
-  }) as T;
 }

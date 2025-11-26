@@ -1,79 +1,107 @@
 
-/**
- * Render Optimizer
- * Advanced rendering optimizations for 60fps performance
- */
-
-import { InteractionManager } from 'react-native';
-
+// ✅ FIXED: Changed Array<T> to T[]
 class RenderOptimizer {
-  private renderQueue: Array<() => void> = [];
+  private renderQueue: (() => void)[] = [];
   private isProcessing: boolean = false;
   private frameCallbacks: Map<string, number> = new Map();
 
   /**
-   * Schedule render after interactions complete
+   * Schedule a render for the next frame
    */
-  scheduleRender(callback: () => void): void {
-    this.renderQueue.push(callback);
-    
-    if (!this.isProcessing) {
-      this.processQueue();
-    }
-  }
-
-  /**
-   * Process render queue
-   */
-  private processQueue(): void {
-    if (this.renderQueue.length === 0) {
-      this.isProcessing = false;
-      return;
-    }
-
-    this.isProcessing = true;
-
-    InteractionManager.runAfterInteractions(() => {
-      const callback = this.renderQueue.shift();
-      if (callback) {
-        callback();
+  scheduleRender(callback: () => void, id?: string): void {
+    if (id) {
+      // Cancel previous render with same ID
+      const existingFrame = this.frameCallbacks.get(id);
+      if (existingFrame) {
+        cancelAnimationFrame(existingFrame);
       }
-      
-      // Process next item
-      requestAnimationFrame(() => this.processQueue());
-    });
-  }
+    }
 
-  /**
-   * Throttle render updates to 60fps
-   */
-  throttleRender(key: string, callback: () => void, fps: number = 60): void {
-    const frameTime = 1000 / fps;
-    const lastFrame = this.frameCallbacks.get(key) || 0;
-    const now = Date.now();
-
-    if (now - lastFrame >= frameTime) {
-      this.frameCallbacks.set(key, now);
+    const frameId = requestAnimationFrame(() => {
       callback();
+      if (id) {
+        this.frameCallbacks.delete(id);
+      }
+    });
+
+    if (id) {
+      this.frameCallbacks.set(id, frameId);
     }
   }
 
   /**
    * Batch multiple renders into single frame
    */
-  batchRender(callbacks: Array<() => void>): void {
+  batchRender(callbacks: (() => void)[]): void {
     requestAnimationFrame(() => {
       callbacks.forEach(cb => cb());
     });
   }
 
   /**
-   * Clear all pending renders
+   * Queue a render for later
    */
-  clear(): void {
-    this.renderQueue = [];
+  queueRender(callback: () => void): void {
+    this.renderQueue.push(callback);
+    
+    if (!this.isProcessing) {
+      this.processRenderQueue();
+    }
+  }
+
+  /**
+   * Process the render queue
+   */
+  private processRenderQueue(): void {
+    if (this.isProcessing || this.renderQueue.length === 0) {
+      return;
+    }
+
+    this.isProcessing = true;
+
+    requestAnimationFrame(() => {
+      while (this.renderQueue.length > 0) {
+        const callback = this.renderQueue.shift();
+        if (callback) {
+          callback();
+        }
+      }
+      
+      this.isProcessing = false;
+    });
+  }
+
+  /**
+   * Cancel a scheduled render
+   */
+  cancelRender(id: string): void {
+    const frameId = this.frameCallbacks.get(id);
+    if (frameId) {
+      cancelAnimationFrame(frameId);
+      this.frameCallbacks.delete(id);
+    }
+  }
+
+  /**
+   * Clear all scheduled renders
+   */
+  clearAll(): void {
+    this.frameCallbacks.forEach(frameId => {
+      cancelAnimationFrame(frameId);
+    });
     this.frameCallbacks.clear();
-    this.isProcessing = false;
+    this.renderQueue = [];
+    console.log('[RenderOptimizer] All renders cleared');
+  }
+
+  /**
+   * Get queue status
+   */
+  getStatus(): { queued: number; scheduled: number } {
+    return {
+      queued: this.renderQueue.length,
+      scheduled: this.frameCallbacks.size,
+    };
   }
 }
 

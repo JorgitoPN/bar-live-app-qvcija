@@ -1,34 +1,28 @@
 
-/**
- * Connection Pool Manager
- * Optimize Supabase connections for maximum performance
- */
-
-import { supabase } from './supabase';
-
+// ✅ FIXED: Changed Array<T> to T[]
 class ConnectionPool {
   private activeConnections: number = 0;
   private maxConnections: number = 10;
-  private connectionQueue: Array<() => void> = [];
+  private connectionQueue: (() => void)[] = [];
   private isProcessing: boolean = false;
 
   /**
-   * Execute query with connection pooling
+   * Execute a query with connection pooling
    */
   async execute<T>(
-    queryFn: () => Promise<T>,
+    query: () => Promise<T>,
     priority: 'high' | 'medium' | 'low' = 'medium'
   ): Promise<T> {
     // If we have available connections, execute immediately
     if (this.activeConnections < this.maxConnections) {
-      return this.executeQuery(queryFn);
+      return this.executeQuery(query);
     }
 
     // Otherwise, queue the query
     return new Promise((resolve, reject) => {
-      const queueItem = async () => {
+      const queuedQuery = async () => {
         try {
-          const result = await this.executeQuery(queryFn);
+          const result = await this.executeQuery(query);
           resolve(result);
         } catch (error) {
           reject(error);
@@ -37,33 +31,37 @@ class ConnectionPool {
 
       // Add to queue based on priority
       if (priority === 'high') {
-        this.connectionQueue.unshift(queueItem);
+        this.connectionQueue.unshift(queuedQuery);
       } else {
-        this.connectionQueue.push(queueItem);
+        this.connectionQueue.push(queuedQuery);
       }
 
-      // Process queue
+      // Start processing queue
       this.processQueue();
     });
   }
 
   /**
-   * Execute query and track connection
+   * Execute a query and manage connection count
    */
-  private async executeQuery<T>(queryFn: () => Promise<T>): Promise<T> {
+  private async executeQuery<T>(query: () => Promise<T>): Promise<T> {
     this.activeConnections++;
+    console.log('[ConnectionPool] Active connections:', this.activeConnections);
 
     try {
-      const result = await queryFn();
+      const result = await query();
       return result;
     } finally {
       this.activeConnections--;
+      console.log('[ConnectionPool] Active connections:', this.activeConnections);
+      
+      // Process next query in queue
       this.processQueue();
     }
   }
 
   /**
-   * Process queued queries
+   * Process the connection queue
    */
   private processQueue(): void {
     if (this.isProcessing || this.connectionQueue.length === 0) {
@@ -82,18 +80,13 @@ class ConnectionPool {
     }
 
     this.isProcessing = false;
-
-    // Process next item if available
-    if (this.connectionQueue.length > 0 && this.activeConnections < this.maxConnections) {
-      setTimeout(() => this.processQueue(), 0);
-    }
   }
 
   /**
    * Batch multiple queries
    */
   async batchExecute<T>(
-    queries: Array<() => Promise<T>>,
+    queries: (() => Promise<T>)[],
     priority: 'high' | 'medium' | 'low' = 'medium'
   ): Promise<T[]> {
     return Promise.all(
@@ -102,27 +95,22 @@ class ConnectionPool {
   }
 
   /**
-   * Get connection stats
+   * Get pool status
    */
-  getStats(): {
-    active: number;
-    max: number;
-    queued: number;
-    utilization: number;
-  } {
+  getStatus(): { active: number; queued: number; available: number } {
     return {
       active: this.activeConnections,
-      max: this.maxConnections,
       queued: this.connectionQueue.length,
-      utilization: (this.activeConnections / this.maxConnections) * 100,
+      available: this.maxConnections - this.activeConnections,
     };
   }
 
   /**
-   * Clear queue
+   * Clear the queue
    */
   clearQueue(): void {
     this.connectionQueue = [];
+    console.log('[ConnectionPool] Queue cleared');
   }
 }
 

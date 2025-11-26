@@ -1,17 +1,11 @@
 
-/**
- * Background Sync Manager
- * Handles non-blocking background operations
- * Keeps UI responsive while syncing data
- */
-
-import { InteractionManager } from 'react-native';
+import { InteractionManager, Image } from 'react-native';
 import { supabase } from './supabase';
 import { advancedCache } from './advancedCache';
 
 interface SyncTask {
   id: string;
-  type: 'cleanup' | 'preload' | 'sync' | 'analytics';
+  type: 'upload' | 'download' | 'sync' | 'preload';
   priority: 'high' | 'medium' | 'low';
   execute: () => Promise<void>;
   retries: number;
@@ -19,26 +13,10 @@ interface SyncTask {
 }
 
 class BackgroundSyncManager {
-  private taskQueue: SyncTask[] = [];
+  private queue: SyncTask[] = [];
   private isProcessing: boolean = false;
-  private syncInterval: NodeJS.Timeout | null = null;
-
-  /**
-   * Initialize background sync
-   */
-  initialize(): void {
-    console.log('[BackgroundSync] 🚀 Initializing...');
-
-    // Start periodic sync every 5 minutes
-    this.syncInterval = setInterval(() => {
-      this.schedulePeriodicSync();
-    }, 5 * 60 * 1000);
-
-    // Initial sync after 10 seconds
-    setTimeout(() => {
-      this.schedulePeriodicSync();
-    }, 10000);
-  }
+  private maxConcurrent: number = 3;
+  private activeCount: number = 0;
 
   /**
    * Schedule a background task
@@ -49,108 +27,88 @@ class BackgroundSyncManager {
       retries: 0,
     };
 
-    // Insert task based on priority
-    const insertIndex = this.taskQueue.findIndex(
-      t => this.getPriorityValue(t.priority) < this.getPriorityValue(fullTask.priority)
-    );
-
-    if (insertIndex === -1) {
-      this.taskQueue.push(fullTask);
+    // Insert based on priority
+    if (task.priority === 'high') {
+      this.queue.unshift(fullTask);
     } else {
-      this.taskQueue.splice(insertIndex, 0, fullTask);
+      this.queue.push(fullTask);
     }
 
-    console.log('[BackgroundSync] 📋 Task scheduled:', task.type, 'Priority:', task.priority);
-
-    // Start processing if not already running
+    console.log('[BackgroundSync] 📋 Task scheduled:', task.id, 'Priority:', task.priority);
+    
+    // Start processing if not already
     if (!this.isProcessing) {
       this.processQueue();
     }
   }
 
   /**
-   * Get numeric priority value
-   */
-  private getPriorityValue(priority: 'high' | 'medium' | 'low'): number {
-    switch (priority) {
-      case 'high': return 3;
-      case 'medium': return 2;
-      case 'low': return 1;
-      default: return 0;
-    }
-  }
-
-  /**
-   * Process task queue
+   * Process the task queue
    */
   private async processQueue(): Promise<void> {
-    if (this.isProcessing || this.taskQueue.length === 0) {
+    if (this.isProcessing || this.queue.length === 0) {
       return;
     }
 
     this.isProcessing = true;
+    console.log('[BackgroundSync] 🚀 Processing queue, tasks:', this.queue.length);
 
-    while (this.taskQueue.length > 0) {
-      const task = this.taskQueue.shift();
-      if (!task) break;
+    while (this.queue.length > 0 && this.activeCount < this.maxConcurrent) {
+      const task = this.queue.shift();
+      if (!task) continue;
 
-      try {
-        // Wait for interactions to complete (non-blocking)
-        await new Promise<void>(resolve => {
-          InteractionManager.runAfterInteractions(() => {
-            resolve();
-          });
-        });
-
-        console.log('[BackgroundSync] ⚙️ Executing task:', task.type);
-        await task.execute();
-        console.log('[BackgroundSync] ✅ Task completed:', task.type);
-      } catch (error) {
-        console.error('[BackgroundSync] ❌ Task failed:', task.type, error);
-
-        // Retry if not exceeded max retries
-        if (task.retries < task.maxRetries) {
-          task.retries++;
-          this.taskQueue.push(task);
-          console.log('[BackgroundSync] 🔄 Retrying task:', task.type, 'Attempt:', task.retries);
+      this.activeCount++;
+      
+      // Run after interactions to avoid blocking UI
+      InteractionManager.runAfterInteractions(async () => {
+        try {
+          console.log('[BackgroundSync] ⚙️ Executing task:', task.id);
+          await task.execute();
+          console.log('[BackgroundSync] ✅ Task completed:', task.id);
+        } catch (error) {
+          console.error('[BackgroundSync] ❌ Task failed:', task.id, error);
+          
+          // Retry logic
+          if (task.retries < task.maxRetries) {
+            task.retries++;
+            console.log('[BackgroundSync] 🔄 Retrying task:', task.id, 'Attempt:', task.retries);
+            this.queue.push(task);
+          } else {
+            console.error('[BackgroundSync] ⚠️ Task max retries reached:', task.id);
+          }
+        } finally {
+          this.activeCount--;
+          
+          // Continue processing
+          if (this.queue.length > 0) {
+            this.processQueue();
+          } else {
+            this.isProcessing = false;
+            console.log('[BackgroundSync] ✅ Queue empty');
+          }
         }
-      }
-
-      // Small delay between tasks to keep UI responsive
-      await new Promise(resolve => setTimeout(resolve, 100));
+      });
     }
-
-    this.isProcessing = false;
   }
 
   /**
-   * Schedule periodic sync tasks
+   * Sync data in background
    */
-  private schedulePeriodicSync(): void {
-    console.log('[BackgroundSync] 🔄 Scheduling periodic sync...');
-
-    // Cleanup expired cache
+  syncData(
+    key: string,
+    fetchFn: () => Promise<any>,
+    priority: 'high' | 'medium' | 'low' = 'medium'
+  ): void {
     this.scheduleTask({
-      id: `cleanup:${Date.now()}`,
-      type: 'cleanup',
-      priority: 'low',
-      maxRetries: 1,
-      execute: async () => {
-        // Clean up old cache entries
-        const stats = await advancedCache.getStats();
-        console.log('[BackgroundSync] 🧹 Cache stats:', stats);
-      },
-    });
-
-    // Sync analytics
-    this.scheduleTask({
-      id: `analytics:${Date.now()}`,
-      type: 'analytics',
-      priority: 'low',
+      id: `sync:${key}`,
+      type: 'sync',
+      priority,
       maxRetries: 2,
       execute: async () => {
-        // Track app usage analytics
-        console.log('[BackgroundSync] 📊 Syncing analytics...');
+        console.log('[BackgroundSync] 🔄 Syncing:', key);
+        const data = await fetchFn();
+        await advancedCache.set(key, data, priority);
+        console.log('[BackgroundSync] ✅ Synced:', key);
       },
     });
   }
@@ -173,7 +131,6 @@ class BackgroundSyncManager {
         
         // Preload logic here
         if (type === 'images') {
-          const { Image } = require('react-native');
           await Promise.all(
             data.slice(0, 10).map(uri => Image.prefetch(uri).catch(() => {}))
           );
@@ -183,67 +140,22 @@ class BackgroundSyncManager {
   }
 
   /**
-   * Sync data in background
+   * Clear the queue
    */
-  syncData(
-    dataType: string,
-    syncFn: () => Promise<void>,
-    priority: 'high' | 'medium' | 'low' = 'medium'
-  ): void {
-    this.scheduleTask({
-      id: `sync:${dataType}:${Date.now()}`,
-      type: 'sync',
-      priority,
-      maxRetries: 3,
-      execute: syncFn,
-    });
+  clearQueue(): void {
+    this.queue = [];
+    console.log('[BackgroundSync] 🧹 Queue cleared');
   }
 
   /**
-   * Get queue statistics
+   * Get queue status
    */
-  getStats(): {
-    queueLength: number;
-    isProcessing: boolean;
-    byType: Record<string, number>;
-    byPriority: Record<string, number>;
-  } {
-    const byType: Record<string, number> = {};
-    const byPriority: Record<string, number> = {};
-
-    this.taskQueue.forEach(task => {
-      byType[task.type] = (byType[task.type] || 0) + 1;
-      byPriority[task.priority] = (byPriority[task.priority] || 0) + 1;
-    });
-
+  getStatus(): { pending: number; active: number } {
     return {
-      queueLength: this.taskQueue.length,
-      isProcessing: this.isProcessing,
-      byType,
-      byPriority,
+      pending: this.queue.length,
+      active: this.activeCount,
     };
-  }
-
-  /**
-   * Clear all tasks
-   */
-  clearAll(): void {
-    this.taskQueue = [];
-    console.log('[BackgroundSync] 🗑️ All tasks cleared');
-  }
-
-  /**
-   * Cleanup
-   */
-  cleanup(): void {
-    if (this.syncInterval) {
-      clearInterval(this.syncInterval);
-      this.syncInterval = null;
-    }
-    this.clearAll();
-    console.log('[BackgroundSync] 🧹 Cleanup complete');
   }
 }
 
-// Export singleton instance
 export const backgroundSync = new BackgroundSyncManager();

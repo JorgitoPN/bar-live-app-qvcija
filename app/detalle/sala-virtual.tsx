@@ -4,44 +4,23 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
   ScrollView,
-  Image,
-  ActivityIndicator,
-  RefreshControl,
-  Alert,
-  Modal,
-  Animated,
-  Dimensions,
+  TouchableOpacity,
   TextInput,
+  Image,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   FlatList,
+  ActivityIndicator,
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import { IconSymbol } from '@/components/IconSymbol';
-import { colors } from '@/styles/commonStyles';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-import { getEstadoLocal } from '@/utils/timeUtils';
-import LoginRequiredModal from '@/components/common/LoginRequiredModal';
+import { colors } from '@/styles/commonStyles';
+import { IconSymbol } from '@/components/IconSymbol';
 
-const { width, height } = Dimensions.get('window');
-
-interface CheckIn {
-  id: string;
-  usuario_id: string;
-  local_id: string;
-  created_at: string;
-  usuario: {
-    id: string;
-    nombre: string;
-    username: string;
-    avatar?: string;
-  };
-}
-
+// ✅ FIXED: Changed Array<T> to T[]
 interface InteractionMessage {
   id: string;
   usuario_id: string;
@@ -58,564 +37,194 @@ interface InteractionMessage {
   };
 }
 
-type InteractionMessageArray = InteractionMessage[];
-
-const MENSAJES_RAPIDOS = [
-  { id: '1', texto: '¿Me invitas a una copa? 🍹', emoji: '🍹' },
-  { id: '2', texto: 'Te invito a una copa 🥂', emoji: '🥂' },
-  { id: '3', texto: '¡Qué buena música! 🎵', emoji: '🎵' },
-  { id: '4', texto: '¿Bailamos? 💃', emoji: '💃' },
-  { id: '5', texto: '¡Salud! 🍻', emoji: '🍻' },
-  { id: '6', texto: '¡Qué ambiente! 🎉', emoji: '🎉' },
-];
-
-const EMOTICONS = [
-  { id: '1', emoji: '❤️', nombre: 'Corazón' },
-  { id: '2', emoji: '🔥', nombre: 'Fuego' },
-  { id: '3', emoji: '😍', nombre: 'Enamorado' },
-  { id: '4', emoji: '🎉', nombre: 'Fiesta' },
-  { id: '5', emoji: '👋', nombre: 'Saludo' },
-  { id: '6', emoji: '😎', nombre: 'Cool' },
-  { id: '7', emoji: '🍻', nombre: 'Brindis' },
-  { id: '8', emoji: '💃', nombre: 'Baile' },
-  { id: '9', emoji: '🎵', nombre: 'Música' },
-  { id: '10', emoji: '⭐', nombre: 'Estrella' },
-  { id: '11', emoji: '💫', nombre: 'Brillante' },
-  { id: '12', emoji: '👍', nombre: 'Me gusta' },
-];
+interface Local {
+  id: string;
+  nombre: string;
+  logo?: string;
+  descripcion?: string;
+}
 
 export default function SalaVirtualScreen() {
-  const router = useRouter();
   const params = useLocalSearchParams();
+  const router = useRouter();
   const { user } = useAuth();
-  const flatListRef = useRef<FlatList>(null);
-  const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [local, setLocal] = useState<any>(null);
-  const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
-  const [userHasCheckedIn, setUserHasCheckedIn] = useState(false);
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const [showQuickMessages, setShowQuickMessages] = useState(false);
-  const [showEmoticons, setShowEmoticons] = useState(false);
-  const [selectedRecipient, setSelectedRecipient] = useState<string | null>(null);
-  const [floatingEmojis, setFloatingEmojis] = useState<Array<{ id: string; emoji: string; x: number; y: Animated.Value; opacity: Animated.Value }>>([]);
   
-  const [showPublicChat, setShowPublicChat] = useState(false);
-  const [chatMessages, setChatMessages] = useState<InteractionMessage[]>([]);
+  const [local, setLocal] = useState<Local | null>(null);
+  const [messages, setMessages] = useState<InteractionMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [sendingMessage, setSendingMessage] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [activeUsers, setActiveUsers] = useState<number>(0);
+  
+  const scrollViewRef = useRef<ScrollView>(null);
+  const localId = params.id as string;
 
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const channelRef = useRef<any>(null);
-
+  // Load local data
   useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.05,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-  }, [pulseAnim]);
+    if (!localId) {
+      Alert.alert('Error', 'No se especificó el local');
+      router.back();
+      return;
+    }
 
-  const loadData = useCallback(async () => {
+    loadLocalData();
+    loadMessages();
+    subscribeToMessages();
+    updateActiveUsers();
+
+    const interval = setInterval(updateActiveUsers, 30000); // Update every 30 seconds
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [localId]);
+
+  const loadLocalData = async () => {
     try {
-      console.log('[SalaVirtual] ⚡ Loading data for local:', params.id);
-
-      const { data: localData, error: localError } = await supabase
+      const { data, error } = await supabase
         .from('locales')
-        .select('id, nombre, direccion, provincia, imagen_url')
-        .eq('id', params.id)
+        .select('id, nombre, logo, descripcion')
+        .eq('id', localId)
         .single();
 
-      if (localError) {
-        console.error('[SalaVirtual] Error loading local:', localError);
+      if (error) {
+        console.error('[SalaVirtual] Error loading local:', error);
         Alert.alert('Error', 'No se pudo cargar la información del local');
+        router.back();
         return;
       }
 
-      setLocal(localData);
+      setLocal(data);
+    } catch (error) {
+      console.error('[SalaVirtual] Error:', error);
+    }
+  };
 
-      const sixHoursAgo = new Date();
-      sixHoursAgo.setHours(sixHoursAgo.getHours() - 6);
+  const loadMessages = async () => {
+    try {
+      setLoading(true);
 
-      const { data: checkInsData, error: checkInsError } = await supabase
-        .from('check_ins')
-        .select(`
-          id,
-          usuario_id,
-          local_id,
-          created_at,
-          usuario:usuarios!check_ins_usuario_id_fkey(id, nombre, username, avatar)
-        `)
-        .eq('local_id', params.id)
-        .gte('created_at', sixHoursAgo.toISOString())
-        .order('created_at', { ascending: false });
-
-      if (checkInsError) {
-        console.error('[SalaVirtual] Error loading check-ins:', checkInsError);
-      } else {
-        console.log('[SalaVirtual] ✅ Loaded', checkInsData?.length || 0, 'check-ins');
-        setCheckIns(checkInsData || []);
-        
-        if (user) {
-          const hasCheckedIn = checkInsData?.some(ci => ci.usuario_id === user.id) || false;
-          console.log('[SalaVirtual] User has checked in:', hasCheckedIn);
-          setUserHasCheckedIn(hasCheckedIn);
-        }
-      }
-
-      const thirtyMinutesAgo = new Date();
-      thirtyMinutesAgo.setMinutes(thirtyMinutesAgo.getMinutes() - 30);
-
-      console.log('[SalaVirtual] 📥 Loading chat messages from sala_virtual_interacciones...');
-
-      const { data: interactionsData, error: interactionsError } = await supabase
+      const { data, error } = await supabase
         .from('sala_virtual_interacciones')
         .select(`
-          id,
-          usuario_id,
-          local_id,
-          tipo,
-          contenido,
-          recipient_id,
-          created_at,
-          usuario:usuarios!sala_virtual_interacciones_usuario_id_fkey(id, nombre, username, avatar)
+          *,
+          usuario:usuarios!sala_virtual_interacciones_usuario_id_fkey(
+            id,
+            nombre,
+            username,
+            avatar
+          )
         `)
-        .eq('local_id', params.id)
-        .eq('tipo', 'chat')
-        .gte('created_at', thirtyMinutesAgo.toISOString())
+        .eq('local_id', localId)
+        .eq('tipo', 'mensaje')
         .order('created_at', { ascending: true })
         .limit(100);
 
-      if (interactionsError) {
-        console.error('[SalaVirtual] ⚠️ Error loading chat messages:', interactionsError);
-        setChatMessages([]);
-      } else {
-        console.log('[SalaVirtual] ✅ Loaded', interactionsData?.length || 0, 'chat messages');
-        setChatMessages(interactionsData || []);
+      if (error) {
+        console.error('[SalaVirtual] Error loading messages:', error);
+        return;
       }
 
-      console.log('[SalaVirtual] ⚡ Data loaded successfully');
+      setMessages(data || []);
+      
+      // Scroll to bottom after loading
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: false });
+      }, 100);
     } catch (error) {
       console.error('[SalaVirtual] Error:', error);
-      Alert.alert('Error', 'Ocurrió un error al cargar los datos');
     } finally {
       setLoading(false);
     }
-  }, [params.id, user]);
+  };
 
-  useEffect(() => {
-    if (params.id) {
-      setLoading(true);
-      loadData();
-    }
-  }, [params.id, loadData]);
-
-  // Real-time subscriptions using postgres_changes for INSTANT updates
-  useEffect(() => {
-    if (!params.id) return;
-
-    console.log('[SalaVirtual] ⚡ Setting up real-time subscriptions for local:', params.id);
-
-    // Clean up existing channel
-    if (channelRef.current) {
-      console.log('[SalaVirtual] 🧹 Cleaning up existing channel');
-      supabase.removeChannel(channelRef.current);
-    }
-
+  const subscribeToMessages = () => {
     const channel = supabase
-      .channel(`sala_virtual:${params.id}`, {
-        config: {
-          broadcast: { self: true },
-        },
-      })
+      .channel(`sala_virtual:${localId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'sala_virtual_interacciones',
-          filter: `local_id=eq.${params.id}`,
+          filter: `local_id=eq.${localId}`,
         },
         async (payload) => {
-          console.log('[SalaVirtual] ⚡ REALTIME: New interaction received:', payload.new);
+          console.log('[SalaVirtual] New message:', payload);
           
-          // Fetch user data for the new interaction
+          // Fetch user data for the new message
           const { data: userData } = await supabase
             .from('usuarios')
             .select('id, nombre, username, avatar')
             .eq('id', payload.new.usuario_id)
             .single();
 
-          const newInteraction = {
-            ...payload.new,
-            usuario: userData || { id: payload.new.usuario_id, nombre: 'Usuario', username: '', avatar: '' },
-          } as InteractionMessage;
+          const newMessage: InteractionMessage = {
+            ...payload.new as any,
+            usuario: userData || {
+              id: payload.new.usuario_id,
+              nombre: 'Usuario',
+            },
+          };
 
-          // If it's a chat message, add to chat
-          if (payload.new.tipo === 'chat') {
-            console.log('[SalaVirtual] 💬 Adding new chat message to UI');
-            setChatMessages((prev) => {
-              // Avoid duplicates
-              if (prev.some(m => m.id === newInteraction.id)) {
-                return prev;
-              }
-              return [...prev, newInteraction];
-            });
-            
-            // Auto-scroll to bottom
-            setTimeout(() => {
-              flatListRef.current?.scrollToEnd({ animated: true });
-            }, 100);
-          } else if (payload.new.tipo === 'emoticon') {
-            // Show floating emoji animation
-            showFloatingEmoji(payload.new.contenido);
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'check_ins',
-          filter: `local_id=eq.${params.id}`,
-        },
-        async (payload) => {
-          console.log('[SalaVirtual] ⚡ REALTIME: New check-in received:', payload.new);
+          setMessages((prev) => [...prev, newMessage]);
           
-          // Fetch user data for the new check-in
-          const { data: userData } = await supabase
-            .from('usuarios')
-            .select('id, nombre, username, avatar')
-            .eq('id', payload.new.usuario_id)
-            .single();
-
-          if (userData) {
-            const newCheckIn = {
-              ...payload.new,
-              usuario: userData,
-            } as CheckIn;
-
-            console.log('[SalaVirtual] 👤 Adding new check-in to UI:', userData.nombre);
-            
-            setCheckIns((prev) => {
-              // Avoid duplicates
-              if (prev.some(ci => ci.id === newCheckIn.id)) {
-                return prev;
-              }
-              return [newCheckIn, ...prev];
-            });
-
-            // Update user's check-in status if it's the current user
-            if (user && payload.new.usuario_id === user.id) {
-              console.log('[SalaVirtual] ✅ Current user checked in');
-              setUserHasCheckedIn(true);
-            }
-          }
+          // Scroll to bottom
+          setTimeout(() => {
+            scrollViewRef.current?.scrollToEnd({ animated: true });
+          }, 100);
         }
       )
-      .on(
-        'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'check_ins',
-          filter: `local_id=eq.${params.id}`,
-        },
-        (payload) => {
-          console.log('[SalaVirtual] ⚡ REALTIME: User checked out:', payload.old);
-          
-          setCheckIns((prev) => prev.filter(ci => ci.id !== payload.old.id));
-
-          // Update user's check-in status if it's the current user
-          if (user && payload.old.usuario_id === user.id) {
-            console.log('[SalaVirtual] ❌ Current user checked out');
-            setUserHasCheckedIn(false);
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'sala_virtual_interacciones',
-          filter: `local_id=eq.${params.id}`,
-        },
-        (payload) => {
-          console.log('[SalaVirtual] ⚡ REALTIME: Message deleted:', payload.old);
-          
-          // Remove from chat messages
-          setChatMessages((prev) => prev.filter(m => m.id !== payload.old.id));
-        }
-      )
-      .subscribe((status) => {
-        console.log('[SalaVirtual] 📡 Subscription status:', status);
-        if (status === 'SUBSCRIBED') {
-          console.log('[SalaVirtual] ✅ Successfully subscribed to real-time updates');
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('[SalaVirtual] ❌ Channel error - real-time updates may not work');
-        } else if (status === 'TIMED_OUT') {
-          console.error('[SalaVirtual] ⏱️ Subscription timed out');
-        }
-      });
-
-    channelRef.current = channel;
+      .subscribe();
 
     return () => {
-      console.log('[SalaVirtual] 🧹 Cleaning up subscriptions');
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
+      supabase.removeChannel(channel);
     };
-  }, [params.id, user]);
-
-  const showFloatingEmoji = (emoji: string) => {
-    const id = Date.now().toString();
-    const x = Math.random() * (width - 60);
-    const y = new Animated.Value(height - 200);
-    const opacity = new Animated.Value(1);
-
-    setFloatingEmojis((prev) => [...prev, { id, emoji, x, y, opacity }]);
-
-    Animated.parallel([
-      Animated.timing(y, {
-        toValue: -100,
-        duration: 3000,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacity, {
-        toValue: 0,
-        duration: 3000,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      setFloatingEmojis((prev) => prev.filter((item) => item.id !== id));
-    });
   };
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
-  };
-
-  const handleCheckIn = async () => {
-    if (!user) {
-      setShowLoginModal(true);
-      return;
-    }
-
-    if (userHasCheckedIn) {
-      Alert.alert('Ya has hecho check-in', 'Ya estás registrado en este local');
-      return;
-    }
-
+  const updateActiveUsers = async () => {
     try {
-      console.log('[SalaVirtual] 📍 Starting check-in process...');
-
-      // FIXED: Check if local is currently open before allowing check-in
-      if (local) {
-        const estado = getEstadoLocal(local);
-        
-        console.log('[SalaVirtual] 🕐 Local status:', estado.badge, 'Open:', estado.estaAbierto);
-        
-        if (estado.estaAbierto === false) {
-          Alert.alert(
-            'Local cerrado',
-            `No puedes hacer check-in porque el local está cerrado. ${estado.badge}`,
-            [{ text: 'Entendido' }]
-          );
-          return;
-        }
-        
-        if (estado.estaAbierto === null) {
-          Alert.alert(
-            'Horario desconocido',
-            'No se puede verificar si el local está abierto. ¿Deseas continuar de todos modos?',
-            [
-              { text: 'Cancelar', style: 'cancel' },
-              { text: 'Continuar', onPress: () => proceedWithCheckIn() }
-            ]
-          );
-          return;
-        }
-        
-        console.log('[SalaVirtual] ✅ Local is open, proceeding with check-in');
-      }
-
-      await proceedWithCheckIn();
-    } catch (error) {
-      console.error('[SalaVirtual] ❌ Error:', error);
-      Alert.alert('Error', 'Ocurrió un error al hacer check-in');
-    }
-  };
-
-  const proceedWithCheckIn = async () => {
-    if (!user) return;
-
-    try {
-      // Check if user is already checked in to another local
-      const { data: existingCheckIns, error: checkError } = await supabase
-        .from('check_ins')
-        .select('id, local_id, locales(nombre)')
-        .eq('usuario_id', user.id);
-
-      if (checkError) {
-        console.error('[SalaVirtual] Error checking existing check-ins:', checkError);
-        Alert.alert('Error', 'No se pudo verificar tu estado de check-in');
-        return;
-      }
-
-      // If user is checked in elsewhere, auto check-out from previous local
-      if (existingCheckIns && existingCheckIns.length > 0) {
-        const previousLocal = existingCheckIns[0] as any;
-        console.log('[SalaVirtual] 🔄 User checked in elsewhere, auto check-out from:', previousLocal.locales?.nombre);
-
-        const { error: deleteError } = await supabase
-          .from('check_ins')
-          .delete()
-          .eq('usuario_id', user.id);
-
-        if (deleteError) {
-          console.error('[SalaVirtual] Error removing previous check-in:', deleteError);
-          Alert.alert('Error', 'No se pudo cerrar tu sesión anterior');
-          return;
-        }
-
-        console.log('[SalaVirtual] ✅ Previous check-in removed');
-      }
-
-      // OPTIMISTIC UI UPDATE - Show user in list immediately
-      const optimisticCheckIn: CheckIn = {
-        id: `temp-${Date.now()}`,
-        usuario_id: user.id,
-        local_id: params.id as string,
-        created_at: new Date().toISOString(),
-        usuario: {
-          id: user.id,
-          nombre: user.nombre,
-          username: user.username || '',
-          avatar: user.avatar,
-        },
-      };
-
-      console.log('[SalaVirtual] ⚡ Optimistic UI update - adding user to list');
-      setCheckIns((prev) => [optimisticCheckIn, ...prev]);
-      setUserHasCheckedIn(true);
-
-      // Create new check-in
-      const { data, error } = await supabase
-        .from('check_ins')
-        .insert({
-          usuario_id: user.id,
-          local_id: params.id,
-        })
-        .select('id')
-        .single();
-
-      if (error) {
-        console.error('[SalaVirtual] ❌ Error creating check-in:', error);
-        
-        // Rollback optimistic update
-        setCheckIns((prev) => prev.filter(ci => ci.id !== optimisticCheckIn.id));
-        setUserHasCheckedIn(false);
-        
-        Alert.alert('Error', 'No se pudo hacer check-in');
-        return;
-      }
-
-      console.log('[SalaVirtual] ✅ Check-in successful with ID:', data?.id);
+      // Count users who have interacted in the last 5 minutes
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
       
-      // Replace optimistic check-in with real one
-      if (data?.id) {
-        setCheckIns((prev) => 
-          prev.map(ci => ci.id === optimisticCheckIn.id ? { ...ci, id: data.id } : ci)
-        );
-      }
-
-      Alert.alert('¡Check-in exitoso!', 'Ahora apareces en la sala virtual');
-    } catch (error) {
-      console.error('[SalaVirtual] ❌ Error in proceedWithCheckIn:', error);
-      Alert.alert('Error', 'Ocurrió un error al hacer check-in');
-    }
-  };
-
-  const handleCheckOut = async () => {
-    if (!user) return;
-
-    try {
-      console.log('[SalaVirtual] 🚪 Starting check-out process...');
-
-      // OPTIMISTIC UI UPDATE - Remove user from list immediately
-      setCheckIns((prev) => prev.filter((ci) => ci.usuario_id !== user.id));
-      setUserHasCheckedIn(false);
-
-      const { error } = await supabase
-        .from('check_ins')
-        .delete()
-        .eq('usuario_id', user.id)
-        .eq('local_id', params.id);
+      const { data, error } = await supabase
+        .from('sala_virtual_interacciones')
+        .select('usuario_id')
+        .eq('local_id', localId)
+        .gte('created_at', fiveMinutesAgo);
 
       if (error) {
-        console.error('[SalaVirtual] ❌ Error deleting check-in:', error);
-        
-        // Rollback - reload data
-        loadData();
-        
-        Alert.alert('Error', 'No se pudo hacer check-out');
+        console.error('[SalaVirtual] Error counting active users:', error);
         return;
       }
 
-      console.log('[SalaVirtual] ✅ Check-out successful');
-      Alert.alert('Check-out exitoso', 'Ya no apareces en la sala virtual');
+      const uniqueUsers = new Set(data?.map(m => m.usuario_id) || []);
+      setActiveUsers(uniqueUsers.size);
     } catch (error) {
-      console.error('[SalaVirtual] ❌ Error:', error);
-      loadData();
-      Alert.alert('Error', 'Ocurrió un error al hacer check-out');
+      console.error('[SalaVirtual] Error:', error);
     }
   };
 
-  const handleSelectRecipientForMessage = (recipientId: string) => {
-    setSelectedRecipient(recipientId);
-    setShowQuickMessages(true);
-  };
-
-  const handleSelectRecipientForEmoticon = (recipientId: string) => {
-    setSelectedRecipient(recipientId);
-    setShowEmoticons(true);
-  };
-
-  const handleSendQuickMessage = async (mensaje: string) => {
+  const sendMessage = async () => {
     if (!user) {
-      setShowLoginModal(true);
+      Alert.alert('Error', 'Debes iniciar sesión para enviar mensajes');
       return;
     }
 
-    if (!userHasCheckedIn) {
-      Alert.alert('Haz check-in primero', 'Debes hacer check-in para interactuar en la sala virtual');
+    if (!newMessage.trim()) {
       return;
     }
 
     try {
+      setSending(true);
+
       const { error } = await supabase
         .from('sala_virtual_interacciones')
         .insert({
           usuario_id: user.id,
-          local_id: params.id,
+          local_id: localId,
           tipo: 'mensaje',
-          contenido: mensaje,
-          recipient_id: selectedRecipient,
+          contenido: newMessage.trim(),
         });
 
       if (error) {
@@ -624,22 +233,18 @@ export default function SalaVirtualScreen() {
         return;
       }
 
-      setShowQuickMessages(false);
-      setSelectedRecipient(null);
+      setNewMessage('');
     } catch (error) {
       console.error('[SalaVirtual] Error:', error);
       Alert.alert('Error', 'Ocurrió un error al enviar el mensaje');
+    } finally {
+      setSending(false);
     }
   };
 
-  const handleSendEmoticon = async (emoji: string) => {
+  const sendEmoticon = async (emoticon: string) => {
     if (!user) {
-      setShowLoginModal(true);
-      return;
-    }
-
-    if (!userHasCheckedIn) {
-      Alert.alert('Haz check-in primero', 'Debes hacer check-in para interactuar en la sala virtual');
+      Alert.alert('Error', 'Debes iniciar sesión para enviar reacciones');
       return;
     }
 
@@ -648,602 +253,172 @@ export default function SalaVirtualScreen() {
         .from('sala_virtual_interacciones')
         .insert({
           usuario_id: user.id,
-          local_id: params.id,
+          local_id: localId,
           tipo: 'emoticon',
-          contenido: emoji,
-          recipient_id: selectedRecipient,
+          contenido: emoticon,
         });
 
       if (error) {
         console.error('[SalaVirtual] Error sending emoticon:', error);
-        Alert.alert('Error', 'No se pudo enviar el emoticono');
         return;
       }
-
-      setShowEmoticons(false);
-      setSelectedRecipient(null);
     } catch (error) {
       console.error('[SalaVirtual] Error:', error);
-      Alert.alert('Error', 'Ocurrió un error al enviar el emoticono');
     }
   };
 
-  const handleSendChatMessage = async () => {
-    if (!user) {
-      setShowLoginModal(true);
-      return;
-    }
+  const renderMessage = ({ item }: { item: InteractionMessage }) => {
+    const isOwnMessage = user && item.usuario_id === user.id;
 
-    if (!userHasCheckedIn) {
-      Alert.alert('Haz check-in primero', 'Debes hacer check-in para chatear en la sala virtual');
-      return;
-    }
-
-    if (!newMessage.trim()) return;
-
-    const messageText = newMessage.trim();
-    const tempId = `temp-${Date.now()}`;
-
-    console.log('[SalaVirtual] 💬 Sending chat message:', messageText);
-
-    // OPTIMISTIC UI UPDATE - Show message INSTANTLY
-    const optimisticMessage: InteractionMessage = {
-      id: tempId,
-      usuario_id: user.id,
-      local_id: params.id as string,
-      tipo: 'chat',
-      contenido: messageText,
-      created_at: new Date().toISOString(),
-      usuario: {
-        id: user.id,
-        nombre: user.nombre,
-        username: user.username,
-        avatar: user.avatar,
-      },
-    };
-
-    setChatMessages((prev) => [...prev, optimisticMessage]);
-    setNewMessage('');
-
-    setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: true });
-    }, 50);
-
-    try {
-      setSendingMessage(true);
-
-      console.log('[SalaVirtual] 📤 Inserting into sala_virtual_interacciones table...');
-
-      const { data, error: insertError } = await supabase
-        .from('sala_virtual_interacciones')
-        .insert({
-          usuario_id: user.id,
-          local_id: params.id,
-          tipo: 'chat',
-          contenido: messageText,
-          recipient_id: null,
-        })
-        .select('id')
-        .single();
-
-      if (insertError) {
-        console.error('[SalaVirtual] ❌ Error sending chat message:', insertError);
-        
-        // Remove optimistic message on error
-        setChatMessages((prev) => prev.filter(m => m.id !== tempId));
-        setNewMessage(messageText);
-        
-        Alert.alert('Error', 'No se pudo enviar el mensaje. Por favor, intenta de nuevo.');
-        return;
-      }
-
-      console.log('[SalaVirtual] ✅ Message sent successfully with ID:', data?.id);
-      
-      // Replace optimistic message with real one
-      if (data?.id) {
-        setChatMessages((prev) => 
-          prev.map(m => m.id === tempId ? { ...m, id: data.id } : m)
-        );
-      }
-      
-    } catch (error) {
-      console.error('[SalaVirtual] ❌ Error:', error);
-      
-      // Remove optimistic message on error
-      setChatMessages((prev) => prev.filter(m => m.id !== tempId));
-      setNewMessage(messageText);
-      
-      Alert.alert('Error', 'Ocurrió un error al enviar el mensaje');
-    } finally {
-      setSendingMessage(false);
-    }
-  };
-
-  const handleDeleteChatMessage = async (messageId: string) => {
-    if (!user) return;
-
-    const message = chatMessages.find(m => m.id === messageId);
-    if (!message || message.usuario_id !== user.id) {
-      Alert.alert('Error', 'Solo puedes eliminar tus propios mensajes');
-      return;
-    }
-
-    Alert.alert(
-      'Eliminar mensaje',
-      '¿Estás seguro de que quieres eliminar este mensaje?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              // Optimistically remove from UI
-              setChatMessages((prev) => prev.filter(m => m.id !== messageId));
-
-              const { error } = await supabase
-                .from('sala_virtual_interacciones')
-                .delete()
-                .eq('id', messageId);
-
-              if (error) {
-                console.error('[SalaVirtual] Error deleting message:', error);
-                Alert.alert('Error', 'No se pudo eliminar el mensaje');
-                // Reload data to restore message
-                loadData();
-              }
-            } catch (error) {
-              console.error('[SalaVirtual] Error:', error);
-              loadData();
-            }
-          },
-        },
-      ]
+    return (
+      <View
+        style={[
+          styles.messageContainer,
+          isOwnMessage ? styles.ownMessage : styles.otherMessage,
+        ]}
+      >
+        {!isOwnMessage && (
+          <Image
+            source={{
+              uri: item.usuario.avatar || 'https://via.placeholder.com/32',
+            }}
+            style={styles.messageAvatar}
+          />
+        )}
+        <View
+          style={[
+            styles.messageBubble,
+            isOwnMessage ? styles.ownMessageBubble : styles.otherMessageBubble,
+          ]}
+        >
+          {!isOwnMessage && (
+            <Text style={styles.messageSender}>{item.usuario.nombre}</Text>
+          )}
+          <Text
+            style={[
+              styles.messageText,
+              isOwnMessage ? styles.ownMessageText : styles.otherMessageText,
+            ]}
+          >
+            {item.contenido}
+          </Text>
+          <Text
+            style={[
+              styles.messageTime,
+              isOwnMessage ? styles.ownMessageTime : styles.otherMessageTime,
+            ]}
+          >
+            {new Date(item.created_at).toLocaleTimeString('es-ES', {
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
+          </Text>
+        </View>
+      </View>
     );
-  };
-
-  const formatCheckInTime = (created_at: string): string => {
-    const now = new Date();
-    const checkInTime = new Date(created_at);
-    const diffMs = now.getTime() - checkInTime.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-
-    if (diffMins < 1) return 'Ahora';
-    if (diffMins < 60) return `Hace ${diffMins} min`;
-    if (diffHours < 6) return `Hace ${diffHours} h`;
-    return checkInTime.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-  };
-
-  const formatChatTime = (created_at: string): string => {
-    const messageTime = new Date(created_at);
-    return messageTime.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
   };
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <LinearGradient
-          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-          style={styles.header}
-        >
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Sala Virtual</Text>
-          <View style={{ width: 40 }} />
-        </LinearGradient>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Cargando sala virtual...</Text>
-        </View>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Cargando sala virtual...</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-        style={styles.header}
-      >
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Sala Virtual</Text>
-        <TouchableOpacity 
-          style={styles.chatButton} 
-          onPress={() => setShowPublicChat(true)}
-        >
-          <IconSymbol name="bubble.left.and.bubble.right.fill" size={24} color={colors.headerText} />
-          {chatMessages.length > 0 && (
-            <View style={styles.chatBadge}>
-              <Text style={styles.chatBadgeText}>{chatMessages.length}</Text>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+    >
+      <Stack.Screen
+        options={{
+          title: local?.nombre || 'Sala Virtual',
+          headerRight: () => (
+            <View style={styles.headerRight}>
+              <IconSymbol
+                ios_icon_name="person.2.fill"
+                android_material_icon_name="people"
+                size={20}
+                color={colors.primary}
+              />
+              <Text style={styles.activeUsersText}>{activeUsers}</Text>
             </View>
-          )}
-        </TouchableOpacity>
-      </LinearGradient>
+          ),
+        }}
+      />
 
-      {floatingEmojis.map((item) => (
-        <Animated.Text
-          key={item.id}
-          style={[
-            styles.floatingEmoji,
-            {
-              left: item.x,
-              transform: [{ translateY: item.y }],
-              opacity: item.opacity,
-            },
-          ]}
+      <View style={styles.content}>
+        {/* Messages */}
+        <ScrollView
+          ref={scrollViewRef}
+          style={styles.messagesContainer}
+          contentContainerStyle={styles.messagesContent}
+          onContentSizeChange={() => {
+            scrollViewRef.current?.scrollToEnd({ animated: true });
+          }}
         >
-          {item.emoji}
-        </Animated.Text>
-      ))}
+          {messages.map((message) => (
+            <View key={message.id}>
+              {renderMessage({ item: message })}
+            </View>
+          ))}
+        </ScrollView>
 
-      <ScrollView
-        style={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      >
-        {local?.imagen_url && (
-          <View style={styles.imageContainer}>
-            <Image source={{ uri: local.imagen_url }} style={styles.localImage} />
-            <LinearGradient
-              colors={['transparent', 'rgba(0,0,0,0.7)']}
-              style={styles.imageGradient}
-            />
-          </View>
-        )}
-
-        <View style={styles.infoCard}>
-          <LinearGradient
-            colors={['#667eea', '#764ba2']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.infoGradient}
+        {/* Quick Reactions */}
+        <View style={styles.reactionsContainer}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.reactionsContent}
           >
-            <View style={styles.infoHeader}>
-              <IconSymbol name="person.2.fill" size={32} color={colors.headerText} />
-              <View style={styles.infoText}>
-                <Text style={styles.infoTitle}>
-                  {checkIns.length} {checkIns.length === 1 ? 'persona' : 'personas'} aquí ahora
-                </Text>
-                <Text style={styles.infoSubtitle}>
-                  {local?.nombre} - {local?.provincia}
-                </Text>
-              </View>
-            </View>
-          </LinearGradient>
+            {['👋', '🎉', '❤️', '🔥', '👏', '😂', '🍻', '🎵'].map((emoji) => (
+              <TouchableOpacity
+                key={emoji}
+                style={styles.reactionButton}
+                onPress={() => sendEmoticon(emoji)}
+              >
+                <Text style={styles.reactionEmoji}>{emoji}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
 
-        {checkIns.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>👥 Usuarios en el Local</Text>
-            {checkIns.map((checkIn) => (
-              <View key={checkIn.id} style={styles.usuarioCard}>
-                <TouchableOpacity
-                  style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
-                  onPress={() => {
-                    if (user && checkIn.usuario_id === user.id) {
-                      router.push('/(tabs)/perfil');
-                    } else {
-                      router.push(`/perfil/usuario?userId=${checkIn.usuario_id}`);
-                    }
-                  }}
-                >
-                  {checkIn.usuario.avatar ? (
-                    <Image source={{ uri: checkIn.usuario.avatar }} style={styles.avatar} />
-                  ) : (
-                    <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                      <Text style={styles.avatarText}>
-                        {checkIn.usuario.nombre.charAt(0).toUpperCase()}
-                      </Text>
-                    </View>
-                  )}
-                  <View style={styles.usuarioInfo}>
-                    <Text style={styles.nombre}>{checkIn.usuario.nombre}</Text>
-                    {checkIn.usuario.username && (
-                      <Text style={styles.username}>@{checkIn.usuario.username}</Text>
-                    )}
-                    <View style={styles.checkInInfo}>
-                      <IconSymbol name="clock" size={14} color={colors.textSecondary} />
-                      <Text style={styles.checkInTime}>
-                        Check-in: {formatCheckInTime(checkIn.created_at)}
-                      </Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-                {user && checkIn.usuario_id !== user.id && userHasCheckedIn && (
-                  <View style={styles.userActions}>
-                    <TouchableOpacity
-                      style={styles.actionIconButton}
-                      onPress={() => handleSelectRecipientForMessage(checkIn.usuario_id)}
-                    >
-                      <IconSymbol name="message" size={20} color={colors.primary} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.actionIconButton}
-                      onPress={() => handleSelectRecipientForEmoticon(checkIn.usuario_id)}
-                    >
-                      <Text style={styles.actionIconEmoji}>😊</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
-            ))}
-          </View>
-        )}
-
-        {checkIns.length === 0 && (
-          <View style={styles.emptyState}>
-            <IconSymbol name="person.2" size={64} color={colors.textSecondary} />
-            <Text style={styles.emptyTitle}>No hay nadie aquí ahora</Text>
-            <Text style={styles.emptySubtitle}>
-              Sé el primero en hacer check-in y aparecer en la sala virtual
-            </Text>
-          </View>
-        )}
-      </ScrollView>
-
-      {userHasCheckedIn ? (
-        <View style={styles.footer}>
-          <View style={styles.actionButtons}>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => {
-                setSelectedRecipient(null);
-                setShowQuickMessages(true);
-              }}
-            >
-              <LinearGradient
-                colors={['#FF6B6B', '#FF8E53']}
-                style={styles.actionButtonGradient}
-              >
-                <IconSymbol name="message.fill" size={24} color={colors.headerText} />
-                <Text style={styles.actionButtonText}>Mensaje</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => {
-                setSelectedRecipient(null);
-                setShowEmoticons(true);
-              }}
-            >
-              <LinearGradient
-                colors={['#4ECDC4', '#44A08D']}
-                style={styles.actionButtonGradient}
-              >
-                <Text style={styles.actionButtonEmoji}>😊</Text>
-                <Text style={styles.actionButtonText}>Emoticono</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
-
-          <TouchableOpacity style={styles.checkOutButton} onPress={handleCheckOut}>
-            <IconSymbol name="location.slash.fill" size={24} color={colors.headerText} />
-            <Text style={styles.checkOutText}>Hacer Check-out</Text>
+        {/* Input */}
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            placeholder="Escribe un mensaje..."
+            placeholderTextColor={colors.textSecondary}
+            value={newMessage}
+            onChangeText={setNewMessage}
+            multiline
+            maxLength={500}
+          />
+          <TouchableOpacity
+            style={[
+              styles.sendButton,
+              (!newMessage.trim() || sending) && styles.sendButtonDisabled,
+            ]}
+            onPress={sendMessage}
+            disabled={!newMessage.trim() || sending}
+          >
+            {sending ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <IconSymbol
+                ios_icon_name="paperplane.fill"
+                android_material_icon_name="send"
+                size={20}
+                color="#fff"
+              />
+            )}
           </TouchableOpacity>
         </View>
-      ) : (
-        <View style={styles.footer}>
-          <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-            <TouchableOpacity style={styles.checkInButton} onPress={handleCheckIn}>
-              <LinearGradient
-                colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-                style={styles.checkInGradient}
-              >
-                <IconSymbol name="location.fill" size={24} color={colors.headerText} />
-                <Text style={styles.checkInText}>Hacer Check-in</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </Animated.View>
-        </View>
-      )}
-
-      <Modal
-        visible={showPublicChat}
-        animationType="slide"
-        transparent={false}
-        onRequestClose={() => setShowPublicChat(false)}
-      >
-        <View style={styles.chatContainer}>
-          <LinearGradient
-            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-            style={styles.chatHeader}
-          >
-            <TouchableOpacity onPress={() => setShowPublicChat(false)} style={styles.backButton}>
-              <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
-            </TouchableOpacity>
-            <View style={styles.chatHeaderInfo}>
-              <Text style={styles.chatHeaderTitle}>Chat Público</Text>
-              <Text style={styles.chatHeaderSubtitle}>{local?.nombre}</Text>
-            </View>
-            <View style={{ width: 40 }} />
-          </LinearGradient>
-
-          <KeyboardAvoidingView
-            style={{ flex: 1 }}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-          >
-            <FlatList
-              ref={flatListRef}
-              data={chatMessages}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.chatMessagesList}
-              renderItem={({ item }) => {
-                const isOwnMessage = user && item.usuario_id === user.id;
-                return (
-                  <TouchableOpacity
-                    style={[styles.chatMessageContainer, isOwnMessage && styles.chatMessageContainerOwn]}
-                    onLongPress={() => handleDeleteChatMessage(item.id)}
-                    activeOpacity={0.7}
-                  >
-                    {!isOwnMessage && (
-                      <TouchableOpacity
-                        onPress={() => {
-                          setShowPublicChat(false);
-                          router.push(`/perfil/usuario?userId=${item.usuario_id}`);
-                        }}
-                      >
-                        {item.usuario.avatar ? (
-                          <Image source={{ uri: item.usuario.avatar }} style={styles.chatAvatar} />
-                        ) : (
-                          <View style={[styles.chatAvatar, styles.avatarPlaceholder]}>
-                            <Text style={styles.avatarText}>
-                              {item.usuario.nombre.charAt(0).toUpperCase()}
-                            </Text>
-                          </View>
-                        )}
-                      </TouchableOpacity>
-                    )}
-                    <View style={[styles.chatBubble, isOwnMessage && styles.chatBubbleOwn]}>
-                      {!isOwnMessage && (
-                        <Text style={styles.chatSenderName}>{item.usuario.nombre}</Text>
-                      )}
-                      <Text style={[styles.chatMessageText, isOwnMessage && styles.chatMessageTextOwn]}>
-                        {item.contenido}
-                      </Text>
-                      <Text style={[styles.chatMessageTime, isOwnMessage && styles.chatMessageTimeOwn]}>
-                        {formatChatTime(item.created_at)}
-                      </Text>
-                    </View>
-                    {isOwnMessage && <View style={{ width: 40 }} />}
-                  </TouchableOpacity>
-                );
-              }}
-              ListEmptyComponent={
-                <View style={styles.chatEmptyState}>
-                  <IconSymbol name="bubble.left.and.bubble.right" size={64} color={colors.textSecondary} />
-                  <Text style={styles.chatEmptyText}>No hay mensajes aún</Text>
-                  <Text style={styles.chatEmptySubtext}>
-                    Sé el primero en enviar un mensaje al chat público
-                  </Text>
-                </View>
-              }
-              onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-            />
-
-            <View style={styles.chatInputContainer}>
-              <TextInput
-                style={styles.chatInput}
-                placeholder={userHasCheckedIn ? "Escribe un mensaje..." : "Haz check-in para chatear..."}
-                placeholderTextColor={colors.textSecondary}
-                value={newMessage}
-                onChangeText={setNewMessage}
-                multiline
-                maxLength={500}
-                editable={userHasCheckedIn && !sendingMessage}
-              />
-              <TouchableOpacity
-                style={[styles.chatSendButton, (!newMessage.trim() || !userHasCheckedIn || sendingMessage) && styles.chatSendButtonDisabled]}
-                onPress={handleSendChatMessage}
-                disabled={!newMessage.trim() || !userHasCheckedIn || sendingMessage}
-              >
-                {sendingMessage ? (
-                  <ActivityIndicator size="small" color={colors.headerText} />
-                ) : (
-                  <IconSymbol name="paperplane.fill" size={20} color={colors.headerText} />
-                )}
-              </TouchableOpacity>
-            </View>
-          </KeyboardAvoidingView>
-        </View>
-      </Modal>
-
-      <Modal
-        visible={showQuickMessages}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => {
-          setShowQuickMessages(false);
-          setSelectedRecipient(null);
-        }}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {selectedRecipient ? 'Mensaje Directo' : 'Mensajes Rápidos'}
-              </Text>
-              <TouchableOpacity onPress={() => {
-                setShowQuickMessages(false);
-                setSelectedRecipient(null);
-              }}>
-                <IconSymbol name="xmark.circle.fill" size={28} color={colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-            {selectedRecipient && (
-              <Text style={styles.modalSubtitle}>
-                Este mensaje será enviado solo al usuario seleccionado
-              </Text>
-            )}
-            <ScrollView style={styles.modalScroll}>
-              {MENSAJES_RAPIDOS.map((mensaje) => (
-                <TouchableOpacity
-                  key={mensaje.id}
-                  style={styles.quickMessageButton}
-                  onPress={() => handleSendQuickMessage(mensaje.texto)}
-                >
-                  <Text style={styles.quickMessageEmoji}>{mensaje.emoji}</Text>
-                  <Text style={styles.quickMessageText}>{mensaje.texto}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
-      <Modal
-        visible={showEmoticons}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => {
-          setShowEmoticons(false);
-          setSelectedRecipient(null);
-        }}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {selectedRecipient ? 'Emoticono Directo' : 'Enviar Emoticono'}
-              </Text>
-              <TouchableOpacity onPress={() => {
-                setShowEmoticons(false);
-                setSelectedRecipient(null);
-              }}>
-                <IconSymbol name="xmark.circle.fill" size={28} color={colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-            {selectedRecipient && (
-              <Text style={styles.modalSubtitle}>
-                Este emoticono será enviado solo al usuario seleccionado
-              </Text>
-            )}
-            <View style={styles.emoticonsGrid}>
-              {EMOTICONS.map((emoticon) => (
-                <TouchableOpacity
-                  key={emoticon.id}
-                  style={styles.emoticonButton}
-                  onPress={() => handleSendEmoticon(emoticon.emoji)}
-                >
-                  <Text style={styles.emoticonEmoji}>{emoticon.emoji}</Text>
-                  <Text style={styles.emoticonName}>{emoticon.nombre}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      <LoginRequiredModal
-        visible={showLoginModal}
-        onClose={() => setShowLoginModal(false)}
-        message="Inicia sesión para interactuar en la sala virtual"
-      />
-    </View>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -1252,497 +427,141 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  header: {
-    paddingTop: 50,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.headerText,
-    flex: 1,
-    textAlign: 'center',
-  },
-  chatButton: {
-    padding: 8,
-    position: 'relative',
-  },
-  chatBadge: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    backgroundColor: colors.badgeNuevo,
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 6,
-  },
-  chatBadgeText: {
-    color: colors.badgeNuevoText,
-    fontSize: 11,
-    fontWeight: 'bold',
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: colors.background,
   },
   loadingText: {
-    marginTop: 16,
+    marginTop: 12,
     fontSize: 16,
-    color: colors.text,
+    color: colors.textSecondary,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  activeUsersText: {
+    marginLeft: 4,
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
   },
   content: {
     flex: 1,
   },
-  imageContainer: {
-    position: 'relative',
-  },
-  localImage: {
-    width: '100%',
-    height: 200,
-    backgroundColor: colors.cardBorder,
-  },
-  imageGradient: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 100,
-  },
-  infoCard: {
-    margin: 16,
-    borderRadius: 16,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  infoGradient: {
-    padding: 20,
-  },
-  infoHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  infoText: {
+  messagesContainer: {
     flex: 1,
   },
-  infoTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.headerText,
-    marginBottom: 4,
-  },
-  infoSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.9)',
-  },
-  section: {
-    paddingHorizontal: 16,
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 16,
-  },
-  usuarioCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.cardBackground,
+  messagesContent: {
     padding: 16,
-    borderRadius: 12,
+  },
+  messageContainer: {
+    flexDirection: 'row',
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
+    alignItems: 'flex-end',
   },
-  avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-  },
-  avatarPlaceholder: {
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.headerText,
-  },
-  usuarioInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  nombre: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 2,
-  },
-  username: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginBottom: 4,
-  },
-  checkInInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  checkInTime: {
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  userActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  actionIconButton: {
-    padding: 8,
-    backgroundColor: colors.primary + '15',
-    borderRadius: 20,
-  },
-  actionIconEmoji: {
-    fontSize: 20,
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 16,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    paddingHorizontal: 40,
-  },
-  footer: {
-    padding: 16,
-    backgroundColor: colors.cardBackground,
-    borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
-    gap: 12,
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  actionButton: {
-    flex: 1,
-    borderRadius: 12,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  actionButtonGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    gap: 8,
-  },
-  actionButtonText: {
-    color: colors.headerText,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  actionButtonEmoji: {
-    fontSize: 24,
-  },
-  checkInButton: {
-    borderRadius: 12,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  checkInGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    gap: 8,
-  },
-  checkInText: {
-    color: colors.headerText,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  checkOutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#EF4444',
-    paddingVertical: 14,
-    borderRadius: 12,
-    gap: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  checkOutText: {
-    color: colors.headerText,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  ownMessage: {
     justifyContent: 'flex-end',
   },
-  modalContent: {
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingBottom: 34,
-    maxHeight: '70%',
+  otherMessage: {
+    justifyContent: 'flex-start',
   },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.text,
-  },
-  modalSubtitle: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    fontStyle: 'italic',
-  },
-  modalScroll: {
-    padding: 16,
-  },
-  quickMessageButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.cardBackground,
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    gap: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  quickMessageEmoji: {
-    fontSize: 28,
-  },
-  quickMessageText: {
-    flex: 1,
-    fontSize: 16,
-    color: colors.text,
-  },
-  emoticonsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    padding: 16,
-    justifyContent: 'center',
-    gap: 12,
-  },
-  emoticonButton: {
-    width: (width - 80) / 4,
-    aspectRatio: 1,
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  emoticonEmoji: {
-    fontSize: 32,
-  },
-  emoticonName: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
-  floatingEmoji: {
-    position: 'absolute',
-    fontSize: 48,
-    zIndex: 1000,
-  },
-  chatContainer: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  chatHeader: {
-    paddingTop: 50,
-    paddingBottom: 12,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  chatHeaderInfo: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  chatHeaderTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.headerText,
-  },
-  chatHeaderSubtitle: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginTop: 2,
-  },
-  chatMessagesList: {
-    padding: 16,
-    paddingBottom: 8,
-  },
-  chatMessageContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    marginBottom: 16,
-    gap: 8,
-  },
-  chatMessageContainerOwn: {
-    flexDirection: 'row-reverse',
-  },
-  chatAvatar: {
+  messageAvatar: {
     width: 32,
     height: 32,
     borderRadius: 16,
+    marginRight: 8,
   },
-  chatBubble: {
+  messageBubble: {
     maxWidth: '70%',
-    backgroundColor: colors.cardBackground,
     padding: 12,
     borderRadius: 16,
-    borderBottomLeftRadius: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
   },
-  chatBubbleOwn: {
+  ownMessageBubble: {
     backgroundColor: colors.primary,
-    borderBottomLeftRadius: 16,
     borderBottomRightRadius: 4,
   },
-  chatSenderName: {
+  otherMessageBubble: {
+    backgroundColor: colors.card,
+    borderBottomLeftRadius: 4,
+  },
+  messageSender: {
     fontSize: 12,
     fontWeight: '600',
     color: colors.primary,
     marginBottom: 4,
   },
-  chatMessageText: {
-    fontSize: 15,
-    color: colors.text,
+  messageText: {
+    fontSize: 14,
     lineHeight: 20,
   },
-  chatMessageTextOwn: {
-    color: colors.headerText,
+  ownMessageText: {
+    color: '#fff',
   },
-  chatMessageTime: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    marginTop: 4,
-  },
-  chatMessageTimeOwn: {
-    color: 'rgba(255, 255, 255, 0.7)',
-  },
-  chatEmptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 80,
-    gap: 12,
-  },
-  chatEmptyText: {
-    fontSize: 18,
-    fontWeight: '600',
+  otherMessageText: {
     color: colors.text,
   },
-  chatEmptySubtext: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    paddingHorizontal: 40,
+  messageTime: {
+    fontSize: 10,
+    marginTop: 4,
   },
-  chatInputContainer: {
+  ownMessageTime: {
+    color: 'rgba(255, 255, 255, 0.7)',
+  },
+  otherMessageTime: {
+    color: colors.textSecondary,
+  },
+  reactionsContainer: {
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    backgroundColor: colors.card,
+  },
+  reactionsContent: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  reactionButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  reactionEmoji: {
+    fontSize: 24,
+  },
+  inputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     padding: 12,
     borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
-    backgroundColor: colors.cardBackground,
-    gap: 12,
+    borderTopColor: colors.border,
+    backgroundColor: colors.card,
   },
-  chatInput: {
+  input: {
     flex: 1,
+    minHeight: 40,
+    maxHeight: 100,
     backgroundColor: colors.background,
-    borderRadius: 24,
+    borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    fontSize: 16,
+    marginRight: 8,
+    fontSize: 14,
     color: colors.text,
-    maxHeight: 100,
   },
-  chatSendButton: {
+  sendButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
   },
-  chatSendButtonDisabled: {
+  sendButtonDisabled: {
     opacity: 0.5,
   },
 });
