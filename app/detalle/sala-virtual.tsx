@@ -102,6 +102,7 @@ export default function SalaVirtualScreen() {
   const [activeUsers, setActiveUsers] = useState<ActiveUser[]>([]);
   const [isCheckedIn, setIsCheckedIn] = useState(false);
   const [checkingIn, setCheckingIn] = useState(false);
+  const [localClosed, setLocalClosed] = useState(false);
   
   // Tab state - Users tab first as requested
   const [activeTab, setActiveTab] = useState<'users' | 'chat'>('users');
@@ -123,6 +124,7 @@ export default function SalaVirtualScreen() {
   const flatListRef = useRef<FlatList>(null);
   const channelRef = useRef<any>(null);
   const localId = params.localId as string;
+  const hasShownClosedAlert = useRef(false);
 
   // Load sound settings
   useEffect(() => {
@@ -187,8 +189,10 @@ export default function SalaVirtualScreen() {
   const loadLocalData = useCallback(async () => {
     if (!localId) {
       console.error('[SalaVirtual] No localId provided');
-      Alert.alert('Error', 'No se especificó el local');
-      router.back();
+      setLoading(false);
+      Alert.alert('Error', 'No se especificó el local', [
+        { text: 'OK', onPress: () => router.back() }
+      ]);
       return;
     }
 
@@ -201,8 +205,10 @@ export default function SalaVirtualScreen() {
 
       if (error) {
         console.error('[SalaVirtual] Error loading local:', error);
-        Alert.alert('Error', 'No se pudo cargar la información del local');
-        router.back();
+        setLoading(false);
+        Alert.alert('Error', 'No se pudo cargar la información del local', [
+          { text: 'OK', onPress: () => router.back() }
+        ]);
         return;
       }
 
@@ -215,14 +221,23 @@ export default function SalaVirtualScreen() {
       console.log('[SalaVirtual] Estado del local:', estadoLocal);
       
       if (!isOpen) {
-        Alert.alert(
-          'Local Cerrado',
-          `Este local está cerrado actualmente (${estadoLocal.badge}). No puedes acceder a la sala virtual.`,
-          [{ text: 'OK', onPress: () => router.back() }]
-        );
+        setLocalClosed(true);
+        setLoading(false);
+        
+        if (!hasShownClosedAlert.current) {
+          hasShownClosedAlert.current = true;
+          Alert.alert(
+            'Local Cerrado',
+            `Este local está cerrado actualmente (${estadoLocal.badge}). No puedes acceder a la sala virtual.`,
+            [{ text: 'OK', onPress: () => router.back() }]
+          );
+        }
+      } else {
+        setLocalClosed(false);
       }
     } catch (error) {
       console.error('[SalaVirtual] Error:', error);
+      setLoading(false);
     }
   }, [localId, router]);
 
@@ -386,8 +401,6 @@ export default function SalaVirtualScreen() {
     if (!localId) return;
 
     try {
-      setLoading(true);
-
       const { data, error } = await supabase
         .from('sala_virtual_interacciones')
         .select(`
@@ -407,6 +420,7 @@ export default function SalaVirtualScreen() {
 
       if (error) {
         console.error('[SalaVirtual] Error loading messages:', error);
+        setLoading(false);
         return;
       }
 
@@ -426,13 +440,13 @@ export default function SalaVirtualScreen() {
 
       console.log('[SalaVirtual] Messages loaded:', messagesWithReactions.length);
       setMessages(messagesWithReactions);
+      setLoading(false);
       
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: false });
       }, 100);
     } catch (error) {
       console.error('[SalaVirtual] Error:', error);
-    } finally {
       setLoading(false);
     }
   }, [localId]);
@@ -650,26 +664,37 @@ export default function SalaVirtualScreen() {
   // Initialize
   useEffect(() => {
     if (!localId) {
-      Alert.alert('Error', 'No se especificó el local');
-      router.back();
+      setLoading(false);
+      Alert.alert('Error', 'No se especificó el local', [
+        { text: 'OK', onPress: () => router.back() }
+      ]);
       return;
     }
 
     console.log('[SalaVirtual] Initializing with localId:', localId);
-    loadLocalData();
-    checkUserCheckin();
-    loadMessages();
-    loadDirectMessages();
-    const unsubscribe = subscribeToUpdates();
-    updateActiveUsers();
+    
+    const init = async () => {
+      await loadLocalData();
+      await checkUserCheckin();
+      await loadMessages();
+      await loadDirectMessages();
+      const unsubscribe = subscribeToUpdates();
+      await updateActiveUsers();
 
-    const interval = setInterval(updateActiveUsers, 30000);
+      const interval = setInterval(updateActiveUsers, 30000);
+
+      return () => {
+        clearInterval(interval);
+        unsubscribe();
+      };
+    };
+
+    const cleanup = init();
 
     return () => {
-      clearInterval(interval);
-      unsubscribe();
+      cleanup.then(fn => fn && fn());
     };
-  }, [localId, loadLocalData, checkUserCheckin, loadMessages, loadDirectMessages, subscribeToUpdates, updateActiveUsers, router]);
+  }, [localId, router]);
 
   // Send public message
   const sendMessage = async () => {
@@ -999,6 +1024,56 @@ export default function SalaVirtualScreen() {
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Cargando sala virtual...</Text>
+      </View>
+    );
+  }
+
+  if (localClosed) {
+    return (
+      <View style={styles.container}>
+        <Stack.Screen
+          options={{
+            title: local?.nombre || 'Sala Virtual',
+          }}
+        />
+        <View style={styles.closedContainer}>
+          <LinearGradient
+            colors={['#EF4444', '#DC2626']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.closedCard}
+          >
+            <View style={styles.closedIconCircle}>
+              <IconSymbol
+                ios_icon_name="lock.fill"
+                android_material_icon_name="lock"
+                size={48}
+                color="#fff"
+              />
+            </View>
+            <Text style={styles.closedTitle}>Local Cerrado</Text>
+            <Text style={styles.closedSubtitle}>
+              {local?.nombre}
+            </Text>
+            <Text style={styles.closedDescription}>
+              Este local está cerrado actualmente. Vuelve cuando esté abierto para acceder a la sala virtual.
+            </Text>
+            <TouchableOpacity
+              style={styles.closedButton}
+              onPress={() => router.back()}
+            >
+              <View style={styles.closedButtonContent}>
+                <IconSymbol
+                  ios_icon_name="arrow.left"
+                  android_material_icon_name="arrow_back"
+                  size={24}
+                  color="#fff"
+                />
+                <Text style={styles.closedButtonText}>Volver</Text>
+              </View>
+            </TouchableOpacity>
+          </LinearGradient>
+        </View>
       </View>
     );
   }
@@ -1422,6 +1497,75 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 16,
     color: colors.textSecondary,
+  },
+  closedContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  closedCard: {
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: 32,
+    padding: 40,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  closedIconCircle: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
+  closedTitle: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#fff',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  closedSubtitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#fff',
+    textAlign: 'center',
+    marginBottom: 16,
+    opacity: 0.9,
+  },
+  closedDescription: {
+    fontSize: 15,
+    color: '#fff',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 32,
+    opacity: 0.9,
+  },
+  closedButton: {
+    width: '100%',
+    borderRadius: 20,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  closedButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    paddingVertical: 18,
+    paddingHorizontal: 24,
+  },
+  closedButtonText: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#fff',
   },
   checkInContainer: {
     flex: 1,

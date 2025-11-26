@@ -75,7 +75,6 @@ interface ProgressBarProps {
   progress: Animated.Value;
 }
 
-// ✅ FIXED: Progress bar with green-to-blue gradient
 const ProgressBar = memo(({ isActive, isPaused, duration, onComplete, progress }: ProgressBarProps) => {
   const animationRef = useRef<Animated.CompositeAnimation | null>(null);
 
@@ -124,7 +123,6 @@ const ProgressBar = memo(({ isActive, isPaused, duration, onComplete, progress }
           }
         ]} 
       >
-        {/* ✅ FIXED: Green-to-blue gradient for progress bar */}
         <LinearGradient
           colors={['#10B981', '#3B82F6']}
           start={{ x: 0, y: 0 }}
@@ -173,7 +171,6 @@ function NewStoryViewer({
   const markAsViewed = useCallback(async (storyId: string) => {
     if (!user || !storyId) return;
 
-    // ✅ Don't mark own stories as viewed
     if (isOwner) {
       console.log('[NewStoryViewer] ⚠️ Skipping view count for own story');
       return;
@@ -257,13 +254,11 @@ function NewStoryViewer({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: (_, gestureState) => {
-        // Start pause timer
         longPressTimer.current = setTimeout(() => {
           handleLongPressIn();
-        }, 100); // Very short delay to detect hold
+        }, 100);
       },
       onPanResponderMove: (_, gestureState) => {
-        // If user moves finger significantly, cancel long press
         if (Math.abs(gestureState.dx) > 10 || Math.abs(gestureState.dy) > 10) {
           if (longPressTimer.current) {
             clearTimeout(longPressTimer.current);
@@ -272,19 +267,16 @@ function NewStoryViewer({
         }
       },
       onPanResponderRelease: (_, gestureState) => {
-        // Clear timer if still running
         if (longPressTimer.current) {
           clearTimeout(longPressTimer.current);
           longPressTimer.current = null;
         }
 
-        // If was long pressing, just resume
         if (isLongPressing.current) {
           handleLongPressOut();
           return;
         }
         
-        // Otherwise handle tap navigation
         const { dx, dy } = gestureState;
         if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
           const tapX = gestureState.x0;
@@ -296,7 +288,6 @@ function NewStoryViewer({
         }
       },
       onPanResponderTerminate: () => {
-        // Clean up on termination
         if (longPressTimer.current) {
           clearTimeout(longPressTimer.current);
           longPressTimer.current = null;
@@ -351,7 +342,6 @@ function NewStoryViewer({
     );
   }, [currentStory, isOwner, currentIndex, stories.length, onStoryDelete, handleNext, handlePrevious, onClose]);
 
-  // ✅ FIXED: Add eye button for viewing statistics
   const handleViewStoryStats = useCallback(async () => {
     if (!currentStory || !user || !isOwner) {
       return;
@@ -371,7 +361,7 @@ function NewStoryViewer({
           usuario:usuarios(nombre, avatar, username)
         `)
         .eq('historia_id', currentStory.id)
-        .neq('usuario_id', user.id) // ✅ FILTER OUT OWN VIEWS
+        .neq('usuario_id', user.id)
         .order('viewed_at', { ascending: false });
 
       if (viewsError) throw viewsError;
@@ -385,7 +375,7 @@ function NewStoryViewer({
           usuario:usuarios(nombre, avatar, username)
         `)
         .eq('historia_id', currentStory.id)
-        .neq('usuario_id', user.id) // ✅ FILTER OUT OWN LIKES
+        .neq('usuario_id', user.id)
         .order('created_at', { ascending: false});
 
       if (likesError) throw likesError;
@@ -405,7 +395,6 @@ function NewStoryViewer({
       return;
     }
 
-    // Optimistic UI update
     const isLiked = currentStory.liked_by_user;
     currentStory.liked_by_user = !isLiked;
 
@@ -424,7 +413,6 @@ function NewStoryViewer({
       }
     } catch (error) {
       console.error('[NewStoryViewer] Error toggling story like:', error);
-      // Revert on error
       currentStory.liked_by_user = isLiked;
     }
   }, [user, currentStory]);
@@ -436,7 +424,6 @@ function NewStoryViewer({
 
     const messageText = storyMessage.trim();
     
-    // Optimistic UI: Clear input and show success immediately
     setStoryMessage('');
     setSendingMessage(true);
     Alert.alert('Éxito', 'Mensaje enviado correctamente');
@@ -444,11 +431,9 @@ function NewStoryViewer({
     try {
       console.log('[NewStoryViewer] 📨 Sending story message to author:', currentStory.autor_id);
       
-      // Check if a conversation already exists
       const userId1 = user.id < currentStory.autor_id! ? user.id : currentStory.autor_id!;
       const userId2 = user.id < currentStory.autor_id! ? currentStory.autor_id! : user.id;
       
-      // For local stories, check for local-specific chat
       let chatQuery = supabase
         .from('chats')
         .select('id')
@@ -496,7 +481,6 @@ function NewStoryViewer({
         chatId = nuevoChat.id;
       }
 
-      // Send message
       const { error: mensajeError } = await supabase
         .from('mensajes')
         .insert({
@@ -512,7 +496,6 @@ function NewStoryViewer({
         throw mensajeError;
       }
 
-      // Update chat
       await supabase
         .from('chats')
         .update({
@@ -521,7 +504,6 @@ function NewStoryViewer({
         })
         .eq('id', chatId);
 
-      // Send notification
       await supabase.from('notificaciones').insert({
         usuario_id: currentStory.autor_id,
         tipo: 'mensaje_privado',
@@ -577,7 +559,7 @@ function NewStoryViewer({
     <Modal
       visible={visible}
       transparent={false}
-      animationType="fade"
+      animationType="none"
       onRequestClose={onClose}
       statusBarTranslucent
       hardwareAccelerated
@@ -664,7 +646,6 @@ function NewStoryViewer({
             </TouchableOpacity>
 
             <View style={styles.headerActions}>
-              {/* ✅ FIXED: Eye button for viewing statistics */}
               {isOwner && (
                 <TouchableOpacity
                   style={styles.headerButton}
@@ -708,7 +689,6 @@ function NewStoryViewer({
             </View>
           </BlurView>
 
-          {/* Interaction bar */}
           {!isOwner && (
             <BlurView intensity={30} tint="dark" style={styles.interactionBar}>
               <View style={styles.messageInputContainer}>
