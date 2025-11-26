@@ -5,7 +5,7 @@ export default function SocialScreen() {
   // ... (keep all state and hooks)
 
   // ✅ FIXED: Removed unnecessary dependencies from useCallback
-  const loadData = useCallback(async () => {
+  const loadData = React.useCallback(async () => {
     if (isLoadingRef.current) {
       console.log('[Social] ⚡ Already loading, skipping...');
       return;
