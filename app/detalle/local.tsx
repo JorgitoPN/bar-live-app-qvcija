@@ -503,7 +503,7 @@ export default function DetalleLocalScreen() {
 
   const handleToggleFavorite = async () => {
     try {
-      console.log('[DetalleLocal] Toggle favorite - User:', user?.id);
+      console.log('[DetalleLocal] Toggle favorite - User:', user?.id, 'Local:', params.id);
       
       if (!user) {
         Alert.alert('Error', 'Debes iniciar sesión para agregar a favoritos');
