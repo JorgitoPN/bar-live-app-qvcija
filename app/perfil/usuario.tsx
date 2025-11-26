@@ -19,7 +19,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
-import { useStoryState } from '@/contexts/StoryStateContext';
 import { supabase } from '@/utils/supabase';
 import StoryViewer from '@/components/social/StoryViewer';
 
@@ -52,7 +51,6 @@ export default function UsuarioPerfilScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { user: currentUser } = useAuth();
-  const { hasUnviewedStories } = useStoryState();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [usuario, setUsuario] = useState<any>(null);
@@ -538,7 +536,7 @@ export default function UsuarioPerfilScreen() {
   }
 
   const hasActiveStory = userStories.length > 0;
-  const showStoryOutline = hasActiveStory && hasUnviewedStories(userId, userStories);
+  const hasUnviewedStories = userStories.some(s => !s.visto_por_usuario);
 
   return (
     <View style={styles.container}>
@@ -582,9 +580,9 @@ export default function UsuarioPerfilScreen() {
               activeOpacity={0.8}
               disabled={!hasActiveStory}
             >
-              {hasActiveStory && showStoryOutline && (
+              {hasActiveStory && hasUnviewedStories && (
                 <LinearGradient
-                  colors={['#10B981', '#3B82F6']}
+                  colors={[colors.primary, colors.secondary]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.storyRing}

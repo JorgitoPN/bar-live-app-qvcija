@@ -738,8 +738,7 @@ export default function SalaVirtualScreen() {
       }
 
       // Broadcast to all users in the room
-      const channel = supabase.channel(`room:${localId}:chat`);
-      await channel.send({
+      await supabase.channel(`room:${localId}:chat`).send({
         type: 'broadcast',
         event: 'message_created',
         payload: data,
@@ -779,8 +778,7 @@ export default function SalaVirtualScreen() {
       }
 
       // Broadcast to recipient
-      const dmChannel = supabase.channel(`user:${recipientId}:dm`);
-      await dmChannel.send({
+      await supabase.channel(`user:${recipientId}:dm`).send({
         type: 'broadcast',
         event: 'direct_message',
         payload: {
