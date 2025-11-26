@@ -138,6 +138,7 @@ function NewStoryViewer({
   
   const progressValues = useRef(stories.map(() => new Animated.Value(0))).current;
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const isLongPressing = useRef(false);
 
   const currentStory = stories[currentIndex];
   const isOwner = currentStory?.tipo === 'usuario' 
@@ -207,14 +208,15 @@ function NewStoryViewer({
   }, [currentIndex, progressValues, onStoryChange]);
 
   const handleLongPressIn = useCallback(() => {
+    isLongPressing.current = true;
     setIsPaused(true);
-    longPressTimer.current = setTimeout(() => {
-      console.log('[NewStoryViewer] Long press detected');
-    }, 500);
+    console.log('[NewStoryViewer] Story paused');
   }, []);
 
   const handleLongPressOut = useCallback(() => {
+    isLongPressing.current = false;
     setIsPaused(false);
+    console.log('[NewStoryViewer] Story resumed');
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
@@ -224,18 +226,54 @@ function NewStoryViewer({
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
-      onPanResponderGrant: handleLongPressIn,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (_, gestureState) => {
+        // Start pause timer
+        longPressTimer.current = setTimeout(() => {
+          handleLongPressIn();
+        }, 100); // Very short delay to detect hold
+      },
+      onPanResponderMove: (_, gestureState) => {
+        // If user moves finger significantly, cancel long press
+        if (Math.abs(gestureState.dx) > 10 || Math.abs(gestureState.dy) > 10) {
+          if (longPressTimer.current) {
+            clearTimeout(longPressTimer.current);
+            longPressTimer.current = null;
+          }
+        }
+      },
       onPanResponderRelease: (_, gestureState) => {
-        handleLongPressOut();
+        // Clear timer if still running
+        if (longPressTimer.current) {
+          clearTimeout(longPressTimer.current);
+          longPressTimer.current = null;
+        }
+
+        // If was long pressing, just resume
+        if (isLongPressing.current) {
+          handleLongPressOut();
+          return;
+        }
         
-        const { dx } = gestureState;
-        if (Math.abs(dx) < 50) {
+        // Otherwise handle tap navigation
+        const { dx, dy } = gestureState;
+        if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
           const tapX = gestureState.x0;
           if (tapX < SCREEN_WIDTH / 2) {
             handlePrevious();
           } else {
             handleNext();
           }
+        }
+      },
+      onPanResponderTerminate: () => {
+        // Clean up on termination
+        if (longPressTimer.current) {
+          clearTimeout(longPressTimer.current);
+          longPressTimer.current = null;
+        }
+        if (isLongPressing.current) {
+          handleLongPressOut();
         }
       },
     })
@@ -385,6 +423,12 @@ function NewStoryViewer({
             </TouchableOpacity>
           </View>
         </BlurView>
+
+        {isPaused && (
+          <View style={styles.pauseIndicator}>
+            <IconSymbol ios_icon_name="pause.fill" android_material_icon_name="pause" size={48} color="rgba(255, 255, 255, 0.8)" />
+          </View>
+        )}
       </View>
     </Modal>
   );
@@ -501,6 +545,16 @@ const styles = StyleSheet.create({
   },
   headerButton: {
     padding: 4,
+  },
+  pauseIndicator: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: [{ translateX: -24 }, { translateY: -24 }],
+    width: 48,
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

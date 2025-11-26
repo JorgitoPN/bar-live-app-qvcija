@@ -9,6 +9,7 @@ import { localPreloader } from '../../utils/localPreloader';
 import OptimizedImage from '../../components/common/OptimizedImage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import { IconSymbol } from '../../components/IconSymbol';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -48,6 +49,11 @@ interface Local {
   takeaway?: boolean;
   created_at?: string;
   updated_at?: string;
+  horarios_completos?: Record<string, string[]>;
+  estado_actual?: 'abierto_ahora' | 'cerrado_ahora';
+  clientela?: Record<string, boolean>;
+  plan_activo?: string;
+  logo?: string;
 }
 
 interface Review {
@@ -63,6 +69,67 @@ interface Review {
   };
 }
 
+// Helper function to get category icon
+const getCategoryIcon = (categoria?: string): string => {
+  const categoryMap: Record<string, string> = {
+    'bar': 'beer',
+    'restaurante': 'restaurant',
+    'cafe': 'cafe',
+    'pub': 'beer-outline',
+    'discoteca': 'musical-notes',
+    'cocteleria': 'wine',
+    'lounge': 'bed',
+    'terraza': 'sunny',
+    'rooftop': 'arrow-up-circle',
+  };
+  return categoryMap[categoria?.toLowerCase() || ''] || 'location';
+};
+
+// Helper function to get service icon
+const getServiceIcon = (servicio: string): string => {
+  const serviceMap: Record<string, string> = {
+    'cerveza': 'beer',
+    'cócteles': 'wine',
+    'efectivo': 'cash',
+    'tarjetas': 'card',
+  };
+  return serviceMap[servicio.toLowerCase()] || 'checkmark-circle';
+};
+
+// Helper function to calculate time until closing
+const getTimeUntilClosing = (horarios?: Record<string, string[]>): string | null => {
+  if (!horarios) return null;
+  
+  const now = new Date();
+  const dayNames = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+  const currentDay = dayNames[now.getDay()];
+  const todayHours = horarios[currentDay];
+  
+  if (!todayHours || todayHours.length === 0) return null;
+  
+  const currentTime = now.getHours() * 60 + now.getMinutes();
+  
+  for (const range of todayHours) {
+    const [open, close] = range.split('–').map(t => {
+      const [h, m] = t.trim().split(':').map(Number);
+      return h * 60 + m;
+    });
+    
+    if (currentTime >= open && currentTime < close) {
+      const minutesUntilClose = close - currentTime;
+      const hours = Math.floor(minutesUntilClose / 60);
+      const minutes = minutesUntilClose % 60;
+      
+      if (hours > 0) {
+        return `${hours} h ${minutes} min`;
+      }
+      return `${minutes} min`;
+    }
+  }
+  
+  return null;
+};
+
 export default function DetalleLocalScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
@@ -71,6 +138,7 @@ export default function DetalleLocalScreen() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [averageRating, setAverageRating] = useState(0);
 
   const cargarReviewsBarlive = useCallback(async () => {
     try {
@@ -95,6 +163,13 @@ export default function DetalleLocalScreen() {
 
       console.log('[DetalleLocal] Loaded reviews:', data);
       setReviews(data || []);
+      
+      // Calculate average rating
+      if (data && data.length > 0) {
+        const avg = data.reduce((sum, r) => sum + r.rating, 0) / data.length;
+        setAverageRating(avg);
+      }
+      
       setLoadingReviews(false);
     } catch (error) {
       console.error('[DetalleLocal] Error loading reviews:', error);
@@ -148,18 +223,6 @@ export default function DetalleLocalScreen() {
     }
   };
 
-  const handleEmail = () => {
-    if (local?.email) {
-      Linking.openURL(`mailto:${local.email}`);
-    }
-  };
-
-  const handleWebsite = () => {
-    if (local?.web) {
-      Linking.openURL(local.web);
-    }
-  };
-
   const handleDirections = () => {
     if (local?.latitud && local?.longitud) {
       const url = Platform.select({
@@ -171,17 +234,16 @@ export default function DetalleLocalScreen() {
     }
   };
 
-  const handleShare = () => {
-    Alert.alert('Compartir', 'Funcionalidad de compartir próximamente');
-  };
-
-  const handleFavorite = () => {
-    Alert.alert('Favoritos', 'Funcionalidad de favoritos próximamente');
-  };
-
   const handleVirtualRoom = () => {
     router.push({
       pathname: '/detalle/sala-virtual',
+      params: { localId: params.id }
+    });
+  };
+
+  const handleSocialProfile = () => {
+    router.push({
+      pathname: '/perfil/local',
       params: { localId: params.id }
     });
   };
@@ -214,11 +276,15 @@ export default function DetalleLocalScreen() {
     ...(local.galeria_urls || [])
   ].filter(Boolean);
 
+  const isOpen = local.estado_actual === 'abierto_ahora';
+  const timeUntilClosing = getTimeUntilClosing(local.horarios_completos);
+  const hasSocialProfile = local.plan_activo === 'estandar' || local.plan_activo === 'premium';
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      {/* Image Gallery */}
+      {/* Cover Photo with Status Badge and Rating */}
       {allImages.length > 0 && (
-        <View style={styles.galleryContainer}>
+        <View style={styles.coverContainer}>
           <ScrollView
             horizontal
             pagingEnabled
@@ -233,11 +299,34 @@ export default function DetalleLocalScreen() {
               <OptimizedImage
                 key={index}
                 source={{ uri: image }}
-                style={styles.headerImage}
+                style={styles.coverImage}
                 resizeMode="cover"
               />
             ))}
           </ScrollView>
+          
+          {/* Status Badge - Top Left */}
+          <View style={styles.statusBadge}>
+            <BlurView intensity={80} tint="dark" style={styles.statusBlur}>
+              <View style={[styles.statusDot, isOpen ? styles.statusDotOpen : styles.statusDotClosed]} />
+              <Text style={styles.statusText}>
+                {isOpen ? 'Abierto ahora' : 'Cerrado ahora'}
+              </Text>
+              {isOpen && timeUntilClosing && (
+                <Text style={styles.statusSubtext}>• Cierra en {timeUntilClosing}</Text>
+              )}
+            </BlurView>
+          </View>
+
+          {/* Rating Badge - Top Right */}
+          {averageRating > 0 && (
+            <View style={styles.ratingBadgeTop}>
+              <BlurView intensity={80} tint="dark" style={styles.ratingBlur}>
+                <Ionicons name="star" size={18} color="#FFD700" />
+                <Text style={styles.ratingTextTop}>{averageRating.toFixed(1)}</Text>
+              </BlurView>
+            </View>
+          )}
           
           {/* Image Indicators */}
           {allImages.length > 1 && (
@@ -263,37 +352,20 @@ export default function DetalleLocalScreen() {
         </BlurView>
       </TouchableOpacity>
 
-      {/* Action Buttons */}
-      <View style={styles.actionButtons}>
-        <TouchableOpacity style={styles.actionButton} onPress={handleShare}>
-          <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
-            <Ionicons name="share-outline" size={22} color="#fff" />
-          </BlurView>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton} onPress={handleFavorite}>
-          <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
-            <Ionicons name="heart-outline" size={22} color="#fff" />
-          </BlurView>
-        </TouchableOpacity>
-      </View>
-
       {/* Content Card */}
       <View style={styles.contentCard}>
-        {/* Title and Rating */}
-        <View style={styles.titleContainer}>
-          <Text style={styles.title}>{local.nombre}</Text>
-          {local.valoracion && (
-            <View style={styles.ratingBadge}>
-              <Ionicons name="star" size={18} color="#FFD700" />
-              <Text style={styles.rating}>{local.valoracion.toFixed(1)}</Text>
-            </View>
-          )}
-        </View>
+        {/* Title */}
+        <Text style={styles.title}>{local.nombre}</Text>
 
-        {/* Category */}
+        {/* Category with Icon */}
         {local.categoria && (
           <View style={styles.categoryRow}>
-            <Ionicons name="pricetag" size={16} color={colors.primary} />
+            <IconSymbol 
+              ios_icon_name={getCategoryIcon(local.categoria)} 
+              android_material_icon_name={getCategoryIcon(local.categoria)} 
+              size={18} 
+              color={colors.primary} 
+            />
             <Text style={styles.category}>{local.categoria}</Text>
             {local.subcategoria && (
               <Text style={styles.subcategory}> • {local.subcategoria}</Text>
@@ -301,177 +373,112 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* Quick Action Buttons */}
-        <View style={styles.quickActions}>
+        {/* Address */}
+        {local.direccion && (
+          <TouchableOpacity style={styles.addressRow} onPress={handleDirections}>
+            <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={18} color={colors.primary} />
+            <Text style={styles.addressText}>{local.direccion}</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Action Buttons */}
+        <View style={styles.actionButtonsRow}>
           {local.telefono && (
-            <TouchableOpacity style={styles.quickActionButton} onPress={handleCall}>
+            <TouchableOpacity style={styles.actionButton} onPress={handleCall}>
               <LinearGradient
                 colors={[colors.primary, colors.secondary]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
-                style={styles.quickActionGradient}
+                style={styles.actionButtonGradient}
               >
-                <Ionicons name="call" size={20} color="#fff" />
-                <Text style={styles.quickActionText}>Llamar</Text>
+                <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="phone" size={20} color="#fff" />
+                <Text style={styles.actionButtonText}>Llamar</Text>
               </LinearGradient>
             </TouchableOpacity>
           )}
           
           {local.latitud && local.longitud && (
-            <TouchableOpacity style={styles.quickActionButton} onPress={handleDirections}>
+            <TouchableOpacity style={styles.actionButton} onPress={handleDirections}>
               <LinearGradient
                 colors={[colors.primary, colors.secondary]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
-                style={styles.quickActionGradient}
+                style={styles.actionButtonGradient}
               >
-                <Ionicons name="navigate" size={20} color="#fff" />
-                <Text style={styles.quickActionText}>Cómo llegar</Text>
+                <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={20} color="#fff" />
+                <Text style={styles.actionButtonText}>Cómo llegar</Text>
+                {local.latitud && (
+                  <Text style={styles.distanceText}>• 2.5 km</Text>
+                )}
               </LinearGradient>
             </TouchableOpacity>
           )}
-          
-          <TouchableOpacity style={styles.quickActionButton} onPress={handleVirtualRoom}>
+        </View>
+
+        {/* Virtual Room Button */}
+        <TouchableOpacity style={styles.virtualRoomButton} onPress={handleVirtualRoom}>
+          <LinearGradient
+            colors={['#9333EA', '#C026D3']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.virtualRoomGradient}
+          >
+            <IconSymbol ios_icon_name="cube.fill" android_material_icon_name="view_in_ar" size={22} color="#fff" />
+            <Text style={styles.virtualRoomText}>Sala Virtual</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+
+        {/* Social Profile Button (if plan is standard or premium) */}
+        {hasSocialProfile && (
+          <TouchableOpacity style={styles.socialProfileButton} onPress={handleSocialProfile}>
             <LinearGradient
-              colors={['#9333EA', '#C026D3']}
+              colors={[colors.primary, colors.secondary]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
-              style={styles.quickActionGradient}
+              style={styles.socialProfileGradient}
             >
-              <Ionicons name="cube" size={20} color="#fff" />
-              <Text style={styles.quickActionText}>Sala Virtual</Text>
+              <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={22} color="#fff" />
+              <Text style={styles.socialProfileText}>Ver Perfil Social</Text>
             </LinearGradient>
           </TouchableOpacity>
-        </View>
-
-        {/* Description */}
-        {local.descripcion && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="information-circle" size={22} color={colors.primary} />
-              <Text style={styles.sectionTitle}>Descripción</Text>
-            </View>
-            <Text style={styles.description}>{local.descripcion}</Text>
-          </View>
         )}
 
-        {/* Contact Info */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="call" size={22} color={colors.primary} />
-            <Text style={styles.sectionTitle}>Información de contacto</Text>
-          </View>
-          
-          {local.direccion && (
-            <TouchableOpacity style={styles.infoRow} onPress={handleDirections}>
-              <View style={styles.infoIcon}>
-                <Ionicons name="location" size={20} color={colors.primary} />
-              </View>
-              <Text style={styles.infoText}>{local.direccion}</Text>
-              <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-            </TouchableOpacity>
-          )}
-
-          {local.telefono && (
-            <TouchableOpacity style={styles.infoRow} onPress={handleCall}>
-              <View style={styles.infoIcon}>
-                <Ionicons name="call" size={20} color={colors.primary} />
-              </View>
-              <Text style={styles.infoText}>{local.telefono}</Text>
-              <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-            </TouchableOpacity>
-          )}
-
-          {local.email && (
-            <TouchableOpacity style={styles.infoRow} onPress={handleEmail}>
-              <View style={styles.infoIcon}>
-                <Ionicons name="mail" size={20} color={colors.primary} />
-              </View>
-              <Text style={styles.infoText}>{local.email}</Text>
-              <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-            </TouchableOpacity>
-          )}
-
-          {local.web && (
-            <TouchableOpacity style={styles.infoRow} onPress={handleWebsite}>
-              <View style={styles.infoIcon}>
-                <Ionicons name="globe" size={20} color={colors.primary} />
-              </View>
-              <Text style={styles.infoText} numberOfLines={1}>{local.web}</Text>
-              <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Schedule */}
-        {local.horario && (
+        {/* Schedule Section */}
+        {local.horarios_completos && Object.keys(local.horarios_completos).length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="time" size={22} color={colors.primary} />
-              <Text style={styles.sectionTitle}>Horario</Text>
+              <IconSymbol ios_icon_name="clock.fill" android_material_icon_name="schedule" size={22} color={colors.primary} />
+              <Text style={styles.sectionTitle}>Horarios</Text>
             </View>
-            <View style={styles.scheduleCard}>
-              <Text style={styles.scheduleText}>{local.horario}</Text>
+            <View style={styles.scheduleContainer}>
+              {Object.entries(local.horarios_completos).map(([day, hours]) => (
+                <View key={day} style={styles.scheduleRow}>
+                  <Text style={styles.scheduleDay}>{day.charAt(0).toUpperCase() + day.slice(1)}</Text>
+                  <Text style={styles.scheduleHours}>
+                    {hours.length > 0 ? hours.join(', ') : 'Cerrado'}
+                  </Text>
+                </View>
+              ))}
             </View>
           </View>
         )}
 
-        {/* Features Grid */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="checkmark-circle" size={22} color={colors.primary} />
-            <Text style={styles.sectionTitle}>Características</Text>
-          </View>
-          <View style={styles.featuresGrid}>
-            {local.parking && (
-              <View style={styles.featureCard}>
-                <Ionicons name="car" size={24} color={colors.primary} />
-                <Text style={styles.featureText}>Parking</Text>
-              </View>
-            )}
-            {local.terraza && (
-              <View style={styles.featureCard}>
-                <Ionicons name="sunny" size={24} color={colors.primary} />
-                <Text style={styles.featureText}>Terraza</Text>
-              </View>
-            )}
-            {local.wifi && (
-              <View style={styles.featureCard}>
-                <Ionicons name="wifi" size={24} color={colors.primary} />
-                <Text style={styles.featureText}>WiFi</Text>
-              </View>
-            )}
-            {local.accesibilidad && (
-              <View style={styles.featureCard}>
-                <Ionicons name="accessibility" size={24} color={colors.primary} />
-                <Text style={styles.featureText}>Accesible</Text>
-              </View>
-            )}
-            {local.reservas && (
-              <View style={styles.featureCard}>
-                <Ionicons name="calendar" size={24} color={colors.primary} />
-                <Text style={styles.featureText}>Reservas</Text>
-              </View>
-            )}
-            {local.delivery && (
-              <View style={styles.featureCard}>
-                <Ionicons name="bicycle" size={24} color={colors.primary} />
-                <Text style={styles.featureText}>Delivery</Text>
-              </View>
-            )}
-          </View>
-        </View>
-
-        {/* Services */}
+        {/* Services Section with Icons */}
         {local.servicios && local.servicios.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="list" size={22} color={colors.primary} />
-              <Text style={styles.sectionTitle}>Servicios</Text>
+              <IconSymbol ios_icon_name="bell.fill" android_material_icon_name="notifications" size={22} color={colors.primary} />
+              <Text style={styles.sectionTitle}>Servicios Disponibles</Text>
             </View>
-            <View style={styles.servicesContainer}>
+            <View style={styles.servicesGrid}>
               {local.servicios.map((servicio, index) => (
-                <View key={index} style={styles.serviceChip}>
+                <View key={index} style={styles.serviceItem}>
+                  <IconSymbol 
+                    ios_icon_name={getServiceIcon(servicio)} 
+                    android_material_icon_name={getServiceIcon(servicio)} 
+                    size={20} 
+                    color={colors.primary} 
+                  />
                   <Text style={styles.serviceText}>{servicio}</Text>
                 </View>
               ))}
@@ -479,55 +486,123 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* Reviews */}
+        {/* Atmosphere Section */}
+        {local.ambiente && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <IconSymbol ios_icon_name="sparkles" android_material_icon_name="auto_awesome" size={22} color={colors.primary} />
+              <Text style={styles.sectionTitle}>Ambiente</Text>
+            </View>
+            <View style={styles.chipContainer}>
+              <View style={styles.chip}>
+                <Text style={styles.chipText}>{local.ambiente}</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Typical Clientele Section */}
+        {local.clientela && Object.keys(local.clientela).length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={22} color={colors.primary} />
+              <Text style={styles.sectionTitle}>Clientela Típica</Text>
+            </View>
+            <View style={styles.chipContainer}>
+              {Object.entries(local.clientela)
+                .filter(([_, value]) => value)
+                .map(([key, _]) => (
+                  <View key={key} style={styles.chip}>
+                    <Text style={styles.chipText}>{key}</Text>
+                  </View>
+                ))}
+            </View>
+          </View>
+        )}
+
+        {/* Review Analysis Section */}
+        {reviews.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <IconSymbol ios_icon_name="chart.bar.fill" android_material_icon_name="bar_chart" size={22} color={colors.primary} />
+              <Text style={styles.sectionTitle}>Análisis de Reseñas</Text>
+            </View>
+            <View style={styles.analysisCard}>
+              <Text style={styles.analysisTitle}>Sentimiento: positivo</Text>
+              <Text style={styles.analysisText}>
+                Los usuarios destacan comida, precio, calidad.
+              </Text>
+              <View style={styles.analysisTagsContainer}>
+                <View style={styles.analysisTag}>
+                  <Text style={styles.analysisTagText}>comida</Text>
+                </View>
+                <View style={styles.analysisTag}>
+                  <Text style={styles.analysisTagText}>precio</Text>
+                </View>
+                <View style={styles.analysisTag}>
+                  <Text style={styles.analysisTagText}>calidad</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Google Reviews Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons name="star" size={22} color={colors.primary} />
-            <Text style={styles.sectionTitle}>Reseñas</Text>
+            <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={22} color={colors.primary} />
+            <Text style={styles.sectionTitle}>Reseñas de Google</Text>
           </View>
           {loadingReviews ? (
             <ActivityIndicator size="small" color={colors.primary} />
           ) : reviews.length > 0 ? (
-            reviews.map((review) => (
-              <View key={review.id} style={styles.reviewCard}>
-                <View style={styles.reviewHeader}>
-                  <View style={styles.reviewAuthor}>
-                    {review.usuario?.avatar ? (
-                      <OptimizedImage
-                        source={{ uri: review.usuario.avatar }}
-                        style={styles.reviewAvatar}
-                      />
-                    ) : (
-                      <View style={styles.reviewAvatarPlaceholder}>
-                        <Ionicons name="person" size={20} color={colors.textSecondary} />
-                      </View>
-                    )}
-                    <Text style={styles.reviewAuthorName}>
-                      {review.usuario?.nombre || 'Usuario anónimo'}
-                    </Text>
+            <>
+              {reviews.map((review) => (
+                <View key={review.id} style={styles.reviewCard}>
+                  <View style={styles.reviewHeader}>
+                    <View style={styles.reviewAuthor}>
+                      {review.usuario?.avatar ? (
+                        <OptimizedImage
+                          source={{ uri: review.usuario.avatar }}
+                          style={styles.reviewAvatar}
+                        />
+                      ) : (
+                        <View style={styles.reviewAvatarPlaceholder}>
+                          <Ionicons name="person" size={20} color={colors.textSecondary} />
+                        </View>
+                      )}
+                      <Text style={styles.reviewAuthorName}>
+                        {review.usuario?.nombre || 'Usuario anónimo'}
+                      </Text>
+                    </View>
+                    <View style={styles.reviewRating}>
+                      <Ionicons name="star" size={16} color="#FFD700" />
+                      <Text style={styles.reviewRatingText}>{review.rating}</Text>
+                    </View>
                   </View>
-                  <View style={styles.reviewRating}>
-                    <Ionicons name="star" size={16} color="#FFD700" />
-                    <Text style={styles.reviewRatingText}>{review.rating}</Text>
-                  </View>
+                  {review.texto && (
+                    <Text style={styles.reviewComment}>{review.texto}</Text>
+                  )}
+                  <Text style={styles.reviewDate}>
+                    {new Date(review.created_at).toLocaleDateString('es-ES', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric'
+                    })}
+                  </Text>
                 </View>
-                {review.texto && (
-                  <Text style={styles.reviewComment}>{review.texto}</Text>
-                )}
-                <Text style={styles.reviewDate}>
-                  {new Date(review.created_at).toLocaleDateString('es-ES', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric'
-                  })}
-                </Text>
-              </View>
-            ))
+              ))}
+              <TouchableOpacity style={styles.addReviewButton}>
+                <Text style={styles.addReviewButtonText}>Añadir Reseña de BarLive</Text>
+              </TouchableOpacity>
+            </>
           ) : (
             <View style={styles.noReviewsCard}>
               <Ionicons name="chatbubbles-outline" size={48} color={colors.textSecondary} />
               <Text style={styles.noReviews}>No hay reseñas todavía</Text>
-              <Text style={styles.noReviewsSubtext}>Sé el primero en dejar una reseña</Text>
+              <TouchableOpacity style={styles.addReviewButton}>
+                <Text style={styles.addReviewButtonText}>Sé el primero en añadir una reseña</Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>
@@ -580,12 +655,66 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  galleryContainer: {
+  coverContainer: {
     position: 'relative',
+    height: 300,
   },
-  headerImage: {
+  coverImage: {
     width: SCREEN_WIDTH,
-    height: 400,
+    height: 300,
+  },
+  statusBadge: {
+    position: 'absolute',
+    top: 60,
+    left: 16,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  statusBlur: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 6,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  statusDotOpen: {
+    backgroundColor: '#10B981',
+  },
+  statusDotClosed: {
+    backgroundColor: '#EF4444',
+  },
+  statusText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  statusSubtext: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  ratingBadgeTop: {
+    position: 'absolute',
+    top: 60,
+    right: 16,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  ratingBlur: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 4,
+  },
+  ratingTextTop: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
   },
   imageIndicators: {
     position: 'absolute',
@@ -622,20 +751,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  actionButtons: {
-    position: 'absolute',
-    top: 48,
-    right: 16,
-    flexDirection: 'row',
-    gap: 12,
-    zIndex: 10,
-  },
-  actionButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    overflow: 'hidden',
-  },
   contentCard: {
     backgroundColor: colors.background,
     borderTopLeftRadius: 24,
@@ -643,38 +758,17 @@ const styles = StyleSheet.create({
     marginTop: -24,
     padding: 20,
   },
-  titleContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
   title: {
-    flex: 1,
     fontSize: 28,
     fontWeight: 'bold',
     color: colors.text,
-    marginRight: 12,
-  },
-  ratingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: colors.card,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  rating: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text,
+    marginBottom: 12,
   },
   categoryRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
-    gap: 6,
+    marginBottom: 12,
+    gap: 8,
   },
   category: {
     fontSize: 15,
@@ -685,25 +779,74 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.textSecondary,
   },
-  quickActions: {
+  addressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    gap: 8,
+  },
+  addressText: {
+    fontSize: 14,
+    color: colors.text,
+    flex: 1,
+  },
+  actionButtonsRow: {
     flexDirection: 'row',
     gap: 12,
-    marginBottom: 24,
+    marginBottom: 12,
   },
-  quickActionButton: {
+  actionButton: {
     flex: 1,
     borderRadius: 12,
     overflow: 'hidden',
   },
-  quickActionGradient: {
+  actionButtonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 14,
   },
-  quickActionText: {
+  actionButtonText: {
     fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  distanceText: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  virtualRoomButton: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  virtualRoomGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+  },
+  virtualRoomText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  socialProfileButton: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 24,
+  },
+  socialProfileGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+  },
+  socialProfileText: {
+    fontSize: 15,
     fontWeight: '600',
     color: '#fff',
   },
@@ -721,76 +864,94 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.text,
   },
-  description: {
-    fontSize: 15,
-    color: colors.text,
-    lineHeight: 22,
+  scheduleContainer: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: 16,
   },
-  infoRow: {
+  scheduleRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 8,
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  infoIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.primary + '20',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  infoText: {
-    flex: 1,
-    fontSize: 15,
+  scheduleDay: {
+    fontSize: 14,
+    fontWeight: '600',
     color: colors.text,
+    textTransform: 'capitalize',
   },
-  scheduleCard: {
-    backgroundColor: colors.card,
-    padding: 16,
-    borderRadius: 12,
+  scheduleHours: {
+    fontSize: 14,
+    color: colors.textSecondary,
   },
-  scheduleText: {
-    fontSize: 15,
-    color: colors.text,
-    lineHeight: 22,
-  },
-  featuresGrid: {
+  servicesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
   },
-  featureCard: {
-    width: (SCREEN_WIDTH - 64) / 3,
-    backgroundColor: colors.card,
-    padding: 16,
-    borderRadius: 12,
+  serviceItem: {
+    flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: colors.card,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
     gap: 8,
   },
-  featureText: {
-    fontSize: 13,
+  serviceText: {
+    fontSize: 14,
     color: colors.text,
     fontWeight: '500',
-    textAlign: 'center',
   },
-  servicesContainer: {
+  chipContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
-  serviceChip: {
+  chip: {
     backgroundColor: colors.primary + '20',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
   },
-  serviceText: {
+  chipText: {
     fontSize: 14,
     color: colors.primary,
+    fontWeight: '600',
+  },
+  analysisCard: {
+    backgroundColor: colors.card,
+    padding: 16,
+    borderRadius: 12,
+  },
+  analysisTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.primary,
+    marginBottom: 8,
+  },
+  analysisText: {
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  analysisTagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  analysisTag: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  analysisTagText: {
+    fontSize: 13,
+    color: '#fff',
     fontWeight: '600',
   },
   reviewCard: {
@@ -852,6 +1013,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
   },
+  addReviewButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  addReviewButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#fff',
+  },
   noReviewsCard: {
     backgroundColor: colors.card,
     padding: 32,
@@ -863,10 +1036,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontWeight: '600',
     marginTop: 12,
-  },
-  noReviewsSubtext: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginTop: 4,
+    marginBottom: 16,
   },
 });

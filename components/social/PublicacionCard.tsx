@@ -8,7 +8,6 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import ParsedText from './ParsedText';
-import * as Clipboard from 'expo-clipboard';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -356,10 +355,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
       ? [post.imagen] 
       : [];
 
-  const displayName = post?.autorUsername 
-    ? post.autorUsername.replace(/^@/, '')
-    : post?.autorNombre || 'Usuario';
-
+  const displayName = post?.autorNombre || 'Usuario';
   const avatarUrl = post?.autorAvatar || null;
   const displayDate = post?.fecha ? formatearFecha(post.fecha) : post?.created_at ? formatearFecha(post.created_at) : 'Fecha desconocida';
   const isAuthor = user && post.tipo === 'usuario' && post.autorId === user.id;
@@ -390,7 +386,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
         </View>
         {isAuthor ? (
           <TouchableOpacity style={styles.deleteButton} onPress={handleDelete} activeOpacity={0.7}>
-            <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={22} color={colors.error} />
+            <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={22} color={colors.error} />
           </TouchableOpacity>
         ) : null}
       </TouchableOpacity>
@@ -620,16 +616,13 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.cardBackground,
-    marginBottom: 4,
+    marginBottom: 0,
     paddingBottom: 16,
-    borderRadius: 12,
-    marginHorizontal: 8,
-    marginTop: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    borderRadius: 0,
+    marginHorizontal: 0,
+    marginTop: 0,
+    borderBottomWidth: 8,
+    borderBottomColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -735,17 +728,17 @@ const styles = StyleSheet.create({
   },
   imageCarouselContainer: {
     position: 'relative',
-    borderRadius: 12,
+    borderRadius: 0,
     overflow: 'hidden',
-    marginHorizontal: 16,
+    marginHorizontal: 0,
     marginBottom: 12,
   },
   imageCarousel: {
-    width: SCREEN_WIDTH - 32,
+    width: SCREEN_WIDTH,
   },
   imageContainer: {
-    width: SCREEN_WIDTH - 32,
-    height: SCREEN_WIDTH - 32,
+    width: SCREEN_WIDTH,
+    height: SCREEN_WIDTH,
     position: 'relative',
   },
   imagen: {
