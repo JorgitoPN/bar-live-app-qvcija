@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
   Platform,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/app/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -247,10 +247,14 @@ export default function SocialScreen() {
     }
   }, [user, globalPosts, globalStories, isOwnerMode, activeLocalProfileId, loadUnreadCounts]);
 
-  useEffect(() => {
-    console.log('[Social] 🔄 Effect triggered - loading data');
-    loadData();
-  }, [loadData]);
+  // ✅ AUTO-UPDATE: Reload data every time the screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log('[Social] 🔄 Screen focused - auto-updating data');
+      storiesPreloadedRef.current = false; // Reset preload flag
+      loadData();
+    }, [loadData])
+  );
 
   const onRefresh = async () => {
     console.log('[Social] 🔄 Manual refresh triggered');

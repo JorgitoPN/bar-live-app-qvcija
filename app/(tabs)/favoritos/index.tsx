@@ -362,7 +362,7 @@ export default function FavoritosScreen() {
             </View>
           )}
 
-          {/* ✅ NEW: Synchronized favorite button */}
+          {/* ✅ SYNCHRONIZED: Favorite button with same logic as TarjetaLocal */}
           <TouchableOpacity
             style={styles.favoritoButton}
             onPress={(e) => {
@@ -878,12 +878,6 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
   },
   nombre: {
     fontSize: 18,
