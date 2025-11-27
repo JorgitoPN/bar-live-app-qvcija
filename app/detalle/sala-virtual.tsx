@@ -12,7 +12,6 @@ import {
   Platform,
   ActivityIndicator,
   FlatList,
-  Animated,
   Dimensions,
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -23,7 +22,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getEstadoLocal } from '@/utils/timeUtils';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface Message {
   id: string;
