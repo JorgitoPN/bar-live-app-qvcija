@@ -296,7 +296,6 @@ export default function DetalleLocalScreen() {
   const [averageRating, setAverageRating] = useState(0);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [distance, setDistance] = useState<string | null>(null);
-  const [isFavorite, setIsFavorite] = useState(false);
   const [galleryVisible, setGalleryVisible] = useState(false);
   const [galleryInitialIndex, setGalleryInitialIndex] = useState(0);
   const [expandedReviews, setExpandedReviews] = useState<Set<string>>(new Set());
@@ -332,34 +331,6 @@ export default function DetalleLocalScreen() {
       setDistance(dist);
     }
   }, [userLocation, local]);
-
-  const checkIfFavorite = useCallback(async () => {
-    if (!user || !params.id) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('locales_favoritos')
-        .select('id')
-        .eq('usuario_id', user.id)
-        .eq('local_id', params.id)
-        .maybeSingle();
-      
-      if (!error && data) {
-        setIsFavorite(true);
-      } else {
-        setIsFavorite(false);
-      }
-    } catch (error) {
-      console.error('[DetalleLocal] Error checking favorite:', error);
-      setIsFavorite(false);
-    }
-  }, [user, params.id]);
-
-  useEffect(() => {
-    if (user) {
-      checkIfFavorite();
-    }
-  }, [user, checkIfFavorite]);
 
   const cargarReviewsBarlive = useCallback(async () => {
     try {
@@ -547,76 +518,6 @@ export default function DetalleLocalScreen() {
     }
   };
 
-  const handleToggleFavorite = async () => {
-    try {
-      console.log('[DetalleLocal] Toggle favorite - User:', user?.id, 'Local:', params.id);
-      
-      if (!user) {
-        Alert.alert('Error', 'Debes iniciar sesión para agregar a favoritos');
-        return;
-      }
-
-      if (!params.id) {
-        Alert.alert('Error', 'No se pudo identificar el local');
-        return;
-      }
-
-      if (isFavorite) {
-        const { error } = await supabase
-          .from('locales_favoritos')
-          .delete()
-          .eq('usuario_id', user.id)
-          .eq('local_id', params.id);
-        
-        if (error) {
-          console.error('[DetalleLocal] Error removing favorite:', error);
-          Alert.alert('Error', 'No se pudo eliminar de favoritos');
-          return;
-        }
-        
-        setIsFavorite(false);
-        Alert.alert('Eliminado', 'Local eliminado de favoritos');
-      } else {
-        if (!user.id || !params.id) {
-          console.error('[DetalleLocal] Invalid data - usuario_id or local_id is null');
-          Alert.alert('Error', 'Datos inválidos para agregar a favoritos');
-          return;
-        }
-
-        const insertData = {
-          usuario_id: user.id,
-          local_id: params.id as string,
-        };
-        
-        console.log('[DetalleLocal] Inserting favorite with validated data:', insertData);
-        
-        const { error } = await supabase
-          .from('locales_favoritos')
-          .insert(insertData);
-        
-        if (error) {
-          console.error('[DetalleLocal] Error adding favorite:', error);
-          console.error('[DetalleLocal] Error details:', JSON.stringify(error, null, 2));
-          
-          if (error.code === '42501') {
-            Alert.alert('Error', 'No tienes permisos para agregar a favoritos. Por favor, inicia sesión nuevamente.');
-          } else {
-            Alert.alert('Error', 'No se pudo añadir a favoritos');
-          }
-          return;
-        }
-        
-        setIsFavorite(true);
-        Alert.alert('Añadido', 'Local añadido a favoritos');
-      }
-      
-      await checkIfFavorite();
-    } catch (error) {
-      console.error('[DetalleLocal] Error toggling favorite:', error);
-      Alert.alert('Error', 'No se pudo actualizar favoritos');
-    }
-  };
-
   const handleAddReview = () => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para añadir una reseña');
@@ -749,7 +650,6 @@ export default function DetalleLocalScreen() {
     });
   }
 
-  // ✅ FIXED: Use the logical day from getEstadoLocal for highlighting
   const diaLogicoParaResaltar = estadoLocal.diaLogico || 'lunes';
   console.log('[DetalleLocal] ========================================');
   console.log('[DetalleLocal] Local:', local.nombre);
@@ -793,12 +693,11 @@ export default function DetalleLocalScreen() {
   const description = local.descripcion_google || local.descripcion || '';
   const { summary: descriptionSummary, needsExpansion: needsDescriptionExpansion } = summarizeText(description, 150);
 
-  // ✅ FIXED: Correct day order Monday to Sunday with display names (with accents)
   const orderedDaysDisplay = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      {/* Cover Photo - FAVORITES BUTTON REMOVED */}
+      {/* Cover Photo - NO FAVORITES BUTTON */}
       {allImages.length > 0 && (
         <View style={styles.coverContainer}>
           <TouchableOpacity
@@ -871,7 +770,7 @@ export default function DetalleLocalScreen() {
         </View>
       )}
 
-      {/* Photo Gallery - PRESERVED */}
+      {/* Photo Gallery */}
       {allImages.length > 1 && (
         <View style={styles.gallerySection}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryScroll}>
@@ -907,12 +806,12 @@ export default function DetalleLocalScreen() {
         </View>
       )}
 
-      {/* ✅ REMOVED: Favorites button from local name section */}
+      {/* Local Name Section - NO FAVORITES BUTTON */}
       <View style={styles.localNameSection}>
         <Text style={styles.localNameText}>{local.nombre}</Text>
       </View>
 
-      {/* Content Card - REDESIGNED */}
+      {/* Content Card */}
       <View style={styles.contentCard}>
         {/* Header Section */}
         <View style={styles.headerSection}>
@@ -962,7 +861,7 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* Action Buttons Row */}
+        {/* Action Buttons Row - NO FAVORITES BUTTON */}
         <View style={styles.actionsRow}>
           {local.telefono && (
             <TouchableOpacity style={styles.actionBtn} onPress={handleCall}>
@@ -991,31 +890,9 @@ export default function DetalleLocalScreen() {
               </LinearGradient>
             </TouchableOpacity>
           )}
-          
-          {/* ✅ MOVED: Favorites button to action row */}
-          {user && (
-            <TouchableOpacity style={styles.actionBtn} onPress={handleToggleFavorite}>
-              <LinearGradient
-                colors={isFavorite ? ['#EF4444', '#DC2626'] : ['#6B7280', '#4B5563']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.actionBtnGradient}
-              >
-                <IconSymbol 
-                  ios_icon_name={isFavorite ? "heart.fill" : "heart"} 
-                  android_material_icon_name={isFavorite ? "favorite" : "favorite_border"} 
-                  size={20} 
-                  color="#fff" 
-                />
-                <Text style={styles.actionBtnText}>
-                  {isFavorite ? 'Guardado' : 'Guardar'}
-                </Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
         </View>
 
-        {/* Social Profile Button - ONLY IF HAS SOCIAL PROFILE */}
+        {/* Social Profile Button */}
         {hasSocialProfile && (
           <TouchableOpacity style={styles.specialButton} onPress={handleSocialProfile}>
             <LinearGradient
@@ -1031,7 +908,7 @@ export default function DetalleLocalScreen() {
           </TouchableOpacity>
         )}
 
-        {/* Virtual Room Button - ONLY IF LOCAL IS OPEN */}
+        {/* Virtual Room Button */}
         {isOpen && (
           <TouchableOpacity 
             style={styles.virtualRoomButton} 
@@ -1085,7 +962,7 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* ✅ FIXED: Correct schedule display with enriched data and proper day highlighting */}
+        {/* Schedule */}
         {local.horarios_completos && Object.keys(local.horarios_completos).length > 0 && (
           <View style={styles.compactSection}>
             <View style={styles.compactSectionHeader}>
@@ -1096,11 +973,8 @@ export default function DetalleLocalScreen() {
             </View>
             <View style={styles.scheduleCompact}>
               {orderedDaysDisplay.map((dayDisplay) => {
-                // ✅ FIXED: Normalize day name to match database keys (without accents)
                 const dayNormalized = normalizeDayName(dayDisplay);
                 const hours = local.horarios_completos?.[dayNormalized] || [];
-                
-                // ✅ FIXED: Highlight the logical day (the day the venue's operating period started)
                 const isToday = dayNormalized.toLowerCase() === normalizeDayName(diaLogicoParaResaltar).toLowerCase();
                 
                 console.log(`[DetalleLocal] Day: ${dayDisplay} (normalized: ${dayNormalized}), Hours:`, hours, 'IsToday:', isToday);
@@ -1696,7 +1570,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontWeight: '600',
   },
-
   scheduleCompact: {
     backgroundColor: colors.card,
     borderRadius: 12,

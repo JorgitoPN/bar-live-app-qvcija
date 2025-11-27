@@ -19,6 +19,7 @@ import { colors } from '@/styles/commonStyles';
 import FeedSocial from '@/components/social/FeedSocial';
 import NewBarraHistorias from '@/components/social/NewBarraHistorias';
 import HeaderSocial from '@/components/layout/HeaderSocial';
+import { preloadStoryImages } from '@/utils/storyPreloader';
 import type { Publicacion, Historia } from '@/types';
 
 export default function SocialScreen() {
@@ -45,6 +46,7 @@ export default function SocialScreen() {
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const isLoadingRef = useRef(false);
+  const storiesPreloadedRef = useRef(false);
 
   // ✅ Load unread counts
   const loadUnreadCounts = useCallback(async () => {
@@ -83,6 +85,23 @@ export default function SocialScreen() {
     }
   }, [user]);
 
+  // ✅ BACKGROUND PRELOAD: Preload story images in background
+  useEffect(() => {
+    if (globalStories.length > 0 && !storiesPreloadedRef.current) {
+      console.log('[Social] 🚀 Background preloading story images...');
+      storiesPreloadedRef.current = true;
+      
+      // Preload story images in background
+      const storiesToPreload = globalStories
+        .filter(s => s.imagen)
+        .map(s => ({ id: s.id, imagen: s.imagen }));
+      
+      preloadStoryImages(storiesToPreload, 0, 10).then(() => {
+        console.log('[Social] ✅ Story images preloaded in background');
+      });
+    }
+  }, [globalStories]);
+
   const loadData = useCallback(async () => {
     if (isLoadingRef.current) {
       console.log('[Social] ⚡ Already loading, skipping...');
@@ -102,7 +121,6 @@ export default function SocialScreen() {
       if (globalPosts.length > 0) {
         console.log('[Social] ⚡⚡⚡ INSTANT posts from global data:', globalPosts.length);
         
-        // ✅ CRITICAL FIX: Filter out invalid posts first
         let validPosts = globalPosts.filter(p => p && p.id);
         if (validPosts.length !== globalPosts.length) {
           console.warn('[Social] Filtered out', globalPosts.length - validPosts.length, 'invalid posts from global data');
@@ -168,12 +186,10 @@ export default function SocialScreen() {
             comentarios: commentCounts[post.id] || 0,
           }));
           
-          // ✅ CRITICAL FIX: Final validation before setting state
           const finalValidPosts = postsWithStatus.filter(p => p && p.id);
           setPosts(finalValidPosts);
           console.log('[Social] ✅ Set', finalValidPosts.length, 'valid posts with user status');
         } else {
-          // ✅ CRITICAL FIX: Final validation before setting state
           const finalValidPosts = filteredPosts.filter(p => p && p.id);
           setPosts(finalValidPosts);
           console.log('[Social] ✅ Set', finalValidPosts.length, 'valid posts');
@@ -185,7 +201,6 @@ export default function SocialScreen() {
       if (globalStories.length > 0) {
         console.log('[Social] ⚡⚡⚡ INSTANT stories from global data:', globalStories.length);
         
-        // ✅ CRITICAL FIX: Filter out invalid stories first
         let validStories = globalStories.filter(s => s && s.id);
         if (validStories.length !== globalStories.length) {
           console.warn('[Social] Filtered out', globalStories.length - validStories.length, 'invalid stories from global data');
@@ -224,7 +239,6 @@ export default function SocialScreen() {
       console.log('[Social] ⚡ User-specific data loaded');
     } catch (error) {
       console.error('[Social] Error loading data:', error);
-      // ✅ CRITICAL FIX: Set empty arrays on error to prevent undefined state
       setPosts([]);
       setHistorias([]);
     } finally {
@@ -241,6 +255,7 @@ export default function SocialScreen() {
   const onRefresh = async () => {
     console.log('[Social] 🔄 Manual refresh triggered');
     setRefreshing(true);
+    storiesPreloadedRef.current = false; // Reset preload flag
     await loadData();
     setRefreshing(false);
   };
@@ -263,7 +278,6 @@ export default function SocialScreen() {
     });
   };
 
-  // ✅ NEW: Handle real-time story updates
   const handleStoriesUpdate = useCallback((updatedStories: Historia[]) => {
     console.log('[Social] ⚡ Stories updated in real-time:', updatedStories.length);
     setHistorias(updatedStories);
@@ -286,11 +300,8 @@ export default function SocialScreen() {
     );
   }
 
-  // ✅ FIXED: Removed ScrollView wrapper to avoid VirtualizedLists warning
-  // FeedSocial uses FlatList internally which handles scrolling
   const ListHeaderComponent = () => (
     <>
-      {/* ✅ FIXED: Always show story bar with larger avatars and real-time updates */}
       <View style={styles.storiesSection}>
         <NewBarraHistorias 
           historias={historias}

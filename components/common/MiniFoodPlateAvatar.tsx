@@ -1,187 +1,153 @@
 
-import React from 'react';
-import { View, Image, StyleSheet, ViewStyle } from 'react-native';
-import { colors } from '@/styles/commonStyles';
+import React, { memo } from 'react';
+import { View, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
+import { colors } from '@/styles/commonStyles';
+import { useStoryState } from '@/contexts/StoryStateContext';
 
 interface MiniFoodPlateAvatarProps {
-  imageUrl?: string;
+  userId: string;
+  userStories?: any[];
+  avatarUrl?: string;
   size?: number;
-  hasStory?: boolean;
-  isViewed?: boolean;
-  placeholderIcon?: string;
-  placeholderText?: string;
-  style?: ViewStyle;
+  onPress?: () => void;
+  showStoryOutline?: boolean;
 }
 
-export default function MiniFoodPlateAvatar({
-  imageUrl,
-  size = 36, // Reduced from 42px
-  hasStory = false,
-  isViewed = false,
-  placeholderIcon = 'person.fill',
-  placeholderText,
-  style,
+// ✅ INSTAGRAM-STYLE: Consistent story outline color
+const STORY_OUTLINE_COLORS = ['#10B981', '#3B82F6']; // Green to Blue gradient
+
+const MiniFoodPlateAvatar = memo(function MiniFoodPlateAvatar({
+  userId,
+  userStories = [],
+  avatarUrl,
+  size = 40,
+  onPress,
+  showStoryOutline = true,
 }: MiniFoodPlateAvatarProps) {
-  const plateSize = size;
-  const imageSize = size * 0.72; // Image is 72% of plate size
-  const rimWidth = size * 0.08; // Rim is 8% of plate size
+  const { hasUnviewedStories } = useStoryState();
+  
+  const hasActiveStories = userStories.length > 0;
+  const showOutline = showStoryOutline && hasActiveStories && hasUnviewedStories(userId, userStories);
 
-  return (
-    <View style={[styles.container, { width: plateSize, height: plateSize }, style]}>
-      {/* Story Ring (if has story) */}
-      {hasStory && !isViewed && (
+  const avatarSize = size;
+  const ringSize = size + 6;
+  const borderRadius = size / 2;
+  const ringBorderRadius = ringSize / 2;
+
+  const content = (
+    <View style={[styles.container, { width: ringSize, height: ringSize }]}>
+      <View style={[styles.avatarWrapper, { width: ringSize, height: ringSize }]}>
+        {/* ✅ Story outline ring */}
+        {showOutline && (
+          <LinearGradient
+            colors={STORY_OUTLINE_COLORS}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[
+              styles.storyRing,
+              {
+                width: ringSize,
+                height: ringSize,
+                borderRadius: ringBorderRadius,
+              },
+            ]}
+          />
+        )}
         <View
           style={[
-            styles.storyRing,
+            styles.avatarContainer,
             {
-              width: plateSize + 4,
-              height: plateSize + 4,
-              borderRadius: (plateSize + 4) / 2,
-              top: -2,
-              left: -2,
-            },
-          ]}
-        />
-      )}
-
-      {/* Plate Base (outer circle) */}
-      <View
-        style={[
-          styles.plateBase,
-          {
-            width: plateSize,
-            height: plateSize,
-            borderRadius: plateSize / 2,
-            borderWidth: rimWidth,
-          },
-        ]}
-      >
-        {/* Plate Rim Shadow */}
-        <View
-          style={[
-            styles.plateRimShadow,
-            {
-              width: plateSize - rimWidth * 2,
-              height: plateSize - rimWidth * 2,
-              borderRadius: (plateSize - rimWidth * 2) / 2,
-            },
-          ]}
-        />
-
-        {/* Food/Image Container (inner circle) */}
-        <View
-          style={[
-            styles.foodContainer,
-            {
-              width: imageSize,
-              height: imageSize,
-              borderRadius: imageSize / 2,
+              width: avatarSize,
+              height: avatarSize,
+              borderRadius,
             },
           ]}
         >
-          {imageUrl ? (
+          {avatarUrl ? (
             <Image
-              source={{ uri: imageUrl }}
+              source={{ uri: avatarUrl }}
               style={[
-                styles.foodImage,
+                styles.avatar,
                 {
-                  width: imageSize,
-                  height: imageSize,
-                  borderRadius: imageSize / 2,
+                  width: avatarSize,
+                  height: avatarSize,
+                  borderRadius,
                 },
               ]}
-              resizeMode="cover"
             />
           ) : (
             <View
               style={[
-                styles.foodPlaceholder,
+                styles.avatarPlaceholder,
                 {
-                  width: imageSize,
-                  height: imageSize,
-                  borderRadius: imageSize / 2,
+                  width: avatarSize,
+                  height: avatarSize,
+                  borderRadius,
                 },
               ]}
             >
-              {placeholderText ? (
-                <View style={styles.placeholderTextContainer}>
-                  <View style={[styles.placeholderTextInner, { fontSize: imageSize * 0.4 }]}>
-                    {placeholderText.charAt(0).toUpperCase()}
-                  </View>
-                </View>
-              ) : (
-                <IconSymbol
-                  name={placeholderIcon}
-                  size={imageSize * 0.45}
-                  color={colors.textSecondary}
-                />
-              )}
+              <IconSymbol
+                ios_icon_name="person.fill"
+                android_material_icon_name="person"
+                size={avatarSize * 0.5}
+                color={colors.textSecondary}
+              />
             </View>
           )}
         </View>
       </View>
     </View>
   );
-}
+
+  if (onPress) {
+    return (
+      <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
+        {content}
+      </TouchableOpacity>
+    );
+  }
+
+  return content;
+});
 
 const styles = StyleSheet.create({
   container: {
-    position: 'relative',
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarWrapper: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   storyRing: {
     position: 'absolute',
-    zIndex: 0,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    margin: 'auto',
+  },
+  avatarContainer: {
+    backgroundColor: colors.background,
     borderWidth: 2,
-    borderColor: colors.primary,
-  },
-  plateBase: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E8E8E8',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1,
-    // Plate shadow
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  plateRimShadow: {
-    position: 'absolute',
-    backgroundColor: 'transparent',
-    borderWidth: 0.5,
-    borderColor: 'rgba(0, 0, 0, 0.06)',
-  },
-  foodContainer: {
+    borderColor: colors.background,
     overflow: 'hidden',
-    backgroundColor: '#F5F5F5',
-    // Food shadow (inner)
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 2,
-    elevation: 2,
+    position: 'absolute',
+    top: 3,
+    left: 3,
   },
-  foodImage: {
-    backgroundColor: '#F5F5F5',
-  },
-  foodPlaceholder: {
-    backgroundColor: '#F5F5F5',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  placeholderTextContainer: {
+  avatar: {
     width: '100%',
     height: '100%',
+  },
+  avatarPlaceholder: {
+    backgroundColor: colors.primary + '40',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  placeholderTextInner: {
-    fontWeight: 'bold',
-    color: colors.primary,
-  },
 });
+
+export default MiniFoodPlateAvatar;
