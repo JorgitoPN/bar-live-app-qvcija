@@ -24,6 +24,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useInteractionContext } from '@/hooks/useInteractionContext';
 import StoryStatsModal from './StoryStatsModal';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -65,7 +66,6 @@ interface StoryViewerProps {
   onClose: () => void;
   onStoryChange?: (index: number) => void;
   onStoryDelete?: (storyId: string) => void;
-  activeLocalProfileId?: string | null;
 }
 
 // ✅ ULTRA-OPTIMIZED: Memoized story image component with instant loading
@@ -248,10 +248,10 @@ function StoryViewer({
   onClose,
   onStoryChange,
   onStoryDelete,
-  activeLocalProfileId,
 }: StoryViewerProps) {
   const router = useRouter();
   const { user } = useAuth();
+  const { interactionUserId, interactionLocalId, isInteractingAsLocal } = useInteractionContext();
   
   const [currentStoryIndex, setCurrentStoryIndex] = useState(initialIndex);
   const [isPaused, setIsPaused] = useState(false);
@@ -262,6 +262,7 @@ function StoryViewer({
   const [loadingStats, setLoadingStats] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [storyLiked, setStoryLiked] = useState(false);
   
   const isPausedRef = useRef<boolean>(false);
   
@@ -274,6 +275,12 @@ function StoryViewer({
   const isSwiping = useRef(false);
 
   const currentStory = stories[currentStoryIndex];
+
+  console.log('[StoryViewer] 🎭 Interaction context:', {
+    interactionUserId,
+    interactionLocalId,
+    isInteractingAsLocal,
+  });
 
   // ✅ CRITICAL: Preload next 5 story images aggressively
   useEffect(() => {
@@ -299,16 +306,61 @@ function StoryViewer({
     }
   }, [visible, currentStoryIndex, stories]);
 
+  // ✅ FIXED: Check if story is liked with interaction context
+  useEffect(() => {
+    const checkIfLiked = async () => {
+      if (!interactionUserId || !currentStory) return;
+
+      try {
+        console.log('[StoryViewer] 🔍 Checking like status:', {
+          storyId: currentStory.id,
+          interactionUserId,
+          interactionLocalId,
+          isInteractingAsLocal
+        });
+
+        // Build query based on interaction context
+        let query = supabase
+          .from('historia_likes')
+          .select('id')
+          .eq('historia_id', currentStory.id)
+          .eq('usuario_id', interactionUserId);
+
+        // If interacting as local, filter by local_id
+        if (isInteractingAsLocal && interactionLocalId) {
+          query = query.eq('local_id', interactionLocalId);
+        } else {
+          // If interacting as user, ensure local_id is null
+          query = query.is('local_id', null);
+        }
+
+        const { data, error } = await query.maybeSingle();
+
+        if (!error && data) {
+          console.log('[StoryViewer] ✅ Story is liked');
+          setStoryLiked(true);
+        } else {
+          console.log('[StoryViewer] ❌ Story is not liked');
+          setStoryLiked(false);
+        }
+      } catch (error) {
+        console.error('[StoryViewer] Error checking like status:', error);
+      }
+    };
+
+    checkIfLiked();
+  }, [interactionUserId, interactionLocalId, isInteractingAsLocal, currentStory]);
+
   const markStoryAsViewed = useCallback(async (storyId: string) => {
-    if (!user) return;
+    if (!interactionUserId) return;
     
     // ✅ CRITICAL: Check if this is the user's own story
     const story = stories.find(s => s.id === storyId);
     if (!story) return;
     
     const isOwner = story.tipo === 'usuario' 
-      ? story.autor_id === user.id
-      : story.tipo === 'local' && activeLocalProfileId === story.local_id;
+      ? story.autor_id === interactionUserId
+      : story.tipo === 'local' && interactionLocalId === story.local_id;
     
     // ✅ Don't mark own stories as viewed
     if (isOwner) {
@@ -317,27 +369,47 @@ function StoryViewer({
     }
 
     try {
-      const { data: existingView } = await supabase
+      // ✅ FIXED: Check for existing view with interaction context
+      let viewQuery = supabase
         .from('historia_views')
         .select('id')
         .eq('historia_id', storyId)
-        .eq('usuario_id', user.id)
-        .maybeSingle();
+        .eq('usuario_id', interactionUserId);
+
+      if (isInteractingAsLocal && interactionLocalId) {
+        viewQuery = viewQuery.eq('local_id', interactionLocalId);
+      } else {
+        viewQuery = viewQuery.is('local_id', null);
+      }
+
+      const { data: existingView } = await viewQuery.maybeSingle();
 
       if (!existingView) {
-        console.log('[StoryViewer] ✅ Marking story as viewed by other user');
-        await supabase.from('historia_views').insert({
+        console.log('[StoryViewer] ✅ Marking story as viewed');
+        
+        const viewData: any = {
           historia_id: storyId,
-          usuario_id: user.id,
-        });
+          usuario_id: interactionUserId,
+        };
+
+        if (isInteractingAsLocal && interactionLocalId) {
+          viewData.local_id = interactionLocalId;
+          viewData.tipo = 'local';
+          console.log('[StoryViewer] 🏢 Marking view as local:', interactionLocalId);
+        } else {
+          viewData.tipo = 'usuario';
+          console.log('[StoryViewer] 👤 Marking view as user');
+        }
+
+        await supabase.from('historia_views').insert(viewData);
       }
     } catch (error) {
       console.error('[StoryViewer] Error marking story as viewed:', error);
     }
-  }, [user, stories, activeLocalProfileId]);
+  }, [interactionUserId, interactionLocalId, isInteractingAsLocal, stories]);
 
   const handleNextStory = useCallback(() => {
-    if (currentStory && user) {
+    if (currentStory && interactionUserId) {
       markStoryAsViewed(currentStory.id);
     }
     
@@ -349,7 +421,7 @@ function StoryViewer({
     } else {
       onClose();
     }
-  }, [currentStoryIndex, stories.length, currentStory, user, markStoryAsViewed, onClose, onStoryChange]);
+  }, [currentStoryIndex, stories.length, currentStory, interactionUserId, markStoryAsViewed, onClose, onStoryChange]);
 
   const handlePreviousStory = useCallback(() => {
     if (currentStoryIndex > 0) {
@@ -362,44 +434,89 @@ function StoryViewer({
     }
   }, [currentStoryIndex, onClose, onStoryChange]);
 
+  // ✅ FIXED: Handle story like with interaction context
   const handleStoryLike = useCallback(async () => {
-    if (!currentStory || !user) {
+    if (!currentStory || !interactionUserId) {
       return;
     }
 
+    console.log('[StoryViewer] handleStoryLike - Interaction context:', {
+      interactionUserId,
+      interactionLocalId,
+      isInteractingAsLocal,
+    });
+
+    const newLiked = !storyLiked;
+    
     // Optimistic UI update
-    const isLiked = currentStory.liked_by_user;
-    currentStory.liked_by_user = !isLiked;
+    setStoryLiked(newLiked);
 
     try {
-      if (isLiked) {
-        await supabase
+      if (newLiked) {
+        // ✅ FIXED: Insert like with local_id if interacting as local
+        const likeData: any = {
+          historia_id: currentStory.id,
+          usuario_id: interactionUserId,
+        };
+
+        if (isInteractingAsLocal && interactionLocalId) {
+          likeData.local_id = interactionLocalId;
+          likeData.tipo = 'local';
+          console.log('[StoryViewer] 🏢 Adding like as local:', interactionLocalId);
+        } else {
+          likeData.tipo = 'usuario';
+          console.log('[StoryViewer] 👤 Adding like as user');
+        }
+
+        const { error: insertError } = await supabase
+          .from('historia_likes')
+          .insert(likeData);
+        
+        if (insertError) {
+          console.error('[StoryViewer] Error inserting like:', insertError);
+          throw insertError;
+        }
+        
+        console.log('[StoryViewer] ✅ Like added successfully');
+      } else {
+        // ✅ FIXED: Delete like with correct filters
+        let deleteQuery = supabase
           .from('historia_likes')
           .delete()
           .eq('historia_id', currentStory.id)
-          .eq('usuario_id', user.id);
-      } else {
-        await supabase.from('historia_likes').insert({
-          historia_id: currentStory.id,
-          usuario_id: user.id,
-        });
+          .eq('usuario_id', interactionUserId);
+
+        if (isInteractingAsLocal && interactionLocalId) {
+          deleteQuery = deleteQuery.eq('local_id', interactionLocalId);
+        } else {
+          deleteQuery = deleteQuery.is('local_id', null);
+        }
+
+        const { error: deleteError } = await deleteQuery;
+        
+        if (deleteError) {
+          console.error('[StoryViewer] Error deleting like:', deleteError);
+          throw deleteError;
+        }
+        
+        console.log('[StoryViewer] ✅ Like removed successfully');
       }
     } catch (error) {
       console.error('[StoryViewer] Error toggling story like:', error);
-      // Revert on error
-      currentStory.liked_by_user = isLiked;
+      // Revert optimistic update
+      setStoryLiked(!newLiked);
     }
-  }, [user, currentStory]);
+  }, [interactionUserId, interactionLocalId, isInteractingAsLocal, currentStory, storyLiked]);
 
   // ✅ FIXED: Add eye button for viewing statistics
   const handleViewStoryStats = useCallback(async () => {
-    if (!currentStory || !user) {
+    if (!currentStory || !interactionUserId) {
       return;
     }
 
     const isOwner = currentStory.tipo === 'usuario' 
-      ? currentStory.autor_id === user.id
-      : currentStory.tipo === 'local' && activeLocalProfileId === currentStory.local_id;
+      ? currentStory.autor_id === interactionUserId
+      : currentStory.tipo === 'local' && interactionLocalId === currentStory.local_id;
 
     if (!isOwner) {
       return;
@@ -421,7 +538,7 @@ function StoryViewer({
           usuario:usuarios(nombre, avatar, username)
         `)
         .eq('historia_id', currentStory.id)
-        .neq('usuario_id', user.id) // ✅ FILTER OUT OWN VIEWS
+        .neq('usuario_id', interactionUserId) // ✅ FILTER OUT OWN VIEWS
         .order('viewed_at', { ascending: false });
 
       if (viewsError) throw viewsError;
@@ -435,7 +552,7 @@ function StoryViewer({
           usuario:usuarios(nombre, avatar, username)
         `)
         .eq('historia_id', currentStory.id)
-        .neq('usuario_id', user.id) // ✅ FILTER OUT OWN LIKES
+        .neq('usuario_id', interactionUserId) // ✅ FILTER OUT OWN LIKES
         .order('created_at', { ascending: false });
 
       if (likesError) throw likesError;
@@ -448,16 +565,16 @@ function StoryViewer({
     } finally {
       setLoadingStats(false);
     }
-  }, [currentStory, user, activeLocalProfileId]);
+  }, [currentStory, interactionUserId, interactionLocalId]);
 
   const handleDeleteStory = useCallback(async () => {
-    if (!currentStory || !user) {
+    if (!currentStory || !interactionUserId) {
       return;
     }
 
     const isOwner = currentStory.tipo === 'usuario' 
-      ? currentStory.autor_id === user.id
-      : currentStory.tipo === 'local' && activeLocalProfileId === currentStory.local_id;
+      ? currentStory.autor_id === interactionUserId
+      : currentStory.tipo === 'local' && interactionLocalId === currentStory.local_id;
 
     if (!isOwner) {
       return;
@@ -503,7 +620,7 @@ function StoryViewer({
         },
       ]
     );
-  }, [currentStory, user, activeLocalProfileId, onStoryDelete, onClose]);
+  }, [currentStory, interactionUserId, interactionLocalId, onStoryDelete, onClose]);
 
   const handleSendStoryMessage = useCallback(async () => {
     if (!currentStory || !user || !storyMessage.trim() || sendingMessage) {
@@ -776,10 +893,10 @@ function StoryViewer({
 
   // Mark story as viewed when it appears
   useEffect(() => {
-    if (visible && currentStory && user) {
+    if (visible && currentStory && interactionUserId) {
       markStoryAsViewed(currentStory.id);
     }
-  }, [visible, currentStory, user, markStoryAsViewed]);
+  }, [visible, currentStory, interactionUserId, markStoryAsViewed]);
 
   // Reset to initial index when modal opens
   useEffect(() => {
@@ -798,9 +915,9 @@ function StoryViewer({
     return null;
   }
 
-  const isCurrentStoryOwner = user && (
-    (currentStory.tipo === 'usuario' && currentStory.autor_id === user.id) ||
-    (currentStory.tipo === 'local' && activeLocalProfileId === currentStory.local_id)
+  const isCurrentStoryOwner = interactionUserId && (
+    (currentStory.tipo === 'usuario' && currentStory.autor_id === interactionUserId) ||
+    (currentStory.tipo === 'local' && interactionLocalId === currentStory.local_id)
   );
 
   // Display username correctly without @ symbol
@@ -980,16 +1097,16 @@ function StoryViewer({
                 activeOpacity={0.7}
               >
                 <LinearGradient
-                  colors={currentStory.liked_by_user 
+                  colors={storyLiked 
                     ? ['rgba(239, 68, 68, 0.3)', 'rgba(239, 68, 68, 0.1)']
                     : ['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.05)']}
                   style={styles.likeButtonGradient}
                 >
                   <IconSymbol
-                    ios_icon_name={currentStory.liked_by_user ? 'heart.fill' : 'heart'}
-                    android_material_icon_name={currentStory.liked_by_user ? 'favorite' : 'favorite_border'}
+                    ios_icon_name={storyLiked ? 'heart.fill' : 'heart'}
+                    android_material_icon_name={storyLiked ? 'favorite' : 'favorite_border'}
                     size={22}
-                    color={currentStory.liked_by_user ? '#EF4444' : '#fff'}
+                    color={storyLiked ? '#EF4444' : '#fff'}
                   />
                 </LinearGradient>
               </TouchableOpacity>
