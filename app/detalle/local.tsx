@@ -734,7 +734,12 @@ export default function DetalleLocalScreen() {
 
   // ✅ FIXED: Use the logical day from getEstadoLocal for highlighting
   const diaLogicoParaResaltar = estadoLocal.diaLogico || 'lunes';
+  console.log('[DetalleLocal] ========================================');
+  console.log('[DetalleLocal] Local:', local.nombre);
+  console.log('[DetalleLocal] Estado local:', estadoLocal);
   console.log('[DetalleLocal] Día lógico para resaltar:', diaLogicoParaResaltar);
+  console.log('[DetalleLocal] Horarios completos:', local.horarios_completos);
+  console.log('[DetalleLocal] ========================================');
 
   const displayRating = local.rating || local.google_rating || averageRating || 0;
 
@@ -1002,6 +1007,25 @@ export default function DetalleLocalScreen() {
             >
               <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={22} color="#fff" />
               <Text style={styles.specialButtonText}>Perfil Social</Text>
+              <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color="#fff" />
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+
+        {/* Virtual Room Button - ONLY IF LOCAL IS OPEN */}
+        {isOpen && (
+          <TouchableOpacity 
+            style={styles.virtualRoomButton} 
+            onPress={() => router.push({ pathname: '/detalle/sala-virtual', params: { localId: params.id } })}
+          >
+            <LinearGradient
+              colors={['#8B5CF6', '#7C3AED']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.virtualRoomButtonGradient}
+            >
+              <IconSymbol ios_icon_name="cube.fill" android_material_icon_name="view_in_ar" size={22} color="#fff" />
+              <Text style={styles.virtualRoomButtonText}>Sala Virtual</Text>
               <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color="#fff" />
             </LinearGradient>
           </TouchableOpacity>
@@ -1595,6 +1619,25 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   specialButtonText: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
+    marginLeft: 10,
+  },
+  virtualRoomButton: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 10,
+  },
+  virtualRoomButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  virtualRoomButtonText: {
     flex: 1,
     fontSize: 15,
     fontWeight: '700',
