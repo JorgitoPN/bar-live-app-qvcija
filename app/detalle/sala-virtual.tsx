@@ -22,18 +22,15 @@ import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getEstadoLocal } from '@/utils/timeUtils';
-import { Audio } from 'expo-av';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-interface InteractionMessage {
+interface Message {
   id: string;
   usuario_id: string;
   local_id: string;
-  tipo: 'mensaje' | 'emoticon' | 'chat';
+  tipo: 'mensaje' | 'emoticon';
   contenido: string;
-  recipient_id?: string;
   created_at: string;
   usuario: {
     id: string;
@@ -41,26 +38,6 @@ interface InteractionMessage {
     username?: string;
     avatar?: string;
   };
-  reactions?: MessageReaction[];
-}
-
-interface MessageReaction {
-  id: string;
-  mensaje_id: string;
-  usuario_id: string;
-  emoticon: string;
-  created_at: string;
-}
-
-interface Local {
-  id: string;
-  nombre: string;
-  imagen_url?: string;
-  descripcion?: string;
-  abierto?: boolean;
-  horarios_completos?: Record<string, string[]>;
-  google_business_status?: string;
-  estado_actual?: string;
 }
 
 interface ActiveUser {
@@ -68,26 +45,19 @@ interface ActiveUser {
   nombre: string;
   username?: string;
   avatar?: string;
-  last_activity: string;
-  checked_in_at?: string;
+  checked_in_at: string;
 }
 
-interface DirectMessage {
+interface Local {
   id: string;
-  sender_id: string;
-  recipient_id: string;
-  tipo: 'mensaje' | 'emoticon';
-  contenido: string;
-  created_at: string;
-  sender: {
-    id: string;
-    nombre: string;
-    username?: string;
-    avatar?: string;
-  };
+  nombre: string;
+  imagen_url?: string;
+  horarios_completos?: Record<string, string[]>;
+  google_business_status?: string;
+  estado_actual?: string;
 }
 
-const EMOTICONS = ['❤️', '🔥', '😎', '😄', '👏', '🍹', '🎶', '😍', '🤝'];
+const EMOTICONS = ['❤️', '🔥', '😎', '😄', '👏', '🍹', '🎶', '😍', '🤝', '👋', '🎉'];
 
 export default function SalaVirtualScreen() {
   const params = useLocalSearchParams();
@@ -95,7 +65,7 @@ export default function SalaVirtualScreen() {
   const { user } = useAuth();
   
   const [local, setLocal] = useState<Local | null>(null);
-  const [messages, setMessages] = useState<InteractionMessage[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -103,89 +73,14 @@ export default function SalaVirtualScreen() {
   const [isCheckedIn, setIsCheckedIn] = useState(false);
   const [checkingIn, setCheckingIn] = useState(false);
   const [localClosed, setLocalClosed] = useState(false);
-  
-  // Tab state - Users tab first as requested
   const [activeTab, setActiveTab] = useState<'users' | 'chat'>('users');
-  
-  // Direct messages state
-  const [directMessages, setDirectMessages] = useState<DirectMessage[]>([]);
-  const [selectedUser, setSelectedUser] = useState<ActiveUser | null>(null);
-  const [showDirectMessageModal, setShowDirectMessageModal] = useState(false);
-  const [directMessageText, setDirectMessageText] = useState('');
-  
-  // Sound control
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [notificationSound, setNotificationSound] = useState<Audio.Sound | null>(null);
-  
-  // Animation states
-  const [floatingEmoticons, setFloatingEmoticons] = useState<{ emoji: string; id: string; x: number; y: number }[]>([]);
-  const [notifications, setNotifications] = useState<{ id: string; message: string; type: 'dm' | 'emoticon' }[]>([]);
   
   const flatListRef = useRef<FlatList>(null);
   const channelRef = useRef<any>(null);
   const localId = params.localId as string;
   const hasShownClosedAlert = useRef(false);
 
-  // Load sound settings
-  useEffect(() => {
-    loadSoundSettings();
-    loadNotificationSound();
-    
-    return () => {
-      if (notificationSound) {
-        notificationSound.unloadAsync();
-      }
-    };
-  }, []);
-
-  const loadSoundSettings = async () => {
-    try {
-      const saved = await AsyncStorage.getItem('virtualRoomSoundEnabled');
-      if (saved !== null) {
-        setSoundEnabled(JSON.parse(saved));
-      }
-    } catch (error) {
-      console.error('[SalaVirtual] Error loading sound settings:', error);
-    }
-  };
-
-  const toggleSound = async () => {
-    try {
-      const newValue = !soundEnabled;
-      setSoundEnabled(newValue);
-      await AsyncStorage.setItem('virtualRoomSoundEnabled', JSON.stringify(newValue));
-      Alert.alert(
-        'Sonido',
-        newValue ? 'Sonidos activados' : 'Sonidos desactivados'
-      );
-    } catch (error) {
-      console.error('[SalaVirtual] Error toggling sound:', error);
-    }
-  };
-
-  const loadNotificationSound = async () => {
-    try {
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: 'https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3' },
-        { shouldPlay: false }
-      );
-      setNotificationSound(sound);
-    } catch (error) {
-      console.error('[SalaVirtual] Error loading notification sound:', error);
-    }
-  };
-
-  const playNotificationSound = async () => {
-    if (soundEnabled && notificationSound) {
-      try {
-        await notificationSound.replayAsync();
-      } catch (error) {
-        console.error('[SalaVirtual] Error playing sound:', error);
-      }
-    }
-  };
-
-  // Load local data
+  // ✅ Load local data
   const loadLocalData = useCallback(async () => {
     if (!localId) {
       console.error('[SalaVirtual] No localId provided');
@@ -197,9 +92,11 @@ export default function SalaVirtualScreen() {
     }
 
     try {
+      console.log('[SalaVirtual] Loading local:', localId);
+      
       const { data, error } = await supabase
         .from('locales')
-        .select('id, nombre, imagen_url, descripcion, abierto, horarios_completos, google_business_status, estado_actual')
+        .select('id, nombre, imagen_url, horarios_completos, google_business_status, estado_actual')
         .eq('id', localId)
         .single();
 
@@ -241,7 +138,7 @@ export default function SalaVirtualScreen() {
     }
   }, [localId, router]);
 
-  // Check if user is checked in
+  // ✅ Check if user is checked in
   const checkUserCheckin = useCallback(async () => {
     if (!user || !localId) {
       console.log('[SalaVirtual] No user or localId');
@@ -269,7 +166,7 @@ export default function SalaVirtualScreen() {
     }
   }, [user, localId]);
 
-  // Handle check-in
+  // ✅ FIXED: Handle check-in with proper validation
   const handleCheckIn = async () => {
     if (!user || !localId) {
       Alert.alert('Error', 'Debes iniciar sesión para entrar en la sala');
@@ -293,6 +190,7 @@ export default function SalaVirtualScreen() {
     try {
       setCheckingIn(true);
 
+      // Check if user is already checked in to another room
       const { data: existingCheckin } = await supabase
         .from('sala_virtual_checkins')
         .select('*, locales(nombre)')
@@ -304,12 +202,13 @@ export default function SalaVirtualScreen() {
       if (existingCheckin) {
         Alert.alert(
           'Cambiar de Sala',
-          `Vas a salir de la sala actual para entrar en la sala de ${local?.nombre}. ¿Deseas continuar?`,
+          `Estás en la sala de ${(existingCheckin as any).locales?.nombre}. ¿Quieres cambiar a ${local?.nombre}?`,
           [
-            { text: 'Cancelar', style: 'cancel' },
+            { text: 'Cancelar', style: 'cancel', onPress: () => setCheckingIn(false) },
             {
               text: 'Continuar',
               onPress: async () => {
+                // Deactivate old checkin
                 await supabase
                   .from('sala_virtual_checkins')
                   .update({
@@ -329,33 +228,103 @@ export default function SalaVirtualScreen() {
     } catch (error) {
       console.error('[SalaVirtual] Error checking in:', error);
       Alert.alert('Error', 'No se pudo entrar en la sala');
-    } finally {
       setCheckingIn(false);
     }
   };
 
+  // ✅ FIXED: Perform check-in with proper validation and error handling
   const performCheckIn = async () => {
-    if (!user || !localId) return;
-
-    const { error } = await supabase
-      .from('sala_virtual_checkins')
-      .insert({
-        usuario_id: user.id,
-        local_id: localId,
-        activo: true,
-      });
-
-    if (error) {
-      console.error('[SalaVirtual] Error inserting checkin:', error);
-      Alert.alert('Error', 'No se pudo entrar en la sala');
+    if (!user || !localId) {
+      console.error('[SalaVirtual] Missing user or localId');
+      setCheckingIn(false);
       return;
     }
 
-    setIsCheckedIn(true);
-    console.log('[SalaVirtual] Checked in successfully');
+    try {
+      console.log('[SalaVirtual] Attempting checkin with:', {
+        usuario_id: user.id,
+        local_id: localId,
+      });
+
+      // Validate data before insert
+      if (!user.id || !localId) {
+        console.error('[SalaVirtual] Invalid data - usuario_id or local_id is null');
+        Alert.alert('Error', 'Datos inválidos para entrar en la sala');
+        setCheckingIn(false);
+        return;
+      }
+
+      const insertData = {
+        usuario_id: user.id,
+        local_id: localId,
+        activo: true,
+        checked_in_at: new Date().toISOString(),
+      };
+
+      console.log('[SalaVirtual] Inserting checkin with validated data:', insertData);
+
+      const { data, error } = await supabase
+        .from('sala_virtual_checkins')
+        .insert(insertData)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('[SalaVirtual] Error inserting checkin:', error);
+        console.error('[SalaVirtual] Error details:', JSON.stringify(error, null, 2));
+        
+        // More specific error message
+        if (error.code === '42501') {
+          Alert.alert('Error', 'No tienes permisos para entrar en la sala. Por favor, inicia sesión nuevamente.');
+        } else if (error.code === '23505') {
+          // Duplicate entry - user is already checked in
+          console.log('[SalaVirtual] User already checked in, updating status');
+          const { error: updateError } = await supabase
+            .from('sala_virtual_checkins')
+            .update({ activo: true, checked_in_at: new Date().toISOString() })
+            .eq('usuario_id', user.id)
+            .eq('local_id', localId);
+          
+          if (updateError) {
+            console.error('[SalaVirtual] Error updating checkin:', updateError);
+            Alert.alert('Error', 'No se pudo entrar en la sala');
+            setCheckingIn(false);
+            return;
+          }
+          
+          setIsCheckedIn(true);
+          console.log('[SalaVirtual] Checked in successfully (updated existing)');
+        } else {
+          Alert.alert('Error', 'No se pudo entrar en la sala');
+        }
+        setCheckingIn(false);
+        return;
+      }
+
+      setIsCheckedIn(true);
+      console.log('[SalaVirtual] Checked in successfully:', data);
+      
+      // Broadcast user joined event
+      if (channelRef.current?.presenceChannel) {
+        await channelRef.current.presenceChannel.send({
+          type: 'broadcast',
+          event: 'user_joined',
+          payload: {
+            usuario_id: user.id,
+            nombre: user.user_metadata?.nombre || user.email,
+          },
+        });
+      }
+      
+      setCheckingIn(false);
+    } catch (error) {
+      console.error('[SalaVirtual] Unexpected error during checkin:', error);
+      Alert.alert('Error', 'Ocurrió un error inesperado al entrar en la sala');
+      setCheckingIn(false);
+    }
   };
 
-  // Handle check-out
+  // ✅ Handle check-out
   const handleCheckOut = async () => {
     if (!user || !localId) return;
 
@@ -385,6 +354,17 @@ export default function SalaVirtualScreen() {
                 return;
               }
 
+              // Broadcast user left event
+              if (channelRef.current?.presenceChannel) {
+                await channelRef.current.presenceChannel.send({
+                  type: 'broadcast',
+                  event: 'user_left',
+                  payload: {
+                    usuario_id: user.id,
+                  },
+                });
+              }
+
               setIsCheckedIn(false);
               console.log('[SalaVirtual] Checked out successfully');
             } catch (error) {
@@ -396,7 +376,7 @@ export default function SalaVirtualScreen() {
     );
   };
 
-  // Load messages
+  // ✅ Load messages
   const loadMessages = useCallback(async () => {
     if (!localId) return;
 
@@ -424,22 +404,8 @@ export default function SalaVirtualScreen() {
         return;
       }
 
-      const messagesWithReactions = await Promise.all(
-        (data || []).map(async (msg) => {
-          const { data: reactions } = await supabase
-            .from('sala_virtual_reacciones')
-            .select('*')
-            .eq('mensaje_id', msg.id);
-
-          return {
-            ...msg,
-            reactions: reactions || [],
-          };
-        })
-      );
-
-      console.log('[SalaVirtual] Messages loaded:', messagesWithReactions.length);
-      setMessages(messagesWithReactions);
+      console.log('[SalaVirtual] Messages loaded:', data?.length || 0);
+      setMessages(data || []);
       setLoading(false);
       
       setTimeout(() => {
@@ -451,49 +417,7 @@ export default function SalaVirtualScreen() {
     }
   }, [localId]);
 
-  // Load direct messages
-  const loadDirectMessages = useCallback(async () => {
-    if (!user || !localId) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('sala_virtual_interacciones')
-        .select(`
-          *,
-          usuario:usuarios!sala_virtual_interacciones_usuario_id_fkey(
-            id,
-            nombre,
-            username,
-            avatar
-          )
-        `)
-        .eq('local_id', localId)
-        .or(`recipient_id.eq.${user.id},usuario_id.eq.${user.id}`)
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (error) {
-        console.error('[SalaVirtual] Error loading direct messages:', error);
-        return;
-      }
-
-      const dms: DirectMessage[] = (data || []).map(msg => ({
-        id: msg.id,
-        sender_id: msg.usuario_id,
-        recipient_id: msg.recipient_id || '',
-        tipo: msg.tipo as 'mensaje' | 'emoticon',
-        contenido: msg.contenido,
-        created_at: msg.created_at,
-        sender: msg.usuario,
-      }));
-
-      setDirectMessages(dms);
-    } catch (error) {
-      console.error('[SalaVirtual] Error:', error);
-    }
-  }, [user, localId]);
-
-  // Update active users
+  // ✅ Update active users
   const updateActiveUsers = useCallback(async () => {
     if (!localId) return;
 
@@ -526,7 +450,6 @@ export default function SalaVirtualScreen() {
           nombre: item.usuario.nombre,
           username: item.usuario.username,
           avatar: item.usuario.avatar,
-          last_activity: item.checked_in_at,
           checked_in_at: item.checked_in_at,
         }));
 
@@ -537,7 +460,7 @@ export default function SalaVirtualScreen() {
     }
   }, [localId]);
 
-  // Subscribe to real-time updates
+  // ✅ Subscribe to real-time updates
   const subscribeToUpdates = useCallback(() => {
     if (!localId || !user) return () => {};
 
@@ -557,10 +480,9 @@ export default function SalaVirtualScreen() {
           .eq('id', payload.payload.usuario_id)
           .single();
 
-        const newMessage: InteractionMessage = {
+        const newMessage: Message = {
           ...payload.payload,
           usuario: userData || { id: payload.payload.usuario_id, nombre: 'Usuario' },
-          reactions: [],
         };
 
         setMessages((prev) => [...prev, newMessage]);
@@ -571,97 +493,31 @@ export default function SalaVirtualScreen() {
       })
       .subscribe();
 
-    // Direct messages channel
-    const dmChannel = supabase
-      .channel(`user:${user.id}:dm`, {
-        config: { broadcast: { self: false } },
-      })
-      .on('broadcast', { event: 'direct_message' }, async (payload) => {
-        console.log('[SalaVirtual] Direct message received:', payload);
-        
-        const { data: senderData } = await supabase
-          .from('usuarios')
-          .select('id, nombre, username, avatar')
-          .eq('id', payload.payload.sender_id)
-          .single();
-
-        const dm: DirectMessage = {
-          id: payload.payload.id,
-          sender_id: payload.payload.sender_id,
-          recipient_id: payload.payload.recipient_id,
-          tipo: payload.payload.tipo,
-          contenido: payload.payload.contenido,
-          created_at: payload.payload.created_at,
-          sender: senderData || { id: payload.payload.sender_id, nombre: 'Usuario' },
-        };
-
-        setDirectMessages(prev => [dm, ...prev]);
-        
-        // Show notification
-        const notifId = `notif-${Date.now()}`;
-        setNotifications(prev => [
-          ...prev,
-          {
-            id: notifId,
-            message: payload.payload.tipo === 'emoticon' 
-              ? `${senderData?.nombre || 'Alguien'} te envió ${payload.payload.contenido}`
-              : `Mensaje de ${senderData?.nombre || 'Alguien'}`,
-            type: payload.payload.tipo === 'emoticon' ? 'emoticon' : 'dm',
-          }
-        ]);
-
-        // Play sound
-        playNotificationSound();
-
-        // Remove notification after 3 seconds
-        setTimeout(() => {
-          setNotifications(prev => prev.filter(n => n.id !== notifId));
-        }, 3000);
-
-        // Add floating emoticon if it's an emoticon
-        if (payload.payload.tipo === 'emoticon') {
-          const emojiId = `emoji-${Date.now()}`;
-          setFloatingEmoticons(prev => [
-            ...prev,
-            {
-              emoji: payload.payload.contenido,
-              id: emojiId,
-              x: Math.random() * (SCREEN_WIDTH - 60),
-              y: SCREEN_HEIGHT * 0.3,
-            }
-          ]);
-
-          setTimeout(() => {
-            setFloatingEmoticons(prev => prev.filter(e => e.id !== emojiId));
-          }, 3000);
-        }
-      })
-      .subscribe();
-
     // User presence channel
     const presenceChannel = supabase
       .channel(`room:${localId}:presence`, {
         config: { broadcast: { self: false } },
       })
       .on('broadcast', { event: 'user_joined' }, () => {
+        console.log('[SalaVirtual] User joined');
         updateActiveUsers();
       })
       .on('broadcast', { event: 'user_left' }, () => {
+        console.log('[SalaVirtual] User left');
         updateActiveUsers();
       })
       .subscribe();
 
-    channelRef.current = { chatChannel, dmChannel, presenceChannel };
+    channelRef.current = { chatChannel, presenceChannel };
 
     return () => {
       console.log('[SalaVirtual] Unsubscribing from real-time updates');
       supabase.removeChannel(chatChannel);
-      supabase.removeChannel(dmChannel);
       supabase.removeChannel(presenceChannel);
     };
-  }, [localId, user, updateActiveUsers, playNotificationSound]);
+  }, [localId, user, updateActiveUsers]);
 
-  // Initialize
+  // ✅ Initialize
   useEffect(() => {
     if (!localId) {
       setLoading(false);
@@ -677,7 +533,6 @@ export default function SalaVirtualScreen() {
       await loadLocalData();
       await checkUserCheckin();
       await loadMessages();
-      await loadDirectMessages();
       const unsubscribe = subscribeToUpdates();
       await updateActiveUsers();
 
@@ -737,7 +592,7 @@ export default function SalaVirtualScreen() {
         return;
       }
 
-      // ✅ FIXED: Broadcast to all users in the room with correct syntax
+      // Broadcast to all users in the room
       if (channelRef.current?.chatChannel) {
         const broadcastResult = await channelRef.current.chatChannel.send({
           type: 'broadcast',
@@ -758,8 +613,8 @@ export default function SalaVirtualScreen() {
     }
   };
 
-  // Send direct message or emoticon
-  const sendDirectMessage = async (recipientId: string, tipo: 'mensaje' | 'emoticon', contenido: string) => {
+  // ✅ Send emoticon to user
+  const sendEmoticon = async (recipientId: string, emoticon: string) => {
     if (!user || !localId) return;
 
     try {
@@ -768,66 +623,42 @@ export default function SalaVirtualScreen() {
         .insert({
           usuario_id: user.id,
           local_id: localId,
-          tipo,
-          contenido,
+          tipo: 'emoticon',
+          contenido: emoticon,
           recipient_id: recipientId,
         })
         .select()
         .single();
 
       if (error) {
-        console.error('[SalaVirtual] Error sending direct message:', error);
-        Alert.alert('Error', 'No se pudo enviar');
+        console.error('[SalaVirtual] Error sending emoticon:', error);
+        Alert.alert('Error', 'No se pudo enviar el emoticono');
         return;
       }
 
-      // Broadcast to recipient
-      const dmBroadcastChannel = supabase.channel(`user:${recipientId}:dm`);
-      await dmBroadcastChannel.send({
-        type: 'broadcast',
-        event: 'direct_message',
-        payload: {
-          ...data,
-          sender_id: user.id,
-        },
-      });
-      // Clean up the temporary channel
-      setTimeout(() => {
-        supabase.removeChannel(dmBroadcastChannel);
-      }, 1000);
-
-      Alert.alert('Enviado', tipo === 'emoticon' ? 'Emoticono enviado' : 'Mensaje enviado');
-      setShowDirectMessageModal(false);
-      setDirectMessageText('');
+      Alert.alert('Enviado', `Emoticono ${emoticon} enviado`);
     } catch (error) {
       console.error('[SalaVirtual] Error:', error);
     }
   };
 
-  // Handle user selection
+  // ✅ Handle user selection
   const handleUserSelect = (selectedUser: ActiveUser) => {
     if (selectedUser.id === user?.id) return;
     
-    setSelectedUser(selectedUser);
     Alert.alert(
       selectedUser.nombre,
-      '¿Qué quieres enviar?',
+      '¿Qué quieres hacer?',
       [
         {
-          text: 'Mensaje Directo',
-          onPress: () => {
-            setShowDirectMessageModal(true);
-          },
-        },
-        {
-          text: 'Emoticono',
+          text: 'Enviar Emoticono',
           onPress: () => {
             Alert.alert(
               'Selecciona un emoticono',
               '',
               EMOTICONS.map(emoji => ({
                 text: emoji,
-                onPress: () => sendDirectMessage(selectedUser.id, 'emoticon', emoji),
+                onPress: () => sendEmoticon(selectedUser.id, emoji),
               })).concat([{ text: 'Cancelar', style: 'cancel' }])
             );
           },
@@ -846,12 +677,12 @@ export default function SalaVirtualScreen() {
     );
   };
 
-  // Render message
-  const renderMessage = ({ item }: { item: InteractionMessage }) => {
+  // ✅ Render message
+  const renderMessage = ({ item }: { item: Message }) => {
     const isOwnMessage = user && item.usuario_id === user.id;
 
     return (
-      <Animated.View
+      <View
         style={[
           styles.messageContainer,
           isOwnMessage ? styles.ownMessage : styles.otherMessage,
@@ -917,11 +748,11 @@ export default function SalaVirtualScreen() {
             </Text>
           </View>
         </View>
-      </Animated.View>
+      </View>
     );
   };
 
-  // Render user item
+  // ✅ Render user item
   const renderUserItem = ({ item }: { item: ActiveUser }) => {
     const isCurrentUser = user && item.id === user.id;
 
@@ -934,6 +765,7 @@ export default function SalaVirtualScreen() {
           }
         }}
         disabled={isCurrentUser}
+        activeOpacity={0.7}
       >
         <LinearGradient
           colors={isCurrentUser ? [colors.primary + '20', colors.secondary + '20'] : ['transparent', 'transparent']}
@@ -984,50 +816,6 @@ export default function SalaVirtualScreen() {
     );
   };
 
-  // Render direct message item
-  const renderDirectMessageItem = ({ item }: { item: DirectMessage }) => {
-    const isSent = item.sender_id === user?.id;
-    const otherUser = isSent 
-      ? activeUsers.find(u => u.id === item.recipient_id)
-      : activeUsers.find(u => u.id === item.sender_id);
-
-    return (
-      <View style={styles.dmCard}>
-        <View style={styles.dmHeader}>
-          {otherUser?.avatar ? (
-            <Image source={{ uri: otherUser.avatar }} style={styles.dmAvatar} />
-          ) : (
-            <View style={styles.dmAvatarPlaceholder}>
-              <IconSymbol
-                ios_icon_name="person.fill"
-                android_material_icon_name="person"
-                size={16}
-                color={colors.textSecondary}
-              />
-            </View>
-          )}
-          <View style={styles.dmInfo}>
-            <Text style={styles.dmName}>
-              {isSent ? `Para: ${otherUser?.nombre || 'Usuario'}` : `De: ${item.sender.nombre}`}
-            </Text>
-            <Text style={styles.dmTime}>
-              {new Date(item.created_at).toLocaleTimeString('es-ES', {
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </Text>
-          </View>
-          <View style={[styles.dmTypeBadge, item.tipo === 'emoticon' && styles.dmTypeEmoticon]}>
-            <Text style={styles.dmTypeText}>
-              {item.tipo === 'emoticon' ? '😊' : '💬'}
-            </Text>
-          </View>
-        </View>
-        <Text style={styles.dmContent}>{item.contenido}</Text>
-      </View>
-    );
-  };
-
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -1070,6 +858,7 @@ export default function SalaVirtualScreen() {
             <TouchableOpacity
               style={styles.closedButton}
               onPress={() => router.back()}
+              activeOpacity={0.8}
             >
               <View style={styles.closedButtonContent}>
                 <IconSymbol
@@ -1153,6 +942,7 @@ export default function SalaVirtualScreen() {
                 style={styles.checkInButton}
                 onPress={handleCheckIn}
                 disabled={checkingIn}
+                activeOpacity={0.8}
               >
                 <View style={styles.checkInButtonContent}>
                   {checkingIn ? (
@@ -1188,17 +978,6 @@ export default function SalaVirtualScreen() {
           title: local?.nombre || 'Sala Virtual',
           headerRight: () => (
             <View style={styles.headerRight}>
-              <TouchableOpacity
-                style={styles.headerButton}
-                onPress={toggleSound}
-              >
-                <IconSymbol
-                  ios_icon_name={soundEnabled ? "speaker.wave.2.fill" : "speaker.slash.fill"}
-                  android_material_icon_name={soundEnabled ? "volume_up" : "volume_off"}
-                  size={24}
-                  color={colors.primary}
-                />
-              </TouchableOpacity>
               <View style={styles.activeUsersIndicator}>
                 <View style={styles.activeUsersDot} />
                 <Text style={styles.activeUsersText}>{activeUsers.length}</Text>
@@ -1208,51 +987,13 @@ export default function SalaVirtualScreen() {
         }}
       />
 
-      {/* Floating Emoticons */}
-      {floatingEmoticons.map((item) => (
-        <Animated.View
-          key={item.id}
-          style={[
-            styles.floatingEmoticon,
-            {
-              left: item.x,
-              top: item.y,
-            },
-          ]}
-        >
-          <Text style={styles.floatingEmoticonText}>{item.emoji}</Text>
-        </Animated.View>
-      ))}
-
-      {/* Notifications */}
-      {notifications.map((notif) => (
-        <Animated.View
-          key={notif.id}
-          style={styles.notification}
-        >
-          <LinearGradient
-            colors={['#8B5CF6', '#EC4899']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.notificationGradient}
-          >
-            <IconSymbol
-              ios_icon_name={notif.type === 'emoticon' ? "face.smiling" : "envelope.fill"}
-              android_material_icon_name={notif.type === 'emoticon' ? "emoji_emotions" : "mail"}
-              size={18}
-              color="#fff"
-            />
-            <Text style={styles.notificationText}>{notif.message}</Text>
-          </LinearGradient>
-        </Animated.View>
-      ))}
-
       <View style={styles.content}>
-        {/* Tab Bar - Users first as requested */}
+        {/* Tab Bar */}
         <View style={styles.tabBar}>
           <TouchableOpacity
             style={[styles.tab, activeTab === 'users' && styles.tabActive]}
             onPress={() => setActiveTab('users')}
+            activeOpacity={0.7}
           >
             <LinearGradient
               colors={activeTab === 'users' ? [colors.primary, colors.secondary] : ['transparent', 'transparent']}
@@ -1274,6 +1015,7 @@ export default function SalaVirtualScreen() {
           <TouchableOpacity
             style={[styles.tab, activeTab === 'chat' && styles.tabActive]}
             onPress={() => setActiveTab('chat')}
+            activeOpacity={0.7}
           >
             <LinearGradient
               colors={activeTab === 'chat' ? [colors.primary, colors.secondary] : ['transparent', 'transparent']}
@@ -1324,26 +1066,12 @@ export default function SalaVirtualScreen() {
               }
             />
 
-            {/* Direct Messages Section */}
-            {directMessages.length > 0 && (
-              <View style={styles.dmSection}>
-                <Text style={styles.dmSectionTitle}>Mensajes Directos</Text>
-                <FlatList
-                  data={directMessages.slice(0, 3)}
-                  renderItem={renderDirectMessageItem}
-                  keyExtractor={(item) => item.id}
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.dmList}
-                />
-              </View>
-            )}
-
             {/* Check Out Button */}
             <View style={styles.usersFooter}>
               <TouchableOpacity
                 style={styles.checkOutButtonLarge}
                 onPress={handleCheckOut}
+                activeOpacity={0.8}
               >
                 <LinearGradient
                   colors={['#EF4444', '#DC2626']}
@@ -1413,6 +1141,7 @@ export default function SalaVirtualScreen() {
                 ]}
                 onPress={sendMessage}
                 disabled={!newMessage.trim() || sending}
+                activeOpacity={0.8}
               >
                 <LinearGradient
                   colors={
@@ -1440,53 +1169,6 @@ export default function SalaVirtualScreen() {
           </React.Fragment>
         )}
       </View>
-
-      {/* Direct Message Modal */}
-      {showDirectMessageModal && selectedUser && (
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Mensaje para {selectedUser.nombre}</Text>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Escribe tu mensaje..."
-              placeholderTextColor={colors.textSecondary}
-              value={directMessageText}
-              onChangeText={setDirectMessageText}
-              multiline
-              maxLength={200}
-            />
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={styles.modalButtonCancel}
-                onPress={() => {
-                  setShowDirectMessageModal(false);
-                  setDirectMessageText('');
-                }}
-              >
-                <Text style={styles.modalButtonCancelText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalButtonSend}
-                onPress={() => {
-                  if (directMessageText.trim()) {
-                    sendDirectMessage(selectedUser.id, 'mensaje', directMessageText.trim());
-                  }
-                }}
-                disabled={!directMessageText.trim()}
-              >
-                <LinearGradient
-                  colors={[colors.primary, colors.secondary]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.modalButtonSendGradient}
-                >
-                  <Text style={styles.modalButtonSendText}>Enviar</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      )}
     </KeyboardAvoidingView>
   );
 }
@@ -1706,14 +1388,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 8,
     gap: 8,
-  },
-  headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.card,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   activeUsersIndicator: {
     flexDirection: 'row',
@@ -1966,80 +1640,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
-  dmSection: {
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    backgroundColor: colors.card,
-  },
-  dmSectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 12,
-  },
-  dmList: {
-    gap: 12,
-  },
-  dmCard: {
-    width: 250,
-    backgroundColor: colors.background,
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  dmHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  dmAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    marginRight: 8,
-  },
-  dmAvatarPlaceholder: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
-  },
-  dmInfo: {
-    flex: 1,
-  },
-  dmName: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  dmTime: {
-    fontSize: 11,
-    color: colors.textSecondary,
-  },
-  dmTypeBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.primary + '20',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dmTypeEmoticon: {
-    backgroundColor: '#F59E0B' + '20',
-  },
-  dmTypeText: {
-    fontSize: 14,
-  },
-  dmContent: {
-    fontSize: 13,
-    color: colors.text,
-    lineHeight: 18,
-  },
   usersFooter: {
     padding: 16,
     borderTopWidth: 1,
@@ -2060,103 +1660,6 @@ const styles = StyleSheet.create({
   },
   checkOutButtonText: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  floatingEmoticon: {
-    position: 'absolute',
-    zIndex: 1000,
-  },
-  floatingEmoticonText: {
-    fontSize: 48,
-  },
-  notification: {
-    position: 'absolute',
-    top: 100,
-    left: 16,
-    right: 16,
-    zIndex: 1000,
-    borderRadius: 12,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  notificationGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-  },
-  notificationText: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  modalOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 2000,
-  },
-  modalContent: {
-    width: '85%',
-    backgroundColor: colors.card,
-    borderRadius: 20,
-    padding: 24,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 16,
-  },
-  modalInput: {
-    backgroundColor: colors.background,
-    borderRadius: 12,
-    padding: 12,
-    fontSize: 14,
-    color: colors.text,
-    minHeight: 80,
-    textAlignVertical: 'top',
-    marginBottom: 16,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  modalButtonCancel: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: colors.background,
-    alignItems: 'center',
-  },
-  modalButtonCancelText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  modalButtonSend: {
-    flex: 1,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  modalButtonSendGradient: {
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  modalButtonSendText: {
-    fontSize: 15,
     fontWeight: '700',
     color: '#fff',
   },

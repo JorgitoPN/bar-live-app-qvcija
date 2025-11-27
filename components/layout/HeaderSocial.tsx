@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Pressable, ScrollView, Platform, TextInput, FlatList, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Pressable, ScrollView, Platform, TextInput, FlatList, Image, ActivityIndicator, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -207,20 +207,29 @@ export default function HeaderSocial({
     }
   }, [debouncedSearchQuery, performSearch]);
 
-  // ✅ Handle search result press
+  // ✅ FIXED: Handle search result press with proper error handling
   const handleSearchResultPress = (result: SearchResult) => {
-    setShowSearch(false);
-    setSearchQuery('');
-    setSearchResults([]);
+    try {
+      console.log('[HeaderSocial] Navigating to:', result.type, result.id);
+      
+      setShowSearch(false);
+      setSearchQuery('');
+      setSearchResults([]);
 
-    if (result.type === 'user') {
-      if (user && result.id === user.id) {
-        router.push('/(tabs)/perfil');
+      if (result.type === 'user') {
+        if (user && result.id === user.id) {
+          router.push('/(tabs)/perfil');
+        } else {
+          router.push(`/perfil/usuario?userId=${result.id}`);
+        }
       } else {
-        router.push(`/perfil/usuario?userId=${result.id}`);
+        // ✅ CRITICAL FIX: Ensure localId is properly passed
+        console.log('[HeaderSocial] Navigating to local profile:', result.id);
+        router.push(`/perfil/local?localId=${result.id}`);
       }
-    } else {
-      router.push(`/perfil/local?localId=${result.id}`);
+    } catch (error) {
+      console.error('[HeaderSocial] Error navigating to profile:', error);
+      Alert.alert('Error', 'No se pudo abrir el perfil');
     }
   };
 

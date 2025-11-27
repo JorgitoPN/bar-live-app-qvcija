@@ -883,15 +883,25 @@ export default function DetalleLocalScreen() {
             </BlurView>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.favoriteButton} onPress={handleToggleFavorite}>
-            <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
+          {/* ✅ FIXED: Floating favorite button with consistent style */}
+          <TouchableOpacity 
+            style={styles.favoriteButton} 
+            onPress={handleToggleFavorite}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={isFavorite ? ['#EF4444', '#DC2626'] : ['rgba(25, 25, 25, 0.8)', 'rgba(25, 25, 25, 0.8)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.favoriteButtonGradient}
+            >
               <IconSymbol 
                 ios_icon_name={isFavorite ? "heart.fill" : "heart"} 
                 android_material_icon_name={isFavorite ? "favorite" : "favorite_border"} 
-                size={24} 
-                color={isFavorite ? "#EF4444" : "#fff"} 
+                size={20} 
+                color="#fff" 
               />
-            </BlurView>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
       )}
@@ -1476,11 +1486,22 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 16,
     right: 16,
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     overflow: 'hidden',
     zIndex: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  favoriteButtonGradient: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   buttonBlur: {
     width: '100%',
