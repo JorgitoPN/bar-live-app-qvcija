@@ -696,7 +696,7 @@ export default function SalaVirtualScreen() {
     };
   }, [localId, router]);
 
-  // Send public message
+  // ✅ FIXED: Send public message with correct Realtime broadcast syntax
   const sendMessage = async () => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para enviar mensajes');
@@ -737,13 +737,15 @@ export default function SalaVirtualScreen() {
         return;
       }
 
-      // Broadcast to all users in the room
+      // ✅ FIXED: Broadcast to all users in the room with correct syntax
       if (channelRef.current?.chatChannel) {
-        await channelRef.current.chatChannel.send({
+        const broadcastResult = await channelRef.current.chatChannel.send({
           type: 'broadcast',
           event: 'message_created',
           payload: data,
         });
+        
+        console.log('[SalaVirtual] Broadcast result:', broadcastResult);
       }
 
       console.log('[SalaVirtual] Message sent successfully');

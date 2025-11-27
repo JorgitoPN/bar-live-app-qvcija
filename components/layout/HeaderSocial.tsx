@@ -100,7 +100,7 @@ export default function HeaderSocial({
     return count.toString();
   };
 
-  // ✅ NEW: Search functionality
+  // ✅ FIXED: Search functionality with correct query for locales with active subscriptions
   const performSearch = useCallback(async (query: string) => {
     if (!query.trim()) {
       setSearchResults([]);
@@ -124,13 +124,27 @@ export default function HeaderSocial({
         console.error('[HeaderSocial] Error searching users:', usersError);
       }
 
-      // Search locals with active standard or premium plans
+      // ✅ FIXED: Search locals with active standard or premium subscriptions
+      // Join with suscripciones_locales and planes_suscripcion to filter by active plans
       const { data: localsData, error: localsError } = await supabase
         .from('locales')
-        .select('id, nombre, imagen_url, barlive_type, provincia')
+        .select(`
+          id, 
+          nombre, 
+          imagen_url, 
+          barlive_type, 
+          provincia,
+          suscripciones_locales!inner(
+            estado,
+            planes_suscripcion!inner(
+              nombre
+            )
+          )
+        `)
         .ilike('nombre', `%${cleanQuery}%`)
-        .in('plan_activo', ['estandar', 'premium'])
         .eq('activo', true)
+        .eq('suscripciones_locales.estado', 'activa')
+        .in('suscripciones_locales.planes_suscripcion.nombre', ['estandar', 'premium'])
         .limit(10);
 
       if (localsError) {
@@ -145,13 +159,14 @@ export default function HeaderSocial({
           username: u.username,
           avatar: u.avatar,
         })),
-        ...(localsData || []).map(l => ({
+        ...(localsData || []).map((l: any) => ({
           id: l.id,
           type: 'local' as const,
           nombre: l.nombre,
           imagen_url: l.imagen_url,
           barlive_type: l.barlive_type,
           provincia: l.provincia,
+          plan_activo: l.suscripciones_locales?.[0]?.planes_suscripcion?.nombre || '',
         })),
       ];
 

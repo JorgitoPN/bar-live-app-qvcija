@@ -573,6 +573,11 @@ export default function DetalleLocalScreen() {
         return;
       }
 
+      if (!params.id) {
+        Alert.alert('Error', 'No se pudo identificar el local');
+        return;
+      }
+
       if (isFavorite) {
         const { error } = await supabase
           .from('locales_favoritos')
@@ -589,16 +594,21 @@ export default function DetalleLocalScreen() {
         setIsFavorite(false);
         Alert.alert('Eliminado', 'Local eliminado de favoritos');
       } else {
-        // ✅ FIXED: Ensure both usuario_id and local_id are provided
+        // ✅ FIXED: Ensure both usuario_id and local_id are provided and NOT NULL
+        const insertData = {
+          usuario_id: user.id,
+          local_id: params.id as string,
+        };
+        
+        console.log('[DetalleLocal] Inserting favorite with data:', insertData);
+        
         const { error } = await supabase
           .from('locales_favoritos')
-          .insert({
-            usuario_id: user.id,
-            local_id: params.id as string,
-          });
+          .insert(insertData);
         
         if (error) {
           console.error('[DetalleLocal] Error adding favorite:', error);
+          console.error('[DetalleLocal] Error details:', JSON.stringify(error, null, 2));
           Alert.alert('Error', 'No se pudo añadir a favoritos');
           return;
         }
@@ -787,9 +797,6 @@ export default function DetalleLocalScreen() {
   // ✅ FIXED: Correct day order Monday to Sunday
   const orderedDays = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 
-  // ✅ NEW: Calculate total review count for badge
-  const totalReviewCount = (local.google_user_ratings_total || 0) + reviews.length;
-
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       {/* Cover Photo - PRESERVED */}
@@ -821,15 +828,12 @@ export default function DetalleLocalScreen() {
             </ScrollView>
           </TouchableOpacity>
           
-          {/* ✅ NEW: Rating badge in top-right corner of cover photo */}
+          {/* ✅ NEW: Rating badge in top-right corner of cover photo - WITHOUT review count */}
           {displayRating > 0 && (
             <View style={styles.ratingBadgeTopRight}>
               <BlurView intensity={90} tint="dark" style={styles.ratingBlur}>
                 <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={16} color="#FFD700" />
                 <Text style={styles.ratingText}>{displayRating.toFixed(1)}</Text>
-                {totalReviewCount > 0 && (
-                  <Text style={styles.ratingCount}>({totalReviewCount})</Text>
-                )}
               </BlurView>
             </View>
           )}
@@ -1378,12 +1382,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     color: '#fff',
-  },
-  ratingCount: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#fff',
-    opacity: 0.9,
   },
   statusBadgeTop: {
     position: 'absolute',
