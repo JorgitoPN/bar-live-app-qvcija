@@ -13,6 +13,7 @@ import {
   FlatList,
   Dimensions,
   Image,
+  Animated,
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/utils/supabase';
@@ -57,7 +58,7 @@ interface Local {
   estado_actual?: string;
 }
 
-const EMOTICONS = ['❤️', '🔥', '😎', '😄', '👏', '🍹', '🎶', '😍', '🤝', '👋', '🎉'];
+const EMOTICONS = ['❤️', '🔥', '😎', '😄', '👏', '🍹', '🎶', '😍', '🤝', '👋', '🎉', '💃', '🕺', '🎊', '🥳'];
 
 export default function SalaVirtualScreen() {
   const params = useLocalSearchParams();
@@ -74,14 +75,35 @@ export default function SalaVirtualScreen() {
   const [checkingIn, setCheckingIn] = useState(false);
   const [localClosed, setLocalClosed] = useState(false);
   const [activeTab, setActiveTab] = useState<'users' | 'chat'>('users');
+  const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   
   const flatListRef = useRef<FlatList>(null);
   const chatChannelRef = useRef<RealtimeChannel | null>(null);
   const presenceChannelRef = useRef<RealtimeChannel | null>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const localId = params.localId as string;
   const hasShownClosedAlert = useRef(false);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  // ✅ Load local data
+  // Pulse animation for active users
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.2,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
+
+  // Load local data
   const loadLocalData = useCallback(async () => {
     if (!localId) {
       console.error('[SalaVirtual] No localId provided');
@@ -139,7 +161,7 @@ export default function SalaVirtualScreen() {
     }
   }, [localId, router]);
 
-  // ✅ Check if user is checked in
+  // Check if user is checked in
   const checkUserCheckin = useCallback(async () => {
     if (!user || !localId) {
       console.log('[SalaVirtual] No user or localId');
@@ -167,7 +189,7 @@ export default function SalaVirtualScreen() {
     }
   }, [user, localId]);
 
-  // ✅ Handle check-in with proper validation
+  // Handle check-in
   const handleCheckIn = async () => {
     if (!user || !localId) {
       Alert.alert('Error', 'Debes iniciar sesión para entrar en la sala');
@@ -209,7 +231,6 @@ export default function SalaVirtualScreen() {
             {
               text: 'Continuar',
               onPress: async () => {
-                // Deactivate old checkin
                 await supabase
                   .from('sala_virtual_checkins')
                   .update({
@@ -233,7 +254,7 @@ export default function SalaVirtualScreen() {
     }
   };
 
-  // ✅ COMPLETELY REBUILT: Perform check-in with proper validation and error handling
+  // Perform check-in
   const performCheckIn = async () => {
     if (!user || !localId) {
       console.error('[SalaVirtual] Missing user or localId');
@@ -242,18 +263,7 @@ export default function SalaVirtualScreen() {
     }
 
     try {
-      console.log('[SalaVirtual] Attempting checkin with:', {
-        usuario_id: user.id,
-        local_id: localId,
-      });
-
-      // Validate data before insert
-      if (!user.id || !localId) {
-        console.error('[SalaVirtual] Invalid data - usuario_id or local_id is null');
-        Alert.alert('Error', 'Datos inválidos para entrar en la sala');
-        setCheckingIn(false);
-        return;
-      }
+      console.log('[SalaVirtual] Attempting checkin');
 
       const insertData = {
         usuario_id: user.id,
@@ -261,8 +271,6 @@ export default function SalaVirtualScreen() {
         activo: true,
         checked_in_at: new Date().toISOString(),
       };
-
-      console.log('[SalaVirtual] Inserting checkin with validated data:', insertData);
 
       const { data, error } = await supabase
         .from('sala_virtual_checkins')
@@ -272,14 +280,8 @@ export default function SalaVirtualScreen() {
 
       if (error) {
         console.error('[SalaVirtual] Error inserting checkin:', error);
-        console.error('[SalaVirtual] Error details:', JSON.stringify(error, null, 2));
         
-        // More specific error message
-        if (error.code === '42501') {
-          Alert.alert('Error', 'No tienes permisos para entrar en la sala. Por favor, inicia sesión nuevamente.');
-        } else if (error.code === '23505') {
-          // Duplicate entry - user is already checked in
-          console.log('[SalaVirtual] User already checked in, updating status');
+        if (error.code === '23505') {
           const { error: updateError } = await supabase
             .from('sala_virtual_checkins')
             .update({ activo: true, checked_in_at: new Date().toISOString() })
@@ -294,7 +296,6 @@ export default function SalaVirtualScreen() {
           }
           
           setIsCheckedIn(true);
-          console.log('[SalaVirtual] Checked in successfully (updated existing)');
         } else {
           Alert.alert('Error', 'No se pudo entrar en la sala');
         }
@@ -303,9 +304,8 @@ export default function SalaVirtualScreen() {
       }
 
       setIsCheckedIn(true);
-      console.log('[SalaVirtual] Checked in successfully:', data);
+      console.log('[SalaVirtual] Checked in successfully');
       
-      // ✅ COMPLETELY REBUILT: Broadcast user joined event using CORRECT Realtime v2 broadcast syntax
       if (presenceChannelRef.current) {
         try {
           await presenceChannelRef.current.send({
@@ -316,7 +316,6 @@ export default function SalaVirtualScreen() {
               nombre: user.user_metadata?.nombre || user.email,
             },
           });
-          console.log('[SalaVirtual] User joined broadcast sent successfully');
         } catch (broadcastError) {
           console.error('[SalaVirtual] Error broadcasting user joined:', broadcastError);
         }
@@ -330,7 +329,7 @@ export default function SalaVirtualScreen() {
     }
   };
 
-  // ✅ Handle check-out
+  // Handle check-out
   const handleCheckOut = async () => {
     if (!user || !localId) return;
 
@@ -360,7 +359,6 @@ export default function SalaVirtualScreen() {
                 return;
               }
 
-              // ✅ COMPLETELY REBUILT: Broadcast user left event using CORRECT Realtime v2 broadcast syntax
               if (presenceChannelRef.current) {
                 try {
                   await presenceChannelRef.current.send({
@@ -370,7 +368,6 @@ export default function SalaVirtualScreen() {
                       usuario_id: user.id,
                     },
                   });
-                  console.log('[SalaVirtual] User left broadcast sent successfully');
                 } catch (broadcastError) {
                   console.error('[SalaVirtual] Error broadcasting user left:', broadcastError);
                 }
@@ -387,7 +384,7 @@ export default function SalaVirtualScreen() {
     );
   };
 
-  // ✅ Load messages
+  // Load messages
   const loadMessages = useCallback(async () => {
     if (!localId) return;
 
@@ -428,7 +425,7 @@ export default function SalaVirtualScreen() {
     }
   }, [localId]);
 
-  // ✅ Update active users
+  // Update active users
   const updateActiveUsers = useCallback(async () => {
     if (!localId) return;
 
@@ -471,13 +468,12 @@ export default function SalaVirtualScreen() {
     }
   }, [localId]);
 
-  // ✅ COMPLETELY REBUILT FROM SCRATCH: Subscribe to real-time updates using CORRECT Realtime v2 broadcast syntax
+  // Subscribe to real-time updates
   const subscribeToUpdates = useCallback(() => {
     if (!localId || !user) return () => {};
 
-    console.log('[SalaVirtual] Subscribing to real-time updates for local:', localId);
+    console.log('[SalaVirtual] Subscribing to real-time updates');
 
-    // ✅ COMPLETELY REBUILT: Chat channel with CORRECT broadcast syntax
     const chatChannel = supabase
       .channel(`room:${localId}:chat`, {
         config: { 
@@ -485,7 +481,7 @@ export default function SalaVirtualScreen() {
         },
       })
       .on('broadcast', { event: 'message_created' }, async (payload) => {
-        console.log('[SalaVirtual] New message received:', payload);
+        console.log('[SalaVirtual] New message received');
         
         const { data: userData } = await supabase
           .from('usuarios')
@@ -504,16 +500,22 @@ export default function SalaVirtualScreen() {
           flatListRef.current?.scrollToEnd({ animated: true });
         }, 100);
       })
+      .on('broadcast', { event: 'user_typing' }, (payload) => {
+        console.log('[SalaVirtual] User typing:', payload.payload.usuario_id);
+        setTypingUsers((prev) => new Set(prev).add(payload.payload.usuario_id));
+        
+        setTimeout(() => {
+          setTypingUsers((prev) => {
+            const newSet = new Set(prev);
+            newSet.delete(payload.payload.usuario_id);
+            return newSet;
+          });
+        }, 3000);
+      })
       .subscribe((status) => {
         console.log('[SalaVirtual] Chat channel status:', status);
-        if (status === 'SUBSCRIBED') {
-          console.log('[SalaVirtual] Chat channel subscribed successfully');
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('[SalaVirtual] Chat channel error');
-        }
       });
 
-    // ✅ COMPLETELY REBUILT: User presence channel with CORRECT broadcast syntax
     const presenceChannel = supabase
       .channel(`room:${localId}:presence`, {
         config: { 
@@ -530,11 +532,6 @@ export default function SalaVirtualScreen() {
       })
       .subscribe((status) => {
         console.log('[SalaVirtual] Presence channel status:', status);
-        if (status === 'SUBSCRIBED') {
-          console.log('[SalaVirtual] Presence channel subscribed successfully');
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('[SalaVirtual] Presence channel error');
-        }
       });
 
     chatChannelRef.current = chatChannel;
@@ -547,7 +544,7 @@ export default function SalaVirtualScreen() {
     };
   }, [localId, user, updateActiveUsers]);
 
-  // ✅ Initialize
+  // Initialize
   useEffect(() => {
     if (!localId) {
       setLoading(false);
@@ -557,8 +554,6 @@ export default function SalaVirtualScreen() {
       return;
     }
 
-    console.log('[SalaVirtual] Initializing with localId:', localId);
-    
     const init = async () => {
       await loadLocalData();
       await checkUserCheckin();
@@ -581,7 +576,28 @@ export default function SalaVirtualScreen() {
     };
   }, [localId, router]);
 
-  // ✅ COMPLETELY REBUILT FROM SCRATCH: Send public message with CORRECT Realtime v2 broadcast syntax
+  // Handle typing indicator
+  const handleTyping = () => {
+    if (!user || !chatChannelRef.current) return;
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    chatChannelRef.current.send({
+      type: 'broadcast',
+      event: 'user_typing',
+      payload: {
+        usuario_id: user.id,
+      },
+    });
+
+    typingTimeoutRef.current = setTimeout(() => {
+      typingTimeoutRef.current = null;
+    }, 3000);
+  };
+
+  // Send public message
   const sendMessage = async () => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para enviar mensajes');
@@ -603,7 +619,7 @@ export default function SalaVirtualScreen() {
 
     try {
       setSending(true);
-      console.log('[SalaVirtual] Sending message:', content);
+      console.log('[SalaVirtual] Sending message');
 
       const { data, error } = await supabase
         .from('sala_virtual_interacciones')
@@ -622,7 +638,6 @@ export default function SalaVirtualScreen() {
         return;
       }
 
-      // ✅ COMPLETELY REBUILT: Broadcast to all users in the room using CORRECT Realtime v2 broadcast syntax
       if (chatChannelRef.current) {
         try {
           await chatChannelRef.current.send({
@@ -630,8 +645,6 @@ export default function SalaVirtualScreen() {
             event: 'message_created',
             payload: data,
           });
-          
-          console.log('[SalaVirtual] Message broadcast sent successfully');
         } catch (broadcastError) {
           console.error('[SalaVirtual] Error broadcasting message:', broadcastError);
         }
@@ -647,7 +660,7 @@ export default function SalaVirtualScreen() {
     }
   };
 
-  // ✅ Send emoticon to user
+  // Send emoticon to user
   const sendEmoticon = async (recipientId: string, emoticon: string) => {
     if (!user || !localId) return;
 
@@ -676,7 +689,7 @@ export default function SalaVirtualScreen() {
     }
   };
 
-  // ✅ Handle user selection
+  // Handle user selection
   const handleUserSelect = (selectedUser: ActiveUser) => {
     if (selectedUser.id === user?.id) return;
     
@@ -711,7 +724,7 @@ export default function SalaVirtualScreen() {
     );
   };
 
-  // ✅ Render message
+  // Render message
   const renderMessage = ({ item }: { item: Message }) => {
     const isOwnMessage = user && item.usuario_id === user.id;
 
@@ -786,7 +799,7 @@ export default function SalaVirtualScreen() {
     );
   };
 
-  // ✅ Render user item
+  // Render user item
   const renderUserItem = ({ item }: { item: ActiveUser }) => {
     const isCurrentUser = user && item.id === user.id;
 
@@ -823,7 +836,12 @@ export default function SalaVirtualScreen() {
                 />
               </View>
             )}
-            <View style={styles.userCardOnlineDot} />
+            <Animated.View 
+              style={[
+                styles.userCardOnlineDot,
+                { transform: [{ scale: pulseAnim }] }
+              ]} 
+            />
             
             <View style={styles.userCardInfo}>
               <Text style={styles.userCardName}>
@@ -910,7 +928,6 @@ export default function SalaVirtualScreen() {
     );
   }
 
-  // If not checked in, show check-in screen
   if (!isCheckedIn) {
     const estadoLocal = local ? getEstadoLocal(local) : null;
     const isOpen = estadoLocal?.estaAbierto === true;
@@ -1013,7 +1030,12 @@ export default function SalaVirtualScreen() {
           headerRight: () => (
             <View style={styles.headerRight}>
               <View style={styles.activeUsersIndicator}>
-                <View style={styles.activeUsersDot} />
+                <Animated.View 
+                  style={[
+                    styles.activeUsersDot,
+                    { transform: [{ scale: pulseAnim }] }
+                  ]} 
+                />
                 <Text style={styles.activeUsersText}>{activeUsers.length}</Text>
               </View>
             </View>
@@ -1022,7 +1044,6 @@ export default function SalaVirtualScreen() {
       />
 
       <View style={styles.content}>
-        {/* Tab Bar */}
         <View style={styles.tabBar}>
           <TouchableOpacity
             style={[styles.tab, activeTab === 'users' && styles.tabActive]}
@@ -1070,10 +1091,8 @@ export default function SalaVirtualScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Tab Content */}
         {activeTab === 'users' ? (
           <React.Fragment>
-            {/* Users List */}
             <FlatList
               data={activeUsers}
               renderItem={renderUserItem}
@@ -1100,7 +1119,6 @@ export default function SalaVirtualScreen() {
               }
             />
 
-            {/* Check Out Button */}
             <View style={styles.usersFooter}>
               <TouchableOpacity
                 style={styles.checkOutButtonLarge}
@@ -1126,7 +1144,6 @@ export default function SalaVirtualScreen() {
           </React.Fragment>
         ) : (
           <React.Fragment>
-            {/* Messages List */}
             <FlatList
               ref={flatListRef}
               data={messages}
@@ -1157,14 +1174,24 @@ export default function SalaVirtualScreen() {
               }
             />
 
-            {/* Input Container */}
+            {typingUsers.size > 0 && (
+              <View style={styles.typingIndicator}>
+                <Text style={styles.typingText}>
+                  {typingUsers.size === 1 ? 'Alguien está escribiendo...' : `${typingUsers.size} personas están escribiendo...`}
+                </Text>
+              </View>
+            )}
+
             <View style={styles.inputContainer}>
               <TextInput
                 style={styles.input}
                 placeholder="Escribe un mensaje..."
                 placeholderTextColor={colors.textSecondary}
                 value={newMessage}
-                onChangeText={setNewMessage}
+                onChangeText={(text) => {
+                  setNewMessage(text);
+                  handleTyping();
+                }}
                 multiline
                 maxLength={500}
               />
@@ -1573,6 +1600,16 @@ const styles = StyleSheet.create({
   },
   otherMessageTime: {
     color: colors.textSecondary,
+  },
+  typingIndicator: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: colors.card,
+  },
+  typingText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
   },
   inputContainer: {
     flexDirection: 'row',
