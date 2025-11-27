@@ -364,7 +364,7 @@ export default function DetalleLocalScreen() {
     }
   }, [user, checkIfFavorite]);
 
-  // ✅ FIXED: Toggle favorite - SAME LOGIC AS TarjetaLocal with proper error handling
+  // ✅ FIXED: Toggle favorite - EXACT SAME LOGIC AS TarjetaLocal
   const toggleFavorito = async (e: any) => {
     e?.stopPropagation();
     
