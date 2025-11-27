@@ -354,7 +354,7 @@ export default function SalaVirtualScreen() {
     }
   };
 
-  // ✅ FIXED: Handle check-out with proper error handling
+  // ✅ FIXED: Handle check-out with proper UPDATE instead of INSERT
   const handleCheckOut = async () => {
     if (!user || !localId) return;
 
@@ -370,6 +370,7 @@ export default function SalaVirtualScreen() {
             try {
               console.log('[SalaVirtual] 🔄 Checking out user:', user.id, 'from local:', localId);
 
+              // ✅ FIXED: Update existing active check-ins instead of inserting
               const { error } = await supabase
                 .from('sala_virtual_checkins')
                 .update({
@@ -402,6 +403,7 @@ export default function SalaVirtualScreen() {
 
               setIsCheckedIn(false);
               console.log('[SalaVirtual] ✅ Checked out successfully');
+              router.back();
             } catch (error) {
               console.error('[SalaVirtual] ❌ Error:', error);
               Alert.alert('Error', 'Ocurrió un error al salir de la sala');
