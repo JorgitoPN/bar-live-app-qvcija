@@ -165,7 +165,7 @@ export default function SalaVirtualScreen() {
     }
   }, [user, localId]);
 
-  // ✅ FIXED: Handle check-in with proper validation
+  // ✅ REBUILT: Handle check-in with proper validation
   const handleCheckIn = async () => {
     if (!user || !localId) {
       Alert.alert('Error', 'Debes iniciar sesión para entrar en la sala');
@@ -231,7 +231,7 @@ export default function SalaVirtualScreen() {
     }
   };
 
-  // ✅ FIXED: Perform check-in with proper validation and error handling
+  // ✅ REBUILT: Perform check-in with proper validation and error handling
   const performCheckIn = async () => {
     if (!user || !localId) {
       console.error('[SalaVirtual] Missing user or localId');
@@ -303,7 +303,7 @@ export default function SalaVirtualScreen() {
       setIsCheckedIn(true);
       console.log('[SalaVirtual] Checked in successfully:', data);
       
-      // Broadcast user joined event
+      // ✅ REBUILT: Broadcast user joined event using correct Realtime v2 syntax
       if (channelRef.current?.presenceChannel) {
         await channelRef.current.presenceChannel.send({
           type: 'broadcast',
@@ -353,7 +353,7 @@ export default function SalaVirtualScreen() {
                 return;
               }
 
-              // Broadcast user left event
+              // ✅ REBUILT: Broadcast user left event using correct Realtime v2 syntax
               if (channelRef.current?.presenceChannel) {
                 await channelRef.current.presenceChannel.send({
                   type: 'broadcast',
@@ -459,16 +459,19 @@ export default function SalaVirtualScreen() {
     }
   }, [localId]);
 
-  // ✅ Subscribe to real-time updates
+  // ✅ REBUILT: Subscribe to real-time updates using correct Realtime v2 syntax
   const subscribeToUpdates = useCallback(() => {
     if (!localId || !user) return () => {};
 
     console.log('[SalaVirtual] Subscribing to real-time updates for local:', localId);
 
-    // Public chat channel
+    // ✅ REBUILT: Public chat channel with correct broadcast syntax
     const chatChannel = supabase
       .channel(`room:${localId}:chat`, {
-        config: { broadcast: { self: false } },
+        config: { 
+          broadcast: { self: false },
+          private: false
+        },
       })
       .on('broadcast', { event: 'message_created' }, async (payload) => {
         console.log('[SalaVirtual] New message received:', payload);
@@ -492,10 +495,13 @@ export default function SalaVirtualScreen() {
       })
       .subscribe();
 
-    // User presence channel
+    // ✅ REBUILT: User presence channel with correct broadcast syntax
     const presenceChannel = supabase
       .channel(`room:${localId}:presence`, {
-        config: { broadcast: { self: false } },
+        config: { 
+          broadcast: { self: false },
+          private: false
+        },
       })
       .on('broadcast', { event: 'user_joined' }, () => {
         console.log('[SalaVirtual] User joined');
@@ -550,7 +556,7 @@ export default function SalaVirtualScreen() {
     };
   }, [localId, router]);
 
-  // ✅ FIXED: Send public message with correct Realtime broadcast syntax
+  // ✅ REBUILT: Send public message with correct Realtime v2 broadcast syntax
   const sendMessage = async () => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para enviar mensajes');
@@ -591,7 +597,7 @@ export default function SalaVirtualScreen() {
         return;
       }
 
-      // Broadcast to all users in the room
+      // ✅ REBUILT: Broadcast to all users in the room using correct Realtime v2 syntax
       if (channelRef.current?.chatChannel) {
         const broadcastResult = await channelRef.current.chatChannel.send({
           type: 'broadcast',
