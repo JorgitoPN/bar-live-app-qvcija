@@ -767,6 +767,18 @@ export default function DetalleLocalScreen() {
               <IconSymbol ios_icon_name="square.and.arrow.up" android_material_icon_name="share" size={22} color="#fff" />
             </BlurView>
           </TouchableOpacity>
+
+          {/* Virtual Room Button on Cover Photo */}
+          {isOpen && (
+            <TouchableOpacity 
+              style={styles.virtualRoomCoverButton} 
+              onPress={() => router.push({ pathname: '/detalle/sala-virtual', params: { localId: params.id } })}
+            >
+              <BlurView intensity={90} tint="dark" style={styles.virtualRoomCoverBlur}>
+                <IconSymbol ios_icon_name="cube.fill" android_material_icon_name="view_in_ar" size={20} color="#fff" />
+              </BlurView>
+            </TouchableOpacity>
+          )}
         </View>
       )}
 
@@ -1351,6 +1363,22 @@ const styles = StyleSheet.create({
     zIndex: 5,
   },
   buttonBlur: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  virtualRoomCoverButton: {
+    position: 'absolute',
+    bottom: 16,
+    right: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    overflow: 'hidden',
+    zIndex: 6,
+  },
+  virtualRoomCoverBlur: {
     width: '100%',
     height: '100%',
     justifyContent: 'center',

@@ -477,11 +477,11 @@ export default function SalaVirtualScreen() {
     const chatChannel = supabase
       .channel(`room:${localId}:chat`, {
         config: { 
-          broadcast: { self: false },
+          broadcast: { self: true }, // ✅ CHANGED: Receive own messages for instant display
         },
       })
       .on('broadcast', { event: 'message_created' }, async (payload) => {
-        console.log('[SalaVirtual] New message received');
+        console.log('[SalaVirtual] New message received:', payload);
         
         const { data: userData } = await supabase
           .from('usuarios')
@@ -494,11 +494,21 @@ export default function SalaVirtualScreen() {
           usuario: userData || { id: payload.payload.usuario_id, nombre: 'Usuario' },
         };
 
-        setMessages((prev) => [...prev, newMessage]);
+        setMessages((prev) => {
+          // ✅ Avoid duplicates
+          if (prev.some(m => m.id === newMessage.id)) {
+            return prev;
+          }
+          return [...prev, newMessage];
+        });
         
         setTimeout(() => {
           flatListRef.current?.scrollToEnd({ animated: true });
         }, 100);
+      })
+      .on('broadcast', { event: 'message_deleted' }, (payload) => {
+        console.log('[SalaVirtual] Message deleted:', payload.payload.message_id);
+        setMessages((prev) => prev.filter(m => m.id !== payload.payload.message_id));
       })
       .on('broadcast', { event: 'user_typing' }, (payload) => {
         console.log('[SalaVirtual] User typing:', payload.payload.usuario_id);
@@ -511,6 +521,22 @@ export default function SalaVirtualScreen() {
             return newSet;
           });
         }, 3000);
+      })
+      .on('broadcast', { event: 'room_closing_soon' }, (payload) => {
+        console.log('[SalaVirtual] Room closing soon');
+        Alert.alert(
+          'Sala Virtual Cerrando',
+          `El local cerrará en ${payload.payload.minutes} minutos. La sala virtual se cerrará automáticamente.`,
+          [{ text: 'Entendido' }]
+        );
+      })
+      .on('broadcast', { event: 'room_closed' }, () => {
+        console.log('[SalaVirtual] Room closed');
+        Alert.alert(
+          'Sala Virtual Cerrada',
+          'El local ha cerrado. Has sido expulsado de la sala virtual.',
+          [{ text: 'OK', onPress: () => router.back() }]
+        );
       })
       .subscribe((status) => {
         console.log('[SalaVirtual] Chat channel status:', status);
@@ -542,7 +568,7 @@ export default function SalaVirtualScreen() {
       supabase.removeChannel(chatChannel);
       supabase.removeChannel(presenceChannel);
     };
-  }, [localId, user, updateActiveUsers]);
+  }, [localId, user, updateActiveUsers, router]);
 
   // Initialize
   useEffect(() => {
@@ -638,6 +664,7 @@ export default function SalaVirtualScreen() {
         return;
       }
 
+      // ✅ Broadcast message to all users in the room
       if (chatChannelRef.current) {
         try {
           await chatChannelRef.current.send({
@@ -657,6 +684,42 @@ export default function SalaVirtualScreen() {
       Alert.alert('Error', 'Ocurrió un error al enviar el mensaje');
     } finally {
       setSending(false);
+    }
+  };
+
+  // ✅ NEW: Delete message
+  const deleteMessage = async (messageId: string) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('sala_virtual_interacciones')
+        .delete()
+        .eq('id', messageId)
+        .eq('usuario_id', user.id); // Only allow deleting own messages
+
+      if (error) {
+        console.error('[SalaVirtual] Error deleting message:', error);
+        Alert.alert('Error', 'No se pudo eliminar el mensaje');
+        return;
+      }
+
+      // Broadcast deletion to all users
+      if (chatChannelRef.current) {
+        try {
+          await chatChannelRef.current.send({
+            type: 'broadcast',
+            event: 'message_deleted',
+            payload: { message_id: messageId },
+          });
+        } catch (broadcastError) {
+          console.error('[SalaVirtual] Error broadcasting deletion:', broadcastError);
+        }
+      }
+
+      console.log('[SalaVirtual] Message deleted successfully');
+    } catch (error) {
+      console.error('[SalaVirtual] Error:', error);
     }
   };
 
@@ -735,6 +798,7 @@ export default function SalaVirtualScreen() {
           isOwnMessage ? styles.ownMessage : styles.otherMessage,
         ]}
       >
+        {/* ✅ ALWAYS show avatar (left for others, right for own) */}
         {!isOwnMessage && (
           <TouchableOpacity
             style={styles.messageAvatar}
@@ -763,17 +827,33 @@ export default function SalaVirtualScreen() {
           </TouchableOpacity>
         )}
         <View style={{ flex: 1 }}>
-          <View
+          <TouchableOpacity
             style={[
               styles.messageBubble,
               isOwnMessage ? styles.ownMessageBubble : styles.otherMessageBubble,
             ]}
+            onLongPress={() => {
+              if (isOwnMessage) {
+                Alert.alert(
+                  'Eliminar Mensaje',
+                  '¿Estás seguro de que quieres eliminar este mensaje?',
+                  [
+                    { text: 'Cancelar', style: 'cancel' },
+                    {
+                      text: 'Eliminar',
+                      style: 'destructive',
+                      onPress: () => deleteMessage(item.id),
+                    },
+                  ]
+                );
+              }
+            }}
+            activeOpacity={isOwnMessage ? 0.7 : 1}
           >
-            {!isOwnMessage && (
-              <Text style={styles.messageSender}>
-                {item.usuario.username ? `@${item.usuario.username}` : item.usuario.nombre}
-              </Text>
-            )}
+            {/* ✅ ALWAYS show username */}
+            <Text style={[styles.messageSender, isOwnMessage && styles.ownMessageSender]}>
+              {item.usuario.username ? `@${item.usuario.username}` : item.usuario.nombre}
+            </Text>
             <Text
               style={[
                 styles.messageText,
@@ -793,8 +873,28 @@ export default function SalaVirtualScreen() {
                 minute: '2-digit',
               })}
             </Text>
-          </View>
+          </TouchableOpacity>
         </View>
+        {/* ✅ Show avatar on right for own messages */}
+        {isOwnMessage && (
+          <View style={styles.messageAvatar}>
+            {item.usuario.avatar ? (
+              <Image
+                source={{ uri: item.usuario.avatar }}
+                style={styles.messageAvatarImage}
+              />
+            ) : (
+              <View style={styles.messageAvatarPlaceholder}>
+                <IconSymbol
+                  ios_icon_name="person.fill"
+                  android_material_icon_name="person"
+                  size={18}
+                  color={colors.textSecondary}
+                />
+              </View>
+            )}
+          </View>
+        )}
       </View>
     );
   };
@@ -1580,6 +1680,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.primary,
     marginBottom: 4,
+  },
+  ownMessageSender: {
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   messageText: {
     fontSize: 14,
