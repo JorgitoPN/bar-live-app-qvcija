@@ -245,69 +245,25 @@ export default function SalaVirtualScreen() {
     try {
       setCheckingIn(true);
 
-      // Check if user is already checked in to another room
-      const { data: existingCheckin } = await supabase
-        .from('sala_virtual_checkins')
-        .select('*, locales(nombre)')
-        .eq('usuario_id', user.id)
-        .eq('activo', true)
-        .neq('local_id', localId)
-        .maybeSingle();
-
-      if (existingCheckin) {
-        Alert.alert(
-          'Cambiar de Sala',
-          `Estás en la sala de ${(existingCheckin as any).locales?.nombre}. ¿Quieres cambiar a ${local?.nombre}?`,
-          [
-            { text: 'Cancelar', style: 'cancel', onPress: () => setCheckingIn(false) },
-            {
-              text: 'Continuar',
-              onPress: async () => {
-                // Close previous check-in
-                await supabase
-                  .from('sala_virtual_checkins')
-                  .update({
-                    activo: false,
-                    checked_out_at: new Date().toISOString(),
-                  })
-                  .eq('id', existingCheckin.id);
-
-                await performCheckIn();
-              },
-            },
-          ]
-        );
-      } else {
-        await performCheckIn();
-      }
-    } catch (error) {
-      console.error('[SalaVirtual] Error checking in:', error);
-      Alert.alert('Error', 'No se pudo entrar en la sala');
-      setCheckingIn(false);
-    }
-  };
-
-  // ✅ FIXED: Perform check-in with proper upsert to handle duplicates
-  const performCheckIn = async () => {
-    if (!user || !localId) {
-      console.error('[SalaVirtual] Missing user or localId');
-      setCheckingIn(false);
-      return;
-    }
-
-    try {
-      console.log('[SalaVirtual] Attempting checkin');
-
-      // First, deactivate any existing active check-ins for this user and local
-      await supabase
+      // ✅ FIXED: First, close ALL active check-ins for this user (any local)
+      console.log('[SalaVirtual] 🔄 Closing all active check-ins for user:', user.id);
+      const { error: closeError } = await supabase
         .from('sala_virtual_checkins')
         .update({
           activo: false,
           checked_out_at: new Date().toISOString(),
         })
         .eq('usuario_id', user.id)
-        .eq('local_id', localId)
         .eq('activo', true);
+
+      if (closeError) {
+        console.error('[SalaVirtual] ❌ Error closing previous check-ins:', closeError);
+        Alert.alert('Error', 'No se pudo cerrar la sesión anterior');
+        setCheckingIn(false);
+        return;
+      }
+
+      console.log('[SalaVirtual] ✅ All previous check-ins closed');
 
       // Now insert a new check-in
       const { data, error } = await supabase
@@ -322,7 +278,7 @@ export default function SalaVirtualScreen() {
         .single();
 
       if (error) {
-        console.error('[SalaVirtual] Error inserting checkin:', error);
+        console.error('[SalaVirtual] ❌ Error inserting checkin:', error);
         Alert.alert('Error', 'No se pudo entrar en la sala');
         setCheckingIn(false);
         return;
@@ -348,7 +304,7 @@ export default function SalaVirtualScreen() {
       
       setCheckingIn(false);
     } catch (error) {
-      console.error('[SalaVirtual] Unexpected error during checkin:', error);
+      console.error('[SalaVirtual] ❌ Unexpected error during checkin:', error);
       Alert.alert('Error', 'Ocurrió un error inesperado al entrar en la sala');
       setCheckingIn(false);
     }
