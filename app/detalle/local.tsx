@@ -907,23 +907,9 @@ export default function DetalleLocalScreen() {
         </View>
       )}
 
-      {/* Local Name Prominently Displayed Below Gallery */}
+      {/* ✅ REMOVED: Favorites button from local name section */}
       <View style={styles.localNameSection}>
         <Text style={styles.localNameText}>{local.nombre}</Text>
-        {user && (
-          <TouchableOpacity 
-            style={styles.favoriteIconButton} 
-            onPress={handleToggleFavorite}
-            activeOpacity={0.8}
-          >
-            <IconSymbol 
-              ios_icon_name={isFavorite ? "heart.fill" : "heart"} 
-              android_material_icon_name={isFavorite ? "favorite" : "favorite_border"} 
-              size={28} 
-              color={isFavorite ? "#EF4444" : colors.text} 
-            />
-          </TouchableOpacity>
-        )}
       </View>
 
       {/* Content Card - REDESIGNED */}
@@ -1002,6 +988,28 @@ export default function DetalleLocalScreen() {
               >
                 <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={20} color="#fff" />
                 <Text style={styles.actionBtnText}>Cómo llegar</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+          
+          {/* ✅ MOVED: Favorites button to action row */}
+          {user && (
+            <TouchableOpacity style={styles.actionBtn} onPress={handleToggleFavorite}>
+              <LinearGradient
+                colors={isFavorite ? ['#EF4444', '#DC2626'] : ['#6B7280', '#4B5563']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.actionBtnGradient}
+              >
+                <IconSymbol 
+                  ios_icon_name={isFavorite ? "heart.fill" : "heart"} 
+                  android_material_icon_name={isFavorite ? "favorite" : "favorite_border"} 
+                  size={20} 
+                  color="#fff" 
+                />
+                <Text style={styles.actionBtnText}>
+                  {isFavorite ? 'Guardado' : 'Guardar'}
+                </Text>
               </LinearGradient>
             </TouchableOpacity>
           )}
@@ -1511,20 +1519,12 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
   },
   localNameText: {
-    flex: 1,
     fontSize: 28,
     fontWeight: '800',
     color: colors.text,
     letterSpacing: 0.5,
-  },
-  favoriteIconButton: {
-    padding: 8,
-    marginLeft: 12,
   },
   contentCard: {
     backgroundColor: colors.background,

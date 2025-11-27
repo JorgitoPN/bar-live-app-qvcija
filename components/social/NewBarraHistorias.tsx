@@ -1,13 +1,13 @@
 
 import React, { memo, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { Historia } from '@/types';
 import { colors } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
-import { useStoryState } from '@/contexts/StoryStateContext';
+import StoryAvatar from '@/components/common/StoryAvatar';
 
 interface NewBarraHistoriasProps {
   historias: Historia[];
@@ -17,96 +17,6 @@ interface NewBarraHistoriasProps {
   userName?: string;
   onStoriesUpdate?: (historias: Historia[]) => void;
 }
-
-// ✅ INSTAGRAM-STYLE: Story outline colors
-const STORY_OUTLINE_COLORS = ['#10B981', '#3B82F6']; // Green to Blue gradient
-const VIEWED_OUTLINE_COLORS = ['#E5E7EB', '#E5E7EB']; // Gray for viewed
-
-// Story Item Component
-const StoryItem = memo(({ 
-  historia, 
-  onPress,
-  isOwnStory = false,
-  hasUnviewedStories = false,
-}: { 
-  historia: Historia; 
-  onPress: () => void;
-  isOwnStory?: boolean;
-  hasUnviewedStories?: boolean;
-}) => {
-  // ✅ CRITICAL: Preload story image IMMEDIATELY and AGGRESSIVELY
-  useEffect(() => {
-    const imageUrl = historia.imagen_url || historia.imagen;
-    if (imageUrl) {
-      // Use Promise.race to ensure we don't wait too long
-      Promise.race([
-        Image.prefetch(imageUrl),
-        new Promise((_, reject) => setTimeout(() => reject('timeout'), 100))
-      ]).catch(() => {
-        console.log('[StoryItem] Prefetch timeout or failed for:', imageUrl);
-      });
-    }
-  }, [historia.imagen_url, historia.imagen]);
-  
-  const displayName = useMemo(() => {
-    if (isOwnStory) return 'Tu historia';
-    return historia.tipo === 'local'
-      ? (historia.autorNombre || 'Local')
-      : (historia.autor?.username || historia.autorUsername || historia.autorNombre || historia.autor?.nombre || 'Usuario').replace(/^@/, '');
-  }, [historia.tipo, historia.autorNombre, historia.autor?.username, historia.autorUsername, historia.autor?.nombre, isOwnStory]);
-  
-  // ✅ INSTAGRAM-STYLE: Show outline for unviewed stories, gray for viewed
-  const gradientColors = useMemo(() => {
-    return hasUnviewedStories ? STORY_OUTLINE_COLORS : VIEWED_OUTLINE_COLORS;
-  }, [hasUnviewedStories]);
-  
-  // Get avatar URL - check all possible sources
-  const avatarUrl = useMemo(() => {
-    return historia.autorAvatar || historia.autor?.avatar || null;
-  }, [historia.autorAvatar, historia.autor?.avatar]);
-  
-  return (
-    <TouchableOpacity
-      style={styles.storyContainer}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
-      <LinearGradient
-        colors={gradientColors}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.storyGradient}
-      >
-        <View style={styles.storyImageContainer}>
-          {avatarUrl ? (
-            <Image 
-              source={{ uri: avatarUrl }} 
-              style={styles.storyImage}
-              fadeDuration={0}
-            />
-          ) : (
-            <View style={styles.storyPlaceholder}>
-              <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={40} color={colors.textSecondary} />
-            </View>
-          )}
-        </View>
-      </LinearGradient>
-      <Text style={styles.storyName} numberOfLines={1}>
-        {displayName}
-      </Text>
-    </TouchableOpacity>
-  );
-}, (prevProps, nextProps) => {
-  return (
-    prevProps.historia.id === nextProps.historia.id &&
-    prevProps.hasUnviewedStories === nextProps.hasUnviewedStories &&
-    prevProps.historia.autorAvatar === nextProps.historia.autorAvatar &&
-    prevProps.historia.autor?.avatar === nextProps.historia.autor?.avatar &&
-    prevProps.isOwnStory === nextProps.isOwnStory
-  );
-});
-
-StoryItem.displayName = 'StoryItem';
 
 // ✅ INSTAGRAM-STYLE: Create Story Button (shown when user has no stories)
 const CreateStoryButton = memo(({ 
@@ -120,23 +30,19 @@ const CreateStoryButton = memo(({
 }) => {
   return (
     <TouchableOpacity style={styles.createStory} onPress={onPress} activeOpacity={0.7}>
-      <View style={styles.createAvatarContainer}>
-        <View style={styles.createAvatarBackground}>
-          {userAvatar ? (
-            <Image 
-              source={{ uri: userAvatar }} 
-              style={styles.userAvatarImage}
-              fadeDuration={0}
-            />
-          ) : (
-            <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={44} color={colors.textSecondary} />
-          )}
-        </View>
-        <View style={styles.createAddButton}>
-          <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={32} color={colors.primary} />
-        </View>
+      <StoryAvatar
+        userId=""
+        userStories={[]}
+        avatarUrl={userAvatar}
+        userName={userName || 'Tu historia'}
+        size={92}
+        onPress={onPress}
+        showLabel={true}
+        labelText="Tu historia"
+      />
+      <View style={styles.createAddButton}>
+        <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={32} color={colors.primary} />
       </View>
-      <Text style={styles.createText}>Tu historia</Text>
     </TouchableOpacity>
   );
 });
@@ -153,7 +59,6 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
   onStoriesUpdate,
 }: NewBarraHistoriasProps) {
   const { user } = useAuth();
-  const { hasUnviewedStories } = useStoryState();
   
   // Separate user's own stories from others
   const { userStories, otherStories } = useMemo(() => {
@@ -166,27 +71,6 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
     
     return { userStories, otherStories };
   }, [historias, user?.id]);
-  
-  // ✅ CRITICAL: Preload ALL story images IMMEDIATELY and AGGRESSIVELY
-  useEffect(() => {
-    const allImages = historias
-      .map(h => h.imagen_url || h.imagen)
-      .filter(Boolean) as string[];
-    
-    if (allImages.length > 0) {
-      console.log('[NewBarraHistorias] ⚡⚡⚡ INSTANT PRELOAD:', allImages.length, 'images');
-      
-      // Preload all images in parallel with timeout
-      allImages.forEach(uri => {
-        Promise.race([
-          Image.prefetch(uri),
-          new Promise((_, reject) => setTimeout(() => reject('timeout'), 500))
-        ]).catch(() => {
-          console.log('[NewBarraHistorias] Prefetch timeout for:', uri);
-        });
-      });
-    }
-  }, [historias]);
 
   // ✅ REAL-TIME: Story updates subscription
   useEffect(() => {
@@ -256,11 +140,33 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
     };
   }, [user, historias, onStoriesUpdate]);
   
-  // ✅ INSTAGRAM-STYLE: Check if user has unviewed stories for outline
-  const userHasUnviewedStories = useMemo(() => {
-    if (!user || userStories.length === 0) return false;
-    return hasUnviewedStories(user.id, userStories);
-  }, [user, userStories, hasUnviewedStories]);
+  // Group stories by author to show only one avatar per author
+  const groupedStories = useMemo(() => {
+    const groups = new Map<string, Historia[]>();
+    
+    otherStories.forEach(historia => {
+      const authorId = historia.tipo === 'usuario' ? historia.autor_id : historia.local_id;
+      if (!authorId) return;
+      
+      if (!groups.has(authorId)) {
+        groups.set(authorId, []);
+      }
+      groups.get(authorId)!.push(historia);
+    });
+    
+    // Convert to array and sort by most recent story
+    return Array.from(groups.entries())
+      .map(([authorId, stories]) => ({
+        authorId,
+        stories: stories.sort((a, b) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        ),
+        latestStory: stories[0],
+      }))
+      .sort((a, b) => 
+        new Date(b.latestStory.created_at).getTime() - new Date(a.latestStory.created_at).getTime()
+      );
+  }, [otherStories]);
   
   return (
     <View style={styles.container}>
@@ -275,16 +181,21 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
         {/* ✅ INSTAGRAM-STYLE: User's Own Story or Create Story Button (FIRST ELEMENT) */}
         {user && onCrearHistoria && (
           userStories.length > 0 ? (
-            // Show user's story with their avatar and outline if unviewed
-            <StoryItem
-              key={userStories[0].id}
-              historia={userStories[0]}
-              onPress={() => onHistoriaPress(userStories[0])}
-              isOwnStory={true}
-              hasUnviewedStories={userHasUnviewedStories}
-            />
+            // Show user's story with StoryAvatar component
+            <View style={styles.storyContainer}>
+              <StoryAvatar
+                userId={user.id}
+                userStories={userStories}
+                avatarUrl={userAvatar || user.avatar}
+                userName="Tu historia"
+                size={92}
+                onPress={() => onHistoriaPress(userStories[0])}
+                showLabel={true}
+                labelText="Tu historia"
+              />
+            </View>
           ) : (
-            // Show create story button with user's avatar and "+" icon
+            // Show create story button
             <CreateStoryButton 
               onPress={onCrearHistoria}
               userAvatar={userAvatar || user.avatar}
@@ -293,26 +204,26 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
           )
         )}
 
-        {/* ✅ INSTAGRAM-STYLE: Other Users' Stories (chronological order by last story) */}
-        {otherStories.map((historia) => {
-          // Get all stories from this author
-          const authorId = historia.tipo === 'usuario' ? historia.autor_id : historia.local_id;
-          const authorStories = otherStories.filter(h => 
-            historia.tipo === 'usuario' 
-              ? h.autor_id === authorId && h.tipo === 'usuario'
-              : h.local_id === authorId && h.tipo === 'local'
-          );
+        {/* ✅ INSTAGRAM-STYLE: Other Users' Stories (grouped by author) */}
+        {groupedStories.map(({ authorId, stories, latestStory }) => {
+          const displayName = latestStory.tipo === 'local'
+            ? (latestStory.autorNombre || 'Local')
+            : (latestStory.autor?.username || latestStory.autorUsername || latestStory.autorNombre || latestStory.autor?.nombre || 'Usuario').replace(/^@/, '');
           
-          // Check if this author has unviewed stories
-          const hasUnviewed = hasUnviewedStories(authorId || '', authorStories);
+          const avatarUrl = latestStory.autorAvatar || latestStory.autor?.avatar || null;
           
           return (
-            <StoryItem
-              key={historia.id}
-              historia={historia}
-              onPress={() => onHistoriaPress(historia)}
-              hasUnviewedStories={hasUnviewed}
-            />
+            <View key={authorId} style={styles.storyContainer}>
+              <StoryAvatar
+                userId={authorId}
+                userStories={stories}
+                avatarUrl={avatarUrl || undefined}
+                userName={displayName}
+                size={92}
+                onPress={() => onHistoriaPress(latestStory)}
+                showLabel={true}
+              />
+            </View>
           );
         })}
       </ScrollView>
@@ -344,82 +255,23 @@ const styles = StyleSheet.create({
   createStory: {
     alignItems: 'center',
     width: 96,
-  },
-  createAvatarContainer: {
-    width: 92,
-    height: 92,
     position: 'relative',
-    marginBottom: 6,
-  },
-  createAvatarBackground: {
-    width: 92,
-    height: 92,
-    borderRadius: 46,
-    backgroundColor: colors.cardBackground,
-    borderWidth: 2,
-    borderColor: colors.cardBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  userAvatarImage: {
-    width: '100%',
-    height: '100%',
   },
   createAddButton: {
     position: 'absolute',
-    bottom: 0,
+    bottom: 20,
     right: 0,
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: colors.cardBackground,
+    backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1,
   },
-  createText: {
-    fontSize: 12,
-    color: colors.text,
-    textAlign: 'center',
-    fontWeight: '500',
-  },
   storyContainer: {
     alignItems: 'center',
     width: 96,
-  },
-  storyGradient: {
-    width: 92,
-    height: 92,
-    borderRadius: 46,
-    padding: 3,
-    marginBottom: 6,
-  },
-  storyImageContainer: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 43,
-    overflow: 'hidden',
-    borderWidth: 3,
-    borderColor: colors.background,
-  },
-  storyImage: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: colors.cardBorder,
-  },
-  storyPlaceholder: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: colors.cardBackground,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  storyName: {
-    fontSize: 12,
-    color: colors.text,
-    textAlign: 'center',
-    fontWeight: '500',
   },
 });
 
