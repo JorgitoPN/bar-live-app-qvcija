@@ -14,6 +14,7 @@ import { SelectedLocalProvider } from '@/contexts/SelectedLocalContext';
 import { StoryStateProvider } from '@/contexts/StoryStateContext';
 import { scheduleStoryCleanup } from '@/utils/storyCleanup';
 import { performanceManager } from '@/utils/performanceManager';
+import { logger } from '@/utils/logger';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -28,7 +29,7 @@ export default function RootLayout() {
     if (loaded) {
       SplashScreen.hideAsync();
       
-      console.log('[App] 🚀 Initializing performance optimizations...');
+      logger.info('[App] Initializing performance optimizations...');
       performanceManager.initialize(undefined, {
         enableAdvancedCache: true,
         enableIntelligentPreload: true,
@@ -39,9 +40,9 @@ export default function RootLayout() {
         enableRequestDedup: true,
         cacheStrategy: 'aggressive',
       }).then(() => {
-        console.log('[App] ✅ Performance optimizations initialized');
+        logger.info('[App] Performance optimizations initialized');
       }).catch(error => {
-        console.error('[App] ❌ Error initializing performance:', error);
+        logger.error('[App] Error initializing performance:', error);
       });
       
       scheduleStoryCleanup();

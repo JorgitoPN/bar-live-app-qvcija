@@ -18,6 +18,7 @@ import { colors } from '@/styles/commonStyles';
 import NewBarraHistorias from '@/components/social/NewBarraHistorias';
 import NewPostCard from '@/components/social/NewPostCard';
 import HeaderSocial from '@/components/layout/HeaderSocial';
+import { logger } from '@/utils/logger';
 
 interface Post {
   id: string;
@@ -109,7 +110,7 @@ export default function SocialScreen() {
         setHasMore(formattedPosts.length === 20);
       }
     } catch (error) {
-      console.error('Error loading posts:', error);
+      logger.error('Error loading posts:', error);
       Alert.alert('Error', 'No se pudieron cargar las publicaciones');
     } finally {
       setLoading(false);
@@ -142,7 +143,6 @@ export default function SocialScreen() {
       if (!post) return;
 
       if (post.user_has_liked) {
-        // Unlike
         const { error } = await supabase
           .from('likes')
           .delete()
@@ -158,7 +158,6 @@ export default function SocialScreen() {
             : p
         ));
       } else {
-        // Like
         const { error } = await supabase
           .from('likes')
           .insert({
@@ -176,7 +175,7 @@ export default function SocialScreen() {
         ));
       }
     } catch (error) {
-      console.error('Error toggling like:', error);
+      logger.error('Error toggling like:', error);
       Alert.alert('Error', 'No se pudo dar like');
     }
   };
@@ -189,7 +188,6 @@ export default function SocialScreen() {
       if (!post) return;
 
       if (post.user_has_saved) {
-        // Unsave
         const { error } = await supabase
           .from('posts_guardados')
           .delete()
@@ -204,7 +202,6 @@ export default function SocialScreen() {
             : p
         ));
       } else {
-        // Save
         const { error } = await supabase
           .from('posts_guardados')
           .insert({
@@ -221,7 +218,7 @@ export default function SocialScreen() {
         ));
       }
     } catch (error) {
-      console.error('Error toggling save:', error);
+      logger.error('Error toggling save:', error);
       Alert.alert('Error', 'No se pudo guardar');
     }
   };
@@ -231,7 +228,6 @@ export default function SocialScreen() {
   };
 
   const handleShare = (postId: string) => {
-    // TODO: Implement share functionality
     Alert.alert('Compartir', 'Funcionalidad de compartir próximamente');
   };
 

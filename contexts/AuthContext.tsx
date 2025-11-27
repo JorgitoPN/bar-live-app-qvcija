@@ -4,6 +4,7 @@ import { supabase, isSupabaseConfigured } from '@/utils/supabase';
 import { AuthUser, getCurrentUser } from '@/utils/auth';
 import { registerForPushNotifications, savePushToken } from '@/utils/notifications';
 import { Session } from '@supabase/supabase-js';
+import { logger } from '@/utils/logger';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -22,32 +23,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
-    console.log('[AuthContext] 🚀 Inicializando contexto de autenticación');
+    logger.info('[AuthContext] Inicializando contexto de autenticación');
     
     // Initialize auth state
     const initializeAuth = async () => {
       try {
         if (!isSupabaseConfigured()) {
-          console.log('[AuthContext] ⚠️ Supabase no configurado - modo sin autenticación');
+          logger.warn('[AuthContext] Supabase no configurado - modo sin autenticación');
           setInitializing(false);
           setLoading(false);
           return;
         }
 
-        console.log('[AuthContext] 🔍 Obteniendo sesión actual...');
+        logger.debug('[AuthContext] Obteniendo sesión actual...');
         
         // Get current session
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         
         if (currentSession) {
-          console.log('[AuthContext] ✅ Sesión existente encontrada para:', currentSession.user.email);
+          logger.info('[AuthContext] Sesión existente encontrada');
           setSession(currentSession);
           
           // Load user profile
-          console.log('[AuthContext] 📥 Cargando perfil de usuario...');
           const { user: userData } = await getCurrentUser();
           if (userData) {
-            console.log('[AuthContext] ✅ Usuario cargado:', userData.email);
+            logger.info('[AuthContext] Usuario cargado');
             setUser(userData);
             
             // Register push notifications (non-blocking)
@@ -58,14 +58,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 }
               })
               .catch(() => {});
-          } else {
-            console.log('[AuthContext] ⚠️ No se pudo cargar el perfil del usuario');
           }
         } else {
-          console.log('[AuthContext] ℹ️ No hay sesión activa');
+          logger.debug('[AuthContext] No hay sesión activa');
         }
       } catch (error) {
-        console.error('[AuthContext] ❌ Error inicializando:', error);
+        logger.error('[AuthContext] Error inicializando:', error);
       } finally {
         setInitializing(false);
         setLoading(false);
@@ -79,24 +77,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     if (isSupabaseConfigured()) {
       const { data } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
-        console.log('[AuthContext] 🔄 Auth state cambió:', event);
+        logger.debug('[AuthContext] Auth state cambió:', event);
         
         // Don't process events during initialization
         if (initializing) {
-          console.log('[AuthContext] ⏳ Ignorando evento durante inicialización');
           return;
         }
         
         setSession(currentSession);
         
         if (event === 'SIGNED_IN' && currentSession) {
-          console.log('[AuthContext] ✅ Usuario inició sesión:', currentSession.user.email);
+          logger.info('[AuthContext] Usuario inició sesión');
           setLoading(true);
           
           // Load user profile
           const { user: userData } = await getCurrentUser();
           if (userData) {
-            console.log('[AuthContext] ✅ Perfil cargado:', userData.email);
             setUser(userData);
             
             // Register push notifications (non-blocking)
@@ -111,14 +107,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           setLoading(false);
         } else if (event === 'SIGNED_OUT') {
-          console.log('[AuthContext] 🚪 Usuario cerró sesión');
+          logger.info('[AuthContext] Usuario cerró sesión');
           setUser(null);
           setSession(null);
-        } else if (event === 'TOKEN_REFRESHED') {
-          console.log('[AuthContext] 🔄 Token refrescado');
-          // Session is already updated, just log
         } else if (event === 'USER_UPDATED') {
-          console.log('[AuthContext] 🔄 Usuario actualizado');
+          logger.debug('[AuthContext] Usuario actualizado');
           setLoading(true);
           const { user: userData } = await getCurrentUser();
           if (userData) {
@@ -133,7 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       if (subscription) {
-        console.log('[AuthContext] 🧹 Limpiando suscripción');
+        logger.debug('[AuthContext] Limpiando suscripción');
         subscription.unsubscribe();
       }
     };
@@ -141,7 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const handleSignOut = async () => {
     try {
-      console.log('[AuthContext] 🚪 Iniciando cierre de sesión...');
+      logger.info('[AuthContext] Iniciando cierre de sesión...');
       
       // Clear local state immediately
       setUser(null);
@@ -150,31 +143,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (isSupabaseConfigured()) {
         const { error } = await supabase.auth.signOut();
         if (error) {
-          console.error('[AuthContext] ❌ Error cerrando sesión:', error);
+          logger.error('[AuthContext] Error cerrando sesión:', error);
         } else {
-          console.log('[AuthContext] ✅ Sesión cerrada exitosamente');
+          logger.info('[AuthContext] Sesión cerrada exitosamente');
         }
       }
     } catch (error) {
-      console.error('[AuthContext] ❌ Error en signOut:', error);
+      logger.error('[AuthContext] Error en signOut:', error);
     }
   };
 
   const refreshUser = async () => {
     try {
-      console.log('[AuthContext] 🔄 Refrescando usuario...');
+      logger.debug('[AuthContext] Refrescando usuario...');
       setLoading(true);
       
       const { user: userData } = await getCurrentUser();
       
       if (userData) {
-        console.log('[AuthContext] ✅ Usuario refrescado:', userData.email);
+        logger.info('[AuthContext] Usuario refrescado');
         setUser(userData);
-      } else {
-        console.log('[AuthContext] ⚠️ No se pudo refrescar el usuario');
       }
     } catch (error) {
-      console.error('[AuthContext] ❌ Error refrescando usuario:', error);
+      logger.error('[AuthContext] Error refrescando usuario:', error);
     } finally {
       setLoading(false);
     }

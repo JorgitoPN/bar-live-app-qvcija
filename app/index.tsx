@@ -4,12 +4,13 @@ import { View, ActivityIndicator, Text } from 'react-native';
 import { Redirect } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { colors } from '@/styles/commonStyles';
+import { logger } from '@/utils/logger';
 
 export default function Index() {
   const { user, loading } = useAuth();
 
   useEffect(() => {
-    console.log('[Index] 🏠 Estado:', { 
+    logger.debug('[Index] Estado:', { 
       hasUser: !!user, 
       userEmail: user?.email,
       loading 
@@ -18,7 +19,6 @@ export default function Index() {
 
   // Show loading while auth is initializing
   if (loading) {
-    console.log('[Index] ⏳ Cargando autenticación...');
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -28,7 +28,6 @@ export default function Index() {
   }
 
   // Always redirect to explorar
-  // The app will handle authentication state internally
-  console.log('[Index] 🚀 Redirigiendo a explorar');
+  logger.debug('[Index] Redirigiendo a explorar');
   return <Redirect href="/(tabs)/explorar" />;
 }

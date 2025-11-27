@@ -14,6 +14,7 @@ import { backgroundSync } from './backgroundSync';
 import { requestDeduplicator } from './requestDeduplicator';
 import { memoryManager } from './memoryManager';
 import { renderOptimizer } from './renderOptimizer';
+import { logger } from './logger';
 
 interface PerformanceConfig {
   enableAdvancedCache: boolean;
@@ -45,51 +46,35 @@ class PerformanceManager {
    */
   async initialize(userId?: string, config?: Partial<PerformanceConfig>): Promise<void> {
     if (this.initialized) {
-      console.log('[PerformanceManager] Already initialized');
+      logger.debug('[PerformanceManager] Already initialized');
       return;
     }
 
-    console.log('[PerformanceManager] 🚀 Initializing Instagram-like performance optimizations...');
+    logger.info('[PerformanceManager] Initializing performance optimizations...');
 
     // Merge config
     this.config = { ...this.config, ...config };
 
     // Initialize based on config
-    if (this.config.enableAdvancedCache) {
-      console.log('[PerformanceManager] ✅ Advanced cache enabled');
-    }
-
     if (this.config.enableIntelligentPreload && userId) {
-      console.log('[PerformanceManager] ✅ Intelligent preload enabled');
+      logger.debug('[PerformanceManager] Intelligent preload enabled');
       // Preload critical data in background (non-blocking)
       setTimeout(() => {
         intelligentPreloader.preloadOnStart(userId);
       }, 100);
     }
 
-    if (this.config.enableRealtimeMessaging) {
-      console.log('[PerformanceManager] ✅ Real-time messaging enabled');
-    }
-
-    if (this.config.enableOptimisticUI) {
-      console.log('[PerformanceManager] ✅ Optimistic UI enabled');
-    }
-
     if (this.config.enableBackgroundSync) {
-      console.log('[PerformanceManager] ✅ Background sync enabled');
+      logger.debug('[PerformanceManager] Background sync enabled');
       backgroundSync.initialize();
     }
 
-    if (this.config.enableRequestDedup) {
-      console.log('[PerformanceManager] ✅ Request deduplication enabled');
-    }
-
-    // ✅ Initialize memory manager
+    // Initialize memory manager
     memoryManager.initialize();
-    console.log('[PerformanceManager] ✅ Memory manager initialized');
+    logger.debug('[PerformanceManager] Memory manager initialized');
 
     this.initialized = true;
-    console.log('[PerformanceManager] ✅ All performance optimizations initialized');
+    logger.info('[PerformanceManager] All performance optimizations initialized');
   }
 
   /**
@@ -110,7 +95,7 @@ class PerformanceManager {
     if (!forceRefresh && this.config.enableAdvancedCache) {
       const cached = await advancedCache.get<T>(key);
       if (cached) {
-        console.log(`[PerformanceManager] ⚡ INSTANT from cache: ${key}`);
+        logger.debug(`[PerformanceManager] Cache hit: ${key}`);
         return cached;
       }
     }
@@ -120,7 +105,7 @@ class PerformanceManager {
       return requestDeduplicator.execute(
         key,
         async () => {
-          console.log(`[PerformanceManager] 📡 Fetching: ${key}`);
+          logger.debug(`[PerformanceManager] Fetching: ${key}`);
           const data = await fetchFn();
           
           // Cache the result
@@ -153,15 +138,9 @@ class PerformanceManager {
       return;
     }
 
-    console.log(`[PerformanceManager] 🚀 Preloading ${type}...`);
+    logger.debug(`[PerformanceManager] Preloading ${type}...`);
 
     switch (type) {
-      case 'stories':
-        // Preload will be done by intelligentPreloader
-        break;
-      case 'posts':
-        // Preload will be done by intelligentPreloader
-        break;
       case 'messages':
         await intelligentPreloader.preloadRecentMessages(userId);
         break;
@@ -195,7 +174,6 @@ class PerformanceManager {
     content: string
   ): Promise<any> {
     if (!this.config.enableRealtimeMessaging) {
-      // Fallback to regular message sending
       return null;
     }
 
@@ -218,7 +196,7 @@ class PerformanceManager {
       socialCache.clearAll();
     }
 
-    console.log('[PerformanceManager] 🗑️ Cache invalidated');
+    logger.debug('[PerformanceManager] Cache invalidated');
   }
 
   /**
@@ -232,7 +210,6 @@ class PerformanceManager {
     updateUI: (liked: boolean, likes: number) => void
   ): Promise<boolean> {
     if (!this.config.enableOptimisticUI) {
-      // Fallback to non-optimistic
       return !currentLiked;
     }
 
@@ -252,7 +229,6 @@ class PerformanceManager {
     updateUI: (saved: boolean) => void
   ): Promise<boolean> {
     if (!this.config.enableOptimisticUI) {
-      // Fallback to non-optimistic
       return !currentSaved;
     }
 
@@ -272,7 +248,6 @@ class PerformanceManager {
     currentFollowerCount: number
   ): Promise<boolean> {
     if (!this.config.enableOptimisticUI) {
-      // Fallback to non-optimistic
       return !currentFollowing;
     }
 
@@ -359,7 +334,7 @@ class PerformanceManager {
    * Cleanup resources
    */
   async cleanup(): Promise<void> {
-    console.log('[PerformanceManager] 🧹 Cleaning up...');
+    logger.info('[PerformanceManager] Cleaning up...');
 
     // Unsubscribe from all real-time channels
     if (this.config.enableRealtimeMessaging) {
@@ -393,7 +368,7 @@ class PerformanceManager {
     renderOptimizer.clear();
 
     this.initialized = false;
-    console.log('[PerformanceManager] ✅ Cleanup complete');
+    logger.info('[PerformanceManager] Cleanup complete');
   }
 
   /**
@@ -401,7 +376,7 @@ class PerformanceManager {
    */
   updateConfig(config: Partial<PerformanceConfig>): void {
     this.config = { ...this.config, ...config };
-    console.log('[PerformanceManager] ⚙️ Configuration updated:', this.config);
+    logger.debug('[PerformanceManager] Configuration updated');
   }
 
   /**
