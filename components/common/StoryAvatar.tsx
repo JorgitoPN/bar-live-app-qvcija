@@ -48,7 +48,7 @@ const StoryAvatar = memo(function StoryAvatar({
       disabled={!hasActiveStories || !onPress}
     >
       <View style={styles.avatarWrapper}>
-        {/* ✅ INSTAGRAM-STYLE: Show outline only for unviewed stories */}
+        {/* ✅ FIXED: Perfect centering - ring is positioned absolutely and centered */}
         {showOutline && (
           <LinearGradient
             colors={STORY_OUTLINE_COLORS}
@@ -128,10 +128,9 @@ const styles = StyleSheet.create({
   },
   storyRing: {
     position: 'absolute',
-    // ✅ FIXED: Perfect centering - ring is positioned absolutely and centered
-    top: '50%',
-    left: '50%',
-    transform: [{ translateX: -1 }, { translateY: -1 }], // Offset by half of ring size difference
+    // ✅ FIXED: Perfect centering - no transform needed, just center with absolute positioning
+    top: 0,
+    left: 0,
   },
   avatarContainer: {
     backgroundColor: colors.background,

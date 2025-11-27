@@ -343,6 +343,7 @@ export default function DetalleLocalScreen() {
     if (!user || !params.id) return;
     
     try {
+      // ✅ FIXED: Use locales_favoritos table consistently
       const { data, error } = await supabase
         .from('locales_favoritos')
         .select('id')
@@ -579,6 +580,7 @@ export default function DetalleLocalScreen() {
       }
 
       if (isFavorite) {
+        // ✅ FIXED: Use locales_favoritos table consistently
         const { error } = await supabase
           .from('locales_favoritos')
           .delete()
@@ -608,6 +610,7 @@ export default function DetalleLocalScreen() {
         
         console.log('[DetalleLocal] Inserting favorite with validated data:', insertData);
         
+        // ✅ FIXED: Use locales_favoritos table consistently
         const { error } = await supabase
           .from('locales_favoritos')
           .insert(insertData);
