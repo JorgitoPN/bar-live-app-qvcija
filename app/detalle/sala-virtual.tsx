@@ -468,7 +468,7 @@ export default function SalaVirtualScreen() {
 
     console.log('[SalaVirtual] Subscribing to real-time updates for local:', localId);
 
-    // ✅ REBUILT: Public chat channel with correct broadcast syntax
+    // ✅ REBUILT: Chat channel with correct broadcast syntax
     const chatChannel = supabase
       .channel(`room:${localId}:chat`, {
         config: { 
@@ -495,7 +495,14 @@ export default function SalaVirtualScreen() {
           flatListRef.current?.scrollToEnd({ animated: true });
         }, 100);
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[SalaVirtual] Chat channel status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('[SalaVirtual] Chat channel subscribed successfully');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('[SalaVirtual] Chat channel error');
+        }
+      });
 
     // ✅ REBUILT: User presence channel with correct broadcast syntax
     const presenceChannel = supabase
@@ -512,7 +519,14 @@ export default function SalaVirtualScreen() {
         console.log('[SalaVirtual] User left');
         updateActiveUsers();
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[SalaVirtual] Presence channel status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('[SalaVirtual] Presence channel subscribed successfully');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('[SalaVirtual] Presence channel error');
+        }
+      });
 
     chatChannelRef.current = chatChannel;
     presenceChannelRef.current = presenceChannel;

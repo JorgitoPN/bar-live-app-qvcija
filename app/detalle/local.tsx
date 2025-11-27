@@ -267,16 +267,6 @@ const calculateSentiment = (rating: number): { sentiment: string; color: string 
   }
 };
 
-// Helper function to get current day info
-const getCurrentDayInfo = () => {
-  const now = new Date();
-  const dayNames = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-  
-  return {
-    currentDayName: dayNames[now.getDay()],
-  };
-};
-
 export default function DetalleLocalScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
@@ -759,12 +749,8 @@ export default function DetalleLocalScreen() {
     });
   }
 
-  const dayInfo = getCurrentDayInfo();
-  const currentDayName = dayInfo.currentDayName;
-  
-  // ✅ FIXED: Use getEstadoLocal to get the correct logical day for highlighting
-  const estadoLocalCompleto = getEstadoLocal(local);
-  const diaLogicoParaResaltar = estadoLocalCompleto.diaLogico || currentDayName;
+  // ✅ FIXED: Use the logical day from getEstadoLocal for highlighting
+  const diaLogicoParaResaltar = estadoLocal.diaLogico || 'lunes';
 
   const displayRating = local.rating || local.google_rating || averageRating || 0;
 
@@ -1089,7 +1075,7 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* ✅ FIXED: Correct schedule display with enriched data */}
+        {/* ✅ FIXED: Correct schedule display with enriched data and proper day highlighting */}
         {local.horarios_completos && Object.keys(local.horarios_completos).length > 0 && (
           <View style={styles.compactSection}>
             <View style={styles.compactSectionHeader}>
