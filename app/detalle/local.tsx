@@ -697,7 +697,7 @@ export default function DetalleLocalScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      {/* Cover Photo - NO FAVORITES BUTTON */}
+      {/* Cover Photo - REMOVED VIRTUAL ROOM BUTTON */}
       {allImages.length > 0 && (
         <View style={styles.coverContainer}>
           <TouchableOpacity
@@ -767,18 +767,6 @@ export default function DetalleLocalScreen() {
               <IconSymbol ios_icon_name="square.and.arrow.up" android_material_icon_name="share" size={22} color="#fff" />
             </BlurView>
           </TouchableOpacity>
-
-          {/* Virtual Room Button on Cover Photo */}
-          {isOpen && (
-            <TouchableOpacity 
-              style={styles.virtualRoomCoverButton} 
-              onPress={() => router.push({ pathname: '/detalle/sala-virtual', params: { localId: params.id } })}
-            >
-              <BlurView intensity={90} tint="dark" style={styles.virtualRoomCoverBlur}>
-                <IconSymbol ios_icon_name="cube.fill" android_material_icon_name="view_in_ar" size={20} color="#fff" />
-              </BlurView>
-            </TouchableOpacity>
-          )}
         </View>
       )}
 
@@ -818,7 +806,7 @@ export default function DetalleLocalScreen() {
         </View>
       )}
 
-      {/* Local Name Section - NO FAVORITES BUTTON */}
+      {/* Local Name Section */}
       <View style={styles.localNameSection}>
         <Text style={styles.localNameText}>{local.nombre}</Text>
       </View>
@@ -873,7 +861,7 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* Action Buttons Row - NO FAVORITES BUTTON */}
+        {/* Action Buttons Row */}
         <View style={styles.actionsRow}>
           {local.telefono && (
             <TouchableOpacity style={styles.actionBtn} onPress={handleCall}>
@@ -1083,8 +1071,7 @@ export default function DetalleLocalScreen() {
                       ios_icon_name={icon.ios} 
                       android_material_icon_name={icon.android} 
                       size={16} 
-                      color={icon.color} 
-                    />
+                      color={icon.color} />
                     <Text style={[styles.tagText, { color: icon.color }]}>{tag}</Text>
                   </View>
                 );
@@ -1363,22 +1350,6 @@ const styles = StyleSheet.create({
     zIndex: 5,
   },
   buttonBlur: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  virtualRoomCoverButton: {
-    position: 'absolute',
-    bottom: 16,
-    right: 16,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    overflow: 'hidden',
-    zIndex: 6,
-  },
-  virtualRoomCoverBlur: {
     width: '100%',
     height: '100%',
     justifyContent: 'center',
