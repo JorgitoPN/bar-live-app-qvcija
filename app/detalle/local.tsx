@@ -267,25 +267,13 @@ const calculateSentiment = (rating: number): { sentiment: string; color: string 
   }
 };
 
-// Helper function to get current day info considering nighttime schedules
+// Helper function to get current day info
 const getCurrentDayInfo = () => {
   const now = new Date();
   const dayNames = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-  const currentHour = now.getHours();
-  
-  if (currentHour < 8) {
-    const yesterdayIndex = (now.getDay() - 1 + 7) % 7;
-    return {
-      currentDayName: dayNames[yesterdayIndex],
-      isNighttime: true,
-      displayNote: '(Horario nocturno)'
-    };
-  }
   
   return {
     currentDayName: dayNames[now.getDay()],
-    isNighttime: false,
-    displayNote: null
   };
 };
 
@@ -773,6 +761,10 @@ export default function DetalleLocalScreen() {
 
   const dayInfo = getCurrentDayInfo();
   const currentDayName = dayInfo.currentDayName;
+  
+  // ✅ FIXED: Use getEstadoLocal to get the correct logical day for highlighting
+  const estadoLocalCompleto = getEstadoLocal(local);
+  const diaLogicoParaResaltar = estadoLocalCompleto.diaLogico || currentDayName;
 
   const displayRating = local.rating || local.google_rating || averageRating || 0;
 
@@ -1097,7 +1089,7 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* ✅ IMPROVED: More compact and clear schedule with correct day order */}
+        {/* ✅ FIXED: Correct schedule display with enriched data */}
         {local.horarios_completos && Object.keys(local.horarios_completos).length > 0 && (
           <View style={styles.compactSection}>
             <View style={styles.compactSectionHeader}>
@@ -1106,13 +1098,11 @@ export default function DetalleLocalScreen() {
               </View>
               <Text style={styles.compactSectionTitle}>Horarios</Text>
             </View>
-            {dayInfo.isNighttime && dayInfo.displayNote && (
-              <Text style={styles.nightNote}>{dayInfo.displayNote}</Text>
-            )}
             <View style={styles.scheduleCompact}>
               {orderedDays.map((day) => {
                 const hours = local.horarios_completos?.[day] || [];
-                const isToday = day.toLowerCase() === currentDayName.toLowerCase();
+                // ✅ FIXED: Highlight the logical day (the day the venue's operating period started)
+                const isToday = day.toLowerCase() === diaLogicoParaResaltar.toLowerCase();
                 return (
                   <View key={day} style={[styles.scheduleRow, isToday && styles.scheduleRowToday]}>
                     <View style={styles.scheduleDayContainer}>
@@ -1708,13 +1698,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontWeight: '600',
   },
-  nightNote: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontStyle: 'italic',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
+
   scheduleCompact: {
     backgroundColor: colors.card,
     borderRadius: 12,

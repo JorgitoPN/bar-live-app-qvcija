@@ -6,13 +6,13 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  Image,
   Alert,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
   FlatList,
   Dimensions,
+  Image,
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/utils/supabase';
