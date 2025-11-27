@@ -334,7 +334,7 @@ export default function DetalleLocalScreen() {
     }
   }, [userLocation, local]);
 
-  // Check if local is favorited - SAME LOGIC AS TarjetaLocal
+  // ✅ FIXED: Check if local is favorited - SAME LOGIC AS TarjetaLocal
   const checkIfFavorite = useCallback(async () => {
     if (!user || !params.id) return;
     
@@ -344,13 +344,16 @@ export default function DetalleLocalScreen() {
         .select('id')
         .eq('usuario_id', user.id)
         .eq('local_id', params.id)
-        .single();
+        .maybeSingle();
 
-      if (data) {
-        setIsFavorite(true);
+      if (error && error.code !== 'PGRST116') {
+        console.error('[DetalleLocal] Error checking favorite:', error);
+        return;
       }
+
+      setIsFavorite(!!data);
     } catch (error) {
-      // Not favorited or error
+      console.error('[DetalleLocal] Error checking favorite:', error);
       setIsFavorite(false);
     }
   }, [user, params.id]);
@@ -361,7 +364,7 @@ export default function DetalleLocalScreen() {
     }
   }, [user, checkIfFavorite]);
 
-  // Toggle favorite - SAME LOGIC AS TarjetaLocal
+  // ✅ FIXED: Toggle favorite - SAME LOGIC AS TarjetaLocal with proper error handling
   const toggleFavorito = async (e: any) => {
     e?.stopPropagation();
     
@@ -382,8 +385,14 @@ export default function DetalleLocalScreen() {
           .eq('usuario_id', user.id)
           .eq('local_id', params.id);
 
-        if (error) throw error;
+        if (error) {
+          console.error('[DetalleLocal] Error removing favorite:', error);
+          Alert.alert('Error', 'No se pudo quitar de favoritos');
+          return;
+        }
+        
         setIsFavorite(false);
+        console.log('[DetalleLocal] ✅ Removed from favorites');
       } else {
         // Agregar a favoritos
         const { error } = await supabase
@@ -393,11 +402,17 @@ export default function DetalleLocalScreen() {
             local_id: params.id as string,
           });
 
-        if (error) throw error;
+        if (error) {
+          console.error('[DetalleLocal] Error adding favorite:', error);
+          Alert.alert('Error', 'No se pudo agregar a favoritos');
+          return;
+        }
+        
         setIsFavorite(true);
+        console.log('[DetalleLocal] ✅ Added to favorites');
       }
     } catch (error) {
-      console.error('Error toggling favorito:', error);
+      console.error('[DetalleLocal] Error toggling favorito:', error);
       Alert.alert('Error', 'No se pudo actualizar favoritos');
     } finally {
       setLoadingFavorite(false);

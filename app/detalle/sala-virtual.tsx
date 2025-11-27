@@ -209,7 +209,7 @@ export default function SalaVirtualScreen() {
         .eq('activo', true)
         .maybeSingle();
 
-      if (error) {
+      if (error && error.code !== 'PGRST116') {
         console.error('[SalaVirtual] Error checking checkin:', error);
         return;
       }
@@ -221,7 +221,7 @@ export default function SalaVirtualScreen() {
     }
   }, [user, localId]);
 
-  // Handle check-in
+  // ✅ FIXED: Handle check-in with proper duplicate handling
   const handleCheckIn = async () => {
     if (!user || !localId) {
       Alert.alert('Error', 'Debes iniciar sesión para entrar en la sala');
@@ -263,6 +263,7 @@ export default function SalaVirtualScreen() {
             {
               text: 'Continuar',
               onPress: async () => {
+                // Close previous check-in
                 await supabase
                   .from('sala_virtual_checkins')
                   .update({
@@ -286,7 +287,7 @@ export default function SalaVirtualScreen() {
     }
   };
 
-  // Perform check-in
+  // ✅ FIXED: Perform check-in with proper upsert to handle duplicates
   const performCheckIn = async () => {
     if (!user || !localId) {
       console.error('[SalaVirtual] Missing user or localId');
@@ -297,46 +298,38 @@ export default function SalaVirtualScreen() {
     try {
       console.log('[SalaVirtual] Attempting checkin');
 
-      const insertData = {
-        usuario_id: user.id,
-        local_id: localId,
-        activo: true,
-        checked_in_at: new Date().toISOString(),
-      };
+      // First, deactivate any existing active check-ins for this user and local
+      await supabase
+        .from('sala_virtual_checkins')
+        .update({
+          activo: false,
+          checked_out_at: new Date().toISOString(),
+        })
+        .eq('usuario_id', user.id)
+        .eq('local_id', localId)
+        .eq('activo', true);
 
+      // Now insert a new check-in
       const { data, error } = await supabase
         .from('sala_virtual_checkins')
-        .insert(insertData)
+        .insert({
+          usuario_id: user.id,
+          local_id: localId,
+          activo: true,
+          checked_in_at: new Date().toISOString(),
+        })
         .select()
         .single();
 
       if (error) {
         console.error('[SalaVirtual] Error inserting checkin:', error);
-        
-        if (error.code === '23505') {
-          const { error: updateError } = await supabase
-            .from('sala_virtual_checkins')
-            .update({ activo: true, checked_in_at: new Date().toISOString() })
-            .eq('usuario_id', user.id)
-            .eq('local_id', localId);
-          
-          if (updateError) {
-            console.error('[SalaVirtual] Error updating checkin:', updateError);
-            Alert.alert('Error', 'No se pudo entrar en la sala');
-            setCheckingIn(false);
-            return;
-          }
-          
-          setIsCheckedIn(true);
-        } else {
-          Alert.alert('Error', 'No se pudo entrar en la sala');
-        }
+        Alert.alert('Error', 'No se pudo entrar en la sala');
         setCheckingIn(false);
         return;
       }
 
       setIsCheckedIn(true);
-      console.log('[SalaVirtual] Checked in successfully');
+      console.log('[SalaVirtual] ✅ Checked in successfully');
       
       if (presenceChannelRef.current) {
         try {
@@ -361,7 +354,7 @@ export default function SalaVirtualScreen() {
     }
   };
 
-  // Handle check-out
+  // ✅ FIXED: Handle check-out with proper error handling
   const handleCheckOut = async () => {
     if (!user || !localId) return;
 
@@ -375,6 +368,8 @@ export default function SalaVirtualScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
+              console.log('[SalaVirtual] 🔄 Checking out user:', user.id, 'from local:', localId);
+
               const { error } = await supabase
                 .from('sala_virtual_checkins')
                 .update({
@@ -386,7 +381,7 @@ export default function SalaVirtualScreen() {
                 .eq('activo', true);
 
               if (error) {
-                console.error('[SalaVirtual] Error checking out:', error);
+                console.error('[SalaVirtual] ❌ Error checking out:', error);
                 Alert.alert('Error', 'No se pudo salir de la sala');
                 return;
               }
@@ -406,9 +401,10 @@ export default function SalaVirtualScreen() {
               }
 
               setIsCheckedIn(false);
-              console.log('[SalaVirtual] Checked out successfully');
+              console.log('[SalaVirtual] ✅ Checked out successfully');
             } catch (error) {
-              console.error('[SalaVirtual] Error:', error);
+              console.error('[SalaVirtual] ❌ Error:', error);
+              Alert.alert('Error', 'Ocurrió un error al salir de la sala');
             }
           },
         },
