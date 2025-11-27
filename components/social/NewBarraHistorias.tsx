@@ -45,35 +45,48 @@ export default function NewBarraHistorias() {
   const { user } = useAuth();
   const [storyGroups, setStoryGroups] = useState<StoryGroup[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     loadStories();
   }, []);
 
   const loadStories = async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     try {
-      const { data, error } = await supabase.rpc('get_active_stories', {
+      setError(false);
+      
+      const { data, error: fetchError } = await supabase.rpc('get_active_stories', {
         p_usuario_id: user.id,
       });
 
-      if (error) throw error;
+      if (fetchError) {
+        console.error('Error loading stories:', fetchError);
+        setError(true);
+        setLoading(false);
+        return;
+      }
 
-      if (data) {
+      if (data && Array.isArray(data)) {
         // Group stories by author
         const grouped: { [key: string]: StoryGroup } = {};
 
         data.forEach((story: any) => {
+          if (!story || !story.historia_id || !story.autor_id) return;
+          
           const key = story.autor_id;
           
           if (!grouped[key]) {
             grouped[key] = {
               autor_id: story.autor_id,
-              autor_nombre: story.autor_nombre,
-              autor_username: story.autor_username,
+              autor_nombre: story.autor_nombre || 'Usuario',
+              autor_username: story.autor_username || 'usuario',
               autor_avatar: story.autor_avatar,
-              tipo: story.tipo,
+              tipo: story.tipo || 'usuario',
               local_id: story.local_id,
               local_nombre: story.local_nombre,
               stories: [],
@@ -84,14 +97,14 @@ export default function NewBarraHistorias() {
           grouped[key].stories.push({
             historia_id: story.historia_id,
             autor_id: story.autor_id,
-            autor_nombre: story.autor_nombre,
-            autor_username: story.autor_username,
+            autor_nombre: story.autor_nombre || 'Usuario',
+            autor_username: story.autor_username || 'usuario',
             autor_avatar: story.autor_avatar,
-            tipo: story.tipo,
+            tipo: story.tipo || 'usuario',
             local_id: story.local_id,
             local_nombre: story.local_nombre,
             imagen: story.imagen,
-            user_has_viewed: story.user_has_viewed,
+            user_has_viewed: story.user_has_viewed || false,
             created_at: story.created_at,
           });
 
@@ -101,9 +114,12 @@ export default function NewBarraHistorias() {
         });
 
         setStoryGroups(Object.values(grouped));
+      } else {
+        setStoryGroups([]);
       }
-    } catch (error) {
-      console.error('Error loading stories:', error);
+    } catch (err) {
+      console.error('Error in loadStories:', err);
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -127,6 +143,14 @@ export default function NewBarraHistorias() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="small" color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>Error al cargar historias</Text>
       </View>
     );
   }
@@ -193,6 +217,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: colors.surface,
+  },
+  errorContainer: {
+    height: 100,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+  },
+  errorText: {
+    fontSize: 14,
+    color: colors.textSecondary,
   },
   scrollContent: {
     paddingHorizontal: 8,

@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   Text,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,7 +17,6 @@ import { colors } from '@/styles/commonStyles';
 import NewBarraHistorias from '@/components/social/NewBarraHistorias';
 import NewPostCard from '@/components/social/NewPostCard';
 import HeaderSocial from '@/components/layout/HeaderSocial';
-import { logger } from '@/utils/logger';
 
 interface Post {
   id: string;
@@ -52,66 +50,70 @@ export default function SocialScreen() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [page, setPage] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const loadPosts = useCallback(async (pageNum: number = 0, refresh: boolean = false) => {
-    if (!user) return;
+  const loadPosts = useCallback(async (refresh: boolean = false) => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     try {
       if (refresh) {
         setRefreshing(true);
-      } else if (pageNum === 0) {
-        setLoading(true);
       }
+      
+      setError(null);
 
-      const { data, error } = await supabase.rpc('get_user_feed', {
+      const { data, error: fetchError } = await supabase.rpc('get_user_feed', {
         p_usuario_id: user.id,
         p_limit: 20,
-        p_offset: pageNum * 20,
+        p_offset: 0,
       });
 
-      if (error) throw error;
-
-      if (data) {
-        const formattedPosts: Post[] = data.map((item: any) => ({
-          id: item.post_id,
-          autor_id: item.autor_id,
-          tipo: item.tipo,
-          local_id: item.local_id,
-          contenido: item.contenido,
-          imagenes: item.imagenes || [],
-          video_url: item.video_url,
-          ubicacion: item.ubicacion,
-          likes_count: item.likes_count,
-          comentarios_count: item.comentarios_count,
-          guardados_count: item.guardados_count,
-          user_has_liked: item.user_has_liked,
-          user_has_saved: item.user_has_saved,
-          created_at: item.created_at,
-          autor: {
-            id: item.autor_id,
-            nombre: item.autor_nombre,
-            username: item.autor_username,
-            avatar: item.autor_avatar,
-          },
-          local: item.local_id ? {
-            id: item.local_id,
-            nombre: item.local_nombre,
-          } : undefined,
-        }));
-
-        if (refresh || pageNum === 0) {
-          setPosts(formattedPosts);
-        } else {
-          setPosts(prev => [...prev, ...formattedPosts]);
-        }
-
-        setHasMore(formattedPosts.length === 20);
+      if (fetchError) {
+        console.error('Error loading posts:', fetchError);
+        setError('No se pudieron cargar las publicaciones');
+        return;
       }
-    } catch (error) {
-      logger.error('Error loading posts:', error);
-      Alert.alert('Error', 'No se pudieron cargar las publicaciones');
+
+      if (data && Array.isArray(data)) {
+        const formattedPosts: Post[] = data
+          .filter((item: any) => item && item.post_id)
+          .map((item: any) => ({
+            id: item.post_id,
+            autor_id: item.autor_id,
+            tipo: item.tipo || 'usuario',
+            local_id: item.local_id,
+            contenido: item.contenido,
+            imagenes: Array.isArray(item.imagenes) ? item.imagenes : [],
+            video_url: item.video_url,
+            ubicacion: item.ubicacion,
+            likes_count: item.likes_count || 0,
+            comentarios_count: item.comentarios_count || 0,
+            guardados_count: item.guardados_count || 0,
+            user_has_liked: item.user_has_liked || false,
+            user_has_saved: item.user_has_saved || false,
+            created_at: item.created_at,
+            autor: {
+              id: item.autor_id,
+              nombre: item.autor_nombre || 'Usuario',
+              username: item.autor_username || 'usuario',
+              avatar: item.autor_avatar,
+            },
+            local: item.local_id ? {
+              id: item.local_id,
+              nombre: item.local_nombre || 'Local',
+            } : undefined,
+          }));
+
+        setPosts(formattedPosts);
+      } else {
+        setPosts([]);
+      }
+    } catch (err) {
+      console.error('Error in loadPosts:', err);
+      setError('Error al cargar las publicaciones');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -119,20 +121,11 @@ export default function SocialScreen() {
   }, [user]);
 
   useEffect(() => {
-    loadPosts(0);
+    loadPosts();
   }, [loadPosts]);
 
   const handleRefresh = () => {
-    setPage(0);
-    loadPosts(0, true);
-  };
-
-  const handleLoadMore = () => {
-    if (!loading && hasMore) {
-      const nextPage = page + 1;
-      setPage(nextPage);
-      loadPosts(nextPage);
-    }
+    loadPosts(true);
   };
 
   const handleLike = async (postId: string) => {
@@ -142,41 +135,37 @@ export default function SocialScreen() {
       const post = posts.find(p => p.id === postId);
       if (!post) return;
 
+      // Optimistic update
+      setPosts(prev => prev.map(p => 
+        p.id === postId 
+          ? { 
+              ...p, 
+              user_has_liked: !p.user_has_liked, 
+              likes_count: p.user_has_liked ? p.likes_count - 1 : p.likes_count + 1 
+            }
+          : p
+      ));
+
       if (post.user_has_liked) {
-        const { error } = await supabase
+        await supabase
           .from('likes')
           .delete()
           .eq('post_id', postId)
           .eq('usuario_id', user.id)
           .eq('tipo', 'usuario');
-
-        if (error) throw error;
-
-        setPosts(prev => prev.map(p => 
-          p.id === postId 
-            ? { ...p, user_has_liked: false, likes_count: p.likes_count - 1 }
-            : p
-        ));
       } else {
-        const { error } = await supabase
+        await supabase
           .from('likes')
           .insert({
             post_id: postId,
             usuario_id: user.id,
             tipo: 'usuario',
           });
-
-        if (error) throw error;
-
-        setPosts(prev => prev.map(p => 
-          p.id === postId 
-            ? { ...p, user_has_liked: true, likes_count: p.likes_count + 1 }
-            : p
-        ));
       }
-    } catch (error) {
-      logger.error('Error toggling like:', error);
-      Alert.alert('Error', 'No se pudo dar like');
+    } catch (err) {
+      console.error('Error toggling like:', err);
+      // Revert optimistic update on error
+      loadPosts();
     }
   };
 
@@ -187,39 +176,35 @@ export default function SocialScreen() {
       const post = posts.find(p => p.id === postId);
       if (!post) return;
 
+      // Optimistic update
+      setPosts(prev => prev.map(p => 
+        p.id === postId 
+          ? { 
+              ...p, 
+              user_has_saved: !p.user_has_saved, 
+              guardados_count: p.user_has_saved ? p.guardados_count - 1 : p.guardados_count + 1 
+            }
+          : p
+      ));
+
       if (post.user_has_saved) {
-        const { error } = await supabase
+        await supabase
           .from('posts_guardados')
           .delete()
           .eq('post_id', postId)
           .eq('usuario_id', user.id);
-
-        if (error) throw error;
-
-        setPosts(prev => prev.map(p => 
-          p.id === postId 
-            ? { ...p, user_has_saved: false, guardados_count: p.guardados_count - 1 }
-            : p
-        ));
       } else {
-        const { error } = await supabase
+        await supabase
           .from('posts_guardados')
           .insert({
             post_id: postId,
             usuario_id: user.id,
           });
-
-        if (error) throw error;
-
-        setPosts(prev => prev.map(p => 
-          p.id === postId 
-            ? { ...p, user_has_saved: true, guardados_count: p.guardados_count + 1 }
-            : p
-        ));
       }
-    } catch (error) {
-      logger.error('Error toggling save:', error);
-      Alert.alert('Error', 'No se pudo guardar');
+    } catch (err) {
+      console.error('Error toggling save:', err);
+      // Revert optimistic update on error
+      loadPosts();
     }
   };
 
@@ -228,15 +213,31 @@ export default function SocialScreen() {
   };
 
   const handleShare = (postId: string) => {
-    Alert.alert('Compartir', 'Funcionalidad de compartir próximamente');
+    console.log('Share post:', postId);
   };
 
-  if (loading && posts.length === 0) {
+  if (loading) {
     return (
       <View style={styles.container}>
         <HeaderSocial />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Cargando feed...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <HeaderSocial />
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={64} color={colors.error} />
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={() => loadPosts()}>
+            <Text style={styles.retryButtonText}>Reintentar</Text>
+          </TouchableOpacity>
         </View>
       </View>
     );
@@ -255,14 +256,6 @@ export default function SocialScreen() {
             tintColor={colors.primary}
           />
         }
-        onScroll={({ nativeEvent }) => {
-          const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
-          const paddingToBottom = 20;
-          if (layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom) {
-            handleLoadMore();
-          }
-        }}
-        scrollEventThrottle={400}
       >
         {/* Stories Bar */}
         <NewBarraHistorias />
@@ -287,18 +280,6 @@ export default function SocialScreen() {
               onSave={handleSave}
             />
           ))
-        )}
-
-        {loading && posts.length > 0 && (
-          <View style={styles.loadingMore}>
-            <ActivityIndicator size="small" color={colors.primary} />
-          </View>
-        )}
-
-        {!hasMore && posts.length > 0 && (
-          <View style={styles.endContainer}>
-            <Text style={styles.endText}>Has visto todas las publicaciones</Text>
-          </View>
         )}
 
         <View style={{ height: 100 }} />
@@ -327,6 +308,37 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingVertical: 60,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    marginTop: 16,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  errorText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.text,
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  retryButton: {
+    marginTop: 24,
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    backgroundColor: colors.primary,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
   },
   emptyContainer: {
     flex: 1,
@@ -347,18 +359,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 8,
     textAlign: 'center',
-  },
-  loadingMore: {
-    paddingVertical: 20,
-    alignItems: 'center',
-  },
-  endContainer: {
-    paddingVertical: 20,
-    alignItems: 'center',
-  },
-  endText: {
-    fontSize: 14,
-    color: colors.textSecondary,
   },
   createButton: {
     position: 'absolute',

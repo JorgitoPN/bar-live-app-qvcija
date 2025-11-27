@@ -1,7 +1,7 @@
 
 /**
  * Conditional Logger
- * Only logs in development mode to prevent console spam in production/Expo Go
+ * Only logs critical errors to prevent console spam
  */
 
 const isDevelopment = __DEV__;
@@ -33,8 +33,10 @@ class Logger {
   }
 
   error(...args: any[]) {
-    // Always log errors
-    console.error(...args);
+    // Only log errors in development or when explicitly enabled
+    if (this.enabled || isDevelopment) {
+      console.error(...args);
+    }
   }
 
   debug(...args: any[]) {
