@@ -159,6 +159,32 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
     fetchAuthorData();
   }, [post?.id, post?.tipo, post?.autorId, post?.autor_id, post?.localId, post?.local_id]);
 
+  // ✅ FIXED: Check if post is liked on mount and when interaction context changes
+  useEffect(() => {
+    const checkIfLiked = async () => {
+      if (!interactionUserId || !post?.id) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('likes')
+          .select('id')
+          .eq('post_id', post.id)
+          .eq('usuario_id', interactionUserId)
+          .maybeSingle();
+
+        if (!error && data) {
+          setLiked(true);
+        } else {
+          setLiked(false);
+        }
+      } catch (error) {
+        console.error('[PublicacionCard] Error checking like status:', error);
+      }
+    };
+
+    checkIfLiked();
+  }, [interactionUserId, post?.id]);
+
   useEffect(() => {
     if (!post?.id) {
       console.error('[PublicacionCard] Post ID is undefined, skipping mentions load');
@@ -289,6 +315,16 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
           .eq('usuario_id', interactionUserId);
         
         console.log('[PublicacionCard] ✅ Like removed');
+      }
+
+      // ✅ FIXED: Update post likes count in database
+      const { error: updateError } = await supabase
+        .from('posts')
+        .update({ likes: newLiked ? likesCount + 1 : Math.max(0, likesCount - 1) })
+        .eq('id', post.id);
+
+      if (updateError) {
+        console.error('[PublicacionCard] Error updating post likes count:', updateError);
       }
     } catch (error) {
       console.error('[PublicacionCard] Error toggling like:', error);
