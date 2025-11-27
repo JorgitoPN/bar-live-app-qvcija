@@ -21,6 +21,7 @@ import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getEstadoLocal } from '@/utils/timeUtils';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -75,7 +76,8 @@ export default function SalaVirtualScreen() {
   const [activeTab, setActiveTab] = useState<'users' | 'chat'>('users');
   
   const flatListRef = useRef<FlatList>(null);
-  const channelRef = useRef<any>(null);
+  const chatChannelRef = useRef<RealtimeChannel | null>(null);
+  const presenceChannelRef = useRef<RealtimeChannel | null>(null);
   const localId = params.localId as string;
   const hasShownClosedAlert = useRef(false);
 
@@ -303,9 +305,9 @@ export default function SalaVirtualScreen() {
       setIsCheckedIn(true);
       console.log('[SalaVirtual] Checked in successfully:', data);
       
-      // ✅ REBUILT: Broadcast user joined event using correct Realtime v2 syntax
-      if (channelRef.current?.presenceChannel) {
-        await channelRef.current.presenceChannel.send({
+      // ✅ REBUILT: Broadcast user joined event using correct Realtime v2 broadcast syntax
+      if (presenceChannelRef.current) {
+        const broadcastResult = await presenceChannelRef.current.send({
           type: 'broadcast',
           event: 'user_joined',
           payload: {
@@ -313,6 +315,7 @@ export default function SalaVirtualScreen() {
             nombre: user.user_metadata?.nombre || user.email,
           },
         });
+        console.log('[SalaVirtual] User joined broadcast result:', broadcastResult);
       }
       
       setCheckingIn(false);
@@ -353,9 +356,9 @@ export default function SalaVirtualScreen() {
                 return;
               }
 
-              // ✅ REBUILT: Broadcast user left event using correct Realtime v2 syntax
-              if (channelRef.current?.presenceChannel) {
-                await channelRef.current.presenceChannel.send({
+              // ✅ REBUILT: Broadcast user left event using correct Realtime v2 broadcast syntax
+              if (presenceChannelRef.current) {
+                await presenceChannelRef.current.send({
                   type: 'broadcast',
                   event: 'user_left',
                   payload: {
@@ -459,7 +462,7 @@ export default function SalaVirtualScreen() {
     }
   }, [localId]);
 
-  // ✅ REBUILT: Subscribe to real-time updates using correct Realtime v2 syntax
+  // ✅ REBUILT: Subscribe to real-time updates using correct Realtime v2 broadcast syntax
   const subscribeToUpdates = useCallback(() => {
     if (!localId || !user) return () => {};
 
@@ -470,7 +473,6 @@ export default function SalaVirtualScreen() {
       .channel(`room:${localId}:chat`, {
         config: { 
           broadcast: { self: false },
-          private: false
         },
       })
       .on('broadcast', { event: 'message_created' }, async (payload) => {
@@ -500,7 +502,6 @@ export default function SalaVirtualScreen() {
       .channel(`room:${localId}:presence`, {
         config: { 
           broadcast: { self: false },
-          private: false
         },
       })
       .on('broadcast', { event: 'user_joined' }, () => {
@@ -513,7 +514,8 @@ export default function SalaVirtualScreen() {
       })
       .subscribe();
 
-    channelRef.current = { chatChannel, presenceChannel };
+    chatChannelRef.current = chatChannel;
+    presenceChannelRef.current = presenceChannel;
 
     return () => {
       console.log('[SalaVirtual] Unsubscribing from real-time updates');
@@ -597,9 +599,9 @@ export default function SalaVirtualScreen() {
         return;
       }
 
-      // ✅ REBUILT: Broadcast to all users in the room using correct Realtime v2 syntax
-      if (channelRef.current?.chatChannel) {
-        const broadcastResult = await channelRef.current.chatChannel.send({
+      // ✅ REBUILT: Broadcast to all users in the room using correct Realtime v2 broadcast syntax
+      if (chatChannelRef.current) {
+        const broadcastResult = await chatChannelRef.current.send({
           type: 'broadcast',
           event: 'message_created',
           payload: data,
