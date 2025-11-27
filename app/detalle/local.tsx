@@ -334,7 +334,7 @@ export default function DetalleLocalScreen() {
     }
   }, [userLocation, local]);
 
-  // ✅ FIXED: Check if local is favorited - SAME LOGIC AS TarjetaLocal
+  // ✅ SYNCHRONIZED: Check if local is favorited - EXACT SAME LOGIC AS TarjetaLocal
   const checkIfFavorite = useCallback(async () => {
     if (!user || !params.id) return;
     
@@ -344,16 +344,13 @@ export default function DetalleLocalScreen() {
         .select('id')
         .eq('usuario_id', user.id)
         .eq('local_id', params.id)
-        .maybeSingle();
+        .single();
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('[DetalleLocal] Error checking favorite:', error);
-        return;
+      if (data) {
+        setIsFavorite(true);
       }
-
-      setIsFavorite(!!data);
     } catch (error) {
-      console.error('[DetalleLocal] Error checking favorite:', error);
+      // Not favorited or error
       setIsFavorite(false);
     }
   }, [user, params.id]);
@@ -364,7 +361,7 @@ export default function DetalleLocalScreen() {
     }
   }, [user, checkIfFavorite]);
 
-  // ✅ FIXED: Toggle favorite - EXACT SAME LOGIC AS TarjetaLocal
+  // ✅ SYNCHRONIZED: Toggle favorite - EXACT SAME LOGIC AS TarjetaLocal
   const toggleFavorito = async (e: any) => {
     e?.stopPropagation();
     
@@ -385,12 +382,7 @@ export default function DetalleLocalScreen() {
           .eq('usuario_id', user.id)
           .eq('local_id', params.id);
 
-        if (error) {
-          console.error('[DetalleLocal] Error removing favorite:', error);
-          Alert.alert('Error', 'No se pudo quitar de favoritos');
-          return;
-        }
-        
+        if (error) throw error;
         setIsFavorite(false);
         console.log('[DetalleLocal] ✅ Removed from favorites');
       } else {
@@ -402,12 +394,7 @@ export default function DetalleLocalScreen() {
             local_id: params.id as string,
           });
 
-        if (error) {
-          console.error('[DetalleLocal] Error adding favorite:', error);
-          Alert.alert('Error', 'No se pudo agregar a favoritos');
-          return;
-        }
-        
+        if (error) throw error;
         setIsFavorite(true);
         console.log('[DetalleLocal] ✅ Added to favorites');
       }
