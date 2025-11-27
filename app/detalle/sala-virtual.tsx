@@ -287,6 +287,7 @@ export default function SalaVirtualScreen() {
       setIsCheckedIn(true);
       console.log('[SalaVirtual] ✅ Checked in successfully');
       
+      // Broadcast user joined
       if (presenceChannelRef.current) {
         try {
           await presenceChannelRef.current.send({
@@ -326,7 +327,7 @@ export default function SalaVirtualScreen() {
             try {
               console.log('[SalaVirtual] 🔄 Checking out user:', user.id, 'from local:', localId);
 
-              // ✅ FIXED: Update existing active check-ins instead of inserting
+              // ✅ FIXED: Simply UPDATE the active check-in to inactive
               const { error } = await supabase
                 .from('sala_virtual_checkins')
                 .update({
@@ -343,6 +344,7 @@ export default function SalaVirtualScreen() {
                 return;
               }
 
+              // Broadcast user left
               if (presenceChannelRef.current) {
                 try {
                   await presenceChannelRef.current.send({
