@@ -1,297 +1,431 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
-  ScrollView,
-  RefreshControl,
-  StyleSheet,
-  TouchableOpacity,
   Text,
+  StyleSheet,
+  RefreshControl,
+  TouchableOpacity,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
-import { router } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/app/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useGlobalData } from '@/contexts/GlobalDataContext';
+import { useMode } from '@/contexts/ModeContext';
 import { colors } from '@/styles/commonStyles';
+import FeedSocial from '@/components/social/FeedSocial';
 import NewBarraHistorias from '@/components/social/NewBarraHistorias';
-import NewPostCard from '@/components/social/NewPostCard';
 import HeaderSocial from '@/components/layout/HeaderSocial';
-
-interface Post {
-  id: string;
-  autor_id: string;
-  tipo: 'usuario' | 'local';
-  local_id?: string;
-  contenido?: string;
-  imagenes: string[];
-  video_url?: string;
-  ubicacion?: string;
-  likes_count: number;
-  comentarios_count: number;
-  guardados_count: number;
-  user_has_liked: boolean;
-  user_has_saved: boolean;
-  created_at: string;
-  autor: {
-    id: string;
-    nombre: string;
-    username: string;
-    avatar?: string;
-  };
-  local?: {
-    id: string;
-    nombre: string;
-  };
-}
+import { preloadStoryImages } from '@/utils/storyPreloader';
+import type { Publicacion, Historia } from '@/types';
 
 export default function SocialScreen() {
+  const router = useRouter();
   const { user } = useAuth();
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { 
+    posts: globalPosts, 
+    stories: globalStories,
+    activeLocalData,
+    activeLocalProfileId,
+  } = useGlobalData();
+  const { 
+    currentMode, 
+    activeProfileType,
+    activeProfileId,
+    activeLocalData: modeLocalData,
+  } = useMode();
 
-  const loadPosts = useCallback(async (refresh: boolean = false) => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
+  const [posts, setPosts] = useState<Publicacion[]>([]);
+  const [historias, setHistorias] = useState<Historia[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  const isLoadingRef = useRef(false);
+  const storiesPreloadedRef = useRef(false);
+
+  // ✅ Determine if user is interacting as a local
+  const isInteractingAsLocal = activeProfileType === 'local';
+  const interactionLocalId = isInteractingAsLocal ? activeProfileId : null;
+  
+  // ✅ Get avatar and name for stories bar based on active profile
+  const displayAvatar = isInteractingAsLocal 
+    ? (modeLocalData?.imagen_url || null)
+    : (user?.avatar || null);
+  
+  const displayName = isInteractingAsLocal
+    ? (modeLocalData?.nombre || 'Local')
+    : (user?.nombre || 'Usuario');
+
+  console.log('[Social] 🎭 Active Profile:', {
+    activeProfileType,
+    activeProfileId,
+    isInteractingAsLocal,
+    interactionLocalId,
+    displayName,
+    hasAvatar: !!displayAvatar,
+  });
+
+  // ✅ Load unread counts
+  const loadUnreadCounts = useCallback(async () => {
+    if (!user) return;
 
     try {
-      if (refresh) {
-        setRefreshing(true);
+      const { count: notifCount } = await supabase
+        .from('notificaciones')
+        .select('*', { count: 'exact', head: true })
+        .eq('usuario_id', user.id)
+        .eq('leida', false);
+
+      setUnreadNotifications(notifCount || 0);
+
+      const { data: chatsData } = await supabase
+        .from('chats')
+        .select('id')
+        .or(`usuario1_id.eq.${user.id},usuario2_id.eq.${user.id}`);
+
+      if (chatsData) {
+        let totalUnread = 0;
+        for (const chat of chatsData) {
+          const { count } = await supabase
+            .from('mensajes')
+            .select('*', { count: 'exact', head: true })
+            .eq('chat_id', chat.id)
+            .eq('leido', false)
+            .neq('remitente_id', user.id);
+          
+          totalUnread += count || 0;
+        }
+        setUnreadMessages(totalUnread);
       }
-      
-      setError(null);
-
-      const { data, error: fetchError } = await supabase.rpc('get_user_feed', {
-        p_usuario_id: user.id,
-        p_limit: 20,
-        p_offset: 0,
-      });
-
-      if (fetchError) {
-        console.error('Error loading posts:', fetchError);
-        setError('No se pudieron cargar las publicaciones');
-        return;
-      }
-
-      if (data && Array.isArray(data)) {
-        const formattedPosts: Post[] = data
-          .filter((item: any) => item && item.post_id)
-          .map((item: any) => ({
-            id: item.post_id,
-            autor_id: item.autor_id,
-            tipo: item.tipo || 'usuario',
-            local_id: item.local_id,
-            contenido: item.contenido,
-            imagenes: Array.isArray(item.imagenes) ? item.imagenes : [],
-            video_url: item.video_url,
-            ubicacion: item.ubicacion,
-            likes_count: item.likes_count || 0,
-            comentarios_count: item.comentarios_count || 0,
-            guardados_count: item.guardados_count || 0,
-            user_has_liked: item.user_has_liked || false,
-            user_has_saved: item.user_has_saved || false,
-            created_at: item.created_at,
-            autor: {
-              id: item.autor_id,
-              nombre: item.autor_nombre || 'Usuario',
-              username: item.autor_username || 'usuario',
-              avatar: item.autor_avatar,
-            },
-            local: item.local_id ? {
-              id: item.local_id,
-              nombre: item.local_nombre || 'Local',
-            } : undefined,
-          }));
-
-        setPosts(formattedPosts);
-      } else {
-        setPosts([]);
-      }
-    } catch (err) {
-      console.error('Error in loadPosts:', err);
-      setError('Error al cargar las publicaciones');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+    } catch (error) {
+      console.error('[Social] Error loading unread counts:', error);
     }
   }, [user]);
 
+  // ✅ BACKGROUND PRELOAD: Preload story images in background
   useEffect(() => {
-    loadPosts();
-  }, [loadPosts]);
+    if (globalStories.length > 0 && !storiesPreloadedRef.current) {
+      console.log('[Social] 🚀 Background preloading story images...');
+      storiesPreloadedRef.current = true;
+      
+      // Preload story images in background
+      const storiesToPreload = globalStories
+        .filter(s => s.imagen)
+        .map(s => ({ id: s.id, imagen: s.imagen }));
+      
+      preloadStoryImages(storiesToPreload, 0, 10).then(() => {
+        console.log('[Social] ✅ Story images preloaded in background');
+      });
+    }
+  }, [globalStories]);
 
-  const handleRefresh = () => {
-    loadPosts(true);
-  };
+  const loadData = useCallback(async () => {
+    if (isLoadingRef.current) {
+      console.log('[Social] ⚡ Already loading, skipping...');
+      return;
+    }
 
-  const handleLike = async (postId: string) => {
-    if (!user) return;
+    isLoadingRef.current = true;
 
     try {
-      const post = posts.find(p => p.id === postId);
-      if (!post) return;
+      console.log('[Social] ⚡ Loading user-specific data...');
+      console.log('[Social] 📍 Global posts available:', globalPosts.length);
+      console.log('[Social] 📍 Global stories available:', globalStories.length);
+      console.log('[Social] 🎭 Interaction mode:', {
+        isInteractingAsLocal,
+        interactionLocalId,
+        activeProfileType,
+      });
 
-      // Optimistic update
-      setPosts(prev => prev.map(p => 
-        p.id === postId 
-          ? { 
-              ...p, 
-              user_has_liked: !p.user_has_liked, 
-              likes_count: p.user_has_liked ? p.likes_count - 1 : p.likes_count + 1 
-            }
-          : p
-      ));
+      // Load unread counts
+      await loadUnreadCounts();
 
-      if (post.user_has_liked) {
-        await supabase
-          .from('likes')
-          .delete()
-          .eq('post_id', postId)
-          .eq('usuario_id', user.id)
-          .eq('tipo', 'usuario');
+      if (globalPosts.length > 0) {
+        console.log('[Social] ⚡⚡⚡ INSTANT posts from global data:', globalPosts.length);
+        
+        let validPosts = globalPosts.filter(p => p && p.id);
+        if (validPosts.length !== globalPosts.length) {
+          console.warn('[Social] Filtered out', globalPosts.length - validPosts.length, 'invalid posts from global data');
+        }
+        
+        let filteredPosts = validPosts;
+        
+        // ✅ FIXED: When interacting as local, show ALL posts (not just local's posts)
+        // The local should see the full social feed, just like a regular user
+        if (isInteractingAsLocal && interactionLocalId) {
+          console.log('[Social] 🏢 Interacting as local:', interactionLocalId);
+          // Show all posts - the local can see everything
+          // But we'll filter based on followed locals if needed
+          if (user) {
+            const { data: followedLocals } = await supabase
+              .from('locales_favoritos')
+              .select('local_id')
+              .eq('usuario_id', user.id);
+
+            const followedLocalIds = new Set(followedLocals?.map(f => f.local_id) || []);
+            
+            filteredPosts = validPosts.filter(p => 
+              p.tipo === 'usuario' || 
+              (p.tipo === 'local' && p.local_id && followedLocalIds.has(p.local_id))
+            );
+            console.log('[Social] 🏢 Local mode - Filtered user posts + followed locals, Count:', filteredPosts.length);
+          } else {
+            filteredPosts = validPosts.filter(p => p.tipo === 'usuario');
+            console.log('[Social] 🏢 Local mode - Filtered user posts only (not logged in), Count:', filteredPosts.length);
+          }
+        } else {
+          // Regular user mode
+          if (user) {
+            const { data: followedLocals } = await supabase
+              .from('locales_favoritos')
+              .select('local_id')
+              .eq('usuario_id', user.id);
+
+            const followedLocalIds = new Set(followedLocals?.map(f => f.local_id) || []);
+            
+            filteredPosts = validPosts.filter(p => 
+              p.tipo === 'usuario' || 
+              (p.tipo === 'local' && p.local_id && followedLocalIds.has(p.local_id))
+            );
+            console.log('[Social] 👤 User mode - Filtered user posts + followed locals, Count:', filteredPosts.length);
+          } else {
+            filteredPosts = validPosts.filter(p => p.tipo === 'usuario');
+            console.log('[Social] 👤 User mode - Filtered user posts only (not logged in), Count:', filteredPosts.length);
+          }
+        }
+        
+        if (user && filteredPosts.length > 0) {
+          const postIds = filteredPosts.map(p => p.id);
+          
+          const [likesResult, savesResult, commentsResult] = await Promise.all([
+            supabase
+              .from('likes')
+              .select('post_id')
+              .eq('usuario_id', user.id)
+              .in('post_id', postIds),
+            supabase
+              .from('posts_guardados')
+              .select('post_id')
+              .eq('usuario_id', user.id)
+              .in('post_id', postIds),
+            supabase
+              .from('comentarios')
+              .select('post_id')
+              .in('post_id', postIds),
+          ]);
+
+          const likedPostIds = new Set(likesResult.data?.map(l => l.post_id) || []);
+          const savedPostIds = new Set(savesResult.data?.map(s => s.post_id) || []);
+          
+          const commentCounts = commentsResult.data?.reduce((acc, c) => {
+            acc[c.post_id] = (acc[c.post_id] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>) || {};
+
+          const postsWithStatus = filteredPosts.map(post => ({
+            ...post,
+            liked: likedPostIds.has(post.id),
+            saved: savedPostIds.has(post.id),
+            comentarios: commentCounts[post.id] || 0,
+          }));
+          
+          const finalValidPosts = postsWithStatus.filter(p => p && p.id);
+          setPosts(finalValidPosts);
+          console.log('[Social] ✅ Set', finalValidPosts.length, 'valid posts with user status');
+        } else {
+          const finalValidPosts = filteredPosts.filter(p => p && p.id);
+          setPosts(finalValidPosts);
+          console.log('[Social] ✅ Set', finalValidPosts.length, 'valid posts');
+        }
       } else {
-        await supabase
-          .from('likes')
-          .insert({
-            post_id: postId,
-            usuario_id: user.id,
-            tipo: 'usuario',
-          });
+        setPosts([]);
       }
-    } catch (err) {
-      console.error('Error toggling like:', err);
-      // Revert optimistic update on error
-      loadPosts();
-    }
-  };
 
-  const handleSave = async (postId: string) => {
-    if (!user) return;
+      if (globalStories.length > 0) {
+        console.log('[Social] ⚡⚡⚡ INSTANT stories from global data:', globalStories.length);
+        
+        let validStories = globalStories.filter(s => s && s.id);
+        if (validStories.length !== globalStories.length) {
+          console.warn('[Social] Filtered out', globalStories.length - validStories.length, 'invalid stories from global data');
+        }
+        
+        let filteredStories = validStories;
+        
+        // ✅ FIXED: When interacting as local, show ALL stories (not just local's stories)
+        // The local should see the full social feed, just like a regular user
+        if (isInteractingAsLocal && interactionLocalId) {
+          console.log('[Social] 🏢 Interacting as local:', interactionLocalId);
+          // Show all stories - the local can see everything
+          if (user) {
+            const { data: followedLocals } = await supabase
+              .from('locales_favoritos')
+              .select('local_id')
+              .eq('usuario_id', user.id);
 
-    try {
-      const post = posts.find(p => p.id === postId);
-      if (!post) return;
+            const followedLocalIds = new Set(followedLocals?.map(f => f.local_id) || []);
+            
+            filteredStories = validStories.filter(s => 
+              s.tipo === 'usuario' || 
+              (s.tipo === 'local' && s.local_id && followedLocalIds.has(s.local_id))
+            );
+            console.log('[Social] 🏢 Local mode - Filtered user stories + followed locals, Count:', filteredStories.length);
+          } else {
+            filteredStories = validStories.filter(s => s.tipo === 'usuario');
+            console.log('[Social] 🏢 Local mode - Filtered user stories only (not logged in), Count:', filteredStories.length);
+          }
+        } else {
+          // Regular user mode
+          if (user) {
+            const { data: followedLocals } = await supabase
+              .from('locales_favoritos')
+              .select('local_id')
+              .eq('usuario_id', user.id);
 
-      // Optimistic update
-      setPosts(prev => prev.map(p => 
-        p.id === postId 
-          ? { 
-              ...p, 
-              user_has_saved: !p.user_has_saved, 
-              guardados_count: p.user_has_saved ? p.guardados_count - 1 : p.guardados_count + 1 
-            }
-          : p
-      ));
-
-      if (post.user_has_saved) {
-        await supabase
-          .from('posts_guardados')
-          .delete()
-          .eq('post_id', postId)
-          .eq('usuario_id', user.id);
+            const followedLocalIds = new Set(followedLocals?.map(f => f.local_id) || []);
+            
+            filteredStories = validStories.filter(s => 
+              s.tipo === 'usuario' || 
+              (s.tipo === 'local' && s.local_id && followedLocalIds.has(s.local_id))
+            );
+            console.log('[Social] 👤 User mode - Filtered user stories + followed locals, Count:', filteredStories.length);
+          } else {
+            filteredStories = validStories.filter(s => s.tipo === 'usuario');
+            console.log('[Social] 👤 User mode - Filtered user stories only (not logged in), Count:', filteredStories.length);
+          }
+        }
+        
+        setHistorias(filteredStories);
       } else {
-        await supabase
-          .from('posts_guardados')
-          .insert({
-            post_id: postId,
-            usuario_id: user.id,
-          });
+        setHistorias([]);
       }
-    } catch (err) {
-      console.error('Error toggling save:', err);
-      // Revert optimistic update on error
-      loadPosts();
+
+      console.log('[Social] ⚡ User-specific data loaded');
+    } catch (error) {
+      console.error('[Social] Error loading data:', error);
+      setPosts([]);
+      setHistorias([]);
+    } finally {
+      isLoadingRef.current = false;
+      setIsInitialLoad(false);
     }
+  }, [user, globalPosts, globalStories, isInteractingAsLocal, interactionLocalId, activeProfileType, loadUnreadCounts]);
+
+  // ✅ AUTO-UPDATE: Reload data every time the screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log('[Social] 🔄 Screen focused - auto-updating data');
+      storiesPreloadedRef.current = false; // Reset preload flag
+      loadData();
+    }, [loadData])
+  );
+
+  const onRefresh = async () => {
+    console.log('[Social] 🔄 Manual refresh triggered');
+    setRefreshing(true);
+    storiesPreloadedRef.current = false; // Reset preload flag
+    await loadData();
+    setRefreshing(false);
   };
 
-  const handleComment = (postId: string) => {
-    router.push(`/social/post?id=${postId}`);
+  const handleCreatePost = () => {
+    console.log('[Social] ➕ Create post button pressed');
+    router.push('/crear/publicacion');
   };
 
-  const handleShare = (postId: string) => {
-    console.log('Share post:', postId);
+  const handleCreateStory = () => {
+    console.log('[Social] ➕ Create story button pressed');
+    router.push('/crear/historia');
   };
 
-  if (loading) {
+  const handleHistoriaPress = (historia: Historia) => {
+    console.log('[Social] 📖 Story pressed:', historia.id);
+    router.push({
+      pathname: '/detalle/historia',
+      params: { id: historia.id },
+    });
+  };
+
+  const handleStoriesUpdate = useCallback((updatedStories: Historia[]) => {
+    console.log('[Social] ⚡ Stories updated in real-time:', updatedStories.length);
+    setHistorias(updatedStories);
+  }, []);
+
+  if (isInitialLoad && posts.length === 0) {
     return (
       <View style={styles.container}>
-        <HeaderSocial />
+        <HeaderSocial 
+          onCreatePost={handleCreatePost}
+          onCreateStory={handleCreateStory}
+          unreadNotifications={unreadNotifications}
+          unreadMessages={unreadMessages}
+        />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Cargando feed...</Text>
+          <Text style={styles.loadingText}>Cargando feed social...</Text>
         </View>
       </View>
     );
   }
 
-  if (error) {
-    return (
-      <View style={styles.container}>
-        <HeaderSocial />
-        <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle-outline" size={64} color={colors.error} />
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={() => loadPosts()}>
-            <Text style={styles.retryButtonText}>Reintentar</Text>
-          </TouchableOpacity>
-        </View>
+  const ListHeaderComponent = () => (
+    <>
+      <View style={styles.storiesSection}>
+        <NewBarraHistorias 
+          historias={historias}
+          onHistoriaPress={handleHistoriaPress}
+          onCrearHistoria={handleCreateStory}
+          userAvatar={displayAvatar || undefined}
+          userName={displayName}
+          onStoriesUpdate={handleStoriesUpdate}
+        />
       </View>
-    );
-  }
+    </>
+  );
+
+  const ListEmptyComponent = () => (
+    <View style={styles.emptyState}>
+      <Ionicons name="images-outline" size={64} color={colors.textSecondary} />
+      <Text style={styles.emptyStateTitle}>No hay publicaciones</Text>
+      <Text style={styles.emptyStateText}>
+        {isInteractingAsLocal 
+          ? 'Crea la primera publicación de tu local'
+          : 'Sigue a usuarios o locales para ver sus publicaciones'}
+      </Text>
+      <TouchableOpacity 
+        style={styles.createButton}
+        onPress={handleCreatePost}
+      >
+        <Ionicons name="add-circle" size={24} color={colors.background} />
+        <Text style={styles.createButtonText}>Crear publicación</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
-      <HeaderSocial />
-      
-      <ScrollView
-        style={styles.scrollView}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor={colors.primary}
-          />
-        }
-      >
-        {/* Stories Bar */}
-        <NewBarraHistorias />
-
-        {/* Posts Feed */}
-        {posts.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Ionicons name="images-outline" size={64} color={colors.textSecondary} />
-            <Text style={styles.emptyText}>No hay publicaciones</Text>
-            <Text style={styles.emptySubtext}>
-              Sigue a otros usuarios para ver sus publicaciones
-            </Text>
-          </View>
-        ) : (
-          posts.map((post) => (
-            <NewPostCard
-              key={post.id}
-              post={post}
-              onLike={handleLike}
-              onComment={handleComment}
-              onShare={handleShare}
-              onSave={handleSave}
-            />
-          ))
-        )}
-
-        <View style={{ height: 100 }} />
-      </ScrollView>
-
-      {/* Create Post Button */}
-      <TouchableOpacity
-        style={styles.createButton}
-        onPress={() => router.push('/crear/publicacion')}
-      >
-        <Ionicons name="add" size={28} color="#fff" />
-      </TouchableOpacity>
+      <HeaderSocial 
+        onCreatePost={handleCreatePost}
+        onCreateStory={handleCreateStory}
+        unreadNotifications={unreadNotifications}
+        unreadMessages={unreadMessages}
+      />
+      {posts.length > 0 ? (
+        <FeedSocial 
+          posts={posts} 
+          onRefresh={onRefresh}
+          refreshing={refreshing}
+          ListHeaderComponent={ListHeaderComponent}
+        />
+      ) : (
+        <>
+          <ListHeaderComponent />
+          <ListEmptyComponent />
+        </>
+      )}
     </View>
   );
 }
@@ -301,79 +435,59 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  scrollView: {
-    flex: 1,
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 60,
+    paddingTop: 100,
   },
   loadingText: {
+    marginTop: 16,
     fontSize: 16,
     color: colors.textSecondary,
-    marginTop: 16,
+    fontFamily: 'System',
   },
-  errorContainer: {
+  storiesSection: {
+    backgroundColor: colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 40,
-  },
-  errorText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
-    marginTop: 16,
-    textAlign: 'center',
-  },
-  retryButton: {
-    marginTop: 24,
     paddingHorizontal: 32,
-    paddingVertical: 12,
-    backgroundColor: colors.primary,
-    borderRadius: 8,
+    paddingTop: 100,
   },
-  retryButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 40,
-  },
-  emptyText: {
+  emptyStateTitle: {
     fontSize: 20,
     fontWeight: '600',
     color: colors.text,
     marginTop: 16,
-    textAlign: 'center',
+    marginBottom: 8,
+    fontFamily: 'System',
   },
-  emptySubtext: {
+  emptyStateText: {
     fontSize: 14,
     color: colors.textSecondary,
-    marginTop: 8,
     textAlign: 'center',
+    lineHeight: 20,
+    fontFamily: 'System',
   },
   createButton: {
-    position: 'absolute',
-    right: 20,
-    bottom: 90,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 24,
+    marginTop: 24,
+  },
+  createButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.background,
+    marginLeft: 8,
+    fontFamily: 'System',
   },
 });

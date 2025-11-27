@@ -1,262 +1,319 @@
 
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  ScrollView,
-  TouchableOpacity,
-  Text,
-  StyleSheet,
-  ActivityIndicator,
-} from 'react-native';
-import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '@/app/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import React, { memo, useEffect, useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { IconSymbol } from '@/components/IconSymbol';
+import { Historia } from '@/types';
 import { colors } from '@/styles/commonStyles';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useAuth } from '@/contexts/AuthContext';
+import { useMode } from '@/contexts/ModeContext';
+import { supabase } from '@/utils/supabase';
 import StoryAvatar from '@/components/common/StoryAvatar';
 
-interface Story {
-  historia_id: string;
-  autor_id: string;
-  autor_nombre: string;
-  autor_username: string;
-  autor_avatar?: string;
-  tipo: 'usuario' | 'local';
-  local_id?: string;
-  local_nombre?: string;
-  imagen: string;
-  user_has_viewed: boolean;
-  created_at: string;
+interface NewBarraHistoriasProps {
+  historias: Historia[];
+  onHistoriaPress: (historia: Historia) => void;
+  onCrearHistoria?: () => void;
+  userAvatar?: string;
+  userName?: string;
+  onStoriesUpdate?: (historias: Historia[]) => void;
 }
 
-interface StoryGroup {
-  autor_id: string;
-  autor_nombre: string;
-  autor_username: string;
-  autor_avatar?: string;
-  tipo: 'usuario' | 'local';
-  local_id?: string;
-  local_nombre?: string;
-  stories: Story[];
-  has_unviewed: boolean;
-}
+// ✅ INSTAGRAM-STYLE: Create Story Button (shown when user has no stories)
+const CreateStoryButton = memo(({ 
+  onPress,
+  userAvatar,
+  userName,
+}: { 
+  onPress: () => void;
+  userAvatar?: string;
+  userName?: string;
+}) => {
+  return (
+    <TouchableOpacity style={styles.createStory} onPress={onPress} activeOpacity={0.7}>
+      <StoryAvatar
+        userId=""
+        userStories={[]}
+        avatarUrl={userAvatar}
+        userName={userName || 'Tu historia'}
+        size={92}
+        onPress={onPress}
+        showLabel={true}
+        labelText="Tu historia"
+      />
+      <View style={styles.createAddButton}>
+        <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={32} color={colors.primary} />
+      </View>
+    </TouchableOpacity>
+  );
+});
 
-export default function NewBarraHistorias() {
+CreateStoryButton.displayName = 'CreateStoryButton';
+
+// Main Component
+const NewBarraHistorias = memo(function NewBarraHistorias({
+  historias,
+  onHistoriaPress,
+  onCrearHistoria,
+  userAvatar,
+  userName,
+  onStoriesUpdate,
+}: NewBarraHistoriasProps) {
   const { user } = useAuth();
-  const [storyGroups, setStoryGroups] = useState<StoryGroup[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    loadStories();
-  }, []);
-
-  const loadStories = async () => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setError(false);
+  const { activeProfileType, activeProfileId, activeLocalData } = useMode();
+  
+  // ✅ Determine if user is interacting as a local
+  const isInteractingAsLocal = activeProfileType === 'local';
+  const interactionId = isInteractingAsLocal ? activeProfileId : user?.id;
+  
+  console.log('[NewBarraHistorias] 🎭 Interaction context:', {
+    activeProfileType,
+    activeProfileId,
+    isInteractingAsLocal,
+    interactionId,
+    localName: activeLocalData?.nombre,
+  });
+  
+  // ✅ Separate user's own stories from others based on interaction context
+  const { userStories, otherStories } = useMemo(() => {
+    if (isInteractingAsLocal && activeProfileId) {
+      // When interacting as local, show local's stories as "own stories"
+      const userStories = historias.filter(h => 
+        h.tipo === 'local' && h.local_id === activeProfileId
+      );
+      const otherStories = historias.filter(h => 
+        !(h.tipo === 'local' && h.local_id === activeProfileId)
+      );
       
-      const { data, error: fetchError } = await supabase.rpc('get_active_stories', {
-        p_usuario_id: user.id,
+      console.log('[NewBarraHistorias] 🏢 Local mode stories:', {
+        localId: activeProfileId,
+        userStories: userStories.length,
+        otherStories: otherStories.length,
+      });
+      
+      return { userStories, otherStories };
+    } else if (user) {
+      // Regular user mode
+      const userStories = historias.filter(h => 
+        h.tipo === 'usuario' && h.autor_id === user.id
+      );
+      const otherStories = historias.filter(h => 
+        !(h.tipo === 'usuario' && h.autor_id === user.id)
+      );
+      
+      console.log('[NewBarraHistorias] 👤 User mode stories:', {
+        userId: user.id,
+        userStories: userStories.length,
+        otherStories: otherStories.length,
+      });
+      
+      return { userStories, otherStories };
+    }
+    
+    return { userStories: [], otherStories: historias };
+  }, [historias, user, isInteractingAsLocal, activeProfileId]);
+
+  // ✅ REAL-TIME: Story updates subscription
+  useEffect(() => {
+    if (!user || !onStoriesUpdate) return;
+
+    console.log('[NewBarraHistorias] ⚡ Setting up real-time story subscription');
+
+    const channel = supabase
+      .channel('stories_realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'historias',
+        },
+        async (payload) => {
+          console.log('[NewBarraHistorias] ⚡ New story detected:', payload);
+          
+          // Fetch the complete story data with author info
+          const { data: newStory, error } = await supabase
+            .from('historias')
+            .select(`
+              *,
+              autor:usuarios!historias_autor_id_fkey(
+                id,
+                nombre,
+                username,
+                avatar
+              )
+            `)
+            .eq('id', payload.new.id)
+            .single();
+
+          if (error) {
+            console.error('[NewBarraHistorias] Error fetching new story:', error);
+            return;
+          }
+
+          if (newStory) {
+            console.log('[NewBarraHistorias] ✅ Adding new story to list');
+            // Add the new story to the existing list
+            onStoriesUpdate([...historias, newStory as Historia]);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'historias',
+        },
+        (payload) => {
+          console.log('[NewBarraHistorias] ⚡ Story deleted:', payload);
+          // Remove the deleted story from the list
+          onStoriesUpdate(historias.filter(h => h.id !== payload.old.id));
+        }
+      )
+      .subscribe((status) => {
+        console.log('[NewBarraHistorias] Subscription status:', status);
       });
 
-      if (fetchError) {
-        console.error('Error loading stories:', fetchError);
-        setError(true);
-        setLoading(false);
-        return;
+    return () => {
+      console.log('[NewBarraHistorias] Unsubscribing from stories');
+      supabase.removeChannel(channel);
+    };
+  }, [user, historias, onStoriesUpdate]);
+  
+  // Group stories by author to show only one avatar per author
+  const groupedStories = useMemo(() => {
+    const groups = new Map<string, Historia[]>();
+    
+    otherStories.forEach(historia => {
+      const authorId = historia.tipo === 'usuario' ? historia.autor_id : historia.local_id;
+      if (!authorId) return;
+      
+      if (!groups.has(authorId)) {
+        groups.set(authorId, []);
       }
-
-      if (data && Array.isArray(data)) {
-        // Group stories by author
-        const grouped: { [key: string]: StoryGroup } = {};
-
-        data.forEach((story: any) => {
-          if (!story || !story.historia_id || !story.autor_id) return;
-          
-          const key = story.autor_id;
-          
-          if (!grouped[key]) {
-            grouped[key] = {
-              autor_id: story.autor_id,
-              autor_nombre: story.autor_nombre || 'Usuario',
-              autor_username: story.autor_username || 'usuario',
-              autor_avatar: story.autor_avatar,
-              tipo: story.tipo || 'usuario',
-              local_id: story.local_id,
-              local_nombre: story.local_nombre,
-              stories: [],
-              has_unviewed: false,
-            };
-          }
-
-          grouped[key].stories.push({
-            historia_id: story.historia_id,
-            autor_id: story.autor_id,
-            autor_nombre: story.autor_nombre || 'Usuario',
-            autor_username: story.autor_username || 'usuario',
-            autor_avatar: story.autor_avatar,
-            tipo: story.tipo || 'usuario',
-            local_id: story.local_id,
-            local_nombre: story.local_nombre,
-            imagen: story.imagen,
-            user_has_viewed: story.user_has_viewed || false,
-            created_at: story.created_at,
-          });
-
-          if (!story.user_has_viewed) {
-            grouped[key].has_unviewed = true;
-          }
-        });
-
-        setStoryGroups(Object.values(grouped));
-      } else {
-        setStoryGroups([]);
-      }
-    } catch (err) {
-      console.error('Error in loadStories:', err);
-      setError(true);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleStoryPress = (group: StoryGroup) => {
-    router.push({
-      pathname: '/detalle/historia',
-      params: {
-        autorId: group.autor_id,
-        tipo: group.tipo,
-      },
+      groups.get(authorId)!.push(historia);
     });
-  };
-
-  const handleCreateStory = () => {
-    router.push('/crear/historia');
-  };
-
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="small" color={colors.primary} />
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Error al cargar historias</Text>
-      </View>
-    );
-  }
-
+    
+    // Convert to array and sort by most recent story
+    return Array.from(groups.entries())
+      .map(([authorId, stories]) => ({
+        authorId,
+        stories: stories.sort((a, b) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        ),
+        latestStory: stories[0],
+      }))
+      .sort((a, b) => 
+        new Date(b.latestStory.created_at).getTime() - new Date(a.latestStory.created_at).getTime()
+      );
+  }, [otherStories]);
+  
   return (
     <View style={styles.container}>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        removeClippedSubviews={false}
+        scrollEventThrottle={16}
+        decelerationRate="fast"
       >
-        {/* Create Story Button */}
-        <TouchableOpacity style={styles.storyItem} onPress={handleCreateStory}>
-          <View style={styles.createStoryContainer}>
-            <StoryAvatar
-              imageUrl={user?.avatar}
-              size={64}
-              hasStory={false}
-              viewed={false}
-            />
-            <View style={styles.addButton}>
-              <Ionicons name="add" size={20} color="#fff" />
+        {/* ✅ INSTAGRAM-STYLE: User's Own Story or Create Story Button (FIRST ELEMENT) */}
+        {user && onCrearHistoria && (
+          userStories.length > 0 ? (
+            // Show user's story with StoryAvatar component
+            <View style={styles.storyContainer}>
+              <StoryAvatar
+                userId={interactionId || ''}
+                userStories={userStories}
+                avatarUrl={userAvatar}
+                userName={isInteractingAsLocal ? activeLocalData?.nombre || 'Tu local' : 'Tu historia'}
+                size={92}
+                onPress={() => onHistoriaPress(userStories[0])}
+                showLabel={true}
+                labelText={isInteractingAsLocal ? activeLocalData?.nombre || 'Tu local' : 'Tu historia'}
+              />
             </View>
-          </View>
-          <Text style={styles.storyLabel} numberOfLines={1}>
-            Tu historia
-          </Text>
-        </TouchableOpacity>
-
-        {/* Story Groups */}
-        {storyGroups.map((group) => (
-          <TouchableOpacity
-            key={group.autor_id}
-            style={styles.storyItem}
-            onPress={() => handleStoryPress(group)}
-          >
-            <StoryAvatar
-              imageUrl={group.autor_avatar}
-              size={64}
-              hasStory={true}
-              viewed={!group.has_unviewed}
+          ) : (
+            // Show create story button
+            <CreateStoryButton 
+              onPress={onCrearHistoria}
+              userAvatar={userAvatar}
+              userName={userName || (isInteractingAsLocal ? activeLocalData?.nombre : user.nombre)}
             />
-            <Text style={styles.storyLabel} numberOfLines={1}>
-              {group.tipo === 'local' && group.local_nombre
-                ? group.local_nombre
-                : group.autor_nombre}
-            </Text>
-          </TouchableOpacity>
-        ))}
+          )
+        )}
+
+        {/* ✅ INSTAGRAM-STYLE: Other Users' Stories (grouped by author) */}
+        {groupedStories.map(({ authorId, stories, latestStory }) => {
+          const displayName = latestStory.tipo === 'local'
+            ? (latestStory.autorNombre || 'Local')
+            : (latestStory.autor?.username || latestStory.autorUsername || latestStory.autorNombre || latestStory.autor?.nombre || 'Usuario').replace(/^@/, '');
+          
+          const avatarUrl = latestStory.autorAvatar || latestStory.autor?.avatar || null;
+          
+          return (
+            <View key={authorId} style={styles.storyContainer}>
+              <StoryAvatar
+                userId={authorId}
+                userStories={stories}
+                avatarUrl={avatarUrl || undefined}
+                userName={displayName}
+                size={92}
+                onPress={() => onHistoriaPress(latestStory)}
+                showLabel={true}
+              />
+            </View>
+          );
+        })}
       </ScrollView>
     </View>
   );
-}
+}, (prevProps, nextProps) => {
+  return (
+    prevProps.historias.length === nextProps.historias.length &&
+    prevProps.historias[0]?.id === nextProps.historias[0]?.id &&
+    prevProps.historias[0]?.visto_por_usuario === nextProps.historias[0]?.visto_por_usuario &&
+    prevProps.historias[0]?.autorAvatar === nextProps.historias[0]?.autorAvatar &&
+    prevProps.userAvatar === nextProps.userAvatar &&
+    prevProps.userName === nextProps.userName
+  );
+});
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    paddingVertical: 12,
-  },
-  loadingContainer: {
-    height: 100,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-  },
-  errorContainer: {
-    height: 100,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-  },
-  errorText: {
-    fontSize: 14,
-    color: colors.textSecondary,
+    backgroundColor: colors.background,
+    paddingVertical: 0,
+    borderBottomWidth: 0,
+    marginTop: 0,
   },
   scrollContent: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    gap: 12,
   },
-  storyItem: {
+  createStory: {
     alignItems: 'center',
-    marginHorizontal: 6,
-    width: 72,
-  },
-  createStoryContainer: {
+    width: 96,
     position: 'relative',
   },
-  addButton: {
+  createAddButton: {
     position: 'absolute',
-    bottom: 0,
+    bottom: 20,
     right: 0,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.background,
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: colors.surface,
+    justifyContent: 'center',
+    zIndex: 1,
   },
-  storyLabel: {
-    fontSize: 12,
-    color: colors.text,
-    marginTop: 6,
-    textAlign: 'center',
-    width: '100%',
+  storyContainer: {
+    alignItems: 'center',
+    width: 96,
   },
 });
+
+export default NewBarraHistorias;

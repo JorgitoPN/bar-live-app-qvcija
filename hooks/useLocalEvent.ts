@@ -1,7 +1,6 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/utils/supabase';
-import { logger } from '@/utils/logger';
 
 interface EventoData {
   id: string;
@@ -34,9 +33,12 @@ export function useLocalEvent(localId: string | undefined) {
         const currentDate = now.toISOString().split('T')[0];
         const currentTime = now.toTimeString().split(' ')[0].substring(0, 8);
 
-        logger.debug('[useLocalEvent] Fetching active event for local:', localId);
+        console.log('[useLocalEvent] Fetching active event for local:', localId);
+        console.log('[useLocalEvent] Current date:', currentDate);
+        console.log('[useLocalEvent] Current time:', currentTime);
 
         // Fetch all active events for this local and filter in memory
+        // This is more reliable than complex SQL queries
         const { data: allEvents, error: eventsError } = await supabase
           .from('eventos')
           .select('id, titulo, fecha, fecha_fin, hora, hora_fin, imagen_url, precio')
@@ -46,15 +48,26 @@ export function useLocalEvent(localId: string | undefined) {
           .order('hora', { ascending: true });
 
         if (eventsError) {
-          logger.error('[useLocalEvent] Error fetching events:', eventsError.message);
+          console.error('[useLocalEvent] Error fetching events:', eventsError);
+          console.error('[useLocalEvent] Error code:', eventsError.code);
+          console.error('[useLocalEvent] Error message:', eventsError.message);
+          console.error('[useLocalEvent] Error details:', eventsError.details);
+          console.error('[useLocalEvent] Error hint:', eventsError.hint);
           
           // Check if the error is an HTML response (500 error)
           const errorMessage = eventsError.message || '';
           if (errorMessage.includes('<html>') || errorMessage.includes('<!DOCTYPE') || errorMessage.includes('500 Internal Server Error')) {
+            console.error('[useLocalEvent] ⚠️ Received HTML error page instead of JSON. This indicates a server error.');
+            console.error('[useLocalEvent] Possible causes:');
+            console.error('[useLocalEvent] 1. Supabase API is experiencing issues');
+            console.error('[useLocalEvent] 2. Database query timeout or resource limit');
+            console.error('[useLocalEvent] 3. RLS policy evaluation error');
+            console.error('[useLocalEvent] 4. Network connectivity issues');
+            
             // Retry logic for server errors
             if (retryCount < 3 && isMounted) {
-              const retryDelay = Math.min(1000 * Math.pow(2, retryCount), 5000);
-              logger.debug(`[useLocalEvent] Retrying in ${retryDelay}ms (attempt ${retryCount + 1}/3)...`);
+              const retryDelay = Math.min(1000 * Math.pow(2, retryCount), 5000); // Exponential backoff, max 5s
+              console.log(`[useLocalEvent] Retrying in ${retryDelay}ms (attempt ${retryCount + 1}/3)...`);
               
               retryTimeout = setTimeout(() => {
                 if (isMounted) {
@@ -62,13 +75,15 @@ export function useLocalEvent(localId: string | undefined) {
                 }
               }, retryDelay);
               return;
+            } else {
+              console.error('[useLocalEvent] Max retries reached or component unmounted. Giving up.');
             }
           }
           
           if (isMounted) {
             setEvento(null);
             setLoading(false);
-            setRetryCount(0);
+            setRetryCount(0); // Reset retry count on final failure
           }
           return;
         }
@@ -79,7 +94,7 @@ export function useLocalEvent(localId: string | undefined) {
         }
 
         if (!allEvents || allEvents.length === 0) {
-          logger.debug('[useLocalEvent] No active events found');
+          console.log('[useLocalEvent] No active events found');
           if (isMounted) {
             setEvento(null);
             setLoading(false);
@@ -105,10 +120,10 @@ export function useLocalEvent(localId: string | undefined) {
           // Check if event is live
           if (now >= eventStartDate && now <= eventEndDate) {
             liveEvent = event;
-            break;
+            break; // Prioritize live events
           }
 
-          // Check if event is upcoming
+          // Check if event is upcoming (and we haven't found one yet)
           if (!upcomingEvent && now < eventStartDate) {
             upcomingEvent = event;
           }
@@ -116,24 +131,31 @@ export function useLocalEvent(localId: string | undefined) {
 
         if (isMounted) {
           if (liveEvent) {
-            logger.debug('[useLocalEvent] Found LIVE event:', liveEvent.titulo);
+            console.log('[useLocalEvent] Found LIVE event:', liveEvent.titulo);
             setEvento(liveEvent);
           } else if (upcomingEvent) {
-            logger.debug('[useLocalEvent] Found UPCOMING event:', upcomingEvent.titulo);
+            console.log('[useLocalEvent] Found UPCOMING event:', upcomingEvent.titulo);
             setEvento(upcomingEvent);
           } else {
-            logger.debug('[useLocalEvent] No active or upcoming events found');
+            console.log('[useLocalEvent] No active or upcoming events found');
             setEvento(null);
           }
           setLoading(false);
         }
       } catch (error) {
-        logger.error('[useLocalEvent] Unexpected error:', error);
+        console.error('[useLocalEvent] Unexpected error:', error);
         
-        // Retry on unexpected errors
+        // Log additional details about the error
+        if (error instanceof Error) {
+          console.error('[useLocalEvent] Error name:', error.name);
+          console.error('[useLocalEvent] Error message:', error.message);
+          console.error('[useLocalEvent] Error stack:', error.stack);
+        }
+        
+        // Retry on unexpected errors too
         if (retryCount < 3 && isMounted) {
           const retryDelay = Math.min(1000 * Math.pow(2, retryCount), 5000);
-          logger.debug(`[useLocalEvent] Retrying after unexpected error in ${retryDelay}ms`);
+          console.log(`[useLocalEvent] Retrying after unexpected error in ${retryDelay}ms (attempt ${retryCount + 1}/3)...`);
           
           retryTimeout = setTimeout(() => {
             if (isMounted) {
@@ -153,7 +175,7 @@ export function useLocalEvent(localId: string | undefined) {
 
     fetchActiveEvent();
     
-    // Refresh every minute
+    // Refresh every minute to keep countdown accurate
     const interval = setInterval(() => {
       if (isMounted) {
         fetchActiveEvent();
@@ -167,7 +189,7 @@ export function useLocalEvent(localId: string | undefined) {
         clearTimeout(retryTimeout);
       }
     };
-  }, [localId, retryCount]);
+  }, [localId, retryCount]); // Add retryCount to dependencies to trigger refetch
 
   return { evento, loading };
 }

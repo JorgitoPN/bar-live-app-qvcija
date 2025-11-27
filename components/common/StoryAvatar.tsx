@@ -1,40 +1,55 @@
 
 import React, { memo } from 'react';
-import { View, Image, StyleSheet } from 'react-native';
+import { View, Image, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
+import { useStoryState } from '@/contexts/StoryStateContext';
 
 interface StoryAvatarProps {
-  imageUrl?: string;
+  userId: string;
+  userStories: any[];
+  avatarUrl?: string;
+  userName: string;
   size?: number;
-  hasStory?: boolean;
-  viewed?: boolean;
+  onPress?: () => void;
+  showLabel?: boolean;
+  labelText?: string;
 }
 
-// Instagram-style story outline colors
+// ✅ INSTAGRAM-STYLE: Consistent story outline color across all components
 const STORY_OUTLINE_COLORS = ['#10B981', '#3B82F6']; // Green to Blue gradient
-const VIEWED_OUTLINE_COLOR = colors.border;
 
 const StoryAvatar = memo(function StoryAvatar({
-  imageUrl,
+  userId,
+  userStories,
+  avatarUrl,
+  userName,
   size = 64,
-  hasStory = false,
-  viewed = false,
+  onPress,
+  showLabel = false,
+  labelText,
 }: StoryAvatarProps) {
+  const { hasUnviewedStories } = useStoryState();
+  
+  const hasActiveStories = userStories.length > 0;
+  const showOutline = hasActiveStories && hasUnviewedStories(userId, userStories);
+
   const avatarSize = size;
   const ringSize = size + 8;
   const borderRadius = size / 2;
   const ringBorderRadius = ringSize / 2;
 
-  const showOutline = hasStory;
-  const isViewed = viewed;
-
   return (
-    <View style={[styles.container, { width: ringSize, height: ringSize }]}>
+    <TouchableOpacity
+      style={[styles.container, { width: ringSize, height: ringSize }]}
+      onPress={onPress}
+      activeOpacity={0.8}
+      disabled={!hasActiveStories || !onPress}
+    >
       <View style={[styles.avatarWrapper, { width: ringSize, height: ringSize }]}>
-        {/* Story Ring */}
-        {showOutline && !isViewed && (
+        {/* ✅ FIXED: Perfect centering - ring is positioned absolutely and perfectly centered */}
+        {showOutline && (
           <LinearGradient
             colors={STORY_OUTLINE_COLORS}
             start={{ x: 0, y: 0 }}
@@ -49,22 +64,6 @@ const StoryAvatar = memo(function StoryAvatar({
             ]}
           />
         )}
-        
-        {/* Viewed Story Ring */}
-        {showOutline && isViewed && (
-          <View
-            style={[
-              styles.viewedRing,
-              {
-                width: ringSize,
-                height: ringSize,
-                borderRadius: ringBorderRadius,
-              },
-            ]}
-          />
-        )}
-        
-        {/* Avatar Container */}
         <View
           style={[
             styles.avatarContainer,
@@ -75,9 +74,9 @@ const StoryAvatar = memo(function StoryAvatar({
             },
           ]}
         >
-          {imageUrl ? (
+          {avatarUrl ? (
             <Image
-              source={{ uri: imageUrl }}
+              source={{ uri: avatarUrl }}
               style={[
                 styles.avatar,
                 {
@@ -102,13 +101,18 @@ const StoryAvatar = memo(function StoryAvatar({
                 ios_icon_name="person.fill"
                 android_material_icon_name="person"
                 size={avatarSize * 0.5}
-                color={colors.textSecondary}
+                color={colors.headerText}
               />
             </View>
           )}
         </View>
       </View>
-    </View>
+      {showLabel && (
+        <Text style={styles.label} numberOfLines={1}>
+          {labelText || userName}
+        </Text>
+      )}
+    </TouchableOpacity>
   );
 });
 
@@ -124,21 +128,19 @@ const styles = StyleSheet.create({
   },
   storyRing: {
     position: 'absolute',
+    // ✅ FIXED: Perfect centering using absolute positioning with no transform
     top: 0,
     left: 0,
-  },
-  viewedRing: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    borderWidth: 2,
-    borderColor: VIEWED_OUTLINE_COLOR,
+    right: 0,
+    bottom: 0,
+    margin: 'auto',
   },
   avatarContainer: {
     backgroundColor: colors.background,
     borderWidth: 3,
     borderColor: colors.background,
     overflow: 'hidden',
+    // ✅ FIXED: Ensure avatar is centered within the ring
     position: 'absolute',
     top: 4,
     left: 4,
@@ -148,9 +150,16 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   avatarPlaceholder: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.primary + '40',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  label: {
+    marginTop: 4,
+    fontSize: 12,
+    color: colors.text,
+    textAlign: 'center',
+    maxWidth: 72,
   },
 });
 
