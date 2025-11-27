@@ -167,7 +167,7 @@ export default function SalaVirtualScreen() {
     }
   }, [user, localId]);
 
-  // ✅ COMPLETELY REBUILT: Handle check-in with proper validation
+  // ✅ Handle check-in with proper validation
   const handleCheckIn = async () => {
     if (!user || !localId) {
       Alert.alert('Error', 'Debes iniciar sesión para entrar en la sala');
