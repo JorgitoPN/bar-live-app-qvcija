@@ -334,7 +334,7 @@ export default function DetalleLocalScreen() {
     }
   }, [userLocation, local]);
 
-  // Check if local is favorited
+  // Check if local is favorited - SAME LOGIC AS TarjetaLocal
   const checkIfFavorite = useCallback(async () => {
     if (!user || !params.id) return;
     
@@ -350,6 +350,7 @@ export default function DetalleLocalScreen() {
         setIsFavorite(true);
       }
     } catch (error) {
+      // Not favorited or error
       setIsFavorite(false);
     }
   }, [user, params.id]);
@@ -360,7 +361,7 @@ export default function DetalleLocalScreen() {
     }
   }, [user, checkIfFavorite]);
 
-  // Toggle favorite
+  // Toggle favorite - SAME LOGIC AS TarjetaLocal
   const toggleFavorito = async (e: any) => {
     e?.stopPropagation();
     
@@ -374,6 +375,7 @@ export default function DetalleLocalScreen() {
     setLoadingFavorite(true);
     try {
       if (isFavorite) {
+        // Eliminar de favoritos
         const { error } = await supabase
           .from('locales_guardados')
           .delete()
@@ -383,6 +385,7 @@ export default function DetalleLocalScreen() {
         if (error) throw error;
         setIsFavorite(false);
       } else {
+        // Agregar a favoritos
         const { error } = await supabase
           .from('locales_guardados')
           .insert({
@@ -837,7 +840,7 @@ export default function DetalleLocalScreen() {
             </BlurView>
           </TouchableOpacity>
 
-          {/* ✅ NEW: Favorite button in bottom right corner - SYNCHRONIZED */}
+          {/* ✅ SYNCHRONIZED: Favorite button with same logic as TarjetaLocal */}
           <TouchableOpacity
             style={styles.favoriteButton}
             onPress={toggleFavorito}

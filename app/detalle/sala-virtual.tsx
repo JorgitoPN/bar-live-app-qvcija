@@ -816,7 +816,7 @@ export default function SalaVirtualScreen() {
     );
   };
 
-  // ✅ SPECTACULAR: Render message with consistent design
+  // ✅ REDESIGNED: Render message with design from attached image
   const renderMessage = ({ item }: { item: Message }) => {
     const isOwnMessage = user && item.usuario_id === user.id;
 
@@ -882,9 +882,11 @@ export default function SalaVirtualScreen() {
             activeOpacity={isOwnMessage ? 0.7 : 1}
           >
             {/* Username */}
-            <Text style={[styles.messageSender, isOwnMessage && styles.ownMessageSender]}>
-              {item.usuario.username ? `@${item.usuario.username}` : item.usuario.nombre}
-            </Text>
+            {!isOwnMessage && (
+              <Text style={styles.messageSender}>
+                {item.usuario.username ? `@${item.usuario.username}` : item.usuario.nombre}
+              </Text>
+            )}
             
             {/* Message content */}
             <Text
@@ -1190,69 +1192,92 @@ export default function SalaVirtualScreen() {
       />
 
       <View style={styles.content}>
-        {/* ✅ SPECTACULAR: New tab bar design with BarLive colors */}
-        <View style={styles.tabBar}>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'users' && styles.tabActive]}
-            onPress={() => setActiveTab('users')}
-            activeOpacity={0.7}
-          >
-            <LinearGradient
-              colors={activeTab === 'users' 
-                ? [ROOM_COLORS.primary, ROOM_COLORS.secondary] 
-                : ['transparent', 'transparent']
-              }
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.tabGradient}
+        {/* ✅ FIXED: Tab bar with proper rounded corners and no overflow */}
+        <View style={styles.tabBarContainer}>
+          <View style={styles.tabBar}>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'users' && styles.tabActive]}
+              onPress={() => setActiveTab('users')}
+              activeOpacity={0.7}
             >
-              <View style={styles.tabIconContainer}>
-                <IconSymbol
-                  ios_icon_name="person.3.fill"
-                  android_material_icon_name="group"
-                  size={22}
-                  color={activeTab === 'users' ? '#fff' : colors.textSecondary}
-                />
-              </View>
-              <View style={styles.tabTextContainer}>
-                <Text style={[styles.tabText, activeTab === 'users' && styles.tabTextActive]}>
-                  Usuarios
-                </Text>
-                <View style={[styles.tabBadge, activeTab === 'users' && styles.tabBadgeActive]}>
-                  <Text style={[styles.tabBadgeText, activeTab === 'users' && styles.tabBadgeTextActive]}>
-                    {activeUsers.length}
-                  </Text>
+              {activeTab === 'users' ? (
+                <LinearGradient
+                  colors={[ROOM_COLORS.primary, ROOM_COLORS.secondary]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.tabGradient}
+                >
+                  <View style={styles.tabIconContainer}>
+                    <IconSymbol
+                      ios_icon_name="person.3.fill"
+                      android_material_icon_name="group"
+                      size={22}
+                      color="#fff"
+                    />
+                  </View>
+                  <View style={styles.tabTextContainer}>
+                    <Text style={styles.tabTextActive}>Usuarios</Text>
+                    <View style={styles.tabBadgeActive}>
+                      <Text style={styles.tabBadgeTextActive}>{activeUsers.length}</Text>
+                    </View>
+                  </View>
+                </LinearGradient>
+              ) : (
+                <View style={styles.tabContent}>
+                  <View style={styles.tabIconContainer}>
+                    <IconSymbol
+                      ios_icon_name="person.3.fill"
+                      android_material_icon_name="group"
+                      size={22}
+                      color={colors.textSecondary}
+                    />
+                  </View>
+                  <View style={styles.tabTextContainer}>
+                    <Text style={styles.tabText}>Usuarios</Text>
+                    <View style={styles.tabBadge}>
+                      <Text style={styles.tabBadgeText}>{activeUsers.length}</Text>
+                    </View>
+                  </View>
                 </View>
-              </View>
-            </LinearGradient>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'chat' && styles.tabActive]}
-            onPress={() => setActiveTab('chat')}
-            activeOpacity={0.7}
-          >
-            <LinearGradient
-              colors={activeTab === 'chat' 
-                ? [ROOM_COLORS.primary, ROOM_COLORS.secondary] 
-                : ['transparent', 'transparent']
-              }
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.tabGradient}
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'chat' && styles.tabActive]}
+              onPress={() => setActiveTab('chat')}
+              activeOpacity={0.7}
             >
-              <View style={styles.tabIconContainer}>
-                <IconSymbol
-                  ios_icon_name="bubble.left.and.bubble.right.fill"
-                  android_material_icon_name="chat"
-                  size={22}
-                  color={activeTab === 'chat' ? '#fff' : colors.textSecondary}
-                />
-              </View>
-              <Text style={[styles.tabText, activeTab === 'chat' && styles.tabTextActive]}>
-                Chat Público
-              </Text>
-            </LinearGradient>
-          </TouchableOpacity>
+              {activeTab === 'chat' ? (
+                <LinearGradient
+                  colors={[ROOM_COLORS.primary, ROOM_COLORS.secondary]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.tabGradient}
+                >
+                  <View style={styles.tabIconContainer}>
+                    <IconSymbol
+                      ios_icon_name="bubble.left.and.bubble.right.fill"
+                      android_material_icon_name="chat"
+                      size={22}
+                      color="#fff"
+                    />
+                  </View>
+                  <Text style={styles.tabTextActive}>Chat Público</Text>
+                </LinearGradient>
+              ) : (
+                <View style={styles.tabContent}>
+                  <View style={styles.tabIconContainer}>
+                    <IconSymbol
+                      ios_icon_name="bubble.left.and.bubble.right.fill"
+                      android_material_icon_name="chat"
+                      size={22}
+                      color={colors.textSecondary}
+                    />
+                  </View>
+                  <Text style={styles.tabText}>Chat Público</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
 
         {activeTab === 'users' ? (
@@ -1637,8 +1662,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  tabBar: {
-    flexDirection: 'row',
+  tabBarContainer: {
     backgroundColor: ROOM_COLORS.cardBg,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
@@ -1648,8 +1672,14 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  tabBar: {
+    flexDirection: 'row',
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+  },
   tab: {
     flex: 1,
+    marginHorizontal: 4,
   },
   tabActive: {
     borderBottomWidth: 0,
@@ -1659,11 +1689,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    paddingVertical: 16,
+    paddingVertical: 12,
     paddingHorizontal: 12,
     borderRadius: 12,
-    marginHorizontal: 4,
-    marginVertical: 4,
+  },
+  tabContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
   },
   tabIconContainer: {
     width: 32,
@@ -1683,6 +1719,8 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   tabTextActive: {
+    fontSize: 15,
+    fontWeight: '700',
     color: '#fff',
   },
   tabBadge: {
@@ -1695,6 +1733,11 @@ const styles = StyleSheet.create({
   },
   tabBadgeActive: {
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    minWidth: 24,
+    alignItems: 'center',
   },
   tabBadgeText: {
     fontSize: 12,
@@ -1702,6 +1745,8 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   tabBadgeTextActive: {
+    fontSize: 12,
+    fontWeight: '800',
     color: '#fff',
   },
   messagesContent: {
@@ -1793,9 +1838,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: ROOM_COLORS.primary,
     marginBottom: 4,
-  },
-  ownMessageSender: {
-    color: 'rgba(255, 255, 255, 0.9)',
   },
   messageText: {
     fontSize: 15,
