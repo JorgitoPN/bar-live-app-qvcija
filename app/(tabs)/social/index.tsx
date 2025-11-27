@@ -33,10 +33,9 @@ export default function SocialScreen() {
   } = useGlobalData();
   const { 
     currentMode, 
-    isOwnerMode, 
-    activeProfileId, 
     activeProfileType,
-    isInteractingAsLocal,
+    activeProfileId,
+    activeLocalData: modeLocalData,
   } = useMode();
 
   const [posts, setPosts] = useState<Publicacion[]>([]);
@@ -47,6 +46,28 @@ export default function SocialScreen() {
   const [unreadMessages, setUnreadMessages] = useState(0);
   const isLoadingRef = useRef(false);
   const storiesPreloadedRef = useRef(false);
+
+  // ✅ Determine if user is interacting as a local
+  const isInteractingAsLocal = activeProfileType === 'local';
+  const interactionLocalId = isInteractingAsLocal ? activeProfileId : null;
+  
+  // ✅ Get avatar and name for stories bar based on active profile
+  const displayAvatar = isInteractingAsLocal 
+    ? (modeLocalData?.imagen_url || null)
+    : (user?.avatar || null);
+  
+  const displayName = isInteractingAsLocal
+    ? (modeLocalData?.nombre || 'Local')
+    : (user?.nombre || 'Usuario');
+
+  console.log('[Social] 🎭 Active Profile:', {
+    activeProfileType,
+    activeProfileId,
+    isInteractingAsLocal,
+    interactionLocalId,
+    displayName,
+    hasAvatar: !!displayAvatar,
+  });
 
   // ✅ Load unread counts
   const loadUnreadCounts = useCallback(async () => {
@@ -114,6 +135,11 @@ export default function SocialScreen() {
       console.log('[Social] ⚡ Loading user-specific data...');
       console.log('[Social] 📍 Global posts available:', globalPosts.length);
       console.log('[Social] 📍 Global stories available:', globalStories.length);
+      console.log('[Social] 🎭 Interaction mode:', {
+        isInteractingAsLocal,
+        interactionLocalId,
+        activeProfileType,
+      });
 
       // Load unread counts
       await loadUnreadCounts();
@@ -128,10 +154,31 @@ export default function SocialScreen() {
         
         let filteredPosts = validPosts;
         
-        if (isOwnerMode && activeLocalProfileId) {
-          filteredPosts = validPosts.filter(p => p.tipo === 'local' && p.local_id === activeLocalProfileId);
-          console.log('[Social] 🏢 Owner mode - Filtered posts for local:', activeLocalProfileId, 'Count:', filteredPosts.length);
+        // ✅ FIXED: When interacting as local, show ALL posts (not just local's posts)
+        // The local should see the full social feed, just like a regular user
+        if (isInteractingAsLocal && interactionLocalId) {
+          console.log('[Social] 🏢 Interacting as local:', interactionLocalId);
+          // Show all posts - the local can see everything
+          // But we'll filter based on followed locals if needed
+          if (user) {
+            const { data: followedLocals } = await supabase
+              .from('locales_favoritos')
+              .select('local_id')
+              .eq('usuario_id', user.id);
+
+            const followedLocalIds = new Set(followedLocals?.map(f => f.local_id) || []);
+            
+            filteredPosts = validPosts.filter(p => 
+              p.tipo === 'usuario' || 
+              (p.tipo === 'local' && p.local_id && followedLocalIds.has(p.local_id))
+            );
+            console.log('[Social] 🏢 Local mode - Filtered user posts + followed locals, Count:', filteredPosts.length);
+          } else {
+            filteredPosts = validPosts.filter(p => p.tipo === 'usuario');
+            console.log('[Social] 🏢 Local mode - Filtered user posts only (not logged in), Count:', filteredPosts.length);
+          }
         } else {
+          // Regular user mode
           if (user) {
             const { data: followedLocals } = await supabase
               .from('locales_favoritos')
@@ -208,10 +255,30 @@ export default function SocialScreen() {
         
         let filteredStories = validStories;
         
-        if (isOwnerMode && activeLocalProfileId) {
-          filteredStories = validStories.filter(s => s.tipo === 'local' && s.local_id === activeLocalProfileId);
-          console.log('[Social] 🏢 Owner mode - Filtered stories for local:', activeLocalProfileId, 'Count:', filteredStories.length);
+        // ✅ FIXED: When interacting as local, show ALL stories (not just local's stories)
+        // The local should see the full social feed, just like a regular user
+        if (isInteractingAsLocal && interactionLocalId) {
+          console.log('[Social] 🏢 Interacting as local:', interactionLocalId);
+          // Show all stories - the local can see everything
+          if (user) {
+            const { data: followedLocals } = await supabase
+              .from('locales_favoritos')
+              .select('local_id')
+              .eq('usuario_id', user.id);
+
+            const followedLocalIds = new Set(followedLocals?.map(f => f.local_id) || []);
+            
+            filteredStories = validStories.filter(s => 
+              s.tipo === 'usuario' || 
+              (s.tipo === 'local' && s.local_id && followedLocalIds.has(s.local_id))
+            );
+            console.log('[Social] 🏢 Local mode - Filtered user stories + followed locals, Count:', filteredStories.length);
+          } else {
+            filteredStories = validStories.filter(s => s.tipo === 'usuario');
+            console.log('[Social] 🏢 Local mode - Filtered user stories only (not logged in), Count:', filteredStories.length);
+          }
         } else {
+          // Regular user mode
           if (user) {
             const { data: followedLocals } = await supabase
               .from('locales_favoritos')
@@ -245,7 +312,7 @@ export default function SocialScreen() {
       isLoadingRef.current = false;
       setIsInitialLoad(false);
     }
-  }, [user, globalPosts, globalStories, isOwnerMode, activeLocalProfileId, loadUnreadCounts]);
+  }, [user, globalPosts, globalStories, isInteractingAsLocal, interactionLocalId, activeProfileType, loadUnreadCounts]);
 
   // ✅ AUTO-UPDATE: Reload data every time the screen comes into focus
   useFocusEffect(
@@ -311,8 +378,8 @@ export default function SocialScreen() {
           historias={historias}
           onHistoriaPress={handleHistoriaPress}
           onCrearHistoria={handleCreateStory}
-          userAvatar={user?.avatar}
-          userName={user?.nombre}
+          userAvatar={displayAvatar || undefined}
+          userName={displayName}
           onStoriesUpdate={handleStoriesUpdate}
         />
       </View>
@@ -324,7 +391,7 @@ export default function SocialScreen() {
       <Ionicons name="images-outline" size={64} color={colors.textSecondary} />
       <Text style={styles.emptyStateTitle}>No hay publicaciones</Text>
       <Text style={styles.emptyStateText}>
-        {isOwnerMode 
+        {isInteractingAsLocal 
           ? 'Crea la primera publicación de tu local'
           : 'Sigue a usuarios o locales para ver sus publicaciones'}
       </Text>

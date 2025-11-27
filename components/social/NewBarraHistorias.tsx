@@ -6,6 +6,7 @@ import { Historia } from '@/types';
 import { colors } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMode } from '@/contexts/ModeContext';
 import { supabase } from '@/utils/supabase';
 import StoryAvatar from '@/components/common/StoryAvatar';
 
@@ -59,18 +60,58 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
   onStoriesUpdate,
 }: NewBarraHistoriasProps) {
   const { user } = useAuth();
+  const { activeProfileType, activeProfileId, activeLocalData } = useMode();
   
-  // Separate user's own stories from others
+  // ✅ Determine if user is interacting as a local
+  const isInteractingAsLocal = activeProfileType === 'local';
+  const interactionId = isInteractingAsLocal ? activeProfileId : user?.id;
+  
+  console.log('[NewBarraHistorias] 🎭 Interaction context:', {
+    activeProfileType,
+    activeProfileId,
+    isInteractingAsLocal,
+    interactionId,
+    localName: activeLocalData?.nombre,
+  });
+  
+  // ✅ Separate user's own stories from others based on interaction context
   const { userStories, otherStories } = useMemo(() => {
-    const userStories = historias.filter(h => 
-      h.tipo === 'usuario' && h.autor_id === user?.id
-    );
-    const otherStories = historias.filter(h => 
-      !(h.tipo === 'usuario' && h.autor_id === user?.id)
-    );
+    if (isInteractingAsLocal && activeProfileId) {
+      // When interacting as local, show local's stories as "own stories"
+      const userStories = historias.filter(h => 
+        h.tipo === 'local' && h.local_id === activeProfileId
+      );
+      const otherStories = historias.filter(h => 
+        !(h.tipo === 'local' && h.local_id === activeProfileId)
+      );
+      
+      console.log('[NewBarraHistorias] 🏢 Local mode stories:', {
+        localId: activeProfileId,
+        userStories: userStories.length,
+        otherStories: otherStories.length,
+      });
+      
+      return { userStories, otherStories };
+    } else if (user) {
+      // Regular user mode
+      const userStories = historias.filter(h => 
+        h.tipo === 'usuario' && h.autor_id === user.id
+      );
+      const otherStories = historias.filter(h => 
+        !(h.tipo === 'usuario' && h.autor_id === user.id)
+      );
+      
+      console.log('[NewBarraHistorias] 👤 User mode stories:', {
+        userId: user.id,
+        userStories: userStories.length,
+        otherStories: otherStories.length,
+      });
+      
+      return { userStories, otherStories };
+    }
     
-    return { userStories, otherStories };
-  }, [historias, user?.id]);
+    return { userStories: [], otherStories: historias };
+  }, [historias, user, isInteractingAsLocal, activeProfileId]);
 
   // ✅ REAL-TIME: Story updates subscription
   useEffect(() => {
@@ -184,22 +225,22 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
             // Show user's story with StoryAvatar component
             <View style={styles.storyContainer}>
               <StoryAvatar
-                userId={user.id}
+                userId={interactionId || ''}
                 userStories={userStories}
-                avatarUrl={userAvatar || user.avatar}
-                userName="Tu historia"
+                avatarUrl={userAvatar}
+                userName={isInteractingAsLocal ? activeLocalData?.nombre || 'Tu local' : 'Tu historia'}
                 size={92}
                 onPress={() => onHistoriaPress(userStories[0])}
                 showLabel={true}
-                labelText="Tu historia"
+                labelText={isInteractingAsLocal ? activeLocalData?.nombre || 'Tu local' : 'Tu historia'}
               />
             </View>
           ) : (
             // Show create story button
             <CreateStoryButton 
               onPress={onCrearHistoria}
-              userAvatar={userAvatar || user.avatar}
-              userName={userName || user.nombre}
+              userAvatar={userAvatar}
+              userName={userName || (isInteractingAsLocal ? activeLocalData?.nombre : user.nombre)}
             />
           )
         )}

@@ -7,6 +7,7 @@ import { colors } from '@/styles/commonStyles';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useInteractionContext } from '@/hooks/useInteractionContext';
 import ParsedText from './ParsedText';
 import { SOCIAL_ICONS } from '@/constants/SocialIcons';
 
@@ -59,6 +60,7 @@ PostImage.displayName = 'PostImage';
 const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment, onShare }: PublicacionCardProps) {
   const router = useRouter();
   const { user } = useAuth();
+  const { interactionUserId, interactionType, interactionLocalId, isInteractingAsLocal } = useInteractionContext();
   
   const [liked, setLiked] = useState(post?.liked || false);
   const [saved, setSaved] = useState(post?.saved || false);
@@ -71,7 +73,14 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
   const [loadingAuthor, setLoadingAuthor] = useState(true);
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // Fetch author data - FIXED VERSION
+  console.log('[PublicacionCard] 🎭 Interaction context:', {
+    interactionUserId,
+    interactionType,
+    interactionLocalId,
+    isInteractingAsLocal,
+  });
+
+  // Fetch author data
   useEffect(() => {
     const fetchAuthorData = async () => {
       if (!post) {
@@ -247,9 +256,13 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
   }, [post?.id]);
 
   const handleLike = useCallback(async () => {
-    console.log('[PublicacionCard] handleLike - User:', user?.id);
+    console.log('[PublicacionCard] handleLike - Interaction context:', {
+      interactionUserId,
+      interactionType,
+      interactionLocalId,
+    });
     
-    if (!user) {
+    if (!interactionUserId) {
       Alert.alert('Error', 'Debes iniciar sesión para dar me gusta');
       return;
     }
@@ -260,16 +273,22 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
 
     try {
       if (newLiked) {
+        // ✅ FIXED: Always use the logged-in user's ID for likes
+        // The interaction context (local vs user) is tracked separately
         await supabase.from('likes').insert({
           post_id: post.id,
-          usuario_id: user.id,
+          usuario_id: interactionUserId,
         });
+        
+        console.log('[PublicacionCard] ✅ Like added as:', interactionType, interactionLocalId || interactionUserId);
       } else {
         await supabase
           .from('likes')
           .delete()
           .eq('post_id', post.id)
-          .eq('usuario_id', user.id);
+          .eq('usuario_id', interactionUserId);
+        
+        console.log('[PublicacionCard] ✅ Like removed');
       }
     } catch (error) {
       console.error('[PublicacionCard] Error toggling like:', error);
@@ -278,12 +297,16 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
     }
 
     if (onLike) onLike();
-  }, [liked, likesCount, onLike, user, post.id]);
+  }, [liked, likesCount, onLike, interactionUserId, interactionType, interactionLocalId, post.id]);
 
   const handleSave = useCallback(async () => {
-    console.log('[PublicacionCard] handleSave - User:', user?.id);
+    console.log('[PublicacionCard] handleSave - Interaction context:', {
+      interactionUserId,
+      interactionType,
+      interactionLocalId,
+    });
     
-    if (!user) {
+    if (!interactionUserId) {
       Alert.alert('Error', 'Debes iniciar sesión para guardar publicaciones');
       return;
     }
@@ -295,7 +318,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
       if (newSaved) {
         await supabase.from('posts_guardados').insert({
           post_id: post.id,
-          usuario_id: user.id,
+          usuario_id: interactionUserId,
         });
         Alert.alert('Guardado', 'Publicación guardada en favoritos');
       } else {
@@ -303,7 +326,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
           .from('posts_guardados')
           .delete()
           .eq('post_id', post.id)
-          .eq('usuario_id', user.id);
+          .eq('usuario_id', interactionUserId);
         Alert.alert('Eliminado', 'Publicación eliminada de favoritos');
       }
     } catch (error) {
@@ -311,23 +334,31 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
       setSaved(!newSaved);
       Alert.alert('Error', 'No se pudo guardar la publicación');
     }
-  }, [saved, user, post.id]);
+  }, [saved, interactionUserId, post.id]);
 
   const handleComment = useCallback(() => {
-    console.log('[PublicacionCard] handleComment - User:', user?.id);
+    console.log('[PublicacionCard] handleComment - Interaction context:', {
+      interactionUserId,
+      interactionType,
+      interactionLocalId,
+    });
     
-    if (!user) {
+    if (!interactionUserId) {
       Alert.alert('Error', 'Debes iniciar sesión para comentar');
       return;
     }
     router.push(`/social/comentar?postId=${post.id}`);
     if (onComment) onComment();
-  }, [user, router, post.id, onComment]);
+  }, [interactionUserId, router, post.id, onComment]);
 
   const handleShare = useCallback(async () => {
-    console.log('[PublicacionCard] handleShare - User:', user?.id);
+    console.log('[PublicacionCard] handleShare - Interaction context:', {
+      interactionUserId,
+      interactionType,
+      interactionLocalId,
+    });
     
-    if (!user) {
+    if (!interactionUserId) {
       Alert.alert('Error', 'Debes iniciar sesión para compartir');
       return;
     }
@@ -348,7 +379,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
     });
     
     if (onShare) onShare();
-  }, [user, router, post, onShare, authorData]);
+  }, [interactionUserId, router, post, onShare, authorData]);
 
   const handleDelete = useCallback(async () => {
     console.log('[PublicacionCard] handleDelete - User:', user?.id, 'Post autor:', post.autor_id || post.autorId);
@@ -451,7 +482,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
       ? [post.imagen] 
       : [];
 
-  // Use fetched author data with username fallback - FIXED
+  // Use fetched author data with username fallback
   const displayName = loadingAuthor 
     ? 'Cargando...' 
     : authorData?.username 
