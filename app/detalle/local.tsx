@@ -512,18 +512,6 @@ export default function DetalleLocalScreen() {
     }
   };
 
-  const handleVirtualRoom = () => {
-    if (!params.id) {
-      Alert.alert('Error', 'No se pudo cargar la sala virtual');
-      return;
-    }
-    
-    router.push({
-      pathname: '/detalle/sala-virtual',
-      params: { localId: params.id }
-    });
-  };
-
   const handleSocialProfile = () => {
     router.push({
       pathname: '/perfil/local',
@@ -1003,20 +991,7 @@ export default function DetalleLocalScreen() {
           )}
         </View>
 
-        {/* Virtual Room & Social Profile */}
-        <TouchableOpacity style={styles.specialButton} onPress={handleVirtualRoom}>
-          <LinearGradient
-            colors={['#8B5CF6', '#7C3AED']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.specialButtonGradient}
-          >
-            <IconSymbol ios_icon_name="cube.fill" android_material_icon_name="view_in_ar" size={22} color="#fff" />
-            <Text style={styles.specialButtonText}>Sala Virtual</Text>
-            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color="#fff" />
-          </LinearGradient>
-        </TouchableOpacity>
-
+        {/* Social Profile Button - ONLY IF HAS SOCIAL PROFILE */}
         {hasSocialProfile && (
           <TouchableOpacity style={styles.specialButton} onPress={handleSocialProfile}>
             <LinearGradient
