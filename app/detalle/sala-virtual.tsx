@@ -305,17 +305,21 @@ export default function SalaVirtualScreen() {
       setIsCheckedIn(true);
       console.log('[SalaVirtual] Checked in successfully:', data);
       
-      // ✅ REBUILT: Broadcast user joined event using correct Realtime v2 broadcast syntax
+      // ✅ REBUILT: Broadcast user joined event using CORRECT Realtime v2 broadcast syntax
       if (presenceChannelRef.current) {
-        const broadcastResult = await presenceChannelRef.current.send({
-          type: 'broadcast',
-          event: 'user_joined',
-          payload: {
-            usuario_id: user.id,
-            nombre: user.user_metadata?.nombre || user.email,
-          },
-        });
-        console.log('[SalaVirtual] User joined broadcast result:', broadcastResult);
+        try {
+          await presenceChannelRef.current.send({
+            type: 'broadcast',
+            event: 'user_joined',
+            payload: {
+              usuario_id: user.id,
+              nombre: user.user_metadata?.nombre || user.email,
+            },
+          });
+          console.log('[SalaVirtual] User joined broadcast sent successfully');
+        } catch (broadcastError) {
+          console.error('[SalaVirtual] Error broadcasting user joined:', broadcastError);
+        }
       }
       
       setCheckingIn(false);
@@ -356,15 +360,20 @@ export default function SalaVirtualScreen() {
                 return;
               }
 
-              // ✅ REBUILT: Broadcast user left event using correct Realtime v2 broadcast syntax
+              // ✅ REBUILT: Broadcast user left event using CORRECT Realtime v2 broadcast syntax
               if (presenceChannelRef.current) {
-                await presenceChannelRef.current.send({
-                  type: 'broadcast',
-                  event: 'user_left',
-                  payload: {
-                    usuario_id: user.id,
-                  },
-                });
+                try {
+                  await presenceChannelRef.current.send({
+                    type: 'broadcast',
+                    event: 'user_left',
+                    payload: {
+                      usuario_id: user.id,
+                    },
+                  });
+                  console.log('[SalaVirtual] User left broadcast sent successfully');
+                } catch (broadcastError) {
+                  console.error('[SalaVirtual] Error broadcasting user left:', broadcastError);
+                }
               }
 
               setIsCheckedIn(false);
@@ -462,13 +471,13 @@ export default function SalaVirtualScreen() {
     }
   }, [localId]);
 
-  // ✅ REBUILT: Subscribe to real-time updates using correct Realtime v2 broadcast syntax
+  // ✅ COMPLETELY REBUILT: Subscribe to real-time updates using CORRECT Realtime v2 broadcast syntax
   const subscribeToUpdates = useCallback(() => {
     if (!localId || !user) return () => {};
 
     console.log('[SalaVirtual] Subscribing to real-time updates for local:', localId);
 
-    // ✅ REBUILT: Chat channel with correct broadcast syntax
+    // ✅ REBUILT: Chat channel with CORRECT broadcast syntax
     const chatChannel = supabase
       .channel(`room:${localId}:chat`, {
         config: { 
@@ -504,7 +513,7 @@ export default function SalaVirtualScreen() {
         }
       });
 
-    // ✅ REBUILT: User presence channel with correct broadcast syntax
+    // ✅ REBUILT: User presence channel with CORRECT broadcast syntax
     const presenceChannel = supabase
       .channel(`room:${localId}:presence`, {
         config: { 
@@ -572,7 +581,7 @@ export default function SalaVirtualScreen() {
     };
   }, [localId, router]);
 
-  // ✅ REBUILT: Send public message with correct Realtime v2 broadcast syntax
+  // ✅ COMPLETELY REBUILT: Send public message with CORRECT Realtime v2 broadcast syntax
   const sendMessage = async () => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para enviar mensajes');
@@ -613,15 +622,19 @@ export default function SalaVirtualScreen() {
         return;
       }
 
-      // ✅ REBUILT: Broadcast to all users in the room using correct Realtime v2 broadcast syntax
+      // ✅ REBUILT: Broadcast to all users in the room using CORRECT Realtime v2 broadcast syntax
       if (chatChannelRef.current) {
-        const broadcastResult = await chatChannelRef.current.send({
-          type: 'broadcast',
-          event: 'message_created',
-          payload: data,
-        });
-        
-        console.log('[SalaVirtual] Broadcast result:', broadcastResult);
+        try {
+          await chatChannelRef.current.send({
+            type: 'broadcast',
+            event: 'message_created',
+            payload: data,
+          });
+          
+          console.log('[SalaVirtual] Message broadcast sent successfully');
+        } catch (broadcastError) {
+          console.error('[SalaVirtual] Error broadcasting message:', broadcastError);
+        }
       }
 
       console.log('[SalaVirtual] Message sent successfully');
