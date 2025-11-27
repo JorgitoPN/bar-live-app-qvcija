@@ -267,6 +267,22 @@ const calculateSentiment = (rating: number): { sentiment: string; color: string 
   }
 };
 
+// Helper function to normalize day names (remove accents for database lookup)
+const normalizeDayName = (day: string): string => {
+  const normalizations: Record<string, string> = {
+    'lunes': 'lunes',
+    'martes': 'martes',
+    'miércoles': 'miercoles',
+    'miercoles': 'miercoles',
+    'jueves': 'jueves',
+    'viernes': 'viernes',
+    'sábado': 'sabado',
+    'sabado': 'sabado',
+    'domingo': 'domingo',
+  };
+  return normalizations[day.toLowerCase()] || day;
+};
+
 export default function DetalleLocalScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
@@ -431,6 +447,7 @@ export default function DetalleLocalScreen() {
         hasServicios: !!data.servicios_disponibles,
         serviciosCount: data.servicios_disponibles ? Object.keys(data.servicios_disponibles).length : 0,
         hasHorarios: !!data.horarios_completos,
+        horariosKeys: data.horarios_completos ? Object.keys(data.horarios_completos) : [],
         planActivo: data.plan_activo,
         destacado: data.destacado,
         hasAmbiente: !!data.ambiente_completo,
@@ -776,12 +793,12 @@ export default function DetalleLocalScreen() {
   const description = local.descripcion_google || local.descripcion || '';
   const { summary: descriptionSummary, needsExpansion: needsDescriptionExpansion } = summarizeText(description, 150);
 
-  // ✅ FIXED: Correct day order Monday to Sunday
-  const orderedDays = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
+  // ✅ FIXED: Correct day order Monday to Sunday with display names (with accents)
+  const orderedDaysDisplay = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      {/* Cover Photo - PRESERVED */}
+      {/* Cover Photo - FAVORITES BUTTON REMOVED */}
       {allImages.length > 0 && (
         <View style={styles.coverContainer}>
           <TouchableOpacity
@@ -851,26 +868,6 @@ export default function DetalleLocalScreen() {
               <IconSymbol ios_icon_name="square.and.arrow.up" android_material_icon_name="share" size={22} color="#fff" />
             </BlurView>
           </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.favoriteButton} 
-            onPress={handleToggleFavorite}
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={isFavorite ? ['#EF4444', '#DC2626'] : ['rgba(25, 25, 25, 0.8)', 'rgba(25, 25, 25, 0.8)']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.favoriteButtonGradient}
-            >
-              <IconSymbol 
-                ios_icon_name={isFavorite ? "heart.fill" : "heart"} 
-                android_material_icon_name={isFavorite ? "favorite" : "favorite_border"} 
-                size={20} 
-                color="#fff" 
-              />
-            </LinearGradient>
-          </TouchableOpacity>
         </View>
       )}
 
@@ -913,6 +910,20 @@ export default function DetalleLocalScreen() {
       {/* Local Name Prominently Displayed Below Gallery */}
       <View style={styles.localNameSection}>
         <Text style={styles.localNameText}>{local.nombre}</Text>
+        {user && (
+          <TouchableOpacity 
+            style={styles.favoriteIconButton} 
+            onPress={handleToggleFavorite}
+            activeOpacity={0.8}
+          >
+            <IconSymbol 
+              ios_icon_name={isFavorite ? "heart.fill" : "heart"} 
+              android_material_icon_name={isFavorite ? "favorite" : "favorite_border"} 
+              size={28} 
+              color={isFavorite ? "#EF4444" : colors.text} 
+            />
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Content Card - REDESIGNED */}
@@ -1076,15 +1087,21 @@ export default function DetalleLocalScreen() {
               <Text style={styles.compactSectionTitle}>Horarios</Text>
             </View>
             <View style={styles.scheduleCompact}>
-              {orderedDays.map((day) => {
-                const hours = local.horarios_completos?.[day] || [];
+              {orderedDaysDisplay.map((dayDisplay) => {
+                // ✅ FIXED: Normalize day name to match database keys (without accents)
+                const dayNormalized = normalizeDayName(dayDisplay);
+                const hours = local.horarios_completos?.[dayNormalized] || [];
+                
                 // ✅ FIXED: Highlight the logical day (the day the venue's operating period started)
-                const isToday = day.toLowerCase() === diaLogicoParaResaltar.toLowerCase();
+                const isToday = dayNormalized.toLowerCase() === normalizeDayName(diaLogicoParaResaltar).toLowerCase();
+                
+                console.log(`[DetalleLocal] Day: ${dayDisplay} (normalized: ${dayNormalized}), Hours:`, hours, 'IsToday:', isToday);
+                
                 return (
-                  <View key={day} style={[styles.scheduleRow, isToday && styles.scheduleRowToday]}>
+                  <View key={dayDisplay} style={[styles.scheduleRow, isToday && styles.scheduleRowToday]}>
                     <View style={styles.scheduleDayContainer}>
                       <Text style={[styles.scheduleDayCompact, isToday && styles.scheduleDayTodayCompact]}>
-                        {day.charAt(0).toUpperCase() + day.slice(1, 3)}
+                        {dayDisplay.charAt(0).toUpperCase() + dayDisplay.slice(1, 3)}
                       </Text>
                       {isToday && <View style={styles.todayDot} />}
                     </View>
@@ -1451,27 +1468,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     zIndex: 5,
   },
-  favoriteButton: {
-    position: 'absolute',
-    bottom: 16,
-    right: 16,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    overflow: 'hidden',
-    zIndex: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  favoriteButtonGradient: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   buttonBlur: {
     width: '100%',
     height: '100%',
@@ -1515,13 +1511,20 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   localNameText: {
+    flex: 1,
     fontSize: 28,
     fontWeight: '800',
     color: colors.text,
     letterSpacing: 0.5,
-    textAlign: 'center',
+  },
+  favoriteIconButton: {
+    padding: 8,
+    marginLeft: 12,
   },
   contentCard: {
     backgroundColor: colors.background,
