@@ -21,7 +21,9 @@ import { supabase } from '@/utils/supabase';
 export default function RecuperarPasswordScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const [email, setEmail] = useState((params.email as string) || '');
+  const initialEmail = params.email as string || '';
+  
+  const [email, setEmail] = useState(initialEmail);
   const [loading, setLoading] = useState(false);
 
   const validateEmail = (email: string): boolean => {
@@ -29,7 +31,7 @@ export default function RecuperarPasswordScreen() {
     return emailRegex.test(email);
   };
 
-  const handleSendCode = async () => {
+  const handleResetPassword = async () => {
     if (!email.trim()) {
       Alert.alert('Error', 'Por favor, ingresa tu correo electrónico');
       return;
@@ -48,12 +50,12 @@ export default function RecuperarPasswordScreen() {
       // Check if user exists
       const { data: userData, error: userError } = await supabase
         .from('usuarios')
-        .select('id, email_verified')
+        .select('id, provider')
         .eq('email', normalizedEmail)
         .maybeSingle();
 
       if (userError && userError.code !== 'PGRST116') {
-        console.error('Error checking user:', userError);
+        console.error('[RecuperarPassword] Error checking user:', userError);
         Alert.alert('Error', 'No se pudo verificar el usuario');
         setLoading(false);
         return;
@@ -65,99 +67,59 @@ export default function RecuperarPasswordScreen() {
         return;
       }
 
-      if (!userData.email_verified) {
-        Alert.alert('Error', 'Por favor, verifica tu correo electrónico primero');
-        setLoading(false);
-        return;
-      }
-
-      // Generate OTP
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
-      // Update user with OTP
-      const { error: updateError } = await supabase
-        .from('usuarios')
-        .update({
-          verification_code: otp,
-          verification_code_expires_at: expiresAt.toISOString(),
-        })
-        .eq('email', normalizedEmail);
-
-      if (updateError) {
-        console.error('Error updating verification code:', updateError);
-        Alert.alert('Error', 'No se pudo generar el código de recuperación');
-        setLoading(false);
-        return;
-      }
-
-      // Send recovery email via Edge Function
-      try {
-        const { data: emailData, error: emailError } = await supabase.functions.invoke(
-          'send-verification-email',
-          {
-            body: {
-              email: normalizedEmail,
-              code: otp,
-              type: 'password_reset',
-            },
-          }
-        );
-
-        if (emailError) {
-          console.error('Error sending recovery email:', emailError);
-          Alert.alert(
-            'Advertencia',
-            `Código generado pero hubo un problema al enviar el correo.\n\nTu código es: ${otp}\n\nPor favor, anótalo y continúa.`,
-            [
-              {
-                text: 'Continuar',
-                onPress: () => {
-                  router.push({
-                    pathname: '/auth/restablecer-password',
-                    params: { email: normalizedEmail },
-                  });
-                },
-              },
-            ]
-          );
-        } else {
-          Alert.alert(
-            'Código enviado',
-            'Hemos enviado un código de recuperación a tu correo electrónico.',
-            [
-              {
-                text: 'Continuar',
-                onPress: () => {
-                  router.push({
-                    pathname: '/auth/restablecer-password',
-                    params: { email: normalizedEmail },
-                  });
-                },
-              },
-            ]
-          );
-        }
-      } catch (emailError: any) {
-        console.error('Error invoking email function:', emailError);
+      // Check if user was registered with Google
+      if (userData.provider === 'google') {
         Alert.alert(
-          'Advertencia',
-          `Código generado pero no se pudo enviar el correo.\n\nTu código es: ${otp}\n\nPor favor, anótalo y continúa.`,
+          'Cuenta de Google',
+          'Tu cuenta fue creada con Google. Por favor, configura una contraseña primero.',
           [
             {
-              text: 'Continuar',
+              text: 'Configurar contraseña',
               onPress: () => {
                 router.push({
-                  pathname: '/auth/restablecer-password',
+                  pathname: '/auth/crear-password-google',
                   params: { email: normalizedEmail },
                 });
               },
             },
+            { text: 'Cancelar', style: 'cancel' },
           ]
         );
+        setLoading(false);
+        return;
       }
+
+      // Send password reset email
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+        normalizedEmail,
+        {
+          redirectTo: 'https://natively.dev/auth/restablecer-password',
+        }
+      );
+
+      if (resetError) {
+        console.error('[RecuperarPassword] Error sending reset email:', resetError);
+        Alert.alert('Error', 'No se pudo enviar el correo de recuperación');
+        setLoading(false);
+        return;
+      }
+
+      console.log('[RecuperarPassword] ✅ Password reset email sent');
+      
+      Alert.alert(
+        'Correo enviado',
+        'Hemos enviado un enlace de recuperación a tu correo electrónico. Por favor, revisa tu bandeja de entrada.',
+        [
+          {
+            text: 'Entendido',
+            onPress: () => {
+              router.back();
+            },
+          },
+        ]
+      );
     } catch (error: any) {
-      console.error('[RecuperarPassword] Error:', error);
+      console.error('[RecuperarPassword] ❌ Error in handleResetPassword:', error);
       Alert.alert('Error', 'Ocurrió un error inesperado');
     } finally {
       setLoading(false);
@@ -185,7 +147,7 @@ export default function RecuperarPasswordScreen() {
           />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Recuperar contraseña</Text>
-        <Text style={styles.headerSubtitle}>Te enviaremos un código</Text>
+        <Text style={styles.headerSubtitle}>Restablece tu contraseña</Text>
       </LinearGradient>
 
       <ScrollView
@@ -194,9 +156,19 @@ export default function RecuperarPasswordScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.formContainer}>
-          <Text style={styles.description}>
-            Ingresa tu correo electrónico y te enviaremos un código para restablecer tu contraseña.
-          </Text>
+          <View style={styles.infoBox}>
+            <IconSymbol
+              ios_icon_name="lock.fill"
+              android_material_icon_name="lock"
+              size={48}
+              color={colors.primary}
+            />
+            <Text style={styles.infoTitle}>¿Olvidaste tu contraseña?</Text>
+            <Text style={styles.infoText}>
+              No te preocupes. Ingresa tu correo electrónico y te enviaremos 
+              un enlace para restablecer tu contraseña.
+            </Text>
+          </View>
 
           <Text style={styles.label}>Correo electrónico</Text>
           <TextInput
@@ -208,20 +180,29 @@ export default function RecuperarPasswordScreen() {
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
-            autoFocus
+            autoFocus={!initialEmail}
             editable={!loading}
           />
 
           <TouchableOpacity
             style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleSendCode}
+            onPress={handleResetPassword}
             disabled={loading}
           >
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.buttonText}>Enviar código</Text>
+              <Text style={styles.buttonText}>Enviar enlace</Text>
             )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.backToLoginButton}
+            onPress={() => router.back()}
+          >
+            <Text style={styles.backToLoginText}>
+              Volver a <Text style={styles.backToLoginTextBold}>Iniciar sesión</Text>
+            </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -262,11 +243,25 @@ const styles = StyleSheet.create({
   formContainer: {
     flex: 1,
   },
-  description: {
-    fontSize: 16,
-    color: colors.textSecondary,
+  infoBox: {
+    alignItems: 'center',
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 24,
     marginBottom: 32,
-    lineHeight: 24,
+  },
+  infoTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  infoText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   label: {
     fontSize: 14,
@@ -289,6 +284,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
+    marginBottom: 24,
   },
   buttonDisabled: {
     opacity: 0.6,
@@ -297,5 +293,16 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  backToLoginButton: {
+    alignItems: 'center',
+  },
+  backToLoginText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  backToLoginTextBold: {
+    fontWeight: '600',
+    color: colors.primary,
   },
 });

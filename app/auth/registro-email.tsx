@@ -21,6 +21,9 @@ import { supabase } from '@/utils/supabase';
 export default function RegistroEmailScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [nombre, setNombre] = useState('');
   const [loading, setLoading] = useState(false);
 
   const validateEmail = (email: string): boolean => {
@@ -28,14 +31,28 @@ export default function RegistroEmailScreen() {
     return emailRegex.test(email);
   };
 
-  const handleContinue = async () => {
-    if (!email.trim()) {
-      Alert.alert('Error', 'Por favor, ingresa tu correo electrónico');
+  const validatePassword = (password: string): boolean => {
+    return password.length >= 8;
+  };
+
+  const handleRegister = async () => {
+    if (!email.trim() || !password.trim() || !confirmPassword.trim() || !nombre.trim()) {
+      Alert.alert('Error', 'Por favor, completa todos los campos');
       return;
     }
 
     if (!validateEmail(email.trim())) {
       Alert.alert('Error', 'Por favor, ingresa un correo electrónico válido');
+      return;
+    }
+
+    if (!validatePassword(password)) {
+      Alert.alert('Error', 'La contraseña debe tener al menos 8 caracteres');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Las contraseñas no coinciden');
       return;
     }
 
@@ -47,26 +64,43 @@ export default function RegistroEmailScreen() {
       // Check if email already exists
       const { data: existingUser, error: checkError } = await supabase
         .from('usuarios')
-        .select('id, email_verified')
+        .select('id, email_verified, provider')
         .eq('email', normalizedEmail)
         .maybeSingle();
 
       if (checkError && checkError.code !== 'PGRST116') {
-        console.error('Error checking email:', checkError);
+        console.error('[RegistroEmail] Error checking email:', checkError);
         Alert.alert('Error', 'No se pudo verificar el correo. Por favor, intenta nuevamente.');
         setLoading(false);
         return;
       }
 
       if (existingUser) {
-        if (existingUser.email_verified) {
+        if (existingUser.provider === 'google') {
+          Alert.alert(
+            'Cuenta existente',
+            'Este correo ya está registrado con Google. Por favor, configura una contraseña para continuar.',
+            [
+              {
+                text: 'Configurar contraseña',
+                onPress: () => {
+                  router.push({
+                    pathname: '/auth/crear-password-google',
+                    params: { email: normalizedEmail },
+                  });
+                },
+              },
+              { text: 'Cancelar', style: 'cancel' },
+            ]
+          );
+        } else if (existingUser.email_verified) {
           Alert.alert(
             'Correo ya registrado',
             'Este correo ya está registrado. Por favor, inicia sesión.',
             [
               {
                 text: 'Iniciar sesión',
-                onPress: () => router.replace('/auth/login-popup'),
+                onPress: () => router.replace('/auth/login'),
               },
               { text: 'Cancelar', style: 'cancel' },
             ]
@@ -78,8 +112,7 @@ export default function RegistroEmailScreen() {
             [
               {
                 text: 'Reenviar código',
-                onPress: async () => {
-                  await resendVerificationCode(normalizedEmail);
+                onPress: () => {
                   router.push({
                     pathname: '/auth/verificar-email',
                     params: { email: normalizedEmail },
@@ -94,24 +127,29 @@ export default function RegistroEmailScreen() {
         return;
       }
 
-      // Generate OTP
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
-      // Create user in auth.users first
+      // Register with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: normalizedEmail,
-        password: `temp_${Math.random().toString(36).substring(7)}`, // Temporary password
+        password: password,
         options: {
+          emailRedirectTo: 'https://natively.dev/email-confirmed',
           data: {
-            email: normalizedEmail,
+            nombre: nombre.trim(),
+            provider: 'barlive',
+            email_verified: false,
           },
         },
       });
 
       if (authError) {
-        console.error('Error creating auth user:', authError);
-        Alert.alert('Error', 'No se pudo crear la cuenta. Por favor, intenta nuevamente.');
+        console.error('[RegistroEmail] Error creating auth user:', authError);
+        
+        if (authError.message.includes('already registered')) {
+          Alert.alert('Error', 'Este correo ya está registrado. Por favor, inicia sesión.');
+        } else {
+          Alert.alert('Error', authError.message || 'No se pudo crear la cuenta');
+        }
+        
         setLoading(false);
         return;
       }
@@ -122,162 +160,32 @@ export default function RegistroEmailScreen() {
         return;
       }
 
-      // Create user in usuarios table
-      const { error: insertError } = await supabase
-        .from('usuarios')
-        .insert({
-          id: authData.user.id,
-          email: normalizedEmail,
-          nombre: normalizedEmail.split('@')[0],
-          provider: 'barlive',
-          email_verified: false,
-          verification_code: otp,
-          verification_code_expires_at: expiresAt.toISOString(),
-          rol_app: 'cliente',
-          activo: true,
-        });
+      console.log('[RegistroEmail] ✅ User created successfully:', authData.user.id);
 
-      if (insertError) {
-        console.error('Error creating user:', insertError);
-        Alert.alert('Error', 'No se pudo crear la cuenta. Por favor, intenta nuevamente.');
-        setLoading(false);
-        return;
-      }
+      // The trigger will automatically create the user in usuarios table
+      // Wait a moment for the trigger to complete
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Send verification email via Edge Function
-      try {
-        console.log('[RegistroEmail] Calling Edge Function to send verification email...');
-        
-        const { data: emailData, error: emailError } = await supabase.functions.invoke(
-          'send-verification-email',
+      Alert.alert(
+        'Cuenta creada',
+        'Tu cuenta ha sido creada exitosamente. Por favor, verifica tu correo electrónico para activar tu cuenta.',
+        [
           {
-            body: {
-              email: normalizedEmail,
-              code: otp,
-              type: 'verification',
+            text: 'Continuar',
+            onPress: () => {
+              router.push({
+                pathname: '/auth/verificar-email',
+                params: { email: normalizedEmail },
+              });
             },
-          }
-        );
-
-        console.log('[RegistroEmail] Edge Function response:', { emailData, emailError });
-
-        if (emailError) {
-          console.error('[RegistroEmail] Error sending verification email:', emailError);
-          
-          // Show detailed error message
-          const errorMessage = emailError.message || 'Error desconocido';
-          const errorDetails = emailData?.details || emailData?.error || '';
-          
-          Alert.alert(
-            'Advertencia',
-            `Cuenta creada pero hubo un problema al enviar el correo:\n\n${errorMessage}\n\n${errorDetails}\n\nTu código de verificación es: ${otp}\n\nPor favor, anótalo y continúa con la verificación.`,
-            [
-              {
-                text: 'Continuar',
-                onPress: () => {
-                  router.push({
-                    pathname: '/auth/verificar-email',
-                    params: { email: normalizedEmail },
-                  });
-                },
-              },
-            ]
-          );
-          setLoading(false);
-          return;
-        }
-
-        console.log('[RegistroEmail] Verification email sent successfully:', emailData);
-        
-        Alert.alert(
-          'Código enviado',
-          'Hemos enviado un código de verificación a tu correo electrónico.',
-          [
-            {
-              text: 'Continuar',
-              onPress: () => {
-                router.push({
-                  pathname: '/auth/verificar-email',
-                  params: { email: normalizedEmail },
-                });
-              },
-            },
-          ]
-        );
-      } catch (emailError: any) {
-        console.error('[RegistroEmail] Error invoking email function:', emailError);
-        
-        Alert.alert(
-          'Advertencia',
-          `Cuenta creada pero no se pudo enviar el correo de verificación.\n\nTu código es: ${otp}\n\nPor favor, anótalo y continúa con la verificación.`,
-          [
-            {
-              text: 'Continuar',
-              onPress: () => {
-                router.push({
-                  pathname: '/auth/verificar-email',
-                  params: { email: normalizedEmail },
-                });
-              },
-            },
-          ]
-        );
-      }
+          },
+        ]
+      );
     } catch (error: any) {
-      console.error('[RegistroEmail] Error in handleContinue:', error);
+      console.error('[RegistroEmail] ❌ Error in handleRegister:', error);
       Alert.alert('Error', 'Ocurrió un error inesperado');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const resendVerificationCode = async (email: string) => {
-    try {
-      // Generate new OTP
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
-      // Update user with new OTP
-      const { error: updateError } = await supabase
-        .from('usuarios')
-        .update({
-          verification_code: otp,
-          verification_code_expires_at: expiresAt.toISOString(),
-        })
-        .eq('email', email);
-
-      if (updateError) {
-        console.error('Error updating verification code:', updateError);
-        throw updateError;
-      }
-
-      // Send verification email via Edge Function
-      const { data: emailData, error: emailError } = await supabase.functions.invoke(
-        'send-verification-email',
-        {
-          body: {
-            email,
-            code: otp,
-            type: 'verification',
-          },
-        }
-      );
-
-      if (emailError) {
-        console.error('Error sending verification email:', emailError);
-        const errorMessage = emailError.message || 'Error desconocido';
-        const errorDetails = emailData?.details || emailData?.error || '';
-        
-        Alert.alert(
-          'Advertencia',
-          `Código actualizado pero hubo un problema al enviar el correo:\n\n${errorMessage}\n\n${errorDetails}\n\nTu código es: ${otp}`
-        );
-      } else {
-        Alert.alert('Código enviado', 'Se ha enviado un nuevo código de verificación a tu correo.');
-      }
-    } catch (error: any) {
-      console.error('Error resending verification code:', error);
-      Alert.alert('Error', 'No se pudo reenviar el código de verificación');
     }
   };
 
@@ -302,7 +210,7 @@ export default function RegistroEmailScreen() {
           />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Crear cuenta</Text>
-        <Text style={styles.headerSubtitle}>Paso 1 de 4</Text>
+        <Text style={styles.headerSubtitle}>Únete a BarLive</Text>
       </LinearGradient>
 
       <ScrollView
@@ -310,12 +218,19 @@ export default function RegistroEmailScreen() {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.stepContainer}>
-          <Text style={styles.stepTitle}>¿Cuál es tu correo?</Text>
-          <Text style={styles.stepSubtitle}>
-            Te enviaremos un código de verificación
-          </Text>
+        <View style={styles.formContainer}>
+          <Text style={styles.label}>Nombre</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Tu nombre"
+            placeholderTextColor={colors.textSecondary}
+            value={nombre}
+            onChangeText={setNombre}
+            autoCapitalize="words"
+            editable={!loading}
+          />
 
+          <Text style={styles.label}>Correo electrónico</Text>
           <TextInput
             style={styles.input}
             placeholder="correo@ejemplo.com"
@@ -325,21 +240,53 @@ export default function RegistroEmailScreen() {
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
-            autoFocus
+            editable={!loading}
+          />
+
+          <Text style={styles.label}>Contraseña</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Mínimo 8 caracteres"
+            placeholderTextColor={colors.textSecondary}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            autoCapitalize="none"
+            editable={!loading}
+          />
+
+          <Text style={styles.label}>Confirmar contraseña</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Repite tu contraseña"
+            placeholderTextColor={colors.textSecondary}
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry
+            autoCapitalize="none"
             editable={!loading}
           />
 
           <TouchableOpacity
             style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleContinue}
+            onPress={handleRegister}
             disabled={loading}
           >
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.buttonText}>Continuar</Text>
+              <Text style={styles.buttonText}>Crear cuenta</Text>
             )}
           </TouchableOpacity>
+
+          <View style={styles.termsContainer}>
+            <Text style={styles.termsText}>
+              Al registrarte, aceptas nuestros{' '}
+              <Text style={styles.termsLink}>Términos de Servicio</Text>
+              {' '}y{' '}
+              <Text style={styles.termsLink}>Política de Privacidad</Text>
+            </Text>
+          </View>
 
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
@@ -349,7 +296,7 @@ export default function RegistroEmailScreen() {
 
           <TouchableOpacity
             style={styles.loginButton}
-            onPress={() => router.replace('/auth/login-popup')}
+            onPress={() => router.replace('/auth/login')}
           >
             <Text style={styles.loginButtonText}>
               ¿Ya tienes cuenta? <Text style={styles.loginButtonTextBold}>Inicia sesión</Text>
@@ -391,19 +338,14 @@ const styles = StyleSheet.create({
     padding: 24,
     paddingBottom: 120,
   },
-  stepContainer: {
+  formContainer: {
     flex: 1,
   },
-  stepTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
     color: colors.text,
-    marginBottom: 12,
-  },
-  stepSubtitle: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    marginBottom: 32,
+    marginBottom: 8,
   },
   input: {
     backgroundColor: colors.cardBackground,
@@ -413,14 +355,14 @@ const styles = StyleSheet.create({
     padding: 16,
     fontSize: 16,
     color: colors.text,
-    marginBottom: 24,
+    marginBottom: 16,
   },
   button: {
     backgroundColor: colors.primary,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 16,
   },
   buttonDisabled: {
     opacity: 0.6,
@@ -428,6 +370,19 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#fff',
     fontSize: 16,
+    fontWeight: '600',
+  },
+  termsContainer: {
+    marginBottom: 24,
+  },
+  termsText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  termsLink: {
+    color: colors.primary,
     fontWeight: '600',
   },
   divider: {

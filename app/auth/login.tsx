@@ -45,15 +45,15 @@ export default function LoginScreen() {
     try {
       const normalizedEmail = email.trim().toLowerCase();
 
-      // Check if user exists and is verified
+      // Check if user exists
       const { data: userData, error: userError } = await supabase
         .from('usuarios')
-        .select('id, email_verified, password_hash')
+        .select('id, email_verified, provider, rol_app')
         .eq('email', normalizedEmail)
         .maybeSingle();
 
       if (userError && userError.code !== 'PGRST116') {
-        console.error('Error checking user:', userError);
+        console.error('[Login] Error checking user:', userError);
         Alert.alert('Error', 'No se pudo verificar el usuario');
         setLoading(false);
         return;
@@ -61,6 +61,28 @@ export default function LoginScreen() {
 
       if (!userData) {
         Alert.alert('Error', 'Usuario no encontrado. Por favor, regístrate primero.');
+        setLoading(false);
+        return;
+      }
+
+      // Check if user was registered with Google and needs to set password
+      if (userData.provider === 'google') {
+        Alert.alert(
+          'Configuración requerida',
+          'Tu cuenta fue creada con Google. Por favor, configura una contraseña para continuar.',
+          [
+            {
+              text: 'Configurar contraseña',
+              onPress: () => {
+                router.push({
+                  pathname: '/auth/crear-password-google',
+                  params: { email: normalizedEmail },
+                });
+              },
+            },
+            { text: 'Cancelar', style: 'cancel' },
+          ]
+        );
         setLoading(false);
         return;
       }
@@ -93,8 +115,14 @@ export default function LoginScreen() {
       });
 
       if (authError) {
-        console.error('Error signing in:', authError);
-        Alert.alert('Error', 'Email o contraseña incorrectos');
+        console.error('[Login] Error signing in:', authError);
+        
+        if (authError.message.includes('Invalid login credentials')) {
+          Alert.alert('Error', 'Email o contraseña incorrectos');
+        } else {
+          Alert.alert('Error', authError.message || 'No se pudo iniciar sesión');
+        }
+        
         setLoading(false);
         return;
       }
@@ -105,12 +133,12 @@ export default function LoginScreen() {
         return;
       }
 
-      console.log('[Login] Login successful:', authData.user.id);
+      console.log('[Login] ✅ Login successful:', authData.user.id);
       
       // Navigate to main app
       router.replace('/(tabs)/explorar');
     } catch (error: any) {
-      console.error('[Login] Error in handleLogin:', error);
+      console.error('[Login] ❌ Error in handleLogin:', error);
       Alert.alert('Error', 'Ocurrió un error inesperado');
     } finally {
       setLoading(false);
@@ -155,7 +183,7 @@ export default function LoginScreen() {
           />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Iniciar sesión</Text>
-        <Text style={styles.headerSubtitle}>Bienvenido de vuelta</Text>
+        <Text style={styles.headerSubtitle}>Bienvenido de vuelta a BarLive</Text>
       </LinearGradient>
 
       <ScrollView
