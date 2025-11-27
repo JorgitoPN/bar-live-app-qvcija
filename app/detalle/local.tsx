@@ -302,6 +302,8 @@ export default function DetalleLocalScreen() {
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [loadingEventos, setLoadingEventos] = useState(false);
   const [expandedDescription, setExpandedDescription] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [loadingFavorite, setLoadingFavorite] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -331,6 +333,73 @@ export default function DetalleLocalScreen() {
       setDistance(dist);
     }
   }, [userLocation, local]);
+
+  // Check if local is favorited
+  const checkIfFavorite = useCallback(async () => {
+    if (!user || !params.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('locales_guardados')
+        .select('id')
+        .eq('usuario_id', user.id)
+        .eq('local_id', params.id)
+        .single();
+
+      if (data) {
+        setIsFavorite(true);
+      }
+    } catch (error) {
+      setIsFavorite(false);
+    }
+  }, [user, params.id]);
+
+  useEffect(() => {
+    if (user) {
+      checkIfFavorite();
+    }
+  }, [user, checkIfFavorite]);
+
+  // Toggle favorite
+  const toggleFavorito = async (e: any) => {
+    e?.stopPropagation();
+    
+    if (!user) {
+      Alert.alert('Inicia sesión', 'Debes iniciar sesión para agregar favoritos');
+      return;
+    }
+
+    if (!params.id) return;
+
+    setLoadingFavorite(true);
+    try {
+      if (isFavorite) {
+        const { error } = await supabase
+          .from('locales_guardados')
+          .delete()
+          .eq('usuario_id', user.id)
+          .eq('local_id', params.id);
+
+        if (error) throw error;
+        setIsFavorite(false);
+      } else {
+        const { error } = await supabase
+          .from('locales_guardados')
+          .insert({
+            usuario_id: user.id,
+            local_id: params.id as string,
+          });
+
+        if (error) throw error;
+        setIsFavorite(true);
+      }
+    } catch (error) {
+      console.error('Error toggling favorito:', error);
+      Alert.alert('Error', 'No se pudo actualizar favoritos');
+    } finally {
+      setLoadingFavorite(false);
+    }
+  };
 
   const cargarReviewsBarlive = useCallback(async () => {
     try {
@@ -697,7 +766,7 @@ export default function DetalleLocalScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      {/* Cover Photo - REMOVED VIRTUAL ROOM BUTTON */}
+      {/* Cover Photo */}
       {allImages.length > 0 && (
         <View style={styles.coverContainer}>
           <TouchableOpacity
@@ -765,6 +834,22 @@ export default function DetalleLocalScreen() {
           <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
             <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
               <IconSymbol ios_icon_name="square.and.arrow.up" android_material_icon_name="share" size={22} color="#fff" />
+            </BlurView>
+          </TouchableOpacity>
+
+          {/* ✅ NEW: Favorite button in bottom right corner - SYNCHRONIZED */}
+          <TouchableOpacity
+            style={styles.favoriteButton}
+            onPress={toggleFavorito}
+            disabled={loadingFavorite}
+          >
+            <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
+              <IconSymbol
+                ios_icon_name={isFavorite ? "heart.fill" : "heart"}
+                android_material_icon_name={isFavorite ? "favorite" : "favorite_border"}
+                size={22}
+                color={isFavorite ? "#EF4444" : "#fff"}
+              />
             </BlurView>
           </TouchableOpacity>
         </View>
@@ -1348,6 +1433,16 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     overflow: 'hidden',
     zIndex: 5,
+  },
+  favoriteButton: {
+    position: 'absolute',
+    bottom: 16,
+    right: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    overflow: 'hidden',
+    zIndex: 6,
   },
   buttonBlur: {
     width: '100%',

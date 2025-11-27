@@ -26,17 +26,19 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// ✅ NEW: Spectacular color scheme for virtual room
+// ✅ SPECTACULAR: BarLive-consistent color scheme
 const ROOM_COLORS = {
-  primary: '#8B5CF6',      // Purple
-  secondary: '#EC4899',    // Pink
-  accent: '#F59E0B',       // Amber
-  success: '#10B981',      // Green
-  danger: '#EF4444',       // Red
-  dark: '#1F2937',         // Dark gray
-  light: '#F3F4F6',        // Light gray
-  cardBg: '#FFFFFF',       // White
-  cardBgDark: '#111827',   // Very dark gray
+  primary: colors.primary,        // Teal
+  secondary: colors.secondary,    // Cyan
+  accent: '#F59E0B',             // Amber
+  success: '#10B981',            // Green
+  danger: '#EF4444',             // Red
+  purple: '#8B5CF6',             // Purple
+  pink: '#EC4899',               // Pink
+  dark: '#1F2937',               // Dark gray
+  light: '#F3F4F6',              // Light gray
+  cardBg: colors.cardBackground,
+  cardBgDark: '#111827',
 };
 
 interface Message {
@@ -99,7 +101,7 @@ export default function SalaVirtualScreen() {
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
 
-  // ✅ NEW: Spectacular pulse animation
+  // ✅ SPECTACULAR: Pulse animation for online indicators
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
@@ -116,7 +118,7 @@ export default function SalaVirtualScreen() {
       ])
     ).start();
 
-    // ✅ NEW: Glow animation
+    // ✅ SPECTACULAR: Glow animation for current user
     Animated.loop(
       Animated.sequence([
         Animated.timing(glowAnim, {
@@ -814,7 +816,7 @@ export default function SalaVirtualScreen() {
     );
   };
 
-  // ✅ IMPROVED: Render message with consistent design
+  // ✅ SPECTACULAR: Render message with consistent design
   const renderMessage = ({ item }: { item: Message }) => {
     const isOwnMessage = user && item.usuario_id === user.id;
 
@@ -933,12 +935,12 @@ export default function SalaVirtualScreen() {
     );
   };
 
-  // ✅ IMPROVED: Render user item with spectacular design
+  // ✅ SPECTACULAR: Render user item with BarLive colors
   const renderUserItem = ({ item }: { item: ActiveUser }) => {
     const isCurrentUser = user && item.id === user.id;
     const glowColor = glowAnim.interpolate({
       inputRange: [0, 1],
-      outputRange: ['rgba(139, 92, 246, 0.2)', 'rgba(236, 72, 153, 0.4)'],
+      outputRange: [`${ROOM_COLORS.primary}33`, `${ROOM_COLORS.secondary}66`],
     });
 
     return (
@@ -955,7 +957,7 @@ export default function SalaVirtualScreen() {
         <Animated.View style={[styles.userCardGlow, isCurrentUser && { backgroundColor: glowColor }]} />
         <LinearGradient
           colors={isCurrentUser 
-            ? [ROOM_COLORS.primary + '30', ROOM_COLORS.secondary + '30'] 
+            ? [`${ROOM_COLORS.primary}30`, `${ROOM_COLORS.secondary}30`] 
             : [ROOM_COLORS.cardBg, ROOM_COLORS.cardBg]
           }
           start={{ x: 0, y: 0 }}
@@ -1188,7 +1190,7 @@ export default function SalaVirtualScreen() {
       />
 
       <View style={styles.content}>
-        {/* ✅ IMPROVED: Spectacular tab bar */}
+        {/* ✅ SPECTACULAR: New tab bar design with BarLive colors */}
         <View style={styles.tabBar}>
           <TouchableOpacity
             style={[styles.tab, activeTab === 'users' && styles.tabActive]}
@@ -1204,15 +1206,24 @@ export default function SalaVirtualScreen() {
               end={{ x: 1, y: 1 }}
               style={styles.tabGradient}
             >
-              <IconSymbol
-                ios_icon_name="person.3.fill"
-                android_material_icon_name="group"
-                size={20}
-                color={activeTab === 'users' ? '#fff' : colors.textSecondary}
-              />
-              <Text style={[styles.tabText, activeTab === 'users' && styles.tabTextActive]}>
-                Usuarios ({activeUsers.length})
-              </Text>
+              <View style={styles.tabIconContainer}>
+                <IconSymbol
+                  ios_icon_name="person.3.fill"
+                  android_material_icon_name="group"
+                  size={22}
+                  color={activeTab === 'users' ? '#fff' : colors.textSecondary}
+                />
+              </View>
+              <View style={styles.tabTextContainer}>
+                <Text style={[styles.tabText, activeTab === 'users' && styles.tabTextActive]}>
+                  Usuarios
+                </Text>
+                <View style={[styles.tabBadge, activeTab === 'users' && styles.tabBadgeActive]}>
+                  <Text style={[styles.tabBadgeText, activeTab === 'users' && styles.tabBadgeTextActive]}>
+                    {activeUsers.length}
+                  </Text>
+                </View>
+              </View>
             </LinearGradient>
           </TouchableOpacity>
           <TouchableOpacity
@@ -1229,12 +1240,14 @@ export default function SalaVirtualScreen() {
               end={{ x: 1, y: 1 }}
               style={styles.tabGradient}
             >
-              <IconSymbol
-                ios_icon_name="bubble.left.and.bubble.right.fill"
-                android_material_icon_name="chat"
-                size={20}
-                color={activeTab === 'chat' ? '#fff' : colors.textSecondary}
-              />
+              <View style={styles.tabIconContainer}>
+                <IconSymbol
+                  ios_icon_name="bubble.left.and.bubble.right.fill"
+                  android_material_icon_name="chat"
+                  size={22}
+                  color={activeTab === 'chat' ? '#fff' : colors.textSecondary}
+                />
+              </View>
               <Text style={[styles.tabText, activeTab === 'chat' && styles.tabTextActive]}>
                 Chat Público
               </Text>
@@ -1252,7 +1265,7 @@ export default function SalaVirtualScreen() {
               ListEmptyComponent={
                 <View style={styles.emptyContainer}>
                   <LinearGradient
-                    colors={[ROOM_COLORS.primary + '20', ROOM_COLORS.secondary + '20']}
+                    colors={[`${ROOM_COLORS.primary}20`, `${ROOM_COLORS.secondary}20`]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.emptyIconCircle}
@@ -1307,7 +1320,7 @@ export default function SalaVirtualScreen() {
               ListEmptyComponent={
                 <View style={styles.emptyContainer}>
                   <LinearGradient
-                    colors={[ROOM_COLORS.primary + '20', ROOM_COLORS.secondary + '20']}
+                    colors={[`${ROOM_COLORS.primary}20`, `${ROOM_COLORS.secondary}20`]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.emptyIconCircle}
@@ -1604,7 +1617,7 @@ const styles = StyleSheet.create({
   activeUsersIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: ROOM_COLORS.primary + '20',
+    backgroundColor: `${ROOM_COLORS.primary}20`,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 16,
@@ -1639,23 +1652,56 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   tabActive: {
-    borderBottomWidth: 3,
-    borderBottomColor: ROOM_COLORS.primary,
+    borderBottomWidth: 0,
   },
   tabGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 10,
     paddingVertical: 16,
-    borderRadius: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    marginHorizontal: 4,
+    marginVertical: 4,
+  },
+  tabIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabTextContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   tabText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
     color: colors.textSecondary,
   },
   tabTextActive: {
+    color: '#fff',
+  },
+  tabBadge: {
+    backgroundColor: colors.textSecondary + '30',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    minWidth: 24,
+    alignItems: 'center',
+  },
+  tabBadgeActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  tabBadgeText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: colors.textSecondary,
+  },
+  tabBadgeTextActive: {
     color: '#fff',
   },
   messagesContent: {
@@ -1712,17 +1758,17 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 18,
     borderWidth: 2,
-    borderColor: ROOM_COLORS.primary + '40',
+    borderColor: `${ROOM_COLORS.primary}40`,
   },
   messageAvatarPlaceholder: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: ROOM_COLORS.primary + '30',
+    backgroundColor: `${ROOM_COLORS.primary}30`,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: ROOM_COLORS.primary + '40',
+    borderColor: `${ROOM_COLORS.primary}40`,
   },
   messageBubble: {
     maxWidth: '70%',
@@ -1862,7 +1908,7 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 26,
     borderWidth: 3,
-    borderColor: ROOM_COLORS.primary + '40',
+    borderColor: `${ROOM_COLORS.primary}40`,
   },
   userCardAvatarPlaceholder: {
     width: 52,
@@ -1872,7 +1918,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
-    borderColor: ROOM_COLORS.primary + '40',
+    borderColor: `${ROOM_COLORS.primary}40`,
   },
   userCardOnlineDot: {
     position: 'absolute',
