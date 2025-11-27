@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   TextInput,
+  Image,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -16,8 +18,9 @@ import { colors, commonStyles } from '@/styles/commonStyles';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-import TarjetaLocal from '@/components/home/TarjetaLocal';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
+import { getEstadoLocal } from '@/utils/timeUtils';
+import { getCategoryIcon } from '@/utils/categoryIcons';
 
 const ITEMS_PER_PAGE = 20;
 
@@ -196,6 +199,216 @@ export default function FavoritosScreen() {
     setRefreshing(false);
   };
 
+  const toggleFavorito = async (localId: string) => {
+    if (!user) {
+      Alert.alert('Inicia sesión', 'Debes iniciar sesión para gestionar favoritos');
+      return;
+    }
+
+    try {
+      // Remove from favorites
+      const { error } = await supabase
+        .from('locales_guardados')
+        .delete()
+        .eq('usuario_id', user.id)
+        .eq('local_id', localId);
+
+      if (error) throw error;
+
+      // Reload the list
+      await loadSavedLocales();
+    } catch (error) {
+      console.error('Error removing favorito:', error);
+      Alert.alert('Error', 'No se pudo eliminar de favoritos');
+    }
+  };
+
+  const renderLocalCard = ({ item }: { item: any }) => {
+    const estado = getEstadoLocal(item);
+    const imagenPrincipal = item.imagenes?.[0] || item.imagen_url;
+    const isDestacado = item.destacado;
+
+    const getBadgeColor = () => {
+      if (estado.badge === 'Abierto ahora' || estado.badge === 'Abierto 24h') {
+        return '#22C55E';
+      }
+      if (estado.badge === 'Cierra pronto') {
+        return '#F97316';
+      }
+      if (estado.badge === 'Abre pronto') {
+        return '#EAB308';
+      }
+      if (estado.estaAbierto === false) {
+        return '#EF4444';
+      }
+      return '#9CA3AF';
+    };
+
+    const getBadgeText = () => {
+      if (estado.badge === 'Abierto 24h') {
+        return 'Abierto 24h';
+      }
+      
+      if (estado.tiempoRestante) {
+        if (estado.badge === 'Abierto ahora') {
+          return `Abierto ahora • Cierra en ${estado.tiempoRestante}`;
+        }
+        if (estado.badge === 'Cierra pronto') {
+          return `Cierra en ${estado.tiempoRestante}`;
+        }
+        if (estado.badge === 'Abre pronto') {
+          return `Abre en ${estado.tiempoRestante}`;
+        }
+        return `${estado.badge} • ${estado.tiempoRestante}`;
+      }
+      return estado.badge;
+    };
+
+    const shouldDimImage = () => {
+      return estado.estaAbierto === false || estado.estaAbierto === null;
+    };
+
+    const formatCategories = () => {
+      const CATEGORIAS_EXCLUIDAS = ['terrazas', 'rooftops', 'lounge'];
+      let categories = item.barlive_types || [];
+      if (categories.length === 0 && item.barlive_type) {
+        categories = [item.barlive_type];
+      }
+      
+      return categories.filter((cat: string) => 
+        !CATEGORIAS_EXCLUIDAS.includes(cat.toLowerCase())
+      );
+    };
+
+    const categoriasAMostrar = formatCategories();
+
+    const getRating = () => {
+      if (item.rating && item.rating > 0) {
+        return item.rating;
+      }
+      if (item.google_rating && item.google_rating > 0) {
+        return item.google_rating;
+      }
+      if (item.valoracion_google && item.valoracion_google > 0) {
+        return item.valoracion_google;
+      }
+      return 0;
+    };
+
+    const displayRating = getRating();
+
+    return (
+      <TouchableOpacity 
+        style={[
+          styles.card,
+          isDestacado && styles.cardDestacado
+        ]} 
+        onPress={() => router.push(`/detalle/local?id=${item.id}`)}
+        activeOpacity={0.9}
+      >
+        {/* Imagen */}
+        <View style={styles.imageContainer}>
+          {imagenPrincipal ? (
+            <Image
+              source={{ uri: imagenPrincipal }}
+              style={styles.image}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={[styles.image, styles.placeholderImage]}>
+              <IconSymbol name="photo" size={48} color={colors.textSecondary} />
+            </View>
+          )}
+
+          {/* Dimmed overlay for closed/no info locals */}
+          {shouldDimImage() && (
+            <View style={styles.dimmedOverlay} />
+          )}
+
+          {/* Gradient overlay for better text visibility */}
+          <View style={styles.imageOverlay} />
+
+          {/* Badge "Destacado" */}
+          {isDestacado && (
+            <View style={styles.badgeDestacadoHeader}>
+              <IconSymbol name="star.fill" size={14} color="#92400E" />
+              <Text style={styles.badgeDestacadoHeaderText}>Destacado</Text>
+            </View>
+          )}
+
+          {/* Badge de estado */}
+          <View style={[
+            styles.badgeEstadoSuperior, 
+            { backgroundColor: getBadgeColor() + 'E6' },
+            isDestacado && styles.badgeEstadoSuperiorConDestacado
+          ]}>
+            <Text style={styles.badgeEstadoSuperiorText} numberOfLines={1}>{getBadgeText()}</Text>
+          </View>
+
+          {/* Valoración */}
+          {displayRating > 0 && (
+            <View style={styles.ratingBadge}>
+              <IconSymbol name="star.fill" size={12} color="#FACC15" />
+              <Text style={styles.ratingBadgeText}>{displayRating.toFixed(1)}</Text>
+            </View>
+          )}
+
+          {/* Badge nuevo */}
+          {item.nuevo && (
+            <View style={styles.badgeNuevoContainer}>
+              <View style={styles.badgeNuevo}>
+                <Text style={styles.badgeNuevoText}>Nuevo</Text>
+              </View>
+            </View>
+          )}
+
+          {/* ✅ NEW: Synchronized favorite button */}
+          <TouchableOpacity
+            style={styles.favoritoButton}
+            onPress={(e) => {
+              e.stopPropagation();
+              toggleFavorito(item.id);
+            }}
+          >
+            <IconSymbol
+              name="heart.fill"
+              size={20}
+              color="#EF4444"
+            />
+          </TouchableOpacity>
+        </View>
+
+        {/* Contenido */}
+        <View style={styles.content}>
+          <View style={styles.header}>
+            <Text style={styles.nombre} numberOfLines={1}>
+              {item.nombre}
+            </Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <IconSymbol name="mappin" size={14} color={colors.textSecondary} />
+            <Text style={styles.infoText} numberOfLines={1}>
+              {item.direccion}
+            </Text>
+          </View>
+
+          {/* Categorías del local */}
+          {categoriasAMostrar.length > 0 && (
+            <View style={styles.categoriasContainer}>
+              {categoriasAMostrar.map((categoria: string, index: number) => (
+                <View key={index} style={styles.categoriaBadge}>
+                  <Text style={styles.categoriaIcon}>{getCategoryIcon(categoria)}</Text>
+                  <Text style={styles.categoriaText} numberOfLines={1}>{categoria}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
   const renderFooter = () => {
     if (!loadingMore) return null;
     
@@ -350,12 +563,7 @@ export default function FavoritosScreen() {
 
       <FlatList
         data={displayedLocales}
-        renderItem={({ item }) => (
-          <TarjetaLocal
-            local={item}
-            userLocation={null}
-          />
-        )}
+        renderItem={renderLocalCard}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         refreshControl={
@@ -507,5 +715,216 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  card: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 16,
+    marginBottom: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  cardDestacado: {
+    borderWidth: 3,
+    borderColor: '#FACC15',
+    shadowColor: '#FACC15',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  imageContainer: {
+    width: '100%',
+    height: 200,
+    position: 'relative',
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+  },
+  placeholderImage: {
+    backgroundColor: colors.cardBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dimmedOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    zIndex: 1,
+  },
+  imageOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.15)',
+  },
+  badgeDestacadoHeader: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FACC15',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 4,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 10,
+    zIndex: 11,
+  },
+  badgeDestacadoHeaderText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#92400E',
+  },
+  badgeEstadoSuperior: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 10,
+    maxWidth: '70%',
+  },
+  badgeEstadoSuperiorConDestacado: {
+    top: 52,
+  },
+  badgeEstadoSuperiorText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  ratingBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 4,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.8)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 12,
+  },
+  ratingBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.headerText,
+    letterSpacing: 0.3,
+  },
+  badgeNuevoContainer: {
+    position: 'absolute',
+    top: 56,
+    right: 12,
+    zIndex: 9,
+  },
+  badgeNuevo: {
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  badgeNuevoText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.headerText,
+  },
+  favoritoButton: {
+    position: 'absolute',
+    bottom: 12,
+    right: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  content: {
+    padding: 16,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  nombre: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+    flex: 1,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 12,
+  },
+  infoText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    flex: 1,
+  },
+  categoriasContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  categoriaBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary + '15',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    gap: 4,
+    maxWidth: '48%',
+  },
+  categoriaIcon: {
+    fontSize: 12,
+  },
+  categoriaText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.primary,
+    textTransform: 'capitalize',
+    flexShrink: 1,
   },
 });

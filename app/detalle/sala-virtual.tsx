@@ -26,6 +26,19 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+// ✅ NEW: Spectacular color scheme for virtual room
+const ROOM_COLORS = {
+  primary: '#8B5CF6',      // Purple
+  secondary: '#EC4899',    // Pink
+  accent: '#F59E0B',       // Amber
+  success: '#10B981',      // Green
+  danger: '#EF4444',       // Red
+  dark: '#1F2937',         // Dark gray
+  light: '#F3F4F6',        // Light gray
+  cardBg: '#FFFFFF',       // White
+  cardBgDark: '#111827',   // Very dark gray
+};
+
 interface Message {
   id: string;
   usuario_id: string;
@@ -84,20 +97,37 @@ export default function SalaVirtualScreen() {
   const localId = params.localId as string;
   const hasShownClosedAlert = useRef(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const glowAnim = useRef(new Animated.Value(0)).current;
 
-  // Pulse animation for active users
+  // ✅ NEW: Spectacular pulse animation
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
-          toValue: 1.2,
-          duration: 1000,
+          toValue: 1.3,
+          duration: 800,
           useNativeDriver: true,
         }),
         Animated.timing(pulseAnim, {
           toValue: 1,
-          duration: 1000,
+          duration: 800,
           useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
+    // ✅ NEW: Glow animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowAnim, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: false,
+        }),
+        Animated.timing(glowAnim, {
+          toValue: 0,
+          duration: 1500,
+          useNativeDriver: false,
         }),
       ])
     ).start();
@@ -477,7 +507,7 @@ export default function SalaVirtualScreen() {
     const chatChannel = supabase
       .channel(`room:${localId}:chat`, {
         config: { 
-          broadcast: { self: true }, // ✅ CHANGED: Receive own messages for instant display
+          broadcast: { self: true },
         },
       })
       .on('broadcast', { event: 'message_created' }, async (payload) => {
@@ -495,7 +525,6 @@ export default function SalaVirtualScreen() {
         };
 
         setMessages((prev) => {
-          // ✅ Avoid duplicates
           if (prev.some(m => m.id === newMessage.id)) {
             return prev;
           }
@@ -664,7 +693,6 @@ export default function SalaVirtualScreen() {
         return;
       }
 
-      // ✅ Broadcast message to all users in the room
       if (chatChannelRef.current) {
         try {
           await chatChannelRef.current.send({
@@ -687,7 +715,7 @@ export default function SalaVirtualScreen() {
     }
   };
 
-  // ✅ NEW: Delete message
+  // Delete message
   const deleteMessage = async (messageId: string) => {
     if (!user) return;
 
@@ -696,7 +724,7 @@ export default function SalaVirtualScreen() {
         .from('sala_virtual_interacciones')
         .delete()
         .eq('id', messageId)
-        .eq('usuario_id', user.id); // Only allow deleting own messages
+        .eq('usuario_id', user.id);
 
       if (error) {
         console.error('[SalaVirtual] Error deleting message:', error);
@@ -704,7 +732,6 @@ export default function SalaVirtualScreen() {
         return;
       }
 
-      // Broadcast deletion to all users
       if (chatChannelRef.current) {
         try {
           await chatChannelRef.current.send({
@@ -787,7 +814,7 @@ export default function SalaVirtualScreen() {
     );
   };
 
-  // Render message
+  // ✅ IMPROVED: Render message with consistent design
   const renderMessage = ({ item }: { item: Message }) => {
     const isOwnMessage = user && item.usuario_id === user.id;
 
@@ -798,7 +825,7 @@ export default function SalaVirtualScreen() {
           isOwnMessage ? styles.ownMessage : styles.otherMessage,
         ]}
       >
-        {/* ✅ ALWAYS show avatar (left for others, right for own) */}
+        {/* Avatar on left for others */}
         {!isOwnMessage && (
           <TouchableOpacity
             style={styles.messageAvatar}
@@ -820,12 +847,14 @@ export default function SalaVirtualScreen() {
                   ios_icon_name="person.fill"
                   android_material_icon_name="person"
                   size={18}
-                  color={colors.textSecondary}
+                  color={ROOM_COLORS.light}
                 />
               </View>
             )}
           </TouchableOpacity>
         )}
+
+        {/* Message bubble */}
         <View style={{ flex: 1 }}>
           <TouchableOpacity
             style={[
@@ -850,10 +879,12 @@ export default function SalaVirtualScreen() {
             }}
             activeOpacity={isOwnMessage ? 0.7 : 1}
           >
-            {/* ✅ ALWAYS show username */}
+            {/* Username */}
             <Text style={[styles.messageSender, isOwnMessage && styles.ownMessageSender]}>
               {item.usuario.username ? `@${item.usuario.username}` : item.usuario.nombre}
             </Text>
+            
+            {/* Message content */}
             <Text
               style={[
                 styles.messageText,
@@ -862,6 +893,8 @@ export default function SalaVirtualScreen() {
             >
               {item.contenido}
             </Text>
+            
+            {/* Timestamp */}
             <Text
               style={[
                 styles.messageTime,
@@ -875,7 +908,8 @@ export default function SalaVirtualScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-        {/* ✅ Show avatar on right for own messages */}
+
+        {/* Avatar on right for own messages */}
         {isOwnMessage && (
           <View style={styles.messageAvatar}>
             {item.usuario.avatar ? (
@@ -889,7 +923,7 @@ export default function SalaVirtualScreen() {
                   ios_icon_name="person.fill"
                   android_material_icon_name="person"
                   size={18}
-                  color={colors.textSecondary}
+                  color={ROOM_COLORS.light}
                 />
               </View>
             )}
@@ -899,9 +933,13 @@ export default function SalaVirtualScreen() {
     );
   };
 
-  // Render user item
+  // ✅ IMPROVED: Render user item with spectacular design
   const renderUserItem = ({ item }: { item: ActiveUser }) => {
     const isCurrentUser = user && item.id === user.id;
+    const glowColor = glowAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: ['rgba(139, 92, 246, 0.2)', 'rgba(236, 72, 153, 0.4)'],
+    });
 
     return (
       <TouchableOpacity
@@ -914,34 +952,40 @@ export default function SalaVirtualScreen() {
         disabled={isCurrentUser}
         activeOpacity={0.7}
       >
+        <Animated.View style={[styles.userCardGlow, isCurrentUser && { backgroundColor: glowColor }]} />
         <LinearGradient
-          colors={isCurrentUser ? [colors.primary + '20', colors.secondary + '20'] : ['transparent', 'transparent']}
+          colors={isCurrentUser 
+            ? [ROOM_COLORS.primary + '30', ROOM_COLORS.secondary + '30'] 
+            : [ROOM_COLORS.cardBg, ROOM_COLORS.cardBg]
+          }
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.userCardGradient}
         >
           <View style={styles.userCardContent}>
-            {item.avatar ? (
-              <Image
-                source={{ uri: item.avatar }}
-                style={styles.userCardAvatar}
-              />
-            ) : (
-              <View style={styles.userCardAvatarPlaceholder}>
-                <IconSymbol
-                  ios_icon_name="person.fill"
-                  android_material_icon_name="person"
-                  size={24}
-                  color={colors.textSecondary}
+            <View style={styles.userAvatarContainer}>
+              {item.avatar ? (
+                <Image
+                  source={{ uri: item.avatar }}
+                  style={styles.userCardAvatar}
                 />
-              </View>
-            )}
-            <Animated.View 
-              style={[
-                styles.userCardOnlineDot,
-                { transform: [{ scale: pulseAnim }] }
-              ]} 
-            />
+              ) : (
+                <View style={styles.userCardAvatarPlaceholder}>
+                  <IconSymbol
+                    ios_icon_name="person.fill"
+                    android_material_icon_name="person"
+                    size={24}
+                    color={colors.textSecondary}
+                  />
+                </View>
+              )}
+              <Animated.View 
+                style={[
+                  styles.userCardOnlineDot,
+                  { transform: [{ scale: pulseAnim }] }
+                ]} 
+              />
+            </View>
             
             <View style={styles.userCardInfo}>
               <Text style={styles.userCardName}>
@@ -959,7 +1003,7 @@ export default function SalaVirtualScreen() {
                 ios_icon_name="chevron.right"
                 android_material_icon_name="chevron_right"
                 size={20}
-                color={colors.primary}
+                color={ROOM_COLORS.primary}
               />
             </View>
           )}
@@ -971,7 +1015,7 @@ export default function SalaVirtualScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <ActivityIndicator size="large" color={ROOM_COLORS.primary} />
         <Text style={styles.loadingText}>Cargando sala virtual...</Text>
       </View>
     );
@@ -987,7 +1031,7 @@ export default function SalaVirtualScreen() {
         />
         <View style={styles.closedContainer}>
           <LinearGradient
-            colors={['#EF4444', '#DC2626']}
+            colors={[ROOM_COLORS.danger, '#DC2626']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.closedCard}
@@ -1041,7 +1085,7 @@ export default function SalaVirtualScreen() {
         />
         <View style={styles.checkInContainer}>
           <LinearGradient
-            colors={['#8B5CF6', '#7C3AED']}
+            colors={[ROOM_COLORS.primary, ROOM_COLORS.secondary]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.checkInCard}
@@ -1144,6 +1188,7 @@ export default function SalaVirtualScreen() {
       />
 
       <View style={styles.content}>
+        {/* ✅ IMPROVED: Spectacular tab bar */}
         <View style={styles.tabBar}>
           <TouchableOpacity
             style={[styles.tab, activeTab === 'users' && styles.tabActive]}
@@ -1151,7 +1196,10 @@ export default function SalaVirtualScreen() {
             activeOpacity={0.7}
           >
             <LinearGradient
-              colors={activeTab === 'users' ? [colors.primary, colors.secondary] : ['transparent', 'transparent']}
+              colors={activeTab === 'users' 
+                ? [ROOM_COLORS.primary, ROOM_COLORS.secondary] 
+                : ['transparent', 'transparent']
+              }
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.tabGradient}
@@ -1173,7 +1221,10 @@ export default function SalaVirtualScreen() {
             activeOpacity={0.7}
           >
             <LinearGradient
-              colors={activeTab === 'chat' ? [colors.primary, colors.secondary] : ['transparent', 'transparent']}
+              colors={activeTab === 'chat' 
+                ? [ROOM_COLORS.primary, ROOM_COLORS.secondary] 
+                : ['transparent', 'transparent']
+              }
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.tabGradient}
@@ -1201,7 +1252,7 @@ export default function SalaVirtualScreen() {
               ListEmptyComponent={
                 <View style={styles.emptyContainer}>
                   <LinearGradient
-                    colors={[colors.primary + '20', colors.secondary + '20']}
+                    colors={[ROOM_COLORS.primary + '20', ROOM_COLORS.secondary + '20']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.emptyIconCircle}
@@ -1210,7 +1261,7 @@ export default function SalaVirtualScreen() {
                       ios_icon_name="person.3"
                       android_material_icon_name="group"
                       size={48}
-                      color={colors.primary}
+                      color={ROOM_COLORS.primary}
                     />
                   </LinearGradient>
                   <Text style={styles.emptyText}>No hay usuarios activos</Text>
@@ -1226,7 +1277,7 @@ export default function SalaVirtualScreen() {
                 activeOpacity={0.8}
               >
                 <LinearGradient
-                  colors={['#EF4444', '#DC2626']}
+                  colors={[ROOM_COLORS.danger, '#DC2626']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.checkOutButtonGradient}
@@ -1256,7 +1307,7 @@ export default function SalaVirtualScreen() {
               ListEmptyComponent={
                 <View style={styles.emptyContainer}>
                   <LinearGradient
-                    colors={[colors.primary + '20', colors.secondary + '20']}
+                    colors={[ROOM_COLORS.primary + '20', ROOM_COLORS.secondary + '20']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.emptyIconCircle}
@@ -1265,7 +1316,7 @@ export default function SalaVirtualScreen() {
                       ios_icon_name="bubble.left.and.bubble.right"
                       android_material_icon_name="chat"
                       size={48}
-                      color={colors.primary}
+                      color={ROOM_COLORS.primary}
                     />
                   </LinearGradient>
                   <Text style={styles.emptyText}>No hay mensajes todavía</Text>
@@ -1308,7 +1359,7 @@ export default function SalaVirtualScreen() {
                   colors={
                     !newMessage.trim() || sending
                       ? [colors.textSecondary, colors.textSecondary]
-                      : [colors.primary, colors.secondary]
+                      : [ROOM_COLORS.primary, ROOM_COLORS.secondary]
                   }
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
@@ -1482,10 +1533,10 @@ const styles = StyleSheet.create({
     borderColor: '#fff',
   },
   statusDotOpen: {
-    backgroundColor: '#10B981',
+    backgroundColor: ROOM_COLORS.success,
   },
   statusDotClosed: {
-    backgroundColor: '#EF4444',
+    backgroundColor: ROOM_COLORS.danger,
   },
   statusBadgeText: {
     fontSize: 14,
@@ -1553,7 +1604,7 @@ const styles = StyleSheet.create({
   activeUsersIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.primary + '20',
+    backgroundColor: ROOM_COLORS.primary + '20',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 16,
@@ -1563,28 +1614,33 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#10B981',
+    backgroundColor: ROOM_COLORS.success,
   },
   activeUsersText: {
     fontSize: 14,
     fontWeight: '700',
-    color: colors.primary,
+    color: ROOM_COLORS.primary,
   },
   content: {
     flex: 1,
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: colors.card,
+    backgroundColor: ROOM_COLORS.cardBg,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.cardBorder,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   tab: {
     flex: 1,
   },
   tabActive: {
     borderBottomWidth: 3,
-    borderBottomColor: colors.primary,
+    borderBottomColor: ROOM_COLORS.primary,
   },
   tabGradient: {
     flexDirection: 'row',
@@ -1637,8 +1693,9 @@ const styles = StyleSheet.create({
   },
   messageContainer: {
     flexDirection: 'row',
-    marginBottom: 12,
+    marginBottom: 16,
     alignItems: 'flex-start',
+    gap: 8,
   },
   ownMessage: {
     justifyContent: 'flex-end',
@@ -1647,45 +1704,55 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
   },
   messageAvatar: {
-    marginRight: 8,
+    width: 36,
+    height: 36,
   },
   messageAvatarImage: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: ROOM_COLORS.primary + '40',
   },
   messageAvatarPlaceholder: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.card,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: ROOM_COLORS.primary + '30',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: ROOM_COLORS.primary + '40',
   },
   messageBubble: {
     maxWidth: '70%',
     padding: 12,
     borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   ownMessageBubble: {
-    backgroundColor: colors.primary,
+    backgroundColor: ROOM_COLORS.primary,
     borderBottomRightRadius: 4,
   },
   otherMessageBubble: {
-    backgroundColor: colors.card,
+    backgroundColor: ROOM_COLORS.cardBg,
     borderBottomLeftRadius: 4,
   },
   messageSender: {
     fontSize: 12,
     fontWeight: '700',
-    color: colors.primary,
+    color: ROOM_COLORS.primary,
     marginBottom: 4,
   },
   ownMessageSender: {
     color: 'rgba(255, 255, 255, 0.9)',
   },
   messageText: {
-    fontSize: 14,
+    fontSize: 15,
     lineHeight: 20,
   },
   ownMessageText: {
@@ -1707,7 +1774,7 @@ const styles = StyleSheet.create({
   typingIndicator: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: colors.card,
+    backgroundColor: ROOM_COLORS.cardBg,
   },
   typingText: {
     fontSize: 12,
@@ -1719,9 +1786,14 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     padding: 12,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
-    backgroundColor: colors.card,
+    borderTopColor: colors.cardBorder,
+    backgroundColor: ROOM_COLORS.cardBg,
     gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
   },
   input: {
     flex: 1,
@@ -1733,6 +1805,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 14,
     color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
   sendButton: {
     width: 40,
@@ -1758,44 +1832,58 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
+    position: 'relative',
+  },
+  userCardGlow: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 16,
   },
   userCardGradient: {
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.card,
   },
   userCardContent: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
   },
-  userCardAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  userAvatarContainer: {
+    position: 'relative',
     marginRight: 12,
   },
+  userCardAvatar: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 3,
+    borderColor: ROOM_COLORS.primary + '40',
+  },
   userCardAvatarPlaceholder: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    borderWidth: 3,
+    borderColor: ROOM_COLORS.primary + '40',
   },
   userCardOnlineDot: {
     position: 'absolute',
-    top: 0,
-    left: 36,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#10B981',
-    borderWidth: 2,
-    borderColor: colors.card,
+    top: -2,
+    right: -2,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: ROOM_COLORS.success,
+    borderWidth: 3,
+    borderColor: ROOM_COLORS.cardBg,
   },
   userCardInfo: {
     flex: 1,
@@ -1817,8 +1905,13 @@ const styles = StyleSheet.create({
   usersFooter: {
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
-    backgroundColor: colors.card,
+    borderTopColor: colors.cardBorder,
+    backgroundColor: ROOM_COLORS.cardBg,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
   },
   checkOutButtonLarge: {
     borderRadius: 16,
