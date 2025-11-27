@@ -786,7 +786,7 @@ export default function SalaVirtualScreen() {
     if (selectedUser.id === user?.id) return;
     
     Alert.alert(
-      selectedUser.nombre,
+      selectedUser.username || selectedUser.nombre,
       '¿Qué quieres hacer?',
       [
         {
@@ -881,10 +881,10 @@ export default function SalaVirtualScreen() {
             }}
             activeOpacity={isOwnMessage ? 0.7 : 1}
           >
-            {/* Username */}
+            {/* Username - only for other users */}
             {!isOwnMessage && (
               <Text style={styles.messageSender}>
-                {item.usuario.username ? `@${item.usuario.username}` : item.usuario.nombre}
+                {item.usuario.username || item.usuario.nombre}
               </Text>
             )}
             
@@ -912,38 +912,20 @@ export default function SalaVirtualScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-
-        {/* Avatar on right for own messages */}
-        {isOwnMessage && (
-          <View style={styles.messageAvatar}>
-            {item.usuario.avatar ? (
-              <Image
-                source={{ uri: item.usuario.avatar }}
-                style={styles.messageAvatarImage}
-              />
-            ) : (
-              <View style={styles.messageAvatarPlaceholder}>
-                <IconSymbol
-                  ios_icon_name="person.fill"
-                  android_material_icon_name="person"
-                  size={18}
-                  color={ROOM_COLORS.light}
-                />
-              </View>
-            )}
-          </View>
-        )}
       </View>
     );
   };
 
-  // ✅ SPECTACULAR: Render user item with BarLive colors
+  // ✅ FIXED: Render user item - Display username without @ instead of full name
   const renderUserItem = ({ item }: { item: ActiveUser }) => {
     const isCurrentUser = user && item.id === user.id;
     const glowColor = glowAnim.interpolate({
       inputRange: [0, 1],
       outputRange: [`${ROOM_COLORS.primary}33`, `${ROOM_COLORS.secondary}66`],
     });
+
+    // ✅ FIXED: Display username without @ if available, otherwise display nombre
+    const displayName = item.username || item.nombre;
 
     return (
       <TouchableOpacity
@@ -993,11 +975,8 @@ export default function SalaVirtualScreen() {
             
             <View style={styles.userCardInfo}>
               <Text style={styles.userCardName}>
-                {item.nombre} {isCurrentUser && '(Tú)'}
+                {displayName} {isCurrentUser && '(Tú)'}
               </Text>
-              {item.username && (
-                <Text style={styles.userCardUsername}>@{item.username}</Text>
-              )}
             </View>
           </View>
 
@@ -1828,6 +1807,7 @@ const styles = StyleSheet.create({
   ownMessageBubble: {
     backgroundColor: ROOM_COLORS.primary,
     borderBottomRightRadius: 4,
+    alignSelf: 'flex-end',
   },
   otherMessageBubble: {
     backgroundColor: ROOM_COLORS.cardBg,
@@ -1855,6 +1835,7 @@ const styles = StyleSheet.create({
   },
   ownMessageTime: {
     color: 'rgba(255, 255, 255, 0.7)',
+    textAlign: 'right',
   },
   otherMessageTime: {
     color: colors.textSecondary,
@@ -1981,10 +1962,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.text,
     marginBottom: 2,
-  },
-  userCardUsername: {
-    fontSize: 14,
-    color: colors.textSecondary,
   },
   userCardActions: {
     flexDirection: 'row',
