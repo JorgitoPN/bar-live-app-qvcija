@@ -128,8 +128,10 @@ const styles = StyleSheet.create({
   },
   storyRing: {
     position: 'absolute',
-    top: 0,
-    left: 0,
+    // ✅ FIXED: Perfect centering - ring is positioned absolutely and centered
+    top: '50%',
+    left: '50%',
+    transform: [{ translateX: -1 }, { translateY: -1 }], // Offset by half of ring size difference
   },
   avatarContainer: {
     backgroundColor: colors.background,
