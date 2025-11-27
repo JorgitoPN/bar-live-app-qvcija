@@ -889,15 +889,15 @@ export default function SalaVirtualScreen() {
         />
         <View style={styles.checkInContainer}>
           <LinearGradient
-            colors={['#8B5CF6', '#EC4899', '#F59E0B']}
+            colors={['#8B5CF6', '#7C3AED']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.checkInCard}
           >
             <View style={styles.checkInIconCircle}>
               <IconSymbol
-                ios_icon_name="sparkles"
-                android_material_icon_name="auto_awesome"
+                ios_icon_name="cube.fill"
+                android_material_icon_name="view_in_ar"
                 size={48}
                 color="#fff"
               />
