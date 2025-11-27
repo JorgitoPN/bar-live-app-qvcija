@@ -27,6 +27,7 @@ import { supabase } from '@/utils/supabase';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
 import UnifiedStoryViewer from '@/components/social/UnifiedStoryViewer';
+import StoryAvatar from '@/components/common/StoryAvatar';
 import { useStoryState } from '@/contexts/StoryStateContext';
 
 const { width } = Dimensions.get('window');
@@ -365,7 +366,7 @@ export default function PerfilScreen() {
     try {
       const { data: userStoriesData } = await supabase
         .from('historias')
-        .select('id, autor_id, tipo, imagen, imagen_url, created_at, expires_at, visto')
+        .select('id, autor_id, tipo, imagen, created_at, expires_at, visto')
         .eq('autor_id', user.id)
         .eq('tipo', 'usuario')
         .gt('expires_at', new Date().toISOString())
@@ -596,52 +597,34 @@ export default function PerfilScreen() {
   };
 
   const renderProfileHeader = () => {
-    const hasStories = userStories.length > 0;
-    const showStoryOutline = hasStories && user && hasUnviewedStories(user.id, userStories);
-
     return (
       <View style={styles.profileSection}>
         <View style={styles.profileHeader}>
-          {/* ✅ INSTAGRAM-STYLE: Avatar with story outline */}
-          <TouchableOpacity 
-            style={styles.avatarContainer}
+          {/* ✅ INSTAGRAM-STYLE: Use StoryAvatar component for consistent story outline */}
+          <StoryAvatar
+            userId={user?.id || ''}
+            userStories={userStories}
+            avatarUrl={displayAvatar}
+            userName={displayName}
+            size={88}
             onPress={handleAvatarPress}
+            showLabel={false}
+          />
+          
+          {/* ✅ '+' button to add story */}
+          <TouchableOpacity 
+            style={styles.addStoryButton}
+            onPress={handleAddStory}
             activeOpacity={0.8}
           >
-            {/* ✅ Story ring if user has unviewed stories */}
-            {showStoryOutline && (
-              <LinearGradient
-                colors={['#10B981', '#3B82F6']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.storyRing}
-              />
-            )}
-            {displayAvatar ? (
-              <Image source={{ uri: displayAvatar }} style={styles.avatar} />
-            ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={40} color={colors.headerText} />
-              </View>
-            )}
-            {/* ✅ '+' button to add story */}
-            <TouchableOpacity 
-              style={styles.addStoryButton}
-              onPress={(e) => {
-                e.stopPropagation();
-                handleAddStory();
-              }}
-              activeOpacity={0.8}
+            <LinearGradient
+              colors={[colors.primary, colors.secondary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.addStoryGradient}
             >
-              <LinearGradient
-                colors={[colors.primary, colors.secondary]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.addStoryGradient}
-              >
-                <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={14} color={colors.white} />
-              </LinearGradient>
-            </TouchableOpacity>
+              <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={14} color={colors.white} />
+            </LinearGradient>
           </TouchableOpacity>
           
           <View style={styles.profileInfo}>
@@ -1196,37 +1179,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 16,
-  },
-  avatarContainer: {
     position: 'relative',
-    marginRight: 20,
-  },
-  storyRing: {
-    position: 'absolute',
-    top: -4,
-    left: -4,
-    right: -4,
-    bottom: -4,
-    borderRadius: 48,
-    zIndex: 0,
-  },
-  avatar: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    borderWidth: 4,
-    borderColor: colors.headerText,
-    zIndex: 1,
-  },
-  avatarPlaceholder: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   addStoryButton: {
     position: 'absolute',
     bottom: 0,
-    right: 0,
+    left: 68,
     width: 28,
     height: 28,
     borderRadius: 14,
@@ -1243,6 +1201,7 @@ const styles = StyleSheet.create({
   },
   profileInfo: {
     flex: 1,
+    marginLeft: 20,
   },
   profileName: {
     fontSize: 22,
