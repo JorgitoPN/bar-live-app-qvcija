@@ -24,7 +24,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-import { useMode } from '@/contexts/ModeContext';
+import { useInteractionContext } from '@/hooks/useInteractionContext';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 import ParsedText from '@/components/social/ParsedText';
 import MentionAutocomplete, { MentionSuggestion } from '@/components/social/MentionAutocomplete';
@@ -464,7 +464,7 @@ export default function PostDetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { user } = useAuth();
-  const { activeLocalProfileId, isInteractingAsLocal } = useMode();
+  const { interactionUserId, interactionLocalId, isInteractingAsLocal } = useInteractionContext();
   const scrollViewRef = useRef<ScrollView>(null);
   const textInputRef = useRef<TextInput>(null);
   const [loading, setLoading] = useState(true);
@@ -524,15 +524,22 @@ export default function PostDetailScreen() {
         return;
       }
 
+      // ✅ FIXED: Check like status with local context
       let liked = false;
-      if (user) {
-        const { data: likeData } = await supabase
+      if (interactionUserId) {
+        let likeQuery = supabase
           .from('likes')
           .select('id')
           .eq('post_id', params.id)
-          .eq('usuario_id', user.id)
-          .single();
-        
+          .eq('usuario_id', interactionUserId);
+
+        if (isInteractingAsLocal && interactionLocalId) {
+          likeQuery = likeQuery.eq('local_id', interactionLocalId);
+        } else {
+          likeQuery = likeQuery.is('local_id', null);
+        }
+
+        const { data: likeData } = await likeQuery.maybeSingle();
         liked = !!likeData;
       }
 
@@ -582,7 +589,7 @@ export default function PostDetailScreen() {
     } finally {
       setLoading(false);
     }
-  }, [params.id, user]);
+  }, [params.id, user, interactionUserId, interactionLocalId, isInteractingAsLocal]);
 
   const loadComentarios = useCallback(async () => {
     try {
@@ -699,7 +706,7 @@ export default function PostDetailScreen() {
   const toggleLike = async () => {
     console.log('[PostDetail] toggleLike called');
     
-    if (!user) {
+    if (!interactionUserId) {
       console.log('[PostDetail] User not logged in, showing login modal');
       setLoginMessage('Para dar me gusta necesitas registrarte en BarLive');
       setShowLoginModal(true);
@@ -723,6 +730,7 @@ export default function PostDetailScreen() {
 
     isLikingRef.current = true;
 
+    // Optimistic update
     setPost({
       ...post,
       liked: !isLiked,
@@ -732,11 +740,21 @@ export default function PostDetailScreen() {
     try {
       if (isLiked) {
         console.log('[PostDetail] Removing like');
-        const { error: deleteError } = await supabase
+        
+        // ✅ FIXED: Delete like with correct filters
+        let deleteQuery = supabase
           .from('likes')
           .delete()
           .eq('post_id', params.id)
-          .eq('usuario_id', user.id);
+          .eq('usuario_id', interactionUserId);
+
+        if (isInteractingAsLocal && interactionLocalId) {
+          deleteQuery = deleteQuery.eq('local_id', interactionLocalId);
+        } else {
+          deleteQuery = deleteQuery.is('local_id', null);
+        }
+
+        const { error: deleteError } = await deleteQuery;
         
         if (deleteError) {
           console.error('[PostDetail] Error deleting like:', deleteError);
@@ -754,28 +772,22 @@ export default function PostDetailScreen() {
       } else {
         console.log('[PostDetail] Adding like');
         
-        const { data: existingLike } = await supabase
-          .from('likes')
-          .select('id')
-          .eq('post_id', params.id)
-          .eq('usuario_id', user.id)
-          .single();
-        
-        if (existingLike) {
-          console.log('[PostDetail] Like already exists, skipping insert');
-          setPost({
-            ...post,
-            liked: true,
-            likes: currentLikes,
-          });
-          isLikingRef.current = false;
-          return;
+        // ✅ FIXED: Insert like with local_id if interacting as local
+        const likeData: any = {
+          post_id: params.id,
+          usuario_id: interactionUserId,
+        };
+
+        if (isInteractingAsLocal && interactionLocalId) {
+          likeData.local_id = interactionLocalId;
+          likeData.tipo = 'local';
+          console.log('[PostDetail] 🏢 Adding like as local:', interactionLocalId);
+        } else {
+          likeData.tipo = 'usuario';
+          console.log('[PostDetail] 👤 Adding like as user');
         }
         
-        const { error: insertError } = await supabase.from('likes').insert({
-          post_id: params.id,
-          usuario_id: user.id,
-        });
+        const { error: insertError } = await supabase.from('likes').insert(likeData);
         
         if (insertError) {
           console.error('[PostDetail] Error inserting like:', insertError);
@@ -795,6 +807,7 @@ export default function PostDetailScreen() {
       console.log('[PostDetail] Like toggled successfully');
     } catch (error) {
       console.error('[PostDetail] Error toggling like:', error);
+      // Revert optimistic update
       setPost({
         ...post,
         liked: isLiked,
@@ -1118,7 +1131,7 @@ export default function PostDetailScreen() {
 
     const isOwner = post.tipo === 'usuario' 
       ? post.autor_id === user.id
-      : post.tipo === 'local' && activeLocalProfileId === post.local_id;
+      : post.tipo === 'local' && interactionLocalId === post.local_id;
 
     if (!isOwner) {
       Alert.alert('Error', 'Solo puedes eliminar tus propias publicaciones');
@@ -1171,7 +1184,7 @@ export default function PostDetailScreen() {
 
     try {
       console.log('[PostDetail] Inserting comment:', comentarioTexto);
-      console.log('[PostDetail] Active local profile:', activeLocalProfileId);
+      console.log('[PostDetail] Active local profile:', interactionLocalId);
       console.log('[PostDetail] Is interacting as local:', isInteractingAsLocal);
       console.log('[PostDetail] User:', user?.id, user?.nombre);
       
@@ -1182,10 +1195,10 @@ export default function PostDetailScreen() {
         parent_comment_id: replyingTo?.id || null,
       };
       
-      if (activeLocalProfileId) {
+      if (interactionLocalId) {
         commentData.tipo = 'local';
-        commentData.local_id = activeLocalProfileId;
-        console.log('[PostDetail] 🏢 Creating comment as local:', activeLocalProfileId);
+        commentData.local_id = interactionLocalId;
+        console.log('[PostDetail] 🏢 Creating comment as local:', interactionLocalId);
       } else {
         commentData.tipo = 'usuario';
         console.log('[PostDetail] 👤 Creating comment as user');
@@ -1289,7 +1302,7 @@ export default function PostDetailScreen() {
   const renderComentario = (comentario: Comentario, isReply: boolean = false) => {
     const canDelete = user && (
       (comentario.tipo === 'usuario' && comentario.autor_id === user.id) ||
-      (comentario.tipo === 'local' && activeLocalProfileId === comentario.local_id)
+      (comentario.tipo === 'local' && interactionLocalId === comentario.local_id)
     );
 
     return (
@@ -1529,7 +1542,7 @@ export default function PostDetailScreen() {
             </TouchableOpacity>
             {user && (
               (post.tipo === 'usuario' && post.autor_id === user.id) ||
-              (post.tipo === 'local' && activeLocalProfileId === post.local_id)
+              (post.tipo === 'local' && interactionLocalId === post.local_id)
             ) && (
               <TouchableOpacity 
                 style={styles.postOptionsButton} 

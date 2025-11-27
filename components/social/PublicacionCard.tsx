@@ -165,16 +165,35 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
       if (!interactionUserId || !post?.id) return;
 
       try {
-        const { data, error } = await supabase
+        console.log('[PublicacionCard] 🔍 Checking like status:', {
+          postId: post.id,
+          interactionUserId,
+          interactionLocalId,
+          isInteractingAsLocal
+        });
+
+        // Build query based on interaction context
+        let query = supabase
           .from('likes')
           .select('id')
           .eq('post_id', post.id)
-          .eq('usuario_id', interactionUserId)
-          .maybeSingle();
+          .eq('usuario_id', interactionUserId);
+
+        // If interacting as local, filter by local_id
+        if (isInteractingAsLocal && interactionLocalId) {
+          query = query.eq('local_id', interactionLocalId);
+        } else {
+          // If interacting as user, ensure local_id is null
+          query = query.is('local_id', null);
+        }
+
+        const { data, error } = await query.maybeSingle();
 
         if (!error && data) {
+          console.log('[PublicacionCard] ✅ Post is liked');
           setLiked(true);
         } else {
+          console.log('[PublicacionCard] ❌ Post is not liked');
           setLiked(false);
         }
       } catch (error) {
@@ -183,7 +202,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
     };
 
     checkIfLiked();
-  }, [interactionUserId, post?.id]);
+  }, [interactionUserId, interactionLocalId, isInteractingAsLocal, post?.id]);
 
   useEffect(() => {
     if (!post?.id) {
@@ -286,6 +305,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
       interactionUserId,
       interactionType,
       interactionLocalId,
+      isInteractingAsLocal,
     });
     
     if (!interactionUserId) {
@@ -294,33 +314,67 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
     }
 
     const newLiked = !liked;
+    const previousLikesCount = likesCount;
+    
+    // Optimistic update
     setLiked(newLiked);
-    setLikesCount(newLiked ? likesCount + 1 : likesCount - 1);
+    setLikesCount(newLiked ? likesCount + 1 : Math.max(0, likesCount - 1));
 
     try {
       if (newLiked) {
-        // ✅ FIXED: Always use the logged-in user's ID for likes
-        // The interaction context (local vs user) is tracked separately
-        await supabase.from('likes').insert({
+        // ✅ FIXED: Insert like with local_id if interacting as local
+        const likeData: any = {
           post_id: post.id,
           usuario_id: interactionUserId,
-        });
+        };
+
+        if (isInteractingAsLocal && interactionLocalId) {
+          likeData.local_id = interactionLocalId;
+          likeData.tipo = 'local';
+          console.log('[PublicacionCard] 🏢 Adding like as local:', interactionLocalId);
+        } else {
+          likeData.tipo = 'usuario';
+          console.log('[PublicacionCard] 👤 Adding like as user');
+        }
+
+        const { error: insertError } = await supabase
+          .from('likes')
+          .insert(likeData);
         
-        console.log('[PublicacionCard] ✅ Like added as:', interactionType, interactionLocalId || interactionUserId);
+        if (insertError) {
+          console.error('[PublicacionCard] Error inserting like:', insertError);
+          throw insertError;
+        }
+        
+        console.log('[PublicacionCard] ✅ Like added successfully');
       } else {
-        await supabase
+        // ✅ FIXED: Delete like with correct filters
+        let deleteQuery = supabase
           .from('likes')
           .delete()
           .eq('post_id', post.id)
           .eq('usuario_id', interactionUserId);
+
+        if (isInteractingAsLocal && interactionLocalId) {
+          deleteQuery = deleteQuery.eq('local_id', interactionLocalId);
+        } else {
+          deleteQuery = deleteQuery.is('local_id', null);
+        }
+
+        const { error: deleteError } = await deleteQuery;
         
-        console.log('[PublicacionCard] ✅ Like removed');
+        if (deleteError) {
+          console.error('[PublicacionCard] Error deleting like:', deleteError);
+          throw deleteError;
+        }
+        
+        console.log('[PublicacionCard] ✅ Like removed successfully');
       }
 
       // ✅ FIXED: Update post likes count in database
       const { error: updateError } = await supabase
         .from('posts')
-        .update({ likes: newLiked ? likesCount + 1 : Math.max(0, likesCount - 1) })
+        .update({ likes: newLiked ? previousLikesCount + 1 : Math.max(0, previousLikesCount - 1) })
         .eq('id', post.id);
 
       if (updateError) {
@@ -328,12 +382,14 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
       }
     } catch (error) {
       console.error('[PublicacionCard] Error toggling like:', error);
+      // Revert optimistic update
       setLiked(!newLiked);
-      setLikesCount(newLiked ? likesCount : likesCount + 1);
+      setLikesCount(previousLikesCount);
+      Alert.alert('Error', 'No se pudo actualizar el me gusta');
     }
 
     if (onLike) onLike();
-  }, [liked, likesCount, onLike, interactionUserId, interactionType, interactionLocalId, post.id]);
+  }, [liked, likesCount, onLike, interactionUserId, interactionType, interactionLocalId, isInteractingAsLocal, post.id]);
 
   const handleSave = useCallback(async () => {
     console.log('[PublicacionCard] handleSave - Interaction context:', {
@@ -537,7 +593,9 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
     isAuthor,
     loadingAuthor,
     userId: user?.id,
-    postAutorId: actualAutorId
+    postAutorId: actualAutorId,
+    liked,
+    likesCount
   });
 
   return (
