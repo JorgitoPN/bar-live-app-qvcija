@@ -594,13 +594,19 @@ export default function DetalleLocalScreen() {
         setIsFavorite(false);
         Alert.alert('Eliminado', 'Local eliminado de favoritos');
       } else {
-        // ✅ FIXED: Ensure both usuario_id and local_id are provided and NOT NULL
+        // ✅ FIXED: Validate data before insert to ensure RLS policy compliance
+        if (!user.id || !params.id) {
+          console.error('[DetalleLocal] Invalid data - usuario_id or local_id is null');
+          Alert.alert('Error', 'Datos inválidos para agregar a favoritos');
+          return;
+        }
+
         const insertData = {
           usuario_id: user.id,
           local_id: params.id as string,
         };
         
-        console.log('[DetalleLocal] Inserting favorite with data:', insertData);
+        console.log('[DetalleLocal] Inserting favorite with validated data:', insertData);
         
         const { error } = await supabase
           .from('locales_favoritos')
@@ -609,7 +615,13 @@ export default function DetalleLocalScreen() {
         if (error) {
           console.error('[DetalleLocal] Error adding favorite:', error);
           console.error('[DetalleLocal] Error details:', JSON.stringify(error, null, 2));
-          Alert.alert('Error', 'No se pudo añadir a favoritos');
+          
+          // More specific error message
+          if (error.code === '42501') {
+            Alert.alert('Error', 'No tienes permisos para agregar a favoritos. Por favor, inicia sesión nuevamente.');
+          } else {
+            Alert.alert('Error', 'No se pudo añadir a favoritos');
+          }
           return;
         }
         
