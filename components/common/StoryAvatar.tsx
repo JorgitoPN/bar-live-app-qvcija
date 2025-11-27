@@ -47,8 +47,8 @@ const StoryAvatar = memo(function StoryAvatar({
       activeOpacity={0.8}
       disabled={!hasActiveStories || !onPress}
     >
-      <View style={styles.avatarWrapper}>
-        {/* ✅ FIXED: Perfect centering - ring is positioned absolutely and centered */}
+      <View style={[styles.avatarWrapper, { width: ringSize, height: ringSize }]}>
+        {/* ✅ FIXED: Perfect centering - ring is positioned absolutely and perfectly centered */}
         {showOutline && (
           <LinearGradient
             colors={STORY_OUTLINE_COLORS}
@@ -128,15 +128,22 @@ const styles = StyleSheet.create({
   },
   storyRing: {
     position: 'absolute',
-    // ✅ FIXED: Perfect centering - no transform needed, just center with absolute positioning
+    // ✅ FIXED: Perfect centering using absolute positioning with no transform
     top: 0,
     left: 0,
+    right: 0,
+    bottom: 0,
+    margin: 'auto',
   },
   avatarContainer: {
     backgroundColor: colors.background,
     borderWidth: 3,
     borderColor: colors.background,
     overflow: 'hidden',
+    // ✅ FIXED: Ensure avatar is centered within the ring
+    position: 'absolute',
+    top: 4,
+    left: 4,
   },
   avatar: {
     width: '100%',
