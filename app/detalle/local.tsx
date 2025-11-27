@@ -321,7 +321,6 @@ export default function DetalleLocalScreen() {
     if (!user || !params.id) return;
     
     try {
-      // ✅ FIXED: Use locales_favoritos table consistently
       const { data, error } = await supabase
         .from('locales_favoritos')
         .select('id')
@@ -558,7 +557,6 @@ export default function DetalleLocalScreen() {
       }
 
       if (isFavorite) {
-        // ✅ FIXED: Use locales_favoritos table consistently
         const { error } = await supabase
           .from('locales_favoritos')
           .delete()
@@ -574,7 +572,6 @@ export default function DetalleLocalScreen() {
         setIsFavorite(false);
         Alert.alert('Eliminado', 'Local eliminado de favoritos');
       } else {
-        // ✅ FIXED: Validate data before insert to ensure RLS policy compliance
         if (!user.id || !params.id) {
           console.error('[DetalleLocal] Invalid data - usuario_id or local_id is null');
           Alert.alert('Error', 'Datos inválidos para agregar a favoritos');
@@ -588,7 +585,6 @@ export default function DetalleLocalScreen() {
         
         console.log('[DetalleLocal] Inserting favorite with validated data:', insertData);
         
-        // ✅ FIXED: Use locales_favoritos table consistently
         const { error } = await supabase
           .from('locales_favoritos')
           .insert(insertData);
@@ -597,7 +593,6 @@ export default function DetalleLocalScreen() {
           console.error('[DetalleLocal] Error adding favorite:', error);
           console.error('[DetalleLocal] Error details:', JSON.stringify(error, null, 2));
           
-          // More specific error message
           if (error.code === '42501') {
             Alert.alert('Error', 'No tienes permisos para agregar a favoritos. Por favor, inicia sesión nuevamente.');
           } else {
@@ -751,6 +746,7 @@ export default function DetalleLocalScreen() {
 
   // ✅ FIXED: Use the logical day from getEstadoLocal for highlighting
   const diaLogicoParaResaltar = estadoLocal.diaLogico || 'lunes';
+  console.log('[DetalleLocal] Día lógico para resaltar:', diaLogicoParaResaltar);
 
   const displayRating = local.rating || local.google_rating || averageRating || 0;
 
@@ -821,7 +817,6 @@ export default function DetalleLocalScreen() {
             </ScrollView>
           </TouchableOpacity>
           
-          {/* ✅ NEW: Rating badge in top-right corner of cover photo - WITHOUT review count */}
           {displayRating > 0 && (
             <View style={styles.ratingBadgeTopRight}>
               <BlurView intensity={90} tint="dark" style={styles.ratingBlur}>
@@ -864,7 +859,6 @@ export default function DetalleLocalScreen() {
             </BlurView>
           </TouchableOpacity>
 
-          {/* ✅ FIXED: Floating favorite button with consistent style */}
           <TouchableOpacity 
             style={styles.favoriteButton} 
             onPress={handleToggleFavorite}
@@ -923,16 +917,15 @@ export default function DetalleLocalScreen() {
         </View>
       )}
 
-      {/* ✅ NEW: Local Name Prominently Displayed Below Gallery */}
+      {/* Local Name Prominently Displayed Below Gallery */}
       <View style={styles.localNameSection}>
         <Text style={styles.localNameText}>{local.nombre}</Text>
       </View>
 
       {/* Content Card - REDESIGNED */}
       <View style={styles.contentCard}>
-        {/* ✅ IMPROVED: More elegant and compact header */}
+        {/* Header Section */}
         <View style={styles.headerSection}>
-          {/* ✅ HIGHLIGHTED: Category badges with more prominence */}
           {allCategories.length > 0 && (
             <View style={styles.categoriesRow}>
               {allCategories.map((categoria, index) => {
@@ -952,7 +945,6 @@ export default function DetalleLocalScreen() {
             </View>
           )}
 
-          {/* ✅ IMPROVED: Compact address with distance in single line */}
           {local.direccion && (
             <View style={styles.addressCompact}>
               <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={18} color={colors.primary} />
@@ -1363,7 +1355,6 @@ const styles = StyleSheet.create({
     width: SCREEN_WIDTH,
     height: 300,
   },
-  // ✅ NEW: Rating badge in top-right corner
   ratingBadgeTopRight: {
     position: 'absolute',
     top: 12,
