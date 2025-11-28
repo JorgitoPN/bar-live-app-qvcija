@@ -8,11 +8,14 @@ import {
   StyleSheet,
   Dimensions,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { colors } from '@/styles/commonStyles';
 import FoodPlateAvatar from '@/components/common/FoodPlateAvatar';
+import { supabase } from '@/utils/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -45,27 +48,126 @@ interface Post {
 
 interface NewPostCardProps {
   post: Post;
-  onLike: (postId: string) => void;
-  onComment: (postId: string) => void;
-  onShare: (postId: string) => void;
-  onSave: (postId: string) => void;
+  onUpdate?: () => void;
 }
 
 export default function NewPostCard({
   post,
-  onLike,
-  onComment,
-  onShare,
-  onSave,
+  onUpdate,
 }: NewPostCardProps) {
+  const { user } = useAuth();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isLiked, setIsLiked] = useState(post.user_has_liked);
+  const [isSaved, setIsSaved] = useState(post.user_has_saved);
+  const [likesCount, setLikesCount] = useState(post.likes_count);
+
+  const isOwner = post.tipo === 'usuario' 
+    ? post.autor_id === user?.id
+    : false;
 
   const handleProfilePress = () => {
     if (post.tipo === 'local' && post.local_id) {
-      router.push(`/detalle/local?id=${post.local_id}`);
+      router.push(`/perfil/local?localId=${post.local_id}`);
     } else {
-      router.push(`/perfil/usuario?id=${post.autor_id}`);
+      router.push(`/perfil/usuario?userId=${post.autor_id}`);
     }
+  };
+
+  const handleLike = async () => {
+    if (!user) {
+      Alert.alert('Inicia sesión', 'Debes iniciar sesión para dar me gusta');
+      return;
+    }
+
+    const newLikedState = !isLiked;
+    setIsLiked(newLikedState);
+    setLikesCount(prev => newLikedState ? prev + 1 : prev - 1);
+
+    try {
+      if (newLikedState) {
+        await supabase.from('likes').insert({
+          post_id: post.id,
+          usuario_id: user.id,
+        });
+      } else {
+        await supabase
+          .from('likes')
+          .delete()
+          .eq('post_id', post.id)
+          .eq('usuario_id', user.id);
+      }
+    } catch (error) {
+      console.error('[NewPostCard] Error toggling like:', error);
+      setIsLiked(!newLikedState);
+      setLikesCount(prev => newLikedState ? prev - 1 : prev + 1);
+    }
+  };
+
+  const handleComment = () => {
+    router.push(`/social/comentar?postId=${post.id}`);
+  };
+
+  const handleShare = async () => {
+    Alert.alert('Compartir', 'Función de compartir próximamente');
+  };
+
+  const handleSave = async () => {
+    if (!user) {
+      Alert.alert('Inicia sesión', 'Debes iniciar sesión para guardar publicaciones');
+      return;
+    }
+
+    const newSavedState = !isSaved;
+    setIsSaved(newSavedState);
+
+    try {
+      if (newSavedState) {
+        await supabase.from('posts_guardados').insert({
+          post_id: post.id,
+          usuario_id: user.id,
+        });
+      } else {
+        await supabase
+          .from('posts_guardados')
+          .delete()
+          .eq('post_id', post.id)
+          .eq('usuario_id', user.id);
+      }
+    } catch (error) {
+      console.error('[NewPostCard] Error toggling save:', error);
+      setIsSaved(!newSavedState);
+    }
+  };
+
+  const handleDelete = async () => {
+    Alert.alert(
+      'Eliminar publicación',
+      '¿Estás seguro de que quieres eliminar esta publicación?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('publicaciones')
+                .delete()
+                .eq('id', post.id);
+
+              if (error) throw error;
+
+              if (onUpdate) {
+                onUpdate();
+              }
+            } catch (error) {
+              console.error('[NewPostCard] Error deleting post:', error);
+              Alert.alert('Error', 'No se pudo eliminar la publicación');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const formatTimeAgo = (dateString: string) => {
@@ -86,6 +188,10 @@ export default function NewPostCard({
     return num.toString();
   };
 
+  const displayUsername = post.tipo === 'local'
+    ? post.local?.nombre
+    : (post.autor.username || post.autor.nombre);
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -93,27 +199,23 @@ export default function NewPostCard({
         <TouchableOpacity style={styles.authorInfo} onPress={handleProfilePress}>
           <FoodPlateAvatar
             imageUrl={post.autor.avatar}
-            size={40}
+            size={42}
             nombre={post.autor.nombre}
           />
           <View style={styles.authorText}>
-            <Text style={styles.authorName}>{post.autor.nombre}</Text>
-            {post.tipo === 'local' && post.local && (
-              <Text style={styles.localName}>{post.local.nombre}</Text>
+            <Text style={styles.authorName}>{displayUsername}</Text>
+            {post.ubicacion && (
+              <Text style={styles.locationText}>{post.ubicacion}</Text>
             )}
-            <Text style={styles.timeAgo}>{formatTimeAgo(post.created_at)}</Text>
           </View>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.moreButton}>
-          <Ionicons name="ellipsis-horizontal" size={24} color={colors.text} />
-        </TouchableOpacity>
+        {isOwner && (
+          <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
+            <Ionicons name="trash-outline" size={22} color="#000" />
+          </TouchableOpacity>
+        )}
       </View>
-
-      {/* Content */}
-      {post.contenido && (
-        <Text style={styles.content}>{post.contenido}</Text>
-      )}
 
       {/* Images */}
       {post.imagenes.length > 0 && (
@@ -156,38 +258,30 @@ export default function NewPostCard({
         </View>
       )}
 
-      {/* Location */}
-      {post.ubicacion && (
-        <View style={styles.locationContainer}>
-          <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
-          <Text style={styles.locationText}>{post.ubicacion}</Text>
-        </View>
-      )}
-
       {/* Actions */}
       <View style={styles.actions}>
         <View style={styles.leftActions}>
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => onLike(post.id)}
+            onPress={handleLike}
           >
             <Ionicons
-              name={post.user_has_liked ? 'heart' : 'heart-outline'}
+              name={isLiked ? 'heart' : 'heart-outline'}
               size={28}
-              color={post.user_has_liked ? '#ff3b30' : colors.text}
+              color={isLiked ? '#ff3b30' : colors.text}
             />
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => onComment(post.id)}
+            onPress={handleComment}
           >
             <Ionicons name="chatbubble-outline" size={26} color={colors.text} />
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => onShare(post.id)}
+            onPress={handleShare}
           >
             <Ionicons name="paper-plane-outline" size={26} color={colors.text} />
           </TouchableOpacity>
@@ -195,10 +289,10 @@ export default function NewPostCard({
 
         <TouchableOpacity
           style={styles.actionButton}
-          onPress={() => onSave(post.id)}
+          onPress={handleSave}
         >
           <Ionicons
-            name={post.user_has_saved ? 'bookmark' : 'bookmark-outline'}
+            name={isSaved ? 'bookmark' : 'bookmark-outline'}
             size={26}
             color={colors.text}
           />
@@ -207,18 +301,31 @@ export default function NewPostCard({
 
       {/* Stats */}
       <View style={styles.stats}>
-        {post.likes_count > 0 && (
+        {likesCount > 0 && (
           <Text style={styles.statsText}>
-            <Text style={styles.statsBold}>{formatNumber(post.likes_count)}</Text> me gusta
+            <Text style={styles.statsBold}>{formatNumber(likesCount)}</Text> me gusta
           </Text>
         )}
+        
+        {/* Content */}
+        {post.contenido && (
+          <View style={styles.contentContainer}>
+            <Text style={styles.content}>
+              <Text style={styles.contentUsername}>{displayUsername}</Text>{' '}
+              {post.contenido}
+            </Text>
+          </View>
+        )}
+
         {post.comentarios_count > 0 && (
-          <TouchableOpacity onPress={() => onComment(post.id)}>
+          <TouchableOpacity onPress={handleComment}>
             <Text style={styles.commentsText}>
               Ver los {post.comentarios_count} comentarios
             </Text>
           </TouchableOpacity>
         )}
+        
+        <Text style={styles.timeAgo}>{formatTimeAgo(post.created_at)}</Text>
       </View>
     </View>
   );
@@ -227,9 +334,7 @@ export default function NewPostCard({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: colors.surface,
-    marginBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    marginBottom: 8,
   },
   header: {
     flexDirection: 'row',
@@ -247,29 +352,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   authorName: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
   },
-  localName: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  timeAgo: {
+  locationText: {
     fontSize: 12,
     color: colors.textSecondary,
     marginTop: 2,
   },
-  moreButton: {
-    padding: 4,
-  },
-  content: {
-    fontSize: 15,
-    color: colors.text,
-    lineHeight: 20,
-    paddingHorizontal: 12,
-    paddingBottom: 12,
+  deleteButton: {
+    padding: 8,
   },
   imagesContainer: {
     width: SCREEN_WIDTH,
@@ -302,17 +395,6 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
   },
-  locationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingTop: 8,
-  },
-  locationText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginLeft: 4,
-  },
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -334,14 +416,32 @@ const styles = StyleSheet.create({
   },
   statsText: {
     fontSize: 14,
+    fontWeight: '600',
     color: colors.text,
-    marginBottom: 4,
+    marginBottom: 8,
   },
   statsBold: {
+    fontWeight: '700',
+  },
+  contentContainer: {
+    marginBottom: 4,
+  },
+  content: {
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 18,
+  },
+  contentUsername: {
     fontWeight: '600',
+    color: colors.text,
   },
   commentsText: {
     fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 4,
+  },
+  timeAgo: {
+    fontSize: 11,
     color: colors.textSecondary,
     marginTop: 4,
   },

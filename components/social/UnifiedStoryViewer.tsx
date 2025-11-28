@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
+import React, { useState, useEffect, useRef, memo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -17,8 +17,6 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
-  GestureResponderEvent,
-  PanResponderGestureState,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -28,15 +26,8 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import StoryStatsModal from './StoryStatsModal';
 import { useRouter } from 'expo-router';
-import { useStoryState } from '@/contexts/StoryStateContext';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-
-// ✅ CONSTANTS - Instagram-style
-const STORY_DURATION = 5000; // 5 seconds per story
-const TAP_THRESHOLD = 200; // milliseconds
-const SWIPE_THRESHOLD = 50; // pixels
-const LONG_PRESS_DURATION = 200; // milliseconds for pause
 
 interface Story {
   id: string;
@@ -46,7 +37,6 @@ interface Story {
   autor_id?: string;
   local_id?: string;
   created_at: string;
-  expires_at?: string;
   visto_por_usuario?: boolean;
   liked_by_user?: boolean;
   views_count?: number;
@@ -70,378 +60,320 @@ interface Story {
 interface UnifiedStoryViewerProps {
   visible: boolean;
   stories: Story[];
-  initialStoryIndex: number;
+  initialIndex: number;
   onClose: () => void;
-  onStoryChange?: (storyIndex: number) => void;
+  onStoryChange?: (index: number) => void;
   onStoryDelete?: (storyId: string) => void;
-  onUserChange?: (userIndex: number) => void;
   activeLocalProfileId?: string | null;
 }
 
 interface ProgressBarProps {
-  index: number;
-  currentIndex: number;
   isActive: boolean;
   isPaused: boolean;
   duration: number;
   onComplete: () => void;
+  progress: Animated.Value;
 }
 
-// ✅ OPTIMIZED: Progress bar with green-to-blue gradient
-const ProgressBar = memo(({ 
-  index, 
-  currentIndex, 
-  isActive, 
-  isPaused, 
-  duration,
-  onComplete 
-}: ProgressBarProps) => {
-  const progressAnim = useRef(new Animated.Value(0)).current;
+const ProgressBar = memo(({ isActive, isPaused, duration, onComplete, progress }: ProgressBarProps) => {
   const animationRef = useRef<Animated.CompositeAnimation | null>(null);
-  const startTimeRef = useRef<number>(0);
-  const pausedProgressRef = useRef<number>(0);
 
   useEffect(() => {
-    // Set initial progress based on position
-    if (index < currentIndex) {
-      progressAnim.setValue(1); // Completed
-      return;
-    } else if (index > currentIndex) {
-      progressAnim.setValue(0); // Not started
+    if (!isActive) {
+      progress.setValue(0);
       return;
     }
 
-    // Current story - start animation
-    if (isActive && !isPaused && index === currentIndex) {
-      progressAnim.setValue(pausedProgressRef.current);
-      startTimeRef.current = Date.now();
-      
-      const remainingDuration = duration * (1 - pausedProgressRef.current);
-      
-      animationRef.current = Animated.timing(progressAnim, {
-        toValue: 1,
-        duration: remainingDuration,
-        useNativeDriver: false,
-        easing: Easing.linear,
-      });
-      
-      animationRef.current.start(({ finished }) => {
-        if (finished) {
-          pausedProgressRef.current = 0;
-          onComplete();
-        }
-      });
+    if (isPaused) {
+      animationRef.current?.stop();
+      return;
     }
+
+    const currentValue = (progress as any)._value || 0;
+    const remainingDuration = duration * (1 - currentValue);
+
+    animationRef.current = Animated.timing(progress, {
+      toValue: 1,
+      duration: remainingDuration,
+      easing: Easing.linear,
+      useNativeDriver: false,
+    });
+
+    animationRef.current.start(({ finished }) => {
+      if (finished) {
+        onComplete();
+      }
+    });
 
     return () => {
-      if (animationRef.current) {
-        animationRef.current.stop();
-      }
+      animationRef.current?.stop();
     };
-  }, [index, currentIndex, isActive, isPaused, duration, onComplete, progressAnim]);
-
-  // Handle pause/resume
-  useEffect(() => {
-    if (index === currentIndex && isActive) {
-      if (isPaused && animationRef.current) {
-        animationRef.current.stop();
-        // Save current progress
-        const elapsed = Date.now() - startTimeRef.current;
-        const progress = Math.min(1, pausedProgressRef.current + (elapsed / duration));
-        pausedProgressRef.current = progress;
-        progressAnim.setValue(progress);
-      } else if (!isPaused && pausedProgressRef.current > 0) {
-        // Resume from saved progress
-        startTimeRef.current = Date.now();
-        const remainingDuration = duration * (1 - pausedProgressRef.current);
-        
-        animationRef.current = Animated.timing(progressAnim, {
-          toValue: 1,
-          duration: remainingDuration,
-          useNativeDriver: false,
-          easing: Easing.linear,
-        });
-        
-        animationRef.current.start(({ finished }) => {
-          if (finished) {
-            pausedProgressRef.current = 0;
-            onComplete();
-          }
-        });
-      }
-    }
-  }, [isPaused, isActive, index, currentIndex, duration, onComplete, progressAnim]);
-
-  // Reset when story changes
-  useEffect(() => {
-    if (index !== currentIndex) {
-      pausedProgressRef.current = 0;
-    }
-  }, [currentIndex, index]);
-
-  const widthInterpolate = progressAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0%', '100%'],
-  });
+  }, [isActive, isPaused, duration, onComplete, progress]);
 
   return (
     <View style={styles.progressBarContainer}>
-      <View style={styles.progressBarBackground}>
-        <Animated.View style={[styles.progressBarFill, { width: widthInterpolate }]}>
-          <LinearGradient
-            colors={['#10B981', '#3B82F6']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.progressGradient}
-          />
-        </Animated.View>
-      </View>
+      <Animated.View 
+        style={[
+          styles.progressBarFill, 
+          { 
+            width: progress.interpolate({
+              inputRange: [0, 1],
+              outputRange: ['0%', '100%'],
+            })
+          }
+        ]} 
+      >
+        <LinearGradient
+          colors={[colors.primary, colors.secondary]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.progressGradient}
+        />
+      </Animated.View>
     </View>
-  );
-}, (prevProps, nextProps) => {
-  return (
-    prevProps.index === nextProps.index &&
-    prevProps.currentIndex === nextProps.currentIndex &&
-    prevProps.isActive === nextProps.isActive &&
-    prevProps.isPaused === nextProps.isPaused
   );
 });
 
 ProgressBar.displayName = 'ProgressBar';
 
-// ✅ OPTIMIZED: Story image with instant loading
-const StoryImage = memo(({ uri, onLoad }: { uri: string; onLoad?: () => void }) => {
-  const [imageError, setImageError] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
-  
-  // Preload image immediately
-  useEffect(() => {
-    Image.prefetch(uri).catch(() => setImageError(true));
-  }, [uri]);
-  
-  return (
-    <>
-      {!imageLoaded && !imageError && (
-        <View style={[styles.storyImage, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }]}>
-          <ActivityIndicator size="large" color="#fff" />
-        </View>
-      )}
-      {imageError && (
-        <View style={[styles.storyImage, { justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }]}>
-          <IconSymbol ios_icon_name="exclamationmark.triangle" android_material_icon_name="error" size={48} color="#fff" />
-          <Text style={{ color: '#fff', marginTop: 16 }}>Error al cargar la imagen</Text>
-        </View>
-      )}
-      <Image 
-        source={{ uri }} 
-        style={[styles.storyImage, !imageLoaded && { opacity: 0 }]} 
-        resizeMode="contain"
-        onLoad={() => {
-          setImageLoaded(true);
-          onLoad?.();
-        }}
-        onError={() => {
-          console.error('[UnifiedStoryViewer] Error loading image:', uri);
-          setImageError(true);
-        }}
-        fadeDuration={0}
-        progressiveRenderingEnabled={true}
-      />
-    </>
-  );
-}, (prevProps, nextProps) => prevProps.uri === nextProps.uri);
-
-StoryImage.displayName = 'StoryImage';
-
 function UnifiedStoryViewer({
   visible,
   stories,
-  initialStoryIndex,
+  initialIndex,
   onClose,
   onStoryChange,
   onStoryDelete,
-  onUserChange,
   activeLocalProfileId,
 }: UnifiedStoryViewerProps) {
   const router = useRouter();
   const { user } = useAuth();
-  const { markStoryAsViewed } = useStoryState();
-  
-  const [currentStoryIndex, setCurrentStoryIndex] = useState(initialStoryIndex);
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isPaused, setIsPaused] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [storyMessage, setStoryMessage] = useState('');
+  const [sendingMessage, setSendingMessage] = useState(false);
   const [showStoryStats, setShowStoryStats] = useState(false);
   const [storyViews, setStoryViews] = useState<any[]>([]);
   const [storyLikes, setStoryLikes] = useState<any[]>([]);
   const [loadingStats, setLoadingStats] = useState(false);
-  const [sendingMessage, setSendingMessage] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [isClosing, setIsClosing] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
   
-  const isPausedRef = useRef<boolean>(false);
-  
-  // Gesture tracking refs
-  const touchStartTime = useRef<number>(0);
-  const touchStartX = useRef<number>(0);
-  const touchStartY = useRef<number>(0);
+  const progressValues = useRef(stories.map(() => new Animated.Value(0))).current;
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
-  const isLongPress = useRef(false);
-  const isSwiping = useRef(false);
+  const isLongPressing = useRef(false);
 
-  const currentStory = stories[currentStoryIndex];
+  const currentStory = stories[currentIndex];
+  const isOwner = currentStory?.tipo === 'usuario' 
+    ? currentStory?.autor_id === user?.id
+    : currentStory?.local_id === activeLocalProfileId;
 
-  // ✅ CRITICAL: Preload next 5 story images aggressively
-  useEffect(() => {
-    if (visible && currentStoryIndex < stories.length) {
-      const imagesToPreload: string[] = [];
-      
-      // Preload current + next 5 stories
-      for (let i = currentStoryIndex; i < Math.min(currentStoryIndex + 6, stories.length); i++) {
-        const imageUrl = stories[i]?.imagen_url || stories[i]?.imagen;
-        if (imageUrl) {
-          imagesToPreload.push(imageUrl);
-        }
-      }
-      
-      // Preload in parallel without blocking
-      Promise.allSettled(imagesToPreload.map(uri => Image.prefetch(uri)))
-        .then(results => {
-          const successCount = results.filter(r => r.status === 'fulfilled').length;
-          console.log('[UnifiedStoryViewer] ✅ Preloaded', successCount, '/', imagesToPreload.length, 'images');
-        })
-        .catch(() => {
-          console.log('[UnifiedStoryViewer] ⚠️ Some images failed to preload');
-        });
-    }
-  }, [visible, currentStoryIndex, stories]);
+  const storyImageUrl = currentStory?.imagen_url || currentStory?.imagen || '';
 
-  // ✅ FIXED: Mark story as viewed immediately when displayed
   const markAsViewed = useCallback(async (storyId: string) => {
-    if (!user || !storyId) return;
-    
-    // Check if this is the user's own story
-    const story = stories.find(s => s.id === storyId);
-    if (!story) return;
-    
-    const isOwner = story.tipo === 'usuario' 
-      ? story.autor_id === user.id
-      : story.tipo === 'local' && activeLocalProfileId === story.local_id;
-    
-    // Don't mark own stories as viewed
-    if (isOwner) {
-      console.log('[UnifiedStoryViewer] ⚠️ Skipping view count for own story');
+    if (!user || !storyId || isOwner) {
       return;
     }
 
     try {
-      // Use the global story state context to mark as viewed
-      await markStoryAsViewed(storyId);
-      console.log('[UnifiedStoryViewer] ✅ Story marked as viewed globally');
+      const { error } = await supabase
+        .from('historia_views')
+        .upsert({
+          historia_id: storyId,
+          usuario_id: user.id,
+          viewed_at: new Date().toISOString(),
+        }, {
+          onConflict: 'historia_id,usuario_id',
+        });
+
+      if (error) {
+        console.error('[UnifiedStoryViewer] Error marking story as viewed:', error);
+      }
     } catch (error) {
-      console.error('[UnifiedStoryViewer] Error marking story as viewed:', error);
+      console.error('[UnifiedStoryViewer] Error:', error);
     }
-  }, [user, stories, activeLocalProfileId, markStoryAsViewed]);
+  }, [user, isOwner]);
 
-  // ✅ FIXED: Proper cleanup function that resets to background properly
-  const cleanupAndClose = useCallback(() => {
-    if (isClosing) return; // Prevent double-close
-    
-    console.log('[UnifiedStoryViewer] 🧹 Cleaning up before close');
-    setIsClosing(true);
-    
-    // Reset all state immediately
-    setCurrentStoryIndex(initialStoryIndex);
-    setImageLoaded(false);
-    setIsPaused(false);
-    isPausedRef.current = false;
-    setStoryMessage('');
-    setShowStoryStats(false);
-    
-    // Use requestAnimationFrame to ensure state is reset before closing
-    requestAnimationFrame(() => {
-      onClose();
-      // Reset closing flag after a delay
-      setTimeout(() => setIsClosing(false), 300);
-    });
-  }, [initialStoryIndex, onClose, isClosing]);
-
-  const handleNextStory = useCallback(() => {
-    // ✅ FIXED: Mark story as viewed BEFORE moving to next
-    if (currentStory && user) {
-      markAsViewed(currentStory.id);
+  const checkIfLiked = useCallback(async (storyId: string) => {
+    if (!user || !storyId) {
+      setIsLiked(false);
+      return;
     }
-    
-    if (currentStoryIndex < stories.length - 1) {
-      const newIndex = currentStoryIndex + 1;
-      setCurrentStoryIndex(newIndex);
-      setImageLoaded(false);
-      onStoryChange?.(newIndex);
-    } else {
-      // ✅ FIXED: Last story - mark as viewed and close properly
-      if (currentStory && user) {
+
+    try {
+      const { data, error } = await supabase
+        .from('historia_likes')
+        .select('id')
+        .eq('historia_id', storyId)
+        .eq('usuario_id', user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('[UnifiedStoryViewer] Error checking like status:', error);
+        setIsLiked(false);
+        return;
+      }
+
+      setIsLiked(!!data);
+    } catch (error) {
+      console.error('[UnifiedStoryViewer] Error:', error);
+      setIsLiked(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (visible && currentStory) {
+      if (user && !isOwner) {
         markAsViewed(currentStory.id);
       }
-      cleanupAndClose();
+      checkIfLiked(currentStory.id);
     }
-  }, [currentStoryIndex, stories.length, currentStory, user, markAsViewed, onStoryChange, cleanupAndClose]);
+  }, [visible, currentStory, user, isOwner, markAsViewed, checkIfLiked]);
 
-  const handlePreviousStory = useCallback(() => {
-    if (currentStoryIndex > 0) {
-      const newIndex = currentStoryIndex - 1;
-      setCurrentStoryIndex(newIndex);
-      setImageLoaded(false);
-      onStoryChange?.(newIndex);
-    } else {
-      // ✅ FIXED: First story - close properly
-      cleanupAndClose();
+  useEffect(() => {
+    if (visible) {
+      setCurrentIndex(initialIndex);
+      setLoading(true);
+      progressValues.forEach(p => p.setValue(0));
     }
-  }, [currentStoryIndex, onStoryChange, cleanupAndClose]);
+  }, [visible, initialIndex, progressValues]);
 
-  const handleStoryLike = useCallback(async () => {
-    if (!currentStory || !user) {
-      return;
-    }
-
-    // Optimistic UI update
-    const isLiked = currentStory.liked_by_user;
-    currentStory.liked_by_user = !isLiked;
-
-    try {
-      if (isLiked) {
-        await supabase
-          .from('historia_likes')
-          .delete()
-          .eq('historia_id', currentStory.id)
-          .eq('usuario_id', user.id);
-      } else {
-        await supabase.from('historia_likes').insert({
-          historia_id: currentStory.id,
-          usuario_id: user.id,
-        });
+  const handleNext = useCallback(() => {
+    if (currentIndex < stories.length - 1) {
+      progressValues[currentIndex].setValue(1);
+      setCurrentIndex(currentIndex + 1);
+      setLoading(true);
+      if (onStoryChange) {
+        onStoryChange(currentIndex + 1);
       }
-    } catch (error) {
-      console.error('[UnifiedStoryViewer] Error toggling story like:', error);
-      // Revert on error
-      currentStory.liked_by_user = isLiked;
+    } else {
+      onClose();
     }
-  }, [user, currentStory]);
+  }, [currentIndex, stories.length, progressValues, onStoryChange, onClose]);
+
+  const handlePrevious = useCallback(() => {
+    if (currentIndex > 0) {
+      progressValues[currentIndex].setValue(0);
+      setCurrentIndex(currentIndex - 1);
+      setLoading(true);
+      if (onStoryChange) {
+        onStoryChange(currentIndex - 1);
+      }
+    }
+  }, [currentIndex, progressValues, onStoryChange]);
+
+  const handleLongPressIn = useCallback(() => {
+    isLongPressing.current = true;
+    setIsPaused(true);
+  }, []);
+
+  const handleLongPressOut = useCallback(() => {
+    isLongPressing.current = false;
+    setIsPaused(false);
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }, []);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (_, gestureState) => {
+        longPressTimer.current = setTimeout(() => {
+          handleLongPressIn();
+        }, 100);
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (Math.abs(gestureState.dx) > 10 || Math.abs(gestureState.dy) > 10) {
+          if (longPressTimer.current) {
+            clearTimeout(longPressTimer.current);
+            longPressTimer.current = null;
+          }
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (longPressTimer.current) {
+          clearTimeout(longPressTimer.current);
+          longPressTimer.current = null;
+        }
+
+        if (isLongPressing.current) {
+          handleLongPressOut();
+          return;
+        }
+        
+        const { dx, dy } = gestureState;
+        if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
+          const tapX = gestureState.x0;
+          if (tapX < SCREEN_WIDTH / 2) {
+            handlePrevious();
+          } else {
+            handleNext();
+          }
+        }
+      },
+      onPanResponderTerminate: () => {
+        if (longPressTimer.current) {
+          clearTimeout(longPressTimer.current);
+          longPressTimer.current = null;
+        }
+        if (isLongPressing.current) {
+          handleLongPressOut();
+        }
+      },
+    })
+  ).current;
+
+  const handleDelete = useCallback(async () => {
+    if (!currentStory || !isOwner) return;
+
+    Alert.alert(
+      'Eliminar historia',
+      '¿Estás seguro de que quieres eliminar esta historia?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('historias')
+                .delete()
+                .eq('id', currentStory.id);
+
+              if (error) {
+                console.error('[UnifiedStoryViewer] Error deleting story:', error);
+                return;
+              }
+
+              if (onStoryDelete) {
+                onStoryDelete(currentStory.id);
+              }
+
+              if (currentIndex < stories.length - 1) {
+                handleNext();
+              } else if (currentIndex > 0) {
+                handlePrevious();
+              } else {
+                onClose();
+              }
+            } catch (error) {
+              console.error('[UnifiedStoryViewer] Error:', error);
+            }
+          },
+        },
+      ]
+    );
+  }, [currentStory, isOwner, currentIndex, stories.length, onStoryDelete, handleNext, handlePrevious, onClose]);
 
   const handleViewStoryStats = useCallback(async () => {
-    if (!currentStory || !user) {
-      return;
-    }
-
-    const isOwner = currentStory.tipo === 'usuario' 
-      ? currentStory.autor_id === user.id
-      : currentStory.tipo === 'local' && activeLocalProfileId === currentStory.local_id;
-
-    if (!isOwner) {
+    if (!currentStory || !user || !isOwner) {
       return;
     }
 
     setIsPaused(true);
-    isPausedRef.current = true;
-
     setLoadingStats(true);
     setShowStoryStats(true);
 
@@ -482,71 +414,34 @@ function UnifiedStoryViewer({
     } finally {
       setLoadingStats(false);
     }
-  }, [currentStory, user, activeLocalProfileId]);
+  }, [currentStory, user, isOwner]);
 
-  const handleDeleteStory = useCallback(async () => {
+  const handleStoryLike = useCallback(async () => {
     if (!currentStory || !user) {
       return;
     }
 
-    const isOwner = currentStory.tipo === 'usuario' 
-      ? currentStory.autor_id === user.id
-      : currentStory.tipo === 'local' && activeLocalProfileId === currentStory.local_id;
+    const newLikedState = !isLiked;
+    setIsLiked(newLikedState);
 
-    if (!isOwner) {
-      return;
+    try {
+      if (newLikedState) {
+        await supabase.from('historia_likes').insert({
+          historia_id: currentStory.id,
+          usuario_id: user.id,
+        });
+      } else {
+        await supabase
+          .from('historia_likes')
+          .delete()
+          .eq('historia_id', currentStory.id)
+          .eq('usuario_id', user.id);
+      }
+    } catch (error) {
+      console.error('[UnifiedStoryViewer] Error toggling story like:', error);
+      setIsLiked(!newLikedState);
     }
-
-    Alert.alert(
-      'Eliminar historia',
-      '¿Estás seguro de que quieres eliminar esta historia?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              // Delete story image from storage
-              const imageUrl = currentStory.imagen_url || currentStory.imagen;
-              if (imageUrl) {
-                const imagePath = imageUrl.split('/').pop();
-                if (imagePath) {
-                  await supabase.storage
-                    .from('historias')
-                    .remove([imagePath]);
-                  console.log('[UnifiedStoryViewer] ✅ Story image deleted from storage');
-                }
-              }
-
-              const { error } = await supabase
-                .from('historias')
-                .delete()
-                .eq('id', currentStory.id);
-
-              if (error) throw error;
-
-              onStoryDelete?.(currentStory.id);
-              
-              // Move to next story or close
-              if (currentStoryIndex < stories.length - 1) {
-                handleNextStory();
-              } else if (currentStoryIndex > 0) {
-                handlePreviousStory();
-              } else {
-                cleanupAndClose();
-              }
-
-              Alert.alert('Éxito', 'Historia eliminada correctamente');
-            } catch (error) {
-              console.error('[UnifiedStoryViewer] Error deleting story:', error);
-              Alert.alert('Error', 'No se pudo eliminar la historia');
-            }
-          },
-        },
-      ]
-    );
-  }, [currentStory, user, activeLocalProfileId, onStoryDelete, currentStoryIndex, stories.length, handleNextStory, handlePreviousStory, cleanupAndClose]);
+  }, [user, currentStory, isLiked]);
 
   const handleSendStoryMessage = useCallback(async () => {
     if (!currentStory || !user || !storyMessage.trim() || sendingMessage) {
@@ -560,11 +455,8 @@ function UnifiedStoryViewer({
     Alert.alert('Éxito', 'Mensaje enviado correctamente');
 
     try {
-      console.log('[UnifiedStoryViewer] 📨 Sending story message to author:', currentStory.autor_id);
-      
-      const authorId = currentStory.autor_id || '';
-      const userId1 = user.id < authorId ? user.id : authorId;
-      const userId2 = user.id < authorId ? authorId : user.id;
+      const userId1 = user.id < currentStory.autor_id! ? user.id : currentStory.autor_id!;
+      const userId2 = user.id < currentStory.autor_id! ? currentStory.autor_id! : user.id;
       
       let chatQuery = supabase
         .from('chats')
@@ -613,8 +505,6 @@ function UnifiedStoryViewer({
         chatId = nuevoChat.id;
       }
 
-      const storyImageUrl = currentStory.imagen_url || currentStory.imagen || '';
-      
       const { error: mensajeError } = await supabase
         .from('mensajes')
         .insert({
@@ -645,19 +535,17 @@ function UnifiedStoryViewer({
         mensaje: `${user.nombre} te envió un mensaje sobre tu historia`,
         usuario_origen_id: user.id,
       });
-
-      console.log('[UnifiedStoryViewer] ✅ Message sent successfully');
     } catch (error) {
       console.error('[UnifiedStoryViewer] Error sending story message:', error);
     } finally {
       setSendingMessage(false);
     }
-  }, [user, currentStory, storyMessage, sendingMessage]);
+  }, [user, currentStory, storyMessage, sendingMessage, storyImageUrl]);
 
   const handleNavigateToStoryAuthorProfile = useCallback(() => {
     if (!currentStory) return;
 
-    cleanupAndClose();
+    onClose();
 
     if (currentStory.tipo === 'local' && currentStory.local_id) {
       router.push(`/perfil/local?localId=${currentStory.local_id}`);
@@ -666,174 +554,37 @@ function UnifiedStoryViewer({
     } else {
       router.push(`/perfil/usuario?userId=${currentStory.autor_id}`);
     }
-  }, [currentStory, user, router, cleanupAndClose]);
+  }, [currentStory, user, router, onClose]);
 
   const handleCloseStoryViewerAndNavigate = useCallback(() => {
     setShowStoryStats(false);
-    cleanupAndClose();
-  }, [cleanupAndClose]);
+    onClose();
+  }, [onClose]);
 
-  // ✅ INSTAGRAM-STYLE: Gesture handling
-  const handleTouchStart = useCallback((evt: GestureResponderEvent) => {
-    touchStartTime.current = Date.now();
-    touchStartX.current = evt.nativeEvent.pageX;
-    touchStartY.current = evt.nativeEvent.pageY;
-    isLongPress.current = false;
-    isSwiping.current = false;
-    
-    longPressTimer.current = setTimeout(() => {
-      isLongPress.current = true;
-      setIsPaused(true);
-      isPausedRef.current = true;
-    }, LONG_PRESS_DURATION);
-  }, []);
-
-  const handleTouchMove = useCallback((gestureState: PanResponderGestureState) => {
-    const { dx, dy } = gestureState;
-    
-    if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
-      if (longPressTimer.current) {
-        clearTimeout(longPressTimer.current);
-        longPressTimer.current = null;
-      }
-      isSwiping.current = true;
-    }
-  }, []);
-
-  const handleTouchEnd = useCallback((evt: GestureResponderEvent, gestureState: PanResponderGestureState) => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-
-    const { dx, dy } = gestureState;
-    const touchDuration = Date.now() - touchStartTime.current;
-    const touchX = evt.nativeEvent.pageX;
-    
-    // ✅ Long press - resume
-    if (isLongPress.current) {
-      setIsPaused(false);
-      isPausedRef.current = false;
-      return;
-    }
-    
-    // ✅ Swipe down - close viewer
-    if (dy > SWIPE_THRESHOLD && Math.abs(dx) < SWIPE_THRESHOLD) {
-      cleanupAndClose();
-      return;
-    }
-    
-    // ✅ Swipe left - next story
-    if (dx < -SWIPE_THRESHOLD && Math.abs(dy) < SWIPE_THRESHOLD) {
-      handleNextStory();
-      return;
-    }
-    
-    // ✅ Swipe right - previous story
-    if (dx > SWIPE_THRESHOLD && Math.abs(dy) < SWIPE_THRESHOLD) {
-      handlePreviousStory();
-      return;
-    }
-    
-    // ✅ Tap - navigate stories
-    if (!isSwiping.current && Math.abs(dx) < 20 && Math.abs(dy) < 20 && touchDuration < TAP_THRESHOLD) {
-      const tapZone = touchX / SCREEN_WIDTH;
-      
-      // Left third - previous story
-      if (tapZone < 0.33) {
-        handlePreviousStory();
-        return;
-      }
-      
-      // Right third - next story
-      if (tapZone > 0.67) {
-        handleNextStory();
-        return;
-      }
-    }
-  }, [cleanupAndClose, handleNextStory, handlePreviousStory]);
-
-  // ✅ Memoized PanResponder for better performance
-  const panResponder = React.useMemo(
-    () => PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onStartShouldSetPanResponderCapture: () => false,
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        return Math.abs(gestureState.dx) > 10 || Math.abs(gestureState.dy) > 10;
-      },
-      onMoveShouldSetPanResponderCapture: () => false,
-      
-      onPanResponderGrant: handleTouchStart,
-      onPanResponderMove: (_, gestureState) => handleTouchMove(gestureState),
-      onPanResponderRelease: handleTouchEnd,
-      
-      onPanResponderTerminate: () => {
-        if (longPressTimer.current) {
-          clearTimeout(longPressTimer.current);
-          longPressTimer.current = null;
-        }
-      },
-    }),
-    [handleTouchStart, handleTouchMove, handleTouchEnd]
-  );
-
-  // ✅ FIXED: Mark story as viewed immediately when it appears
-  useEffect(() => {
-    if (visible && currentStory && user && imageLoaded) {
-      // Mark as viewed as soon as the story is displayed
-      markAsViewed(currentStory.id);
-    }
-  }, [visible, currentStory, user, imageLoaded, markAsViewed]);
-
-  // Reset to initial index when modal opens
-  useEffect(() => {
-    if (visible) {
-      setCurrentStoryIndex(initialStoryIndex);
-      setIsPaused(false);
-      isPausedRef.current = false;
-      setImageLoaded(false);
-      setIsClosing(false);
-    } else {
-      // ✅ FIXED: Cleanup when modal closes
-      setIsPaused(false);
-      isPausedRef.current = false;
-      setImageLoaded(false);
-    }
-  }, [visible, initialStoryIndex]);
-
-  if (!currentStory) {
+  if (!visible || !currentStory) {
     return null;
   }
 
-  const isCurrentStoryOwner = user && (
-    (currentStory.tipo === 'usuario' && currentStory.autor_id === user.id) ||
-    (currentStory.tipo === 'local' && activeLocalProfileId === currentStory.local_id)
-  );
-
-  // Get story image URL
-  const storyImageUrl = currentStory.imagen_url || currentStory.imagen || '';
-
-  // Display username correctly without @ symbol
-  const storyAuthorAvatar = currentStory.tipo === 'usuario'
+  const authorAvatar = currentStory.tipo === 'usuario'
     ? (currentStory.autor?.avatar || currentStory.autorAvatar)
     : (currentStory.local?.logo);
   
-  const storyAuthorName = currentStory.tipo === 'usuario'
+  const authorName = currentStory.tipo === 'usuario'
     ? (currentStory.autor?.nombre || currentStory.autorNombre || 'Usuario')
     : (currentStory.local?.nombre || 'Local');
-  
+
   const displayName = currentStory.tipo === 'local' 
-    ? storyAuthorName
-    : (currentStory.autor?.username || currentStory.autorUsername || storyAuthorName).replace(/^@/, '');
+    ? authorName
+    : (currentStory.autor?.username || currentStory.autorUsername || authorName).replace(/^@/, '');
 
   return (
     <Modal
       visible={visible}
-      animationType="fade"
-      onRequestClose={cleanupAndClose}
-      statusBarTranslucent
-      hardwareAccelerated={true}
       transparent={false}
+      animationType="fade"
+      onRequestClose={onClose}
+      statusBarTranslucent
+      hardwareAccelerated
     >
       <StatusBar barStyle="light-content" backgroundColor="#000" />
       <KeyboardAvoidingView
@@ -841,145 +592,135 @@ function UnifiedStoryViewer({
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={0}
       >
-        <View style={styles.storyViewerModal} {...panResponder.panHandlers}>
-          {/* ✅ Progress bars - SAME POSITION, COLOR, THICKNESS everywhere */}
-          <BlurView intensity={20} tint="dark" style={styles.progressContainer}>
-            <View style={styles.progressBarsWrapper}>
-              {stories.map((_, index) => (
-                <ProgressBar
-                  key={index}
-                  index={index}
-                  currentIndex={currentStoryIndex}
-                  isActive={visible && imageLoaded}
-                  isPaused={isPaused}
-                  duration={STORY_DURATION}
-                  onComplete={handleNextStory}
-                />
-              ))}
+        <View style={styles.container} {...panResponder.panHandlers}>
+          {storyImageUrl ? (
+            <Image
+              source={{ uri: storyImageUrl }}
+              style={styles.storyImage}
+              resizeMode="contain"
+              onLoadStart={() => setLoading(true)}
+              onLoadEnd={() => setLoading(false)}
+              onError={() => {
+                console.error('[UnifiedStoryViewer] Error loading image:', storyImageUrl);
+                setLoading(false);
+              }}
+            />
+          ) : (
+            <View style={styles.errorContainer}>
+              <IconSymbol ios_icon_name="exclamationmark.triangle" android_material_icon_name="error" size={48} color="#fff" />
+              <Text style={styles.errorText}>Error al cargar la historia</Text>
             </View>
+          )}
+
+          {loading && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.headerText} />
+            </View>
+          )}
+
+          <BlurView intensity={20} tint="dark" style={styles.progressContainer}>
+            {stories.map((_, index) => (
+              <View key={index} style={styles.progressBarWrapper}>
+                <ProgressBar
+                  isActive={index === currentIndex}
+                  isPaused={isPaused || loading}
+                  duration={5000}
+                  onComplete={handleNext}
+                  progress={progressValues[index]}
+                />
+              </View>
+            ))}
           </BlurView>
 
-          {/* ✅ Header - SAME DESIGN everywhere */}
-          <BlurView intensity={30} tint="dark" style={styles.storyHeader}>
+          <BlurView intensity={30} tint="dark" style={styles.header}>
             <TouchableOpacity 
-              style={styles.storyAutorInfo}
+              style={styles.authorInfo}
               onPress={handleNavigateToStoryAuthorProfile}
               activeOpacity={0.7}
             >
               <View style={styles.avatarWrapper}>
-                {storyAuthorAvatar ? (
-                  <Image source={{ uri: storyAuthorAvatar }} style={styles.storyAutorAvatar} />
+                {authorAvatar ? (
+                  <Image
+                    source={{ uri: authorAvatar }}
+                    style={styles.authorAvatar}
+                  />
                 ) : (
-                  <View style={[styles.storyAutorAvatar, styles.avatarPlaceholder]}>
-                    <Text style={styles.avatarText}>
-                      {storyAuthorName.charAt(0).toUpperCase()}
-                    </Text>
+                  <View style={styles.authorAvatarPlaceholder}>
+                    <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={16} color="#fff" />
                   </View>
                 )}
-                <LinearGradient
-                  colors={['rgba(16, 185, 129, 0.3)', 'rgba(59, 130, 246, 0.3)']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.avatarRing}
-                />
               </View>
-              <View style={styles.storyAutorTextContainer}>
-                <Text style={styles.storyAutorNombre}>
-                  {displayName}
-                </Text>
+              <View style={styles.authorTextContainer}>
+                <Text style={styles.authorName}>{displayName}</Text>
                 <Text style={styles.storyTime}>
-                  {formatStoryTime(currentStory.created_at)}
+                  {new Date(currentStory.created_at).toLocaleDateString('es-ES', {
+                    day: 'numeric',
+                    month: 'short'
+                  })}
                 </Text>
               </View>
             </TouchableOpacity>
 
             <View style={styles.headerActions}>
-              {/* ✅ Eye icon - SAME POSITION everywhere (only for own stories) */}
-              {isCurrentStoryOwner && (
+              {isOwner && (
                 <TouchableOpacity
                   style={styles.headerButton}
                   onPress={handleViewStoryStats}
                   activeOpacity={0.7}
                 >
-                  <LinearGradient
-                    colors={['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.05)']}
-                    style={styles.headerButtonGradient}
-                  >
-                    <IconSymbol ios_icon_name="eye.fill" android_material_icon_name="visibility" size={18} color="#fff" />
-                    <Text style={styles.viewsCountText}>
-                      {currentStory.views_count || 0}
-                    </Text>
-                  </LinearGradient>
+                  <IconSymbol
+                    ios_icon_name="eye.fill"
+                    android_material_icon_name="visibility"
+                    size={22}
+                    color={colors.headerText}
+                  />
                 </TouchableOpacity>
               )}
-              
-              {/* ✅ Delete icon - SAME POSITION everywhere (only for own stories) */}
-              {isCurrentStoryOwner && (
+              {isOwner && (
                 <TouchableOpacity
                   style={styles.headerButton}
-                  onPress={handleDeleteStory}
+                  onPress={handleDelete}
                   activeOpacity={0.7}
                 >
-                  <LinearGradient
-                    colors={['rgba(239, 68, 68, 0.3)', 'rgba(239, 68, 68, 0.1)']}
-                    style={styles.headerButtonGradient}
-                  >
-                    <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={18} color="#fff" />
-                  </LinearGradient>
+                  <IconSymbol
+                    ios_icon_name="trash"
+                    android_material_icon_name="delete"
+                    size={22}
+                    color={colors.headerText}
+                  />
                 </TouchableOpacity>
               )}
-              
-              {/* ✅ Close button - SAME POSITION everywhere */}
               <TouchableOpacity
                 style={styles.headerButton}
-                onPress={cleanupAndClose}
+                onPress={onClose}
                 activeOpacity={0.7}
               >
-                <LinearGradient
-                  colors={['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.05)']}
-                  style={styles.headerButtonGradient}
-                >
-                  <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={20} color="#fff" />
-                </LinearGradient>
+                <IconSymbol
+                  ios_icon_name="xmark"
+                  android_material_icon_name="close"
+                  size={22}
+                  color={colors.headerText}
+                />
               </TouchableOpacity>
             </View>
           </BlurView>
 
-          {/* ✅ Story content */}
-          <View style={styles.storyContent}>
-            {storyImageUrl ? (
-              <StoryImage uri={storyImageUrl} onLoad={() => setImageLoaded(true)} />
-            ) : (
-              <View style={styles.errorContainer}>
-                <IconSymbol ios_icon_name="exclamationmark.triangle" android_material_icon_name="error" size={48} color="#fff" />
-                <Text style={styles.errorText}>Error al cargar la historia</Text>
-              </View>
-            )}
-          </View>
-
-          {/* ✅ Interaction bar - SAME DESIGN everywhere (only for other users' stories) */}
-          {!isCurrentStoryOwner && (
-            <BlurView intensity={30} tint="dark" style={styles.storyInteractionBar}>
-              <View style={styles.storyMessageInputContainer}>
+          {!isOwner && (
+            <BlurView intensity={30} tint="dark" style={styles.interactionBar}>
+              <View style={styles.messageInputContainer}>
                 <TextInput
-                  style={styles.storyMessageInput}
+                  style={styles.messageInput}
                   placeholder={`Enviar mensaje a ${displayName}...`}
                   placeholderTextColor="rgba(255, 255, 255, 0.5)"
                   value={storyMessage}
                   onChangeText={setStoryMessage}
-                  onFocus={() => {
-                    setIsPaused(true);
-                    isPausedRef.current = true;
-                  }}
-                  onBlur={() => {
-                    setIsPaused(false);
-                    isPausedRef.current = false;
-                  }}
+                  onFocus={() => setIsPaused(true)}
+                  onBlur={() => setIsPaused(false)}
                   editable={!sendingMessage}
                 />
                 {storyMessage.trim().length > 0 && (
                   <TouchableOpacity
-                    style={styles.storySendButton}
+                    style={styles.sendButton}
                     onPress={handleSendStoryMessage}
                     activeOpacity={0.7}
                     disabled={sendingMessage}
@@ -1001,25 +742,31 @@ function UnifiedStoryViewer({
               </View>
 
               <TouchableOpacity
-                style={styles.storyLikeButton}
+                style={styles.likeButton}
                 onPress={handleStoryLike}
                 activeOpacity={0.7}
               >
                 <LinearGradient
-                  colors={currentStory.liked_by_user 
+                  colors={isLiked 
                     ? ['rgba(239, 68, 68, 0.3)', 'rgba(239, 68, 68, 0.1)']
                     : ['rgba(255, 255, 255, 0.15)', 'rgba(255, 255, 255, 0.05)']}
                   style={styles.likeButtonGradient}
                 >
                   <IconSymbol
-                    ios_icon_name={currentStory.liked_by_user ? 'heart.fill' : 'heart'}
-                    android_material_icon_name={currentStory.liked_by_user ? 'favorite' : 'favorite_border'}
+                    ios_icon_name={isLiked ? 'heart.fill' : 'heart'}
+                    android_material_icon_name={isLiked ? 'favorite' : 'favorite_border'}
                     size={22}
-                    color={currentStory.liked_by_user ? '#EF4444' : '#fff'}
+                    color={isLiked ? '#EF4444' : '#fff'}
                   />
                 </LinearGradient>
               </TouchableOpacity>
             </BlurView>
+          )}
+
+          {isPaused && (
+            <View style={styles.pauseIndicator}>
+              <IconSymbol ios_icon_name="pause.fill" android_material_icon_name="pause" size={48} color="rgba(255, 255, 255, 0.8)" />
+            </View>
           )}
 
           <StoryStatsModal
@@ -1027,7 +774,6 @@ function UnifiedStoryViewer({
             onClose={() => {
               setShowStoryStats(false);
               setIsPaused(false);
-              isPausedRef.current = false;
             }}
             onNavigateToProfile={handleCloseStoryViewerAndNavigate}
             storyId={currentStory.id}
@@ -1043,156 +789,21 @@ function UnifiedStoryViewer({
   );
 }
 
-function formatStoryTime(timestamp: string): string {
-  const now = new Date();
-  const storyDate = new Date(timestamp);
-  const diffMs = now.getTime() - storyDate.getTime();
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffMinutes = Math.floor(diffMs / (1000 * 60));
-
-  if (diffMinutes < 1) return 'Ahora';
-  if (diffMinutes < 60) return `${diffMinutes}m`;
-  if (diffHours < 24) return `${diffHours}h`;
-  return '1d';
-}
-
 const styles = StyleSheet.create({
-  storyViewerModal: {
+  container: {
     flex: 1,
     backgroundColor: '#000',
-  },
-  progressContainer: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 50 : 40,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 8,
-    paddingVertical: 12,
-    zIndex: 10,
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
-    overflow: 'hidden',
-  },
-  progressBarsWrapper: {
-    flexDirection: 'row',
-    gap: 4,
-  },
-  progressBarContainer: {
-    flex: 1,
-    height: 3,
-  },
-  progressBarBackground: {
-    flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    overflow: 'hidden',
-    borderRadius: 2,
-  },
-  progressGradient: {
-    flex: 1,
-  },
-  storyHeader: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 75 : 65,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    zIndex: 10,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    overflow: 'hidden',
-  },
-  storyAutorInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  avatarWrapper: {
-    position: 'relative',
-    marginRight: 12,
-  },
-  storyAutorAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: '#fff',
-    zIndex: 1,
-  },
-  avatarRing: {
-    position: 'absolute',
-    top: -3,
-    left: -3,
-    right: -3,
-    bottom: -3,
-    borderRadius: 23,
-    zIndex: 0,
-  },
-  avatarPlaceholder: {
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.headerText,
-  },
-  storyAutorTextContainer: {
-    flex: 1,
-  },
-  storyAutorNombre: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#fff',
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
-  storyTime: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.85)',
-    marginTop: 2,
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  headerButton: {
-    borderRadius: 18,
-    overflow: 'hidden',
-  },
-  headerButtonGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  viewsCountText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  storyContent: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   storyImage: {
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT,
+    backgroundColor: '#000',
+  },
+  loadingContainer: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   errorContainer: {
     flex: 1,
@@ -1205,7 +816,97 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginTop: 16,
   },
-  storyInteractionBar: {
+  progressContainer: {
+    position: 'absolute',
+    top: 60,
+    left: 8,
+    right: 8,
+    flexDirection: 'row',
+    gap: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  progressBarWrapper: {
+    flex: 1,
+    height: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 1.5,
+    overflow: 'hidden',
+  },
+  progressBarContainer: {
+    flex: 1,
+    height: '100%',
+  },
+  progressBarFill: {
+    height: '100%',
+    overflow: 'hidden',
+    borderRadius: 1.5,
+  },
+  progressGradient: {
+    flex: 1,
+  },
+  header: {
+    position: 'absolute',
+    top: 80,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 16,
+    marginHorizontal: 8,
+    overflow: 'hidden',
+  },
+  authorInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  avatarWrapper: {
+    marginRight: 12,
+  },
+  authorAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  authorAvatarPlaceholder: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  authorTextContainer: {
+    flex: 1,
+  },
+  authorName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.headerText,
+  },
+  storyTime: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginTop: 2,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  headerButton: {
+    padding: 4,
+  },
+  interactionBar: {
     position: 'absolute',
     bottom: 0,
     left: 0,
@@ -1216,12 +917,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingBottom: Platform.OS === 'ios' ? 34 : 12,
     gap: 12,
-    zIndex: 10,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     overflow: 'hidden',
   },
-  storyMessageInputContainer: {
+  messageInputContainer: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1232,13 +932,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
-  storyMessageInput: {
+  messageInput: {
     flex: 1,
     color: '#fff',
     fontSize: 14,
     paddingRight: 8,
   },
-  storySendButton: {
+  sendButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -1250,7 +950,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  storyLikeButton: {
+  likeButton: {
     width: 48,
     height: 48,
     borderRadius: 24,
@@ -1264,6 +964,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 24,
+  },
+  pauseIndicator: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: [{ translateX: -24 }, { translateY: -24 }],
+    width: 48,
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

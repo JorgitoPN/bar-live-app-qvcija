@@ -1,69 +1,153 @@
 
-import React, { useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, ActivityIndicator, Text } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { supabase } from '@/utils/supabase';
+import { colors } from '@/styles/commonStyles';
 import UnifiedStoryViewer from '@/components/social/UnifiedStoryViewer';
-import { useGlobalData } from '@/contexts/GlobalDataContext';
 import { useMode } from '@/contexts/ModeContext';
 
-export default function HistoriaDetalleScreen() {
+export default function HistoriaDetailScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams();
-  const { stories } = useGlobalData();
-  const { activeLocalProfileId } = useMode();
-
-  const storyId = params.id as string;
-
-  // Find the story and its index
-  const storyIndex = stories.findIndex(s => s.id === storyId);
-  const story = stories[storyIndex];
+  const { id } = useLocalSearchParams();
+  const { activeProfileType, activeProfileId } = useMode();
+  const [stories, setStories] = useState<any[]>([]);
+  const [initialIndex, setInitialIndex] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!story || storyIndex === -1) {
-      console.log('[HistoriaDetalle] Story not found, going back');
+    loadStories();
+  }, [id]);
+
+  const loadStories = async () => {
+    if (!id) {
+      router.back();
+      return;
+    }
+
+    try {
+      const { data: currentStory, error: storyError } = await supabase
+        .from('historias')
+        .select(`
+          *,
+          autor:usuarios!historias_autor_id_fkey(
+            id,
+            nombre,
+            username,
+            avatar
+          ),
+          local:locales(
+            id,
+            nombre,
+            logo
+          )
+        `)
+        .eq('id', id)
+        .single();
+
+      if (storyError || !currentStory) {
+        console.error('[HistoriaDetail] Error loading story:', storyError);
+        router.back();
+        return;
+      }
+
+      const authorId = currentStory.tipo === 'usuario' 
+        ? currentStory.autor_id 
+        : currentStory.local_id;
+
+      let storiesQuery = supabase
+        .from('historias')
+        .select(`
+          *,
+          autor:usuarios!historias_autor_id_fkey(
+            id,
+            nombre,
+            username,
+            avatar
+          ),
+          local:locales(
+            id,
+            nombre,
+            logo
+          )
+        `)
+        .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+        .order('created_at', { ascending: true });
+
+      if (currentStory.tipo === 'usuario') {
+        storiesQuery = storiesQuery
+          .eq('tipo', 'usuario')
+          .eq('autor_id', authorId);
+      } else {
+        storiesQuery = storiesQuery
+          .eq('tipo', 'local')
+          .eq('local_id', authorId);
+      }
+
+      const { data: allStories, error: storiesError } = await storiesQuery;
+
+      if (storiesError) {
+        console.error('[HistoriaDetail] Error loading stories:', storiesError);
+        setStories([currentStory]);
+        setInitialIndex(0);
+      } else {
+        const storiesList = allStories || [currentStory];
+        const index = storiesList.findIndex(s => s.id === id);
+        setStories(storiesList);
+        setInitialIndex(index >= 0 ? index : 0);
+      }
+    } catch (error) {
+      console.error('[HistoriaDetail] Error:', error);
+      router.back();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClose = () => {
+    router.back();
+  };
+
+  const handleStoryDelete = (storyId: string) => {
+    const updatedStories = stories.filter(s => s.id !== storyId);
+    setStories(updatedStories);
+    
+    if (updatedStories.length === 0) {
       router.back();
     }
-  }, [story, storyIndex, router]);
+  };
 
-  if (!story || storyIndex === -1) {
-    return null;
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Cargando historia...</Text>
+      </View>
+    );
   }
 
-  // Get all stories from the same author
-  const authorStories = stories.filter(s => 
-    story.tipo === 'usuario' 
-      ? s.autor_id === story.autor_id && s.tipo === 'usuario'
-      : s.local_id === story.local_id && s.tipo === 'local'
-  );
-
-  // Find the index of the current story within the author's stories
-  const authorStoryIndex = authorStories.findIndex(s => s.id === storyId);
-
   return (
-    <View style={styles.container}>
-      <UnifiedStoryViewer
-        visible={true}
-        stories={authorStories}
-        initialStoryIndex={authorStoryIndex >= 0 ? authorStoryIndex : 0}
-        onClose={() => router.back()}
-        onStoryChange={(index) => {
-          console.log('[HistoriaDetalle] Story changed to index:', index);
-        }}
-        onStoryDelete={(deletedStoryId) => {
-          console.log('[HistoriaDetalle] Story deleted:', deletedStoryId);
-          if (authorStories.length <= 1) {
-            router.back();
-          }
-        }}
-        activeLocalProfileId={activeLocalProfileId}
-      />
-    </View>
+    <UnifiedStoryViewer
+      visible={true}
+      stories={stories}
+      initialIndex={initialIndex}
+      onClose={handleClose}
+      onStoryDelete={handleStoryDelete}
+      activeLocalProfileId={activeProfileType === 'local' ? activeProfileId : null}
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  loadingContainer: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: '#000',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#fff',
   },
 });

@@ -22,7 +22,7 @@ import HeaderSocial from '@/components/layout/HeaderSocial';
 import { IconSymbol } from '@/components/IconSymbol';
 import { LinearGradient } from 'expo-linear-gradient';
 import NewPostCard from '@/components/social/NewPostCard';
-import EnhancedStoryCarousel from '@/components/social/EnhancedStoryCarousel';
+import NewBarraHistorias from '@/components/social/NewBarraHistorias';
 import type { Publicacion, Historia } from '@/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -46,17 +46,14 @@ export default function SocialScreen() {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
-  const [feedFilter, setFeedFilter] = useState<'all' | 'following'>('all');
   
   const isLoadingRef = useRef(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
 
-  // ✅ Determine if user is interacting as a local
   const isInteractingAsLocal = activeProfileType === 'local';
   const interactionLocalId = isInteractingAsLocal ? activeProfileId : null;
   
-  // ✅ Get avatar and name for stories bar based on active profile
   const displayAvatar = isInteractingAsLocal 
     ? (modeLocalData?.imagen_url || null)
     : (user?.avatar || null);
@@ -74,7 +71,6 @@ export default function SocialScreen() {
     hasAvatar: !!displayAvatar,
   });
 
-  // ✅ ENTRANCE ANIMATION
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -91,7 +87,6 @@ export default function SocialScreen() {
     ]).start();
   }, []);
 
-  // ✅ Load unread counts
   const loadUnreadCounts = useCallback(async () => {
     if (!user) return;
 
@@ -141,33 +136,15 @@ export default function SocialScreen() {
       console.log('[Social] 📍 Global posts available:', globalPosts.length);
       console.log('[Social] 📍 Global stories available:', globalStories.length);
 
-      // Load unread counts
       await loadUnreadCounts();
 
       if (globalPosts.length > 0) {
         console.log('[Social] ⚡⚡⚡ INSTANT posts from global data:', globalPosts.length);
         
         let validPosts = globalPosts.filter(p => p && p.id);
-        let filteredPosts = validPosts;
         
-        // ✅ Filter based on feed filter
-        if (feedFilter === 'following' && user) {
-          const { data: followedLocals } = await supabase
-            .from('locales_favoritos')
-            .select('local_id')
-            .eq('usuario_id', user.id);
-
-          const followedLocalIds = new Set(followedLocals?.map(f => f.local_id) || []);
-          
-          filteredPosts = validPosts.filter(p => 
-            p.tipo === 'usuario' || 
-            (p.tipo === 'local' && p.local_id && followedLocalIds.has(p.local_id))
-          );
-          console.log('[Social] 👥 Following filter - Count:', filteredPosts.length);
-        }
-        
-        if (user && filteredPosts.length > 0) {
-          const postIds = filteredPosts.map(p => p.id);
+        if (user && validPosts.length > 0) {
+          const postIds = validPosts.map(p => p.id);
           
           const [likesResult, savesResult, commentsResult] = await Promise.all([
             supabase
@@ -194,18 +171,18 @@ export default function SocialScreen() {
             return acc;
           }, {} as Record<string, number>) || {};
 
-          const postsWithStatus = filteredPosts.map(post => ({
+          const postsWithStatus = validPosts.map(post => ({
             ...post,
-            liked: likedPostIds.has(post.id),
-            saved: savedPostIds.has(post.id),
-            comentarios: commentCounts[post.id] || 0,
+            user_has_liked: likedPostIds.has(post.id),
+            user_has_saved: savedPostIds.has(post.id),
+            comentarios_count: commentCounts[post.id] || 0,
           }));
           
           const finalValidPosts = postsWithStatus.filter(p => p && p.id);
           setPosts(finalValidPosts);
           console.log('[Social] ✅ Set', finalValidPosts.length, 'valid posts with user status');
         } else {
-          const finalValidPosts = filteredPosts.filter(p => p && p.id);
+          const finalValidPosts = validPosts.filter(p => p && p.id);
           setPosts(finalValidPosts);
           console.log('[Social] ✅ Set', finalValidPosts.length, 'valid posts');
         }
@@ -217,25 +194,7 @@ export default function SocialScreen() {
         console.log('[Social] ⚡⚡⚡ INSTANT stories from global data:', globalStories.length);
         
         let validStories = globalStories.filter(s => s && s.id);
-        let filteredStories = validStories;
-        
-        // ✅ Filter based on feed filter
-        if (feedFilter === 'following' && user) {
-          const { data: followedLocals } = await supabase
-            .from('locales_favoritos')
-            .select('local_id')
-            .eq('usuario_id', user.id);
-
-          const followedLocalIds = new Set(followedLocals?.map(f => f.local_id) || []);
-          
-          filteredStories = validStories.filter(s => 
-            s.tipo === 'usuario' || 
-            (s.tipo === 'local' && s.local_id && followedLocalIds.has(s.local_id))
-          );
-          console.log('[Social] 👥 Following filter - Stories count:', filteredStories.length);
-        }
-        
-        setHistorias(filteredStories);
+        setHistorias(validStories);
       } else {
         setHistorias([]);
       }
@@ -249,9 +208,8 @@ export default function SocialScreen() {
       isLoadingRef.current = false;
       setIsInitialLoad(false);
     }
-  }, [user, globalPosts, globalStories, feedFilter, loadUnreadCounts]);
+  }, [user, globalPosts, globalStories, loadUnreadCounts]);
 
-  // ✅ AUTO-UPDATE: Reload data every time the screen comes into focus
   useFocusEffect(
     useCallback(() => {
       console.log('[Social] 🔄 Screen focused - auto-updating data');
@@ -289,11 +247,6 @@ export default function SocialScreen() {
     setHistorias(updatedStories);
   }, []);
 
-  const handleFilterChange = (filter: 'all' | 'following') => {
-    setFeedFilter(filter);
-    loadData();
-  };
-
   if (isInitialLoad && posts.length === 0) {
     return (
       <View style={styles.container}>
@@ -321,9 +274,8 @@ export default function SocialScreen() {
         },
       ]}
     >
-      {/* ✅ ENHANCED: Story Carousel */}
       <View style={styles.storiesSection}>
-        <EnhancedStoryCarousel
+        <NewBarraHistorias
           historias={historias}
           onHistoriaPress={handleHistoriaPress}
           onCrearHistoria={handleCreateStory}
@@ -331,75 +283,6 @@ export default function SocialScreen() {
           userName={displayName}
           onStoriesUpdate={handleStoriesUpdate}
         />
-      </View>
-
-      {/* ✅ NEW: Feed Filter Tabs */}
-      <View style={styles.filterTabsContainer}>
-        <TouchableOpacity
-          style={[styles.filterTab, feedFilter === 'all' && styles.filterTabActive]}
-          onPress={() => handleFilterChange('all')}
-          activeOpacity={0.7}
-        >
-          {feedFilter === 'all' ? (
-            <LinearGradient
-              colors={[colors.primary, colors.secondary]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.filterTabGradient}
-            >
-              <IconSymbol
-                ios_icon_name="globe"
-                android_material_icon_name="public"
-                size={20}
-                color="#fff"
-              />
-              <Text style={styles.filterTabTextActive}>Explorar</Text>
-            </LinearGradient>
-          ) : (
-            <View style={styles.filterTabContent}>
-              <IconSymbol
-                ios_icon_name="globe"
-                android_material_icon_name="public"
-                size={20}
-                color={colors.textSecondary}
-              />
-              <Text style={styles.filterTabText}>Explorar</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.filterTab, feedFilter === 'following' && styles.filterTabActive]}
-          onPress={() => handleFilterChange('following')}
-          activeOpacity={0.7}
-        >
-          {feedFilter === 'following' ? (
-            <LinearGradient
-              colors={[colors.primary, colors.secondary]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.filterTabGradient}
-            >
-              <IconSymbol
-                ios_icon_name="person.2.fill"
-                android_material_icon_name="people"
-                size={20}
-                color="#fff"
-              />
-              <Text style={styles.filterTabTextActive}>Siguiendo</Text>
-            </LinearGradient>
-          ) : (
-            <View style={styles.filterTabContent}>
-              <IconSymbol
-                ios_icon_name="person.2.fill"
-                android_material_icon_name="people"
-                size={20}
-                color={colors.textSecondary}
-              />
-              <Text style={styles.filterTabText}>Siguiendo</Text>
-            </View>
-          )}
-        </TouchableOpacity>
       </View>
     </Animated.View>
   );
@@ -418,7 +301,7 @@ export default function SocialScreen() {
         ],
       }}
     >
-      <NewPostCard post={item} />
+      <NewPostCard post={item} onUpdate={loadData} />
     </Animated.View>
   );
 
@@ -439,11 +322,9 @@ export default function SocialScreen() {
       </LinearGradient>
       <Text style={styles.emptyStateTitle}>No hay publicaciones</Text>
       <Text style={styles.emptyStateText}>
-        {feedFilter === 'following'
-          ? 'Sigue a usuarios o locales para ver sus publicaciones'
-          : isInteractingAsLocal 
-            ? 'Crea la primera publicación de tu local'
-            : 'Sé el primero en publicar'}
+        {isInteractingAsLocal 
+          ? 'Crea la primera publicación de tu local'
+          : 'Sé el primero en publicar'}
       </Text>
       <TouchableOpacity 
         style={styles.createButton}
@@ -529,55 +410,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-  },
-  filterTabsContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 12,
-    backgroundColor: colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  filterTab: {
-    flex: 1,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  filterTabActive: {
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  filterTabGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  filterTabContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-  },
-  filterTabText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.textSecondary,
-  },
-  filterTabTextActive: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#fff',
   },
   emptyState: {
     flex: 1,

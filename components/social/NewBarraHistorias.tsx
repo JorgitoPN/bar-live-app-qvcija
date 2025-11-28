@@ -19,7 +19,6 @@ interface NewBarraHistoriasProps {
   onStoriesUpdate?: (historias: Historia[]) => void;
 }
 
-// ✅ INSTAGRAM-STYLE: Create Story Button (shown when user has no stories)
 const CreateStoryButton = memo(({ 
   onPress,
   userAvatar,
@@ -36,7 +35,7 @@ const CreateStoryButton = memo(({
         userStories={[]}
         avatarUrl={userAvatar}
         userName={userName || 'Tu historia'}
-        size={92}
+        size={100}
         onPress={onPress}
         showLabel={true}
         labelText="Tu historia"
@@ -50,7 +49,6 @@ const CreateStoryButton = memo(({
 
 CreateStoryButton.displayName = 'CreateStoryButton';
 
-// Main Component
 const NewBarraHistorias = memo(function NewBarraHistorias({
   historias,
   onHistoriaPress,
@@ -62,7 +60,6 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
   const { user } = useAuth();
   const { activeProfileType, activeProfileId, activeLocalData } = useMode();
   
-  // ✅ Determine if user is interacting as a local
   const isInteractingAsLocal = activeProfileType === 'local';
   const interactionId = isInteractingAsLocal ? activeProfileId : user?.id;
   
@@ -74,10 +71,8 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
     localName: activeLocalData?.nombre,
   });
   
-  // ✅ Separate user's own stories from others based on interaction context
   const { userStories, otherStories } = useMemo(() => {
     if (isInteractingAsLocal && activeProfileId) {
-      // When interacting as local, show local's stories as "own stories"
       const userStories = historias.filter(h => 
         h.tipo === 'local' && h.local_id === activeProfileId
       );
@@ -93,7 +88,6 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
       
       return { userStories, otherStories };
     } else if (user) {
-      // Regular user mode
       const userStories = historias.filter(h => 
         h.tipo === 'usuario' && h.autor_id === user.id
       );
@@ -113,7 +107,6 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
     return { userStories: [], otherStories: historias };
   }, [historias, user, isInteractingAsLocal, activeProfileId]);
 
-  // ✅ REAL-TIME: Story updates subscription
   useEffect(() => {
     if (!user || !onStoriesUpdate) return;
 
@@ -131,7 +124,6 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
         async (payload) => {
           console.log('[NewBarraHistorias] ⚡ New story detected:', payload);
           
-          // Fetch the complete story data with author info
           const { data: newStory, error } = await supabase
             .from('historias')
             .select(`
@@ -153,7 +145,6 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
 
           if (newStory) {
             console.log('[NewBarraHistorias] ✅ Adding new story to list');
-            // Add the new story to the existing list
             onStoriesUpdate([...historias, newStory as Historia]);
           }
         }
@@ -167,7 +158,6 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
         },
         (payload) => {
           console.log('[NewBarraHistorias] ⚡ Story deleted:', payload);
-          // Remove the deleted story from the list
           onStoriesUpdate(historias.filter(h => h.id !== payload.old.id));
         }
       )
@@ -181,7 +171,6 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
     };
   }, [user, historias, onStoriesUpdate]);
   
-  // Group stories by author to show only one avatar per author
   const groupedStories = useMemo(() => {
     const groups = new Map<string, Historia[]>();
     
@@ -195,7 +184,6 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
       groups.get(authorId)!.push(historia);
     });
     
-    // Convert to array and sort by most recent story
     return Array.from(groups.entries())
       .map(([authorId, stories]) => ({
         authorId,
@@ -219,24 +207,21 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
         scrollEventThrottle={16}
         decelerationRate="fast"
       >
-        {/* ✅ INSTAGRAM-STYLE: User's Own Story or Create Story Button (FIRST ELEMENT) */}
         {user && onCrearHistoria && (
           userStories.length > 0 ? (
-            // Show user's story with StoryAvatar component
             <View style={styles.storyContainer}>
               <StoryAvatar
                 userId={interactionId || ''}
                 userStories={userStories}
                 avatarUrl={userAvatar}
                 userName={isInteractingAsLocal ? activeLocalData?.nombre || 'Tu local' : 'Tu historia'}
-                size={92}
+                size={100}
                 onPress={() => onHistoriaPress(userStories[0])}
                 showLabel={true}
                 labelText={isInteractingAsLocal ? activeLocalData?.nombre || 'Tu local' : 'Tu historia'}
               />
             </View>
           ) : (
-            // Show create story button
             <CreateStoryButton 
               onPress={onCrearHistoria}
               userAvatar={userAvatar}
@@ -245,7 +230,6 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
           )
         )}
 
-        {/* ✅ INSTAGRAM-STYLE: Other Users' Stories (grouped by author) */}
         {groupedStories.map(({ authorId, stories, latestStory }) => {
           const displayName = latestStory.tipo === 'local'
             ? (latestStory.autorNombre || 'Local')
@@ -260,7 +244,7 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
                 userStories={stories}
                 avatarUrl={avatarUrl || undefined}
                 userName={displayName}
-                size={92}
+                size={100}
                 onPress={() => onHistoriaPress(latestStory)}
                 showLabel={true}
               />
@@ -289,19 +273,19 @@ const styles = StyleSheet.create({
     marginTop: 0,
   },
   scrollContent: {
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 16,
   },
   createStory: {
     alignItems: 'center',
-    width: 96,
+    width: 100,
     position: 'relative',
   },
   createAddButton: {
     position: 'absolute',
-    bottom: 20,
-    right: 0,
+    bottom: 24,
+    right: 4,
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -312,7 +296,7 @@ const styles = StyleSheet.create({
   },
   storyContainer: {
     alignItems: 'center',
-    width: 96,
+    width: 100,
   },
 });
 
