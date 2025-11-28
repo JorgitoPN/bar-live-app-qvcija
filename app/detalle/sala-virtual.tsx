@@ -285,10 +285,23 @@ export default function SalaVirtualScreen() {
       }
 
       setIsCheckedIn(true);
-      console.log('[SalaVirtual] ✅ Checked in successfully - Real-time trigger will broadcast user_joined event');
+      console.log('[SalaVirtual] ✅ Checked in successfully');
       
-      // ✅ REAL-TIME: The database trigger will automatically broadcast the user_joined event
-      // No need to manually broadcast here
+      // Broadcast user joined
+      if (presenceChannelRef.current) {
+        try {
+          await presenceChannelRef.current.send({
+            type: 'broadcast',
+            event: 'user_joined',
+            payload: {
+              usuario_id: user.id,
+              nombre: user.user_metadata?.nombre || user.email,
+            },
+          });
+        } catch (broadcastError) {
+          console.error('[SalaVirtual] Error broadcasting user joined:', broadcastError);
+        }
+      }
       
       setCheckingIn(false);
     } catch (error) {
@@ -331,12 +344,23 @@ export default function SalaVirtualScreen() {
                 return;
               }
 
+              // Broadcast user left
+              if (presenceChannelRef.current) {
+                try {
+                  await presenceChannelRef.current.send({
+                    type: 'broadcast',
+                    event: 'user_left',
+                    payload: {
+                      usuario_id: user.id,
+                    },
+                  });
+                } catch (broadcastError) {
+                  console.error('[SalaVirtual] Error broadcasting user left:', broadcastError);
+                }
+              }
+
               setIsCheckedIn(false);
-              console.log('[SalaVirtual] ✅ Checked out successfully - Real-time trigger will broadcast user_left event');
-              
-              // ✅ REAL-TIME: The database trigger will automatically broadcast the user_left event
-              // No need to manually broadcast here
-              
+              console.log('[SalaVirtual] ✅ Checked out successfully');
               router.back();
             } catch (error) {
               console.error('[SalaVirtual] ❌ Error:', error);
@@ -432,24 +456,21 @@ export default function SalaVirtualScreen() {
     }
   }, [localId]);
 
-  // ✅ REAL-TIME: Subscribe to real-time updates using broadcast channels
+  // Subscribe to real-time updates
   const subscribeToUpdates = useCallback(() => {
     if (!localId || !user) return () => {};
 
-    console.log('[SalaVirtual] 🔥 Subscribing to real-time updates with BROADCAST channels');
+    console.log('[SalaVirtual] Subscribing to real-time updates');
 
-    // ✅ Chat channel for messages
     const chatChannel = supabase
       .channel(`room:${localId}:chat`, {
         config: { 
-          broadcast: { self: false }, // Don't receive our own broadcasts
-          private: true, // Use RLS policies
+          broadcast: { self: true },
         },
       })
       .on('broadcast', { event: 'message_created' }, async (payload) => {
-        console.log('[SalaVirtual] 🔥 REAL-TIME: New message received:', payload);
+        console.log('[SalaVirtual] New message received:', payload);
         
-        // Fetch user data for the message
         const { data: userData } = await supabase
           .from('usuarios')
           .select('id, nombre, username, avatar')
@@ -473,8 +494,8 @@ export default function SalaVirtualScreen() {
         }, 100);
       })
       .on('broadcast', { event: 'message_deleted' }, (payload) => {
-        console.log('[SalaVirtual] 🔥 REAL-TIME: Message deleted:', payload.payload.id);
-        setMessages((prev) => prev.filter(m => m.id !== payload.payload.id));
+        console.log('[SalaVirtual] Message deleted:', payload.payload.message_id);
+        setMessages((prev) => prev.filter(m => m.id !== payload.payload.message_id));
       })
       .on('broadcast', { event: 'user_typing' }, (payload) => {
         console.log('[SalaVirtual] User typing:', payload.payload.usuario_id);
@@ -504,34 +525,26 @@ export default function SalaVirtualScreen() {
           [{ text: 'OK', onPress: () => router.back() }]
         );
       })
-      .subscribe(async (status) => {
+      .subscribe((status) => {
         console.log('[SalaVirtual] Chat channel status:', status);
-        if (status === 'SUBSCRIBED') {
-          console.log('[SalaVirtual] ✅ Chat channel subscribed successfully');
-        }
       });
 
-    // ✅ Presence channel for user join/leave events
     const presenceChannel = supabase
       .channel(`room:${localId}:presence`, {
         config: { 
-          broadcast: { self: false }, // Don't receive our own broadcasts
-          private: true, // Use RLS policies
+          broadcast: { self: false },
         },
       })
-      .on('broadcast', { event: 'user_joined' }, (payload) => {
-        console.log('[SalaVirtual] 🔥 REAL-TIME: User joined:', payload);
+      .on('broadcast', { event: 'user_joined' }, () => {
+        console.log('[SalaVirtual] User joined');
         updateActiveUsers();
       })
-      .on('broadcast', { event: 'user_left' }, (payload) => {
-        console.log('[SalaVirtual] 🔥 REAL-TIME: User left:', payload);
+      .on('broadcast', { event: 'user_left' }, () => {
+        console.log('[SalaVirtual] User left');
         updateActiveUsers();
       })
-      .subscribe(async (status) => {
+      .subscribe((status) => {
         console.log('[SalaVirtual] Presence channel status:', status);
-        if (status === 'SUBSCRIBED') {
-          console.log('[SalaVirtual] ✅ Presence channel subscribed successfully');
-        }
       });
 
     chatChannelRef.current = chatChannel;
@@ -558,12 +571,9 @@ export default function SalaVirtualScreen() {
       await loadLocalData();
       await checkUserCheckin();
       await loadMessages();
-      await updateActiveUsers();
-      
-      // ✅ REAL-TIME: Subscribe to updates AFTER initial load
       const unsubscribe = subscribeToUpdates();
+      await updateActiveUsers();
 
-      // Refresh active users every 30 seconds as a fallback
       const interval = setInterval(updateActiveUsers, 30000);
 
       return () => {
@@ -641,11 +651,19 @@ export default function SalaVirtualScreen() {
         return;
       }
 
-      console.log('[SalaVirtual] ✅ Message sent successfully - Real-time trigger will broadcast message_created event');
-      
-      // ✅ REAL-TIME: The database trigger will automatically broadcast the message_created event
-      // No need to manually broadcast here
-      
+      if (chatChannelRef.current) {
+        try {
+          await chatChannelRef.current.send({
+            type: 'broadcast',
+            event: 'message_created',
+            payload: data,
+          });
+        } catch (broadcastError) {
+          console.error('[SalaVirtual] Error broadcasting message:', broadcastError);
+        }
+      }
+
+      console.log('[SalaVirtual] Message sent successfully');
       setNewMessage('');
     } catch (error) {
       console.error('[SalaVirtual] Error:', error);
@@ -672,10 +690,19 @@ export default function SalaVirtualScreen() {
         return;
       }
 
-      console.log('[SalaVirtual] ✅ Message deleted successfully - Real-time trigger will broadcast message_deleted event');
-      
-      // ✅ REAL-TIME: The database trigger will automatically broadcast the message_deleted event
-      // No need to manually broadcast here
+      if (chatChannelRef.current) {
+        try {
+          await chatChannelRef.current.send({
+            type: 'broadcast',
+            event: 'message_deleted',
+            payload: { message_id: messageId },
+          });
+        } catch (broadcastError) {
+          console.error('[SalaVirtual] Error broadcasting deletion:', broadcastError);
+        }
+      }
+
+      console.log('[SalaVirtual] Message deleted successfully');
     } catch (error) {
       console.error('[SalaVirtual] Error:', error);
     }
