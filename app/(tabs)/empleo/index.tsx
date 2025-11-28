@@ -84,7 +84,7 @@ interface OfertaTrabajo {
     latitud?: number;
     longitud?: number;
   };
-  propietario?: {
+  created_by_usuario?: {
     nombre: string;
   };
 }
@@ -143,14 +143,15 @@ export default function EmpleoScreen() {
     try {
       console.log('[Empleo] Cargando ofertas...');
       
+      // FIXED: Use created_by_usuario_id instead of propietario
       const { data, error } = await supabase
         .from('ofertas_trabajo')
         .select(`
           *,
           local:locales(nombre, imagen_url, latitud, longitud),
-          propietario:usuarios(nombre)
+          created_by_usuario:usuarios!ofertas_trabajo_created_by_usuario_id_fkey(nombre)
         `)
-        .eq('activo', true)
+        .eq('activa', true)
         .order('created_at', { ascending: false })
         .range(0, ITEMS_PER_PAGE - 1);
 
@@ -253,9 +254,9 @@ export default function EmpleoScreen() {
         .select(`
           *,
           local:locales(nombre, imagen_url, latitud, longitud),
-          propietario:usuarios(nombre)
+          created_by_usuario:usuarios!ofertas_trabajo_created_by_usuario_id_fkey(nombre)
         `)
-        .eq('activo', true)
+        .eq('activa', true)
         .order('created_at', { ascending: false })
         .range(ofertasPage * ITEMS_PER_PAGE, (ofertasPage + 1) * ITEMS_PER_PAGE - 1);
 
@@ -522,7 +523,7 @@ export default function EmpleoScreen() {
             <View style={{ flex: 1 }}>
               <Text style={styles.ofertaTitulo}>{oferta.titulo}</Text>
               <Text style={styles.ofertaLocal}>
-                {oferta.local?.nombre || oferta.propietario?.nombre || 'Local'}
+                {oferta.local?.nombre || oferta.created_by_usuario?.nombre || 'Local'}
               </Text>
             </View>
             {diasPublicado < 7 && (
@@ -1069,7 +1070,7 @@ export default function EmpleoScreen() {
               <View style={styles.detailOfferHeader}>
                 <Text style={styles.detailOfferTitle}>{selectedOffer.titulo}</Text>
                 <Text style={styles.detailOfferLocal}>
-                  {selectedOffer.local?.nombre || selectedOffer.propietario?.nombre || 'Local'}
+                  {selectedOffer.local?.nombre || selectedOffer.created_by_usuario?.nombre || 'Local'}
                 </Text>
               </View>
 
