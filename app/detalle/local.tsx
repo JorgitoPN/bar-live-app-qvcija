@@ -302,8 +302,6 @@ export default function DetalleLocalScreen() {
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [loadingEventos, setLoadingEventos] = useState(false);
   const [expandedDescription, setExpandedDescription] = useState(false);
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [loadingFavorite, setLoadingFavorite] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -333,108 +331,6 @@ export default function DetalleLocalScreen() {
       setDistance(dist);
     }
   }, [userLocation, local]);
-
-  // ✅ FIXED: Check if local is favorited with proper error handling
-  const checkIfFavorite = useCallback(async () => {
-    if (!user || !params.id) {
-      console.log('[DetalleLocal] No user or local ID for favorite check');
-      return;
-    }
-    
-    try {
-      console.log('[DetalleLocal] Checking if favorited for user:', user.id, 'local:', params.id);
-      
-      const { data, error } = await supabase
-        .from('locales_guardados')
-        .select('id')
-        .eq('usuario_id', user.id)
-        .eq('local_id', params.id)
-        .maybeSingle();
-
-      if (error) {
-        console.error('[DetalleLocal] Error checking favorite:', error);
-        setIsFavorite(false);
-        return;
-      }
-
-      setIsFavorite(!!data);
-      console.log('[DetalleLocal] Is favorited:', !!data);
-    } catch (error) {
-      console.error('[DetalleLocal] Error checking favorite:', error);
-      setIsFavorite(false);
-    }
-  }, [user, params.id]);
-
-  useEffect(() => {
-    if (user) {
-      checkIfFavorite();
-    }
-  }, [user, checkIfFavorite]);
-
-  // ✅ FIXED: Toggle favorite with proper authentication check and error handling
-  const toggleFavorito = async (e: any) => {
-    e?.stopPropagation();
-    
-    if (!user) {
-      console.log('[DetalleLocal] User not authenticated');
-      Alert.alert('Inicia sesión', 'Debes iniciar sesión para agregar favoritos');
-      return;
-    }
-
-    if (!params.id) {
-      console.log('[DetalleLocal] No local ID');
-      return;
-    }
-
-    setLoadingFavorite(true);
-    try {
-      console.log('[DetalleLocal] Toggling favorite. Current state:', isFavorite);
-      
-      if (isFavorite) {
-        // ✅ FIXED: Delete from favorites
-        console.log('[DetalleLocal] Removing from favorites');
-        const { error } = await supabase
-          .from('locales_guardados')
-          .delete()
-          .eq('usuario_id', user.id)
-          .eq('local_id', params.id);
-
-        if (error) {
-          console.error('[DetalleLocal] Error removing favorite:', error);
-          Alert.alert('Error', 'No se pudo quitar de favoritos');
-          setLoadingFavorite(false);
-          return;
-        }
-        
-        setIsFavorite(false);
-        console.log('[DetalleLocal] ✅ Removed from favorites');
-      } else {
-        // ✅ FIXED: Add to favorites with explicit usuario_id
-        console.log('[DetalleLocal] Adding to favorites with usuario_id:', user.id, 'local_id:', params.id);
-        const { error } = await supabase
-          .from('locales_guardados')
-          .insert({
-            usuario_id: user.id,
-            local_id: params.id as string,
-          });
-
-        if (error) {
-          console.error('[DetalleLocal] Error adding favorite:', error);
-          Alert.alert('Error', 'No se pudo agregar a favoritos');
-          setLoadingFavorite(false);
-          return;
-        }
-        
-        setIsFavorite(true);
-        console.log('[DetalleLocal] ✅ Added to favorites');
-      }
-    } catch (error) {
-      console.error('[DetalleLocal] Error toggling favorito:', error);
-      Alert.alert('Error', 'No se pudo actualizar favoritos');
-    } finally {
-      setLoadingFavorite(false);
-    }
-  };
 
   const cargarReviewsBarlive = useCallback(async () => {
     try {
@@ -929,26 +825,6 @@ export default function DetalleLocalScreen() {
           <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
             <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
               <IconSymbol ios_icon_name="square.and.arrow.up" android_material_icon_name="share" size={22} color="#fff" />
-            </BlurView>
-          </TouchableOpacity>
-
-          {/* ✅ FIXED: Favorite button with proper authentication and error handling */}
-          <TouchableOpacity
-            style={styles.favoriteButton}
-            onPress={toggleFavorito}
-            disabled={loadingFavorite || !user}
-          >
-            <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
-              {loadingFavorite ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <IconSymbol
-                  ios_icon_name={isFavorite ? "heart.fill" : "heart"}
-                  android_material_icon_name={isFavorite ? "favorite" : "favorite_border"}
-                  size={22}
-                  color={isFavorite ? "#EF4444" : "#fff"}
-                />
-              )}
             </BlurView>
           </TouchableOpacity>
         </View>
@@ -1595,16 +1471,6 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     overflow: 'hidden',
     zIndex: 5,
-  },
-  favoriteButton: {
-    position: 'absolute',
-    bottom: 16,
-    right: 16,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    overflow: 'hidden',
-    zIndex: 6,
   },
   buttonBlur: {
     width: '100%',

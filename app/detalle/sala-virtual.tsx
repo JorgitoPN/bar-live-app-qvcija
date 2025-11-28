@@ -610,7 +610,7 @@ export default function SalaVirtualScreen() {
     }, 3000);
   };
 
-  // Send public message
+  // ✅ FIXED: Send public message with correct tipo value
   const sendMessage = async () => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para enviar mensajes');
@@ -708,7 +708,7 @@ export default function SalaVirtualScreen() {
     }
   };
 
-  // Send emoticon to user
+  // ✅ FIXED: Send emoticon to user with correct tipo value
   const sendEmoticon = async (recipientId: string, emoticon: string) => {
     if (!user || !localId) return;
 
