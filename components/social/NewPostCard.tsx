@@ -9,7 +9,6 @@ import {
   Dimensions,
   ScrollView,
   Alert,
-  Share as RNShare,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -19,6 +18,7 @@ import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import PostViewerModal from './PostViewerModal';
 import CommentsModal from './CommentsModal';
+import SharePostModal from './SharePostModal';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -66,6 +66,7 @@ export default function NewPostCard({
   const [commentsCount, setCommentsCount] = useState(post.comentarios_count);
   const [showPostViewer, setShowPostViewer] = useState(false);
   const [showComments, setShowComments] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   const isOwner = post.tipo === 'usuario' 
     ? post.autor_id === user?.id
@@ -117,20 +118,12 @@ export default function NewPostCard({
     setShowComments(true);
   };
 
-  const handleShare = async () => {
-    try {
-      const result = await RNShare.share({
-        message: `Mira esta publicación en Barlive: ${post.contenido || 'Nueva publicación'}`,
-        title: 'Compartir publicación',
-      });
-
-      if (result.action === RNShare.sharedAction) {
-        console.log('[NewPostCard] Post shared successfully');
-      }
-    } catch (error) {
-      console.error('[NewPostCard] Error sharing:', error);
-      Alert.alert('Error', 'No se pudo compartir la publicación');
+  const handleShare = () => {
+    if (!user) {
+      Alert.alert('Inicia sesión', 'Debes iniciar sesión para compartir publicaciones');
+      return;
     }
+    setShowShareModal(true);
   };
 
   const handleSave = async () => {
@@ -375,8 +368,17 @@ export default function NewPostCard({
       <CommentsModal
         visible={showComments}
         postId={post.id}
+        postAuthorId={post.autor_id}
         onClose={() => setShowComments(false)}
         onCommentAdded={handleCommentsUpdate}
+      />
+
+      {/* Share Modal */}
+      <SharePostModal
+        visible={showShareModal}
+        postId={post.id}
+        postContent={post.contenido}
+        onClose={() => setShowShareModal(false)}
       />
     </>
   );

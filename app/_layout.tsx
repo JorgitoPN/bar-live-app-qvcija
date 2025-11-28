@@ -83,7 +83,15 @@ export default function RootLayout() {
                   <Stack.Screen name="detalle/local-updated" options={{ presentation: 'modal', headerShown: false }} />
                   <Stack.Screen name="detalle/evento" options={{ presentation: 'modal', headerShown: false }} />
                   <Stack.Screen name="detalle/sala-virtual" options={{ presentation: 'modal', headerShown: false }} />
-                  <Stack.Screen name="detalle/historia" options={{ presentation: 'fullScreenModal', headerShown: false, animation: 'fade' }} />
+                  <Stack.Screen 
+                    name="detalle/historia" 
+                    options={{ 
+                      presentation: 'fullScreenModal', 
+                      headerShown: false, 
+                      animation: 'none',
+                      animationDuration: 0,
+                    }} 
+                  />
                   <Stack.Screen name="editar/perfil" options={{ presentation: 'modal', headerShown: false }} />
                   <Stack.Screen name="social/amigos" options={{ presentation: 'modal', headerShown: false }} />
                   <Stack.Screen name="social/configuracion" options={{ presentation: 'modal', headerShown: false }} />

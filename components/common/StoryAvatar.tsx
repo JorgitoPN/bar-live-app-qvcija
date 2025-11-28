@@ -38,9 +38,16 @@ const StoryAvatar = memo(function StoryAvatar({
         return;
       }
 
+      // If viewing own stories, always show gradient outline (for stats access)
+      if (userId === user.id) {
+        setHasUnviewedStories(true);
+        return;
+      }
+
       try {
         const storyIds = userStories.map(s => s.id);
         
+        // Check which stories have been viewed by the current user
         const { data: viewedStories, error } = await supabase
           .from('historia_views')
           .select('historia_id')
@@ -54,7 +61,16 @@ const StoryAvatar = memo(function StoryAvatar({
         }
 
         const viewedStoryIds = new Set(viewedStories?.map(v => v.historia_id) || []);
+        
+        // Show gradient outline if ANY story is unviewed
         const hasUnviewed = userStories.some(s => !viewedStoryIds.has(s.id));
+        
+        console.log('[StoryAvatar] 👁️ Unviewed check:', {
+          userId,
+          totalStories: userStories.length,
+          viewedCount: viewedStoryIds.size,
+          hasUnviewed,
+        });
         
         setHasUnviewedStories(hasUnviewed);
       } catch (error) {
@@ -64,7 +80,36 @@ const StoryAvatar = memo(function StoryAvatar({
     };
 
     checkUnviewedStories();
-  }, [user, userStories]);
+
+    // Subscribe to real-time updates for story views
+    if (user && userStories.length > 0) {
+      const storyIds = userStories.map(s => s.id);
+      
+      const channel = supabase
+        .channel(`story-views-${userId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'historia_views',
+            filter: `usuario_id=eq.${user.id}`,
+          },
+          (payload) => {
+            // If a story from this user was viewed, recheck
+            if (storyIds.includes(payload.new.historia_id)) {
+              console.log('[StoryAvatar] ⚡ Story viewed, rechecking outline');
+              checkUnviewedStories();
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [user, userStories, userId]);
 
   const ringSize = size + 8;
   const avatarSize = size - 4;
@@ -77,6 +122,7 @@ const StoryAvatar = memo(function StoryAvatar({
     >
       <View style={[styles.avatarWrapper, { width: ringSize, height: ringSize }]}>
         {hasUnviewedStories ? (
+          // ✅ Show gradient outline for unviewed stories
           <LinearGradient
             colors={[colors.primary, colors.secondary]}
             start={{ x: 0, y: 0 }}
@@ -102,6 +148,7 @@ const StoryAvatar = memo(function StoryAvatar({
             </View>
           </LinearGradient>
         ) : (
+          // ✅ Show simple border for viewed stories (no gradient)
           <View style={[styles.viewedRing, { width: ringSize, height: ringSize, borderRadius: ringSize / 2 }]}>
             <View style={[styles.innerRing, { width: avatarSize + 4, height: avatarSize + 4, borderRadius: (avatarSize + 4) / 2 }]}>
               {avatarUrl ? (
