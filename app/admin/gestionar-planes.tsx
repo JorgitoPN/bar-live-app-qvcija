@@ -19,42 +19,44 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { supabase } from '@/utils/supabase';
 import { useRouter } from 'expo-router';
 
+interface PlanCaracteristicas {
+  eventos_mes?: number;
+  promos_destacadas?: number;
+  perfil_social?: boolean;
+  panel_analisis?: boolean;
+  soporte_prioritario?: boolean;
+  visibilidad_extra?: boolean;
+  visibilidad_maxima?: boolean;
+}
+
 interface Plan {
   id: string;
   nombre: string;
   precio_mensual: number;
   descripcion: string;
   activo: boolean;
-  caracteristicas?: {
-    eventos_mes?: number;
-    promos_destacadas?: number;
-    perfil_social?: boolean;
-    panel_analisis?: boolean;
-    soporte_prioritario?: boolean;
-    visibilidad_extra?: boolean;
-    visibilidad_maxima?: boolean;
-  };
+  caracteristicas?: PlanCaracteristicas;
 }
 
 interface Suscripcion {
   id: string;
   local_id: string;
-  propietario_id: string;
+  usuario_id: string;
   plan_id: string;
   estado: string;
   fecha_inicio: string;
   fecha_fin?: string;
   eventos_usados_mes?: number;
   promos_usadas_mes?: number;
-  local?: {
+  locales?: {
     nombre: string;
     provincia: string;
   };
-  propietario?: {
+  usuarios?: {
     nombre: string;
     email: string;
   };
-  plan?: {
+  planes_suscripcion?: {
     nombre: string;
     precio_mensual: number;
   };
@@ -105,7 +107,25 @@ export default function GestionarPlanesScreen() {
 
       if (error) throw error;
 
-      setPlanes(data || []);
+      // ✅ FIXED: Parse caracteristicas properly
+      const planesFormateados = (data || []).map((plan: any) => {
+        let caracteristicas: PlanCaracteristicas = {};
+        
+        // Handle both array and object formats
+        if (plan.caracteristicas) {
+          if (typeof plan.caracteristicas === 'object' && !Array.isArray(plan.caracteristicas)) {
+            caracteristicas = plan.caracteristicas;
+          }
+        }
+        
+        return {
+          ...plan,
+          caracteristicas,
+        };
+      });
+
+      setPlanes(planesFormateados);
+      console.log('[GestionarPlanes] ✅ Loaded', planesFormateados.length, 'plans');
     } catch (error) {
       console.error('[GestionarPlanes] Error loading plans:', error);
       Alert.alert('Error', 'No se pudieron cargar los planes');
@@ -122,18 +142,12 @@ export default function GestionarPlanesScreen() {
           usuarios (nombre, email),
           planes_suscripcion (nombre, precio_mensual)
         `)
-        .order('fecha_inicio', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      const formattedData = (data || []).map((sub: any) => ({
-        ...sub,
-        local: sub.locales,
-        propietario: sub.usuarios,
-        plan: sub.planes_suscripcion,
-      }));
-
-      setSuscripciones(formattedData);
+      setSuscripciones(data || []);
+      console.log('[GestionarPlanes] ✅ Loaded', (data || []).length, 'subscriptions');
     } catch (error) {
       console.error('[GestionarPlanes] Error loading subscriptions:', error);
       Alert.alert('Error', 'No se pudieron cargar las suscripciones');
@@ -187,6 +201,54 @@ export default function GestionarPlanesScreen() {
     }
   };
 
+  // ✅ NEW: Delete plan function
+  const eliminarPlan = async (planId: string, planNombre: string) => {
+    Alert.alert(
+      'Eliminar Plan',
+      `¿Estás seguro de que quieres eliminar el plan "${planNombre}"? Esta acción no se puede deshacer.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Check if plan has active subscriptions
+              const { data: activeSubs, error: checkError } = await supabase
+                .from('suscripciones_locales')
+                .select('id')
+                .eq('plan_id', planId)
+                .eq('estado', 'activa');
+
+              if (checkError) throw checkError;
+
+              if (activeSubs && activeSubs.length > 0) {
+                Alert.alert(
+                  'No se puede eliminar',
+                  `Este plan tiene ${activeSubs.length} suscripciones activas. Cancela las suscripciones primero.`
+                );
+                return;
+              }
+
+              const { error } = await supabase
+                .from('planes_suscripcion')
+                .delete()
+                .eq('id', planId);
+
+              if (error) throw error;
+
+              Alert.alert('Éxito', 'Plan eliminado correctamente');
+              cargarPlanes();
+            } catch (error) {
+              console.error('[GestionarPlanes] Error deleting plan:', error);
+              Alert.alert('Error', 'No se pudo eliminar el plan');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const abrirModalAsignar = async () => {
     setSelectedLocal(null);
     setSelectedPlan(null);
@@ -200,13 +262,15 @@ export default function GestionarPlanesScreen() {
     setEditNombre(plan.nombre);
     setEditDescripcion(plan.descripcion);
     setEditPrecio(plan.precio_mensual?.toString() || '0');
-    setEditEventos(plan.caracteristicas?.eventos_mes?.toString() || '0');
-    setEditPromos(plan.caracteristicas?.promos_destacadas?.toString() || '0');
-    setEditPerfilSocial(plan.caracteristicas?.perfil_social || false);
-    setEditPanelAnalisis(plan.caracteristicas?.panel_analisis || false);
-    setEditSoportePrioritario(plan.caracteristicas?.soporte_prioritario || false);
-    setEditVisibilidadExtra(plan.caracteristicas?.visibilidad_extra || false);
-    setEditVisibilidadMaxima(plan.caracteristicas?.visibilidad_maxima || false);
+    
+    const caract = plan.caracteristicas || {};
+    setEditEventos(caract.eventos_mes?.toString() || '0');
+    setEditPromos(caract.promos_destacadas?.toString() || '0');
+    setEditPerfilSocial(caract.perfil_social || false);
+    setEditPanelAnalisis(caract.panel_analisis || false);
+    setEditSoportePrioritario(caract.soporte_prioritario || false);
+    setEditVisibilidadExtra(caract.visibilidad_extra || false);
+    setEditVisibilidadMaxima(caract.visibilidad_maxima || false);
     setShowEditModal(true);
   };
 
@@ -305,7 +369,6 @@ export default function GestionarPlanesScreen() {
           .update({
             plan_id: selectedPlan,
             estado: 'activa',
-            fecha_inicio: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           })
           .eq('id', existingSub.id);
@@ -316,10 +379,9 @@ export default function GestionarPlanesScreen() {
           .from('suscripciones_locales')
           .insert({
             local_id: selectedLocal,
-            propietario_id: local.propietario_id,
+            usuario_id: local.propietario_id,
             plan_id: selectedPlan,
             estado: 'activa',
-            fecha_inicio: new Date().toISOString(),
           });
 
         if (insertError) throw insertError;
@@ -489,6 +551,12 @@ export default function GestionarPlanesScreen() {
                         {plan.activo ? 'Desactivar' : 'Activar'}
                       </Text>
                     </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.actionButton, { backgroundColor: '#DC2626', flex: 0, paddingHorizontal: 12 }]}
+                      onPress={() => eliminarPlan(plan.id, plan.nombre)}
+                    >
+                      <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={16} color={colors.headerText} />
+                    </TouchableOpacity>
                   </View>
                 </View>
               );
@@ -515,17 +583,17 @@ export default function GestionarPlanesScreen() {
                 <View key={sub.id} style={styles.suscripcionCard}>
                   <View style={styles.suscripcionHeader}>
                     <View style={styles.suscripcionInfo}>
-                      <Text style={styles.localName}>{sub.local?.nombre || 'Local desconocido'}</Text>
+                      <Text style={styles.localName}>{sub.locales?.nombre || 'Local desconocido'}</Text>
                       <Text style={styles.propietarioName}>
-                        {sub.propietario?.nombre || 'Propietario desconocido'}
+                        {sub.usuarios?.nombre || 'Propietario desconocido'}
                       </Text>
                       <Text style={{ fontSize: 12, color: colors.textSecondary }}>
-                        {sub.local?.provincia || ''}
+                        {sub.locales?.provincia || ''}
                       </Text>
                     </View>
                     <View style={styles.planBadge}>
                       <Text style={styles.planBadgeText}>
-                        {sub.plan?.nombre?.toUpperCase() || 'PLAN'}
+                        {sub.planes_suscripcion?.nombre?.toUpperCase() || 'PLAN'}
                       </Text>
                     </View>
                   </View>
@@ -542,7 +610,7 @@ export default function GestionarPlanesScreen() {
                     </View>
                     <View style={styles.statItem}>
                       <Text style={styles.statLabel}>Precio</Text>
-                      <Text style={styles.statValue}>{sub.plan?.precio_mensual || 0}€/mes</Text>
+                      <Text style={styles.statValue}>{sub.planes_suscripcion?.precio_mensual || 0}€/mes</Text>
                     </View>
                   </View>
                   {sub.estado === 'activa' && (
@@ -908,6 +976,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: colors.primary,
     alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 6,
   },
   actionButtonText: {
     fontSize: 14,
