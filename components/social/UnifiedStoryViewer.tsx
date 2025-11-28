@@ -314,6 +314,7 @@ function UnifiedStoryViewer({
     }
   }, [visible, currentStoryIndex, stories]);
 
+  // ✅ FIXED: Mark story as viewed immediately when displayed
   const markAsViewed = useCallback(async (storyId: string) => {
     if (!user || !storyId) return;
     
@@ -340,16 +341,22 @@ function UnifiedStoryViewer({
     }
   }, [user, stories, activeLocalProfileId, markStoryAsViewed]);
 
-  // ✅ FIXED: Proper cleanup function
+  // ✅ FIXED: Proper cleanup function that resets to background properly
   const cleanupAndClose = useCallback(() => {
     console.log('[UnifiedStoryViewer] 🧹 Cleaning up before close');
+    
+    // Reset all state
     setCurrentStoryIndex(initialStoryIndex);
     setImageLoaded(false);
     setIsPaused(false);
     isPausedRef.current = false;
     setStoryMessage('');
     setShowStoryStats(false);
-    onClose();
+    
+    // Small delay to ensure state is reset before closing
+    setTimeout(() => {
+      onClose();
+    }, 50);
   }, [initialStoryIndex, onClose]);
 
   const handleNextStory = useCallback(() => {
@@ -764,12 +771,13 @@ function UnifiedStoryViewer({
     [handleTouchStart, handleTouchMove, handleTouchEnd]
   );
 
-  // Mark story as viewed when it appears
+  // ✅ FIXED: Mark story as viewed immediately when it appears
   useEffect(() => {
-    if (visible && currentStory && user) {
+    if (visible && currentStory && user && imageLoaded) {
+      // Mark as viewed as soon as the story is displayed
       markAsViewed(currentStory.id);
     }
-  }, [visible, currentStory, user, markAsViewed]);
+  }, [visible, currentStory, user, imageLoaded, markAsViewed]);
 
   // Reset to initial index when modal opens
   useEffect(() => {
