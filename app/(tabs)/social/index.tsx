@@ -402,6 +402,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     flexGrow: 1,
+    paddingBottom: 120, // ✅ INCREASED from default to prevent last post being hidden by bottom menu
   },
   headerContainer: {
     backgroundColor: colors.background,

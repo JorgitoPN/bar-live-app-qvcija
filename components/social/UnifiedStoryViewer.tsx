@@ -181,18 +181,44 @@ function UnifiedStoryViewer({
     }
 
     try {
-      const { error } = await supabase
-        .from('historia_views')
-        .upsert({
-          historia_id: storyId,
-          usuario_id: user.id,
-          viewed_at: new Date().toISOString(),
-        }, {
-          onConflict: 'historia_id,usuario_id',
-        });
+      // ✅ CRITICAL FIX: Use proper upsert with correct conflict resolution
+      // The unique constraint depends on whether local_id is NULL or not
+      const viewData: any = {
+        historia_id: storyId,
+        usuario_id: user.id,
+        viewed_at: new Date().toISOString(),
+        tipo: 'usuario',
+        local_id: null,
+      };
 
-      if (error) {
-        console.error('[UnifiedStoryViewer] Error marking story as viewed:', error);
+      // First, try to find existing view
+      const { data: existingView } = await supabase
+        .from('historia_views')
+        .select('id')
+        .eq('historia_id', storyId)
+        .eq('usuario_id', user.id)
+        .is('local_id', null)
+        .maybeSingle();
+
+      if (existingView) {
+        // Update existing view
+        const { error } = await supabase
+          .from('historia_views')
+          .update({ viewed_at: new Date().toISOString() })
+          .eq('id', existingView.id);
+
+        if (error) {
+          console.error('[UnifiedStoryViewer] Error updating story view:', error);
+        }
+      } else {
+        // Insert new view
+        const { error } = await supabase
+          .from('historia_views')
+          .insert(viewData);
+
+        if (error) {
+          console.error('[UnifiedStoryViewer] Error inserting story view:', error);
+        }
       }
     } catch (error) {
       console.error('[UnifiedStoryViewer] Error:', error);
@@ -589,7 +615,7 @@ function UnifiedStoryViewer({
     <Modal
       visible={visible}
       transparent={false}
-      animationType="fade"
+      animationType="none"
       onRequestClose={onClose}
       statusBarTranslucent
       hardwareAccelerated

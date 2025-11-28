@@ -33,13 +33,14 @@ import FloatingTabBar, { TabBarItem } from '@/components/FloatingTabBar';
 import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
 import OfertaTrabajoCard from '@/components/empleo/OfertaTrabajoCard';
 import StoryStatsModal from '@/components/social/StoryStatsModal';
-import StoryViewer from '@/components/social/StoryViewer';
+import UnifiedStoryViewer from '@/components/social/UnifiedStoryViewer';
 import { PROVINCIAS, getProvinceVariations, filterByProvincia } from '@/utils/provinceNormalizer';
 import EventBanner from '@/components/eventos/EventBanner';
 import { useLocalEvent } from '@/hooks/useLocalEvent';
+import { useStoryState } from '@/contexts/StoryStateContext';
 
-// ✅ VERSION MARKER - Force cache bust: v3.9.0 - Added + icon to story avatar for local profiles
-const SCREEN_VERSION = '3.9.0';
+// ✅ VERSION MARKER - Force cache bust: v4.0.0 - Fixed story avatar functionality
+const SCREEN_VERSION = '4.0.0';
 
 const { width, height } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -61,6 +62,7 @@ interface LocalStory {
   autor_id: string;
   tipo: string;
   imagen: string;
+  imagen_url?: string;
   local_id: string;
   created_at: string;
   expires_at: string;
@@ -68,6 +70,11 @@ interface LocalStory {
   views_count?: number;
   likes_count?: number;
   liked_by_user?: boolean;
+  local?: {
+    id: string;
+    nombre: string;
+    imagen_url?: string;
+  };
 }
 
 interface LocalEvent {
@@ -114,6 +121,7 @@ export default function LocalPerfilScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { user } = useAuth();
+  const { hasUnviewedStories } = useStoryState();
   
   const { 
     currentMode,
@@ -137,15 +145,13 @@ export default function LocalPerfilScreen() {
   const [ofertasTrabajo, setOfertasTrabajo] = useState<OfertaTrabajo[]>([]);
   const [loadingEmpleo, setLoadingEmpleo] = useState(false);
 
-  // ✅ FIXED: Use centralized StoryViewer component
+  // ✅ FIXED: Use UnifiedStoryViewer component
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [localStories, setLocalStories] = useState<LocalStory[]>([]);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
 
   const [showCreateOptions, setShowCreateOptions] = useState(false);
   const [showProfileSwitcher, setShowProfileSwitcher] = useState(false);
-
-
 
   // ✅ Followers/Following modals state
   const [showSeguidoresModal, setShowSeguidoresModal] = useState(false);
@@ -448,11 +454,23 @@ export default function LocalPerfilScreen() {
           views_count: viewsCounts[story.id] || 0,
           likes_count: likesCounts[story.id] || 0,
           liked_by_user: likedStoryIds.has(story.id),
+          local: {
+            id: localData.id,
+            nombre: localData.nombre,
+            imagen_url: localData.imagen_url,
+          },
         }));
 
         setLocalStories(storiesWithStatus);
       } else if (storiesResult.data) {
-        setLocalStories(storiesResult.data);
+        setLocalStories(storiesResult.data.map(story => ({
+          ...story,
+          local: {
+            id: localData.id,
+            nombre: localData.nombre,
+            imagen_url: localData.imagen_url,
+          },
+        })));
       }
 
       setIsFavorito(!!favResult.data);
@@ -761,22 +779,26 @@ export default function LocalPerfilScreen() {
     }
   };
 
-
-
   // ✅ FIXED: Handle avatar press - view stories or create new story
-  const handleAvatarPress = useCallback(async () => {
+  const handleAvatarPress = useCallback(() => {
+    if (!user) {
+      Alert.alert('Error', 'Debes iniciar sesión para ver historias');
+      return;
+    }
+
     if (localStories.length > 0) {
       // View existing stories
-      console.log('[LocalPerfil] Opening story viewer with', localStories.length, 'stories');
+      console.log('[LocalPerfil] 📖 Opening story viewer with', localStories.length, 'stories');
       setCurrentStoryIndex(0);
       setShowStoryViewer(true);
     } else if (isOwner) {
       // Create new story
+      console.log('[LocalPerfil] ➕ No stories, opening create story');
       handleCrearHistoria();
+    } else {
+      console.log('[LocalPerfil] ⚠️ No stories available and not owner');
     }
-  }, [localStories, isOwner, handleCrearHistoria]);
-
-
+  }, [user, localStories, isOwner, handleCrearHistoria]);
 
   const getTabsForRole = (): TabBarItem[] => {
     const userRole = user?.rol_app || 'cliente';
@@ -909,8 +931,13 @@ export default function LocalPerfilScreen() {
 
   const estado = getEstadoLocal(local);
   const hasActiveStory = localStories.length > 0;
-  const hasUnviewedStories = localStories.some(s => !s.visto_por_usuario);
-  const currentStory = localStories[currentStoryIndex];
+  const showStoryOutline = hasActiveStory && hasUnviewedStories(localId, localStories);
+
+  console.log('[LocalPerfil] 👁️ Story outline status:', {
+    hasActiveStory,
+    showStoryOutline,
+    storiesCount: localStories.length,
+  });
 
   const progressWidth = progressAnim.interpolate({
     inputRange: [0, 1],
@@ -936,7 +963,7 @@ export default function LocalPerfilScreen() {
       >
         <View style={styles.headerContent}>
           <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
-            <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+            <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{local.nombre}</Text>
           <View style={styles.headerActions}>
@@ -946,7 +973,7 @@ export default function LocalPerfilScreen() {
                 onPress={() => setShowProfileSwitcher(true)}
                 activeOpacity={0.8}
               >
-                <IconSymbol name="arrow.triangle.2.circlepath" size={24} color={colors.headerText} />
+                <IconSymbol ios_icon_name="arrow.triangle.2.circlepath" android_material_icon_name="sync" size={24} color={colors.headerText} />
               </TouchableOpacity>
             )}
           </View>
@@ -997,9 +1024,10 @@ export default function LocalPerfilScreen() {
                 onPress={handleAvatarPress}
                 activeOpacity={0.8}
               >
-                {hasActiveStory && hasUnviewedStories && (
+                {/* ✅ INSTAGRAM-STYLE: Show outline for unviewed stories */}
+                {showStoryOutline && (
                   <LinearGradient
-                    colors={['#FFD700', '#00FF00']}
+                    colors={[colors.primary, colors.secondary]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.storyRing}
@@ -1009,7 +1037,7 @@ export default function LocalPerfilScreen() {
                   <Image source={{ uri: local.imagen_url }} style={styles.avatar} />
                 ) : (
                   <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                    <IconSymbol name="building.2" size={40} color={colors.headerText} />
+                    <IconSymbol ios_icon_name="building.2" android_material_icon_name="store" size={40} color={colors.headerText} />
                   </View>
                 )}
                 {/* ✅ NEW: Always show '+' icon for owners to add stories */}
@@ -1025,7 +1053,7 @@ export default function LocalPerfilScreen() {
                       end={{ x: 1, y: 0 }}
                       style={styles.addStoryGradient}
                     >
-                      <IconSymbol name="plus" size={14} color={colors.white} />
+                      <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={14} color={colors.white} />
                     </LinearGradient>
                   </TouchableOpacity>
                 )}
@@ -1047,7 +1075,7 @@ export default function LocalPerfilScreen() {
 
             {local.direccion && (
               <View style={styles.addressContainer}>
-                <IconSymbol name="mappin" size={16} color={colors.headerText} />
+                <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={16} color={colors.headerText} />
                 <Text style={styles.addressText}>{local.direccion}</Text>
               </View>
             )}
@@ -1092,7 +1120,7 @@ export default function LocalPerfilScreen() {
                     activeOpacity={0.7}
                   >
                     <View style={styles.ownerButtonIconContainer}>
-                      <IconSymbol name="pencil" size={20} color={colors.primary} />
+                      <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={20} color={colors.primary} />
                     </View>
                     <Text style={styles.ownerRowButtonText}>Editar</Text>
                   </TouchableOpacity>
@@ -1103,7 +1131,7 @@ export default function LocalPerfilScreen() {
                     activeOpacity={0.7}
                   >
                     <View style={styles.ownerButtonIconContainer}>
-                      <IconSymbol name="calendar" size={20} color={colors.primary} />
+                      <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={20} color={colors.primary} />
                     </View>
                     <Text style={styles.ownerRowButtonText}>Evento</Text>
                   </TouchableOpacity>
@@ -1114,7 +1142,7 @@ export default function LocalPerfilScreen() {
                     activeOpacity={0.7}
                   >
                     <View style={styles.ownerButtonIconContainer}>
-                      <IconSymbol name="chart.bar.fill" size={20} color={colors.primary} />
+                      <IconSymbol ios_icon_name="chart.bar.fill" android_material_icon_name="bar_chart" size={20} color={colors.primary} />
                     </View>
                     <Text style={styles.ownerRowButtonText}>Análisis</Text>
                   </TouchableOpacity>
@@ -1127,7 +1155,8 @@ export default function LocalPerfilScreen() {
                     activeOpacity={0.7}
                   >
                     <IconSymbol 
-                      name={isFavorito ? 'heart.fill' : 'heart'} 
+                      ios_icon_name={isFavorito ? 'heart.fill' : 'heart'} 
+                      android_material_icon_name={isFavorito ? 'favorite' : 'favorite_border'}
                       size={18} 
                       color={isFavorito ? colors.headerText : colors.primary} 
                     />
@@ -1142,7 +1171,7 @@ export default function LocalPerfilScreen() {
                       onPress={handleLlamar}
                       activeOpacity={0.7}
                     >
-                      <IconSymbol name="phone.fill" size={18} color={colors.primary} />
+                      <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="phone" size={18} color={colors.primary} />
                       <Text style={styles.visitorRowButtonText}>Llamar</Text>
                     </TouchableOpacity>
                   )}
@@ -1152,7 +1181,7 @@ export default function LocalPerfilScreen() {
                     onPress={handleEnviarMensaje}
                     activeOpacity={0.7}
                   >
-                    <IconSymbol name="message.fill" size={18} color={colors.primary} />
+                    <IconSymbol ios_icon_name="message.fill" android_material_icon_name="message" size={18} color={colors.primary} />
                     <Text style={styles.visitorRowButtonText}>Mensaje</Text>
                   </TouchableOpacity>
                 </View>
@@ -1167,7 +1196,8 @@ export default function LocalPerfilScreen() {
             onPress={() => setActiveTab('posts')}
           >
             <IconSymbol 
-              name="square.grid.3x3" 
+              ios_icon_name="square.grid.3x3" 
+              android_material_icon_name="grid_on"
               size={24} 
               color={activeTab === 'posts' ? colors.primary : colors.textSecondary} 
             />
@@ -1177,7 +1207,8 @@ export default function LocalPerfilScreen() {
             onPress={() => setActiveTab('eventos')}
           >
             <IconSymbol 
-              name="calendar" 
+              ios_icon_name="calendar" 
+              android_material_icon_name="event"
               size={24} 
               color={activeTab === 'eventos' ? colors.primary : colors.textSecondary} 
             />
@@ -1187,7 +1218,8 @@ export default function LocalPerfilScreen() {
             onPress={() => setActiveTab('empleo')}
           >
             <IconSymbol 
-              name="briefcase.fill" 
+              ios_icon_name="briefcase.fill" 
+              android_material_icon_name="work"
               size={24} 
               color={activeTab === 'empleo' ? colors.primary : colors.textSecondary} 
             />
@@ -1197,7 +1229,8 @@ export default function LocalPerfilScreen() {
             onPress={() => setActiveTab('info')}
           >
             <IconSymbol 
-              name="info.circle" 
+              ios_icon_name="info.circle" 
+              android_material_icon_name="info"
               size={24} 
               color={activeTab === 'info' ? colors.primary : colors.textSecondary} 
             />
@@ -1219,14 +1252,14 @@ export default function LocalPerfilScreen() {
                       <Image source={{ uri: post.imagen }} style={styles.gridImage} />
                     ) : (
                       <View style={[styles.gridImage, styles.gridImagePlaceholder]}>
-                        <IconSymbol name="photo" size={32} color={colors.textSecondary} />
+                        <IconSymbol ios_icon_name="photo" android_material_icon_name="photo" size={32} color={colors.textSecondary} />
                       </View>
                     )}
                   </TouchableOpacity>
                 ))
               ) : (
                 <View style={styles.emptyState}>
-                  <IconSymbol name="photo.on.rectangle" size={48} color={colors.textSecondary} />
+                  <IconSymbol ios_icon_name="photo.on.rectangle" android_material_icon_name="photo_library" size={48} color={colors.textSecondary} />
                   <Text style={styles.emptyText}>
                     {isOwner ? 'Crea tu primera publicación' : 'No hay publicaciones'}
                   </Text>
@@ -1256,14 +1289,14 @@ export default function LocalPerfilScreen() {
                     <View style={styles.eventContent}>
                       <Text style={styles.eventTitle}>{event.titulo}</Text>
                       <View style={styles.eventMeta}>
-                        <IconSymbol name="calendar" size={14} color={colors.textSecondary} />
+                        <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={14} color={colors.textSecondary} />
                         <Text style={styles.eventMetaText}>
                           {new Date(event.fecha).toLocaleDateString('es-ES', { 
                             day: 'numeric', 
                             month: 'short' 
                           })}
                         </Text>
-                        <IconSymbol name="clock" size={14} color={colors.textSecondary} />
+                        <IconSymbol ios_icon_name="clock" android_material_icon_name="schedule" size={14} color={colors.textSecondary} />
                         <Text style={styles.eventMetaText}>{event.hora}</Text>
                       </View>
                       {event.precio !== null && event.precio !== undefined && (
@@ -1276,7 +1309,7 @@ export default function LocalPerfilScreen() {
                 ))
               ) : (
                 <View style={styles.emptyState}>
-                  <IconSymbol name="calendar" size={48} color={colors.textSecondary} />
+                  <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={48} color={colors.textSecondary} />
                   <Text style={styles.emptyText}>
                     {isOwner ? 'Crea tu primer evento' : 'No hay eventos próximos'}
                   </Text>
@@ -1333,7 +1366,7 @@ export default function LocalPerfilScreen() {
                     ))
                   ) : (
                     <View style={styles.emptyState}>
-                      <IconSymbol name="briefcase" size={48} color={colors.textSecondary} />
+                      <IconSymbol ios_icon_name="briefcase" android_material_icon_name="work" size={48} color={colors.textSecondary} />
                       <Text style={styles.emptyText}>
                         {isOwner ? 'Publica tu primera oferta de empleo' : 'No hay ofertas disponibles'}
                       </Text>
@@ -1362,19 +1395,19 @@ export default function LocalPerfilScreen() {
                 <Text style={styles.infoSectionTitle}>Contacto</Text>
                 {local.telefono && (
                   <TouchableOpacity style={styles.infoRow} onPress={handleLlamar}>
-                    <IconSymbol name="phone.fill" size={20} color={colors.primary} />
+                    <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="phone" size={20} color={colors.primary} />
                     <Text style={styles.infoRowText}>{local.telefono}</Text>
                   </TouchableOpacity>
                 )}
                 {local.email && (
                   <View style={styles.infoRow}>
-                    <IconSymbol name="envelope.fill" size={20} color={colors.primary} />
+                    <IconSymbol ios_icon_name="envelope.fill" android_material_icon_name="email" size={20} color={colors.primary} />
                     <Text style={styles.infoRowText}>{local.email}</Text>
                   </View>
                 )}
                 {local.website && (
                   <TouchableOpacity style={styles.infoRow} onPress={handleWeb}>
-                    <IconSymbol name="globe" size={20} color={colors.primary} />
+                    <IconSymbol ios_icon_name="globe" android_material_icon_name="language" size={20} color={colors.primary} />
                     <Text style={styles.infoRowText}>{local.website}</Text>
                   </TouchableOpacity>
                 )}
@@ -1414,7 +1447,7 @@ export default function LocalPerfilScreen() {
               <View style={styles.infoSection}>
                 <Text style={styles.infoSectionTitle}>Ubicación</Text>
                 <TouchableOpacity style={styles.directionsButton} onPress={handleComoLlegar}>
-                  <IconSymbol name="map.fill" size={20} color={colors.white} />
+                  <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={20} color={colors.white} />
                   <Text style={styles.directionsButtonText}>Cómo llegar</Text>
                 </TouchableOpacity>
               </View>
@@ -1422,7 +1455,7 @@ export default function LocalPerfilScreen() {
               <View style={styles.infoSection}>
                 <Text style={styles.infoSectionTitle}>Sala Virtual</Text>
                 <TouchableOpacity style={styles.virtualRoomButton} onPress={handleSalaVirtual}>
-                  <IconSymbol name="person.3.fill" size={20} color={colors.white} />
+                  <IconSymbol ios_icon_name="person.3.fill" android_material_icon_name="groups" size={20} color={colors.white} />
                   <Text style={styles.virtualRoomButtonText}>Entrar a la Sala Virtual</Text>
                 </TouchableOpacity>
               </View>
@@ -1432,7 +1465,7 @@ export default function LocalPerfilScreen() {
                   style={styles.moreInfoButton} 
                   onPress={() => router.push(`/detalle/local?id=${localId}`)}
                 >
-                  <IconSymbol name="info.circle.fill" size={20} color={colors.primary} />
+                  <IconSymbol ios_icon_name="info.circle.fill" android_material_icon_name="info" size={20} color={colors.primary} />
                   <Text style={styles.moreInfoButtonText}>Ver información completa</Text>
                 </TouchableOpacity>
               </View>
@@ -1441,19 +1474,10 @@ export default function LocalPerfilScreen() {
         </View>
       </ScrollView>
 
-      {/* ✅ FIXED: Use centralized StoryViewer component */}
-      <StoryViewer
+      {/* ✅ FIXED: Use UnifiedStoryViewer component */}
+      <UnifiedStoryViewer
         visible={showStoryViewer}
-        stories={localStories.map(story => ({
-          ...story,
-          autorNombre: local.nombre,
-          autorAvatar: local.imagen_url,
-          autor: {
-            nombre: local.nombre,
-            avatar: local.imagen_url,
-            username: local.nombre,
-          },
-        }))}
+        stories={localStories}
         initialIndex={currentStoryIndex}
         onClose={() => {
           console.log('[LocalPerfil] Closing story viewer');
@@ -1485,7 +1509,7 @@ export default function LocalPerfilScreen() {
             <View style={styles.createOptionsHeader}>
               <Text style={styles.createOptionsTitle}>Publicar</Text>
               <TouchableOpacity onPress={() => setShowCreateOptions(false)} activeOpacity={0.8}>
-                <IconSymbol name="xmark" size={24} color={colors.text} />
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
             <View style={styles.createOptionsButtons}>
@@ -1498,7 +1522,7 @@ export default function LocalPerfilScreen() {
                 activeOpacity={0.8}
               >
                 <View style={styles.createOptionIcon}>
-                  <IconSymbol name="camera.fill" size={24} color={colors.headerText} />
+                  <IconSymbol ios_icon_name="camera.fill" android_material_icon_name="camera_alt" size={24} color={colors.headerText} />
                 </View>
                 <View style={styles.createOptionInfo}>
                   <Text style={styles.createOptionTitle}>Historia</Text>
@@ -1516,7 +1540,7 @@ export default function LocalPerfilScreen() {
                 activeOpacity={0.8}
               >
                 <View style={styles.createOptionIcon}>
-                  <IconSymbol name="photo.fill" size={24} color={colors.headerText} />
+                  <IconSymbol ios_icon_name="photo.fill" android_material_icon_name="photo" size={24} color={colors.headerText} />
                 </View>
                 <View style={styles.createOptionInfo}>
                   <Text style={styles.createOptionTitle}>Publicación</Text>
@@ -1543,7 +1567,7 @@ export default function LocalPerfilScreen() {
             style={styles.followModalHeader}
           >
             <TouchableOpacity onPress={() => setShowSeguidoresModal(false)} activeOpacity={0.7}>
-              <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+              <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
             </TouchableOpacity>
             <Text style={styles.followModalTitle}>Seguidores</Text>
             <View style={{ width: 24 }} />
@@ -1587,7 +1611,7 @@ export default function LocalPerfilScreen() {
               )}
               ListEmptyComponent={
                 <View style={styles.emptyState}>
-                  <IconSymbol name="person.2" size={64} color={colors.textSecondary} />
+                  <IconSymbol ios_icon_name="person.2" android_material_icon_name="people" size={64} color={colors.textSecondary} />
                   <Text style={styles.emptyText}>No hay seguidores aún</Text>
                 </View>
               }
@@ -1609,7 +1633,7 @@ export default function LocalPerfilScreen() {
             style={styles.followModalHeader}
           >
             <TouchableOpacity onPress={() => setShowSeguidosModal(false)} activeOpacity={0.7}>
-              <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+              <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
             </TouchableOpacity>
             <Text style={styles.followModalTitle}>Siguiendo</Text>
             <View style={{ width: 24 }} />
@@ -1653,7 +1677,7 @@ export default function LocalPerfilScreen() {
               )}
               ListEmptyComponent={
                 <View style={styles.emptyState}>
-                  <IconSymbol name="person.2" size={64} color={colors.textSecondary} />
+                  <IconSymbol ios_icon_name="person.2" android_material_icon_name="people" size={64} color={colors.textSecondary} />
                   <Text style={styles.emptyText}>No sigue a nadie aún</Text>
                 </View>
               }

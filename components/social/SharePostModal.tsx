@@ -32,6 +32,7 @@ interface Local {
   id: string;
   nombre: string;
   imagen_url?: string;
+  plan?: string;
 }
 
 interface SharePostModalProps {
@@ -48,8 +49,9 @@ export default function SharePostModal({
   onClose,
 }: SharePostModalProps) {
   const { user } = useAuth();
-  const [users, setUsers] = useState<User[]>([]);
-  const [locals, setLocals] = useState<Local[]>([]);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [allLocals, setAllLocals] = useState<Local[]>([]);
+  const [filteredResults, setFilteredResults] = useState<(User | Local)[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [sending, setSending] = useState(false);
@@ -60,6 +62,30 @@ export default function SharePostModal({
       loadRecipients();
     }
   }, [visible]);
+
+  // ✅ FIXED: Predictive search - filter as user types
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      // Show all users and locals when no search query
+      setFilteredResults([...allUsers, ...allLocals]);
+      return;
+    }
+
+    const query = searchQuery.toLowerCase().trim();
+    
+    // Filter users by name or username (without @ prefix)
+    const filteredUsers = allUsers.filter(u =>
+      u.nombre.toLowerCase().includes(query) ||
+      u.username?.toLowerCase().includes(query)
+    );
+
+    // Filter locals by name
+    const filteredLocals = allLocals.filter(l =>
+      l.nombre.toLowerCase().includes(query)
+    );
+
+    setFilteredResults([...filteredUsers, ...filteredLocals]);
+  }, [searchQuery, allUsers, allLocals]);
 
   const loadRecipients = async () => {
     if (!user) return;
@@ -83,21 +109,43 @@ export default function SharePostModal({
       const followingUsers = followingResult.data?.map(f => f.seguido).filter(Boolean) || [];
       
       // Combine and deduplicate
-      const allUsers = [...followersUsers, ...followingUsers];
+      const allUsersData = [...followersUsers, ...followingUsers];
       const uniqueUsers = Array.from(
-        new Map(allUsers.map(u => [u.id, u])).values()
+        new Map(allUsersData.map(u => [u.id, u])).values()
       );
 
-      setUsers(uniqueUsers as User[]);
+      setAllUsers(uniqueUsers as User[]);
 
-      // Load favorite locals
-      const { data: favoritesData } = await supabase
-        .from('favoritos')
-        .select('local_id, local:locales(id, nombre, imagen_url)')
-        .eq('usuario_id', user.id);
+      // ✅ FIXED: Load locals with active standard or premium plans
+      const { data: localsWithPlans } = await supabase
+        .from('suscripciones_locales')
+        .select(`
+          local_id,
+          estado,
+          plan:planes_suscripcion(nombre),
+          local:locales(id, nombre, imagen_url)
+        `)
+        .eq('estado', 'activa')
+        .in('plan.nombre', ['standard', 'premium']);
 
-      const favoriteLocals = favoritesData?.map(f => f.local).filter(Boolean) || [];
-      setLocals(favoriteLocals as Local[]);
+      const activeLocals = localsWithPlans
+        ?.filter(sl => sl.local)
+        .map(sl => ({
+          id: sl.local.id,
+          nombre: sl.local.nombre,
+          imagen_url: sl.local.imagen_url,
+          plan: sl.plan?.nombre,
+        })) || [];
+
+      setAllLocals(activeLocals as Local[]);
+      
+      // Initially show all results
+      setFilteredResults([...uniqueUsers, ...activeLocals] as (User | Local)[]);
+      
+      console.log('[SharePostModal] ✅ Loaded recipients:', {
+        users: uniqueUsers.length,
+        locals: activeLocals.length,
+      });
     } catch (error) {
       console.error('[SharePostModal] Error loading recipients:', error);
       Alert.alert('Error', 'No se pudieron cargar los destinatarios');
@@ -118,7 +166,7 @@ export default function SharePostModal({
 
       for (const recipientId of selectedRecipients) {
         // Determine if recipient is a user or local
-        const isLocal = locals.some(l => l.id === recipientId);
+        const isLocal = allLocals.some(l => l.id === recipientId);
         
         // Create or get chat
         let chatId: string;
@@ -228,16 +276,8 @@ export default function SharePostModal({
     });
   };
 
-  const filteredUsers = users.filter(u =>
-    u.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    u.username?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const filteredLocals = locals.filter(l =>
-    l.nombre.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const renderUser = ({ item }: { item: User }) => {
+  const renderItem = ({ item }: { item: User | Local }) => {
+    const isUser = 'username' in item;
     const isSelected = selectedRecipients.has(item.id);
 
     return (
@@ -247,47 +287,18 @@ export default function SharePostModal({
         activeOpacity={0.7}
       >
         <FoodPlateAvatar
-          imageUrl={item.avatar}
+          imageUrl={isUser ? (item as User).avatar : (item as Local).imagen_url}
           size={48}
           nombre={item.nombre}
         />
         <View style={styles.recipientInfo}>
           <Text style={styles.recipientName}>{item.nombre}</Text>
-          {item.username && (
-            <Text style={styles.recipientUsername}>@{item.username}</Text>
+          {isUser && (item as User).username && (
+            <Text style={styles.recipientUsername}>@{(item as User).username}</Text>
           )}
-        </View>
-        <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
-          {isSelected && (
-            <IconSymbol
-              ios_icon_name="checkmark"
-              android_material_icon_name="check"
-              size={16}
-              color="#fff"
-            />
+          {!isUser && (
+            <Text style={styles.recipientUsername}>Local</Text>
           )}
-        </View>
-      </TouchableOpacity>
-    );
-  };
-
-  const renderLocal = ({ item }: { item: Local }) => {
-    const isSelected = selectedRecipients.has(item.id);
-
-    return (
-      <TouchableOpacity
-        style={styles.recipientItem}
-        onPress={() => toggleRecipient(item.id)}
-        activeOpacity={0.7}
-      >
-        <FoodPlateAvatar
-          imageUrl={item.imagen_url}
-          size={48}
-          nombre={item.nombre}
-        />
-        <View style={styles.recipientInfo}>
-          <Text style={styles.recipientName}>{item.nombre}</Text>
-          <Text style={styles.recipientUsername}>Local</Text>
         </View>
         <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
           {isSelected && (
@@ -356,7 +367,19 @@ export default function SharePostModal({
             placeholderTextColor={colors.textSecondary}
             value={searchQuery}
             onChangeText={setSearchQuery}
+            autoCapitalize="none"
+            autoCorrect={false}
           />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')} activeOpacity={0.7}>
+              <IconSymbol
+                ios_icon_name="xmark.circle.fill"
+                android_material_icon_name="cancel"
+                size={20}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Recipients List */}
@@ -366,14 +389,8 @@ export default function SharePostModal({
           </View>
         ) : (
           <FlatList
-            data={[...filteredUsers, ...filteredLocals]}
-            renderItem={({ item }) => {
-              if ('username' in item) {
-                return renderUser({ item: item as User });
-              } else {
-                return renderLocal({ item: item as Local });
-              }
-            }}
+            data={filteredResults}
+            renderItem={renderItem}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
@@ -385,7 +402,11 @@ export default function SharePostModal({
                   size={64}
                   color={colors.textSecondary}
                 />
-                <Text style={styles.emptyText}>No se encontraron destinatarios</Text>
+                <Text style={styles.emptyText}>
+                  {searchQuery.trim() 
+                    ? 'No se encontraron resultados' 
+                    : 'No hay destinatarios disponibles'}
+                </Text>
               </View>
             }
           />
@@ -504,5 +525,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.textSecondary,
     marginTop: 16,
+    textAlign: 'center',
   },
 });

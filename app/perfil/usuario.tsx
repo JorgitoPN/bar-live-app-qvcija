@@ -501,6 +501,7 @@ export default function UsuarioPerfilScreen() {
     router.push(`/perfil/seguidos?userId=${userId}`);
   };
 
+  // ✅ FIXED: Handle avatar press to open story viewer
   const handleAvatarPress = useCallback(() => {
     if (!currentUser) {
       Alert.alert('Error', 'Debes iniciar sesión para ver historias');
@@ -508,9 +509,11 @@ export default function UsuarioPerfilScreen() {
     }
 
     if (userStories.length > 0) {
-      console.log('[UsuarioPerfil] Opening story viewer with', userStories.length, 'stories');
+      console.log('[UsuarioPerfil] 📖 Opening story viewer with', userStories.length, 'stories');
       setCurrentStoryIndex(0);
       setShowStoryViewer(true);
+    } else {
+      console.log('[UsuarioPerfil] ⚠️ No stories available to view');
     }
   }, [currentUser, userStories]);
 
@@ -533,6 +536,12 @@ export default function UsuarioPerfilScreen() {
 
   const hasActiveStory = userStories.length > 0;
   const showStoryOutline = hasActiveStory && hasUnviewedStories(userId, userStories);
+
+  console.log('[UsuarioPerfil] 👁️ Story outline status:', {
+    hasActiveStory,
+    showStoryOutline,
+    storiesCount: userStories.length,
+  });
 
   return (
     <View style={styles.container}>
@@ -579,7 +588,7 @@ export default function UsuarioPerfilScreen() {
               {/* ✅ INSTAGRAM-STYLE: Show outline for unviewed stories */}
               {showStoryOutline && (
                 <LinearGradient
-                  colors={['#10B981', '#3B82F6']}
+                  colors={[colors.primary, colors.secondary]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.storyRing}
@@ -686,7 +695,7 @@ export default function UsuarioPerfilScreen() {
       <UnifiedStoryViewer
         visible={showStoryViewer}
         stories={userStories}
-        initialStoryIndex={currentStoryIndex}
+        initialIndex={currentStoryIndex}
         onClose={() => {
           console.log('[UsuarioPerfil] Closing story viewer');
           setShowStoryViewer(false);
