@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Linking, Platform, Alert, Dimensions, Share as RNShare } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Linking, Platform, Alert, Dimensions, Share as RNShare, Modal, TextInput } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../integrations/supabase/client';
@@ -622,12 +622,72 @@ export default function DetalleLocalScreen() {
     }
   };
 
+  const [showAddReviewModal, setShowAddReviewModal] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewText, setReviewText] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
+
   const handleAddReview = () => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para añadir una reseña');
       return;
     }
-    Alert.alert('Añadir Reseña', 'Funcionalidad de añadir reseña próximamente');
+    setShowAddReviewModal(true);
+  };
+
+  const handleSubmitReview = async () => {
+    if (!user || !params.id) {
+      Alert.alert('Error', 'Debes iniciar sesión para añadir una reseña');
+      return;
+    }
+
+    if (reviewRating < 1 || reviewRating > 5) {
+      Alert.alert('Error', 'Por favor selecciona una calificación');
+      return;
+    }
+
+    setSubmittingReview(true);
+    try {
+      console.log('[DetalleLocal] Submitting review:', {
+        local_id: params.id,
+        usuario_id: user.id,
+        rating: reviewRating,
+        texto: reviewText
+      });
+
+      const { error } = await supabase
+        .from('reviews_barlive')
+        .insert({
+          local_id: params.id as string,
+          usuario_id: user.id,
+          rating: reviewRating,
+          texto: reviewText.trim() || null,
+        });
+
+      if (error) {
+        console.error('[DetalleLocal] Error submitting review:', error);
+        Alert.alert('Error', 'No se pudo enviar la reseña. Por favor intenta de nuevo.');
+        setSubmittingReview(false);
+        return;
+      }
+
+      console.log('[DetalleLocal] ✅ Review submitted successfully');
+      Alert.alert('¡Gracias!', 'Tu reseña ha sido publicada correctamente');
+      
+      // Reset form
+      setReviewRating(5);
+      setReviewText('');
+      setShowAddReviewModal(false);
+      
+      // Reload reviews
+      cargarReviewsBarlive();
+      
+      setSubmittingReview(false);
+    } catch (error) {
+      console.error('[DetalleLocal] Error submitting review:', error);
+      Alert.alert('Error', 'No se pudo enviar la reseña. Por favor intenta de nuevo.');
+      setSubmittingReview(false);
+    }
   };
 
   const handleOpenGallery = (index: number) => {
@@ -1320,6 +1380,69 @@ export default function DetalleLocalScreen() {
         initialIndex={galleryInitialIndex}
         onClose={() => setGalleryVisible(false)}
       />
+
+      {/* Add Review Modal */}
+      <Modal
+        visible={showAddReviewModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowAddReviewModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Añadir Reseña</Text>
+              <TouchableOpacity onPress={() => setShowAddReviewModal(false)}>
+                <Ionicons name="close" size={28} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalBody}>
+              <Text style={styles.modalLabel}>Calificación</Text>
+              <View style={styles.starsContainer}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <TouchableOpacity
+                    key={star}
+                    onPress={() => setReviewRating(star)}
+                    style={styles.starButton}
+                  >
+                    <Ionicons
+                      name={star <= reviewRating ? 'star' : 'star-outline'}
+                      size={40}
+                      color={star <= reviewRating ? '#FFD700' : colors.textSecondary}
+                    />
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={styles.modalLabel}>Comentario (opcional)</Text>
+              <TextInput
+                style={styles.textInput}
+                placeholder="Comparte tu experiencia..."
+                placeholderTextColor={colors.textSecondary}
+                value={reviewText}
+                onChangeText={setReviewText}
+                multiline
+                numberOfLines={4}
+                maxLength={500}
+              />
+              <Text style={styles.characterCount}>{reviewText.length}/500</Text>
+
+              <TouchableOpacity
+                style={[styles.submitButton, submittingReview && styles.submitButtonDisabled]}
+                onPress={handleSubmitReview}
+                disabled={submittingReview}
+              >
+                {submittingReview ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.submitButtonText}>Publicar Reseña</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -1898,6 +2021,82 @@ const styles = StyleSheet.create({
   addReviewText: {
     fontSize: 15,
     fontWeight: '800',
+    color: '#fff',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  modalBody: {
+    padding: 20,
+  },
+  modalLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  starsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 24,
+  },
+  starButton: {
+    padding: 4,
+  },
+  textInput: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 15,
+    color: colors.text,
+    minHeight: 120,
+    textAlignVertical: 'top',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  characterCount: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    textAlign: 'right',
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  submitButton: {
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 52,
+  },
+  submitButtonDisabled: {
+    opacity: 0.6,
+  },
+  submitButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
     color: '#fff',
   },
 });
