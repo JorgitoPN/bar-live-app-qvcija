@@ -27,7 +27,7 @@ import type { Publicacion, Historia } from '@/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-export default function SocialScreen() {
+export default function SocialScreenV3() {
   const router = useRouter();
   const { user } = useAuth();
   const { 
@@ -65,7 +65,7 @@ export default function SocialScreen() {
     ? (modeLocalData?.nombre || 'Local')
     : (user?.nombre || 'Usuario');
 
-  console.log('[Social] 🎭 Active Profile:', {
+  console.log('[SocialV3] 🎭 Active Profile:', {
     activeProfileType,
     activeProfileId,
     isInteractingAsLocal,
@@ -124,28 +124,28 @@ export default function SocialScreen() {
         setUnreadMessages(totalUnread);
       }
     } catch (error) {
-      console.error('[Social] Error loading unread counts:', error);
+      console.error('[SocialV3] Error loading unread counts:', error);
     }
   }, [user]);
 
   const loadData = useCallback(async () => {
     if (isLoadingRef.current) {
-      console.log('[Social] ⚡ Already loading, skipping...');
+      console.log('[SocialV3] ⚡ Already loading, skipping...');
       return;
     }
 
     isLoadingRef.current = true;
 
     try {
-      console.log('[Social] ⚡ Loading data...');
-      console.log('[Social] 📍 Global posts available:', globalPosts.length);
-      console.log('[Social] 📍 Global stories available:', globalStories.length);
+      console.log('[SocialV3] ⚡ Loading data...');
+      console.log('[SocialV3] 📍 Global posts available:', globalPosts.length);
+      console.log('[SocialV3] 📍 Global stories available:', globalStories.length);
 
       // Load unread counts
       await loadUnreadCounts();
 
       if (globalPosts.length > 0) {
-        console.log('[Social] ⚡⚡⚡ INSTANT posts from global data:', globalPosts.length);
+        console.log('[SocialV3] ⚡⚡⚡ INSTANT posts from global data:', globalPosts.length);
         
         let validPosts = globalPosts.filter(p => p && p.id);
         let filteredPosts = validPosts;
@@ -163,7 +163,7 @@ export default function SocialScreen() {
             p.tipo === 'usuario' || 
             (p.tipo === 'local' && p.local_id && followedLocalIds.has(p.local_id))
           );
-          console.log('[Social] 👥 Following filter - Count:', filteredPosts.length);
+          console.log('[SocialV3] 👥 Following filter - Count:', filteredPosts.length);
         }
         
         if (user && filteredPosts.length > 0) {
@@ -203,18 +203,18 @@ export default function SocialScreen() {
           
           const finalValidPosts = postsWithStatus.filter(p => p && p.id);
           setPosts(finalValidPosts);
-          console.log('[Social] ✅ Set', finalValidPosts.length, 'valid posts with user status');
+          console.log('[SocialV3] ✅ Set', finalValidPosts.length, 'valid posts with user status');
         } else {
           const finalValidPosts = filteredPosts.filter(p => p && p.id);
           setPosts(finalValidPosts);
-          console.log('[Social] ✅ Set', finalValidPosts.length, 'valid posts');
+          console.log('[SocialV3] ✅ Set', finalValidPosts.length, 'valid posts');
         }
       } else {
         setPosts([]);
       }
 
       if (globalStories.length > 0) {
-        console.log('[Social] ⚡⚡⚡ INSTANT stories from global data:', globalStories.length);
+        console.log('[SocialV3] ⚡⚡⚡ INSTANT stories from global data:', globalStories.length);
         
         let validStories = globalStories.filter(s => s && s.id);
         let filteredStories = validStories;
@@ -232,7 +232,7 @@ export default function SocialScreen() {
             s.tipo === 'usuario' || 
             (s.tipo === 'local' && s.local_id && followedLocalIds.has(s.local_id))
           );
-          console.log('[Social] 👥 Following filter - Stories count:', filteredStories.length);
+          console.log('[SocialV3] 👥 Following filter - Stories count:', filteredStories.length);
         }
         
         setHistorias(filteredStories);
@@ -240,9 +240,9 @@ export default function SocialScreen() {
         setHistorias([]);
       }
 
-      console.log('[Social] ⚡ Data loaded');
+      console.log('[SocialV3] ⚡ Data loaded');
     } catch (error) {
-      console.error('[Social] Error loading data:', error);
+      console.error('[SocialV3] Error loading data:', error);
       setPosts([]);
       setHistorias([]);
     } finally {
@@ -254,30 +254,30 @@ export default function SocialScreen() {
   // ✅ AUTO-UPDATE: Reload data every time the screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      console.log('[Social] 🔄 Screen focused - auto-updating data');
+      console.log('[SocialV3] 🔄 Screen focused - auto-updating data');
       loadData();
     }, [loadData])
   );
 
   const onRefresh = async () => {
-    console.log('[Social] 🔄 Manual refresh triggered');
+    console.log('[SocialV3] 🔄 Manual refresh triggered');
     setRefreshing(true);
     await loadData();
     setRefreshing(false);
   };
 
   const handleCreatePost = () => {
-    console.log('[Social] ➕ Create post button pressed');
+    console.log('[SocialV3] ➕ Create post button pressed');
     router.push('/crear/publicacion');
   };
 
   const handleCreateStory = () => {
-    console.log('[Social] ➕ Create story button pressed');
+    console.log('[SocialV3] ➕ Create story button pressed');
     router.push('/crear/historia');
   };
 
   const handleHistoriaPress = (historia: Historia) => {
-    console.log('[Social] 📖 Story pressed:', historia.id);
+    console.log('[SocialV3] 📖 Story pressed:', historia.id);
     router.push({
       pathname: '/detalle/historia',
       params: { id: historia.id },
@@ -285,7 +285,7 @@ export default function SocialScreen() {
   };
 
   const handleStoriesUpdate = useCallback((updatedStories: Historia[]) => {
-    console.log('[Social] ⚡ Stories updated in real-time:', updatedStories.length);
+    console.log('[SocialV3] ⚡ Stories updated in real-time:', updatedStories.length);
     setHistorias(updatedStories);
   }, []);
 
@@ -305,7 +305,7 @@ export default function SocialScreen() {
         />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Cargando feed social...</Text>
+          <Text style={styles.loadingText}>Cargando feed social v3.0...</Text>
         </View>
       </View>
     );
