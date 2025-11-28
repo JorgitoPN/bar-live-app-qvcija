@@ -26,6 +26,7 @@ export default function HistoriaDetailScreen() {
     }
 
     try {
+      // First, load the current story with proper joins
       const { data: currentStory, error: storyError } = await supabase
         .from('historias')
         .select(`
@@ -36,25 +37,33 @@ export default function HistoriaDetailScreen() {
             username,
             avatar
           ),
-          local:locales(
+          local:locales!historias_local_id_fkey(
             id,
             nombre,
-            logo
+            imagen_url
           )
         `)
         .eq('id', id)
         .single();
 
-      if (storyError || !currentStory) {
+      if (storyError) {
         console.error('[HistoriaDetail] Error loading story:', storyError);
         router.back();
         return;
       }
 
+      if (!currentStory) {
+        console.error('[HistoriaDetail] Story not found');
+        router.back();
+        return;
+      }
+
+      // Determine the author ID based on story type
       const authorId = currentStory.tipo === 'usuario' 
         ? currentStory.autor_id 
         : currentStory.local_id;
 
+      // Build query for all stories from the same author
       let storiesQuery = supabase
         .from('historias')
         .select(`
@@ -65,15 +74,16 @@ export default function HistoriaDetailScreen() {
             username,
             avatar
           ),
-          local:locales(
+          local:locales!historias_local_id_fkey(
             id,
             nombre,
-            logo
+            imagen_url
           )
         `)
         .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
         .order('created_at', { ascending: true });
 
+      // Filter by story type and author
       if (currentStory.tipo === 'usuario') {
         storiesQuery = storiesQuery
           .eq('tipo', 'usuario')

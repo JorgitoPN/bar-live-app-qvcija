@@ -9,6 +9,7 @@ import {
   Dimensions,
   ScrollView,
   Alert,
+  Share as RNShare,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -16,6 +17,8 @@ import { colors } from '@/styles/commonStyles';
 import FoodPlateAvatar from '@/components/common/FoodPlateAvatar';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import PostViewerModal from './PostViewerModal';
+import CommentsModal from './CommentsModal';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -60,6 +63,9 @@ export default function NewPostCard({
   const [isLiked, setIsLiked] = useState(post.user_has_liked);
   const [isSaved, setIsSaved] = useState(post.user_has_saved);
   const [likesCount, setLikesCount] = useState(post.likes_count);
+  const [commentsCount, setCommentsCount] = useState(post.comentarios_count);
+  const [showPostViewer, setShowPostViewer] = useState(false);
+  const [showComments, setShowComments] = useState(false);
 
   const isOwner = post.tipo === 'usuario' 
     ? post.autor_id === user?.id
@@ -71,6 +77,10 @@ export default function NewPostCard({
     } else {
       router.push(`/perfil/usuario?userId=${post.autor_id}`);
     }
+  };
+
+  const handleImagePress = () => {
+    setShowPostViewer(true);
   };
 
   const handleLike = async () => {
@@ -104,11 +114,23 @@ export default function NewPostCard({
   };
 
   const handleComment = () => {
-    router.push(`/social/comentar?postId=${post.id}`);
+    setShowComments(true);
   };
 
   const handleShare = async () => {
-    Alert.alert('Compartir', 'Función de compartir próximamente');
+    try {
+      const result = await RNShare.share({
+        message: `Mira esta publicación en Barlive: ${post.contenido || 'Nueva publicación'}`,
+        title: 'Compartir publicación',
+      });
+
+      if (result.action === RNShare.sharedAction) {
+        console.log('[NewPostCard] Post shared successfully');
+      }
+    } catch (error) {
+      console.error('[NewPostCard] Error sharing:', error);
+      Alert.alert('Error', 'No se pudo compartir la publicación');
+    }
   };
 
   const handleSave = async () => {
@@ -170,6 +192,13 @@ export default function NewPostCard({
     );
   };
 
+  const handleCommentsUpdate = () => {
+    setCommentsCount(prev => prev + 1);
+    if (onUpdate) {
+      onUpdate();
+    }
+  };
+
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -193,141 +222,163 @@ export default function NewPostCard({
     : (post.autor.username || post.autor.nombre);
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.authorInfo} onPress={handleProfilePress}>
-          <FoodPlateAvatar
-            imageUrl={post.autor.avatar}
-            size={42}
-            nombre={post.autor.nombre}
-          />
-          <View style={styles.authorText}>
-            <Text style={styles.authorName}>{displayUsername}</Text>
-            {post.ubicacion && (
-              <Text style={styles.locationText}>{post.ubicacion}</Text>
-            )}
-          </View>
-        </TouchableOpacity>
-
-        {isOwner && (
-          <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
-            <Ionicons name="trash-outline" size={22} color="#000" />
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* Images */}
-      {post.imagenes.length > 0 && (
-        <View style={styles.imagesContainer}>
-          <ScrollView
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            onScroll={(event) => {
-              const index = Math.round(
-                event.nativeEvent.contentOffset.x / SCREEN_WIDTH
-              );
-              setCurrentImageIndex(index);
-            }}
-            scrollEventThrottle={16}
-          >
-            {post.imagenes.map((imagen, index) => (
-              <Image
-                key={index}
-                source={{ uri: imagen }}
-                style={styles.image}
-                resizeMode="cover"
-              />
-            ))}
-          </ScrollView>
-
-          {post.imagenes.length > 1 && (
-            <View style={styles.imageIndicator}>
-              {post.imagenes.map((_, index) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.indicatorDot,
-                    index === currentImageIndex && styles.indicatorDotActive,
-                  ]}
-                />
-              ))}
+    <>
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.authorInfo} onPress={handleProfilePress}>
+            <FoodPlateAvatar
+              imageUrl={post.autor.avatar}
+              size={42}
+              nombre={post.autor.nombre}
+            />
+            <View style={styles.authorText}>
+              <Text style={styles.authorName}>{displayUsername}</Text>
+              {post.ubicacion && (
+                <Text style={styles.locationText}>{post.ubicacion}</Text>
+              )}
             </View>
+          </TouchableOpacity>
+
+          {isOwner && (
+            <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
+              <Ionicons name="trash-outline" size={22} color="#000" />
+            </TouchableOpacity>
           )}
         </View>
-      )}
 
-      {/* Actions */}
-      <View style={styles.actions}>
-        <View style={styles.leftActions}>
+        {/* Images */}
+        {post.imagenes.length > 0 && (
+          <TouchableOpacity 
+            style={styles.imagesContainer}
+            onPress={handleImagePress}
+            activeOpacity={0.95}
+          >
+            <ScrollView
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onScroll={(event) => {
+                const index = Math.round(
+                  event.nativeEvent.contentOffset.x / SCREEN_WIDTH
+                );
+                setCurrentImageIndex(index);
+              }}
+              scrollEventThrottle={16}
+            >
+              {post.imagenes.map((imagen, index) => (
+                <Image
+                  key={index}
+                  source={{ uri: imagen }}
+                  style={styles.image}
+                  resizeMode="cover"
+                />
+              ))}
+            </ScrollView>
+
+            {post.imagenes.length > 1 && (
+              <View style={styles.imageIndicator}>
+                {post.imagenes.map((_, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.indicatorDot,
+                      index === currentImageIndex && styles.indicatorDotActive,
+                    ]}
+                  />
+                ))}
+              </View>
+            )}
+          </TouchableOpacity>
+        )}
+
+        {/* Actions */}
+        <View style={styles.actions}>
+          <View style={styles.leftActions}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={handleLike}
+            >
+              <Ionicons
+                name={isLiked ? 'heart' : 'heart-outline'}
+                size={28}
+                color={isLiked ? '#ff3b30' : colors.text}
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={handleComment}
+            >
+              <Ionicons name="chatbubble-outline" size={26} color={colors.text} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={handleShare}
+            >
+              <Ionicons name="paper-plane-outline" size={26} color={colors.text} />
+            </TouchableOpacity>
+          </View>
+
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={handleLike}
+            onPress={handleSave}
           >
             <Ionicons
-              name={isLiked ? 'heart' : 'heart-outline'}
-              size={28}
-              color={isLiked ? '#ff3b30' : colors.text}
+              name={isSaved ? 'bookmark' : 'bookmark-outline'}
+              size={26}
+              color={colors.text}
             />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={handleComment}
-          >
-            <Ionicons name="chatbubble-outline" size={26} color={colors.text} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={handleShare}
-          >
-            <Ionicons name="paper-plane-outline" size={26} color={colors.text} />
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={handleSave}
-        >
-          <Ionicons
-            name={isSaved ? 'bookmark' : 'bookmark-outline'}
-            size={26}
-            color={colors.text}
-          />
-        </TouchableOpacity>
+        {/* Stats */}
+        <View style={styles.stats}>
+          {likesCount > 0 && (
+            <Text style={styles.statsText}>
+              <Text style={styles.statsBold}>{formatNumber(likesCount)}</Text> me gusta
+            </Text>
+          )}
+          
+          {/* Content */}
+          {post.contenido && (
+            <View style={styles.contentContainer}>
+              <Text style={styles.content}>
+                <Text style={styles.contentUsername}>{displayUsername}</Text>{' '}
+                {post.contenido}
+              </Text>
+            </View>
+          )}
+
+          {commentsCount > 0 && (
+            <TouchableOpacity onPress={handleComment}>
+              <Text style={styles.commentsText}>
+                Ver los {commentsCount} comentarios
+              </Text>
+            </TouchableOpacity>
+          )}
+          
+          <Text style={styles.timeAgo}>{formatTimeAgo(post.created_at)}</Text>
+        </View>
       </View>
 
-      {/* Stats */}
-      <View style={styles.stats}>
-        {likesCount > 0 && (
-          <Text style={styles.statsText}>
-            <Text style={styles.statsBold}>{formatNumber(likesCount)}</Text> me gusta
-          </Text>
-        )}
-        
-        {/* Content */}
-        {post.contenido && (
-          <View style={styles.contentContainer}>
-            <Text style={styles.content}>
-              <Text style={styles.contentUsername}>{displayUsername}</Text>{' '}
-              {post.contenido}
-            </Text>
-          </View>
-        )}
+      {/* Post Viewer Modal */}
+      <PostViewerModal
+        visible={showPostViewer}
+        post={post}
+        onClose={() => setShowPostViewer(false)}
+        onUpdate={onUpdate}
+      />
 
-        {post.comentarios_count > 0 && (
-          <TouchableOpacity onPress={handleComment}>
-            <Text style={styles.commentsText}>
-              Ver los {post.comentarios_count} comentarios
-            </Text>
-          </TouchableOpacity>
-        )}
-        
-        <Text style={styles.timeAgo}>{formatTimeAgo(post.created_at)}</Text>
-      </View>
-    </View>
+      {/* Comments Modal */}
+      <CommentsModal
+        visible={showComments}
+        postId={post.id}
+        onClose={() => setShowComments(false)}
+        onCommentAdded={handleCommentsUpdate}
+      />
+    </>
   );
 }
 

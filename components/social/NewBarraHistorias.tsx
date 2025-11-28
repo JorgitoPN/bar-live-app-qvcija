@@ -49,6 +49,12 @@ const CreateStoryButton = memo(({
 
 CreateStoryButton.displayName = 'CreateStoryButton';
 
+// Helper function to truncate long names
+const truncateName = (name: string, maxLength: number = 12): string => {
+  if (name.length <= maxLength) return name;
+  return name.substring(0, maxLength - 1) + '...';
+};
+
 const NewBarraHistorias = memo(function NewBarraHistorias({
   historias,
   onHistoriaPress,
@@ -133,6 +139,11 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
                 nombre,
                 username,
                 avatar
+              ),
+              local:locales!historias_local_id_fkey(
+                id,
+                nombre,
+                imagen_url
               )
             `)
             .eq('id', payload.new.id)
@@ -218,7 +229,9 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
                 size={100}
                 onPress={() => onHistoriaPress(userStories[0])}
                 showLabel={true}
-                labelText={isInteractingAsLocal ? activeLocalData?.nombre || 'Tu local' : 'Tu historia'}
+                labelText={isInteractingAsLocal 
+                  ? truncateName(activeLocalData?.nombre || 'Tu local')
+                  : 'Tu historia'}
               />
             </View>
           ) : (
@@ -231,11 +244,22 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
         )}
 
         {groupedStories.map(({ authorId, stories, latestStory }) => {
-          const displayName = latestStory.tipo === 'local'
-            ? (latestStory.autorNombre || 'Local')
-            : (latestStory.autor?.username || latestStory.autorUsername || latestStory.autorNombre || latestStory.autor?.nombre || 'Usuario').replace(/^@/, '');
+          // Get the display name based on story type
+          let displayName = '';
+          let avatarUrl = null;
           
-          const avatarUrl = latestStory.autorAvatar || latestStory.autor?.avatar || null;
+          if (latestStory.tipo === 'local') {
+            // For local stories, use the local name
+            displayName = latestStory.local?.nombre || latestStory.autorNombre || 'Local';
+            avatarUrl = latestStory.local?.imagen_url || latestStory.autorAvatar || null;
+          } else {
+            // For user stories, use username or name
+            displayName = (latestStory.autor?.username || latestStory.autorUsername || latestStory.autorNombre || latestStory.autor?.nombre || 'Usuario').replace(/^@/, '');
+            avatarUrl = latestStory.autorAvatar || latestStory.autor?.avatar || null;
+          }
+          
+          // Truncate long names
+          const truncatedName = truncateName(displayName);
           
           return (
             <View key={authorId} style={styles.storyContainer}>
@@ -243,10 +267,11 @@ const NewBarraHistorias = memo(function NewBarraHistorias({
                 userId={authorId}
                 userStories={stories}
                 avatarUrl={avatarUrl || undefined}
-                userName={displayName}
+                userName={truncatedName}
                 size={100}
                 onPress={() => onHistoriaPress(latestStory)}
                 showLabel={true}
+                labelText={truncatedName}
               />
             </View>
           );

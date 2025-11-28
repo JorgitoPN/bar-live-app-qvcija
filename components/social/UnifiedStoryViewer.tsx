@@ -53,7 +53,7 @@ interface Story {
   local?: {
     id: string;
     nombre: string;
-    logo?: string;
+    imagen_url?: string;
   };
 }
 
@@ -74,6 +74,12 @@ interface ProgressBarProps {
   onComplete: () => void;
   progress: Animated.Value;
 }
+
+// Helper function to truncate long names
+const truncateName = (name: string, maxLength: number = 20): string => {
+  if (name.length <= maxLength) return name;
+  return name.substring(0, maxLength - 1) + '...';
+};
 
 const ProgressBar = memo(({ isActive, isPaused, duration, onComplete, progress }: ProgressBarProps) => {
   const animationRef = useRef<Animated.CompositeAnimation | null>(null);
@@ -565,16 +571,18 @@ function UnifiedStoryViewer({
     return null;
   }
 
+  // Get avatar and name based on story type
   const authorAvatar = currentStory.tipo === 'usuario'
     ? (currentStory.autor?.avatar || currentStory.autorAvatar)
-    : (currentStory.local?.logo);
+    : (currentStory.local?.imagen_url);
   
   const authorName = currentStory.tipo === 'usuario'
     ? (currentStory.autor?.nombre || currentStory.autorNombre || 'Usuario')
     : (currentStory.local?.nombre || 'Local');
 
+  // For display, use username for users and full name for locals
   const displayName = currentStory.tipo === 'local' 
-    ? authorName
+    ? truncateName(authorName)
     : (currentStory.autor?.username || currentStory.autorUsername || authorName).replace(/^@/, '');
 
   return (
