@@ -8,28 +8,49 @@ import { Platform } from 'react-native';
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 
-// Custom storage implementation for React Native using SecureStore
+// ✅ FIXED: Custom storage implementation with better error handling
 const ExpoSecureStoreAdapter = {
   getItem: async (key: string) => {
     try {
-      return await SecureStore.getItemAsync(key);
-    } catch (error) {
-      console.error('Error getting item from SecureStore:', error);
+      // ✅ FIXED: Add timeout and better error handling
+      const value = await Promise.race([
+        SecureStore.getItemAsync(key),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 1000))
+      ]);
+      return value;
+    } catch (error: any) {
+      // ✅ FIXED: Silently handle SecureStore errors (user interaction not allowed)
+      // This is expected on iOS when the app starts without user interaction
+      if (error?.message?.includes('User interaction is not allowed')) {
+        console.log('[SecureStore] User interaction required - will retry on next user action');
+        return null;
+      }
+      console.error('[SecureStore] Error getting item:', error);
       return null;
     }
   },
   setItem: async (key: string, value: string) => {
     try {
       await SecureStore.setItemAsync(key, value);
-    } catch (error) {
-      console.error('Error setting item in SecureStore:', error);
+    } catch (error: any) {
+      // ✅ FIXED: Silently handle SecureStore errors
+      if (error?.message?.includes('User interaction is not allowed')) {
+        console.log('[SecureStore] User interaction required for setItem');
+        return;
+      }
+      console.error('[SecureStore] Error setting item:', error);
     }
   },
   removeItem: async (key: string) => {
     try {
       await SecureStore.deleteItemAsync(key);
-    } catch (error) {
-      console.error('Error removing item from SecureStore:', error);
+    } catch (error: any) {
+      // ✅ FIXED: Silently handle SecureStore errors
+      if (error?.message?.includes('User interaction is not allowed')) {
+        console.log('[SecureStore] User interaction required for removeItem');
+        return;
+      }
+      console.error('[SecureStore] Error removing item:', error);
     }
   },
 };

@@ -67,7 +67,7 @@ interface PerfilProfesional {
 export default function PerfilScreen() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const { hasUnviewedStories } = useStoryState();
+  const { hasUnviewedStories, markStoriesAsViewed } = useStoryState();
   const { 
     currentMode, 
     ownedLocals,
@@ -97,6 +97,7 @@ export default function PerfilScreen() {
 
   // ✅ User stories state
   const [userStories, setUserStories] = useState<any[]>([]);
+  const [loadingStories, setLoadingStories] = useState(false);
   
   // ✅ Story viewer state
   const [showStoryViewer, setShowStoryViewer] = useState(false);
@@ -360,11 +361,18 @@ export default function PerfilScreen() {
     }
   }, [user]);
 
+  // ✅ FIXED: Load user stories with proper error handling
   const cargarHistorias = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('[Perfil] No user, skipping stories load');
+      return;
+    }
 
+    setLoadingStories(true);
     try {
-      const { data: userStoriesData } = await supabase
+      console.log('[Perfil] 📖 Loading stories for user:', user.id);
+      
+      const { data: userStoriesData, error } = await supabase
         .from('historias')
         .select('id, autor_id, tipo, imagen, created_at, expires_at, visto')
         .eq('autor_id', user.id)
@@ -372,7 +380,14 @@ export default function PerfilScreen() {
         .gt('expires_at', new Date().toISOString())
         .order('created_at', { ascending: true });
 
-      if (userStoriesData) {
+      if (error) {
+        console.error('[Perfil] Error loading stories:', error);
+        setUserStories([]);
+        setLoadingStories(false);
+        return;
+      }
+
+      if (userStoriesData && userStoriesData.length > 0) {
         console.log('[Perfil] ✅ Loaded', userStoriesData.length, 'user stories');
         
         const storiesWithAuthor = userStoriesData.map(story => ({
@@ -388,9 +403,15 @@ export default function PerfilScreen() {
         }));
         
         setUserStories(storiesWithAuthor);
+      } else {
+        console.log('[Perfil] No active stories found');
+        setUserStories([]);
       }
     } catch (error) {
       console.error('[Perfil] Error loading stories:', error);
+      setUserStories([]);
+    } finally {
+      setLoadingStories(false);
     }
   }, [user]);
 
@@ -539,7 +560,7 @@ export default function PerfilScreen() {
     router.push(`/empleo/perfil-detalle?id=${perfilProfesional.id}`);
   };
 
-  // ✅ INSTAGRAM-STYLE: Handle avatar press to view stories or create new one
+  // ✅ FIXED: Handle avatar press to view stories or create new one
   const handleAvatarPress = useCallback(() => {
     if (!user) {
       setShowLoginModal(true);
@@ -600,16 +621,22 @@ export default function PerfilScreen() {
     return (
       <View style={styles.profileSection}>
         <View style={styles.profileHeader}>
-          {/* ✅ INSTAGRAM-STYLE: Use StoryAvatar component for consistent story outline */}
-          <StoryAvatar
-            userId={user?.id || ''}
-            userStories={userStories}
-            avatarUrl={displayAvatar}
-            userName={displayName}
-            size={88}
-            onPress={handleAvatarPress}
-            showLabel={false}
-          />
+          {/* ✅ FIXED: Use StoryAvatar component with proper story data */}
+          {loadingStories ? (
+            <View style={styles.avatarLoadingContainer}>
+              <ActivityIndicator size="small" color={colors.primary} />
+            </View>
+          ) : (
+            <StoryAvatar
+              userId={user?.id || ''}
+              userStories={userStories}
+              avatarUrl={displayAvatar}
+              userName={displayName}
+              size={88}
+              onPress={handleAvatarPress}
+              showLabel={false}
+            />
+          )}
           
           {/* ✅ '+' button to add story */}
           <TouchableOpacity 
@@ -1180,6 +1207,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
     position: 'relative',
+  },
+  avatarLoadingContainer: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: colors.cardBackground,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   addStoryButton: {
     position: 'absolute',
