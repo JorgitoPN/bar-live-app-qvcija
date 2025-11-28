@@ -54,7 +54,7 @@ export default function HeaderSocial({
     return count.toString();
   };
 
-  // ✅ FIXED: Search functionality with correct query to avoid ambiguous relationships
+  // ✅ FIXED: Search functionality to include locals with active standard/premium plans
   const performSearch = useCallback(async (query: string) => {
     if (!query.trim()) {
       setSearchResults([]);
@@ -79,16 +79,7 @@ export default function HeaderSocial({
       }
 
       // ✅ FIXED: Search locals with active standard or premium subscriptions
-      const { data: activeSubscriptionsData, error: subsError } = await supabase
-        .from('suscripciones_locales')
-        .select('local_id, plan_id')
-        .eq('estado', 'activa');
-
-      if (subsError) {
-        console.error('[HeaderSocial] Error fetching active subscriptions:', subsError);
-      }
-
-      // Get plan IDs for estandar and premium
+      // Step 1: Get plan IDs for estandar and premium
       const { data: plansData, error: plansError } = await supabase
         .from('planes_suscripcion')
         .select('id, nombre')
@@ -99,13 +90,23 @@ export default function HeaderSocial({
       }
 
       const validPlanIds = (plansData || []).map(p => p.id);
-      const activeLocalIds = (activeSubscriptionsData || [])
-        .filter(sub => validPlanIds.includes(sub.plan_id))
-        .map(sub => sub.local_id);
+      console.log('[HeaderSocial] Valid plan IDs:', validPlanIds);
 
+      // Step 2: Get active subscriptions with these plans
+      const { data: activeSubscriptionsData, error: subsError } = await supabase
+        .from('suscripciones_locales')
+        .select('local_id, plan_id')
+        .eq('estado', 'activa')
+        .in('plan_id', validPlanIds);
+
+      if (subsError) {
+        console.error('[HeaderSocial] Error fetching active subscriptions:', subsError);
+      }
+
+      const activeLocalIds = (activeSubscriptionsData || []).map(sub => sub.local_id);
       console.log('[HeaderSocial] Active local IDs with valid plans:', activeLocalIds.length);
 
-      // Now search locales with these IDs
+      // Step 3: Search locales with these IDs
       let localsData: any[] = [];
       if (activeLocalIds.length > 0) {
         const { data, error: localsError } = await supabase
@@ -120,6 +121,7 @@ export default function HeaderSocial({
           console.error('[HeaderSocial] Error searching locals:', localsError);
         } else {
           localsData = data || [];
+          console.log('[HeaderSocial] Found locals with active plans:', localsData.length);
         }
       }
 
@@ -142,7 +144,7 @@ export default function HeaderSocial({
         })),
       ];
 
-      console.log('[HeaderSocial] Search results:', results.length);
+      console.log('[HeaderSocial] Search results:', results.length, '(users:', usersData?.length || 0, ', locals:', localsData.length, ')');
       setSearchResults(results);
     } catch (error) {
       console.error('[HeaderSocial] Error searching:', error);
@@ -220,7 +222,7 @@ export default function HeaderSocial({
         )}
       </View>
       <View style={[styles.searchResultBadge, item.type === 'local' && styles.searchResultBadgeLocal]}>
-        <Text style={styles.searchResultBadgeText}>
+        <Text style={[styles.searchResultBadgeText, item.type === 'local' && styles.searchResultBadgeTextLocal]}>
           {item.type === 'user' ? 'Usuario' : 'Local'}
         </Text>
       </View>
@@ -525,6 +527,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.primary,
     fontWeight: '600',
+    textTransform: 'capitalize',
   },
   searchResultLocation: {
     fontSize: 12,
@@ -544,6 +547,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: colors.primary,
+  },
+  searchResultBadgeTextLocal: {
+    color: '#10B981',
   },
   searchEmptyState: {
     flex: 1,

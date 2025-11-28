@@ -193,32 +193,52 @@ export default function FavoritosScreen() {
   }, [currentPage, filteredLocales, loadingMore, hasMore]);
 
   const onRefresh = async () => {
+    console.log('[Favoritos] 🔄 Manual refresh triggered');
     setRefreshing(true);
     setSearchQuery('');
     await loadSavedLocales();
     setRefreshing(false);
   };
 
-  const toggleFavorito = async (localId: string) => {
+  // ✅ FIXED: Use same logic as TarjetaLocal for toggling favorites
+  const toggleFavorito = async (localId: string, e?: any) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    
     if (!user) {
+      console.log('[Favoritos] User not authenticated');
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para gestionar favoritos');
       return;
     }
 
+    if (!localId) {
+      console.log('[Favoritos] No local ID');
+      return;
+    }
+
     try {
-      // Remove from favorites
+      console.log('[Favoritos] Removing from favorites. User:', user.id, 'Local:', localId);
+      
+      // ✅ FIXED: Delete from favorites with explicit usuario_id
       const { error } = await supabase
         .from('locales_guardados')
         .delete()
         .eq('usuario_id', user.id)
         .eq('local_id', localId);
 
-      if (error) throw error;
-
+      if (error) {
+        console.error('[Favoritos] Error removing favorite:', error);
+        Alert.alert('Error', 'No se pudo quitar de favoritos');
+        return;
+      }
+      
+      console.log('[Favoritos] ✅ Removed from favorites');
+      
       // Reload the list
       await loadSavedLocales();
     } catch (error) {
-      console.error('Error removing favorito:', error);
+      console.error('[Favoritos] Error removing favorito:', error);
       Alert.alert('Error', 'No se pudo eliminar de favoritos');
     }
   };
@@ -316,7 +336,7 @@ export default function FavoritosScreen() {
             />
           ) : (
             <View style={[styles.image, styles.placeholderImage]}>
-              <IconSymbol name="photo" size={48} color={colors.textSecondary} />
+              <IconSymbol ios_icon_name="photo" android_material_icon_name="photo" size={48} color={colors.textSecondary} />
             </View>
           )}
 
@@ -331,7 +351,7 @@ export default function FavoritosScreen() {
           {/* Badge "Destacado" */}
           {isDestacado && (
             <View style={styles.badgeDestacadoHeader}>
-              <IconSymbol name="star.fill" size={14} color="#92400E" />
+              <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={14} color="#92400E" />
               <Text style={styles.badgeDestacadoHeaderText}>Destacado</Text>
             </View>
           )}
@@ -348,7 +368,7 @@ export default function FavoritosScreen() {
           {/* Valoración */}
           {displayRating > 0 && (
             <View style={styles.ratingBadge}>
-              <IconSymbol name="star.fill" size={12} color="#FACC15" />
+              <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={12} color="#FACC15" />
               <Text style={styles.ratingBadgeText}>{displayRating.toFixed(1)}</Text>
             </View>
           )}
@@ -362,16 +382,17 @@ export default function FavoritosScreen() {
             </View>
           )}
 
-          {/* ✅ SYNCHRONIZED: Favorite button with same logic as TarjetaLocal */}
+          {/* ✅ FIXED: Favorite button with same logic as TarjetaLocal */}
           <TouchableOpacity
             style={styles.favoritoButton}
             onPress={(e) => {
               e.stopPropagation();
-              toggleFavorito(item.id);
+              toggleFavorito(item.id, e);
             }}
           >
             <IconSymbol
-              name="heart.fill"
+              ios_icon_name="heart.fill"
+              android_material_icon_name="favorite"
               size={20}
               color="#EF4444"
             />
@@ -387,7 +408,7 @@ export default function FavoritosScreen() {
           </View>
 
           <View style={styles.infoRow}>
-            <IconSymbol name="mappin" size={14} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={14} color={colors.textSecondary} />
             <Text style={styles.infoText} numberOfLines={1}>
               {item.direccion}
             </Text>
@@ -427,10 +448,10 @@ export default function FavoritosScreen() {
       return (
         <View style={styles.emptyState}>
           <IconSymbol
-            name="magnifyingglass"
+            ios_icon_name="magnifyingglass"
+            android_material_icon_name="search"
             size={64}
             color={colors.textSecondary}
-            style={styles.emptyIcon}
           />
           <Text style={styles.emptyText}>No se encontraron resultados</Text>
           <Text style={styles.emptySubtext}>
@@ -443,10 +464,10 @@ export default function FavoritosScreen() {
     return (
       <View style={styles.emptyState}>
         <IconSymbol
-          name="heart"
+          ios_icon_name="heart"
+          android_material_icon_name="favorite_border"
           size={64}
           color={colors.textSecondary}
-          style={styles.emptyIcon}
         />
         <Text style={styles.emptyText}>No tienes locales favoritos</Text>
         <Text style={styles.emptySubtext}>
@@ -461,17 +482,17 @@ export default function FavoritosScreen() {
       <View style={styles.container}>
         <LinearGradient
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-          style={styles.header}
+          style={styles.headerGradient}
         >
           <Text style={styles.headerTitle}>Locales Favoritos</Text>
         </LinearGradient>
 
         <View style={styles.loginRequiredContainer}>
           <IconSymbol 
-            name="heart.circle" 
+            ios_icon_name="heart.circle" 
+            android_material_icon_name="favorite" 
             size={80} 
             color={colors.primary} 
-            style={styles.loginRequiredIcon}
           />
           <Text style={styles.loginRequiredTitle}>
             Inicia sesión para ver tus favoritos
@@ -497,7 +518,7 @@ export default function FavoritosScreen() {
       <View style={styles.container}>
         <LinearGradient
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-          style={styles.header}
+          style={styles.headerGradient}
         >
           <Text style={styles.headerTitle}>Locales Favoritos</Text>
         </LinearGradient>
@@ -514,17 +535,17 @@ export default function FavoritosScreen() {
     <View style={styles.container}>
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-        style={styles.header}
+        style={styles.headerGradient}
       >
         <Text style={styles.headerTitle}>Locales Favoritos</Text>
         
         {/* Search bar */}
         <View style={styles.searchContainer}>
           <IconSymbol 
-            name="magnifyingglass" 
+            ios_icon_name="magnifyingglass" 
+            android_material_icon_name="search"
             size={20} 
             color={colors.textSecondary}
-            style={styles.searchIcon}
           />
           <TextInput
             style={styles.searchInput}
@@ -542,7 +563,8 @@ export default function FavoritosScreen() {
               activeOpacity={0.7}
             >
               <IconSymbol 
-                name="xmark.circle.fill" 
+                ios_icon_name="xmark.circle.fill" 
+                android_material_icon_name="cancel"
                 size={20} 
                 color={colors.textSecondary}
               />
@@ -595,7 +617,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  header: {
+  headerGradient: {
     paddingTop: 50,
     paddingBottom: 20,
     paddingHorizontal: 16,
@@ -615,14 +637,12 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginBottom: 8,
   },
-  searchIcon: {
-    marginRight: 8,
-  },
   searchInput: {
     flex: 1,
     fontSize: 16,
     color: colors.text,
     padding: 0,
+    marginLeft: 8,
   },
   clearButton: {
     padding: 4,
@@ -664,15 +684,13 @@ const styles = StyleSheet.create({
     paddingVertical: 80,
     paddingHorizontal: 40,
   },
-  emptyIcon: {
-    marginBottom: 16,
-  },
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 8,
     textAlign: 'center',
+    marginTop: 16,
   },
   emptySubtext: {
     fontSize: 14,
@@ -686,15 +704,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 40,
   },
-  loginRequiredIcon: {
-    marginBottom: 24,
-  },
   loginRequiredTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 12,
     textAlign: 'center',
+    marginTop: 24,
   },
   loginRequiredText: {
     fontSize: 16,
@@ -878,6 +894,12 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   nombre: {
     fontSize: 18,

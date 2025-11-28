@@ -341,6 +341,7 @@ function UnifiedStoryViewer({
   }, [user, stories, activeLocalProfileId, markStoryAsViewed]);
 
   const handleNextStory = useCallback(() => {
+    // ✅ FIXED: Mark story as viewed BEFORE moving to next
     if (currentStory && user) {
       markAsViewed(currentStory.id);
     }
@@ -351,10 +352,18 @@ function UnifiedStoryViewer({
       setImageLoaded(false);
       onStoryChange?.(newIndex);
     } else {
-      // ✅ Last story of current user - close automatically
+      // ✅ FIXED: Last story - mark as viewed and close properly
+      if (currentStory && user) {
+        markAsViewed(currentStory.id);
+      }
+      // ✅ FIXED: Ensure proper cleanup before closing
+      setCurrentStoryIndex(initialStoryIndex);
+      setImageLoaded(false);
+      setIsPaused(false);
+      isPausedRef.current = false;
       onClose();
     }
-  }, [currentStoryIndex, stories.length, currentStory, user, markAsViewed, onClose, onStoryChange]);
+  }, [currentStoryIndex, stories.length, currentStory, user, markAsViewed, onClose, onStoryChange, initialStoryIndex]);
 
   const handlePreviousStory = useCallback(() => {
     if (currentStoryIndex > 0) {
@@ -363,10 +372,14 @@ function UnifiedStoryViewer({
       setImageLoaded(false);
       onStoryChange?.(newIndex);
     } else {
-      // ✅ First story - go back
+      // ✅ FIXED: First story - close properly
+      setCurrentStoryIndex(initialStoryIndex);
+      setImageLoaded(false);
+      setIsPaused(false);
+      isPausedRef.current = false;
       onClose();
     }
-  }, [currentStoryIndex, onClose, onStoryChange]);
+  }, [currentStoryIndex, onClose, onStoryChange, initialStoryIndex]);
 
   const handleStoryLike = useCallback(async () => {
     if (!currentStory || !user) {
@@ -628,6 +641,11 @@ function UnifiedStoryViewer({
   const handleNavigateToStoryAuthorProfile = useCallback(() => {
     if (!currentStory) return;
 
+    // ✅ FIXED: Proper cleanup before navigation
+    setCurrentStoryIndex(initialStoryIndex);
+    setImageLoaded(false);
+    setIsPaused(false);
+    isPausedRef.current = false;
     onClose();
 
     if (currentStory.tipo === 'local' && currentStory.local_id) {
@@ -637,12 +655,17 @@ function UnifiedStoryViewer({
     } else {
       router.push(`/perfil/usuario?userId=${currentStory.autor_id}`);
     }
-  }, [currentStory, user, router, onClose]);
+  }, [currentStory, user, router, onClose, initialStoryIndex]);
 
   const handleCloseStoryViewerAndNavigate = useCallback(() => {
     setShowStoryStats(false);
+    // ✅ FIXED: Proper cleanup before closing
+    setCurrentStoryIndex(initialStoryIndex);
+    setImageLoaded(false);
+    setIsPaused(false);
+    isPausedRef.current = false;
     onClose();
-  }, [onClose]);
+  }, [onClose, initialStoryIndex]);
 
   // ✅ INSTAGRAM-STYLE: Gesture handling
   const handleTouchStart = useCallback((evt: GestureResponderEvent) => {
@@ -690,6 +713,11 @@ function UnifiedStoryViewer({
     
     // ✅ Swipe down - close viewer
     if (dy > SWIPE_THRESHOLD && Math.abs(dx) < SWIPE_THRESHOLD) {
+      // ✅ FIXED: Proper cleanup before closing
+      setCurrentStoryIndex(initialStoryIndex);
+      setImageLoaded(false);
+      setIsPaused(false);
+      isPausedRef.current = false;
       onClose();
       return;
     }
@@ -722,7 +750,7 @@ function UnifiedStoryViewer({
         return;
       }
     }
-  }, [onClose, handleNextStory, handlePreviousStory]);
+  }, [onClose, handleNextStory, handlePreviousStory, initialStoryIndex]);
 
   // ✅ Memoized PanResponder for better performance
   const panResponder = React.useMemo(
@@ -763,8 +791,10 @@ function UnifiedStoryViewer({
       isPausedRef.current = false;
       setImageLoaded(false);
     } else {
+      // ✅ FIXED: Cleanup when modal closes
       setIsPaused(false);
       isPausedRef.current = false;
+      setImageLoaded(false);
     }
   }, [visible, initialStoryIndex]);
 
@@ -797,7 +827,14 @@ function UnifiedStoryViewer({
     <Modal
       visible={visible}
       animationType="none"
-      onRequestClose={onClose}
+      onRequestClose={() => {
+        // ✅ FIXED: Proper cleanup on back button press
+        setCurrentStoryIndex(initialStoryIndex);
+        setImageLoaded(false);
+        setIsPaused(false);
+        isPausedRef.current = false;
+        onClose();
+      }}
       statusBarTranslucent
       hardwareAccelerated={true}
       transparent={false}
@@ -899,7 +936,14 @@ function UnifiedStoryViewer({
               {/* ✅ Close button - SAME POSITION everywhere */}
               <TouchableOpacity
                 style={styles.headerButton}
-                onPress={onClose}
+                onPress={() => {
+                  // ✅ FIXED: Proper cleanup on close button press
+                  setCurrentStoryIndex(initialStoryIndex);
+                  setImageLoaded(false);
+                  setIsPaused(false);
+                  isPausedRef.current = false;
+                  onClose();
+                }}
                 activeOpacity={0.7}
               >
                 <LinearGradient

@@ -23,15 +23,17 @@ interface Plan {
   id: string;
   nombre: string;
   precio_mensual: number;
-  eventos_mes: number;
-  promos_destacadas: number;
-  perfil_social: boolean;
-  panel_analisis: boolean;
-  soporte_prioritario: boolean;
-  visibilidad_extra: boolean;
-  visibilidad_maxima: boolean;
   descripcion: string;
   activo: boolean;
+  caracteristicas?: {
+    eventos_mes?: number;
+    promos_destacadas?: number;
+    perfil_social?: boolean;
+    panel_analisis?: boolean;
+    soporte_prioritario?: boolean;
+    visibilidad_extra?: boolean;
+    visibilidad_maxima?: boolean;
+  };
 }
 
 interface Suscripcion {
@@ -42,8 +44,8 @@ interface Suscripcion {
   estado: string;
   fecha_inicio: string;
   fecha_fin?: string;
-  eventos_usados_mes: number;
-  promos_usadas_mes: number;
+  eventos_usados_mes?: number;
+  promos_usadas_mes?: number;
   local?: {
     nombre: string;
     provincia: string;
@@ -63,6 +65,732 @@ interface Local {
   nombre: string;
   provincia: string;
   propietario_id?: string;
+}
+
+export default function GestionarPlanesScreen() {
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<'planes' | 'suscripciones'>('planes');
+  const [loading, setLoading] = useState(true);
+  const [planes, setPlanes] = useState<Plan[]>([]);
+  const [suscripciones, setSuscripciones] = useState<Suscripcion[]>([]);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
+  const [locales, setLocales] = useState<Local[]>([]);
+  const [localSearch, setLocalSearch] = useState('');
+  const [selectedLocal, setSelectedLocal] = useState<string | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const [loadingLocales, setLoadingLocales] = useState(false);
+  const [assigning, setAssigning] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Edit form state
+  const [editNombre, setEditNombre] = useState('');
+  const [editDescripcion, setEditDescripcion] = useState('');
+  const [editPrecio, setEditPrecio] = useState('');
+  const [editEventos, setEditEventos] = useState('');
+  const [editPromos, setEditPromos] = useState('');
+  const [editPerfilSocial, setEditPerfilSocial] = useState(false);
+  const [editPanelAnalisis, setEditPanelAnalisis] = useState(false);
+  const [editSoportePrioritario, setEditSoportePrioritario] = useState(false);
+  const [editVisibilidadExtra, setEditVisibilidadExtra] = useState(false);
+  const [editVisibilidadMaxima, setEditVisibilidadMaxima] = useState(false);
+
+  const cargarPlanes = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('planes_suscripcion')
+        .select('*')
+        .order('precio_mensual', { ascending: true });
+
+      if (error) throw error;
+
+      setPlanes(data || []);
+    } catch (error) {
+      console.error('[GestionarPlanes] Error loading plans:', error);
+      Alert.alert('Error', 'No se pudieron cargar los planes');
+    }
+  }, []);
+
+  const cargarSuscripciones = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('suscripciones_locales')
+        .select(`
+          *,
+          locales (nombre, provincia),
+          usuarios (nombre, email),
+          planes_suscripcion (nombre, precio_mensual)
+        `)
+        .order('fecha_inicio', { ascending: false });
+
+      if (error) throw error;
+
+      const formattedData = (data || []).map((sub: any) => ({
+        ...sub,
+        local: sub.locales,
+        propietario: sub.usuarios,
+        plan: sub.planes_suscripcion,
+      }));
+
+      setSuscripciones(formattedData);
+    } catch (error) {
+      console.error('[GestionarPlanes] Error loading subscriptions:', error);
+      Alert.alert('Error', 'No se pudieron cargar las suscripciones');
+    }
+  }, []);
+
+  const cargarLocales = useCallback(async () => {
+    try {
+      setLoadingLocales(true);
+      const { data, error } = await supabase
+        .from('locales')
+        .select('id, nombre, provincia, propietario_id')
+        .eq('activo', true)
+        .not('propietario_id', 'is', null)
+        .order('nombre');
+
+      if (error) throw error;
+
+      setLocales(data || []);
+    } catch (error) {
+      console.error('[GestionarPlanes] Error loading locales:', error);
+      Alert.alert('Error', 'No se pudieron cargar los locales');
+    } finally {
+      setLoadingLocales(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      await Promise.all([cargarPlanes(), cargarSuscripciones()]);
+      setLoading(false);
+    };
+    loadData();
+  }, [cargarPlanes, cargarSuscripciones]);
+
+  const togglePlanActivo = async (planId: string, activo: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('planes_suscripcion')
+        .update({ activo: !activo })
+        .eq('id', planId);
+
+      if (error) throw error;
+
+      Alert.alert('Éxito', `Plan ${!activo ? 'activado' : 'desactivado'} correctamente`);
+      cargarPlanes();
+    } catch (error) {
+      console.error('[GestionarPlanes] Error toggling plan:', error);
+      Alert.alert('Error', 'No se pudo actualizar el plan');
+    }
+  };
+
+  const abrirModalAsignar = async () => {
+    setSelectedLocal(null);
+    setSelectedPlan(null);
+    setLocalSearch('');
+    await cargarLocales();
+    setShowAssignModal(true);
+  };
+
+  const abrirModalEditar = (plan: Plan) => {
+    setEditingPlan(plan);
+    setEditNombre(plan.nombre);
+    setEditDescripcion(plan.descripcion);
+    setEditPrecio(plan.precio_mensual?.toString() || '0');
+    setEditEventos(plan.caracteristicas?.eventos_mes?.toString() || '0');
+    setEditPromos(plan.caracteristicas?.promos_destacadas?.toString() || '0');
+    setEditPerfilSocial(plan.caracteristicas?.perfil_social || false);
+    setEditPanelAnalisis(plan.caracteristicas?.panel_analisis || false);
+    setEditSoportePrioritario(plan.caracteristicas?.soporte_prioritario || false);
+    setEditVisibilidadExtra(plan.caracteristicas?.visibilidad_extra || false);
+    setEditVisibilidadMaxima(plan.caracteristicas?.visibilidad_maxima || false);
+    setShowEditModal(true);
+  };
+
+  const guardarPlan = async () => {
+    if (!editingPlan) return;
+
+    if (!editNombre.trim() || !editDescripcion.trim()) {
+      Alert.alert('Error', 'El nombre y la descripción son obligatorios');
+      return;
+    }
+
+    const precio = parseFloat(editPrecio);
+    const eventos = parseInt(editEventos);
+    const promos = parseInt(editPromos);
+
+    if (isNaN(precio) || precio < 0) {
+      Alert.alert('Error', 'El precio debe ser un número válido');
+      return;
+    }
+
+    if (isNaN(eventos) || eventos < 0) {
+      Alert.alert('Error', 'Los eventos deben ser un número válido');
+      return;
+    }
+
+    if (isNaN(promos) || promos < 0) {
+      Alert.alert('Error', 'Las promos deben ser un número válido');
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      const { error } = await supabase
+        .from('planes_suscripcion')
+        .update({
+          nombre: editNombre.trim(),
+          descripcion: editDescripcion.trim(),
+          precio_mensual: precio,
+          caracteristicas: {
+            eventos_mes: eventos,
+            promos_destacadas: promos,
+            perfil_social: editPerfilSocial,
+            panel_analisis: editPanelAnalisis,
+            soporte_prioritario: editSoportePrioritario,
+            visibilidad_extra: editVisibilidadExtra,
+            visibilidad_maxima: editVisibilidadMaxima,
+          },
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', editingPlan.id);
+
+      if (error) throw error;
+
+      Alert.alert('Éxito', 'Plan actualizado correctamente');
+      setShowEditModal(false);
+      setEditingPlan(null);
+      cargarPlanes();
+    } catch (error) {
+      console.error('[GestionarPlanes] Error saving plan:', error);
+      Alert.alert('Error', 'No se pudo guardar el plan');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const asignarPlanManual = async () => {
+    if (!selectedLocal || !selectedPlan) {
+      Alert.alert('Error', 'Debes seleccionar un local y un plan');
+      return;
+    }
+
+    try {
+      setAssigning(true);
+
+      const local = locales.find(l => l.id === selectedLocal);
+      if (!local || !local.propietario_id) {
+        Alert.alert('Error', 'El local seleccionado no tiene propietario asignado');
+        setAssigning(false);
+        return;
+      }
+
+      const { data: existingSub, error: checkError } = await supabase
+        .from('suscripciones_locales')
+        .select('id')
+        .eq('local_id', selectedLocal)
+        .maybeSingle();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        throw checkError;
+      }
+
+      if (existingSub) {
+        const { error: updateError } = await supabase
+          .from('suscripciones_locales')
+          .update({
+            plan_id: selectedPlan,
+            estado: 'activa',
+            fecha_inicio: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existingSub.id);
+
+        if (updateError) throw updateError;
+      } else {
+        const { error: insertError } = await supabase
+          .from('suscripciones_locales')
+          .insert({
+            local_id: selectedLocal,
+            propietario_id: local.propietario_id,
+            plan_id: selectedPlan,
+            estado: 'activa',
+            fecha_inicio: new Date().toISOString(),
+          });
+
+        if (insertError) throw insertError;
+      }
+
+      Alert.alert('Éxito', 'Plan asignado correctamente al local');
+      setShowAssignModal(false);
+      cargarSuscripciones();
+    } catch (error) {
+      console.error('[GestionarPlanes] Error assigning plan:', error);
+      Alert.alert('Error', 'No se pudo asignar el plan');
+    } finally {
+      setAssigning(false);
+    }
+  };
+
+  const cancelarSuscripcion = async (suscripcionId: string) => {
+    Alert.alert(
+      'Cancelar Suscripción',
+      '¿Estás seguro de que quieres cancelar esta suscripción?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Confirmar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('suscripciones_locales')
+                .update({
+                  estado: 'cancelada',
+                  fecha_fin: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', suscripcionId);
+
+              if (error) throw error;
+
+              Alert.alert('Éxito', 'Suscripción cancelada correctamente');
+              cargarSuscripciones();
+            } catch (error) {
+              console.error('[GestionarPlanes] Error canceling subscription:', error);
+              Alert.alert('Error', 'No se pudo cancelar la suscripción');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const localesFiltrados = locales.filter(local => {
+    if (!localSearch) return true;
+    return local.nombre.toLowerCase().includes(localSearch.toLowerCase()) ||
+           local.provincia.toLowerCase().includes(localSearch.toLowerCase());
+  });
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          style={styles.header}
+        >
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Gestionar Planes</Text>
+        </LinearGradient>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <LinearGradient
+        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+        style={styles.header}
+      >
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Gestionar Planes</Text>
+      </LinearGradient>
+
+      <View style={styles.tabsContainer}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'planes' && styles.tabActive]}
+          onPress={() => setActiveTab('planes')}
+        >
+          <Text style={[styles.tabText, activeTab === 'planes' && styles.tabTextActive]}>
+            Planes ({planes.length})
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'suscripciones' && styles.tabActive]}
+          onPress={() => setActiveTab('suscripciones')}
+        >
+          <Text style={[styles.tabText, activeTab === 'suscripciones' && styles.tabTextActive]}>
+            Suscripciones ({suscripciones.length})
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView style={styles.content}>
+        {activeTab === 'planes' ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Planes Disponibles</Text>
+            {planes.map((plan) => {
+              const caracteristicas = plan.caracteristicas || {};
+              return (
+                <View key={plan.id} style={styles.planCard}>
+                  <View style={styles.planHeader}>
+                    <Text style={styles.planName}>{plan.nombre}</Text>
+                    <Text style={styles.planPrice}>
+                      {plan.precio_mensual === 0 ? 'Gratis' : `${plan.precio_mensual}€/mes`}
+                    </Text>
+                  </View>
+                  <Text style={{ fontSize: 14, color: colors.textSecondary, marginBottom: 12 }}>
+                    {plan.descripcion}
+                  </Text>
+                  <View style={styles.planFeatures}>
+                    <View style={styles.featureRow}>
+                      <IconSymbol
+                        ios_icon_name={(caracteristicas.eventos_mes || 0) > 0 ? 'checkmark.circle.fill' : 'xmark.circle.fill'}
+                        android_material_icon_name={(caracteristicas.eventos_mes || 0) > 0 ? 'check_circle' : 'cancel'}
+                        size={18}
+                        color={(caracteristicas.eventos_mes || 0) > 0 ? colors.primary : colors.textSecondary}
+                      />
+                      <Text style={styles.featureText}>
+                        {(caracteristicas.eventos_mes || 0) > 0 ? `${caracteristicas.eventos_mes} eventos/mes` : 'Sin eventos'}
+                      </Text>
+                    </View>
+                    <View style={styles.featureRow}>
+                      <IconSymbol
+                        ios_icon_name={caracteristicas.perfil_social ? 'checkmark.circle.fill' : 'xmark.circle.fill'}
+                        android_material_icon_name={caracteristicas.perfil_social ? 'check_circle' : 'cancel'}
+                        size={18}
+                        color={caracteristicas.perfil_social ? colors.primary : colors.textSecondary}
+                      />
+                      <Text style={styles.featureText}>Perfil social</Text>
+                    </View>
+                    <View style={styles.featureRow}>
+                      <IconSymbol
+                        ios_icon_name={caracteristicas.panel_analisis ? 'checkmark.circle.fill' : 'xmark.circle.fill'}
+                        android_material_icon_name={caracteristicas.panel_analisis ? 'check_circle' : 'cancel'}
+                        size={18}
+                        color={caracteristicas.panel_analisis ? colors.primary : colors.textSecondary}
+                      />
+                      <Text style={styles.featureText}>Panel de análisis</Text>
+                    </View>
+                  </View>
+                  <View style={styles.planActions}>
+                    <TouchableOpacity
+                      style={[styles.actionButton, { backgroundColor: colors.primary }]}
+                      onPress={() => abrirModalEditar(plan)}
+                    >
+                      <Text style={styles.actionButtonText}>Editar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.actionButton, { backgroundColor: plan.activo ? '#EF4444' : '#10B981' }]}
+                      onPress={() => togglePlanActivo(plan.id, plan.activo)}
+                    >
+                      <Text style={styles.actionButtonText}>
+                        {plan.activo ? 'Desactivar' : 'Activar'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        ) : (
+          <View style={styles.section}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <Text style={styles.sectionTitle}>Suscripciones Activas</Text>
+              <TouchableOpacity
+                style={[styles.actionButton, { flex: 0, paddingHorizontal: 20 }]}
+                onPress={abrirModalAsignar}
+              >
+                <Text style={styles.actionButtonText}>Asignar Plan</Text>
+              </TouchableOpacity>
+            </View>
+            {suscripciones.length === 0 ? (
+              <View style={styles.emptyState}>
+                <IconSymbol ios_icon_name="doc.text" android_material_icon_name="description" size={64} color={colors.textSecondary} />
+                <Text style={styles.emptyText}>No hay suscripciones activas</Text>
+              </View>
+            ) : (
+              suscripciones.map((sub) => (
+                <View key={sub.id} style={styles.suscripcionCard}>
+                  <View style={styles.suscripcionHeader}>
+                    <View style={styles.suscripcionInfo}>
+                      <Text style={styles.localName}>{sub.local?.nombre || 'Local desconocido'}</Text>
+                      <Text style={styles.propietarioName}>
+                        {sub.propietario?.nombre || 'Propietario desconocido'}
+                      </Text>
+                      <Text style={{ fontSize: 12, color: colors.textSecondary }}>
+                        {sub.local?.provincia || ''}
+                      </Text>
+                    </View>
+                    <View style={styles.planBadge}>
+                      <Text style={styles.planBadgeText}>
+                        {sub.plan?.nombre?.toUpperCase() || 'PLAN'}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.suscripcionStats}>
+                    <View style={styles.statItem}>
+                      <Text style={styles.statLabel}>Eventos usados</Text>
+                      <Text style={styles.statValue}>{sub.eventos_usados_mes || 0}</Text>
+                    </View>
+                    <View style={styles.statItem}>
+                      <Text style={styles.statLabel}>Estado</Text>
+                      <Text style={[styles.statValue, { color: sub.estado === 'activa' ? '#10B981' : '#EF4444' }]}>
+                        {sub.estado}
+                      </Text>
+                    </View>
+                    <View style={styles.statItem}>
+                      <Text style={styles.statLabel}>Precio</Text>
+                      <Text style={styles.statValue}>{sub.plan?.precio_mensual || 0}€/mes</Text>
+                    </View>
+                  </View>
+                  {sub.estado === 'activa' && (
+                    <View style={styles.planActions}>
+                      <TouchableOpacity
+                        style={[styles.actionButton, { backgroundColor: '#EF4444' }]}
+                        onPress={() => cancelarSuscripcion(sub.id)}
+                      >
+                        <Text style={styles.actionButtonText}>Cancelar Suscripción</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+              ))
+            )}
+          </View>
+        )}
+      </ScrollView>
+
+      {/* Edit Plan Modal */}
+      <Modal
+        visible={showEditModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowEditModal(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowEditModal(false)}>
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+            <Text style={styles.modalTitle}>Editar Plan</Text>
+
+            <ScrollView style={styles.modalScrollView}>
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Nombre del Plan</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editNombre}
+                  onChangeText={setEditNombre}
+                  placeholder="Ej: Básico, Estándar, Premium"
+                  placeholderTextColor={colors.textSecondary}
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Descripción</Text>
+                <TextInput
+                  style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+                  value={editDescripcion}
+                  onChangeText={setEditDescripcion}
+                  placeholder="Descripción del plan"
+                  placeholderTextColor={colors.textSecondary}
+                  multiline
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Precio Mensual (€)</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editPrecio}
+                  onChangeText={setEditPrecio}
+                  placeholder="0"
+                  placeholderTextColor={colors.textSecondary}
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Eventos por Mes</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editEventos}
+                  onChangeText={setEditEventos}
+                  placeholder="0"
+                  placeholderTextColor={colors.textSecondary}
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Promos Destacadas</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editPromos}
+                  onChangeText={setEditPromos}
+                  placeholder="0"
+                  placeholderTextColor={colors.textSecondary}
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Características</Text>
+                <View style={styles.switchRow}>
+                  <Text style={styles.switchLabel}>Perfil Social</Text>
+                  <Switch
+                    value={editPerfilSocial}
+                    onValueChange={setEditPerfilSocial}
+                    trackColor={{ false: colors.cardBorder, true: colors.primary }}
+                  />
+                </View>
+                <View style={styles.switchRow}>
+                  <Text style={styles.switchLabel}>Panel de Análisis</Text>
+                  <Switch
+                    value={editPanelAnalisis}
+                    onValueChange={setEditPanelAnalisis}
+                    trackColor={{ false: colors.cardBorder, true: colors.primary }}
+                  />
+                </View>
+                <View style={styles.switchRow}>
+                  <Text style={styles.switchLabel}>Soporte Prioritario</Text>
+                  <Switch
+                    value={editSoportePrioritario}
+                    onValueChange={setEditSoportePrioritario}
+                    trackColor={{ false: colors.cardBorder, true: colors.primary }}
+                  />
+                </View>
+                <View style={styles.switchRow}>
+                  <Text style={styles.switchLabel}>Visibilidad Extra</Text>
+                  <Switch
+                    value={editVisibilidadExtra}
+                    onValueChange={setEditVisibilidadExtra}
+                    trackColor={{ false: colors.cardBorder, true: colors.primary }}
+                  />
+                </View>
+                <View style={styles.switchRow}>
+                  <Text style={styles.switchLabel}>Visibilidad Máxima</Text>
+                  <Switch
+                    value={editVisibilidadMaxima}
+                    onValueChange={setEditVisibilidadMaxima}
+                    trackColor={{ false: colors.cardBorder, true: colors.primary }}
+                  />
+                </View>
+              </View>
+            </ScrollView>
+
+            <TouchableOpacity
+              style={[
+                styles.assignButton,
+                saving && styles.assignButtonDisabled,
+              ]}
+              onPress={guardarPlan}
+              disabled={saving}
+            >
+              {saving ? (
+                <ActivityIndicator color={colors.headerText} />
+              ) : (
+                <Text style={styles.assignButtonText}>Guardar Cambios</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.modalCancel} onPress={() => setShowEditModal(false)}>
+              <Text style={styles.modalCancelText}>Cancelar</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Assign Plan Modal */}
+      <Modal
+        visible={showAssignModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowAssignModal(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowAssignModal(false)}>
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+            <Text style={styles.modalTitle}>Asignar Plan a Local</Text>
+
+            <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text, marginBottom: 8 }}>
+              Seleccionar Local
+            </Text>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Buscar local..."
+              placeholderTextColor={colors.textSecondary}
+              value={localSearch}
+              onChangeText={setLocalSearch}
+            />
+
+            {loadingLocales ? (
+              <View style={{ padding: 20, alignItems: 'center' }}>
+                <ActivityIndicator size="small" color={colors.primary} />
+              </View>
+            ) : (
+              <ScrollView style={styles.modalScrollView}>
+                {localesFiltrados.map((local) => (
+                  <TouchableOpacity
+                    key={local.id}
+                    style={[
+                      styles.localItem,
+                      selectedLocal === local.id && styles.localItemSelected,
+                    ]}
+                    onPress={() => setSelectedLocal(local.id)}
+                  >
+                    <Text style={styles.localNombre}>{local.nombre}</Text>
+                    <Text style={styles.localProvincia}>{local.provincia}</Text>
+                  </TouchableOpacity>
+                ))}
+                {localesFiltrados.length === 0 && (
+                  <Text style={styles.emptyText}>No se encontraron locales</Text>
+                )}
+              </ScrollView>
+            )}
+
+            <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text, marginTop: 16, marginBottom: 8 }}>
+              Seleccionar Plan
+            </Text>
+            <View style={styles.planSelector}>
+              {planes.filter(p => p.activo).map((plan) => (
+                <TouchableOpacity
+                  key={plan.id}
+                  style={[
+                    styles.planOption,
+                    selectedPlan === plan.id && styles.planOptionSelected,
+                  ]}
+                  onPress={() => setSelectedPlan(plan.id)}
+                >
+                  <Text style={styles.planOptionName}>{plan.nombre}</Text>
+                  <Text style={styles.planOptionPrice}>
+                    {plan.precio_mensual === 0 ? 'Gratis' : `${plan.precio_mensual}€/mes`}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.assignButton,
+                (!selectedLocal || !selectedPlan || assigning) && styles.assignButtonDisabled,
+              ]}
+              onPress={asignarPlanManual}
+              disabled={!selectedLocal || !selectedPlan || assigning}
+            >
+              {assigning ? (
+                <ActivityIndicator color={colors.headerText} />
+              ) : (
+                <Text style={styles.assignButtonText}>Asignar Plan</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.modalCancel} onPress={() => setShowAssignModal(false)}>
+              <Text style={styles.modalCancelText}>Cancelar</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -397,726 +1125,3 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 });
-
-export default function GestionarPlanesScreen() {
-  const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'planes' | 'suscripciones'>('planes');
-  const [loading, setLoading] = useState(true);
-  const [planes, setPlanes] = useState<Plan[]>([]);
-  const [suscripciones, setSuscripciones] = useState<Suscripcion[]>([]);
-  const [showAssignModal, setShowAssignModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
-  const [locales, setLocales] = useState<Local[]>([]);
-  const [localSearch, setLocalSearch] = useState('');
-  const [selectedLocal, setSelectedLocal] = useState<string | null>(null);
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
-  const [loadingLocales, setLoadingLocales] = useState(false);
-  const [assigning, setAssigning] = useState(false);
-  const [saving, setSaving] = useState(false);
-
-  // Edit form state
-  const [editNombre, setEditNombre] = useState('');
-  const [editDescripcion, setEditDescripcion] = useState('');
-  const [editPrecio, setEditPrecio] = useState('');
-  const [editEventos, setEditEventos] = useState('');
-  const [editPromos, setEditPromos] = useState('');
-  const [editPerfilSocial, setEditPerfilSocial] = useState(false);
-  const [editPanelAnalisis, setEditPanelAnalisis] = useState(false);
-  const [editSoportePrioritario, setEditSoportePrioritario] = useState(false);
-  const [editVisibilidadExtra, setEditVisibilidadExtra] = useState(false);
-  const [editVisibilidadMaxima, setEditVisibilidadMaxima] = useState(false);
-
-  const cargarPlanes = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from('planes_suscripcion')
-        .select('*')
-        .order('precio_mensual', { ascending: true });
-
-      if (error) throw error;
-
-      setPlanes(data || []);
-    } catch (error) {
-      console.error('[GestionarPlanes] Error loading plans:', error);
-      Alert.alert('Error', 'No se pudieron cargar los planes');
-    }
-  }, []);
-
-  const cargarSuscripciones = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from('suscripciones_locales')
-        .select(`
-          *,
-          locales (nombre, provincia),
-          usuarios (nombre, email),
-          planes_suscripcion (nombre, precio_mensual)
-        `)
-        .order('fecha_inicio', { ascending: false });
-
-      if (error) throw error;
-
-      const formattedData = (data || []).map((sub: any) => ({
-        ...sub,
-        local: sub.locales,
-        propietario: sub.usuarios,
-        plan: sub.planes_suscripcion,
-      }));
-
-      setSuscripciones(formattedData);
-    } catch (error) {
-      console.error('[GestionarPlanes] Error loading subscriptions:', error);
-      Alert.alert('Error', 'No se pudieron cargar las suscripciones');
-    }
-  }, []);
-
-  const cargarLocales = useCallback(async () => {
-    try {
-      setLoadingLocales(true);
-      const { data, error } = await supabase
-        .from('locales')
-        .select('id, nombre, provincia, propietario_id')
-        .eq('activo', true)
-        .not('propietario_id', 'is', null)
-        .order('nombre');
-
-      if (error) throw error;
-
-      setLocales(data || []);
-    } catch (error) {
-      console.error('[GestionarPlanes] Error loading locales:', error);
-      Alert.alert('Error', 'No se pudieron cargar los locales');
-    } finally {
-      setLoadingLocales(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      await Promise.all([cargarPlanes(), cargarSuscripciones()]);
-      setLoading(false);
-    };
-    loadData();
-  }, [cargarPlanes, cargarSuscripciones]);
-
-  const togglePlanActivo = async (planId: string, activo: boolean) => {
-    try {
-      const { error } = await supabase
-        .from('planes_suscripcion')
-        .update({ activo: !activo })
-        .eq('id', planId);
-
-      if (error) throw error;
-
-      Alert.alert('Éxito', `Plan ${!activo ? 'activado' : 'desactivado'} correctamente`);
-      cargarPlanes();
-    } catch (error) {
-      console.error('[GestionarPlanes] Error toggling plan:', error);
-      Alert.alert('Error', 'No se pudo actualizar el plan');
-    }
-  };
-
-  const abrirModalAsignar = async () => {
-    setSelectedLocal(null);
-    setSelectedPlan(null);
-    setLocalSearch('');
-    await cargarLocales();
-    setShowAssignModal(true);
-  };
-
-  const abrirModalEditar = (plan: Plan) => {
-    setEditingPlan(plan);
-    setEditNombre(plan.nombre);
-    setEditDescripcion(plan.descripcion);
-    setEditPrecio(plan.precio_mensual.toString());
-    setEditEventos(plan.eventos_mes.toString());
-    setEditPromos(plan.promos_destacadas.toString());
-    setEditPerfilSocial(plan.perfil_social);
-    setEditPanelAnalisis(plan.panel_analisis);
-    setEditSoportePrioritario(plan.soporte_prioritario);
-    setEditVisibilidadExtra(plan.visibilidad_extra);
-    setEditVisibilidadMaxima(plan.visibilidad_maxima);
-    setShowEditModal(true);
-  };
-
-  const guardarPlan = async () => {
-    if (!editingPlan) return;
-
-    if (!editNombre.trim() || !editDescripcion.trim()) {
-      Alert.alert('Error', 'El nombre y la descripción son obligatorios');
-      return;
-    }
-
-    const precio = parseFloat(editPrecio);
-    const eventos = parseInt(editEventos);
-    const promos = parseInt(editPromos);
-
-    if (isNaN(precio) || precio < 0) {
-      Alert.alert('Error', 'El precio debe ser un número válido');
-      return;
-    }
-
-    if (isNaN(eventos) || eventos < 0) {
-      Alert.alert('Error', 'Los eventos deben ser un número válido');
-      return;
-    }
-
-    if (isNaN(promos) || promos < 0) {
-      Alert.alert('Error', 'Las promos deben ser un número válido');
-      return;
-    }
-
-    try {
-      setSaving(true);
-
-      const { error } = await supabase
-        .from('planes_suscripcion')
-        .update({
-          nombre: editNombre.trim(),
-          descripcion: editDescripcion.trim(),
-          precio_mensual: precio,
-          eventos_mes: eventos,
-          promos_destacadas: promos,
-          perfil_social: editPerfilSocial,
-          panel_analisis: editPanelAnalisis,
-          soporte_prioritario: editSoportePrioritario,
-          visibilidad_extra: editVisibilidadExtra,
-          visibilidad_maxima: editVisibilidadMaxima,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', editingPlan.id);
-
-      if (error) throw error;
-
-      Alert.alert('Éxito', 'Plan actualizado correctamente');
-      setShowEditModal(false);
-      setEditingPlan(null);
-      cargarPlanes();
-    } catch (error) {
-      console.error('[GestionarPlanes] Error saving plan:', error);
-      Alert.alert('Error', 'No se pudo guardar el plan');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const asignarPlanManual = async () => {
-    if (!selectedLocal || !selectedPlan) {
-      Alert.alert('Error', 'Debes seleccionar un local y un plan');
-      return;
-    }
-
-    try {
-      setAssigning(true);
-
-      const local = locales.find(l => l.id === selectedLocal);
-      if (!local || !local.propietario_id) {
-        Alert.alert('Error', 'El local seleccionado no tiene propietario asignado');
-        return;
-      }
-
-      const { data: existingSub, error: checkError } = await supabase
-        .from('suscripciones_locales')
-        .select('id')
-        .eq('local_id', selectedLocal)
-        .maybeSingle();
-
-      if (checkError && checkError.code !== 'PGRST116') {
-        throw checkError;
-      }
-
-      if (existingSub) {
-        const { error: updateError } = await supabase
-          .from('suscripciones_locales')
-          .update({
-            plan_id: selectedPlan,
-            estado: 'activa',
-            fecha_inicio: new Date().toISOString(),
-            eventos_usados_mes: 0,
-            promos_usadas_mes: 0,
-            ultimo_reset_contador: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', existingSub.id);
-
-        if (updateError) throw updateError;
-      } else {
-        const { error: insertError } = await supabase
-          .from('suscripciones_locales')
-          .insert({
-            local_id: selectedLocal,
-            propietario_id: local.propietario_id,
-            plan_id: selectedPlan,
-            estado: 'activa',
-            fecha_inicio: new Date().toISOString(),
-            eventos_usados_mes: 0,
-            promos_usadas_mes: 0,
-            ultimo_reset_contador: new Date().toISOString(),
-          });
-
-        if (insertError) throw insertError;
-      }
-
-      Alert.alert('Éxito', 'Plan asignado correctamente al local');
-      setShowAssignModal(false);
-      cargarSuscripciones();
-    } catch (error) {
-      console.error('[GestionarPlanes] Error assigning plan:', error);
-      Alert.alert('Error', 'No se pudo asignar el plan');
-    } finally {
-      setAssigning(false);
-    }
-  };
-
-  const cancelarSuscripcion = async (suscripcionId: string) => {
-    Alert.alert(
-      'Cancelar Suscripción',
-      '¿Estás seguro de que quieres cancelar esta suscripción?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Confirmar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const { error } = await supabase
-                .from('suscripciones_locales')
-                .update({
-                  estado: 'cancelada',
-                  fecha_fin: new Date().toISOString(),
-                  updated_at: new Date().toISOString(),
-                })
-                .eq('id', suscripcionId);
-
-              if (error) throw error;
-
-              Alert.alert('Éxito', 'Suscripción cancelada correctamente');
-              cargarSuscripciones();
-            } catch (error) {
-              console.error('[GestionarPlanes] Error canceling subscription:', error);
-              Alert.alert('Error', 'No se pudo cancelar la suscripción');
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const localesFiltrados = locales.filter(local => {
-    if (!localSearch) return true;
-    return local.nombre.toLowerCase().includes(localSearch.toLowerCase()) ||
-           local.provincia.toLowerCase().includes(localSearch.toLowerCase());
-  });
-
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <LinearGradient
-          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-          style={styles.header}
-        >
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Gestionar Planes</Text>
-        </LinearGradient>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-        style={styles.header}
-      >
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Gestionar Planes</Text>
-      </LinearGradient>
-
-      <View style={styles.tabsContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'planes' && styles.tabActive]}
-          onPress={() => setActiveTab('planes')}
-        >
-          <Text style={[styles.tabText, activeTab === 'planes' && styles.tabTextActive]}>
-            Planes ({planes.length})
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'suscripciones' && styles.tabActive]}
-          onPress={() => setActiveTab('suscripciones')}
-        >
-          <Text style={[styles.tabText, activeTab === 'suscripciones' && styles.tabTextActive]}>
-            Suscripciones ({suscripciones.length})
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView style={styles.content}>
-        {activeTab === 'planes' ? (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Planes Disponibles</Text>
-            {planes.map((plan) => (
-              <View key={plan.id} style={styles.planCard}>
-                <View style={styles.planHeader}>
-                  <Text style={styles.planName}>{plan.nombre}</Text>
-                  <Text style={styles.planPrice}>
-                    {plan.precio_mensual === 0 ? 'Gratis' : `${plan.precio_mensual}€/mes`}
-                  </Text>
-                </View>
-                <Text style={{ fontSize: 14, color: colors.textSecondary, marginBottom: 12 }}>
-                  {plan.descripcion}
-                </Text>
-                <View style={styles.planFeatures}>
-                  <View style={styles.featureRow}>
-                    <IconSymbol
-                      name={plan.eventos_mes > 0 ? 'checkmark.circle.fill' : 'xmark.circle.fill'}
-                      size={18}
-                      color={plan.eventos_mes > 0 ? colors.primary : colors.textSecondary}
-                    />
-                    <Text style={styles.featureText}>
-                      {plan.eventos_mes > 0 ? `${plan.eventos_mes} eventos/mes` : 'Sin eventos'}
-                    </Text>
-                  </View>
-                  <View style={styles.featureRow}>
-                    <IconSymbol
-                      name={plan.perfil_social ? 'checkmark.circle.fill' : 'xmark.circle.fill'}
-                      size={18}
-                      color={plan.perfil_social ? colors.primary : colors.textSecondary}
-                    />
-                    <Text style={styles.featureText}>Perfil social</Text>
-                  </View>
-                  <View style={styles.featureRow}>
-                    <IconSymbol
-                      name={plan.panel_analisis ? 'checkmark.circle.fill' : 'xmark.circle.fill'}
-                      size={18}
-                      color={plan.panel_analisis ? colors.primary : colors.textSecondary}
-                    />
-                    <Text style={styles.featureText}>Panel de análisis</Text>
-                  </View>
-                </View>
-                <View style={styles.planActions}>
-                  <TouchableOpacity
-                    style={[styles.actionButton, { backgroundColor: colors.primary }]}
-                    onPress={() => abrirModalEditar(plan)}
-                  >
-                    <Text style={styles.actionButtonText}>Editar</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.actionButton, { backgroundColor: plan.activo ? '#EF4444' : '#10B981' }]}
-                    onPress={() => togglePlanActivo(plan.id, plan.activo)}
-                  >
-                    <Text style={styles.actionButtonText}>
-                      {plan.activo ? 'Desactivar' : 'Activar'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ))}
-          </View>
-        ) : (
-          <View style={styles.section}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <Text style={styles.sectionTitle}>Suscripciones Activas</Text>
-              <TouchableOpacity
-                style={[styles.actionButton, { flex: 0, paddingHorizontal: 20 }]}
-                onPress={abrirModalAsignar}
-              >
-                <Text style={styles.actionButtonText}>Asignar Plan</Text>
-              </TouchableOpacity>
-            </View>
-            {suscripciones.length === 0 ? (
-              <View style={styles.emptyState}>
-                <IconSymbol name="doc.text" size={64} color={colors.textSecondary} />
-                <Text style={styles.emptyText}>No hay suscripciones activas</Text>
-              </View>
-            ) : (
-              suscripciones.map((sub) => (
-                <View key={sub.id} style={styles.suscripcionCard}>
-                  <View style={styles.suscripcionHeader}>
-                    <View style={styles.suscripcionInfo}>
-                      <Text style={styles.localName}>{sub.local?.nombre || 'Local desconocido'}</Text>
-                      <Text style={styles.propietarioName}>
-                        {sub.propietario?.nombre || 'Propietario desconocido'}
-                      </Text>
-                      <Text style={{ fontSize: 12, color: colors.textSecondary }}>
-                        {sub.local?.provincia || ''}
-                      </Text>
-                    </View>
-                    <View style={styles.planBadge}>
-                      <Text style={styles.planBadgeText}>
-                        {sub.plan?.nombre?.toUpperCase() || 'PLAN'}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.suscripcionStats}>
-                    <View style={styles.statItem}>
-                      <Text style={styles.statLabel}>Eventos usados</Text>
-                      <Text style={styles.statValue}>{sub.eventos_usados_mes}</Text>
-                    </View>
-                    <View style={styles.statItem}>
-                      <Text style={styles.statLabel}>Estado</Text>
-                      <Text style={[styles.statValue, { color: sub.estado === 'activa' ? '#10B981' : '#EF4444' }]}>
-                        {sub.estado}
-                      </Text>
-                    </View>
-                    <View style={styles.statItem}>
-                      <Text style={styles.statLabel}>Precio</Text>
-                      <Text style={styles.statValue}>{sub.plan?.precio_mensual || 0}€/mes</Text>
-                    </View>
-                  </View>
-                  {sub.estado === 'activa' && (
-                    <View style={styles.planActions}>
-                      <TouchableOpacity
-                        style={[styles.actionButton, { backgroundColor: '#EF4444' }]}
-                        onPress={() => cancelarSuscripcion(sub.id)}
-                      >
-                        <Text style={styles.actionButtonText}>Cancelar Suscripción</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </View>
-              ))
-            )}
-          </View>
-        )}
-      </ScrollView>
-
-      {/* Edit Plan Modal */}
-      <Modal
-        visible={showEditModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowEditModal(false)}
-      >
-        <Pressable style={styles.modalOverlay} onPress={() => setShowEditModal(false)}>
-          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
-            <Text style={styles.modalTitle}>Editar Plan</Text>
-
-            <ScrollView style={styles.modalScrollView}>
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Nombre del Plan</Text>
-                <TextInput
-                  style={styles.input}
-                  value={editNombre}
-                  onChangeText={setEditNombre}
-                  placeholder="Ej: Básico, Estándar, Premium"
-                  placeholderTextColor={colors.textSecondary}
-                />
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Descripción</Text>
-                <TextInput
-                  style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
-                  value={editDescripcion}
-                  onChangeText={setEditDescripcion}
-                  placeholder="Descripción del plan"
-                  placeholderTextColor={colors.textSecondary}
-                  multiline
-                />
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Precio Mensual (€)</Text>
-                <TextInput
-                  style={styles.input}
-                  value={editPrecio}
-                  onChangeText={setEditPrecio}
-                  placeholder="0"
-                  placeholderTextColor={colors.textSecondary}
-                  keyboardType="numeric"
-                />
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Eventos por Mes</Text>
-                <TextInput
-                  style={styles.input}
-                  value={editEventos}
-                  onChangeText={setEditEventos}
-                  placeholder="0"
-                  placeholderTextColor={colors.textSecondary}
-                  keyboardType="numeric"
-                />
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Promos Destacadas</Text>
-                <TextInput
-                  style={styles.input}
-                  value={editPromos}
-                  onChangeText={setEditPromos}
-                  placeholder="0"
-                  placeholderTextColor={colors.textSecondary}
-                  keyboardType="numeric"
-                />
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Características</Text>
-                <View style={styles.switchRow}>
-                  <Text style={styles.switchLabel}>Perfil Social</Text>
-                  <Switch
-                    value={editPerfilSocial}
-                    onValueChange={setEditPerfilSocial}
-                    trackColor={{ false: colors.cardBorder, true: colors.primary }}
-                  />
-                </View>
-                <View style={styles.switchRow}>
-                  <Text style={styles.switchLabel}>Panel de Análisis</Text>
-                  <Switch
-                    value={editPanelAnalisis}
-                    onValueChange={setEditPanelAnalisis}
-                    trackColor={{ false: colors.cardBorder, true: colors.primary }}
-                  />
-                </View>
-                <View style={styles.switchRow}>
-                  <Text style={styles.switchLabel}>Soporte Prioritario</Text>
-                  <Switch
-                    value={editSoportePrioritario}
-                    onValueChange={setEditSoportePrioritario}
-                    trackColor={{ false: colors.cardBorder, true: colors.primary }}
-                  />
-                </View>
-                <View style={styles.switchRow}>
-                  <Text style={styles.switchLabel}>Visibilidad Extra</Text>
-                  <Switch
-                    value={editVisibilidadExtra}
-                    onValueChange={setEditVisibilidadExtra}
-                    trackColor={{ false: colors.cardBorder, true: colors.primary }}
-                  />
-                </View>
-                <View style={styles.switchRow}>
-                  <Text style={styles.switchLabel}>Visibilidad Máxima</Text>
-                  <Switch
-                    value={editVisibilidadMaxima}
-                    onValueChange={setEditVisibilidadMaxima}
-                    trackColor={{ false: colors.cardBorder, true: colors.primary }}
-                  />
-                </View>
-              </View>
-            </ScrollView>
-
-            <TouchableOpacity
-              style={[
-                styles.assignButton,
-                saving && styles.assignButtonDisabled,
-              ]}
-              onPress={guardarPlan}
-              disabled={saving}
-            >
-              {saving ? (
-                <ActivityIndicator color={colors.headerText} />
-              ) : (
-                <Text style={styles.assignButtonText}>Guardar Cambios</Text>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.modalCancel} onPress={() => setShowEditModal(false)}>
-              <Text style={styles.modalCancelText}>Cancelar</Text>
-            </TouchableOpacity>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-      {/* Assign Plan Modal */}
-      <Modal
-        visible={showAssignModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowAssignModal(false)}
-      >
-        <Pressable style={styles.modalOverlay} onPress={() => setShowAssignModal(false)}>
-          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
-            <Text style={styles.modalTitle}>Asignar Plan a Local</Text>
-
-            <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text, marginBottom: 8 }}>
-              Seleccionar Local
-            </Text>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Buscar local..."
-              placeholderTextColor={colors.textSecondary}
-              value={localSearch}
-              onChangeText={setLocalSearch}
-            />
-
-            {loadingLocales ? (
-              <View style={{ padding: 20, alignItems: 'center' }}>
-                <ActivityIndicator size="small" color={colors.primary} />
-              </View>
-            ) : (
-              <ScrollView style={styles.modalScrollView}>
-                {localesFiltrados.map((local) => (
-                  <TouchableOpacity
-                    key={local.id}
-                    style={[
-                      styles.localItem,
-                      selectedLocal === local.id && styles.localItemSelected,
-                    ]}
-                    onPress={() => setSelectedLocal(local.id)}
-                  >
-                    <Text style={styles.localNombre}>{local.nombre}</Text>
-                    <Text style={styles.localProvincia}>{local.provincia}</Text>
-                  </TouchableOpacity>
-                ))}
-                {localesFiltrados.length === 0 && (
-                  <Text style={styles.emptyText}>No se encontraron locales</Text>
-                )}
-              </ScrollView>
-            )}
-
-            <Text style={{ fontSize: 14, fontWeight: '600', color: colors.text, marginTop: 16, marginBottom: 8 }}>
-              Seleccionar Plan
-            </Text>
-            <View style={styles.planSelector}>
-              {planes.filter(p => p.activo).map((plan) => (
-                <TouchableOpacity
-                  key={plan.id}
-                  style={[
-                    styles.planOption,
-                    selectedPlan === plan.id && styles.planOptionSelected,
-                  ]}
-                  onPress={() => setSelectedPlan(plan.id)}
-                >
-                  <Text style={styles.planOptionName}>{plan.nombre}</Text>
-                  <Text style={styles.planOptionPrice}>
-                    {plan.precio_mensual === 0 ? 'Gratis' : `${plan.precio_mensual}€/mes`}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <TouchableOpacity
-              style={[
-                styles.assignButton,
-                (!selectedLocal || !selectedPlan || assigning) && styles.assignButtonDisabled,
-              ]}
-              onPress={asignarPlanManual}
-              disabled={!selectedLocal || !selectedPlan || assigning}
-            >
-              {assigning ? (
-                <ActivityIndicator color={colors.headerText} />
-              ) : (
-                <Text style={styles.assignButtonText}>Asignar Plan</Text>
-              )}
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.modalCancel} onPress={() => setShowAssignModal(false)}>
-              <Text style={styles.modalCancelText}>Cancelar</Text>
-            </TouchableOpacity>
-          </Pressable>
-        </Pressable>
-      </Modal>
-    </View>
-  );
-}
