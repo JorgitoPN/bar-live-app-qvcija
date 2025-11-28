@@ -44,10 +44,9 @@ interface Suscripcion {
   usuario_id: string;
   plan_id: string;
   estado: string;
-  fecha_inicio: string;
+  fecha_inicio?: string;
   fecha_fin?: string;
-  eventos_usados_mes?: number;
-  promos_usadas_mes?: number;
+  created_at: string;
   locales?: {
     nombre: string;
     provincia: string;
@@ -107,15 +106,13 @@ export default function GestionarPlanesScreen() {
 
       if (error) throw error;
 
-      // ✅ FIXED: Parse caracteristicas properly
+      // ✅ FIXED: Parse caracteristicas properly from JSONB
       const planesFormateados = (data || []).map((plan: any) => {
         let caracteristicas: PlanCaracteristicas = {};
         
-        // Handle both array and object formats
-        if (plan.caracteristicas) {
-          if (typeof plan.caracteristicas === 'object' && !Array.isArray(plan.caracteristicas)) {
-            caracteristicas = plan.caracteristicas;
-          }
+        // Handle JSONB object format
+        if (plan.caracteristicas && typeof plan.caracteristicas === 'object') {
+          caracteristicas = plan.caracteristicas;
         }
         
         return {
@@ -304,6 +301,7 @@ export default function GestionarPlanesScreen() {
     try {
       setSaving(true);
 
+      // ✅ FIXED: Store caracteristicas as JSONB object
       const { error } = await supabase
         .from('planes_suscripcion')
         .update({
@@ -353,6 +351,7 @@ export default function GestionarPlanesScreen() {
         return;
       }
 
+      // ✅ FIXED: Check for existing subscription
       const { data: existingSub, error: checkError } = await supabase
         .from('suscripciones_locales')
         .select('id')
@@ -364,6 +363,7 @@ export default function GestionarPlanesScreen() {
       }
 
       if (existingSub) {
+        // Update existing subscription
         const { error: updateError } = await supabase
           .from('suscripciones_locales')
           .update({
@@ -375,6 +375,7 @@ export default function GestionarPlanesScreen() {
 
         if (updateError) throw updateError;
       } else {
+        // Create new subscription
         const { error: insertError } = await supabase
           .from('suscripciones_locales')
           .insert({
@@ -598,10 +599,6 @@ export default function GestionarPlanesScreen() {
                     </View>
                   </View>
                   <View style={styles.suscripcionStats}>
-                    <View style={styles.statItem}>
-                      <Text style={styles.statLabel}>Eventos usados</Text>
-                      <Text style={styles.statValue}>{sub.eventos_usados_mes || 0}</Text>
-                    </View>
                     <View style={styles.statItem}>
                       <Text style={styles.statLabel}>Estado</Text>
                       <Text style={[styles.statValue, { color: sub.estado === 'activa' ? '#10B981' : '#EF4444' }]}>
