@@ -276,6 +276,7 @@ function UnifiedStoryViewer({
   const [loadingStats, setLoadingStats] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
   
   const isPausedRef = useRef<boolean>(false);
   
@@ -343,9 +344,12 @@ function UnifiedStoryViewer({
 
   // ✅ FIXED: Proper cleanup function that resets to background properly
   const cleanupAndClose = useCallback(() => {
-    console.log('[UnifiedStoryViewer] 🧹 Cleaning up before close');
+    if (isClosing) return; // Prevent double-close
     
-    // Reset all state
+    console.log('[UnifiedStoryViewer] 🧹 Cleaning up before close');
+    setIsClosing(true);
+    
+    // Reset all state immediately
     setCurrentStoryIndex(initialStoryIndex);
     setImageLoaded(false);
     setIsPaused(false);
@@ -353,11 +357,13 @@ function UnifiedStoryViewer({
     setStoryMessage('');
     setShowStoryStats(false);
     
-    // Small delay to ensure state is reset before closing
-    setTimeout(() => {
+    // Use requestAnimationFrame to ensure state is reset before closing
+    requestAnimationFrame(() => {
       onClose();
-    }, 50);
-  }, [initialStoryIndex, onClose]);
+      // Reset closing flag after a delay
+      setTimeout(() => setIsClosing(false), 300);
+    });
+  }, [initialStoryIndex, onClose, isClosing]);
 
   const handleNextStory = useCallback(() => {
     // ✅ FIXED: Mark story as viewed BEFORE moving to next
@@ -464,7 +470,7 @@ function UnifiedStoryViewer({
         `)
         .eq('historia_id', currentStory.id)
         .neq('usuario_id', user.id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false});
 
       if (likesError) throw likesError;
 
@@ -786,6 +792,7 @@ function UnifiedStoryViewer({
       setIsPaused(false);
       isPausedRef.current = false;
       setImageLoaded(false);
+      setIsClosing(false);
     } else {
       // ✅ FIXED: Cleanup when modal closes
       setIsPaused(false);
@@ -822,7 +829,7 @@ function UnifiedStoryViewer({
   return (
     <Modal
       visible={visible}
-      animationType="none"
+      animationType="fade"
       onRequestClose={cleanupAndClose}
       statusBarTranslucent
       hardwareAccelerated={true}
@@ -1014,8 +1021,6 @@ function UnifiedStoryViewer({
               </TouchableOpacity>
             </BlurView>
           )}
-
-          {/* ✅ NO PAUSE ICON - as requested */}
 
           <StoryStatsModal
             visible={showStoryStats}
