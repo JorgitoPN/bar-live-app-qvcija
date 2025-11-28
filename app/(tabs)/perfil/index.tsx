@@ -374,7 +374,7 @@ export default function PerfilScreen() {
       
       const { data: userStoriesData, error } = await supabase
         .from('historias')
-        .select('id, autor_id, tipo, imagen, created_at, expires_at, visto')
+        .select('id, autor_id, tipo, imagen, created_at, expires_at')
         .eq('autor_id', user.id)
         .eq('tipo', 'usuario')
         .gt('expires_at', new Date().toISOString())
