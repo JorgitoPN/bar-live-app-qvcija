@@ -93,6 +93,8 @@ export default function RecuperarPasswordScreen() {
       const code = Math.floor(100000 + Math.random() * 900000).toString();
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
+      console.log('[RecuperarPassword] Código generado:', code);
+
       // Store verification code in database
       const { error: updateError } = await supabase
         .from('usuarios')
@@ -109,8 +111,12 @@ export default function RecuperarPasswordScreen() {
         return;
       }
 
+      console.log('[RecuperarPassword] Código almacenado en la base de datos');
+
       // Send verification code via email
-      const { error: emailError } = await supabase.functions.invoke(
+      console.log('[RecuperarPassword] Enviando correo electrónico...');
+      
+      const { data: emailData, error: emailError } = await supabase.functions.invoke(
         'send-verification-email',
         {
           body: {
@@ -121,11 +127,33 @@ export default function RecuperarPasswordScreen() {
         }
       );
 
+      console.log('[RecuperarPassword] Respuesta del Edge Function:', { emailData, emailError });
+
       if (emailError) {
         console.error('[RecuperarPassword] Error sending email:', emailError);
+        
+        // Email failed - show code to user as fallback
+        let errorTitle = 'Código generado';
+        let errorMessage = 'El servicio de correo no está disponible temporalmente. Por favor, usa el código que aparece a continuación para continuar.';
+        
+        // Try to parse error details from the response
+        if (emailError.message) {
+          console.error('[RecuperarPassword] Error message:', emailError.message);
+          
+          // Check for specific error types
+          if (emailError.message.includes('Domain') || emailError.message.includes('domain') || emailError.message.includes('403')) {
+            errorTitle = '📧 Servicio de correo en configuración';
+            errorMessage = 'El dominio de correo está siendo verificado. Mientras tanto, usa el código que aparece a continuación.';
+          } else if (emailError.message.includes('API key') || emailError.message.includes('401')) {
+            errorTitle = '⚙️ Servicio de correo no disponible';
+            errorMessage = 'El servicio de correo no está disponible temporalmente. Por favor, usa el código que aparece a continuación.';
+          }
+        }
+        
+        // Show alert with the verification code
         Alert.alert(
-          'Advertencia',
-          `Código generado pero hubo un problema al enviar el correo. Tu código es: ${code}`,
+          errorTitle,
+          `${errorMessage}\n\n📋 Tu código de verificación es:\n\n${code}\n\n⏱️ Este código expirará en 10 minutos.\n\n💡 Consejo: Anota este código antes de continuar.`,
           [
             {
               text: 'Continuar',
@@ -135,6 +163,7 @@ export default function RecuperarPasswordScreen() {
                   params: { email: normalizedEmail },
                 });
               },
+              style: 'default',
             },
           ]
         );
@@ -142,11 +171,49 @@ export default function RecuperarPasswordScreen() {
         return;
       }
 
-      console.log('[RecuperarPassword] ✅ Verification code sent');
+      // Check if the response contains an error even if emailError is null
+      // This handles cases where the Edge Function returns a non-2xx status
+      if (emailData && emailData.error) {
+        console.error('[RecuperarPassword] Edge Function returned error:', emailData);
+        
+        let errorTitle = '📧 Código generado';
+        let errorMessage = 'El servicio de correo no está disponible. Usa el código que aparece a continuación.';
+        
+        // Check for specific error types in the response data
+        if (emailData.status === 403 || (emailData.details && emailData.details.includes('Domain'))) {
+          errorTitle = '📧 Servicio de correo en configuración';
+          errorMessage = 'El dominio de correo está siendo verificado en Resend. Mientras tanto, usa el código que aparece a continuación.';
+        } else if (emailData.status === 401) {
+          errorTitle = '⚙️ Servicio de correo no disponible';
+          errorMessage = 'La configuración del servicio de correo necesita actualización. Usa el código que aparece a continuación.';
+        }
+        
+        Alert.alert(
+          errorTitle,
+          `${errorMessage}\n\n📋 Tu código de verificación es:\n\n${code}\n\n⏱️ Este código expirará en 10 minutos.\n\n💡 Consejo: Anota este código antes de continuar.`,
+          [
+            {
+              text: 'Continuar',
+              onPress: () => {
+                router.push({
+                  pathname: '/auth/verificar-codigo-password',
+                  params: { email: normalizedEmail },
+                });
+              },
+              style: 'default',
+            },
+          ]
+        );
+        setLoading(false);
+        return;
+      }
+
+      console.log('[RecuperarPassword] ✅ Código de verificación enviado exitosamente');
       
+      // Email sent successfully
       Alert.alert(
-        'Código enviado',
-        'Hemos enviado un código de verificación a tu correo electrónico. Por favor, revisa tu bandeja de entrada.',
+        '✅ Código enviado',
+        'Hemos enviado un código de verificación a tu correo electrónico. Por favor, revisa tu bandeja de entrada (y la carpeta de spam).',
         [
           {
             text: 'Continuar',
