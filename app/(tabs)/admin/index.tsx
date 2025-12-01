@@ -6,277 +6,211 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { colors, commonStyles } from '@/styles/commonStyles';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
-import { isSupabaseConfigured } from '@/utils/supabase';
+import { colors } from '@/styles/commonStyles';
 import { useAuth } from '@/contexts/AuthContext';
-
-interface MenuItem {
-  icon: string;
-  title: string;
-  description: string;
-  route: string;
-  badge?: string;
-  badgeColor?: string;
-  requiresSupabase?: boolean;
-}
 
 export default function AdminScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const supabaseConfigured = isSupabaseConfigured();
 
-  // If not admin, don't render anything (layout will handle redirect)
-  if (!user || user.rol_app !== 'admin') {
-    return null;
-  }
-
-  const handleMenuPress = (item: MenuItem) => {
-    if (item.requiresSupabase && !supabaseConfigured) {
-      Alert.alert(
-        'Configuración Requerida',
-        'Esta funcionalidad requiere que Supabase esté configurado. ¿Deseas ver las instrucciones de configuración?',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Ver Instrucciones',
-            onPress: () => router.push('/admin/configuracion-supabase' as any),
-          },
-        ]
-      );
-      return;
-    }
-    router.push(item.route as any);
-  };
-
-  const navegacionSection: MenuItem[] = [
+  const adminSections = [
     {
-      icon: 'map.fill',
-      title: 'Navegación de Páginas',
-      description: 'Ver todas las páginas de BarLive',
-      route: '/admin/navegacion-paginas',
+      title: 'Gestión de Contenido',
+      items: [
+        {
+          icon: 'building.2.fill',
+          androidIcon: 'store',
+          label: 'Gestionar Locales',
+          route: '/admin/gestionar-locales',
+          color: '#14B8A6',
+        },
+        {
+          icon: 'calendar',
+          androidIcon: 'event',
+          label: 'Gestionar Eventos',
+          route: '/admin/gestionar-eventos',
+          color: '#8B5CF6',
+        },
+        {
+          icon: 'person.2.fill',
+          androidIcon: 'people',
+          label: 'Gestionar Usuarios',
+          route: '/admin/gestionar-usuarios',
+          color: '#F59E0B',
+        },
+      ],
+    },
+    {
+      title: 'Configuración del Sistema',
+      items: [
+        {
+          icon: 'envelope.fill',
+          androidIcon: 'email',
+          label: 'Gestión de Emails',
+          route: '/admin/gestion-emails',
+          color: '#EF4444',
+        },
+        {
+          icon: 'stethoscope',
+          androidIcon: 'medical_services',
+          label: 'Diagnóstico de Emails',
+          route: '/admin/diagnostico-emails',
+          color: '#DC2626',
+          badge: 'NUEVO',
+        },
+        {
+          icon: 'gear',
+          androidIcon: 'settings',
+          label: 'Configuración General',
+          route: '/admin/configuracion-general',
+          color: '#6B7280',
+        },
+        {
+          icon: 'server.rack',
+          androidIcon: 'dns',
+          label: 'Configuración Supabase',
+          route: '/admin/configuracion-supabase',
+          color: '#10B981',
+        },
+      ],
+    },
+    {
+      title: 'Herramientas',
+      items: [
+        {
+          icon: 'arrow.down.doc.fill',
+          androidIcon: 'download',
+          label: 'Importación Masiva',
+          route: '/admin/importacion-masiva',
+          color: '#3B82F6',
+        },
+        {
+          icon: 'map.fill',
+          androidIcon: 'map',
+          label: 'Importación OSM',
+          route: '/admin/importacion-osm',
+          color: '#06B6D4',
+        },
+        {
+          icon: 'photo.fill',
+          androidIcon: 'photo_library',
+          label: 'Migrar Fotos a Supabase',
+          route: '/admin/migrar-fotos-supabase',
+          color: '#EC4899',
+        },
+        {
+          icon: 'arrow.triangle.2.circlepath',
+          androidIcon: 'sync',
+          label: 'Sincronización',
+          route: '/admin/sincronizacion',
+          color: '#8B5CF6',
+        },
+      ],
+    },
+    {
+      title: 'Análisis y Reportes',
+      items: [
+        {
+          icon: 'chart.bar.fill',
+          androidIcon: 'bar_chart',
+          label: 'Visión Finanzas',
+          route: '/admin/vision-finanzas',
+          color: '#10B981',
+        },
+        {
+          icon: 'dollarsign.circle.fill',
+          androidIcon: 'attach_money',
+          label: 'Control de Costes API',
+          route: '/admin/control-costes-api',
+          color: '#F59E0B',
+        },
+      ],
+    },
+    {
+      title: 'Otros',
+      items: [
+        {
+          icon: 'doc.text.fill',
+          androidIcon: 'description',
+          label: 'Contenido Legal',
+          route: '/admin/contenido-legal',
+          color: '#6B7280',
+        },
+        {
+          icon: 'tray.full.fill',
+          androidIcon: 'inventory',
+          label: 'Datos Maestros',
+          route: '/admin/datos-maestros',
+          color: '#8B5CF6',
+        },
+        {
+          icon: 'archivebox.fill',
+          androidIcon: 'archive',
+          label: 'Backups',
+          route: '/admin/backups',
+          color: '#EF4444',
+        },
+      ],
     },
   ];
-
-  const datosSection: MenuItem[] = [
-    {
-      icon: 'square.grid.2x2',
-      title: 'Gestión de Datos Maestros',
-      description: 'Configurar categorías, provincias y tipos',
-      route: '/admin/datos-maestros',
-      requiresSupabase: true,
-    },
-    {
-      icon: 'arrow.down.doc',
-      title: 'Importación Masiva',
-      description: 'Importar desde múltiples fuentes',
-      route: '/admin/importacion-masiva',
-      requiresSupabase: true,
-    },
-    {
-      icon: 'map',
-      title: 'Importación OSM',
-      description: 'Importar locales desde OpenStreetMap',
-      route: '/admin/importacion-osm',
-      requiresSupabase: true,
-    },
-    {
-      icon: 'arrow.triangle.2.circlepath',
-      title: 'Sincronización Continua',
-      description: 'Actualizar datos automáticamente',
-      route: '/admin/sincronizacion',
-      requiresSupabase: true,
-    },
-    {
-      icon: 'star.fill',
-      title: 'Enriquecimiento de Datos',
-      description: 'Enriquecer locales con Google Places',
-      route: '/admin/enriquecimiento-google',
-      requiresSupabase: true,
-    },
-    {
-      icon: 'photo.on.rectangle.angled',
-      title: 'Migrar Fotos a Supabase',
-      description: 'Descargar fotos de Google y subirlas a Supabase',
-      route: '/admin/migrar-fotos-supabase',
-      requiresSupabase: true,
-    },
-  ];
-
-  const gestionSection: MenuItem[] = [
-    {
-      icon: 'person.2.fill',
-      title: 'Gestionar Usuarios',
-      description: 'Ver y administrar usuarios del sistema',
-      route: '/admin/gestionar-usuarios',
-      requiresSupabase: true,
-    },
-    {
-      icon: 'building.2',
-      title: 'Gestionar Locales',
-      description: 'Ver y administrar locales registrados',
-      route: '/admin/gestionar-locales',
-      requiresSupabase: true,
-    },
-    {
-      icon: 'calendar.badge.clock',
-      title: 'Gestionar Eventos',
-      description: 'Ver, editar y eliminar eventos',
-      route: '/admin/gestionar-eventos',
-      requiresSupabase: true,
-    },
-    {
-      icon: 'person.badge.plus',
-      title: 'Solicitudes Propietario',
-      description: 'Revisar y gestionar solicitudes de propietarios',
-      route: '/admin/gestionar-solicitudes',
-      requiresSupabase: true,
-    },
-    {
-      icon: 'creditcard.fill',
-      title: 'Gestionar Planes de Pago',
-      description: 'Administrar planes y suscripciones',
-      route: '/admin/gestionar-planes',
-      requiresSupabase: true,
-    },
-  ];
-
-  const finanzasSection: MenuItem[] = [
-    {
-      icon: 'chart.bar.fill',
-      title: 'Visión General de Finanzas',
-      description: 'Ingresos, gastos y beneficios',
-      route: '/admin/vision-finanzas',
-      requiresSupabase: true,
-    },
-    {
-      icon: 'dollarsign.circle',
-      title: 'Control de APIs y Costes',
-      description: 'Monitorear y gestionar uso de APIs',
-      route: '/admin/control-costes-api',
-      requiresSupabase: true,
-    },
-  ];
-
-  const configuracionSection: MenuItem[] = [
-    {
-      icon: 'server.rack',
-      title: 'Configuración Supabase',
-      description: supabaseConfigured ? 'Supabase configurado ✓' : 'Configurar backend',
-      route: '/admin/configuracion-supabase',
-      badge: supabaseConfigured ? '✓' : '!',
-      badgeColor: supabaseConfigured ? '#10B981' : '#F59E0B',
-    },
-    {
-      icon: 'gearshape.fill',
-      title: 'Configuración General',
-      description: 'Ajustes del sistema y aplicación',
-      route: '/admin/configuracion-general',
-    },
-    {
-      icon: 'externaldrive.fill',
-      title: 'Gestión de Backups',
-      description: 'Crear y restaurar copias de seguridad',
-      route: '/admin/backups',
-      requiresSupabase: true,
-    },
-  ];
-
-  const contenidoSection: MenuItem[] = [
-    {
-      icon: 'doc.text',
-      title: 'Contenido Legal',
-      description: 'Términos, privacidad y políticas',
-      route: '/admin/contenido-legal',
-    },
-    {
-      icon: 'envelope.fill',
-      title: 'Gestión de Emails',
-      description: 'Plantillas y configuración de correos',
-      route: '/admin/gestion-emails',
-    },
-    {
-      icon: 'paperplane.fill',
-      title: 'Probar Emails',
-      description: 'Enviar emails de prueba',
-      route: '/admin/probar-emails',
-    },
-  ];
-
-  const renderSection = (title: string, items: MenuItem[]) => (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      {items.map((item, index) => (
-        <TouchableOpacity
-          key={index}
-          style={styles.menuCard}
-          onPress={() => handleMenuPress(item)}
-        >
-          <View style={[styles.menuIcon, { backgroundColor: colors.primary }]}>
-            <IconSymbol name={item.icon as any} size={24} color="white" />
-          </View>
-          <View style={styles.menuContent}>
-            <View style={styles.menuTitleRow}>
-              <Text style={styles.menuTitle}>{item.title}</Text>
-              {item.requiresSupabase && !supabaseConfigured && (
-                <View style={styles.requiresBadge}>
-                  <Text style={styles.requiresText}>Requiere Config</Text>
-                </View>
-              )}
-            </View>
-            <Text style={styles.menuDescription}>{item.description}</Text>
-          </View>
-          {item.badge && (
-            <View style={[styles.badge, { backgroundColor: item.badgeColor }]}>
-              <Text style={styles.badgeText}>{item.badge}</Text>
-            </View>
-          )}
-          <IconSymbol
-            name="chevron.right"
-            size={20}
-            color={colors.textSecondary}
-            style={styles.menuChevron}
-          />
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={[colors.primary, colors.secondary]} style={styles.header}>
-        <Text style={styles.headerTitle}>Panel Admin</Text>
-        <Text style={styles.headerSubtitle}>
-          Gestión completa y administración de BarLive
-        </Text>
+      <LinearGradient
+        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+        style={styles.header}
+      >
+        <Text style={styles.headerTitle}>Panel de Administración</Text>
+        <Text style={styles.headerSubtitle}>Gestiona tu aplicación</Text>
       </LinearGradient>
 
-      {!supabaseConfigured && (
-        <TouchableOpacity
-          style={styles.warningBanner}
-          onPress={() => router.push('/admin/configuracion-supabase' as any)}
-        >
-          <IconSymbol name="exclamationmark.triangle.fill" size={20} color="#F59E0B" />
-          <Text style={styles.warningText}>
-            Supabase no configurado. Toca para configurar.
-          </Text>
-          <IconSymbol name="chevron.right" size={16} color="#F59E0B" />
-        </TouchableOpacity>
-      )}
-
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {renderSection('🗺️ Navegación', navegacionSection)}
-        {renderSection('📊 Gestión de Datos', datosSection)}
-        {renderSection('👥 Usuarios y Locales', gestionSection)}
-        {renderSection('💰 Finanzas y Monetización', finanzasSection)}
-        {renderSection('⚙️ Configuración y Mantenimiento', configuracionSection)}
-        {renderSection('📄 Contenido y Comunicación', contenidoSection)}
-        
-        <View style={{ height: 40 }} />
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {adminSections.map((section, sectionIndex) => (
+          <View key={sectionIndex} style={styles.section}>
+            <Text style={styles.sectionTitle}>{section.title}</Text>
+            <View style={styles.sectionContent}>
+              {section.items.map((item, itemIndex) => (
+                <TouchableOpacity
+                  key={itemIndex}
+                  style={styles.adminCard}
+                  onPress={() => router.push(item.route as any)}
+                >
+                  <View style={[styles.iconContainer, { backgroundColor: item.color + '20' }]}>
+                    <IconSymbol
+                      ios_icon_name={item.icon}
+                      android_material_icon_name={item.androidIcon}
+                      size={24}
+                      color={item.color}
+                    />
+                  </View>
+                  <View style={styles.cardContent}>
+                    <Text style={styles.cardLabel}>{item.label}</Text>
+                    {item.badge && (
+                      <View style={styles.badge}>
+                        <Text style={styles.badgeText}>{item.badge}</Text>
+                      </View>
+                    )}
+                  </View>
+                  <IconSymbol
+                    ios_icon_name="chevron.right"
+                    android_material_icon_name="chevron_right"
+                    size={20}
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        ))}
       </ScrollView>
     </View>
   );
@@ -288,106 +222,76 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    paddingTop: 60,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'android' ? 48 : 60,
+    paddingBottom: 24,
+    paddingHorizontal: 24,
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: 'white',
-    marginTop: 10,
+    color: colors.headerText,
+    marginBottom: 8,
   },
   headerSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginTop: 5,
-  },
-  warningBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FEF3C7',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    gap: 8,
-  },
-  warningText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#92400E',
-    fontWeight: '600',
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   content: {
     flex: 1,
-    padding: 20,
+  },
+  scrollContent: {
+    padding: 24,
+    paddingBottom: 120,
   },
   section: {
-    marginBottom: 25,
+    marginBottom: 32,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: colors.text,
-    marginBottom: 12,
+    marginBottom: 16,
   },
-  menuCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 18,
-    marginBottom: 12,
+  sectionContent: {
+    gap: 12,
+  },
+  adminCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    ...commonStyles.shadow,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
-  menuIcon: {
+  iconContainer: {
     width: 48,
     height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
+    borderRadius: 12,
     alignItems: 'center',
-    marginRight: 15,
+    justifyContent: 'center',
+    marginRight: 16,
   },
-  menuContent: {
+  cardContent: {
     flex: 1,
-  },
-  menuTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 3,
   },
-  menuTitle: {
+  cardLabel: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
     color: colors.text,
   },
-  requiresBadge: {
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  requiresText: {
-    fontSize: 9,
-    color: '#92400E',
-    fontWeight: '600',
-  },
-  menuDescription: {
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
   badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginRight: 8,
+    backgroundColor: '#EF4444',
+    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    marginLeft: 8,
   },
   badgeText: {
-    color: 'white',
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: 'bold',
-  },
-  menuChevron: {
-    marginLeft: 10,
+    color: '#fff',
   },
 });
