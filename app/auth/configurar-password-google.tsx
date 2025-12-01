@@ -18,7 +18,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 
-export default function RestablecerPasswordScreen() {
+export default function ConfigurarPasswordGoogleScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const email = params.email as string;
@@ -32,7 +32,7 @@ export default function RestablecerPasswordScreen() {
     return password.length >= 8;
   };
 
-  const handleResetPassword = async () => {
+  const handleSetPassword = async () => {
     if (!password.trim() || !confirmPassword.trim()) {
       Alert.alert('Error', 'Por favor, completa todos los campos');
       return;
@@ -51,36 +51,9 @@ export default function RestablecerPasswordScreen() {
     setLoading(true);
 
     try {
-      console.log('[RestablecerPassword] Actualizando contraseña...');
+      console.log('[ConfigurarPasswordGoogle] Configurando contraseña...');
 
-      // First, sign in the user temporarily to update password
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: 'temporary-password-for-reset', // This will fail, but we need the session
-      });
-
-      // Since we can't sign in with old password, we'll use admin API to update
-      // For now, we'll update the password hash directly in the database
-      // Note: In production, you should use Supabase Admin API or a secure Edge Function
-
-      // Clear verification code
-      const { error: clearCodeError } = await supabase
-        .from('usuarios')
-        .update({
-          verification_code: null,
-          verification_code_expires_at: null,
-        })
-        .eq('id', userId);
-
-      if (clearCodeError) {
-        console.error('[RestablecerPassword] Error clearing verification code:', clearCodeError);
-      }
-
-      // For security, we need to use Supabase Auth API to update password
-      // This requires the user to be signed in, so we'll use the resetPasswordForEmail flow
-      // But since we're using codes, we need to handle this differently
-
-      // Alternative: Use Supabase Admin API via Edge Function
+      // Update password using Edge Function
       const { error: updateError } = await supabase.functions.invoke(
         'update-user-password',
         {
@@ -92,17 +65,36 @@ export default function RestablecerPasswordScreen() {
       );
 
       if (updateError) {
-        console.error('[RestablecerPassword] Error actualizando contraseña:', updateError);
-        Alert.alert('Error', 'No se pudo actualizar la contraseña. Por favor, intenta nuevamente.');
+        console.error('[ConfigurarPasswordGoogle] Error actualizando contraseña:', updateError);
+        Alert.alert('Error', 'No se pudo configurar la contraseña. Por favor, intenta nuevamente.');
         setLoading(false);
         return;
       }
 
-      console.log('[RestablecerPassword] ✅ Contraseña actualizada');
+      console.log('[ConfigurarPasswordGoogle] ✅ Contraseña configurada en Auth');
+
+      // Update provider to 'barlive' and mark email as verified, clear verification code
+      const { error: dbUpdateError } = await supabase
+        .from('usuarios')
+        .update({
+          provider: 'barlive',
+          email_verified: true,
+          verification_code: null,
+          verification_code_expires_at: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', userId);
+
+      if (dbUpdateError) {
+        console.error('[ConfigurarPasswordGoogle] Error actualizando usuario en DB:', dbUpdateError);
+        // Don't fail here, password is already set
+      } else {
+        console.log('[ConfigurarPasswordGoogle] ✅ Usuario actualizado en DB');
+      }
 
       Alert.alert(
-        '¡Contraseña actualizada!',
-        'Tu contraseña ha sido actualizada exitosamente. Ahora puedes iniciar sesión con tu nueva contraseña.',
+        '¡Contraseña configurada!',
+        'Tu contraseña ha sido configurada exitosamente. Ahora puedes iniciar sesión con tu correo y contraseña.\n\nTodos tus datos, roles y configuraciones se han mantenido intactos.',
         [
           {
             text: 'Iniciar sesión',
@@ -111,7 +103,7 @@ export default function RestablecerPasswordScreen() {
         ]
       );
     } catch (error: any) {
-      console.error('[RestablecerPassword] ❌ Error en handleResetPassword:', error);
+      console.error('[ConfigurarPasswordGoogle] ❌ Error en handleSetPassword:', error);
       Alert.alert('Error', 'Ocurrió un error inesperado');
     } finally {
       setLoading(false);
@@ -127,8 +119,8 @@ export default function RestablecerPasswordScreen() {
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         style={styles.header}
       >
-        <Text style={styles.headerTitle}>Nueva contraseña</Text>
-        <Text style={styles.headerSubtitle}>Configura tu nueva contraseña</Text>
+        <Text style={styles.headerTitle}>Configurar contraseña</Text>
+        <Text style={styles.headerSubtitle}>Paso 2 de 2</Text>
       </LinearGradient>
 
       <ScrollView
@@ -147,6 +139,11 @@ export default function RestablecerPasswordScreen() {
             <Text style={styles.successText}>
               ¡Verificación exitosa! Ahora puedes configurar tu nueva contraseña.
             </Text>
+          </View>
+
+          <Text style={styles.emailLabel}>Correo electrónico</Text>
+          <View style={styles.emailBox}>
+            <Text style={styles.emailText}>{email}</Text>
           </View>
 
           <Text style={styles.label}>Nueva contraseña</Text>
@@ -175,19 +172,20 @@ export default function RestablecerPasswordScreen() {
 
           <TouchableOpacity
             style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleResetPassword}
+            onPress={handleSetPassword}
             disabled={loading}
           >
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.buttonText}>Actualizar contraseña</Text>
+              <Text style={styles.buttonText}>Configurar contraseña</Text>
             )}
           </TouchableOpacity>
 
           <View style={styles.noteBox}>
             <Text style={styles.noteText}>
-              Una vez actualizada tu contraseña, podrás iniciar sesión con tu correo y nueva contraseña.
+              Una vez configurada tu contraseña, podrás iniciar sesión con tu correo y contraseña. 
+              Todos tus datos, roles y configuraciones se mantendrán intactos.
             </Text>
           </View>
         </View>
@@ -241,6 +239,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.text,
     lineHeight: 20,
+  },
+  emailLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  emailBox: {
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+  },
+  emailText: {
+    fontSize: 16,
+    color: colors.text,
   },
   label: {
     fontSize: 14,

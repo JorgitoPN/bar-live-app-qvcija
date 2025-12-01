@@ -72,7 +72,8 @@ serve(async (req) => {
             <h1 style="margin: 0;">Verifica tu correo electrónico</h1>
           </div>
           <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
-            <p style="font-size: 16px; color: #333;">Tu código de verificación es:</p>
+            <p style="font-size: 16px; color: #333;">Hola,</p>
+            <p style="font-size: 16px; color: #333;">Gracias por registrarte en BarLive. Para completar tu registro, ingresa el siguiente código de verificación en la aplicación:</p>
             <div style="background: white; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
               <h2 style="font-size: 32px; font-weight: bold; letter-spacing: 4px; color: #14B8A6; margin: 0;">${code}</h2>
             </div>
@@ -92,15 +93,19 @@ serve(async (req) => {
             <h1 style="margin: 0;">Restablece tu contraseña</h1>
           </div>
           <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
-            <p style="font-size: 16px; color: #333;">Tu código de restablecimiento es:</p>
+            <p style="font-size: 16px; color: #333;">Hola,</p>
+            <p style="font-size: 16px; color: #333;">Recibimos una solicitud para restablecer la contraseña de tu cuenta en BarLive.</p>
+            <p style="font-size: 16px; color: #333;">Ingresa este código en la aplicación:</p>
             <div style="background: white; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
               <h2 style="font-size: 32px; font-weight: bold; letter-spacing: 4px; color: #14B8A6; margin: 0;">${code}</h2>
             </div>
             <p style="font-size: 14px; color: #666;">Este código expirará en 10 minutos.</p>
-            <p style="font-size: 14px; color: #666;">Si no solicitaste este código, puedes ignorar este correo.</p>
+            <p style="font-size: 14px; color: #666;">Si no solicitaste este cambio, tu cuenta está segura y puedes ignorar este correo.</p>
           </div>
           <div style="text-align: center; margin-top: 30px; color: #666; font-size: 12px;">
-            <p>© 2025 BarLive. Todos los derechos reservados.</p>
+            <p>Saludos,</p>
+            <p>El equipo de BarLive</p>
+            <p style="margin-top: 20px;">© 2025 BarLive. Todos los derechos reservados.</p>
           </div>
         </div>
       `;

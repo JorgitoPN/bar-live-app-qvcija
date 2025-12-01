@@ -89,31 +89,72 @@ export default function RecuperarPasswordScreen() {
         return;
       }
 
-      // Send password reset email
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(
-        normalizedEmail,
-        {
-          redirectTo: 'https://natively.dev/auth/restablecer-password',
-        }
-      );
+      // Generate verification code
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-      if (resetError) {
-        console.error('[RecuperarPassword] Error sending reset email:', resetError);
-        Alert.alert('Error', 'No se pudo enviar el correo de recuperación');
+      // Store verification code in database
+      const { error: updateError } = await supabase
+        .from('usuarios')
+        .update({
+          verification_code: code,
+          verification_code_expires_at: expiresAt.toISOString(),
+        })
+        .eq('id', userData.id);
+
+      if (updateError) {
+        console.error('[RecuperarPassword] Error storing verification code:', updateError);
+        Alert.alert('Error', 'No se pudo generar el código de verificación');
         setLoading(false);
         return;
       }
 
-      console.log('[RecuperarPassword] ✅ Password reset email sent');
+      // Send verification code via email
+      const { error: emailError } = await supabase.functions.invoke(
+        'send-verification-email',
+        {
+          body: {
+            email: normalizedEmail,
+            code: code,
+            type: 'password_reset',
+          },
+        }
+      );
+
+      if (emailError) {
+        console.error('[RecuperarPassword] Error sending email:', emailError);
+        Alert.alert(
+          'Advertencia',
+          `Código generado pero hubo un problema al enviar el correo. Tu código es: ${code}`,
+          [
+            {
+              text: 'Continuar',
+              onPress: () => {
+                router.push({
+                  pathname: '/auth/verificar-codigo-password',
+                  params: { email: normalizedEmail },
+                });
+              },
+            },
+          ]
+        );
+        setLoading(false);
+        return;
+      }
+
+      console.log('[RecuperarPassword] ✅ Verification code sent');
       
       Alert.alert(
-        'Correo enviado',
-        'Hemos enviado un enlace de recuperación a tu correo electrónico. Por favor, revisa tu bandeja de entrada.',
+        'Código enviado',
+        'Hemos enviado un código de verificación a tu correo electrónico. Por favor, revisa tu bandeja de entrada.',
         [
           {
-            text: 'Entendido',
+            text: 'Continuar',
             onPress: () => {
-              router.back();
+              router.push({
+                pathname: '/auth/verificar-codigo-password',
+                params: { email: normalizedEmail },
+              });
             },
           },
         ]
@@ -166,7 +207,7 @@ export default function RecuperarPasswordScreen() {
             <Text style={styles.infoTitle}>¿Olvidaste tu contraseña?</Text>
             <Text style={styles.infoText}>
               No te preocupes. Ingresa tu correo electrónico y te enviaremos 
-              un enlace para restablecer tu contraseña.
+              un código de verificación para restablecer tu contraseña.
             </Text>
           </View>
 
@@ -192,7 +233,7 @@ export default function RecuperarPasswordScreen() {
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.buttonText}>Enviar enlace</Text>
+              <Text style={styles.buttonText}>Enviar código</Text>
             )}
           </TouchableOpacity>
 
