@@ -50,10 +50,10 @@ export default function RecuperarPasswordScreen() {
 
       console.log('[RecuperarPassword] 📧 Enviando correo de restablecimiento:', normalizedEmail);
 
-      // Check if user exists
+      // Check if user exists and get provider info
       const { data: userData, error: userError } = await supabase
         .from('usuarios')
-        .select('id, provider')
+        .select('id, provider, email_verified')
         .eq('email', normalizedEmail)
         .maybeSingle();
 
@@ -68,7 +68,44 @@ export default function RecuperarPasswordScreen() {
 
       if (error) {
         console.error('[RecuperarPassword] ❌ Error sending reset email:', error);
-        Alert.alert('Error', 'No se pudo enviar el correo de restablecimiento. Por favor, intenta nuevamente.');
+        
+        // Provide more specific error messages
+        if (error.message.includes('Email not confirmed')) {
+          Alert.alert(
+            'Email no verificado',
+            'Tu cuenta existe pero el email no ha sido verificado. Por favor, verifica tu email primero antes de restablecer la contraseña.',
+            [
+              {
+                text: 'Reenviar verificación',
+                onPress: async () => {
+                  try {
+                    await supabase.auth.resend({
+                      type: 'signup',
+                      email: normalizedEmail,
+                      options: {
+                        emailRedirectTo: 'https://natively.dev/email-confirmed',
+                      },
+                    });
+                    Alert.alert('Correo enviado', 'Se ha enviado un nuevo correo de verificación.');
+                  } catch (err) {
+                    console.error('Error resending verification:', err);
+                  }
+                },
+              },
+              { text: 'Cancelar', style: 'cancel' },
+            ]
+          );
+        } else if (error.message.includes('rate limit')) {
+          Alert.alert(
+            'Demasiados intentos',
+            'Has intentado restablecer tu contraseña demasiadas veces. Por favor, espera unos minutos antes de intentar nuevamente.'
+          );
+        } else {
+          Alert.alert(
+            'Error al enviar correo',
+            'No se pudo enviar el correo de restablecimiento. Esto puede deberse a un problema temporal con el servicio de correo.\n\nPor favor, intenta nuevamente en unos minutos o contacta con soporte si el problema persiste.'
+          );
+        }
       } else {
         console.log('[RecuperarPassword] ✅ Reset email sent successfully');
         setEmailSent(true);
@@ -90,7 +127,10 @@ export default function RecuperarPasswordScreen() {
       }
     } catch (error: any) {
       console.error('[RecuperarPassword] ❌ Error in handleSendResetEmail:', error);
-      Alert.alert('Error', 'Ocurrió un error al enviar el correo');
+      Alert.alert(
+        'Error inesperado',
+        'Ocurrió un error inesperado al enviar el correo. Por favor, intenta nuevamente o contacta con soporte.'
+      );
     } finally {
       setLoading(false);
     }
@@ -169,6 +209,22 @@ export default function RecuperarPasswordScreen() {
                   <Text style={styles.buttonText}>Enviar correo de recuperación</Text>
                 )}
               </TouchableOpacity>
+
+              <View style={styles.troubleshootingBox}>
+                <Text style={styles.troubleshootingTitle}>⚠️ ¿No recibes el correo?</Text>
+                <Text style={styles.troubleshootingItem}>
+                  • Revisa tu carpeta de spam o correo no deseado
+                </Text>
+                <Text style={styles.troubleshootingItem}>
+                  • Verifica que el correo esté escrito correctamente
+                </Text>
+                <Text style={styles.troubleshootingItem}>
+                  • Espera unos minutos, a veces puede tardar
+                </Text>
+                <Text style={styles.troubleshootingItem}>
+                  • Si el problema persiste, contacta con soporte
+                </Text>
+              </View>
             </>
           ) : (
             <>
@@ -313,7 +369,7 @@ const styles = StyleSheet.create({
     padding: 16,
     fontSize: 16,
     color: colors.text,
-    marginBottom: 24,
+    marginBottom: 16,
   },
   button: {
     backgroundColor: colors.primary,
@@ -329,6 +385,26 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  troubleshootingBox: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 24,
+    borderLeftWidth: 4,
+    borderLeftColor: '#f59e0b',
+  },
+  troubleshootingTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  troubleshootingItem: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: 8,
+    lineHeight: 20,
   },
   successBox: {
     alignItems: 'center',
