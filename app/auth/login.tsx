@@ -69,7 +69,7 @@ export default function LoginScreen() {
       if (userData.provider === 'google') {
         Alert.alert(
           'Configuración requerida',
-          'Tu cuenta fue creada con Google. Por favor, configura una contraseña para continuar.',
+          'Tu cuenta fue creada con Google. Por favor, configura una contraseña para continuar con el nuevo sistema de autenticación.',
           [
             {
               text: 'Configurar contraseña',

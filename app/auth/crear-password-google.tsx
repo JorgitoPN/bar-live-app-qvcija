@@ -53,9 +53,9 @@ export default function CrearPasswordGoogleScreen() {
       // Get user data
       const { data: userData, error: userError } = await supabase
         .from('usuarios')
-        .select('id, rol_app')
+        .select('id')
         .eq('email', email)
-        .single();
+        .maybeSingle();
 
       if (userError || !userData) {
         console.error('[CrearPasswordGoogle] Error getting user:', userError);
@@ -64,42 +64,73 @@ export default function CrearPasswordGoogleScreen() {
         return;
       }
 
-      // Update user password in Supabase Auth
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: password,
-      });
-
-      if (updateError) {
-        console.error('[CrearPasswordGoogle] Error updating password:', updateError);
-        Alert.alert('Error', 'No se pudo actualizar la contraseña');
-        setLoading(false);
-        return;
-      }
-
-      // Update provider to 'barlive' in usuarios table
-      const { error: providerError } = await supabase
+      // Update provider to barlive and mark email as verified
+      const { error: updateError } = await supabase
         .from('usuarios')
-        .update({ 
+        .update({
           provider: 'barlive',
           email_verified: true,
         })
         .eq('id', userData.id);
 
-      if (providerError) {
-        console.error('[CrearPasswordGoogle] Error updating provider:', providerError);
+      if (updateError) {
+        console.error('[CrearPasswordGoogle] Error updating user:', updateError);
+        Alert.alert('Error', 'No se pudo actualizar el usuario');
+        setLoading(false);
+        return;
+      }
+
+      // Update password in Supabase Auth
+      // First, we need to sign up the user with the new password
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: email,
+        password: password,
+        options: {
+          data: {
+            provider: 'barlive',
+          },
+        },
+      });
+
+      if (authError) {
+        // If user already exists in auth, try to update password
+        console.log('[CrearPasswordGoogle] User exists in auth, attempting password update');
+        
+        // We need to send a password reset email
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: 'https://natively.dev/auth/reset-password',
+        });
+
+        if (resetError) {
+          console.error('[CrearPasswordGoogle] Error sending reset email:', resetError);
+          Alert.alert('Error', 'No se pudo configurar la contraseña. Por favor, intenta recuperar tu contraseña desde la pantalla de inicio de sesión.');
+          setLoading(false);
+          return;
+        }
+
+        Alert.alert(
+          'Verificación requerida',
+          'Hemos enviado un enlace de verificación a tu correo electrónico. Por favor, sigue las instrucciones para completar la configuración de tu contraseña.',
+          [
+            {
+              text: 'Entendido',
+              onPress: () => router.replace('/auth/login'),
+            },
+          ]
+        );
+        setLoading(false);
+        return;
       }
 
       console.log('[CrearPasswordGoogle] ✅ Password set successfully');
-      
+
       Alert.alert(
         'Contraseña configurada',
         'Tu contraseña ha sido configurada exitosamente. Ahora puedes iniciar sesión con tu correo y contraseña.',
         [
           {
-            text: 'Continuar',
-            onPress: () => {
-              router.replace('/auth/login');
-            },
+            text: 'Iniciar sesión',
+            onPress: () => router.replace('/auth/login'),
           },
         ]
       );
@@ -132,7 +163,7 @@ export default function CrearPasswordGoogleScreen() {
           />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Configurar contraseña</Text>
-        <Text style={styles.headerSubtitle}>Migración de cuenta Google</Text>
+        <Text style={styles.headerSubtitle}>Migración a BarLive Auth 3.0</Text>
       </LinearGradient>
 
       <ScrollView
@@ -149,9 +180,14 @@ export default function CrearPasswordGoogleScreen() {
               color={colors.primary}
             />
             <Text style={styles.infoText}>
-              Tu cuenta fue creada con Google. Para continuar usando BarLive, 
-              necesitas configurar una contraseña para tu cuenta: {email}
+              Tu cuenta fue creada con Google. Para continuar usando BarLive con nuestro nuevo sistema de autenticación, 
+              necesitas configurar una contraseña.
             </Text>
+          </View>
+
+          <Text style={styles.emailLabel}>Correo electrónico</Text>
+          <View style={styles.emailBox}>
+            <Text style={styles.emailText}>{email}</Text>
           </View>
 
           <Text style={styles.label}>Nueva contraseña</Text>
@@ -192,9 +228,8 @@ export default function CrearPasswordGoogleScreen() {
 
           <View style={styles.noteBox}>
             <Text style={styles.noteText}>
-              Nota: Después de configurar tu contraseña, podrás iniciar sesión 
-              únicamente con tu correo y contraseña. El inicio de sesión con Google 
-              ya no estará disponible.
+              Nota: Una vez configurada tu contraseña, podrás iniciar sesión con tu correo y contraseña. 
+              Todos tus datos, roles y configuraciones se mantendrán intactos.
             </Text>
           </View>
         </View>
@@ -247,10 +282,28 @@ const styles = StyleSheet.create({
   },
   infoText: {
     flex: 1,
+    marginLeft: 12,
     fontSize: 14,
     color: colors.text,
-    marginLeft: 12,
     lineHeight: 20,
+  },
+  emailLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  emailBox: {
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+  },
+  emailText: {
+    fontSize: 16,
+    color: colors.text,
   },
   label: {
     fontSize: 14,
@@ -285,11 +338,13 @@ const styles = StyleSheet.create({
   },
   noteBox: {
     backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
     borderRadius: 12,
     padding: 16,
   },
   noteText: {
-    fontSize: 13,
+    fontSize: 12,
     color: colors.textSecondary,
     lineHeight: 18,
   },
