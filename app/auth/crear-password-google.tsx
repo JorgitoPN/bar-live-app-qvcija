@@ -92,32 +92,27 @@ export default function CrearPasswordGoogleScreen() {
       if (emailError) {
         console.error('[CrearPasswordGoogle] Error sending email:', emailError);
         
-        // Check if it's a FunctionsHttpError with details
+        // Check if it's a domain verification error (403)
         let errorMessage = 'Hubo un problema al enviar el correo electrónico.';
-        let showCode = true;
+        let errorTitle = 'Código generado';
         
         if (emailError.message) {
           console.error('[CrearPasswordGoogle] Error message:', emailError.message);
           
           // Parse error details if available
-          if (emailError.message.includes('Domain')) {
-            errorMessage = 'El servicio de correo está en configuración. Por favor, usa el código que aparece a continuación.';
-          } else if (emailError.message.includes('API key')) {
-            errorMessage = 'El servicio de correo no está configurado correctamente. Por favor, usa el código que aparece a continuación.';
+          if (emailError.message.includes('Domain') || emailError.message.includes('403')) {
+            errorTitle = 'Servicio de correo en configuración';
+            errorMessage = 'El servicio de correo está siendo configurado. Por favor, usa el código que aparece a continuación para continuar.';
+          } else if (emailError.message.includes('API key') || emailError.message.includes('401')) {
+            errorTitle = 'Servicio de correo no disponible';
+            errorMessage = 'El servicio de correo no está disponible temporalmente. Por favor, usa el código que aparece a continuación.';
           }
         }
         
         Alert.alert(
-          'Código generado',
-          `${errorMessage}\n\nTu código de verificación es:\n\n${code}\n\nEste código expirará en 10 minutos.`,
+          errorTitle,
+          `${errorMessage}\n\n📋 Tu código de verificación es:\n\n${code}\n\n⏱️ Este código expirará en 10 minutos.\n\n💡 Consejo: Anota este código antes de continuar.`,
           [
-            {
-              text: 'Copiar código',
-              onPress: () => {
-                // Note: Clipboard API would be used here in production
-                console.log('[CrearPasswordGoogle] Código para copiar:', code);
-              },
-            },
             {
               text: 'Continuar',
               onPress: () => {
@@ -242,7 +237,8 @@ export default function CrearPasswordGoogleScreen() {
             <Text style={styles.troubleshootingText}>
               - Revisa tu carpeta de spam{'\n'}
               - Verifica que el correo sea correcto{'\n'}
-              - El código se mostrará en pantalla si hay problemas con el envío
+              - El código se mostrará en pantalla si hay problemas con el envío{'\n'}
+              - Si el servicio de correo está en configuración, el código aparecerá automáticamente
             </Text>
           </View>
         </View>

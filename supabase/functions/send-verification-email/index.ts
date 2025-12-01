@@ -186,8 +186,25 @@ serve(async (req) => {
         
         // Provide specific troubleshooting based on error
         if (resendResponse.status === 403) {
-          troubleshooting = 'Domain "barlive.app" may not be verified in Resend. Please verify the domain in Resend Dashboard → Domains.';
-          errorDetails = 'Domain verification required. Admin: Check Resend Dashboard.';
+          troubleshooting = `
+DOMAIN VERIFICATION REQUIRED
+
+The domain "barlive.app" is not verified in Resend.
+
+TO FIX THIS:
+1. Go to Resend Dashboard: https://resend.com/domains
+2. Add domain "barlive.app" if not already added
+3. Add the required DNS records (SPF, DKIM, DMARC)
+4. Wait for verification (usually 5-30 minutes)
+
+TEMPORARY WORKAROUND:
+While waiting for domain verification, you can:
+- Use Resend's test domain (onboarding@resend.dev) for testing
+- Show the verification code directly in the app (already implemented as fallback)
+
+The app will show the verification code to the user even if email fails.
+          `.trim();
+          errorDetails = 'Domain "barlive.app" not verified in Resend. Please verify domain or use test domain.';
         } else if (resendResponse.status === 401) {
           troubleshooting = 'RESEND_API_KEY may be invalid or expired. Please check the API key in Resend Dashboard.';
           errorDetails = 'Invalid API key. Admin: Update RESEND_API_KEY in Supabase Secrets.';
@@ -205,6 +222,7 @@ serve(async (req) => {
           details: errorDetails,
           troubleshooting: troubleshooting,
           status: resendResponse.status,
+          code: code, // Include code in response so app can show it to user
         }),
         {
           status: resendResponse.status,
