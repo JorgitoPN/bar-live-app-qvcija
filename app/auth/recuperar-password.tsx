@@ -61,6 +61,8 @@ export default function RecuperarPasswordScreen() {
         console.error('[RecuperarPassword] Error checking user:', userError);
       }
 
+      console.log('[RecuperarPassword] User data:', userData);
+
       // Send reset email regardless of whether user exists (security best practice)
       const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
         redirectTo: 'https://natively.dev/email-confirmed',
@@ -69,9 +71,47 @@ export default function RecuperarPasswordScreen() {
       if (error) {
         console.error('[RecuperarPassword] ❌ Error sending reset email:', error);
         console.error('[RecuperarPassword] Error details:', JSON.stringify(error, null, 2));
+        console.error('[RecuperarPassword] Error message:', error.message);
+        console.error('[RecuperarPassword] Error status:', error.status);
+        console.error('[RecuperarPassword] Error code:', (error as any).code);
         
-        // Provide more specific error messages
-        if (error.message.includes('Email not confirmed')) {
+        // Check for domain verification error (450 error or domain not verified message)
+        const errorMessage = error.message?.toLowerCase() || '';
+        const isDomainError = 
+          errorMessage.includes('domain is not verified') ||
+          errorMessage.includes('450') ||
+          errorMessage.includes('unexpected_failure') ||
+          error.status === 500;
+
+        if (isDomainError) {
+          // Domain verification error - provide detailed guidance
+          Alert.alert(
+            '⚠️ Servicio de correo en configuración',
+            '🔧 PROBLEMA TÉCNICO IDENTIFICADO:\n\n' +
+            'El dominio de correo "barlive.app" no está verificado en el servidor de emails (Resend).\n\n' +
+            '📋 CAUSA:\n' +
+            'Faltan registros DNS (DKIM, SPF, DMARC) en el dominio.\n\n' +
+            '✅ SOLUCIÓN PARA EL ADMINISTRADOR:\n' +
+            '1. Ir a https://resend.com/domains\n' +
+            '2. Verificar el dominio barlive.app\n' +
+            '3. Añadir los registros DNS en IONOS\n' +
+            '4. Esperar propagación DNS (15-30 min)\n\n' +
+            '💡 SOLUCIÓN TEMPORAL PARA TI:\n' +
+            'Contacta con soporte para restablecer tu contraseña manualmente.\n\n' +
+            '📞 Soporte: soporte@barliveapp.es\n\n' +
+            'Disculpa las molestias. Este problema se resolverá pronto.',
+            [
+              {
+                text: 'Copiar email soporte',
+                onPress: () => {
+                  // TODO: Copy to clipboard
+                  console.log('Copy soporte@barliveapp.es to clipboard');
+                },
+              },
+              { text: 'Entendido', style: 'cancel' },
+            ]
+          );
+        } else if (errorMessage.includes('email not confirmed')) {
           Alert.alert(
             'Email no verificado',
             'Tu cuenta existe pero el email no ha sido verificado. Por favor, verifica tu email primero antes de restablecer la contraseña.',
@@ -96,32 +136,10 @@ export default function RecuperarPasswordScreen() {
               { text: 'Cancelar', style: 'cancel' },
             ]
           );
-        } else if (error.message.includes('rate limit')) {
+        } else if (errorMessage.includes('rate limit')) {
           Alert.alert(
             'Demasiados intentos',
             'Has intentado restablecer tu contraseña demasiadas veces. Por favor, espera unos minutos antes de intentar nuevamente.'
-          );
-        } else if (error.message.includes('domain is not verified') || error.message.includes('450')) {
-          // Domain verification error - provide detailed guidance
-          Alert.alert(
-            '⚠️ Servicio de correo en configuración',
-            'El servicio de correo está siendo configurado por el administrador.\n\n' +
-            '📧 Problema técnico:\n' +
-            'El dominio de correo no está verificado en el servidor de emails.\n\n' +
-            '✅ Solución temporal:\n' +
-            'Por favor, contacta con soporte para que te ayuden a restablecer tu contraseña manualmente.\n\n' +
-            '📞 Soporte: soporte@barliveapp.es\n\n' +
-            'Disculpa las molestias. Estamos trabajando para resolver esto lo antes posible.',
-            [
-              {
-                text: 'Contactar soporte',
-                onPress: () => {
-                  // TODO: Open email client or support chat
-                  console.log('Opening support contact');
-                },
-              },
-              { text: 'Entendido', style: 'cancel' },
-            ]
           );
         } else {
           Alert.alert(
@@ -248,10 +266,21 @@ export default function RecuperarPasswordScreen() {
                   • Espera unos minutos, a veces puede tardar
                 </Text>
                 <Text style={styles.troubleshootingItem}>
-                  • Si el problema persiste, contacta con soporte
+                  • Si ves un error de "dominio no verificado", contacta con soporte
                 </Text>
                 <Text style={styles.troubleshootingItem}>
                   • 📞 Soporte: soporte@barliveapp.es
+                </Text>
+              </View>
+
+              <View style={styles.technicalInfoBox}>
+                <Text style={styles.technicalInfoTitle}>🔧 Información técnica</Text>
+                <Text style={styles.technicalInfoText}>
+                  Si ves un error de "unexpected_failure" o "domain is not verified", 
+                  significa que el servicio de correo está siendo configurado por el administrador.
+                  {'\n\n'}
+                  Este es un problema temporal que se resolverá pronto. Mientras tanto, 
+                  contacta con soporte para ayuda inmediata.
                 </Text>
               </View>
             </>
@@ -419,7 +448,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBackground,
     borderRadius: 12,
     padding: 20,
-    marginBottom: 24,
+    marginBottom: 16,
     borderLeftWidth: 4,
     borderLeftColor: '#f59e0b',
   },
@@ -433,6 +462,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
     marginBottom: 8,
+    lineHeight: 20,
+  },
+  technicalInfoBox: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 24,
+    borderLeftWidth: 4,
+    borderLeftColor: '#3b82f6',
+  },
+  technicalInfoTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  technicalInfoText: {
+    fontSize: 13,
+    color: colors.textSecondary,
     lineHeight: 20,
   },
   successBox: {
