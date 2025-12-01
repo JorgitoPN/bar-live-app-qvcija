@@ -4,7 +4,6 @@ import {
   View,
   Text,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
@@ -23,8 +22,6 @@ export default function VerificarEmailScreen() {
   const params = useLocalSearchParams();
   const email = params.email as string;
   
-  const [code, setCode] = useState('');
-  const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [countdown, setCountdown] = useState(0);
 
@@ -35,167 +32,43 @@ export default function VerificarEmailScreen() {
     }
   }, [countdown]);
 
-  const handleVerify = async () => {
-    if (!code.trim()) {
-      Alert.alert('Error', 'Por favor, ingresa el código de verificación');
-      return;
-    }
-
-    if (code.trim().length !== 6) {
-      Alert.alert('Error', 'El código debe tener 6 dígitos');
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      // Verify the code
-      const { data: userData, error: userError } = await supabase
-        .from('usuarios')
-        .select('id, verification_code, verification_code_expires_at')
-        .eq('email', email)
-        .single();
-
-      if (userError || !userData) {
-        console.error('[VerificarEmail] Error getting user:', userError);
-        Alert.alert('Error', 'No se pudo verificar el código');
-        setLoading(false);
-        return;
-      }
-
-      // Check if code matches
-      if (userData.verification_code !== code.trim()) {
-        Alert.alert('Error', 'Código incorrecto. Por favor, verifica e intenta nuevamente.');
-        setLoading(false);
-        return;
-      }
-
-      // Check if code is expired
-      const expiresAt = new Date(userData.verification_code_expires_at);
-      if (expiresAt < new Date()) {
-        Alert.alert(
-          'Código expirado',
-          'El código de verificación ha expirado. Por favor, solicita uno nuevo.',
-          [
-            {
-              text: 'Reenviar código',
-              onPress: handleResendCode,
-            },
-            { text: 'Cancelar', style: 'cancel' },
-          ]
-        );
-        setLoading(false);
-        return;
-      }
-
-      // Update user as verified
-      const { error: updateError } = await supabase
-        .from('usuarios')
-        .update({
-          email_verified: true,
-          verification_code: null,
-          verification_code_expires_at: null,
-        })
-        .eq('id', userData.id);
-
-      if (updateError) {
-        console.error('[VerificarEmail] Error updating user:', updateError);
-        Alert.alert('Error', 'No se pudo verificar el correo');
-        setLoading(false);
-        return;
-      }
-
-      // Update auth user metadata
-      const { error: authError } = await supabase.auth.updateUser({
-        data: { email_verified: true },
-      });
-
-      if (authError) {
-        console.error('[VerificarEmail] Error updating auth user:', authError);
-      }
-
-      console.log('[VerificarEmail] ✅ Email verified successfully');
-      
-      Alert.alert(
-        'Email verificado',
-        'Tu correo electrónico ha sido verificado exitosamente. Ahora puedes iniciar sesión.',
-        [
-          {
-            text: 'Iniciar sesión',
-            onPress: () => {
-              router.replace('/auth/login');
-            },
-          },
-        ]
-      );
-    } catch (error: any) {
-      console.error('[VerificarEmail] ❌ Error in handleVerify:', error);
-      Alert.alert('Error', 'Ocurrió un error inesperado');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResendCode = async () => {
+  const handleResendEmail = async () => {
     if (countdown > 0) {
-      Alert.alert('Espera', `Por favor, espera ${countdown} segundos antes de reenviar el código.`);
+      Alert.alert('Espera', `Por favor, espera ${countdown} segundos antes de reenviar el correo.`);
       return;
     }
 
     setResending(true);
 
     try {
-      // Generate new OTP
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
+        options: {
+          emailRedirectTo: 'https://natively.dev/email-confirmed',
+        },
+      });
 
-      // Update user with new OTP
-      const { error: updateError } = await supabase
-        .from('usuarios')
-        .update({
-          verification_code: otp,
-          verification_code_expires_at: expiresAt.toISOString(),
-        })
-        .eq('email', email);
-
-      if (updateError) {
-        console.error('[VerificarEmail] Error updating verification code:', updateError);
-        Alert.alert('Error', 'No se pudo reenviar el código');
-        setResending(false);
-        return;
-      }
-
-      // Send verification email via Edge Function
-      const { data: emailData, error: emailError } = await supabase.functions.invoke(
-        'send-verification-email',
-        {
-          body: {
-            email,
-            code: otp,
-            type: 'verification',
-          },
-        }
-      );
-
-      if (emailError) {
-        console.error('[VerificarEmail] Error sending verification email:', emailError);
-        const errorMessage = emailError.message || 'Error desconocido';
-        const errorDetails = emailData?.details || emailData?.error || '';
-        
-        Alert.alert(
-          'Advertencia',
-          `Código actualizado pero hubo un problema al enviar el correo:\n\n${errorMessage}\n\n${errorDetails}\n\nTu nuevo código es: ${otp}`
-        );
+      if (error) {
+        console.error('[VerificarEmail] Error resending email:', error);
+        Alert.alert('Error', 'No se pudo reenviar el correo de verificación. Por favor, intenta nuevamente.');
       } else {
-        Alert.alert('Código enviado', 'Se ha enviado un nuevo código de verificación a tu correo.');
+        Alert.alert(
+          'Correo enviado',
+          'Se ha reenviado el correo de verificación. Por favor, revisa tu bandeja de entrada (y la carpeta de spam).'
+        );
         setCountdown(60); // 60 seconds cooldown
       }
     } catch (error: any) {
-      console.error('[VerificarEmail] ❌ Error resending code:', error);
-      Alert.alert('Error', 'No se pudo reenviar el código de verificación');
+      console.error('[VerificarEmail] ❌ Error resending email:', error);
+      Alert.alert('Error', 'Ocurrió un error al reenviar el correo');
     } finally {
       setResending(false);
     }
+  };
+
+  const handleBackToLogin = () => {
+    router.replace('/auth/login');
   };
 
   return (
@@ -218,8 +91,8 @@ export default function VerificarEmailScreen() {
             color="#fff"
           />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Verificar email</Text>
-        <Text style={styles.headerSubtitle}>Confirma tu correo electrónico</Text>
+        <Text style={styles.headerTitle}>Verifica tu email</Text>
+        <Text style={styles.headerSubtitle}>Revisa tu correo electrónico</Text>
       </LinearGradient>
 
       <ScrollView
@@ -232,59 +105,59 @@ export default function VerificarEmailScreen() {
             <IconSymbol
               ios_icon_name="envelope.fill"
               android_material_icon_name="email"
-              size={48}
+              size={64}
               color={colors.primary}
             />
             <Text style={styles.infoTitle}>Revisa tu correo</Text>
             <Text style={styles.infoText}>
-              Hemos enviado un código de verificación de 6 dígitos a:
+              Hemos enviado un correo de verificación a:
             </Text>
             <Text style={styles.emailText}>{email}</Text>
+            <Text style={styles.infoText}>
+              Por favor, haz clic en el enlace del correo para verificar tu cuenta.
+            </Text>
           </View>
 
-          <Text style={styles.label}>Código de verificación</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="000000"
-            placeholderTextColor={colors.textSecondary}
-            value={code}
-            onChangeText={setCode}
-            keyboardType="number-pad"
-            maxLength={6}
-            autoFocus
-            editable={!loading}
-          />
+          <View style={styles.instructionsBox}>
+            <Text style={styles.instructionsTitle}>📋 Instrucciones:</Text>
+            <Text style={styles.instructionItem}>1. Abre tu correo electrónico</Text>
+            <Text style={styles.instructionItem}>2. Busca el correo de BarLive</Text>
+            <Text style={styles.instructionItem}>3. Haz clic en el enlace de verificación</Text>
+            <Text style={styles.instructionItem}>4. Serás redirigido automáticamente</Text>
+            <Text style={styles.instructionItem}>5. ¡Listo! Ya puedes iniciar sesión</Text>
+          </View>
+
+          <View style={styles.tipsBox}>
+            <Text style={styles.tipsTitle}>💡 Consejos:</Text>
+            <Text style={styles.tipItem}>• Revisa tu carpeta de spam</Text>
+            <Text style={styles.tipItem}>• El enlace expira en 24 horas</Text>
+            <Text style={styles.tipItem}>• Puedes solicitar un nuevo correo si no lo recibes</Text>
+          </View>
 
           <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleVerify}
-            disabled={loading}
+            style={[styles.resendButton, (resending || countdown > 0) && styles.resendButtonDisabled]}
+            onPress={handleResendEmail}
+            disabled={resending || countdown > 0}
           >
-            {loading ? (
+            {resending ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.buttonText}>Verificar</Text>
+              <Text style={styles.resendButtonText}>
+                {countdown > 0 
+                  ? `Reenviar correo en ${countdown}s` 
+                  : 'Reenviar correo de verificación'}
+              </Text>
             )}
           </TouchableOpacity>
 
-          <View style={styles.resendContainer}>
-            <Text style={styles.resendText}>¿No recibiste el código?</Text>
-            <TouchableOpacity
-              onPress={handleResendCode}
-              disabled={resending || countdown > 0}
-            >
-              <Text style={[
-                styles.resendButton,
-                (resending || countdown > 0) && styles.resendButtonDisabled
-              ]}>
-                {countdown > 0 
-                  ? `Reenviar en ${countdown}s` 
-                  : resending 
-                    ? 'Reenviando...' 
-                    : 'Reenviar código'}
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={styles.backToLoginButton}
+            onPress={handleBackToLogin}
+          >
+            <Text style={styles.backToLoginText}>
+              Volver a <Text style={styles.backToLoginTextBold}>Iniciar sesión</Text>
+            </Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -329,74 +202,89 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBackground,
     borderRadius: 12,
     padding: 24,
-    marginBottom: 32,
+    marginBottom: 24,
   },
   infoTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
     color: colors.text,
     marginTop: 16,
-    marginBottom: 8,
+    marginBottom: 12,
   },
   infoText: {
     fontSize: 14,
     color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 8,
+    lineHeight: 20,
   },
   emailText: {
     fontSize: 16,
     fontWeight: '600',
     color: colors.primary,
     textAlign: 'center',
+    marginBottom: 12,
   },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  input: {
+  instructionsBox: {
     backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
     borderRadius: 12,
-    padding: 16,
-    fontSize: 24,
+    padding: 20,
+    marginBottom: 16,
+  },
+  instructionsTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
     color: colors.text,
-    textAlign: 'center',
-    letterSpacing: 8,
+    marginBottom: 12,
+  },
+  instructionItem: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: 8,
+    lineHeight: 20,
+  },
+  tipsBox: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 20,
     marginBottom: 24,
   },
-  button: {
+  tipsTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  tipItem: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: 6,
+    lineHeight: 20,
+  },
+  resendButton: {
     backgroundColor: colors.primary,
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 16,
   },
-  buttonDisabled: {
+  resendButtonDisabled: {
     opacity: 0.6,
   },
-  buttonText: {
+  resendButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
-  resendContainer: {
+  backToLoginButton: {
     alignItems: 'center',
   },
-  resendText: {
+  backToLoginText: {
     fontSize: 14,
     color: colors.textSecondary,
-    marginBottom: 8,
   },
-  resendButton: {
-    fontSize: 14,
-    color: colors.primary,
+  backToLoginTextBold: {
     fontWeight: '600',
-  },
-  resendButtonDisabled: {
-    color: colors.textSecondary,
+    color: colors.primary,
   },
 });

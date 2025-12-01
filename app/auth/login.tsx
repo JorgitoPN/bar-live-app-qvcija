@@ -87,27 +87,6 @@ export default function LoginScreen() {
         return;
       }
 
-      if (!userData.email_verified) {
-        Alert.alert(
-          'Email no verificado',
-          'Por favor, verifica tu correo electrónico antes de iniciar sesión.',
-          [
-            {
-              text: 'Reenviar código',
-              onPress: () => {
-                router.push({
-                  pathname: '/auth/verificar-email',
-                  params: { email: normalizedEmail },
-                });
-              },
-            },
-            { text: 'Cancelar', style: 'cancel' },
-          ]
-        );
-        setLoading(false);
-        return;
-      }
-
       // Sign in with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: normalizedEmail,
@@ -117,7 +96,41 @@ export default function LoginScreen() {
       if (authError) {
         console.error('[Login] Error signing in:', authError);
         
-        if (authError.message.includes('Invalid login credentials')) {
+        if (authError.message.includes('Email not confirmed')) {
+          Alert.alert(
+            'Email no verificado',
+            'Por favor, verifica tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada.',
+            [
+              {
+                text: 'Reenviar correo',
+                onPress: async () => {
+                  try {
+                    const { error } = await supabase.auth.resend({
+                      type: 'signup',
+                      email: normalizedEmail,
+                      options: {
+                        emailRedirectTo: 'https://natively.dev/email-confirmed',
+                      },
+                    });
+                    
+                    if (error) {
+                      Alert.alert('Error', 'No se pudo reenviar el correo de verificación');
+                    } else {
+                      Alert.alert(
+                        'Correo enviado',
+                        'Se ha reenviado el correo de verificación. Por favor, revisa tu bandeja de entrada.'
+                      );
+                    }
+                  } catch (err) {
+                    console.error('[Login] Error resending email:', err);
+                    Alert.alert('Error', 'Ocurrió un error al reenviar el correo');
+                  }
+                },
+              },
+              { text: 'Cancelar', style: 'cancel' },
+            ]
+          );
+        } else if (authError.message.includes('Invalid login credentials')) {
           Alert.alert('Error', 'Email o contraseña incorrectos');
         } else {
           Alert.alert('Error', authError.message || 'No se pudo iniciar sesión');
@@ -147,7 +160,7 @@ export default function LoginScreen() {
 
   const handleForgotPassword = () => {
     if (!email.trim()) {
-      Alert.alert('Error', 'Por favor, ingresa tu correo electrónico');
+      Alert.alert('Error', 'Por favor, ingresa tu correo electrónico primero');
       return;
     }
 

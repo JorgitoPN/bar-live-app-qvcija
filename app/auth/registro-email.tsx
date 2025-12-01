@@ -108,15 +108,32 @@ export default function RegistroEmailScreen() {
         } else {
           Alert.alert(
             'Verificación pendiente',
-            'Este correo ya está registrado pero no verificado. ¿Deseas reenviar el código de verificación?',
+            'Este correo ya está registrado pero no verificado. ¿Deseas reenviar el correo de verificación?',
             [
               {
-                text: 'Reenviar código',
-                onPress: () => {
-                  router.push({
-                    pathname: '/auth/verificar-email',
-                    params: { email: normalizedEmail },
-                  });
+                text: 'Reenviar',
+                onPress: async () => {
+                  try {
+                    const { error } = await supabase.auth.resend({
+                      type: 'signup',
+                      email: normalizedEmail,
+                      options: {
+                        emailRedirectTo: 'https://natively.dev/email-confirmed',
+                      },
+                    });
+                    
+                    if (error) {
+                      Alert.alert('Error', 'No se pudo reenviar el correo de verificación');
+                    } else {
+                      Alert.alert(
+                        'Correo enviado',
+                        'Se ha reenviado el correo de verificación. Por favor, revisa tu bandeja de entrada.'
+                      );
+                    }
+                  } catch (err) {
+                    console.error('[RegistroEmail] Error resending email:', err);
+                    Alert.alert('Error', 'Ocurrió un error al reenviar el correo');
+                  }
                 },
               },
               { text: 'Cancelar', style: 'cancel' },
@@ -127,7 +144,7 @@ export default function RegistroEmailScreen() {
         return;
       }
 
-      // Register with Supabase Auth
+      // Register with Supabase Auth - Supabase will send the verification email automatically
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: normalizedEmail,
         password: password,
@@ -167,16 +184,13 @@ export default function RegistroEmailScreen() {
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       Alert.alert(
-        'Cuenta creada',
-        'Tu cuenta ha sido creada exitosamente. Por favor, verifica tu correo electrónico para activar tu cuenta.',
+        '¡Cuenta creada!',
+        'Tu cuenta ha sido creada exitosamente. Hemos enviado un correo de verificación a tu email. Por favor, verifica tu correo electrónico para activar tu cuenta.',
         [
           {
-            text: 'Continuar',
+            text: 'Entendido',
             onPress: () => {
-              router.push({
-                pathname: '/auth/verificar-email',
-                params: { email: normalizedEmail },
-              });
+              router.replace('/auth/login');
             },
           },
         ]
