@@ -68,6 +68,7 @@ export default function RecuperarPasswordScreen() {
 
       if (error) {
         console.error('[RecuperarPassword] ❌ Error sending reset email:', error);
+        console.error('[RecuperarPassword] Error details:', JSON.stringify(error, null, 2));
         
         // Provide more specific error messages
         if (error.message.includes('Email not confirmed')) {
@@ -100,10 +101,34 @@ export default function RecuperarPasswordScreen() {
             'Demasiados intentos',
             'Has intentado restablecer tu contraseña demasiadas veces. Por favor, espera unos minutos antes de intentar nuevamente.'
           );
+        } else if (error.message.includes('domain is not verified') || error.message.includes('450')) {
+          // Domain verification error - provide detailed guidance
+          Alert.alert(
+            '⚠️ Servicio de correo en configuración',
+            'El servicio de correo está siendo configurado por el administrador.\n\n' +
+            '📧 Problema técnico:\n' +
+            'El dominio de correo no está verificado en el servidor de emails.\n\n' +
+            '✅ Solución temporal:\n' +
+            'Por favor, contacta con soporte para que te ayuden a restablecer tu contraseña manualmente.\n\n' +
+            '📞 Soporte: soporte@barliveapp.es\n\n' +
+            'Disculpa las molestias. Estamos trabajando para resolver esto lo antes posible.',
+            [
+              {
+                text: 'Contactar soporte',
+                onPress: () => {
+                  // TODO: Open email client or support chat
+                  console.log('Opening support contact');
+                },
+              },
+              { text: 'Entendido', style: 'cancel' },
+            ]
+          );
         } else {
           Alert.alert(
             'Error al enviar correo',
-            'No se pudo enviar el correo de restablecimiento. Esto puede deberse a un problema temporal con el servicio de correo.\n\nPor favor, intenta nuevamente en unos minutos o contacta con soporte si el problema persiste.'
+            'No se pudo enviar el correo de restablecimiento. Esto puede deberse a un problema temporal con el servicio de correo.\n\n' +
+            'Por favor, intenta nuevamente en unos minutos o contacta con soporte si el problema persiste.\n\n' +
+            '📞 Soporte: soporte@barliveapp.es'
           );
         }
       } else {
@@ -129,7 +154,8 @@ export default function RecuperarPasswordScreen() {
       console.error('[RecuperarPassword] ❌ Error in handleSendResetEmail:', error);
       Alert.alert(
         'Error inesperado',
-        'Ocurrió un error inesperado al enviar el correo. Por favor, intenta nuevamente o contacta con soporte.'
+        'Ocurrió un error inesperado al enviar el correo. Por favor, intenta nuevamente o contacta con soporte.\n\n' +
+        '📞 Soporte: soporte@barliveapp.es'
       );
     } finally {
       setLoading(false);
@@ -223,6 +249,9 @@ export default function RecuperarPasswordScreen() {
                 </Text>
                 <Text style={styles.troubleshootingItem}>
                   • Si el problema persiste, contacta con soporte
+                </Text>
+                <Text style={styles.troubleshootingItem}>
+                  • 📞 Soporte: soporte@barliveapp.es
                 </Text>
               </View>
             </>

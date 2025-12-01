@@ -110,7 +110,16 @@ export default function RegistroEmailScreen() {
                     });
                     
                     if (error) {
-                      Alert.alert('Error', 'No se pudo reenviar el correo de verificación');
+                      console.error('[Registro v4.0] Error resending email:', error);
+                      if (error.message.includes('domain is not verified') || error.message.includes('450')) {
+                        Alert.alert(
+                          '⚠️ Servicio de correo en configuración',
+                          'El servicio de correo está siendo configurado. Por favor, contacta con soporte para verificar tu cuenta.\n\n' +
+                          '📞 Soporte: soporte@barliveapp.es'
+                        );
+                      } else {
+                        Alert.alert('Error', 'No se pudo reenviar el correo de verificación');
+                      }
                     } else {
                       Alert.alert(
                         'Correo enviado',
@@ -151,9 +160,31 @@ export default function RegistroEmailScreen() {
 
       if (authError) {
         console.error('[Registro v4.0] ❌ Error creating auth user:', authError);
+        console.error('[Registro v4.0] Error details:', JSON.stringify(authError, null, 2));
         
         if (authError.message.includes('already registered')) {
           Alert.alert('Error', 'Este correo ya está registrado. Por favor, inicia sesión.');
+        } else if (authError.message.includes('domain is not verified') || authError.message.includes('450')) {
+          Alert.alert(
+            '⚠️ Servicio de correo en configuración',
+            'Tu cuenta ha sido creada pero el servicio de correo está siendo configurado.\n\n' +
+            '📧 Problema técnico:\n' +
+            'El dominio de correo no está verificado en el servidor de emails.\n\n' +
+            '✅ Solución:\n' +
+            'Por favor, contacta con soporte para que activen tu cuenta manualmente.\n\n' +
+            '📞 Soporte: soporte@barliveapp.es\n\n' +
+            'Disculpa las molestias. Estamos trabajando para resolver esto lo antes posible.',
+            [
+              {
+                text: 'Contactar soporte',
+                onPress: () => {
+                  // TODO: Open email client or support chat
+                  console.log('Opening support contact');
+                },
+              },
+              { text: 'Entendido', style: 'cancel' },
+            ]
+          );
         } else {
           Alert.alert('Error', authError.message || 'No se pudo crear la cuenta');
         }
@@ -178,7 +209,8 @@ export default function RegistroEmailScreen() {
 
       Alert.alert(
         '¡Cuenta creada!',
-        'Tu cuenta ha sido creada exitosamente. Hemos enviado un correo de verificación a tu email. Por favor, verifica tu correo electrónico para activar tu cuenta.',
+        'Tu cuenta ha sido creada exitosamente. Hemos enviado un correo de verificación a tu email. Por favor, verifica tu correo electrónico para activar tu cuenta.\n\n' +
+        '⚠️ Si no recibes el correo en unos minutos, revisa tu carpeta de spam o contacta con soporte.',
         [
           {
             text: 'Entendido',
@@ -187,7 +219,7 @@ export default function RegistroEmailScreen() {
       );
     } catch (error: any) {
       console.error('[Registro v4.0] ❌ Error in handleRegister:', error);
-      Alert.alert('Error', 'Ocurrió un error inesperado');
+      Alert.alert('Error', 'Ocurrió un error inesperado. Por favor, contacta con soporte.\n\n📞 Soporte: soporte@barliveapp.es');
     } finally {
       setLoading(false);
     }
