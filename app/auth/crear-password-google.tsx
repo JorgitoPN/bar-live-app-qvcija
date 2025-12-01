@@ -26,20 +26,18 @@ export default function CrearPasswordGoogleScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [verificationCode, setVerificationCode] = useState('');
   const [step, setStep] = useState<'request' | 'verify'>('request');
-  const [resetToken, setResetToken] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check if we have a reset token from URL (deep link)
-    const checkResetToken = async () => {
+    // Check if we have a session from URL (deep link after email confirmation)
+    const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.access_token) {
-        setResetToken(session.access_token);
+        console.log('[CrearPasswordGoogle] Session detected, moving to verify step');
         setStep('verify');
       }
     };
-    checkResetToken();
+    checkSession();
   }, []);
 
   const validatePassword = (password: string): boolean => {
@@ -73,13 +71,13 @@ export default function CrearPasswordGoogleScreen() {
 
       Alert.alert(
         'Correo enviado',
-        'Hemos enviado un enlace de verificación a tu correo electrónico. Por favor, haz clic en el enlace para continuar con la configuración de tu contraseña.',
+        'Hemos enviado un enlace de verificación a tu correo electrónico. Por favor, haz clic en el enlace para continuar con la configuración de tu contraseña. El enlace es válido por 1 hora.',
         [
           {
             text: 'Entendido',
             onPress: () => {
               // User should click the link in their email
-              // which will redirect them back here with a token
+              // which will redirect them back here with a session
             },
           },
         ]
@@ -147,29 +145,6 @@ export default function CrearPasswordGoogleScreen() {
         // Don't fail here, password is already set
       } else {
         console.log('[CrearPasswordGoogle] ✅ Usuario actualizado en DB');
-      }
-
-      // Send confirmation email
-      try {
-        const { data: userData } = await supabase
-          .from('usuarios')
-          .select('nombre')
-          .eq('id', updateData.user.id)
-          .single();
-
-        // Call edge function to send confirmation email
-        await supabase.functions.invoke('send-verification-email', {
-          body: {
-            email: email,
-            code: 'CONFIRMADO',
-            type: 'verification',
-          },
-        });
-
-        console.log('[CrearPasswordGoogle] ✅ Email de confirmación enviado');
-      } catch (emailError) {
-        console.error('[CrearPasswordGoogle] Error enviando email de confirmación:', emailError);
-        // Don't fail the whole process if email fails
       }
 
       // Sign out to force fresh login
@@ -245,7 +220,7 @@ export default function CrearPasswordGoogleScreen() {
             <View style={styles.stepBox}>
               <Text style={styles.stepTitle}>Paso 1: Verificación</Text>
               <Text style={styles.stepText}>
-                Primero, enviaremos un enlace de verificación a tu correo electrónico. 
+                Enviaremos un enlace de verificación a tu correo electrónico. 
                 Haz clic en el enlace para continuar con la configuración de tu contraseña.
               </Text>
             </View>
