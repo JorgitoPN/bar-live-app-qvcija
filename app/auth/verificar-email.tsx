@@ -41,6 +41,8 @@ export default function VerificarEmailScreen() {
     setResending(true);
 
     try {
+      console.log('[VerificarEmail v4.0] 📧 Reenviando correo de verificación:', email);
+
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email: email,
@@ -50,9 +52,10 @@ export default function VerificarEmailScreen() {
       });
 
       if (error) {
-        console.error('[VerificarEmail] Error resending email:', error);
+        console.error('[VerificarEmail v4.0] ❌ Error resending email:', error);
         Alert.alert('Error', 'No se pudo reenviar el correo de verificación. Por favor, intenta nuevamente.');
       } else {
+        console.log('[VerificarEmail v4.0] ✅ Email resent successfully');
         Alert.alert(
           'Correo enviado',
           'Se ha reenviado el correo de verificación. Por favor, revisa tu bandeja de entrada (y la carpeta de spam).'
@@ -60,7 +63,7 @@ export default function VerificarEmailScreen() {
         setCountdown(60); // 60 seconds cooldown
       }
     } catch (error: any) {
-      console.error('[VerificarEmail] ❌ Error resending email:', error);
+      console.error('[VerificarEmail v4.0] ❌ Error resending email:', error);
       Alert.alert('Error', 'Ocurrió un error al reenviar el correo');
     } finally {
       setResending(false);

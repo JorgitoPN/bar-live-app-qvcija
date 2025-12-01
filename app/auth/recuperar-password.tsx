@@ -47,15 +47,17 @@ export default function RecuperarPasswordScreen() {
     try {
       const normalizedEmail = email.trim().toLowerCase();
 
+      console.log('[RecuperarPassword v4.0] 🔑 Solicitando recuperación de contraseña:', normalizedEmail);
+
       // Check if user exists
       const { data: userData, error: userError } = await supabase
         .from('usuarios')
-        .select('id, provider')
+        .select('id')
         .eq('email', normalizedEmail)
         .maybeSingle();
 
       if (userError && userError.code !== 'PGRST116') {
-        console.error('[RecuperarPassword] Error checking user:', userError);
+        console.error('[RecuperarPassword v4.0] Error checking user:', userError);
         Alert.alert('Error', 'No se pudo verificar el usuario');
         setLoading(false);
         return;
@@ -67,41 +69,19 @@ export default function RecuperarPasswordScreen() {
         return;
       }
 
-      // Check if user was registered with Google
-      if (userData.provider === 'google') {
-        Alert.alert(
-          'Cuenta de Google',
-          'Tu cuenta fue creada con Google. Por favor, configura una contraseña primero.',
-          [
-            {
-              text: 'Configurar contraseña',
-              onPress: () => {
-                router.push({
-                  pathname: '/auth/crear-password-google',
-                  params: { email: normalizedEmail },
-                });
-              },
-            },
-            { text: 'Cancelar', style: 'cancel' },
-          ]
-        );
-        setLoading(false);
-        return;
-      }
-
       // Use Supabase's built-in password reset - it will send an email automatically
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
         redirectTo: 'https://natively.dev/email-confirmed',
       });
 
       if (resetError) {
-        console.error('[RecuperarPassword] Error sending reset email:', resetError);
+        console.error('[RecuperarPassword v4.0] ❌ Error sending reset email:', resetError);
         Alert.alert('Error', 'No se pudo enviar el correo de recuperación. Por favor, intenta nuevamente.');
         setLoading(false);
         return;
       }
 
-      console.log('[RecuperarPassword] ✅ Password reset email sent successfully');
+      console.log('[RecuperarPassword v4.0] ✅ Password reset email sent successfully');
       
       Alert.alert(
         '✅ Correo enviado',
@@ -116,7 +96,7 @@ export default function RecuperarPasswordScreen() {
         ]
       );
     } catch (error: any) {
-      console.error('[RecuperarPassword] ❌ Error in handleResetPassword:', error);
+      console.error('[RecuperarPassword v4.0] ❌ Error in handleResetPassword:', error);
       Alert.alert('Error', 'Ocurrió un error inesperado');
     } finally {
       setLoading(false);

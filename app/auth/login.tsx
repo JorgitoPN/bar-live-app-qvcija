@@ -23,6 +23,7 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -45,47 +46,7 @@ export default function LoginScreen() {
     try {
       const normalizedEmail = email.trim().toLowerCase();
 
-      // Check if user exists
-      const { data: userData, error: userError } = await supabase
-        .from('usuarios')
-        .select('id, email_verified, provider, rol_app')
-        .eq('email', normalizedEmail)
-        .maybeSingle();
-
-      if (userError && userError.code !== 'PGRST116') {
-        console.error('[Login] Error checking user:', userError);
-        Alert.alert('Error', 'No se pudo verificar el usuario');
-        setLoading(false);
-        return;
-      }
-
-      if (!userData) {
-        Alert.alert('Error', 'Usuario no encontrado. Por favor, regístrate primero.');
-        setLoading(false);
-        return;
-      }
-
-      // Check if user was registered with Google and needs to set password
-      if (userData.provider === 'google') {
-        Alert.alert(
-          'Configuración requerida',
-          'Tu cuenta fue creada con Google. Por favor, configura una contraseña para continuar con el nuevo sistema de autenticación.',
-          [
-            {
-              text: 'Configurar contraseña',
-              onPress: () => {
-                router.push({
-                  pathname: '/auth/crear-password-google',
-                  params: { email: normalizedEmail },
-                });
-              },
-            },
-            { text: 'Cancelar', style: 'cancel' },
-          ]
-        );
-        setLoading(false);
-        return;
-      }
+      console.log('[Login v4.0] 🔐 Intentando iniciar sesión:', normalizedEmail);
 
       // Sign in with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -94,7 +55,7 @@ export default function LoginScreen() {
       });
 
       if (authError) {
-        console.error('[Login] Error signing in:', authError);
+        console.error('[Login v4.0] ❌ Error signing in:', authError);
         
         if (authError.message.includes('Email not confirmed')) {
           Alert.alert(
@@ -122,7 +83,7 @@ export default function LoginScreen() {
                       );
                     }
                   } catch (err) {
-                    console.error('[Login] Error resending email:', err);
+                    console.error('[Login v4.0] Error resending email:', err);
                     Alert.alert('Error', 'Ocurrió un error al reenviar el correo');
                   }
                 },
@@ -146,12 +107,12 @@ export default function LoginScreen() {
         return;
       }
 
-      console.log('[Login] ✅ Login successful:', authData.user.id);
+      console.log('[Login v4.0] ✅ Login successful:', authData.user.id);
       
       // Navigate to main app
       router.replace('/(tabs)/explorar');
     } catch (error: any) {
-      console.error('[Login] ❌ Error in handleLogin:', error);
+      console.error('[Login v4.0] ❌ Error in handleLogin:', error);
       Alert.alert('Error', 'Ocurrió un error inesperado');
     } finally {
       setLoading(false);
@@ -219,16 +180,29 @@ export default function LoginScreen() {
           />
 
           <Text style={styles.label}>Contraseña</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="••••••••"
-            placeholderTextColor={colors.textSecondary}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoCapitalize="none"
-            editable={!loading}
-          />
+          <View style={styles.passwordContainer}>
+            <TextInput
+              style={styles.passwordInput}
+              placeholder="••••••••"
+              placeholderTextColor={colors.textSecondary}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+              autoCapitalize="none"
+              editable={!loading}
+            />
+            <TouchableOpacity
+              style={styles.eyeButton}
+              onPress={() => setShowPassword(!showPassword)}
+            >
+              <IconSymbol
+                ios_icon_name={showPassword ? 'eye.slash.fill' : 'eye.fill'}
+                android_material_icon_name={showPassword ? 'visibility_off' : 'visibility'}
+                size={20}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
+          </View>
 
           <TouchableOpacity
             style={styles.forgotButton}
@@ -318,6 +292,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.text,
     marginBottom: 16,
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 16,
+    fontSize: 16,
+    color: colors.text,
+  },
+  eyeButton: {
+    padding: 16,
   },
   forgotButton: {
     alignSelf: 'flex-end',

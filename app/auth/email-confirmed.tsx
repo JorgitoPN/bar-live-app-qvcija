@@ -25,18 +25,20 @@ export default function EmailConfirmedScreen() {
 
   const checkEmailConfirmation = async () => {
     try {
+      console.log('[EmailConfirmed v4.0] 🔍 Verificando confirmación de email...');
+
       // Get the current session
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
       if (sessionError) {
-        console.error('[EmailConfirmed] Error getting session:', sessionError);
+        console.error('[EmailConfirmed v4.0] ❌ Error getting session:', sessionError);
         setError('No se pudo verificar la sesión');
         setLoading(false);
         return;
       }
 
       if (!session) {
-        console.log('[EmailConfirmed] No active session');
+        console.log('[EmailConfirmed v4.0] ℹ️ No active session');
         setError('No hay sesión activa');
         setLoading(false);
         return;
@@ -44,7 +46,7 @@ export default function EmailConfirmedScreen() {
 
       // Check if email is verified
       if (session.user.email_confirmed_at) {
-        console.log('[EmailConfirmed] ✅ Email confirmed successfully');
+        console.log('[EmailConfirmed v4.0] ✅ Email confirmed successfully');
         
         // Update user in database
         const { error: updateError } = await supabase
@@ -53,7 +55,7 @@ export default function EmailConfirmedScreen() {
           .eq('id', session.user.id);
 
         if (updateError) {
-          console.error('[EmailConfirmed] Error updating user:', updateError);
+          console.error('[EmailConfirmed v4.0] ⚠️ Error updating user:', updateError);
         }
 
         setSuccess(true);
@@ -61,7 +63,7 @@ export default function EmailConfirmedScreen() {
         setError('El email aún no ha sido verificado');
       }
     } catch (err: any) {
-      console.error('[EmailConfirmed] ❌ Error:', err);
+      console.error('[EmailConfirmed v4.0] ❌ Error:', err);
       setError('Ocurrió un error inesperado');
     } finally {
       setLoading(false);

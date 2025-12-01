@@ -25,6 +25,8 @@ export default function RegistroEmailScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [nombre, setNombre] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -61,39 +63,24 @@ export default function RegistroEmailScreen() {
     try {
       const normalizedEmail = email.trim().toLowerCase();
 
+      console.log('[Registro v4.0] 📝 Registrando nuevo usuario:', normalizedEmail);
+
       // Check if email already exists
       const { data: existingUser, error: checkError } = await supabase
         .from('usuarios')
-        .select('id, email_verified, provider')
+        .select('id, email_verified')
         .eq('email', normalizedEmail)
         .maybeSingle();
 
       if (checkError && checkError.code !== 'PGRST116') {
-        console.error('[RegistroEmail] Error checking email:', checkError);
+        console.error('[Registro v4.0] Error checking email:', checkError);
         Alert.alert('Error', 'No se pudo verificar el correo. Por favor, intenta nuevamente.');
         setLoading(false);
         return;
       }
 
       if (existingUser) {
-        if (existingUser.provider === 'google') {
-          Alert.alert(
-            'Cuenta existente',
-            'Este correo ya está registrado con Google. Por favor, configura una contraseña para continuar.',
-            [
-              {
-                text: 'Configurar contraseña',
-                onPress: () => {
-                  router.push({
-                    pathname: '/auth/crear-password-google',
-                    params: { email: normalizedEmail },
-                  });
-                },
-              },
-              { text: 'Cancelar', style: 'cancel' },
-            ]
-          );
-        } else if (existingUser.email_verified) {
+        if (existingUser.email_verified) {
           Alert.alert(
             'Correo ya registrado',
             'Este correo ya está registrado. Por favor, inicia sesión.',
@@ -129,9 +116,13 @@ export default function RegistroEmailScreen() {
                         'Correo enviado',
                         'Se ha reenviado el correo de verificación. Por favor, revisa tu bandeja de entrada.'
                       );
+                      router.push({
+                        pathname: '/auth/verificar-email',
+                        params: { email: normalizedEmail },
+                      });
                     }
                   } catch (err) {
-                    console.error('[RegistroEmail] Error resending email:', err);
+                    console.error('[Registro v4.0] Error resending email:', err);
                     Alert.alert('Error', 'Ocurrió un error al reenviar el correo');
                   }
                 },
@@ -159,7 +150,7 @@ export default function RegistroEmailScreen() {
       });
 
       if (authError) {
-        console.error('[RegistroEmail] Error creating auth user:', authError);
+        console.error('[Registro v4.0] ❌ Error creating auth user:', authError);
         
         if (authError.message.includes('already registered')) {
           Alert.alert('Error', 'Este correo ya está registrado. Por favor, inicia sesión.');
@@ -177,11 +168,13 @@ export default function RegistroEmailScreen() {
         return;
       }
 
-      console.log('[RegistroEmail] ✅ User created successfully:', authData.user.id);
+      console.log('[Registro v4.0] ✅ User created successfully:', authData.user.id);
 
-      // The trigger will automatically create the user in usuarios table
-      // Wait a moment for the trigger to complete
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Navigate to verification screen
+      router.push({
+        pathname: '/auth/verificar-email',
+        params: { email: normalizedEmail },
+      });
 
       Alert.alert(
         '¡Cuenta creada!',
@@ -189,14 +182,11 @@ export default function RegistroEmailScreen() {
         [
           {
             text: 'Entendido',
-            onPress: () => {
-              router.replace('/auth/login');
-            },
           },
         ]
       );
     } catch (error: any) {
-      console.error('[RegistroEmail] ❌ Error in handleRegister:', error);
+      console.error('[Registro v4.0] ❌ Error in handleRegister:', error);
       Alert.alert('Error', 'Ocurrió un error inesperado');
     } finally {
       setLoading(false);
@@ -258,28 +248,54 @@ export default function RegistroEmailScreen() {
           />
 
           <Text style={styles.label}>Contraseña</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Mínimo 8 caracteres"
-            placeholderTextColor={colors.textSecondary}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoCapitalize="none"
-            editable={!loading}
-          />
+          <View style={styles.passwordContainer}>
+            <TextInput
+              style={styles.passwordInput}
+              placeholder="Mínimo 8 caracteres"
+              placeholderTextColor={colors.textSecondary}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+              autoCapitalize="none"
+              editable={!loading}
+            />
+            <TouchableOpacity
+              style={styles.eyeButton}
+              onPress={() => setShowPassword(!showPassword)}
+            >
+              <IconSymbol
+                ios_icon_name={showPassword ? 'eye.slash.fill' : 'eye.fill'}
+                android_material_icon_name={showPassword ? 'visibility_off' : 'visibility'}
+                size={20}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
+          </View>
 
           <Text style={styles.label}>Confirmar contraseña</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Repite tu contraseña"
-            placeholderTextColor={colors.textSecondary}
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry
-            autoCapitalize="none"
-            editable={!loading}
-          />
+          <View style={styles.passwordContainer}>
+            <TextInput
+              style={styles.passwordInput}
+              placeholder="Repite tu contraseña"
+              placeholderTextColor={colors.textSecondary}
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry={!showConfirmPassword}
+              autoCapitalize="none"
+              editable={!loading}
+            />
+            <TouchableOpacity
+              style={styles.eyeButton}
+              onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+            >
+              <IconSymbol
+                ios_icon_name={showConfirmPassword ? 'eye.slash.fill' : 'eye.fill'}
+                android_material_icon_name={showConfirmPassword ? 'visibility_off' : 'visibility'}
+                size={20}
+                color={colors.textSecondary}
+              />
+            </TouchableOpacity>
+          </View>
 
           <TouchableOpacity
             style={[styles.button, loading && styles.buttonDisabled]}
@@ -370,6 +386,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.text,
     marginBottom: 16,
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 16,
+    fontSize: 16,
+    color: colors.text,
+  },
+  eyeButton: {
+    padding: 16,
   },
   button: {
     backgroundColor: colors.primary,
