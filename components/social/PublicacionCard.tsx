@@ -81,6 +81,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
   });
 
   // Fetch author data
+  // ✅ Fixed: Added post to dependencies
   useEffect(() => {
     const fetchAuthorData = async () => {
       if (!post) {
@@ -157,7 +158,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
     };
 
     fetchAuthorData();
-  }, [post?.id, post?.tipo, post?.autorId, post?.autor_id, post?.localId, post?.local_id]);
+  }, [post]);
 
   // ✅ FIXED: Check if post is liked on mount and when interaction context changes
   useEffect(() => {
@@ -300,6 +301,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
     loadTags();
   }, [post?.id]);
 
+  // ✅ Fixed: Added interactionLocalId and interactionType to dependencies
   const handleLike = useCallback(async () => {
     console.log('[PublicacionCard] handleLike - Interaction context:', {
       interactionUserId,
@@ -391,6 +393,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
     if (onLike) onLike();
   }, [liked, likesCount, onLike, interactionUserId, interactionType, interactionLocalId, isInteractingAsLocal, post.id]);
 
+  // ✅ Fixed: Added interactionLocalId and interactionType to dependencies
   const handleSave = useCallback(async () => {
     console.log('[PublicacionCard] handleSave - Interaction context:', {
       interactionUserId,
@@ -426,8 +429,9 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
       setSaved(!newSaved);
       Alert.alert('Error', 'No se pudo guardar la publicación');
     }
-  }, [saved, interactionUserId, post.id]);
+  }, [saved, interactionUserId, interactionLocalId, interactionType, post.id]);
 
+  // ✅ Fixed: Added interactionLocalId and interactionType to dependencies
   const handleComment = useCallback(() => {
     console.log('[PublicacionCard] handleComment - Interaction context:', {
       interactionUserId,
@@ -441,7 +445,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
     }
     router.push(`/social/comentar?postId=${post.id}`);
     if (onComment) onComment();
-  }, [interactionUserId, router, post.id, onComment]);
+  }, [interactionUserId, interactionLocalId, interactionType, router, post.id, onComment]);
 
   const handleShare = useCallback(async () => {
     console.log('[PublicacionCard] handleShare - Interaction context:', {

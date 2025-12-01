@@ -53,6 +53,7 @@ export function BadgeNotification({ badge }: BadgeNotificationProps) {
   const fadeAnim = new Animated.Value(0);
   const slideAnim = new Animated.Value(-100);
 
+  // ✅ Fixed: Added fadeAnim and slideAnim to dependencies
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -67,7 +68,7 @@ export function BadgeNotification({ badge }: BadgeNotificationProps) {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [fadeAnim, slideAnim]);
 
   const badgeInfo = BADGE_INFO[badge.tipo_badge] || {
     title: 'Badge',

@@ -41,11 +41,12 @@ export function RankingModal({ visible, onClose, localId }: RankingModalProps) {
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<'diario' | 'semanal' | 'mensual'>('diario');
 
+  // ✅ Fixed: Added loadRanking to dependencies
   useEffect(() => {
     if (visible) {
       loadRanking();
     }
-  }, [visible, period]);
+  }, [visible, period, loadRanking]);
 
   const loadRanking = async () => {
     try {

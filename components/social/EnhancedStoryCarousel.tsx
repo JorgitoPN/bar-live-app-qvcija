@@ -40,6 +40,7 @@ const StoryAvatar = memo(({
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
+  // ✅ Fixed: Added pulseAnim to dependencies
   useEffect(() => {
     if (hasUnviewed) {
       Animated.loop(
@@ -57,7 +58,7 @@ const StoryAvatar = memo(({
         ])
       ).start();
     }
-  }, [hasUnviewed]);
+  }, [hasUnviewed, pulseAnim]);
 
   const handlePressIn = () => {
     Animated.spring(scaleAnim, {

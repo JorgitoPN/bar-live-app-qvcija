@@ -30,12 +30,13 @@ export default function ConfigurarPasswordGoogleScreen() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
 
+  // ✅ Fixed: Added router to dependencies
   useEffect(() => {
     if (!email) {
       Alert.alert('Error', 'No se proporcionó un correo electrónico');
       router.back();
     }
-  }, [email]);
+  }, [email, router]);
 
   const validatePassword = (password: string): boolean => {
     return password.length >= 8;

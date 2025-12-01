@@ -1,11 +1,10 @@
-# Ignore generated files
-_expo/
-dist/
-web-build/
 
-# Ignore node modules
 node_modules/
-
-# Ignore build artifacts
-*.bundle.js
-*.bundle.js.map
+dist/
+.expo/
+.expo-shared/
+*.config.js
+babel.config.js
+metro.config.js
+# Ignore Supabase Edge Functions (Deno)
+supabase/functions/**/*.ts

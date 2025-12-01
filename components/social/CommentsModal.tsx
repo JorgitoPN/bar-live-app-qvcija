@@ -64,11 +64,12 @@ export default function CommentsModal({
   const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
   const [editingComment, setEditingComment] = useState<Comment | null>(null);
 
+  // ✅ Fixed: Added loadComments to dependencies
   useEffect(() => {
     if (visible) {
       loadComments();
     }
-  }, [visible, postId]);
+  }, [visible, postId, loadComments]);
 
   const loadComments = async () => {
     try {

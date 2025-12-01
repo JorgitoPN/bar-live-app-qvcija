@@ -15,11 +15,12 @@ export default function HistoriaDetailScreen() {
   const [initialIndex, setInitialIndex] = useState(0);
   const [loading, setLoading] = useState(true);
 
+  // ✅ Fixed: Added loadStories to dependencies
   useEffect(() => {
     loadStories();
-  }, [id]);
+  }, [id, loadStories]);
 
-  const loadStories = async () => {
+  const loadStories = React.useCallback(async () => {
     if (!id) {
       router.back();
       return;
@@ -112,7 +113,7 @@ export default function HistoriaDetailScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, router]);
 
   const handleClose = () => {
     router.back();

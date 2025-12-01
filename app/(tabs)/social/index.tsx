@@ -71,6 +71,7 @@ export default function SocialScreen() {
     hasAvatar: !!displayAvatar,
   });
 
+  // ✅ Fixed: Added fadeAnim and slideAnim to dependencies
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -85,7 +86,7 @@ export default function SocialScreen() {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [fadeAnim, slideAnim]);
 
   const loadUnreadCounts = useCallback(async () => {
     if (!user) return;

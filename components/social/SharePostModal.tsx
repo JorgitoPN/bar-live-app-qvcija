@@ -57,11 +57,12 @@ export default function SharePostModal({
   const [sending, setSending] = useState(false);
   const [selectedRecipients, setSelectedRecipients] = useState<Set<string>>(new Set());
 
+  // ✅ Fixed: Added loadRecipients to dependencies
   useEffect(() => {
     if (visible) {
       loadRecipients();
     }
-  }, [visible]);
+  }, [visible, loadRecipients]);
 
   // ✅ FIXED: Predictive search - filter as user types
   useEffect(() => {

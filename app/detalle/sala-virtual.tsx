@@ -102,6 +102,7 @@ export default function SalaVirtualScreen() {
   const glowAnim = useRef(new Animated.Value(0)).current;
 
   // ✅ SPECTACULAR: Pulse animation for online indicators
+  // ✅ Fixed: Added glowAnim and pulseAnim to dependencies
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
@@ -133,7 +134,7 @@ export default function SalaVirtualScreen() {
         }),
       ])
     ).start();
-  }, []);
+  }, [glowAnim, pulseAnim]);
 
   // Load local data
   const loadLocalData = useCallback(async () => {
@@ -558,6 +559,7 @@ export default function SalaVirtualScreen() {
   }, [localId, user, updateActiveUsers, router]);
 
   // Initialize
+  // ✅ Fixed: Added all missing dependencies
   useEffect(() => {
     if (!localId) {
       setLoading(false);
@@ -587,7 +589,7 @@ export default function SalaVirtualScreen() {
     return () => {
       cleanup.then(fn => fn && fn());
     };
-  }, [localId, router]);
+  }, [localId, router, checkUserCheckin, loadLocalData, loadMessages, subscribeToUpdates, updateActiveUsers]);
 
   // Handle typing indicator
   const handleTyping = () => {

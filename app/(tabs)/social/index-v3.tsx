@@ -74,7 +74,7 @@ export default function SocialScreenV3() {
     hasAvatar: !!displayAvatar,
   });
 
-  // ✅ ENTRANCE ANIMATION
+  // ✅ ENTRANCE ANIMATION - Fixed: Added fadeAnim and slideAnim to dependencies
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -89,7 +89,7 @@ export default function SocialScreenV3() {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [fadeAnim, slideAnim]);
 
   // ✅ Load unread counts
   const loadUnreadCounts = useCallback(async () => {
