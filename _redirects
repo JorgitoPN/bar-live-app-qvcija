@@ -1,0 +1,6 @@
+
+# Redirect www to non-www
+https://www.barliveapp.com/* https://barliveapp.com/:splat 301!
+
+# Redirect HTTP to HTTPS
+http://barliveapp.com/* https://barliveapp.com/:splat 301!
