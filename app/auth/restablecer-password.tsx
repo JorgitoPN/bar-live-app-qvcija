@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -20,31 +20,51 @@ import { supabase } from '@/utils/supabase';
 
 export default function RestablecerPasswordScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams();
-  const email = (params.email as string) || '';
-  
-  const [code, setCode] = useState('');
-  const [newPassword, setNewPassword] = useState('');
+  const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [hasSession, setHasSession] = useState(false);
+
+  useEffect(() => {
+    checkSession();
+  }, []);
+
+  const checkSession = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      console.log('[RestablecerPassword] Session detected');
+      setHasSession(true);
+    } else {
+      console.log('[RestablecerPassword] No session detected');
+      Alert.alert(
+        'Sesión no válida',
+        'El enlace de recuperación ha expirado o no es válido. Por favor, solicita uno nuevo.',
+        [
+          {
+            text: 'Solicitar nuevo enlace',
+            onPress: () => router.replace('/auth/recuperar-password'),
+          },
+        ]
+      );
+    }
+  };
+
+  const validatePassword = (password: string): boolean => {
+    return password.length >= 8;
+  };
 
   const handleResetPassword = async () => {
-    if (!code.trim() || !newPassword.trim() || !confirmPassword.trim()) {
+    if (!password.trim() || !confirmPassword.trim()) {
       Alert.alert('Error', 'Por favor, completa todos los campos');
       return;
     }
 
-    if (code.trim().length !== 6) {
-      Alert.alert('Error', 'El código debe tener 6 dígitos');
+    if (!validatePassword(password)) {
+      Alert.alert('Error', 'La contraseña debe tener al menos 8 caracteres');
       return;
     }
 
-    if (newPassword.length < 6) {
-      Alert.alert('Error', 'La contraseña debe tener al menos 6 caracteres');
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
+    if (password !== confirmPassword) {
       Alert.alert('Error', 'Las contraseñas no coinciden');
       return;
     }
@@ -52,57 +72,34 @@ export default function RestablecerPasswordScreen() {
     setLoading(true);
 
     try {
-      // Verify code
-      const { data: userData, error: userError } = await supabase
-        .from('usuarios')
-        .select('id, verification_code, verification_code_expires_at')
-        .eq('email', email)
-        .maybeSingle();
+      console.log('[RestablecerPassword] Actualizando contraseña...');
 
-      if (userError || !userData) {
-        console.error('Error verifying code:', userError);
-        Alert.alert('Error', 'No se pudo verificar el código');
-        setLoading(false);
-        return;
-      }
-
-      if (userData.verification_code !== code.trim()) {
-        Alert.alert('Error', 'Código incorrecto');
-        setLoading(false);
-        return;
-      }
-
-      const expiresAt = new Date(userData.verification_code_expires_at);
-      if (expiresAt < new Date()) {
-        Alert.alert('Error', 'El código ha expirado. Por favor, solicita uno nuevo.');
-        setLoading(false);
-        return;
-      }
-
-      // Update password in Supabase Auth
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: newPassword,
+      // Update password using Supabase Auth
+      const { data: updateData, error: updateError } = await supabase.auth.updateUser({
+        password: password,
       });
 
       if (updateError) {
-        console.error('Error updating password:', updateError);
+        console.error('[RestablecerPassword] Error actualizando contraseña:', updateError);
+        Alert.alert('Error', 'No se pudo actualizar la contraseña. Por favor, intenta nuevamente.');
+        setLoading(false);
+        return;
+      }
+
+      if (!updateData.user) {
         Alert.alert('Error', 'No se pudo actualizar la contraseña');
         setLoading(false);
         return;
       }
 
-      // Clear verification code
-      await supabase
-        .from('usuarios')
-        .update({
-          verification_code: null,
-          verification_code_expires_at: null,
-        })
-        .eq('email', email);
+      console.log('[RestablecerPassword] ✅ Contraseña actualizada');
+
+      // Sign out to force fresh login
+      await supabase.auth.signOut();
 
       Alert.alert(
-        'Contraseña actualizada',
-        'Tu contraseña ha sido actualizada exitosamente.',
+        '¡Contraseña actualizada!',
+        'Tu contraseña ha sido actualizada exitosamente. Ahora puedes iniciar sesión con tu nueva contraseña.',
         [
           {
             text: 'Iniciar sesión',
@@ -111,62 +108,28 @@ export default function RestablecerPasswordScreen() {
         ]
       );
     } catch (error: any) {
-      console.error('[RestablecerPassword] Error:', error);
+      console.error('[RestablecerPassword] ❌ Error en handleResetPassword:', error);
       Alert.alert('Error', 'Ocurrió un error inesperado');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleResendCode = async () => {
-    setLoading(true);
-
-    try {
-      // Generate new OTP
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
-      // Update user with new OTP
-      const { error: updateError } = await supabase
-        .from('usuarios')
-        .update({
-          verification_code: otp,
-          verification_code_expires_at: expiresAt.toISOString(),
-        })
-        .eq('email', email);
-
-      if (updateError) {
-        console.error('Error updating verification code:', updateError);
-        Alert.alert('Error', 'No se pudo generar un nuevo código');
-        setLoading(false);
-        return;
-      }
-
-      // Send recovery email via Edge Function
-      const { error: emailError } = await supabase.functions.invoke(
-        'send-verification-email',
-        {
-          body: {
-            email,
-            code: otp,
-            type: 'password_reset',
-          },
-        }
-      );
-
-      if (emailError) {
-        console.error('Error sending recovery email:', emailError);
-        Alert.alert('Advertencia', `Código generado pero hubo un problema al enviar el correo.\n\nTu código es: ${otp}`);
-      } else {
-        Alert.alert('Código enviado', 'Se ha enviado un nuevo código a tu correo electrónico.');
-      }
-    } catch (error: any) {
-      console.error('[RestablecerPassword] Error resending code:', error);
-      Alert.alert('Error', 'No se pudo reenviar el código');
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (!hasSession) {
+    return (
+      <View style={styles.container}>
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          style={styles.header}
+        >
+          <Text style={styles.headerTitle}>Restableciendo contraseña...</Text>
+        </LinearGradient>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
@@ -177,19 +140,8 @@ export default function RestablecerPasswordScreen() {
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         style={styles.header}
       >
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <IconSymbol
-            ios_icon_name="chevron.left"
-            android_material_icon_name="arrow_back"
-            size={24}
-            color="#fff"
-          />
-        </TouchableOpacity>
         <Text style={styles.headerTitle}>Nueva contraseña</Text>
-        <Text style={styles.headerSubtitle}>Ingresa el código y tu nueva contraseña</Text>
+        <Text style={styles.headerSubtitle}>Configura tu nueva contraseña</Text>
       </LinearGradient>
 
       <ScrollView
@@ -198,30 +150,25 @@ export default function RestablecerPasswordScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.formContainer}>
-          <Text style={styles.description}>
-            Hemos enviado un código de 6 dígitos a {email}
-          </Text>
-
-          <Text style={styles.label}>Código de verificación</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="123456"
-            placeholderTextColor={colors.textSecondary}
-            value={code}
-            onChangeText={setCode}
-            keyboardType="number-pad"
-            maxLength={6}
-            autoFocus
-            editable={!loading}
-          />
+          <View style={styles.successBox}>
+            <IconSymbol
+              ios_icon_name="checkmark.circle.fill"
+              android_material_icon_name="check_circle"
+              size={24}
+              color="#10B981"
+            />
+            <Text style={styles.successText}>
+              ¡Verificación exitosa! Ahora puedes configurar tu nueva contraseña.
+            </Text>
+          </View>
 
           <Text style={styles.label}>Nueva contraseña</Text>
           <TextInput
             style={styles.input}
-            placeholder="Mínimo 6 caracteres"
+            placeholder="Mínimo 8 caracteres"
             placeholderTextColor={colors.textSecondary}
-            value={newPassword}
-            onChangeText={setNewPassword}
+            value={password}
+            onChangeText={setPassword}
             secureTextEntry
             autoCapitalize="none"
             editable={!loading}
@@ -247,17 +194,15 @@ export default function RestablecerPasswordScreen() {
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.buttonText}>Restablecer contraseña</Text>
+              <Text style={styles.buttonText}>Actualizar contraseña</Text>
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.resendButton}
-            onPress={handleResendCode}
-            disabled={loading}
-          >
-            <Text style={styles.resendButtonText}>¿No recibiste el código? Reenviar</Text>
-          </TouchableOpacity>
+          <View style={styles.noteBox}>
+            <Text style={styles.noteText}>
+              Una vez actualizada tu contraseña, podrás iniciar sesión con tu correo y nueva contraseña.
+            </Text>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -274,9 +219,6 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     paddingHorizontal: 24,
   },
-  backButton: {
-    marginBottom: 16,
-  },
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
@@ -286,6 +228,11 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 16,
     color: 'rgba(255, 255, 255, 0.9)',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   content: {
     flex: 1,
@@ -297,11 +244,21 @@ const styles = StyleSheet.create({
   formContainer: {
     flex: 1,
   },
-  description: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    marginBottom: 32,
-    lineHeight: 24,
+  successBox: {
+    flexDirection: 'row',
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: '#10B981',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+  },
+  successText: {
+    flex: 1,
+    marginLeft: 12,
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 20,
   },
   label: {
     fontSize: 14,
@@ -324,8 +281,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 16,
+    marginBottom: 24,
   },
   buttonDisabled: {
     opacity: 0.6,
@@ -335,13 +291,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  resendButton: {
-    alignItems: 'center',
-    padding: 12,
+  noteBox: {
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: 12,
+    padding: 16,
   },
-  resendButtonText: {
-    fontSize: 14,
-    color: colors.primary,
-    fontWeight: '600',
+  noteText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    lineHeight: 18,
   },
 });

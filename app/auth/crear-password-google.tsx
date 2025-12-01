@@ -27,18 +27,20 @@ export default function CrearPasswordGoogleScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<'request' | 'verify'>('request');
+  const [hasSession, setHasSession] = useState(false);
 
   useEffect(() => {
-    // Check if we have a session from URL (deep link after email confirmation)
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.access_token) {
-        console.log('[CrearPasswordGoogle] Session detected, moving to verify step');
-        setStep('verify');
-      }
-    };
     checkSession();
   }, []);
+
+  const checkSession = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      console.log('[CrearPasswordGoogle] Session detected, moving to verify step');
+      setHasSession(true);
+      setStep('verify');
+    }
+  };
 
   const validatePassword = (password: string): boolean => {
     return password.length >= 8;
@@ -55,9 +57,9 @@ export default function CrearPasswordGoogleScreen() {
     try {
       console.log('[CrearPasswordGoogle] Solicitando restablecimiento de contraseña para:', email);
 
-      // Send password reset email
+      // Send password reset email with proper redirect
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'https://natively.dev/auth/crear-password-google?email=' + encodeURIComponent(email),
+        redirectTo: `https://natively.dev/auth/crear-password-google?email=${encodeURIComponent(email)}`,
       });
 
       if (resetError) {
@@ -71,14 +73,10 @@ export default function CrearPasswordGoogleScreen() {
 
       Alert.alert(
         'Correo enviado',
-        'Hemos enviado un enlace de verificación a tu correo electrónico. Por favor, haz clic en el enlace para continuar con la configuración de tu contraseña. El enlace es válido por 1 hora.',
+        'Hemos enviado un enlace de confirmación a tu correo electrónico. Por favor, haz clic en el enlace para continuar con la configuración de tu contraseña.\n\nEl enlace es válido por 1 hora.',
         [
           {
             text: 'Entendido',
-            onPress: () => {
-              // User should click the link in their email
-              // which will redirect them back here with a session
-            },
           },
         ]
       );
@@ -137,6 +135,7 @@ export default function CrearPasswordGoogleScreen() {
         .update({
           provider: 'barlive',
           email_verified: true,
+          updated_at: new Date().toISOString(),
         })
         .eq('id', updateData.user.id);
 
@@ -147,12 +146,12 @@ export default function CrearPasswordGoogleScreen() {
         console.log('[CrearPasswordGoogle] ✅ Usuario actualizado en DB');
       }
 
-      // Sign out to force fresh login
+      // Sign out to force fresh login with new password
       await supabase.auth.signOut();
 
       Alert.alert(
         '¡Contraseña configurada!',
-        'Tu contraseña ha sido configurada exitosamente. Ahora puedes iniciar sesión con tu correo y contraseña.',
+        'Tu contraseña ha sido configurada exitosamente. Ahora puedes iniciar sesión con tu correo y contraseña.\n\nTodos tus datos, roles y configuraciones se han mantenido intactos.',
         [
           {
             text: 'Iniciar sesión',
@@ -218,10 +217,10 @@ export default function CrearPasswordGoogleScreen() {
             </View>
 
             <View style={styles.stepBox}>
-              <Text style={styles.stepTitle}>Paso 1: Verificación</Text>
+              <Text style={styles.stepTitle}>Paso 1: Confirmación por correo</Text>
               <Text style={styles.stepText}>
-                Enviaremos un enlace de verificación a tu correo electrónico. 
-                Haz clic en el enlace para continuar con la configuración de tu contraseña.
+                Te enviaremos un enlace de confirmación a tu correo electrónico. 
+                Haz clic en el enlace para verificar tu identidad y continuar con la configuración de tu contraseña.
               </Text>
             </View>
 
@@ -233,7 +232,7 @@ export default function CrearPasswordGoogleScreen() {
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.buttonText}>Enviar enlace de verificación</Text>
+                <Text style={styles.buttonText}>Enviar enlace de confirmación</Text>
               )}
             </TouchableOpacity>
 
@@ -258,17 +257,6 @@ export default function CrearPasswordGoogleScreen() {
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         style={styles.header}
       >
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <IconSymbol
-            ios_icon_name="chevron.left"
-            android_material_icon_name="arrow_back"
-            size={24}
-            color="#fff"
-          />
-        </TouchableOpacity>
         <Text style={styles.headerTitle}>Configurar contraseña</Text>
         <Text style={styles.headerSubtitle}>Paso 2: Nueva contraseña</Text>
       </LinearGradient>
@@ -334,7 +322,7 @@ export default function CrearPasswordGoogleScreen() {
 
           <View style={styles.noteBox}>
             <Text style={styles.noteText}>
-              Nota: Una vez configurada tu contraseña, podrás iniciar sesión con tu correo y contraseña. 
+              Una vez configurada tu contraseña, podrás iniciar sesión con tu correo y contraseña. 
               Todos tus datos, roles y configuraciones se mantendrán intactos.
             </Text>
           </View>
