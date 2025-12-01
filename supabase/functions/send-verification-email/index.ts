@@ -8,7 +8,7 @@ const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
 interface EmailRequest {
   email: string;
   code: string;
-  type: 'verification' | 'password_reset';
+  type: 'verification' | 'password_reset' | 'password_confirmation';
 }
 
 serve(async (req) => {
@@ -44,8 +44,8 @@ serve(async (req) => {
 
     const { email, code, type }: EmailRequest = await req.json();
 
-    if (!email || !code || !type) {
-      console.error('[SendVerificationEmail] Missing required fields:', { email: !!email, code: !!code, type: !!type });
+    if (!email || !type) {
+      console.error('[SendVerificationEmail] Missing required fields:', { email: !!email, type: !!type });
       return new Response(
         JSON.stringify({ error: 'Missing required fields' }),
         {
@@ -61,12 +61,12 @@ serve(async (req) => {
     console.log('[SendVerificationEmail] Sending email to:', email, 'Type:', type);
 
     // Send email using Resend
-    const emailSubject = type === 'verification' 
-      ? 'Verifica tu correo electrónico - BarLive'
-      : 'Restablece tu contraseña - BarLive';
+    let emailSubject = '';
+    let emailBody = '';
 
-    const emailBody = type === 'verification'
-      ? `
+    if (type === 'verification') {
+      emailSubject = 'Verifica tu correo electrónico - BarLive';
+      emailBody = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="background: linear-gradient(to right, #14B8A6, #06B6D4); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
             <h1 style="margin: 0;">Verifica tu correo electrónico</h1>
@@ -83,8 +83,10 @@ serve(async (req) => {
             <p>© 2025 BarLive. Todos los derechos reservados.</p>
           </div>
         </div>
-      `
-      : `
+      `;
+    } else if (type === 'password_reset') {
+      emailSubject = 'Restablece tu contraseña - BarLive';
+      emailBody = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="background: linear-gradient(to right, #14B8A6, #06B6D4); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
             <h1 style="margin: 0;">Restablece tu contraseña</h1>
@@ -102,6 +104,34 @@ serve(async (req) => {
           </div>
         </div>
       `;
+    } else if (type === 'password_confirmation') {
+      emailSubject = '¡Contraseña configurada exitosamente! - BarLive';
+      emailBody = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(to right, #14B8A6, #06B6D4); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+            <h1 style="margin: 0;">¡Contraseña configurada!</h1>
+          </div>
+          <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+            <div style="text-align: center; margin-bottom: 20px;">
+              <div style="display: inline-block; background: #10B981; color: white; border-radius: 50%; width: 60px; height: 60px; line-height: 60px; font-size: 30px;">✓</div>
+            </div>
+            <h2 style="font-size: 20px; color: #333; text-align: center; margin-bottom: 20px;">Tu contraseña ha sido configurada exitosamente</h2>
+            <p style="font-size: 16px; color: #333;">Hola,</p>
+            <p style="font-size: 16px; color: #333;">Tu cuenta de BarLive ha sido migrada exitosamente al nuevo sistema de autenticación (Auth 3.0).</p>
+            <p style="font-size: 16px; color: #333;">Ahora puedes iniciar sesión con:</p>
+            <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <p style="font-size: 14px; color: #666; margin: 5px 0;"><strong>Correo:</strong> ${email}</p>
+              <p style="font-size: 14px; color: #666; margin: 5px 0;"><strong>Contraseña:</strong> La que acabas de configurar</p>
+            </div>
+            <p style="font-size: 14px; color: #666;">Todos tus datos, roles y configuraciones se han mantenido intactos.</p>
+            <p style="font-size: 14px; color: #666;">Si no realizaste este cambio, por favor contacta con nuestro soporte inmediatamente.</p>
+          </div>
+          <div style="text-align: center; margin-top: 30px; color: #666; font-size: 12px;">
+            <p>© 2025 BarLive. Todos los derechos reservados.</p>
+          </div>
+        </div>
+      `;
+    }
 
     console.log('[SendVerificationEmail] Calling Resend API...');
 

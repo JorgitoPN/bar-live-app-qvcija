@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -26,9 +26,70 @@ export default function CrearPasswordGoogleScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [step, setStep] = useState<'request' | 'verify'>('request');
+  const [resetToken, setResetToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Check if we have a reset token from URL (deep link)
+    const checkResetToken = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        setResetToken(session.access_token);
+        setStep('verify');
+      }
+    };
+    checkResetToken();
+  }, []);
 
   const validatePassword = (password: string): boolean => {
     return password.length >= 8;
+  };
+
+  const handleRequestPasswordReset = async () => {
+    if (!email) {
+      Alert.alert('Error', 'No se proporcionó un correo electrónico');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      console.log('[CrearPasswordGoogle] Solicitando restablecimiento de contraseña para:', email);
+
+      // Send password reset email
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: 'https://natively.dev/auth/crear-password-google?email=' + encodeURIComponent(email),
+      });
+
+      if (resetError) {
+        console.error('[CrearPasswordGoogle] Error enviando email de restablecimiento:', resetError);
+        Alert.alert('Error', 'No se pudo enviar el correo de verificación. Por favor, intenta nuevamente.');
+        setLoading(false);
+        return;
+      }
+
+      console.log('[CrearPasswordGoogle] ✅ Email de restablecimiento enviado');
+
+      Alert.alert(
+        'Correo enviado',
+        'Hemos enviado un enlace de verificación a tu correo electrónico. Por favor, haz clic en el enlace para continuar con la configuración de tu contraseña.',
+        [
+          {
+            text: 'Entendido',
+            onPress: () => {
+              // User should click the link in their email
+              // which will redirect them back here with a token
+            },
+          },
+        ]
+      );
+    } catch (error: any) {
+      console.error('[CrearPasswordGoogle] ❌ Error en handleRequestPasswordReset:', error);
+      Alert.alert('Error', 'Ocurrió un error inesperado');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSetPassword = async () => {
@@ -50,82 +111,72 @@ export default function CrearPasswordGoogleScreen() {
     setLoading(true);
 
     try {
-      // Get user data
-      const { data: userData, error: userError } = await supabase
-        .from('usuarios')
-        .select('id')
-        .eq('email', email)
-        .maybeSingle();
+      console.log('[CrearPasswordGoogle] Actualizando contraseña...');
 
-      if (userError || !userData) {
-        console.error('[CrearPasswordGoogle] Error getting user:', userError);
-        Alert.alert('Error', 'No se pudo encontrar el usuario');
+      // Update password using Supabase Auth
+      const { data: updateData, error: updateError } = await supabase.auth.updateUser({
+        password: password,
+      });
+
+      if (updateError) {
+        console.error('[CrearPasswordGoogle] Error actualizando contraseña:', updateError);
+        Alert.alert('Error', 'No se pudo actualizar la contraseña. Por favor, intenta nuevamente.');
         setLoading(false);
         return;
       }
 
-      // Update provider to barlive and mark email as verified
-      const { error: updateError } = await supabase
+      if (!updateData.user) {
+        Alert.alert('Error', 'No se pudo actualizar la contraseña');
+        setLoading(false);
+        return;
+      }
+
+      console.log('[CrearPasswordGoogle] ✅ Contraseña actualizada en Auth');
+
+      // Update provider to 'barlive' and mark email as verified in usuarios table
+      const { error: dbUpdateError } = await supabase
         .from('usuarios')
         .update({
           provider: 'barlive',
           email_verified: true,
         })
-        .eq('id', userData.id);
+        .eq('id', updateData.user.id);
 
-      if (updateError) {
-        console.error('[CrearPasswordGoogle] Error updating user:', updateError);
-        Alert.alert('Error', 'No se pudo actualizar el usuario');
-        setLoading(false);
-        return;
+      if (dbUpdateError) {
+        console.error('[CrearPasswordGoogle] Error actualizando usuario en DB:', dbUpdateError);
+        // Don't fail here, password is already set
+      } else {
+        console.log('[CrearPasswordGoogle] ✅ Usuario actualizado en DB');
       }
 
-      // Update password in Supabase Auth
-      // First, we need to sign up the user with the new password
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: email,
-        password: password,
-        options: {
-          data: {
-            provider: 'barlive',
-          },
-        },
-      });
+      // Send confirmation email
+      try {
+        const { data: userData } = await supabase
+          .from('usuarios')
+          .select('nombre')
+          .eq('id', updateData.user.id)
+          .single();
 
-      if (authError) {
-        // If user already exists in auth, try to update password
-        console.log('[CrearPasswordGoogle] User exists in auth, attempting password update');
-        
-        // We need to send a password reset email
-        const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: 'https://natively.dev/auth/reset-password',
+        // Call edge function to send confirmation email
+        await supabase.functions.invoke('send-verification-email', {
+          body: {
+            email: email,
+            code: 'CONFIRMADO',
+            type: 'verification',
+          },
         });
 
-        if (resetError) {
-          console.error('[CrearPasswordGoogle] Error sending reset email:', resetError);
-          Alert.alert('Error', 'No se pudo configurar la contraseña. Por favor, intenta recuperar tu contraseña desde la pantalla de inicio de sesión.');
-          setLoading(false);
-          return;
-        }
-
-        Alert.alert(
-          'Verificación requerida',
-          'Hemos enviado un enlace de verificación a tu correo electrónico. Por favor, sigue las instrucciones para completar la configuración de tu contraseña.',
-          [
-            {
-              text: 'Entendido',
-              onPress: () => router.replace('/auth/login'),
-            },
-          ]
-        );
-        setLoading(false);
-        return;
+        console.log('[CrearPasswordGoogle] ✅ Email de confirmación enviado');
+      } catch (emailError) {
+        console.error('[CrearPasswordGoogle] Error enviando email de confirmación:', emailError);
+        // Don't fail the whole process if email fails
       }
 
-      console.log('[CrearPasswordGoogle] ✅ Password set successfully');
+      // Sign out to force fresh login
+      await supabase.auth.signOut();
 
       Alert.alert(
-        'Contraseña configurada',
+        '¡Contraseña configurada!',
         'Tu contraseña ha sido configurada exitosamente. Ahora puedes iniciar sesión con tu correo y contraseña.',
         [
           {
@@ -135,12 +186,93 @@ export default function CrearPasswordGoogleScreen() {
         ]
       );
     } catch (error: any) {
-      console.error('[CrearPasswordGoogle] ❌ Error in handleSetPassword:', error);
+      console.error('[CrearPasswordGoogle] ❌ Error en handleSetPassword:', error);
       Alert.alert('Error', 'Ocurrió un error inesperado');
     } finally {
       setLoading(false);
     }
   };
+
+  if (step === 'request') {
+    return (
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          style={styles.header}
+        >
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <IconSymbol
+              ios_icon_name="chevron.left"
+              android_material_icon_name="arrow_back"
+              size={24}
+              color="#fff"
+            />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Configurar contraseña</Text>
+          <Text style={styles.headerSubtitle}>Migración a BarLive Auth 3.0</Text>
+        </LinearGradient>
+
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.formContainer}>
+            <View style={styles.infoBox}>
+              <IconSymbol
+                ios_icon_name="info.circle.fill"
+                android_material_icon_name="info"
+                size={24}
+                color={colors.primary}
+              />
+              <Text style={styles.infoText}>
+                Tu cuenta fue creada con Google. Para continuar usando BarLive con nuestro nuevo sistema de autenticación, 
+                necesitas configurar una contraseña.
+              </Text>
+            </View>
+
+            <Text style={styles.emailLabel}>Correo electrónico</Text>
+            <View style={styles.emailBox}>
+              <Text style={styles.emailText}>{email}</Text>
+            </View>
+
+            <View style={styles.stepBox}>
+              <Text style={styles.stepTitle}>Paso 1: Verificación</Text>
+              <Text style={styles.stepText}>
+                Primero, enviaremos un enlace de verificación a tu correo electrónico. 
+                Haz clic en el enlace para continuar con la configuración de tu contraseña.
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={handleRequestPasswordReset}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Enviar enlace de verificación</Text>
+              )}
+            </TouchableOpacity>
+
+            <View style={styles.noteBox}>
+              <Text style={styles.noteText}>
+                Nota: Una vez configurada tu contraseña, podrás iniciar sesión con tu correo y contraseña. 
+                Todos tus datos, roles y configuraciones se mantendrán intactos.
+              </Text>
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
@@ -163,7 +295,7 @@ export default function CrearPasswordGoogleScreen() {
           />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Configurar contraseña</Text>
-        <Text style={styles.headerSubtitle}>Migración a BarLive Auth 3.0</Text>
+        <Text style={styles.headerSubtitle}>Paso 2: Nueva contraseña</Text>
       </LinearGradient>
 
       <ScrollView
@@ -172,16 +304,15 @@ export default function CrearPasswordGoogleScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.formContainer}>
-          <View style={styles.infoBox}>
+          <View style={styles.successBox}>
             <IconSymbol
-              ios_icon_name="info.circle.fill"
-              android_material_icon_name="info"
+              ios_icon_name="checkmark.circle.fill"
+              android_material_icon_name="check_circle"
               size={24}
-              color={colors.primary}
+              color="#10B981"
             />
-            <Text style={styles.infoText}>
-              Tu cuenta fue creada con Google. Para continuar usando BarLive con nuestro nuevo sistema de autenticación, 
-              necesitas configurar una contraseña.
+            <Text style={styles.successText}>
+              ¡Verificación exitosa! Ahora puedes configurar tu nueva contraseña.
             </Text>
           </View>
 
@@ -285,6 +416,41 @@ const styles = StyleSheet.create({
     marginLeft: 12,
     fontSize: 14,
     color: colors.text,
+    lineHeight: 20,
+  },
+  successBox: {
+    flexDirection: 'row',
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: '#10B981',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+  },
+  successText: {
+    flex: 1,
+    marginLeft: 12,
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 20,
+  },
+  stepBox: {
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+  },
+  stepTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  stepText: {
+    fontSize: 14,
+    color: colors.textSecondary,
     lineHeight: 20,
   },
   emailLabel: {
