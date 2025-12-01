@@ -113,14 +113,16 @@ export default function VerificarCodigoGoogleScreen() {
 
     try {
       // Generate new code
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const newCode = Math.floor(100000 + Math.random() * 900000).toString();
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+      console.log('[VerificarCodigoGoogle] 🔄 Generating new verification code...');
 
       // Update user with new code
       const { error: updateError } = await supabase
         .from('usuarios')
         .update({
-          verification_code: code,
+          verification_code: newCode,
           verification_code_expires_at: expiresAt.toISOString(),
         })
         .eq('email', email);
@@ -132,28 +134,51 @@ export default function VerificarCodigoGoogleScreen() {
         return;
       }
 
+      console.log('[VerificarCodigoGoogle] ✅ Verification code updated in database');
+
       // Send verification email via Edge Function
-      const { error: emailError } = await supabase.functions.invoke(
+      console.log('[VerificarCodigoGoogle] 📧 Sending verification email...');
+      
+      const { data, error: emailError } = await supabase.functions.invoke(
         'send-verification-email',
         {
           body: {
             email,
-            code: code,
+            code: newCode,
             type: 'password_reset',
           },
         }
       );
 
+      console.log('[VerificarCodigoGoogle] Edge Function response:', { data, error: emailError });
+
       if (emailError) {
         console.error('[VerificarCodigoGoogle] Error sending verification email:', emailError);
+        
+        // Show the code to the user even if email fails
         Alert.alert(
-          'Advertencia',
-          `Código actualizado pero hubo un problema al enviar el correo. Tu nuevo código es: ${code}`
+          'Código actualizado',
+          `No se pudo enviar el correo, pero tu código de verificación es:\n\n${newCode}\n\nEste código expira en 10 minutos.`,
+          [{ text: 'Entendido' }]
         );
       } else {
-        Alert.alert('Código enviado', 'Se ha enviado un nuevo código de verificación a tu correo.');
-        setCountdown(60); // 60 seconds cooldown
+        // Check if the response indicates success
+        if (data?.success) {
+          Alert.alert(
+            'Código enviado',
+            'Se ha enviado un nuevo código de verificación a tu correo.'
+          );
+        } else {
+          // Email might have failed, show code as fallback
+          Alert.alert(
+            'Código actualizado',
+            `Tu nuevo código de verificación es:\n\n${newCode}\n\nTambién hemos intentado enviarlo a tu correo.\n\nEste código expira en 10 minutos.`,
+            [{ text: 'Entendido' }]
+          );
+        }
       }
+      
+      setCountdown(60); // 60 seconds cooldown
     } catch (error: any) {
       console.error('[VerificarCodigoGoogle] ❌ Error resending code:', error);
       Alert.alert('Error', 'No se pudo reenviar el código de verificación');
