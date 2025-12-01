@@ -25,34 +25,14 @@ export default function RecuperarPasswordScreen() {
   
   const [email, setEmail] = useState(initialEmail);
   const [loading, setLoading] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
-  const checkIfGoogleUser = async (email: string): Promise<boolean> => {
-    try {
-      // Check if user exists in usuarios table with Google provider
-      const { data, error } = await supabase
-        .from('usuarios')
-        .select('provider')
-        .eq('email', email)
-        .maybeSingle();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('[RecuperarPassword] Error checking user provider:', error);
-        return false;
-      }
-
-      return data?.provider === 'google';
-    } catch (error) {
-      console.error('[RecuperarPassword] Error in checkIfGoogleUser:', error);
-      return false;
-    }
-  };
-
-  const handleResetPassword = async () => {
+  const handleSendResetEmail = async () => {
     if (!email.trim()) {
       Alert.alert('Error', 'Por favor, ingresa tu correo electrónico');
       return;
@@ -68,7 +48,7 @@ export default function RecuperarPasswordScreen() {
     try {
       const normalizedEmail = email.trim().toLowerCase();
 
-      console.log('[RecuperarPassword v4.0] 🔑 Solicitando recuperación de contraseña:', normalizedEmail);
+      console.log('[RecuperarPassword] 📧 Enviando correo de restablecimiento:', normalizedEmail);
 
       // Check if user exists
       const { data: userData, error: userError } = await supabase
@@ -78,74 +58,46 @@ export default function RecuperarPasswordScreen() {
         .maybeSingle();
 
       if (userError && userError.code !== 'PGRST116') {
-        console.error('[RecuperarPassword v4.0] Error checking user:', userError);
-        Alert.alert('Error', 'No se pudo verificar el usuario');
-        setLoading(false);
-        return;
+        console.error('[RecuperarPassword] Error checking user:', userError);
       }
 
-      if (!userData) {
-        Alert.alert('Error', 'No existe una cuenta con este correo electrónico');
-        setLoading(false);
-        return;
-      }
-
-      // Check if this is a Google user
-      if (userData.provider === 'google') {
-        console.log('[RecuperarPassword v4.0] 🔍 Usuario de Google detectado');
-        setLoading(false);
-        
-        Alert.alert(
-          'Usuario de Google',
-          'Tu cuenta fue creada con Google. Para poder iniciar sesión con contraseña, primero necesitas configurar una.',
-          [
-            {
-              text: 'Configurar contraseña',
-              onPress: () => {
-                router.replace({
-                  pathname: '/auth/configurar-password-google',
-                  params: { email: normalizedEmail },
-                });
-              },
-            },
-            { text: 'Cancelar', style: 'cancel' },
-          ]
-        );
-        return;
-      }
-
-      // Use Supabase's built-in password reset - it will send an email automatically
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+      // Send reset email regardless of whether user exists (security best practice)
+      const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
         redirectTo: 'https://natively.dev/email-confirmed',
       });
 
-      if (resetError) {
-        console.error('[RecuperarPassword v4.0] ❌ Error sending reset email:', resetError);
-        Alert.alert('Error', 'No se pudo enviar el correo de recuperación. Por favor, intenta nuevamente.');
-        setLoading(false);
-        return;
+      if (error) {
+        console.error('[RecuperarPassword] ❌ Error sending reset email:', error);
+        Alert.alert('Error', 'No se pudo enviar el correo de restablecimiento. Por favor, intenta nuevamente.');
+      } else {
+        console.log('[RecuperarPassword] ✅ Reset email sent successfully');
+        setEmailSent(true);
+        
+        // Show different message for Google users
+        if (userData?.provider === 'google') {
+          Alert.alert(
+            'Correo enviado',
+            'Te hemos enviado un correo para configurar tu contraseña. Como tu cuenta fue creada con Google, este correo te permitirá establecer una contraseña para iniciar sesión.\n\nPor favor, revisa tu bandeja de entrada (y la carpeta de spam).',
+            [{ text: 'Entendido' }]
+          );
+        } else {
+          Alert.alert(
+            'Correo enviado',
+            'Te hemos enviado un correo con instrucciones para restablecer tu contraseña. Por favor, revisa tu bandeja de entrada (y la carpeta de spam).',
+            [{ text: 'Entendido' }]
+          );
+        }
       }
-
-      console.log('[RecuperarPassword v4.0] ✅ Password reset email sent successfully');
-      
-      Alert.alert(
-        '✅ Correo enviado',
-        'Hemos enviado un enlace de recuperación a tu correo electrónico. Por favor, revisa tu bandeja de entrada (y la carpeta de spam) y sigue las instrucciones para restablecer tu contraseña.',
-        [
-          {
-            text: 'Entendido',
-            onPress: () => {
-              router.back();
-            },
-          },
-        ]
-      );
     } catch (error: any) {
-      console.error('[RecuperarPassword v4.0] ❌ Error in handleResetPassword:', error);
-      Alert.alert('Error', 'Ocurrió un error inesperado');
+      console.error('[RecuperarPassword] ❌ Error in handleSendResetEmail:', error);
+      Alert.alert('Error', 'Ocurrió un error al enviar el correo');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleBackToLogin = () => {
+    router.replace('/auth/login');
   };
 
   return (
@@ -169,7 +121,7 @@ export default function RecuperarPasswordScreen() {
           />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Recuperar contraseña</Text>
-        <Text style={styles.headerSubtitle}>Restablece tu contraseña</Text>
+        <Text style={styles.headerSubtitle}>Te ayudaremos a recuperar tu cuenta</Text>
       </LinearGradient>
 
       <ScrollView
@@ -178,49 +130,111 @@ export default function RecuperarPasswordScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.formContainer}>
-          <View style={styles.infoBox}>
-            <IconSymbol
-              ios_icon_name="lock.fill"
-              android_material_icon_name="lock"
-              size={48}
-              color={colors.primary}
-            />
-            <Text style={styles.infoTitle}>¿Olvidaste tu contraseña?</Text>
-            <Text style={styles.infoText}>
-              No te preocupes. Ingresa tu correo electrónico y te enviaremos 
-              un enlace para restablecer tu contraseña.
-            </Text>
-          </View>
+          {!emailSent ? (
+            <>
+              <View style={styles.infoBox}>
+                <IconSymbol
+                  ios_icon_name="lock.shield.fill"
+                  android_material_icon_name="lock"
+                  size={64}
+                  color={colors.primary}
+                />
+                <Text style={styles.infoTitle}>¿Olvidaste tu contraseña?</Text>
+                <Text style={styles.infoText}>
+                  No te preocupes, te enviaremos un correo con instrucciones para restablecer tu contraseña.
+                </Text>
+              </View>
 
-          <Text style={styles.label}>Correo electrónico</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="correo@ejemplo.com"
-            placeholderTextColor={colors.textSecondary}
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-            autoFocus={!initialEmail}
-            editable={!loading}
-          />
+              <Text style={styles.label}>Correo electrónico</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="correo@ejemplo.com"
+                placeholderTextColor={colors.textSecondary}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!loading}
+              />
 
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleResetPassword}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Enviar enlace</Text>
-            )}
-          </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, loading && styles.buttonDisabled]}
+                onPress={handleSendResetEmail}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.buttonText}>Enviar correo de recuperación</Text>
+                )}
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <View style={styles.successBox}>
+                <IconSymbol
+                  ios_icon_name="checkmark.circle.fill"
+                  android_material_icon_name="check_circle"
+                  size={64}
+                  color="#10b981"
+                />
+                <Text style={styles.successTitle}>¡Correo enviado!</Text>
+                <Text style={styles.successText}>
+                  Hemos enviado un correo a:
+                </Text>
+                <Text style={styles.emailText}>{email}</Text>
+              </View>
+
+              <View style={styles.instructionsBox}>
+                <Text style={styles.instructionsTitle}>📋 Próximos pasos:</Text>
+                <Text style={styles.instructionItem}>
+                  1. Abre tu correo electrónico
+                </Text>
+                <Text style={styles.instructionItem}>
+                  2. Busca el correo de BarLive
+                </Text>
+                <Text style={styles.instructionItem}>
+                  3. Haz clic en el enlace de restablecimiento
+                </Text>
+                <Text style={styles.instructionItem}>
+                  4. Configura tu nueva contraseña
+                </Text>
+                <Text style={styles.instructionItem}>
+                  5. ¡Listo! Ya puedes iniciar sesión
+                </Text>
+              </View>
+
+              <View style={styles.tipsBox}>
+                <Text style={styles.tipsTitle}>💡 Consejos:</Text>
+                <Text style={styles.tipItem}>
+                  • Revisa tu carpeta de spam
+                </Text>
+                <Text style={styles.tipItem}>
+                  • El enlace expira en 24 horas
+                </Text>
+                <Text style={styles.tipItem}>
+                  • Puedes solicitar un nuevo correo si no lo recibes
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                style={[styles.resendButton, loading && styles.resendButtonDisabled]}
+                onPress={handleSendResetEmail}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color={colors.primary} />
+                ) : (
+                  <Text style={styles.resendButtonText}>Reenviar correo</Text>
+                )}
+              </TouchableOpacity>
+            </>
+          )}
 
           <TouchableOpacity
             style={styles.backToLoginButton}
-            onPress={() => router.back()}
+            onPress={handleBackToLogin}
           >
             <Text style={styles.backToLoginText}>
               Volver a <Text style={styles.backToLoginTextBold}>Iniciar sesión</Text>
@@ -270,14 +284,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBackground,
     borderRadius: 12,
     padding: 24,
-    marginBottom: 32,
+    marginBottom: 24,
   },
   infoTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
     color: colors.text,
     marginTop: 16,
-    marginBottom: 8,
+    marginBottom: 12,
   },
   infoText: {
     fontSize: 14,
@@ -313,6 +327,86 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  successBox: {
+    alignItems: 'center',
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 24,
+    marginBottom: 24,
+  },
+  successTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginTop: 16,
+    marginBottom: 12,
+  },
+  successText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  emailText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.primary,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  instructionsBox: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 16,
+  },
+  instructionsTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  instructionItem: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: 8,
+    lineHeight: 20,
+  },
+  tipsBox: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 24,
+  },
+  tipsTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  tipItem: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: 6,
+    lineHeight: 20,
+  },
+  resendButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: colors.primary,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  resendButtonDisabled: {
+    opacity: 0.6,
+  },
+  resendButtonText: {
+    color: colors.primary,
     fontSize: 16,
     fontWeight: '600',
   },
