@@ -31,6 +31,27 @@ export default function RecuperarPasswordScreen() {
     return emailRegex.test(email);
   };
 
+  const checkIfGoogleUser = async (email: string): Promise<boolean> => {
+    try {
+      // Check if user exists in usuarios table with Google provider
+      const { data, error } = await supabase
+        .from('usuarios')
+        .select('provider')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('[RecuperarPassword] Error checking user provider:', error);
+        return false;
+      }
+
+      return data?.provider === 'google';
+    } catch (error) {
+      console.error('[RecuperarPassword] Error in checkIfGoogleUser:', error);
+      return false;
+    }
+  };
+
   const handleResetPassword = async () => {
     if (!email.trim()) {
       Alert.alert('Error', 'Por favor, ingresa tu correo electrónico');
@@ -52,7 +73,7 @@ export default function RecuperarPasswordScreen() {
       // Check if user exists
       const { data: userData, error: userError } = await supabase
         .from('usuarios')
-        .select('id')
+        .select('id, provider')
         .eq('email', normalizedEmail)
         .maybeSingle();
 
@@ -66,6 +87,30 @@ export default function RecuperarPasswordScreen() {
       if (!userData) {
         Alert.alert('Error', 'No existe una cuenta con este correo electrónico');
         setLoading(false);
+        return;
+      }
+
+      // Check if this is a Google user
+      if (userData.provider === 'google') {
+        console.log('[RecuperarPassword v4.0] 🔍 Usuario de Google detectado');
+        setLoading(false);
+        
+        Alert.alert(
+          'Usuario de Google',
+          'Tu cuenta fue creada con Google. Para poder iniciar sesión con contraseña, primero necesitas configurar una.',
+          [
+            {
+              text: 'Configurar contraseña',
+              onPress: () => {
+                router.replace({
+                  pathname: '/auth/configurar-password-google',
+                  params: { email: normalizedEmail },
+                });
+              },
+            },
+            { text: 'Cancelar', style: 'cancel' },
+          ]
+        );
         return;
       }
 

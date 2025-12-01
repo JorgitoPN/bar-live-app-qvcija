@@ -30,6 +30,27 @@ export default function LoginScreen() {
     return emailRegex.test(email);
   };
 
+  const checkIfGoogleUser = async (email: string): Promise<boolean> => {
+    try {
+      // Check if user exists in usuarios table with Google provider
+      const { data, error } = await supabase
+        .from('usuarios')
+        .select('provider')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('[Login] Error checking user provider:', error);
+        return false;
+      }
+
+      return data?.provider === 'google';
+    } catch (error) {
+      console.error('[Login] Error in checkIfGoogleUser:', error);
+      return false;
+    }
+  };
+
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
       Alert.alert('Error', 'Por favor, completa todos los campos');
@@ -47,6 +68,32 @@ export default function LoginScreen() {
       const normalizedEmail = email.trim().toLowerCase();
 
       console.log('[Login v4.0] 🔐 Intentando iniciar sesión:', normalizedEmail);
+
+      // Check if this is a Google user
+      const isGoogleUser = await checkIfGoogleUser(normalizedEmail);
+
+      if (isGoogleUser) {
+        console.log('[Login v4.0] 🔍 Usuario de Google detectado');
+        setLoading(false);
+        
+        Alert.alert(
+          'Usuario de Google',
+          'Anteriormente iniciaste sesión con Google. Para continuar, necesitas configurar una contraseña para tu cuenta. Te enviaremos un correo con instrucciones.',
+          [
+            {
+              text: 'Configurar contraseña',
+              onPress: () => {
+                router.push({
+                  pathname: '/auth/configurar-password-google',
+                  params: { email: normalizedEmail },
+                });
+              },
+            },
+            { text: 'Cancelar', style: 'cancel' },
+          ]
+        );
+        return;
+      }
 
       // Sign in with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -92,7 +139,28 @@ export default function LoginScreen() {
             ]
           );
         } else if (authError.message.includes('Invalid login credentials')) {
-          Alert.alert('Error', 'Email o contraseña incorrectos');
+          // Check again if this might be a Google user who hasn't set a password
+          const isGoogleUserRetry = await checkIfGoogleUser(normalizedEmail);
+          if (isGoogleUserRetry) {
+            Alert.alert(
+              'Usuario de Google',
+              'Parece que tu cuenta fue creada con Google. Necesitas configurar una contraseña primero.',
+              [
+                {
+                  text: 'Configurar contraseña',
+                  onPress: () => {
+                    router.push({
+                      pathname: '/auth/configurar-password-google',
+                      params: { email: normalizedEmail },
+                    });
+                  },
+                },
+                { text: 'Cancelar', style: 'cancel' },
+              ]
+            );
+          } else {
+            Alert.alert('Error', 'Email o contraseña incorrectos');
+          }
         } else {
           Alert.alert('Error', authError.message || 'No se pudo iniciar sesión');
         }
@@ -119,7 +187,7 @@ export default function LoginScreen() {
     }
   };
 
-  const handleForgotPassword = () => {
+  const handleForgotPassword = async () => {
     if (!email.trim()) {
       Alert.alert('Error', 'Por favor, ingresa tu correo electrónico primero');
       return;
@@ -130,9 +198,34 @@ export default function LoginScreen() {
       return;
     }
 
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Check if this is a Google user
+    const isGoogleUser = await checkIfGoogleUser(normalizedEmail);
+
+    if (isGoogleUser) {
+      Alert.alert(
+        'Usuario de Google',
+        'Tu cuenta fue creada con Google. Para poder iniciar sesión con contraseña, primero necesitas configurar una.',
+        [
+          {
+            text: 'Configurar contraseña',
+            onPress: () => {
+              router.push({
+                pathname: '/auth/configurar-password-google',
+                params: { email: normalizedEmail },
+              });
+            },
+          },
+          { text: 'Cancelar', style: 'cancel' },
+        ]
+      );
+      return;
+    }
+
     router.push({
       pathname: '/auth/recuperar-password',
-      params: { email: email.trim().toLowerCase() },
+      params: { email: normalizedEmail },
     });
   };
 

@@ -21,12 +21,13 @@ import { supabase } from '@/utils/supabase';
 export default function ConfigurarPasswordGoogleScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const email = params.email as string;
-  const userId = params.userId as string;
+  const email = params.email as string || '';
   
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const validatePassword = (password: string): boolean => {
     return password.length >= 8;
@@ -51,59 +52,36 @@ export default function ConfigurarPasswordGoogleScreen() {
     setLoading(true);
 
     try {
-      console.log('[ConfigurarPasswordGoogle] Configurando contraseña...');
+      console.log('[ConfigurarPasswordGoogle] 🔑 Configurando contraseña para usuario Google:', email);
 
-      // Update password using Edge Function
-      const { error: updateError } = await supabase.functions.invoke(
-        'update-user-password',
-        {
-          body: {
-            userId: userId,
-            newPassword: password,
-          },
-        }
-      );
+      // Send password reset email - this will allow the user to set a password
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: 'https://natively.dev/email-confirmed',
+      });
 
-      if (updateError) {
-        console.error('[ConfigurarPasswordGoogle] Error actualizando contraseña:', updateError);
-        Alert.alert('Error', 'No se pudo configurar la contraseña. Por favor, intenta nuevamente.');
+      if (resetError) {
+        console.error('[ConfigurarPasswordGoogle] ❌ Error sending reset email:', resetError);
+        Alert.alert('Error', 'No se pudo enviar el correo. Por favor, intenta nuevamente.');
         setLoading(false);
         return;
       }
 
-      console.log('[ConfigurarPasswordGoogle] ✅ Contraseña configurada en Auth');
-
-      // Update provider to 'barlive' and mark email as verified, clear verification code
-      const { error: dbUpdateError } = await supabase
-        .from('usuarios')
-        .update({
-          provider: 'barlive',
-          email_verified: true,
-          verification_code: null,
-          verification_code_expires_at: null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', userId);
-
-      if (dbUpdateError) {
-        console.error('[ConfigurarPasswordGoogle] Error actualizando usuario en DB:', dbUpdateError);
-        // Don't fail here, password is already set
-      } else {
-        console.log('[ConfigurarPasswordGoogle] ✅ Usuario actualizado en DB');
-      }
-
+      console.log('[ConfigurarPasswordGoogle] ✅ Password reset email sent successfully');
+      
       Alert.alert(
-        '¡Contraseña configurada!',
-        'Tu contraseña ha sido configurada exitosamente. Ahora puedes iniciar sesión con tu correo y contraseña.\n\nTodos tus datos, roles y configuraciones se han mantenido intactos.',
+        '✅ Correo enviado',
+        `Hemos enviado un enlace a ${email} para que puedas configurar tu contraseña. Por favor, revisa tu bandeja de entrada (y la carpeta de spam) y sigue las instrucciones.\n\nUna vez que hayas configurado tu contraseña, podrás iniciar sesión con tu correo y contraseña.`,
         [
           {
-            text: 'Iniciar sesión',
-            onPress: () => router.replace('/auth/login'),
+            text: 'Entendido',
+            onPress: () => {
+              router.replace('/auth/login');
+            },
           },
         ]
       );
     } catch (error: any) {
-      console.error('[ConfigurarPasswordGoogle] ❌ Error en handleSetPassword:', error);
+      console.error('[ConfigurarPasswordGoogle] ❌ Error in handleSetPassword:', error);
       Alert.alert('Error', 'Ocurrió un error inesperado');
     } finally {
       setLoading(false);
@@ -119,8 +97,19 @@ export default function ConfigurarPasswordGoogleScreen() {
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         style={styles.header}
       >
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <IconSymbol
+            ios_icon_name="chevron.left"
+            android_material_icon_name="arrow_back"
+            size={24}
+            color="#fff"
+          />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>Configurar contraseña</Text>
-        <Text style={styles.headerSubtitle}>Paso 2 de 2</Text>
+        <Text style={styles.headerSubtitle}>Usuario de Google</Text>
       </LinearGradient>
 
       <ScrollView
@@ -129,46 +118,28 @@ export default function ConfigurarPasswordGoogleScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.formContainer}>
-          <View style={styles.successBox}>
+          <View style={styles.infoBox}>
             <IconSymbol
-              ios_icon_name="checkmark.circle.fill"
-              android_material_icon_name="check_circle"
-              size={24}
-              color="#10B981"
+              ios_icon_name="key.fill"
+              android_material_icon_name="vpn_key"
+              size={48}
+              color={colors.primary}
             />
-            <Text style={styles.successText}>
-              ¡Verificación exitosa! Ahora puedes configurar tu nueva contraseña.
+            <Text style={styles.infoTitle}>Configura tu contraseña</Text>
+            <Text style={styles.infoText}>
+              Anteriormente iniciaste sesión con Google. Para continuar usando BarLive, 
+              necesitas configurar una contraseña para tu cuenta.
             </Text>
+            <View style={styles.emailBox}>
+              <Text style={styles.emailLabel}>Tu correo:</Text>
+              <Text style={styles.emailText}>{email}</Text>
+            </View>
           </View>
 
-          <Text style={styles.emailLabel}>Correo electrónico</Text>
-          <View style={styles.emailBox}>
-            <Text style={styles.emailText}>{email}</Text>
-          </View>
-
-          <Text style={styles.label}>Nueva contraseña</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Mínimo 8 caracteres"
-            placeholderTextColor={colors.textSecondary}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoCapitalize="none"
-            editable={!loading}
-          />
-
-          <Text style={styles.label}>Confirmar contraseña</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Repite tu contraseña"
-            placeholderTextColor={colors.textSecondary}
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry
-            autoCapitalize="none"
-            editable={!loading}
-          />
+          <Text style={styles.instructionText}>
+            Te enviaremos un correo electrónico con un enlace para configurar tu contraseña. 
+            Una vez configurada, podrás iniciar sesión con tu correo y contraseña.
+          </Text>
 
           <TouchableOpacity
             style={[styles.button, loading && styles.buttonDisabled]}
@@ -178,16 +149,18 @@ export default function ConfigurarPasswordGoogleScreen() {
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.buttonText}>Configurar contraseña</Text>
+              <Text style={styles.buttonText}>Enviar correo de configuración</Text>
             )}
           </TouchableOpacity>
 
-          <View style={styles.noteBox}>
-            <Text style={styles.noteText}>
-              Una vez configurada tu contraseña, podrás iniciar sesión con tu correo y contraseña. 
-              Todos tus datos, roles y configuraciones se mantendrán intactos.
+          <TouchableOpacity
+            style={styles.backToLoginButton}
+            onPress={() => router.replace('/auth/login')}
+          >
+            <Text style={styles.backToLoginText}>
+              Volver a <Text style={styles.backToLoginTextBold}>Iniciar sesión</Text>
             </Text>
-          </View>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -203,6 +176,9 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 24,
     paddingHorizontal: 24,
+  },
+  backButton: {
+    marginBottom: 16,
   },
   headerTitle: {
     fontSize: 28,
@@ -224,55 +200,49 @@ const styles = StyleSheet.create({
   formContainer: {
     flex: 1,
   },
-  successBox: {
-    flexDirection: 'row',
+  infoBox: {
+    alignItems: 'center',
     backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: '#10B981',
     borderRadius: 12,
-    padding: 16,
+    padding: 24,
     marginBottom: 24,
   },
-  successText: {
-    flex: 1,
-    marginLeft: 12,
-    fontSize: 14,
+  infoTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
     color: colors.text,
-    lineHeight: 20,
-  },
-  emailLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
+    marginTop: 16,
     marginBottom: 8,
+  },
+  infoText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 16,
   },
   emailBox: {
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    padding: 12,
+    width: '100%',
+  },
+  emailLabel: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginBottom: 4,
   },
   emailText: {
-    fontSize: 16,
-    color: colors.text,
-  },
-  label: {
     fontSize: 14,
+    color: colors.text,
     fontWeight: '600',
-    color: colors.text,
-    marginBottom: 8,
   },
-  input: {
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    color: colors.text,
-    marginBottom: 16,
+  instructionText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
+    marginBottom: 24,
+    textAlign: 'center',
   },
   button: {
     backgroundColor: colors.primary,
@@ -289,16 +259,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  noteBox: {
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    borderRadius: 12,
-    padding: 16,
+  backToLoginButton: {
+    alignItems: 'center',
   },
-  noteText: {
-    fontSize: 12,
+  backToLoginText: {
+    fontSize: 14,
     color: colors.textSecondary,
-    lineHeight: 18,
+  },
+  backToLoginTextBold: {
+    fontWeight: '600',
+    color: colors.primary,
   },
 });
