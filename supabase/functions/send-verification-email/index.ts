@@ -24,13 +24,17 @@ serve(async (req) => {
   }
 
   try {
+    console.log('[SendVerificationEmail] === REQUEST STARTED ===');
+    
     // Check if API key is configured
     if (!RESEND_API_KEY) {
-      console.error('[SendVerificationEmail] RESEND_API_KEY is not configured');
+      console.error('[SendVerificationEmail] ❌ RESEND_API_KEY is not configured');
+      console.error('[SendVerificationEmail] Please configure RESEND_API_KEY in Supabase Dashboard → Edge Functions → Secrets');
       return new Response(
         JSON.stringify({ 
-          error: 'Email service not configured. Please contact support.',
-          details: 'RESEND_API_KEY is missing'
+          error: 'Email service not configured',
+          details: 'RESEND_API_KEY is missing. Please contact support.',
+          troubleshooting: 'Admin: Configure RESEND_API_KEY in Supabase Dashboard → Edge Functions → Secrets'
         }),
         {
           status: 500,
@@ -42,12 +46,14 @@ serve(async (req) => {
       );
     }
 
+    console.log('[SendVerificationEmail] ✅ RESEND_API_KEY is configured');
+
     const { email, code, type }: EmailRequest = await req.json();
 
     if (!email || !type) {
-      console.error('[SendVerificationEmail] Missing required fields:', { email: !!email, type: !!type });
+      console.error('[SendVerificationEmail] ❌ Missing required fields:', { email: !!email, type: !!type });
       return new Response(
-        JSON.stringify({ error: 'Missing required fields' }),
+        JSON.stringify({ error: 'Missing required fields: email and type are required' }),
         {
           status: 400,
           headers: { 
@@ -58,7 +64,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('[SendVerificationEmail] Sending email to:', email, 'Type:', type);
+    console.log('[SendVerificationEmail] 📧 Preparing email for:', email, '| Type:', type);
 
     // Send email using Resend
     let emailSubject = '';
@@ -138,7 +144,7 @@ serve(async (req) => {
       `;
     }
 
-    console.log('[SendVerificationEmail] Calling Resend API...');
+    console.log('[SendVerificationEmail] 🚀 Calling Resend API...');
 
     const resendResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -155,11 +161,11 @@ serve(async (req) => {
     });
 
     const responseText = await resendResponse.text();
-    console.log('[SendVerificationEmail] Resend API response status:', resendResponse.status);
-    console.log('[SendVerificationEmail] Resend API response:', responseText);
+    console.log('[SendVerificationEmail] 📊 Resend API response status:', resendResponse.status);
+    console.log('[SendVerificationEmail] 📊 Resend API response body:', responseText);
 
     if (!resendResponse.ok) {
-      console.error('[SendVerificationEmail] Resend API error:', {
+      console.error('[SendVerificationEmail] ❌ Resend API error:', {
         status: resendResponse.status,
         statusText: resendResponse.statusText,
         body: responseText,
@@ -168,23 +174,36 @@ serve(async (req) => {
       // Parse error details
       let errorMessage = 'Failed to send email';
       let errorDetails = responseText;
+      let troubleshooting = '';
       
       try {
         const errorData = JSON.parse(responseText);
+        console.log('[SendVerificationEmail] 📋 Parsed error data:', errorData);
+        
         if (errorData.message) {
           errorMessage = errorData.message;
         }
-        if (errorData.name === 'validation_error') {
-          errorDetails = 'Domain verification may be pending. Please check Resend dashboard.';
+        
+        // Provide specific troubleshooting based on error
+        if (resendResponse.status === 403) {
+          troubleshooting = 'Domain "barlive.app" may not be verified in Resend. Please verify the domain in Resend Dashboard → Domains.';
+          errorDetails = 'Domain verification required. Admin: Check Resend Dashboard.';
+        } else if (resendResponse.status === 401) {
+          troubleshooting = 'RESEND_API_KEY may be invalid or expired. Please check the API key in Resend Dashboard.';
+          errorDetails = 'Invalid API key. Admin: Update RESEND_API_KEY in Supabase Secrets.';
+        } else if (errorData.name === 'validation_error') {
+          troubleshooting = 'Email validation failed. Check email format and domain configuration.';
+          errorDetails = errorData.message || 'Validation error';
         }
       } catch (e) {
-        console.error('[SendVerificationEmail] Could not parse error response:', e);
+        console.error('[SendVerificationEmail] ⚠️ Could not parse error response:', e);
       }
 
       return new Response(
         JSON.stringify({ 
           error: errorMessage,
           details: errorDetails,
+          troubleshooting: troubleshooting,
           status: resendResponse.status,
         }),
         {
@@ -198,7 +217,7 @@ serve(async (req) => {
     }
 
     const resendData = JSON.parse(responseText);
-    console.log('[SendVerificationEmail] Email sent successfully:', resendData);
+    console.log('[SendVerificationEmail] ✅ Email sent successfully! Message ID:', resendData.id);
 
     return new Response(
       JSON.stringify({ success: true, messageId: resendData.id }),
@@ -211,11 +230,13 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('[SendVerificationEmail] Unexpected error:', error);
+    console.error('[SendVerificationEmail] ❌ Unexpected error:', error);
+    console.error('[SendVerificationEmail] Error stack:', error.stack);
     return new Response(
       JSON.stringify({ 
         error: error.message || 'Internal server error',
         details: error.toString(),
+        troubleshooting: 'An unexpected error occurred. Please check Edge Function logs for details.',
       }),
       {
         status: 500,

@@ -4,7 +4,6 @@ import {
   View,
   Text,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
@@ -54,6 +53,8 @@ export default function CrearPasswordGoogleScreen() {
       const code = Math.floor(100000 + Math.random() * 900000).toString();
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
+      console.log('[CrearPasswordGoogle] Código generado:', code);
+
       // Store verification code in database
       const { error: updateError } = await supabase
         .from('usuarios')
@@ -70,8 +71,12 @@ export default function CrearPasswordGoogleScreen() {
         return;
       }
 
+      console.log('[CrearPasswordGoogle] Código almacenado en la base de datos');
+
       // Send verification code via email
-      const { error: emailError } = await supabase.functions.invoke(
+      console.log('[CrearPasswordGoogle] Enviando correo electrónico...');
+      
+      const { data: emailData, error: emailError } = await supabase.functions.invoke(
         'send-verification-email',
         {
           body: {
@@ -82,12 +87,37 @@ export default function CrearPasswordGoogleScreen() {
         }
       );
 
+      console.log('[CrearPasswordGoogle] Respuesta del Edge Function:', { emailData, emailError });
+
       if (emailError) {
         console.error('[CrearPasswordGoogle] Error sending email:', emailError);
+        
+        // Check if it's a FunctionsHttpError with details
+        let errorMessage = 'Hubo un problema al enviar el correo electrónico.';
+        let showCode = true;
+        
+        if (emailError.message) {
+          console.error('[CrearPasswordGoogle] Error message:', emailError.message);
+          
+          // Parse error details if available
+          if (emailError.message.includes('Domain')) {
+            errorMessage = 'El servicio de correo está en configuración. Por favor, usa el código que aparece a continuación.';
+          } else if (emailError.message.includes('API key')) {
+            errorMessage = 'El servicio de correo no está configurado correctamente. Por favor, usa el código que aparece a continuación.';
+          }
+        }
+        
         Alert.alert(
-          'Advertencia',
-          `Código generado pero hubo un problema al enviar el correo. Tu código es: ${code}`,
+          'Código generado',
+          `${errorMessage}\n\nTu código de verificación es:\n\n${code}\n\nEste código expirará en 10 minutos.`,
           [
+            {
+              text: 'Copiar código',
+              onPress: () => {
+                // Note: Clipboard API would be used here in production
+                console.log('[CrearPasswordGoogle] Código para copiar:', code);
+              },
+            },
             {
               text: 'Continuar',
               onPress: () => {
@@ -96,6 +126,7 @@ export default function CrearPasswordGoogleScreen() {
                   params: { email },
                 });
               },
+              style: 'default',
             },
           ]
         );
@@ -103,11 +134,11 @@ export default function CrearPasswordGoogleScreen() {
         return;
       }
 
-      console.log('[CrearPasswordGoogle] ✅ Código de verificación enviado');
+      console.log('[CrearPasswordGoogle] ✅ Código de verificación enviado exitosamente');
 
       Alert.alert(
         'Código enviado',
-        'Hemos enviado un código de verificación a tu correo electrónico. Por favor, revisa tu bandeja de entrada.',
+        'Hemos enviado un código de verificación a tu correo electrónico. Por favor, revisa tu bandeja de entrada (y la carpeta de spam).',
         [
           {
             text: 'Continuar',
@@ -122,7 +153,10 @@ export default function CrearPasswordGoogleScreen() {
       );
     } catch (error: any) {
       console.error('[CrearPasswordGoogle] ❌ Error en handleRequestVerificationCode:', error);
-      Alert.alert('Error', 'Ocurrió un error inesperado');
+      Alert.alert(
+        'Error',
+        'Ocurrió un error inesperado. Por favor, intenta nuevamente o contacta con soporte.'
+      );
     } finally {
       setLoading(false);
     }
@@ -200,6 +234,15 @@ export default function CrearPasswordGoogleScreen() {
             <Text style={styles.noteText}>
               Nota: Una vez configurada tu contraseña, podrás iniciar sesión con tu correo y contraseña. 
               Todos tus datos, roles y configuraciones se mantendrán intactos.
+            </Text>
+          </View>
+
+          <View style={styles.troubleshootingBox}>
+            <Text style={styles.troubleshootingTitle}>¿No recibes el correo?</Text>
+            <Text style={styles.troubleshootingText}>
+              - Revisa tu carpeta de spam{'\n'}
+              - Verifica que el correo sea correcto{'\n'}
+              - El código se mostrará en pantalla si hay problemas con el envío
             </Text>
           </View>
         </View>
@@ -315,8 +358,27 @@ const styles = StyleSheet.create({
     borderColor: colors.cardBorder,
     borderRadius: 12,
     padding: 16,
+    marginBottom: 16,
   },
   noteText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    lineHeight: 18,
+  },
+  troubleshootingBox: {
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: '#FFA500',
+    borderRadius: 12,
+    padding: 16,
+  },
+  troubleshootingTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  troubleshootingText: {
     fontSize: 12,
     color: colors.textSecondary,
     lineHeight: 18,
