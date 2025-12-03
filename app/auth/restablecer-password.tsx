@@ -37,6 +37,7 @@ export default function RestablecerPasswordScreen() {
     try {
       console.log('[RestablecerPassword] 🔍 Verificando sesión de recuperación...');
       console.log('[RestablecerPassword] Platform:', Platform.OS);
+      console.log('[RestablecerPassword] URL:', Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.href : 'N/A');
       
       // First, check if we have hash parameters in the URL (web only)
       if (Platform.OS === 'web' && typeof window !== 'undefined') {
