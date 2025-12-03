@@ -18,33 +18,40 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 
+type FlowStep = 'email' | 'token' | 'password';
+
 export default function RecuperarPasswordV6Screen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const initialEmail = params.email as string || '';
   
+  // Flow control
+  const [currentStep, setCurrentStep] = useState<FlowStep>('email');
+  
+  // Email step
   const [email, setEmail] = useState(initialEmail);
-  const [loading, setLoading] = useState(false);
-  const [codeSent, setCodeSent] = useState(false);
+  const [sendingCode, setSendingCode] = useState(false);
+  
+  // Token step
   const [token, setToken] = useState(['', '', '', '', '', '']);
   const [validatingToken, setValidatingToken] = useState(false);
+  const inputRefs = useRef<Array<TextInput | null>>([]);
+  
+  // Password step
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [updatingPassword, setUpdatingPassword] = useState(false);
-  const [tokenValidated, setTokenValidated] = useState(false);
-  
-  const inputRefs = useRef<Array<TextInput | null>>([]);
 
   useEffect(() => {
-    // Focus first token input when code is sent
-    if (codeSent && inputRefs.current[0]) {
+    // Auto-focus first token input when entering token step
+    if (currentStep === 'token' && inputRefs.current[0]) {
       setTimeout(() => {
         inputRefs.current[0]?.focus();
       }, 300);
     }
-  }, [codeSent]);
+  }, [currentStep]);
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -62,7 +69,7 @@ export default function RecuperarPasswordV6Screen() {
       return;
     }
 
-    setLoading(true);
+    setSendingCode(true);
 
     try {
       const normalizedEmail = email.trim().toLowerCase();
@@ -79,18 +86,18 @@ export default function RecuperarPasswordV6Screen() {
 
       if (error) {
         console.error('[RecuperarPasswordV6] ❌ Error:', error);
-        // Always show success message for security
-        setCodeSent(true);
       } else {
         console.log('[RecuperarPasswordV6] ✅ Código enviado');
-        setCodeSent(true);
       }
+      
+      // Always move to token step for security (don't reveal if email exists)
+      setCurrentStep('token');
     } catch (error: any) {
       console.error('[RecuperarPasswordV6] ❌ Exception:', error);
-      // Always show success message for security
-      setCodeSent(true);
+      // Always move to token step for security
+      setCurrentStep('token');
     } finally {
-      setLoading(false);
+      setSendingCode(false);
       console.log('[RecuperarPasswordV6] 🏁 Proceso finalizado');
       console.log('═══════════════════════════════════════════════════════');
     }
@@ -157,9 +164,8 @@ export default function RecuperarPasswordV6Screen() {
             {
               text: 'Solicitar nuevo código',
               onPress: () => {
-                setCodeSent(false);
+                setCurrentStep('email');
                 setToken(['', '', '', '', '', '']);
-                setTokenValidated(false);
               },
             },
             {
@@ -172,7 +178,7 @@ export default function RecuperarPasswordV6Screen() {
       }
 
       console.log('[RecuperarPasswordV6] ✅ Token válido');
-      setTokenValidated(true);
+      setCurrentStep('password');
     } catch (error: any) {
       console.error('[RecuperarPasswordV6] ❌ Error:', error);
       Alert.alert('Error', 'Ocurrió un error al validar el código. Por favor, intenta nuevamente.');
@@ -250,8 +256,8 @@ export default function RecuperarPasswordV6Screen() {
 
       // Show success message
       Alert.alert(
-        '✔️ Tu contraseña ha sido actualizada correctamente',
-        'Iniciando sesión...',
+        '✔️ Contraseña actualizada',
+        'Tu contraseña ha sido actualizada correctamente. Iniciando sesión...',
         [
           {
             text: 'OK',
@@ -265,11 +271,9 @@ export default function RecuperarPasswordV6Screen() {
 
                 if (signInError) {
                   console.error('[RecuperarPasswordV6] ❌ Error al iniciar sesión:', signInError);
-                  // Redirect to login if auto-login fails
                   router.replace('/auth/login');
                 } else {
                   console.log('[RecuperarPasswordV6] ✅ Sesión iniciada');
-                  // Redirect to Explorar
                   router.replace('/(tabs)/explorar');
                 }
               } catch (loginError) {
@@ -290,6 +294,45 @@ export default function RecuperarPasswordV6Screen() {
     }
   };
 
+  const handleBack = () => {
+    if (currentStep === 'password') {
+      setCurrentStep('token');
+      setNewPassword('');
+      setConfirmPassword('');
+    } else if (currentStep === 'token') {
+      setCurrentStep('email');
+      setToken(['', '', '', '', '', '']);
+    } else {
+      router.back();
+    }
+  };
+
+  const getHeaderTitle = () => {
+    switch (currentStep) {
+      case 'email':
+        return '¿Olvidaste tu contraseña?';
+      case 'token':
+        return 'Introduce el código';
+      case 'password':
+        return 'Nueva contraseña';
+      default:
+        return '';
+    }
+  };
+
+  const getHeaderSubtitle = () => {
+    switch (currentStep) {
+      case 'email':
+        return 'No te preocupes, te ayudaremos';
+      case 'token':
+        return 'Revisa tu correo electrónico';
+      case 'password':
+        return 'Crea una contraseña segura';
+      default:
+        return '';
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -301,18 +344,7 @@ export default function RecuperarPasswordV6Screen() {
       >
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => {
-            if (tokenValidated) {
-              setTokenValidated(false);
-              setNewPassword('');
-              setConfirmPassword('');
-            } else if (codeSent) {
-              setCodeSent(false);
-              setToken(['', '', '', '', '', '']);
-            } else {
-              router.back();
-            }
-          }}
+          onPress={handleBack}
         >
           <IconSymbol
             ios_icon_name="chevron.left"
@@ -321,12 +353,8 @@ export default function RecuperarPasswordV6Screen() {
             color="#fff"
           />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          {tokenValidated ? 'Nueva contraseña' : codeSent ? 'Introduce el código' : '¿Olvidaste tu contraseña?'}
-        </Text>
-        <Text style={styles.headerSubtitle}>
-          {tokenValidated ? 'Crea una contraseña segura' : codeSent ? 'Revisa tu correo electrónico' : 'No te preocupes, te ayudaremos'}
-        </Text>
+        <Text style={styles.headerTitle}>{getHeaderTitle()}</Text>
+        <Text style={styles.headerSubtitle}>{getHeaderSubtitle()}</Text>
       </LinearGradient>
 
       <ScrollView
@@ -335,7 +363,8 @@ export default function RecuperarPasswordV6Screen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.formContainer}>
-          {!codeSent ? (
+          {/* STEP 1: EMAIL INPUT */}
+          {currentStep === 'email' && (
             <>
               <View style={styles.infoBox}>
                 <IconSymbol
@@ -369,17 +398,17 @@ export default function RecuperarPasswordV6Screen() {
                     keyboardType="email-address"
                     autoCapitalize="none"
                     autoCorrect={false}
-                    editable={!loading}
+                    editable={!sendingCode}
                   />
                 </View>
               </View>
 
               <TouchableOpacity
-                style={[styles.button, loading && styles.buttonDisabled]}
+                style={[styles.button, sendingCode && styles.buttonDisabled]}
                 onPress={handleSendCode}
-                disabled={loading}
+                disabled={sendingCode}
               >
-                {loading ? (
+                {sendingCode ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <>
@@ -407,7 +436,10 @@ export default function RecuperarPasswordV6Screen() {
                 </Text>
               </View>
             </>
-          ) : !tokenValidated ? (
+          )}
+
+          {/* STEP 2: TOKEN INPUT */}
+          {currentStep === 'token' && (
             <>
               <View style={styles.infoBox}>
                 <IconSymbol
@@ -416,9 +448,9 @@ export default function RecuperarPasswordV6Screen() {
                   size={80}
                   color={colors.primary}
                 />
-                <Text style={styles.infoTitle}>Código enviado</Text>
+                <Text style={styles.infoTitle}>¡Correo enviado!</Text>
                 <Text style={styles.infoText}>
-                  Hemos enviado un código de 6 dígitos a:
+                  Si existe una cuenta asociada a:
                 </Text>
                 <View style={styles.emailBadge}>
                   <IconSymbol
@@ -428,6 +460,46 @@ export default function RecuperarPasswordV6Screen() {
                     color={colors.primary}
                   />
                   <Text style={styles.emailText}>{email}</Text>
+                </View>
+                <Text style={[styles.infoText, { marginTop: 16 }]}>
+                  Recibirás un correo con un código de 6 dígitos para restablecer tu contraseña.
+                </Text>
+              </View>
+
+              <View style={styles.stepsBox}>
+                <Text style={styles.stepsTitle}>📋 Próximos pasos:</Text>
+                <View style={styles.stepItem}>
+                  <View style={styles.stepNumber}>
+                    <Text style={styles.stepNumberText}>1</Text>
+                  </View>
+                  <View style={styles.stepContent}>
+                    <Text style={styles.stepTitle}>Revisa tu correo</Text>
+                    <Text style={styles.stepDescription}>
+                      Busca el correo de Barlive en tu bandeja de entrada
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.stepItem}>
+                  <View style={styles.stepNumber}>
+                    <Text style={styles.stepNumberText}>2</Text>
+                  </View>
+                  <View style={styles.stepContent}>
+                    <Text style={styles.stepTitle}>Copia el código</Text>
+                    <Text style={styles.stepDescription}>
+                      El correo contiene un código de 6 dígitos
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.stepItem}>
+                  <View style={styles.stepNumber}>
+                    <Text style={styles.stepNumberText}>3</Text>
+                  </View>
+                  <View style={styles.stepContent}>
+                    <Text style={styles.stepTitle}>Introduce el código aquí</Text>
+                    <Text style={styles.stepDescription}>
+                      Pega o escribe el código en los campos de abajo
+                    </Text>
+                  </View>
                 </View>
               </View>
 
@@ -481,24 +553,23 @@ export default function RecuperarPasswordV6Screen() {
               </TouchableOpacity>
 
               <View style={styles.helpBox}>
-                <Text style={styles.helpTitle}>¿No recibiste el código?</Text>
+                <Text style={styles.helpTitle}>💡 Consejos:</Text>
                 <Text style={styles.helpText}>
-                  • Revisa tu carpeta de spam o correo no deseado
+                  • Revisa tu carpeta de spam si no ves el correo
                 </Text>
                 <Text style={styles.helpText}>
-                  • Asegúrate de haber ingresado el correo correcto
+                  • El código expira en 15 minutos por seguridad
                 </Text>
                 <Text style={styles.helpText}>
-                  • El código expira en 15 minutos
+                  • Si no recibes el correo, puedes reenviarlo
                 </Text>
               </View>
 
               <TouchableOpacity
                 style={styles.resendButton}
                 onPress={() => {
-                  setCodeSent(false);
+                  setCurrentStep('email');
                   setToken(['', '', '', '', '', '']);
-                  handleSendCode();
                 }}
               >
                 <IconSymbol
@@ -511,7 +582,10 @@ export default function RecuperarPasswordV6Screen() {
                 <Text style={styles.resendButtonText}>Solicitar nuevo código</Text>
               </TouchableOpacity>
             </>
-          ) : (
+          )}
+
+          {/* STEP 3: NEW PASSWORD */}
+          {currentStep === 'password' && (
             <>
               <View style={styles.infoBox}>
                 <IconSymbol
@@ -754,6 +828,61 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.primary,
     marginLeft: 8,
+  },
+  stepsBox: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 16,
+    padding: 24,
+    marginBottom: 32,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  stepsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 20,
+  },
+  stepItem: {
+    flexDirection: 'row',
+    marginBottom: 20,
+  },
+  stepNumber: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  stepNumberText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  stepContent: {
+    flex: 1,
+  },
+  stepTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  stepDescription: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
   },
   inputContainer: {
     marginBottom: 24,
