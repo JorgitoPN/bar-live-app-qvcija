@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -24,6 +24,18 @@ export default function RecuperarPasswordTokenScreen() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [token, setToken] = useState(['', '', '', '', '', '']);
+  const [validatingToken, setValidatingToken] = useState(false);
+  const inputRefs = useRef<Array<TextInput | null>>([]);
+
+  useEffect(() => {
+    // Focus first token input when email is sent
+    if (emailSent && inputRefs.current[0]) {
+      setTimeout(() => {
+        inputRefs.current[0]?.focus();
+      }, 300);
+    }
+  }, [emailSent]);
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -86,11 +98,104 @@ export default function RecuperarPasswordTokenScreen() {
     }
   };
 
-  const handleContinue = () => {
-    router.push({
-      pathname: '/auth/validar-token-password',
-      params: { email },
-    });
+  const handleTokenChange = (value: string, index: number) => {
+    // Only allow numbers
+    if (value && !/^\d$/.test(value)) {
+      return;
+    }
+
+    const newToken = [...token];
+    newToken[index] = value;
+    setToken(newToken);
+
+    // Auto-focus next input
+    if (value && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleKeyPress = (e: any, index: number) => {
+    if (e.nativeEvent.key === 'Backspace' && !token[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleValidateToken = async () => {
+    const fullToken = token.join('');
+
+    if (fullToken.length !== 6) {
+      Alert.alert('Error', 'Por favor, ingresa el código completo de 6 dígitos');
+      return;
+    }
+
+    setValidatingToken(true);
+
+    try {
+      console.log('═══════════════════════════════════════════════════════');
+      console.log('[RecuperarPasswordToken] 🔍 VALIDACIÓN DE TOKEN');
+      console.log('═══════════════════════════════════════════════════════');
+      console.log('[RecuperarPasswordToken] 📧 Email:', email);
+      console.log('[RecuperarPasswordToken] 🔢 Token:', fullToken);
+
+      // Get the project URL
+      const { data: { project_url } } = await supabase.functions.getProjectUrl();
+      const functionsUrl = project_url || 'https://embntaqwlwmgazvrglaf.supabase.co';
+
+      // Call the Edge Function to validate token
+      const response = await fetch(`${functionsUrl}/functions/v1/validate-password-token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || ''}`,
+        },
+        body: JSON.stringify({ 
+          email: email.trim().toLowerCase(), 
+          token: fullToken 
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!result.valid) {
+        console.error('[RecuperarPasswordToken] ❌ Token inválido:', result.error);
+        Alert.alert(
+          'Código inválido',
+          result.error || 'El código ingresado es inválido o ha expirado. Por favor, verifica e intenta nuevamente.',
+          [
+            {
+              text: 'Solicitar nuevo código',
+              onPress: () => {
+                setEmailSent(false);
+                setToken(['', '', '', '', '', '']);
+              },
+            },
+            {
+              text: 'Reintentar',
+              style: 'cancel',
+            },
+          ]
+        );
+        return;
+      }
+
+      console.log('[RecuperarPasswordToken] ✅ Token válido');
+
+      // Navigate to new password screen
+      router.push({
+        pathname: '/auth/nueva-password-token',
+        params: { email, token: fullToken },
+      });
+    } catch (error: any) {
+      console.error('[RecuperarPasswordToken] ❌ Error:', error);
+      Alert.alert(
+        'Error',
+        'Ocurrió un error al validar el código. Por favor, intenta nuevamente.'
+      );
+    } finally {
+      setValidatingToken(false);
+      console.log('[RecuperarPasswordToken] 🏁 Proceso finalizado');
+      console.log('═══════════════════════════════════════════════════════');
+    }
   };
 
   return (
@@ -114,7 +219,9 @@ export default function RecuperarPasswordTokenScreen() {
           />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>¿Olvidaste tu contraseña?</Text>
-        <Text style={styles.headerSubtitle}>Te enviaremos un código de 6 dígitos</Text>
+        <Text style={styles.headerSubtitle}>
+          {!emailSent ? 'Te enviaremos un código de 6 dígitos' : 'Introduce el código recibido'}
+        </Text>
       </LinearGradient>
 
       <ScrollView
@@ -178,7 +285,7 @@ export default function RecuperarPasswordTokenScreen() {
                       color="#fff"
                       style={styles.buttonIcon}
                     />
-                    <Text style={styles.buttonText}>Enviar código</Text>
+                    <Text style={styles.buttonText}>Enviar código de recuperación</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -231,7 +338,7 @@ export default function RecuperarPasswordTokenScreen() {
                   </View>
                   <View style={styles.stepContent}>
                     <Text style={styles.stepTitle}>Revisa tu correo</Text>
-                    <Text style={styles.stepText}>Busca el correo de Barlive con tu código de 6 dígitos</Text>
+                    <Text style={styles.stepText}>Busca el correo de Barlive en tu bandeja de entrada</Text>
                   </View>
                 </View>
 
@@ -241,7 +348,7 @@ export default function RecuperarPasswordTokenScreen() {
                   </View>
                   <View style={styles.stepContent}>
                     <Text style={styles.stepTitle}>Introduce el código</Text>
-                    <Text style={styles.stepText}>Ingresa el código en la siguiente pantalla</Text>
+                    <Text style={styles.stepText}>Ingresa el código de 6 dígitos que recibiste en el campo de abajo</Text>
                   </View>
                 </View>
 
@@ -254,7 +361,59 @@ export default function RecuperarPasswordTokenScreen() {
                     <Text style={styles.stepText}>Ingresa una contraseña segura y confírmala</Text>
                   </View>
                 </View>
+
+                <View style={styles.stepItem}>
+                  <View style={styles.stepNumber}>
+                    <Text style={styles.stepNumberText}>4</Text>
+                  </View>
+                  <View style={styles.stepContent}>
+                    <Text style={styles.stepTitle}>¡Listo!</Text>
+                    <Text style={styles.stepText}>Vuelve a Barlive e inicia sesión</Text>
+                  </View>
+                </View>
               </View>
+
+              <Text style={styles.tokenLabel}>Código de verificación</Text>
+              <View style={styles.tokenContainer}>
+                {token.map((digit, index) => (
+                  <TextInput
+                    key={index}
+                    ref={(ref) => (inputRefs.current[index] = ref)}
+                    style={[
+                      styles.tokenInput,
+                      digit && styles.tokenInputFilled,
+                    ]}
+                    value={digit}
+                    onChangeText={(value) => handleTokenChange(value, index)}
+                    onKeyPress={(e) => handleKeyPress(e, index)}
+                    keyboardType="number-pad"
+                    maxLength={1}
+                    selectTextOnFocus
+                    editable={!validatingToken}
+                  />
+                ))}
+              </View>
+
+              <TouchableOpacity
+                style={[styles.button, validatingToken && styles.buttonDisabled]}
+                onPress={handleValidateToken}
+                disabled={validatingToken}
+              >
+                {validatingToken ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <IconSymbol
+                      ios_icon_name="checkmark.circle.fill"
+                      android_material_icon_name="check_circle"
+                      size={20}
+                      color="#fff"
+                      style={styles.buttonIcon}
+                    />
+                    <Text style={styles.buttonText}>Validar código y continuar</Text>
+                  </>
+                )}
+              </TouchableOpacity>
 
               <View style={styles.tipsBox}>
                 <Text style={styles.tipsTitle}>💡 Consejos:</Text>
@@ -264,23 +423,9 @@ export default function RecuperarPasswordTokenScreen() {
               </View>
 
               <TouchableOpacity
-                style={styles.button}
-                onPress={handleContinue}
-              >
-                <IconSymbol
-                  ios_icon_name="arrow.right"
-                  android_material_icon_name="arrow_forward"
-                  size={20}
-                  color="#fff"
-                  style={styles.buttonIcon}
-                />
-                <Text style={styles.buttonText}>Continuar</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
                 style={[styles.resendButton, loading && styles.resendButtonDisabled]}
                 onPress={() => {
-                  setEmailSent(false);
+                  setToken(['', '', '', '', '', '']);
                   handleSendToken();
                 }}
                 disabled={loading}
@@ -524,7 +669,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBackground,
     borderRadius: 16,
     padding: 24,
-    marginBottom: 20,
+    marginBottom: 24,
   },
   instructionsTitle: {
     fontSize: 18,
@@ -563,6 +708,46 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
     lineHeight: 18,
+  },
+  tokenLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  tokenContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+    paddingHorizontal: 8,
+  },
+  tokenInput: {
+    width: 50,
+    height: 60,
+    backgroundColor: colors.cardBackground,
+    borderWidth: 2,
+    borderColor: colors.cardBorder,
+    borderRadius: 12,
+    fontSize: 24,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    color: colors.text,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  tokenInputFilled: {
+    borderColor: colors.primary,
+    backgroundColor: `${colors.primary}10`,
   },
   tipsBox: {
     backgroundColor: `${colors.primary}10`,
