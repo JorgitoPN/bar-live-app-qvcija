@@ -62,15 +62,25 @@ export default function AuthCallbackScreen() {
           if (type === 'recovery' && accessToken) {
             console.log('[Callback] 🔐 Password recovery detected, redirecting to reset screen...');
             
-            // Don't set the session here - let the restablecer-password page handle it
-            // This avoids double-processing and potential token expiration issues
-            console.log('[Callback] ✅ Redirigiendo a página de restablecer contraseña...');
+            // Set the session with the recovery token
+            const { error: sessionError } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken || '',
+            });
+
+            if (sessionError) {
+              console.error('[Callback] ❌ Error estableciendo sesión de recuperación:', sessionError);
+              if (isMounted) {
+                setStatus('error');
+                setErrorMessage('Error al establecer la sesión de recuperación');
+              }
+              safeRedirect('/auth/recuperar-password', 2000);
+              return;
+            }
+
+            console.log('[Callback] ✅ Sesión de recuperación establecida, redirigiendo...');
             if (isMounted) setStatus('success');
-            
-            // Redirect with the hash intact so the reset page can process it
-            const redirectUrl = new URL('/auth/restablecer-password', window.location.origin);
-            redirectUrl.hash = window.location.hash;
-            window.location.href = redirectUrl.toString();
+            safeRedirect('/auth/restablecer-password', 500);
             return;
           }
 

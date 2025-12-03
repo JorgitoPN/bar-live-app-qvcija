@@ -46,34 +46,12 @@ export default function RestablecerPasswordScreen() {
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
         const type = hashParams.get('type');
-        const error = hashParams.get('error');
-        const errorDescription = hashParams.get('error_description');
         
         console.log('[RestablecerPassword] 📋 Parámetros del hash:', {
           hasAccessToken: !!accessToken,
           hasRefreshToken: !!refreshToken,
           type,
-          error,
-          errorDescription,
         });
-        
-        // Check for errors in the URL
-        if (error) {
-          console.error('[RestablecerPassword] ❌ Error en URL:', error, errorDescription);
-          Alert.alert(
-            'Enlace inválido o expirado',
-            errorDescription || 'El enlace de recuperación ha expirado o es inválido. Por favor, solicita un nuevo enlace.',
-            [
-              {
-                text: 'Solicitar nuevo enlace',
-                onPress: () => router.replace('/auth/recuperar-password'),
-              },
-            ]
-          );
-          setHasValidSession(false);
-          setCheckingSession(false);
-          return;
-        }
         
         // If this is a recovery link with tokens, establish the session
         if (type === 'recovery' && accessToken) {
@@ -86,32 +64,16 @@ export default function RestablecerPasswordScreen() {
 
           if (sessionError) {
             console.error('[RestablecerPassword] ❌ Error estableciendo sesión:', sessionError);
-            
-            // Check if the error is due to an expired or invalid token
-            const errorMessage = sessionError.message?.toLowerCase() || '';
-            if (errorMessage.includes('expired') || errorMessage.includes('invalid')) {
-              Alert.alert(
-                'Enlace inválido o expirado',
-                'El enlace de recuperación ha expirado o es inválido. Los enlaces de recuperación solo son válidos por 1 hora. Por favor, solicita un nuevo enlace.',
-                [
-                  {
-                    text: 'Solicitar nuevo enlace',
-                    onPress: () => router.replace('/auth/recuperar-password'),
-                  },
-                ]
-              );
-            } else {
-              Alert.alert(
-                'Error',
-                'No se pudo establecer la sesión de recuperación. Por favor, solicita un nuevo enlace.',
-                [
-                  {
-                    text: 'Solicitar nuevo enlace',
-                    onPress: () => router.replace('/auth/recuperar-password'),
-                  },
-                ]
-              );
-            }
+            Alert.alert(
+              'Error',
+              'No se pudo establecer la sesión de recuperación. Por favor, solicita un nuevo enlace.',
+              [
+                {
+                  text: 'Solicitar nuevo enlace',
+                  onPress: () => router.replace('/auth/recuperar-password'),
+                },
+              ]
+            );
             setHasValidSession(false);
             setCheckingSession(false);
             return;
@@ -126,21 +88,6 @@ export default function RestablecerPasswordScreen() {
             }
             
             setHasValidSession(true);
-            setCheckingSession(false);
-            return;
-          } else {
-            console.error('[RestablecerPassword] ❌ No se pudo obtener sesión después de setSession');
-            Alert.alert(
-              'Enlace inválido o expirado',
-              'El enlace de recuperación ha expirado o es inválido. Por favor, solicita un nuevo enlace.',
-              [
-                {
-                  text: 'Solicitar nuevo enlace',
-                  onPress: () => router.replace('/auth/recuperar-password'),
-                },
-              ]
-            );
-            setHasValidSession(false);
             setCheckingSession(false);
             return;
           }
@@ -344,11 +291,7 @@ export default function RestablecerPasswordScreen() {
           />
           <Text style={styles.errorTitle}>Enlace inválido o expirado</Text>
           <Text style={styles.errorText}>
-            El enlace de recuperación ha expirado o es inválido.
-            {'\n\n'}
-            Los enlaces de recuperación solo son válidos por 1 hora desde que se solicitan.
-            {'\n\n'}
-            Por favor, solicita un nuevo enlace para restablecer tu contraseña.
+            El enlace de recuperación ha expirado o es inválido. Por favor, solicita un nuevo enlace.
           </Text>
           <TouchableOpacity
             style={styles.button}
@@ -356,17 +299,6 @@ export default function RestablecerPasswordScreen() {
           >
             <Text style={styles.buttonText}>Solicitar nuevo enlace</Text>
           </TouchableOpacity>
-          
-          <View style={styles.helpBox}>
-            <Text style={styles.helpTitle}>💡 Consejos:</Text>
-            <Text style={styles.helpText}>
-              - Asegúrate de hacer clic en el enlace inmediatamente después de recibirlo
-              {'\n'}
-              - No uses el mismo enlace más de una vez
-              {'\n'}
-              - Verifica que hayas copiado el enlace completo si lo pegaste manualmente
-            </Text>
-          </View>
         </View>
       </View>
     );
@@ -655,24 +587,5 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     fontSize: 14,
     color: colors.textSecondary,
-  },
-  helpBox: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 24,
-    borderLeftWidth: 4,
-    borderLeftColor: colors.primary,
-  },
-  helpTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  helpText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    lineHeight: 20,
   },
 });
