@@ -30,6 +30,7 @@ export default function ResetPasswordScreen() {
   const [checkingSession, setCheckingSession] = useState(true);
   const [passwordUpdated, setPasswordUpdated] = useState(false);
   const [userEmail, setUserEmail] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   // Password strength indicators
   const [passwordStrength, setPasswordStrength] = useState({
@@ -57,10 +58,12 @@ export default function ResetPasswordScreen() {
     try {
       console.log('[ResetPassword] 🔍 Verificando sesión de recuperación...');
       console.log('[ResetPassword] Platform:', Platform.OS);
+      console.log('[ResetPassword] Timestamp:', new Date().toISOString());
       
       // For web, check URL hash parameters
       if (Platform.OS === 'web' && typeof window !== 'undefined') {
         const hash = window.location.hash;
+        console.log('[ResetPassword] 📋 URL completa:', window.location.href);
         console.log('[ResetPassword] 📋 URL hash:', hash);
         
         if (hash) {
@@ -69,6 +72,7 @@ export default function ResetPasswordScreen() {
           const refreshToken = hashParams.get('refresh_token');
           const type = hashParams.get('type');
           const error = hashParams.get('error');
+          const errorCode = hashParams.get('error_code');
           const errorDescription = hashParams.get('error_description');
 
           console.log('[ResetPassword] 📋 Hash params:', {
@@ -76,12 +80,23 @@ export default function ResetPasswordScreen() {
             hasRefreshToken: !!refreshToken,
             type,
             error,
+            errorCode,
             errorDescription,
           });
 
           // Check for errors in URL
           if (error) {
             console.error('[ResetPassword] ❌ Error en URL:', error, errorDescription);
+            
+            // Set user-friendly error message
+            if (errorCode === 'otp_expired') {
+              setErrorMessage('El enlace de recuperación ha expirado. Los enlaces expiran después de 1 hora por seguridad.');
+            } else if (error === 'access_denied') {
+              setErrorMessage('El enlace de recuperación es inválido o ya fue utilizado.');
+            } else {
+              setErrorMessage(errorDescription || 'El enlace de recuperación no es válido.');
+            }
+            
             setHasValidSession(false);
             setCheckingSession(false);
             return;
@@ -98,6 +113,7 @@ export default function ResetPasswordScreen() {
 
             if (sessionError) {
               console.error('[ResetPassword] ❌ Error estableciendo sesión:', sessionError);
+              setErrorMessage('No se pudo establecer la sesión de recuperación. Por favor, solicita un nuevo enlace.');
               setHasValidSession(false);
               setCheckingSession(false);
               return;
@@ -109,7 +125,7 @@ export default function ResetPasswordScreen() {
               setHasValidSession(true);
               setCheckingSession(false);
               
-              // Clean the URL hash
+              // Clean the URL hash to prevent reuse
               if (window.history && window.history.replaceState) {
                 window.history.replaceState(null, '', window.location.pathname);
               }
@@ -119,11 +135,13 @@ export default function ResetPasswordScreen() {
         }
       }
       
-      // Check for existing session
+      // Check for existing session (for mobile or if already authenticated)
+      console.log('[ResetPassword] 🔍 Verificando sesión existente...');
       const { data: { session }, error } = await supabase.auth.getSession();
       
       if (error || !session) {
         console.log('[ResetPassword] ⚠️ No hay sesión válida');
+        setErrorMessage('No se encontró una sesión de recuperación válida. Por favor, solicita un nuevo enlace.');
         setHasValidSession(false);
         setCheckingSession(false);
         return;
@@ -135,6 +153,7 @@ export default function ResetPasswordScreen() {
       setCheckingSession(false);
     } catch (error: any) {
       console.error('[ResetPassword] ❌ Error inesperado:', error);
+      setErrorMessage('Ocurrió un error al verificar tu sesión. Por favor, intenta nuevamente.');
       setHasValidSession(false);
       setCheckingSession(false);
     }
@@ -188,6 +207,7 @@ export default function ResetPasswordScreen() {
       console.log('═══════════════════════════════════════════════════════');
       console.log('[ResetPassword] 🔄 ACTUALIZANDO CONTRASEÑA');
       console.log('═══════════════════════════════════════════════════════');
+      console.log('[ResetPassword] ⏰ Timestamp:', new Date().toISOString());
 
       const { data, error } = await supabase.auth.updateUser({
         password: newPassword,
@@ -222,6 +242,8 @@ export default function ResetPasswordScreen() {
       Alert.alert('Error', 'Ocurrió un error inesperado. Por favor, intenta nuevamente.');
     } finally {
       setLoading(false);
+      console.log('[ResetPassword] 🏁 Proceso finalizado');
+      console.log('═══════════════════════════════════════════════════════');
     }
   };
 
@@ -238,6 +260,7 @@ export default function ResetPasswordScreen() {
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>Verificando enlace...</Text>
+          <Text style={styles.loadingSubtext}>Por favor espera un momento</Text>
         </View>
       </View>
     );
@@ -253,26 +276,53 @@ export default function ResetPasswordScreen() {
         >
           <Text style={styles.headerTitle}>Barlive</Text>
         </LinearGradient>
-        <View style={styles.centerContainer}>
-          <IconSymbol
-            ios_icon_name="exclamationmark.triangle.fill"
-            android_material_icon_name="warning"
-            size={80}
-            color="#f59e0b"
-          />
-          <Text style={styles.errorTitle}>Enlace inválido o expirado</Text>
-          <Text style={styles.errorText}>
-            El enlace de recuperación ha expirado o es inválido.
-            {'\n\n'}
-            Los enlaces de recuperación expiran después de 1 hora por seguridad.
-          </Text>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => router.replace('/auth/recuperar-password')}
-          >
-            <Text style={styles.buttonText}>Solicitar nuevo enlace</Text>
-          </TouchableOpacity>
-        </View>
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={styles.scrollContent}
+        >
+          <View style={styles.centerContainer}>
+            <IconSymbol
+              ios_icon_name="exclamationmark.triangle.fill"
+              android_material_icon_name="warning"
+              size={80}
+              color="#f59e0b"
+            />
+            <Text style={styles.errorTitle}>Enlace inválido o expirado</Text>
+            <Text style={styles.errorText}>
+              {errorMessage || 'El enlace de recuperación ha expirado o es inválido.'}
+            </Text>
+            
+            <View style={styles.infoBox}>
+              <Text style={styles.infoBoxTitle}>💡 ¿Por qué sucede esto?</Text>
+              <Text style={styles.infoBoxText}>
+                • Los enlaces expiran después de 1 hora por seguridad{'\n'}
+                • El enlace solo puede usarse una vez{'\n'}
+                • Puede que hayas abierto un enlace antiguo
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.button}
+              onPress={() => router.replace('/auth/recuperar-password')}
+            >
+              <IconSymbol
+                ios_icon_name="arrow.clockwise"
+                android_material_icon_name="refresh"
+                size={20}
+                color="#fff"
+                style={styles.buttonIcon}
+              />
+              <Text style={styles.buttonText}>Solicitar nuevo enlace</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={() => router.replace('/auth/login')}
+            >
+              <Text style={styles.secondaryButtonText}>Volver a iniciar sesión</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       </View>
     );
   }
@@ -602,6 +652,12 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     color: colors.textSecondary,
+    fontWeight: '600',
+  },
+  loadingSubtext: {
+    marginTop: 8,
+    fontSize: 14,
+    color: colors.textSecondary,
   },
   errorTitle: {
     fontSize: 24,
@@ -616,8 +672,28 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
-    marginBottom: 32,
+    marginBottom: 24,
     paddingHorizontal: 20,
+  },
+  infoBox: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 24,
+    width: '100%',
+    borderLeftWidth: 4,
+    borderLeftColor: colors.primary,
+  },
+  infoBoxTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  infoBoxText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 22,
   },
   formContainer: {
     flex: 1,
@@ -681,7 +757,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
     ...Platform.select({
       ios: {
         shadowColor: colors.primary,
@@ -702,6 +778,20 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  secondaryButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: colors.primary,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  secondaryButtonText: {
+    color: colors.primary,
     fontSize: 16,
     fontWeight: '600',
   },

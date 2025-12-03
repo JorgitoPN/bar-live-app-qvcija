@@ -1,15 +1,17 @@
 
 # Redirect rules for Barlive
 
-# Auth routes - Simplified password reset flow
+# Password reset - Main endpoint (this is where Supabase will redirect)
 /auth/reset-password /auth/reset-password 200
-/auth/recuperar-password /auth/recuperar-password 200
 
-# Legacy auth routes (redirect to new simplified routes)
-/auth/reset-password-web /auth/reset-password 301
+# Legacy/alternative routes (redirect to main endpoint)
 /auth/restablecer-password /auth/reset-password 301
+/auth/reset-password-web /auth/reset-password 301
 /auth/recuperar-password-v6 /auth/recuperar-password 301
 /auth/recuperar-password-v5 /auth/recuperar-password 301
+
+# Password recovery request page
+/auth/recuperar-password /auth/recuperar-password 200
 
 # Other auth routes
 /auth/login /auth/login 200
