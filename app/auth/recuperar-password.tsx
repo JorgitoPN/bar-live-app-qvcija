@@ -75,12 +75,12 @@ export default function RecuperarPasswordScreen() {
         console.log('[RecuperarPassword] ⚠️ Usuario no encontrado en la tabla usuarios');
       }
 
-      // Send reset email
+      // Send reset email with correct redirect URL
       console.log('[RecuperarPassword] 📤 Enviando correo de recuperación...');
       
       const startTime = Date.now();
       const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
-        redirectTo: 'https://natively.dev/email-confirmed',
+        redirectTo: 'https://natively.dev/auth/restablecer-password',
       });
       const endTime = Date.now();
       const duration = endTime - startTime;
@@ -313,8 +313,8 @@ export default function RecuperarPasswordScreen() {
                 <Text style={styles.instructionsTitle}>📋 Próximos pasos:</Text>
                 <Text style={styles.instructionItem}>1. Abre tu correo electrónico</Text>
                 <Text style={styles.instructionItem}>2. Busca el correo de BarLive</Text>
-                <Text style={styles.instructionItem}>3. Haz clic en el enlace</Text>
-                <Text style={styles.instructionItem}>4. Configura tu nueva contraseña</Text>
+                <Text style={styles.instructionItem}>3. Haz clic en el botón "Restablecer contraseña"</Text>
+                <Text style={styles.instructionItem}>4. Ingresa tu nueva contraseña</Text>
                 <Text style={styles.instructionItem}>5. ¡Listo! Ya puedes iniciar sesión</Text>
               </View>
 
