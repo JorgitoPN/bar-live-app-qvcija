@@ -47,14 +47,42 @@ export default function AuthCallbackScreen() {
           const hashParams = new URLSearchParams(window.location.hash.substring(1));
           const accessToken = hashParams.get('access_token');
           const refreshToken = hashParams.get('refresh_token');
+          const type = hashParams.get('type');
           const errorParam = hashParams.get('error');
           const errorDescription = hashParams.get('error_description');
 
           console.log('[Callback] Hash params:', {
             hasAccessToken: !!accessToken,
             hasRefreshToken: !!refreshToken,
+            type,
             error: errorParam,
           });
+
+          // Check if this is a password recovery flow
+          if (type === 'recovery' && accessToken) {
+            console.log('[Callback] 🔐 Password recovery detected, redirecting to reset screen...');
+            
+            // Set the session with the recovery token
+            const { error: sessionError } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken || '',
+            });
+
+            if (sessionError) {
+              console.error('[Callback] ❌ Error estableciendo sesión de recuperación:', sessionError);
+              if (isMounted) {
+                setStatus('error');
+                setErrorMessage('Error al establecer la sesión de recuperación');
+              }
+              safeRedirect('/auth/recuperar-password', 2000);
+              return;
+            }
+
+            console.log('[Callback] ✅ Sesión de recuperación establecida, redirigiendo...');
+            if (isMounted) setStatus('success');
+            safeRedirect('/auth/restablecer-password', 500);
+            return;
+          }
 
           if (errorParam) {
             console.error('[Callback] ❌ Error en OAuth:', errorParam);

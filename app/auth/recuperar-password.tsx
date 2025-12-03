@@ -76,11 +76,12 @@ export default function RecuperarPasswordScreen() {
       }
 
       // Send reset email with correct redirect URL
+      // Use barliveapp.es since that's where the app is hosted
       console.log('[RecuperarPassword] 📤 Enviando correo de recuperación...');
       
       const startTime = Date.now();
       const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
-        redirectTo: 'https://natively.dev/auth/restablecer-password',
+        redirectTo: 'https://barliveapp.es/auth/restablecer-password',
       });
       const endTime = Date.now();
       const duration = endTime - startTime;
@@ -151,7 +152,7 @@ export default function RecuperarPasswordScreen() {
                       type: 'signup',
                       email: normalizedEmail,
                       options: {
-                        emailRedirectTo: 'https://natively.dev/email-confirmed',
+                        emailRedirectTo: 'https://barliveapp.es/email-confirmed',
                       },
                     });
                     Alert.alert('Correo enviado', 'Se ha enviado un nuevo correo de verificación.');
