@@ -37,6 +37,65 @@ export default function RestablecerPasswordScreen() {
     try {
       console.log('[RestablecerPassword] 🔍 Verificando sesión de recuperación...');
       
+      // First, check if we have hash parameters in the URL (web only)
+      if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location.hash) {
+        const hash = window.location.hash;
+        console.log('[RestablecerPassword] 🔗 Hash detectado:', hash.substring(0, 50) + '...');
+        
+        const hashParams = new URLSearchParams(hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+        const type = hashParams.get('type');
+        
+        console.log('[RestablecerPassword] 📋 Parámetros del hash:', {
+          hasAccessToken: !!accessToken,
+          hasRefreshToken: !!refreshToken,
+          type,
+        });
+        
+        // If this is a recovery link with tokens, establish the session
+        if (type === 'recovery' && accessToken) {
+          console.log('[RestablecerPassword] 🔐 Estableciendo sesión de recuperación...');
+          
+          const { data, error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken || '',
+          });
+
+          if (sessionError) {
+            console.error('[RestablecerPassword] ❌ Error estableciendo sesión:', sessionError);
+            Alert.alert(
+              'Error',
+              'No se pudo establecer la sesión de recuperación. Por favor, solicita un nuevo enlace.',
+              [
+                {
+                  text: 'Solicitar nuevo enlace',
+                  onPress: () => router.replace('/auth/recuperar-password'),
+                },
+              ]
+            );
+            setHasValidSession(false);
+            setCheckingSession(false);
+            return;
+          }
+
+          if (data.session) {
+            console.log('[RestablecerPassword] ✅ Sesión de recuperación establecida para:', data.session.user.email);
+            
+            // Clean the URL hash to avoid re-processing
+            if (window.history && window.history.replaceState) {
+              window.history.replaceState(null, '', window.location.pathname);
+            }
+            
+            setHasValidSession(true);
+            setCheckingSession(false);
+            return;
+          }
+        }
+      }
+      
+      // If no hash parameters or not web, check for existing session
+      console.log('[RestablecerPassword] 🔍 Verificando sesión existente...');
       const { data: { session }, error } = await supabase.auth.getSession();
       
       if (error) {
@@ -52,6 +111,7 @@ export default function RestablecerPasswordScreen() {
           ]
         );
         setHasValidSession(false);
+        setCheckingSession(false);
         return;
       }
 
@@ -68,11 +128,13 @@ export default function RestablecerPasswordScreen() {
           ]
         );
         setHasValidSession(false);
+        setCheckingSession(false);
         return;
       }
 
       console.log('[RestablecerPassword] ✅ Sesión válida para:', session.user.email);
       setHasValidSession(true);
+      setCheckingSession(false);
     } catch (error: any) {
       console.error('[RestablecerPassword] ❌ Error inesperado:', error);
       Alert.alert(
@@ -86,7 +148,6 @@ export default function RestablecerPasswordScreen() {
         ]
       );
       setHasValidSession(false);
-    } finally {
       setCheckingSession(false);
     }
   };
