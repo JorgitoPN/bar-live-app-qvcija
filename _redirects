@@ -1,13 +1,17 @@
 
 # Redirect rules for Barlive
 
-# Auth routes - Password reset flow
-/auth/reset-password-web /auth/reset-password-web 200
-/auth/recuperar-password-v6 /auth/recuperar-password-v6 200
-/auth/restablecer-password /auth/restablecer-password 200
+# Auth routes - Simplified password reset flow
+/auth/reset-password /auth/reset-password 200
 /auth/recuperar-password /auth/recuperar-password 200
 
-# Legacy auth routes
+# Legacy auth routes (redirect to new simplified routes)
+/auth/reset-password-web /auth/reset-password 301
+/auth/restablecer-password /auth/reset-password 301
+/auth/recuperar-password-v6 /auth/recuperar-password 301
+/auth/recuperar-password-v5 /auth/recuperar-password 301
+
+# Other auth routes
 /auth/login /auth/login 200
 /auth/registro /auth/registro 200
 /auth/callback /auth/callback 200

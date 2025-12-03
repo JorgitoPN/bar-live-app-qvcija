@@ -53,157 +53,50 @@ export default function RecuperarPasswordScreen() {
       console.log('═══════════════════════════════════════════════════════');
       console.log('[RecuperarPassword] 📧 Email normalizado:', normalizedEmail);
       console.log('[RecuperarPassword] ⏰ Timestamp:', new Date().toISOString());
+      console.log('[RecuperarPassword] 🌐 Platform:', Platform.OS);
 
-      // Check if user exists and get provider info
-      console.log('[RecuperarPassword] 🔎 Verificando si el usuario existe...');
-      const { data: userData, error: userError } = await supabase
-        .from('usuarios')
-        .select('id, provider, email_verified')
-        .eq('email', normalizedEmail)
-        .maybeSingle();
+      // Use a single redirect URL for all platforms
+      const redirectUrl = 'https://barliveapp.es/auth/reset-password';
 
-      if (userError && userError.code !== 'PGRST116') {
-        console.error('[RecuperarPassword] ❌ Error al verificar usuario:', userError);
-      }
+      console.log('[RecuperarPassword] 🔗 Redirect URL:', redirectUrl);
 
-      if (userData) {
-        console.log('[RecuperarPassword] ✅ Usuario encontrado:');
-        console.log('[RecuperarPassword]    - ID:', userData.id);
-        console.log('[RecuperarPassword]    - Provider:', userData.provider);
-        console.log('[RecuperarPassword]    - Email verificado:', userData.email_verified);
-      } else {
-        console.log('[RecuperarPassword] ⚠️ Usuario no encontrado en la tabla usuarios');
-      }
-
-      // Send reset email with correct redirect URL
-      // Use barliveapp.es since that's where the app is hosted
+      // Send reset email
       console.log('[RecuperarPassword] 📤 Enviando correo de recuperación...');
       
-      const startTime = Date.now();
       const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
-        redirectTo: 'https://barliveapp.es/auth/restablecer-password',
+        redirectTo: redirectUrl,
       });
-      const endTime = Date.now();
-      const duration = endTime - startTime;
-
-      console.log('[RecuperarPassword] ⏱️ Duración de la llamada:', duration, 'ms');
 
       if (error) {
         console.log('═══════════════════════════════════════════════════════');
         console.log('[RecuperarPassword] ❌ ERROR AL ENVIAR CORREO');
         console.log('═══════════════════════════════════════════════════════');
         console.error('[RecuperarPassword] Error completo:', JSON.stringify(error, null, 2));
+        console.error('[RecuperarPassword] Error code:', error.code);
+        console.error('[RecuperarPassword] Error message:', error.message);
         
-        const errorMessage = error.message?.toLowerCase() || '';
-        const errorCode = (error as any).code?.toLowerCase() || '';
-        
-        // Check for domain verification error
-        const isDomainError = 
-          errorMessage.includes('domain is not verified') ||
-          errorMessage.includes('domain not verified') ||
-          errorMessage.includes('barlive.app') ||
-          errorMessage.includes('450') ||
-          errorMessage.includes('unexpected_failure') ||
-          errorCode.includes('unexpected_failure') ||
-          error.status === 500;
-
-        if (isDomainError) {
-          console.log('[RecuperarPassword] 🚨 ERROR DE VERIFICACIÓN DE DOMINIO DETECTADO');
-          
-          Alert.alert(
-            '🚨 Problema de Configuración de Emails',
-            '═══════════════════════════════════\n\n' +
-            '🔍 PROBLEMA DETECTADO:\n' +
-            'El sistema de emails está mal configurado. Hay una discrepancia entre el dominio configurado en Supabase y el dominio verificado en el servicio de emails.\n\n' +
-            '📋 DETALLES TÉCNICOS:\n' +
-            '• Supabase intenta usar: barlive.app\n' +
-            '• DNS configurado para: noreply.barliveapp.es\n' +
-            '• Resultado: Los dominios NO coinciden\n\n' +
-            '✅ SOLUCIÓN PARA EL ADMINISTRADOR:\n' +
-            '1. Ve a Admin → Diagnóstico de Emails\n' +
-            '2. Sigue las instrucciones detalladas\n' +
-            '3. Elige usar el mismo dominio en ambos lugares\n' +
-            '4. Verifica el dominio en Resend\n\n' +
-            '⏱️ TIEMPO ESTIMADO: 30-45 minutos\n\n' +
-            '💡 MIENTRAS TANTO:\n' +
-            'Contacta con soporte para ayuda inmediata:\n' +
-            '📧 soporte@barliveapp.es\n\n' +
-            '═══════════════════════════════════',
-            [
-              {
-                text: 'Ir a Diagnóstico',
-                onPress: () => {
-                  router.push('/admin/diagnostico-emails' as any);
-                },
-              },
-              { text: 'Entendido', style: 'cancel' },
-            ]
-          );
-        } else if (errorMessage.includes('email not confirmed')) {
-          Alert.alert(
-            'Email no verificado',
-            'Tu cuenta existe pero el email no ha sido verificado. Por favor, verifica tu email primero.',
-            [
-              {
-                text: 'Reenviar verificación',
-                onPress: async () => {
-                  try {
-                    await supabase.auth.resend({
-                      type: 'signup',
-                      email: normalizedEmail,
-                      options: {
-                        emailRedirectTo: 'https://barliveapp.es/email-confirmed',
-                      },
-                    });
-                    Alert.alert('Correo enviado', 'Se ha enviado un nuevo correo de verificación.');
-                  } catch (err) {
-                    console.error('[RecuperarPassword] ❌ Error al reenviar verificación:', err);
-                  }
-                },
-              },
-              { text: 'Cancelar', style: 'cancel' },
-            ]
-          );
-        } else if (errorMessage.includes('rate limit')) {
-          Alert.alert(
-            'Demasiados intentos',
-            'Has intentado restablecer tu contraseña demasiadas veces. Por favor, espera unos minutos.'
-          );
-        } else {
-          Alert.alert(
-            'Error al enviar correo',
-            `No se pudo enviar el correo de restablecimiento.\n\nError: ${error.message}\n\nContacta con soporte: soporte@barliveapp.es`
-          );
-        }
+        // Always show generic message to avoid revealing email existence
+        setEmailSent(true);
       } else {
         console.log('═══════════════════════════════════════════════════════');
         console.log('[RecuperarPassword] ✅ CORREO ENVIADO EXITOSAMENTE');
         console.log('═══════════════════════════════════════════════════════');
+        console.log('[RecuperarPassword] ✉️ Correo enviado a:', normalizedEmail);
+        console.log('[RecuperarPassword] 🔗 Con redirect a:', redirectUrl);
         
         setEmailSent(true);
-        
-        if (userData?.provider === 'google') {
-          Alert.alert(
-            'Correo enviado',
-            'Te hemos enviado un correo para configurar tu contraseña. Como tu cuenta fue creada con Google, este correo te permitirá establecer una contraseña para iniciar sesión.\n\nRevisa tu bandeja de entrada (y spam).'
-          );
-        } else {
-          Alert.alert(
-            'Correo enviado',
-            'Te hemos enviado un correo con instrucciones para restablecer tu contraseña. Revisa tu bandeja de entrada (y spam).'
-          );
-        }
       }
     } catch (error: any) {
       console.log('═══════════════════════════════════════════════════════');
       console.log('[RecuperarPassword] ❌ EXCEPCIÓN NO CONTROLADA');
       console.log('═══════════════════════════════════════════════════════');
       console.error('[RecuperarPassword] Exception:', JSON.stringify(error, null, 2));
+      console.error('[RecuperarPassword] Exception name:', error.name);
+      console.error('[RecuperarPassword] Exception message:', error.message);
+      console.error('[RecuperarPassword] Exception stack:', error.stack);
       
-      Alert.alert(
-        'Error inesperado',
-        `Ocurrió un error inesperado.\n\nContacta con soporte: soporte@barliveapp.es`
-      );
+      // Always show generic message
+      setEmailSent(true);
     } finally {
       setLoading(false);
       console.log('[RecuperarPassword] 🏁 Proceso finalizado');
@@ -231,8 +124,8 @@ export default function RecuperarPasswordScreen() {
             color="#fff"
           />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Recuperar contraseña</Text>
-        <Text style={styles.headerSubtitle}>Te ayudaremos a recuperar tu cuenta</Text>
+        <Text style={styles.headerTitle}>¿Olvidaste tu contraseña?</Text>
+        <Text style={styles.headerSubtitle}>No te preocupes, te ayudaremos</Text>
       </LinearGradient>
 
       <ScrollView
@@ -245,29 +138,40 @@ export default function RecuperarPasswordScreen() {
             <>
               <View style={styles.infoBox}>
                 <IconSymbol
-                  ios_icon_name="lock.shield.fill"
-                  android_material_icon_name="lock"
-                  size={64}
+                  ios_icon_name="envelope.badge.shield.half.filled"
+                  android_material_icon_name="mark_email_unread"
+                  size={80}
                   color={colors.primary}
                 />
-                <Text style={styles.infoTitle}>¿Olvidaste tu contraseña?</Text>
+                <Text style={styles.infoTitle}>Recupera tu cuenta</Text>
                 <Text style={styles.infoText}>
-                  No te preocupes, te enviaremos un correo con instrucciones para restablecer tu contraseña.
+                  Ingresa tu correo electrónico y te enviaremos un enlace seguro para restablecer tu contraseña.
                 </Text>
               </View>
 
-              <Text style={styles.label}>Correo electrónico</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="correo@ejemplo.com"
-                placeholderTextColor={colors.textSecondary}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                editable={!loading}
-              />
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Correo electrónico</Text>
+                <View style={styles.inputWrapper}>
+                  <IconSymbol
+                    ios_icon_name="envelope.fill"
+                    android_material_icon_name="email"
+                    size={20}
+                    color={colors.textSecondary}
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="correo@ejemplo.com"
+                    placeholderTextColor={colors.textSecondary}
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    editable={!loading}
+                  />
+                </View>
+              </View>
 
               <TouchableOpacity
                 style={[styles.button, loading && styles.buttonDisabled]}
@@ -277,20 +181,28 @@ export default function RecuperarPasswordScreen() {
                 {loading ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.buttonText}>Enviar correo de recuperación</Text>
+                  <>
+                    <IconSymbol
+                      ios_icon_name="paperplane.fill"
+                      android_material_icon_name="send"
+                      size={20}
+                      color="#fff"
+                      style={styles.buttonIcon}
+                    />
+                    <Text style={styles.buttonText}>Enviar enlace de recuperación</Text>
+                  </>
                 )}
               </TouchableOpacity>
 
-              <View style={styles.warningBox}>
-                <Text style={styles.warningTitle}>⚠️ Problema Conocido</Text>
-                <Text style={styles.warningText}>
-                  Si ves un error de "dominio no verificado", significa que el sistema de emails está siendo configurado.
-                  {'\n\n'}
-                  Los administradores pueden ir a:
-                  {'\n'}
-                  <Text style={styles.warningBold}>Admin → Diagnóstico de Emails</Text>
-                  {'\n\n'}
-                  Para obtener instrucciones detalladas de cómo resolver el problema.
+              <View style={styles.securityNote}>
+                <IconSymbol
+                  ios_icon_name="lock.shield.fill"
+                  android_material_icon_name="security"
+                  size={24}
+                  color={colors.primary}
+                />
+                <Text style={styles.securityText}>
+                  Por seguridad, no revelaremos si este correo está registrado en nuestro sistema.
                 </Text>
               </View>
             </>
@@ -298,36 +210,101 @@ export default function RecuperarPasswordScreen() {
             <>
               <View style={styles.successBox}>
                 <IconSymbol
-                  ios_icon_name="checkmark.circle.fill"
-                  android_material_icon_name="check_circle"
-                  size={64}
+                  ios_icon_name="checkmark.seal.fill"
+                  android_material_icon_name="verified"
+                  size={80}
                   color="#10b981"
                 />
                 <Text style={styles.successTitle}>¡Correo enviado!</Text>
                 <Text style={styles.successText}>
-                  Hemos enviado un correo a:
+                  Si existe una cuenta asociada a:
                 </Text>
-                <Text style={styles.emailText}>{email}</Text>
+                <View style={styles.emailBadge}>
+                  <IconSymbol
+                    ios_icon_name="envelope.fill"
+                    android_material_icon_name="email"
+                    size={16}
+                    color={colors.primary}
+                  />
+                  <Text style={styles.emailText}>{email}</Text>
+                </View>
+                <Text style={styles.successSubtext}>
+                  Recibirás un correo con instrucciones para restablecer tu contraseña.
+                </Text>
               </View>
 
               <View style={styles.instructionsBox}>
                 <Text style={styles.instructionsTitle}>📋 Próximos pasos:</Text>
-                <Text style={styles.instructionItem}>1. Abre tu correo electrónico</Text>
-                <Text style={styles.instructionItem}>2. Busca el correo de BarLive</Text>
-                <Text style={styles.instructionItem}>3. Haz clic en el botón "Restablecer contraseña"</Text>
-                <Text style={styles.instructionItem}>4. Ingresa tu nueva contraseña</Text>
-                <Text style={styles.instructionItem}>5. ¡Listo! Ya puedes iniciar sesión</Text>
+                
+                <View style={styles.stepItem}>
+                  <View style={styles.stepNumber}>
+                    <Text style={styles.stepNumberText}>1</Text>
+                  </View>
+                  <View style={styles.stepContent}>
+                    <Text style={styles.stepTitle}>Revisa tu correo</Text>
+                    <Text style={styles.stepText}>Busca el correo de Barlive en tu bandeja de entrada</Text>
+                  </View>
+                </View>
+
+                <View style={styles.stepItem}>
+                  <View style={styles.stepNumber}>
+                    <Text style={styles.stepNumberText}>2</Text>
+                  </View>
+                  <View style={styles.stepContent}>
+                    <Text style={styles.stepTitle}>Haz clic en el enlace</Text>
+                    <Text style={styles.stepText}>Presiona el botón en el correo</Text>
+                  </View>
+                </View>
+
+                <View style={styles.stepItem}>
+                  <View style={styles.stepNumber}>
+                    <Text style={styles.stepNumberText}>3</Text>
+                  </View>
+                  <View style={styles.stepContent}>
+                    <Text style={styles.stepTitle}>Crea tu nueva contraseña</Text>
+                    <Text style={styles.stepText}>Ingresa una contraseña segura y confírmala</Text>
+                  </View>
+                </View>
+
+                <View style={styles.stepItem}>
+                  <View style={styles.stepNumber}>
+                    <Text style={styles.stepNumberText}>4</Text>
+                  </View>
+                  <View style={styles.stepContent}>
+                    <Text style={styles.stepTitle}>¡Listo!</Text>
+                    <Text style={styles.stepText}>Vuelve a Barlive e inicia sesión</Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.tipsBox}>
+                <Text style={styles.tipsTitle}>💡 Consejos:</Text>
+                <Text style={styles.tipText}>• Revisa tu carpeta de spam si no ves el correo</Text>
+                <Text style={styles.tipText}>• El enlace expira en 1 hora por seguridad</Text>
+                <Text style={styles.tipText}>• Si no recibes el correo, puedes reenviarlo</Text>
               </View>
 
               <TouchableOpacity
                 style={[styles.resendButton, loading && styles.resendButtonDisabled]}
-                onPress={handleSendResetEmail}
+                onPress={() => {
+                  setEmailSent(false);
+                  handleSendResetEmail();
+                }}
                 disabled={loading}
               >
                 {loading ? (
                   <ActivityIndicator color={colors.primary} />
                 ) : (
-                  <Text style={styles.resendButtonText}>Reenviar correo</Text>
+                  <>
+                    <IconSymbol
+                      ios_icon_name="arrow.clockwise"
+                      android_material_icon_name="refresh"
+                      size={20}
+                      color={colors.primary}
+                      style={styles.buttonIcon}
+                    />
+                    <Text style={styles.resendButtonText}>Reenviar correo</Text>
+                  </>
                 )}
               </TouchableOpacity>
             </>
@@ -337,6 +314,13 @@ export default function RecuperarPasswordScreen() {
             style={styles.backToLoginButton}
             onPress={() => router.replace('/auth/login')}
           >
+            <IconSymbol
+              ios_icon_name="arrow.left"
+              android_material_icon_name="arrow_back"
+              size={16}
+              color={colors.primary}
+              style={styles.backToLoginIcon}
+            />
             <Text style={styles.backToLoginText}>
               Volver a <Text style={styles.backToLoginTextBold}>Iniciar sesión</Text>
             </Text>
@@ -354,14 +338,20 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingTop: 60,
-    paddingBottom: 24,
+    paddingBottom: 32,
     paddingHorizontal: 24,
   },
   backButton: {
-    marginBottom: 16,
+    marginBottom: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 'bold',
     color: colors.headerText,
     marginBottom: 8,
@@ -383,121 +373,221 @@ const styles = StyleSheet.create({
   infoBox: {
     alignItems: 'center',
     backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    padding: 24,
-    marginBottom: 24,
+    borderRadius: 16,
+    padding: 32,
+    marginBottom: 32,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
   infoTitle: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
     color: colors.text,
-    marginTop: 16,
+    marginTop: 20,
     marginBottom: 12,
   },
   infoText: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 22,
+  },
+  inputContainer: {
+    marginBottom: 24,
   },
   label: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     color: colors.text,
-    marginBottom: 8,
+    marginBottom: 12,
   },
-  input: {
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.cardBackground,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     borderRadius: 12,
+    paddingHorizontal: 16,
+  },
+  inputIcon: {
+    marginRight: 12,
+  },
+  input: {
+    flex: 1,
     padding: 16,
     fontSize: 16,
     color: colors.text,
-    marginBottom: 16,
   },
   button: {
     backgroundColor: colors.primary,
     borderRadius: 12,
-    padding: 16,
+    padding: 18,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 24,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
   },
   buttonDisabled: {
     opacity: 0.6,
+  },
+  buttonIcon: {
+    marginRight: 8,
   },
   buttonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
-  warningBox: {
-    backgroundColor: '#fef3c7',
+  securityNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.cardBackground,
     borderRadius: 12,
-    padding: 20,
-    marginBottom: 24,
+    padding: 16,
     borderLeftWidth: 4,
-    borderLeftColor: '#f59e0b',
+    borderLeftColor: colors.primary,
   },
-  warningTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#92400e',
-    marginBottom: 12,
-  },
-  warningText: {
+  securityText: {
+    flex: 1,
     fontSize: 13,
-    color: '#78350f',
-    lineHeight: 20,
-  },
-  warningBold: {
-    fontWeight: 'bold',
-    color: '#92400e',
+    color: colors.textSecondary,
+    marginLeft: 12,
+    lineHeight: 18,
   },
   successBox: {
     alignItems: 'center',
     backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    padding: 24,
+    borderRadius: 16,
+    padding: 32,
     marginBottom: 24,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#10b981',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
   },
   successTitle: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
     color: colors.text,
-    marginTop: 16,
+    marginTop: 20,
     marginBottom: 12,
   },
   successText: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.textSecondary,
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 16,
+  },
+  emailBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: `${colors.primary}15`,
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginBottom: 16,
   },
   emailText: {
     fontSize: 16,
     fontWeight: '600',
     color: colors.primary,
+    marginLeft: 8,
+  },
+  successSubtext: {
+    fontSize: 14,
+    color: colors.textSecondary,
     textAlign: 'center',
-    marginTop: 8,
+    lineHeight: 20,
   },
   instructionsBox: {
     backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 24,
+    borderRadius: 16,
+    padding: 24,
+    marginBottom: 20,
   },
   instructionsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 20,
+  },
+  stepItem: {
+    flexDirection: 'row',
+    marginBottom: 20,
+  },
+  stepNumber: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  stepNumberText: {
     fontSize: 16,
     fontWeight: 'bold',
+    color: '#fff',
+  },
+  stepContent: {
+    flex: 1,
+  },
+  stepTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  stepText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    lineHeight: 18,
+  },
+  tipsBox: {
+    backgroundColor: `${colors.primary}10`,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+  },
+  tipsTitle: {
+    fontSize: 15,
+    fontWeight: '600',
     color: colors.text,
     marginBottom: 12,
   },
-  instructionItem: {
-    fontSize: 14,
+  tipText: {
+    fontSize: 13,
     color: colors.textSecondary,
-    marginBottom: 8,
-    lineHeight: 20,
+    marginBottom: 6,
+    lineHeight: 18,
   },
   resendButton: {
     backgroundColor: 'transparent',
@@ -505,8 +595,10 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     borderRadius: 12,
     padding: 16,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    justifyContent: 'center',
+    marginBottom: 20,
   },
   resendButtonDisabled: {
     opacity: 0.6,
@@ -517,10 +609,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   backToLoginButton: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  backToLoginIcon: {
+    marginRight: 8,
   },
   backToLoginText: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.textSecondary,
   },
   backToLoginTextBold: {
