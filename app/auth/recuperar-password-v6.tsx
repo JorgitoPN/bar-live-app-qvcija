@@ -53,12 +53,20 @@ export default function RecuperarPasswordV6Screen() {
       console.log('═══════════════════════════════════════════════════════');
       console.log('[RecuperarPasswordV6] 📧 Email normalizado:', normalizedEmail);
       console.log('[RecuperarPasswordV6] ⏰ Timestamp:', new Date().toISOString());
+      console.log('[RecuperarPasswordV6] 🌐 Platform:', Platform.OS);
+
+      // Determine the correct redirect URL based on platform
+      const redirectUrl = Platform.OS === 'web' 
+        ? 'https://barliveapp.es/auth/reset-password-web'
+        : 'https://barliveapp.es/auth/restablecer-password';
+
+      console.log('[RecuperarPasswordV6] 🔗 Redirect URL:', redirectUrl);
 
       // Send reset email with correct redirect URL
       console.log('[RecuperarPasswordV6] 📤 Enviando correo de recuperación...');
       
       const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
-        redirectTo: 'https://barliveapp.es/auth/reset-password-web',
+        redirectTo: redirectUrl,
       });
 
       if (error) {
@@ -66,6 +74,8 @@ export default function RecuperarPasswordV6Screen() {
         console.log('[RecuperarPasswordV6] ❌ ERROR AL ENVIAR CORREO');
         console.log('═══════════════════════════════════════════════════════');
         console.error('[RecuperarPasswordV6] Error completo:', JSON.stringify(error, null, 2));
+        console.error('[RecuperarPasswordV6] Error code:', error.code);
+        console.error('[RecuperarPasswordV6] Error message:', error.message);
         
         // Always show generic message to avoid revealing email existence
         setEmailSent(true);
@@ -73,6 +83,8 @@ export default function RecuperarPasswordV6Screen() {
         console.log('═══════════════════════════════════════════════════════');
         console.log('[RecuperarPasswordV6] ✅ CORREO ENVIADO EXITOSAMENTE');
         console.log('═══════════════════════════════════════════════════════');
+        console.log('[RecuperarPasswordV6] ✉️ Correo enviado a:', normalizedEmail);
+        console.log('[RecuperarPasswordV6] 🔗 Con redirect a:', redirectUrl);
         
         setEmailSent(true);
       }
@@ -81,6 +93,9 @@ export default function RecuperarPasswordV6Screen() {
       console.log('[RecuperarPasswordV6] ❌ EXCEPCIÓN NO CONTROLADA');
       console.log('═══════════════════════════════════════════════════════');
       console.error('[RecuperarPasswordV6] Exception:', JSON.stringify(error, null, 2));
+      console.error('[RecuperarPasswordV6] Exception name:', error.name);
+      console.error('[RecuperarPasswordV6] Exception message:', error.message);
+      console.error('[RecuperarPasswordV6] Exception stack:', error.stack);
       
       // Always show generic message
       setEmailSent(true);
