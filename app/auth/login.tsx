@@ -224,7 +224,7 @@ export default function LoginScreen() {
     }
 
     router.push({
-      pathname: '/auth/recuperar-password',
+      pathname: '/auth/recuperar-password-v6',
       params: { email: normalizedEmail },
     });
   };

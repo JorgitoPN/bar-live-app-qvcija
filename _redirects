@@ -1,9 +1,34 @@
 
-# Redirect www to non-www
-https://www.barliveapp.com/* https://barliveapp.com/:splat 301!
+# Redirect rules for Barlive
 
-# Redirect HTTP to HTTPS
-http://barliveapp.com/* https://barliveapp.com/:splat 301!
+# Auth routes - Password reset flow
+/auth/reset-password-web /auth/reset-password-web 200
+/auth/recuperar-password-v6 /auth/recuperar-password-v6 200
+/auth/restablecer-password /auth/restablecer-password 200
+/auth/recuperar-password /auth/recuperar-password 200
 
-# SPA fallback - serve index.html for all routes (must be last)
+# Legacy auth routes
+/auth/login /auth/login 200
+/auth/registro /auth/registro 200
+/auth/callback /auth/callback 200
+
+# Email confirmation
+/email-confirmed /auth/email-confirmed 200
+
+# Admin routes
+/admin/* /admin/:splat 200
+
+# Social routes
+/social/* /social/:splat 200
+
+# Profile routes
+/perfil/* /perfil/:splat 200
+
+# Legal routes
+/legal/* /legal/:splat 200
+
+# API routes (if any)
+/api/* /api/:splat 200
+
+# Fallback to index for SPA
 /* /index.html 200
