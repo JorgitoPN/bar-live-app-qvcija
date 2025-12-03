@@ -27,11 +27,23 @@ export default function Index() {
         const hashParams = new URLSearchParams(hash.substring(1));
         const type = hashParams.get('type');
         const accessToken = hashParams.get('access_token');
+        const error = hashParams.get('error');
         
         console.log('[Index] 📋 Hash params:', {
           type,
           hasAccessToken: !!accessToken,
+          error,
         });
+        
+        // If there's an error in the URL, redirect to password recovery page with error
+        if (error) {
+          console.log('[Index] ❌ Error detected in URL:', error);
+          setCheckingRecovery(false);
+          setTimeout(() => {
+            router.replace('/auth/recuperar-password');
+          }, 100);
+          return;
+        }
         
         // If this is a password recovery link, redirect to password reset screen
         if (type === 'recovery' && accessToken) {
