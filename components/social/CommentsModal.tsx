@@ -64,14 +64,8 @@ export default function CommentsModal({
   const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
   const [editingComment, setEditingComment] = useState<Comment | null>(null);
 
-  // ✅ Fixed: Added loadComments to dependencies
-  useEffect(() => {
-    if (visible) {
-      loadComments();
-    }
-  }, [visible, postId, loadComments]);
-
-  const loadComments = async () => {
+  // ✅ Fixed: Define loadComments with useCallback before useEffect
+  const loadComments = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -155,7 +149,14 @@ export default function CommentsModal({
     } finally {
       setLoading(false);
     }
-  };
+  }, [postId, user]);
+
+  // ✅ Fixed: Now loadComments is defined before this useEffect
+  useEffect(() => {
+    if (visible) {
+      loadComments();
+    }
+  }, [visible, postId, loadComments]);
 
   const handleSendComment = async () => {
     if (!user || !commentText.trim() || sending) {
