@@ -11,6 +11,7 @@ import {
   RefreshControl,
   Animated,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { supabase } from '@/app/integrations/supabase/client';
@@ -26,6 +27,15 @@ import NewBarraHistorias from '@/components/social/NewBarraHistorias';
 import type { Publicacion, Historia } from '@/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+type UserRole = 'admin' | 'propietario' | 'cliente';
+type SubscriptionPlan = 'free' | 'basic' | 'premium' | 'enterprise';
+
+interface LocalSubscriptionInfo {
+  plan: SubscriptionPlan;
+  isActive: boolean;
+  expiresAt?: string;
+}
 
 export default function SocialScreen() {
   const router = useRouter();
@@ -46,6 +56,8 @@ export default function SocialScreen() {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [userRole, setUserRole] = useState<UserRole>('cliente');
+  const [localSubscription, setLocalSubscription] = useState<LocalSubscriptionInfo | null>(null);
   
   const isLoadingRef = useRef(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -69,9 +81,73 @@ export default function SocialScreen() {
     interactionLocalId,
     displayName,
     hasAvatar: !!displayAvatar,
+    userRole,
+    localSubscription,
   });
 
-  // ✅ Fixed: Added fadeAnim and slideAnim to dependencies
+  // Load user role and subscription info
+  useEffect(() => {
+    const loadUserRoleAndSubscription = async () => {
+      if (!user) return;
+
+      try {
+        // Get user role
+        const { data: userData, error: userError } = await supabase
+          .from('usuarios')
+          .select('rol_app')
+          .eq('id', user.id)
+          .single();
+
+        if (userData && !userError) {
+          setUserRole(userData.rol_app as UserRole);
+          console.log('[Social] 👤 User role loaded:', userData.rol_app);
+        }
+
+        // If interacting as local, get subscription info
+        if (isInteractingAsLocal && interactionLocalId) {
+          const { data: subData, error: subError } = await supabase
+            .from('suscripciones_locales')
+            .select(`
+              estado,
+              plan_id,
+              planes_suscripcion (
+                nombre,
+                activo
+              )
+            `)
+            .eq('local_id', interactionLocalId)
+            .eq('usuario_id', user.id)
+            .single();
+
+          if (subData && !subError && subData.planes_suscripcion) {
+            const planName = (subData.planes_suscripcion as any).nombre as SubscriptionPlan;
+            const isActive = subData.estado === 'activa' && (subData.planes_suscripcion as any).activo;
+            
+            setLocalSubscription({
+              plan: planName,
+              isActive,
+            });
+            
+            console.log('[Social] 💳 Local subscription loaded:', {
+              plan: planName,
+              isActive,
+            });
+          } else {
+            // No active subscription found
+            setLocalSubscription({
+              plan: 'free',
+              isActive: false,
+            });
+          }
+        }
+      } catch (error) {
+        console.error('[Social] Error loading role/subscription:', error);
+      }
+    };
+
+    loadUserRoleAndSubscription();
+  }, [user, isInteractingAsLocal, interactionLocalId]);
+
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -124,6 +200,86 @@ export default function SocialScreen() {
     }
   }, [user]);
 
+  // Check if user can perform action based on role and subscription
+  const canPerformAction = useCallback((action: 'create_post' | 'create_story' | 'view_analytics' | 'create_event') => {
+    // Admin can do everything
+    if (userRole === 'admin') {
+      return { allowed: true, reason: '' };
+    }
+
+    // Cliente can only create basic posts and stories
+    if (userRole === 'cliente') {
+      if (action === 'create_post' || action === 'create_story') {
+        return { allowed: true, reason: '' };
+      }
+      return { 
+        allowed: false, 
+        reason: 'Esta función está disponible solo para propietarios de locales' 
+      };
+    }
+
+    // Propietario checks
+    if (userRole === 'propietario') {
+      // If not interacting as local, same as cliente
+      if (!isInteractingAsLocal) {
+        if (action === 'create_post' || action === 'create_story') {
+          return { allowed: true, reason: '' };
+        }
+        return { 
+          allowed: false, 
+          reason: 'Cambia al perfil de tu local para acceder a esta función' 
+        };
+      }
+
+      // Check subscription plan
+      if (!localSubscription || !localSubscription.isActive) {
+        return {
+          allowed: false,
+          reason: 'Necesitas una suscripción activa para usar esta función'
+        };
+      }
+
+      const plan = localSubscription.plan;
+
+      // Free plan - very limited
+      if (plan === 'free') {
+        if (action === 'create_post' || action === 'create_story') {
+          return { 
+            allowed: false, 
+            reason: 'Actualiza a un plan de pago para publicar contenido' 
+          };
+        }
+        return { 
+          allowed: false, 
+          reason: 'Esta función requiere un plan de pago' 
+        };
+      }
+
+      // Basic plan - standard features
+      if (plan === 'basic') {
+        if (action === 'create_post' || action === 'create_story') {
+          return { allowed: true, reason: '' };
+        }
+        if (action === 'view_analytics') {
+          return { allowed: true, reason: '' };
+        }
+        if (action === 'create_event') {
+          return { 
+            allowed: false, 
+            reason: 'Actualiza a Premium para crear eventos destacados' 
+          };
+        }
+      }
+
+      // Premium plan - all features
+      if (plan === 'premium' || plan === 'enterprise') {
+        return { allowed: true, reason: '' };
+      }
+    }
+
+    return { allowed: false, reason: 'Acción no permitida' };
+  }, [userRole, isInteractingAsLocal, localSubscription]);
+
   const loadData = useCallback(async () => {
     if (isLoadingRef.current) {
       console.log('[Social] ⚡ Already loading, skipping...');
@@ -139,10 +295,47 @@ export default function SocialScreen() {
 
       await loadUnreadCounts();
 
-      if (globalPosts.length > 0) {
-        console.log('[Social] ⚡⚡⚡ INSTANT posts from global data:', globalPosts.length);
+      // Filter posts based on role and permissions
+      let filteredPosts = globalPosts;
+
+      // Admin sees everything
+      if (userRole !== 'admin') {
+        // Filter out posts from locals without active subscriptions
+        filteredPosts = await Promise.all(
+          globalPosts.map(async (post) => {
+            // If post is from a local, check subscription
+            if (post.tipo === 'local' && post.local_id) {
+              const { data: subData } = await supabase
+                .from('suscripciones_locales')
+                .select(`
+                  estado,
+                  planes_suscripcion (
+                    nombre,
+                    activo
+                  )
+                `)
+                .eq('local_id', post.local_id)
+                .eq('estado', 'activa')
+                .single();
+
+              // Only show posts from locals with active paid subscriptions
+              if (subData && subData.planes_suscripcion) {
+                const planName = (subData.planes_suscripcion as any).nombre;
+                if (planName === 'basic' || planName === 'premium' || planName === 'enterprise') {
+                  return post;
+                }
+              }
+              return null;
+            }
+            return post;
+          })
+        ).then(posts => posts.filter(p => p !== null) as Publicacion[]);
+      }
+
+      if (filteredPosts.length > 0) {
+        console.log('[Social] ⚡⚡⚡ INSTANT posts from global data:', filteredPosts.length);
         
-        let validPosts = globalPosts.filter(p => p && p.id);
+        let validPosts = filteredPosts.filter(p => p && p.id);
         
         if (user && validPosts.length > 0) {
           const postIds = validPosts.map(p => p.id);
@@ -191,10 +384,43 @@ export default function SocialScreen() {
         setPosts([]);
       }
 
-      if (globalStories.length > 0) {
-        console.log('[Social] ⚡⚡⚡ INSTANT stories from global data:', globalStories.length);
+      // Filter stories based on role and permissions
+      let filteredStories = globalStories;
+
+      if (userRole !== 'admin') {
+        filteredStories = await Promise.all(
+          globalStories.map(async (story) => {
+            if (story.tipo === 'local' && story.local_id) {
+              const { data: subData } = await supabase
+                .from('suscripciones_locales')
+                .select(`
+                  estado,
+                  planes_suscripcion (
+                    nombre,
+                    activo
+                  )
+                `)
+                .eq('local_id', story.local_id)
+                .eq('estado', 'activa')
+                .single();
+
+              if (subData && subData.planes_suscripcion) {
+                const planName = (subData.planes_suscripcion as any).nombre;
+                if (planName === 'basic' || planName === 'premium' || planName === 'enterprise') {
+                  return story;
+                }
+              }
+              return null;
+            }
+            return story;
+          })
+        ).then(stories => stories.filter(s => s !== null) as Historia[]);
+      }
+
+      if (filteredStories.length > 0) {
+        console.log('[Social] ⚡⚡⚡ INSTANT stories from global data:', filteredStories.length);
         
-        let validStories = globalStories.filter(s => s && s.id);
+        let validStories = filteredStories.filter(s => s && s.id);
         setHistorias(validStories);
       } else {
         setHistorias([]);
@@ -209,7 +435,7 @@ export default function SocialScreen() {
       isLoadingRef.current = false;
       setIsInitialLoad(false);
     }
-  }, [user, globalPosts, globalStories, loadUnreadCounts]);
+  }, [user, globalPosts, globalStories, loadUnreadCounts, userRole]);
 
   useFocusEffect(
     useCallback(() => {
@@ -227,11 +453,45 @@ export default function SocialScreen() {
 
   const handleCreatePost = () => {
     console.log('[Social] ➕ Create post button pressed');
+    
+    const permission = canPerformAction('create_post');
+    if (!permission.allowed) {
+      Alert.alert(
+        'Acción no permitida',
+        permission.reason,
+        [
+          { text: 'Entendido', style: 'cancel' },
+          ...(localSubscription && !localSubscription.isActive ? [{
+            text: 'Ver planes',
+            onPress: () => router.push('/gestion/planes-suscripcion'),
+          }] : []),
+        ]
+      );
+      return;
+    }
+
     router.push('/crear/publicacion');
   };
 
   const handleCreateStory = () => {
     console.log('[Social] ➕ Create story button pressed');
+    
+    const permission = canPerformAction('create_story');
+    if (!permission.allowed) {
+      Alert.alert(
+        'Acción no permitida',
+        permission.reason,
+        [
+          { text: 'Entendido', style: 'cancel' },
+          ...(localSubscription && !localSubscription.isActive ? [{
+            text: 'Ver planes',
+            onPress: () => router.push('/gestion/planes-suscripcion'),
+          }] : []),
+        ]
+      );
+      return;
+    }
+
     router.push('/crear/historia');
   };
 
@@ -275,6 +535,75 @@ export default function SocialScreen() {
         },
       ]}
     >
+      {/* Role and subscription info banner */}
+      {isInteractingAsLocal && localSubscription && (
+        <View style={styles.subscriptionBanner}>
+          <LinearGradient
+            colors={
+              localSubscription.plan === 'premium' 
+                ? ['#FFD700', '#FFA500']
+                : localSubscription.plan === 'basic'
+                ? ['#4A90E2', '#357ABD']
+                : ['#95a5a6', '#7f8c8d']
+            }
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.subscriptionGradient}
+          >
+            <IconSymbol
+              ios_icon_name={
+                localSubscription.plan === 'premium' 
+                  ? 'crown.fill'
+                  : localSubscription.plan === 'basic'
+                  ? 'star.fill'
+                  : 'circle.fill'
+              }
+              android_material_icon_name={
+                localSubscription.plan === 'premium'
+                  ? 'workspace_premium'
+                  : localSubscription.plan === 'basic'
+                  ? 'star'
+                  : 'circle'
+              }
+              size={20}
+              color="#fff"
+            />
+            <Text style={styles.subscriptionText}>
+              Plan {localSubscription.plan.toUpperCase()}
+              {!localSubscription.isActive && ' (Inactivo)'}
+            </Text>
+            {!localSubscription.isActive && (
+              <TouchableOpacity
+                onPress={() => router.push('/gestion/planes-suscripcion')}
+                style={styles.upgradeButton}
+              >
+                <Text style={styles.upgradeButtonText}>Activar</Text>
+              </TouchableOpacity>
+            )}
+          </LinearGradient>
+        </View>
+      )}
+
+      {/* Admin badge */}
+      {userRole === 'admin' && (
+        <View style={styles.adminBanner}>
+          <LinearGradient
+            colors={['#e74c3c', '#c0392b']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.adminGradient}
+          >
+            <IconSymbol
+              ios_icon_name="shield.fill"
+              android_material_icon_name="shield"
+              size={20}
+              color="#fff"
+            />
+            <Text style={styles.adminText}>Modo Administrador</Text>
+          </LinearGradient>
+        </View>
+      )}
+
       <View style={styles.storiesSection}>
         <NewBarraHistorias
           historias={historias}
@@ -324,29 +653,33 @@ export default function SocialScreen() {
       <Text style={styles.emptyStateTitle}>No hay publicaciones</Text>
       <Text style={styles.emptyStateText}>
         {isInteractingAsLocal 
-          ? 'Crea la primera publicación de tu local'
+          ? localSubscription && !localSubscription.isActive
+            ? 'Activa tu suscripción para comenzar a publicar'
+            : 'Crea la primera publicación de tu local'
           : 'Sé el primero en publicar'}
       </Text>
-      <TouchableOpacity 
-        style={styles.createButton}
-        onPress={handleCreatePost}
-        activeOpacity={0.8}
-      >
-        <LinearGradient
-          colors={[colors.primary, colors.secondary]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.createButtonGradient}
+      {canPerformAction('create_post').allowed && (
+        <TouchableOpacity 
+          style={styles.createButton}
+          onPress={handleCreatePost}
+          activeOpacity={0.8}
         >
-          <IconSymbol
-            ios_icon_name="plus.circle.fill"
-            android_material_icon_name="add_circle"
-            size={24}
-            color="#fff"
-          />
-          <Text style={styles.createButtonText}>Crear publicación</Text>
-        </LinearGradient>
-      </TouchableOpacity>
+          <LinearGradient
+            colors={[colors.primary, colors.secondary]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.createButtonGradient}
+          >
+            <IconSymbol
+              ios_icon_name="plus.circle.fill"
+              android_material_icon_name="add_circle"
+              size={24}
+              color="#fff"
+            />
+            <Text style={styles.createButtonText}>Crear publicación</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      )}
     </View>
   );
 
@@ -403,10 +736,74 @@ const styles = StyleSheet.create({
   },
   listContent: {
     flexGrow: 1,
-    paddingBottom: 120, // ✅ INCREASED from default to prevent last post being hidden by bottom menu
+    paddingBottom: 120,
   },
   headerContainer: {
     backgroundColor: colors.background,
+  },
+  subscriptionBanner: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 8,
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  subscriptionGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  subscriptionText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#fff',
+    fontFamily: 'System',
+  },
+  upgradeButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  upgradeButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#fff',
+    fontFamily: 'System',
+  },
+  adminBanner: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 8,
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  adminGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  adminText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#fff',
+    fontFamily: 'System',
   },
   storiesSection: {
     backgroundColor: colors.background,
