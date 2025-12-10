@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from './AuthContext';
 
@@ -21,11 +21,13 @@ const StoryStateContext = createContext<StoryStateContextType | undefined>(undef
  * - ✅ Real-time synchronization across all avatars
  * - ✅ Optimistic updates for instant UI feedback
  * - ✅ Automatic refresh on mount and user change
+ * - ✅ Debounced refresh to prevent excessive database calls
  */
 export function StoryStateProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [viewedStoryIds, setViewedStoryIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
+  const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load viewed stories on mount and when user changes
   useEffect(() => {
@@ -109,12 +111,22 @@ export function StoryStateProvider({ children }: { children: React.ReactNode }) 
   }, []);
 
   /**
-   * ✅ REFRESH: Reload viewed stories from database
-   * Used after real-time updates or manual refresh
+   * ✅ DEBOUNCED REFRESH: Reload viewed stories from database
+   * Debounced to prevent excessive database calls during rapid updates
    */
   const refreshStoryState = useCallback(() => {
-    console.log('[StoryStateV10] 🔄 Refreshing story state');
-    loadViewedStories();
+    console.log('[StoryStateV10] 🔄 Scheduling story state refresh');
+    
+    // Clear existing timeout
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current);
+    }
+    
+    // Schedule new refresh after 300ms
+    refreshTimeoutRef.current = setTimeout(() => {
+      console.log('[StoryStateV10] 🔄 Executing story state refresh');
+      loadViewedStories();
+    }, 300);
   }, [user, loading]);
 
   // ✅ REAL-TIME SUBSCRIPTION: Listen for new story views
@@ -152,9 +164,7 @@ export function StoryStateProvider({ children }: { children: React.ReactNode }) 
         (payload) => {
           console.log('[StoryStateV10] ⚡ Story view updated:', payload.new);
           // Refresh to ensure consistency
-          setTimeout(() => {
-            refreshStoryState();
-          }, 300);
+          refreshStoryState();
         }
       )
       .subscribe((status) => {
@@ -164,6 +174,11 @@ export function StoryStateProvider({ children }: { children: React.ReactNode }) 
     return () => {
       console.log('[StoryStateV10] Unsubscribing from story views');
       supabase.removeChannel(channel);
+      
+      // Clear any pending refresh
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
     };
   }, [user, markStoriesAsViewed, refreshStoryState]);
 

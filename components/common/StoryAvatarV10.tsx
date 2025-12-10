@@ -98,7 +98,7 @@ const StoryAvatarV10 = memo(function StoryAvatarV10({
             </View>
           </LinearGradient>
         ) : (
-          // ✅ INSTAGRAM LOGIC: No border for fully viewed stories (border disappears)
+          // ✅ INSTAGRAM LOGIC: Neutral border for fully viewed stories
           <View style={[styles.viewedRing, { width: ringSize, height: ringSize, borderRadius: ringSize / 2 }]}>
             <View style={[styles.innerRing, { width: avatarSize + 4, height: avatarSize + 4, borderRadius: (avatarSize + 4) / 2 }]}>
               {hasAvatar ? (
@@ -128,6 +128,17 @@ const StoryAvatarV10 = memo(function StoryAvatarV10({
       )}
     </TouchableOpacity>
   );
+}, (prevProps, nextProps) => {
+  // ✅ OPTIMIZED: Only re-render if essential props change
+  return (
+    prevProps.userId === nextProps.userId &&
+    prevProps.userStories.length === nextProps.userStories.length &&
+    prevProps.avatarUrl === nextProps.avatarUrl &&
+    prevProps.userName === nextProps.userName &&
+    prevProps.size === nextProps.size &&
+    prevProps.showLabel === nextProps.showLabel &&
+    prevProps.labelText === nextProps.labelText
+  );
 });
 
 const styles = StyleSheet.create({
@@ -146,7 +157,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: colors.border,
+    borderColor: 'rgba(200, 200, 200, 0.3)',
   },
   innerRing: {
     backgroundColor: colors.background,

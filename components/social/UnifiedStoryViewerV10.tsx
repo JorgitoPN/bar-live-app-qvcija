@@ -36,8 +36,8 @@ const DEFAULT_AVATAR_ICON = 'person.circle.fill';
 // ✅ STORY DURATION - 5 seconds per story (Instagram standard)
 const STORY_DURATION = 5000;
 
-// ✅ MINIMUM VIEW THRESHOLD - 50% or 1.5 seconds (Instagram logic)
-const MIN_VIEW_THRESHOLD = 1500; // 1.5 seconds
+// ✅ MINIMUM VIEW THRESHOLD - 1.5 seconds (Instagram logic)
+const MIN_VIEW_THRESHOLD = 1500;
 
 interface Story {
   id: string;
@@ -92,8 +92,10 @@ const truncateName = (name: string, maxLength: number = 20): string => {
 
 const ProgressBar = memo(({ isActive, isPaused, duration, onComplete, progress }: ProgressBarProps) => {
   const animationRef = useRef<Animated.CompositeAnimation | null>(null);
+  const completedRef = useRef(false);
 
   useEffect(() => {
+    // Stop any existing animation
     if (animationRef.current) {
       try {
         animationRef.current.stop();
@@ -102,6 +104,9 @@ const ProgressBar = memo(({ isActive, isPaused, duration, onComplete, progress }
       }
       animationRef.current = null;
     }
+
+    // Reset completion flag
+    completedRef.current = false;
 
     if (!isActive) {
       progress.setValue(0);
@@ -134,7 +139,8 @@ const ProgressBar = memo(({ isActive, isPaused, duration, onComplete, progress }
 
     try {
       newAnimation.start(({ finished }) => {
-        if (finished) {
+        if (finished && !completedRef.current) {
+          completedRef.current = true;
           console.log('[ProgressBar] ✅ Animation finished, calling onComplete');
           onComplete();
         }
@@ -188,7 +194,7 @@ ProgressBar.displayName = 'ProgressBar';
  * - ✅ Consistent design across all pages (Social, Profile, Comments, etc.)
  * - ✅ Auto-advance with countdown timer (5 seconds per story)
  * - ✅ Auto-close after viewing all stories (Instagram logic)
- * - ✅ View tracking with minimum threshold (50% or 1.5s)
+ * - ✅ View tracking with minimum threshold (1.5s)
  * - ✅ Real-time avatar border updates after viewing
  * - ✅ Interaction context support (user/local)
  * - ✅ Story statistics for owners
@@ -224,6 +230,7 @@ function UnifiedStoryViewerV10({
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const isLongPressing = useRef(false);
   const viewStartTime = useRef<number>(Date.now());
+  const hasMarkedAsViewed = useRef<Set<string>>(new Set());
 
   const currentStory = stories[currentIndex];
   
@@ -242,15 +249,17 @@ function UnifiedStoryViewerV10({
     currentIndex,
     totalStories: stories.length,
     duration,
+    visible,
   });
 
   // ✅ INSTAGRAM LOGIC: Mark as viewed after minimum threshold
   const markAsViewed = useCallback(async (storyId: string) => {
-    if (!interactionUserId || !storyId || isOwner) {
+    if (!interactionUserId || !storyId || isOwner || hasMarkedAsViewed.current.has(storyId)) {
       console.log('[UnifiedStoryViewerV10] ⏭️ Skipping mark as viewed:', {
         hasUser: !!interactionUserId,
         hasStoryId: !!storyId,
         isOwner,
+        alreadyMarked: hasMarkedAsViewed.current.has(storyId),
       });
       return;
     }
@@ -266,6 +275,9 @@ function UnifiedStoryViewerV10({
       return;
     }
 
+    // Mark as viewed to prevent duplicate calls
+    hasMarkedAsViewed.current.add(storyId);
+
     try {
       console.log('[UnifiedStoryViewerV10] 👁️ Marking story as viewed:', storyId);
       
@@ -275,7 +287,7 @@ function UnifiedStoryViewerV10({
         viewed_at: new Date().toISOString(),
         tipo: isInteractingAsLocal ? 'local' : 'usuario',
         local_id: isInteractingAsLocal ? interactionLocalId : null,
-        duracion_vista: Math.floor(viewDuration / 1000), // Store duration in seconds
+        duracion_vista: Math.floor(viewDuration / 1000),
       };
 
       // First, try to find existing view
@@ -305,6 +317,7 @@ function UnifiedStoryViewerV10({
 
         if (error) {
           console.error('[UnifiedStoryViewerV10] ❌ Error updating story view:', error);
+          hasMarkedAsViewed.current.delete(storyId);
         } else {
           console.log('[UnifiedStoryViewerV10] ✅ Story view updated');
         }
@@ -316,6 +329,7 @@ function UnifiedStoryViewerV10({
 
         if (error) {
           console.error('[UnifiedStoryViewerV10] ❌ Error inserting story view:', error);
+          hasMarkedAsViewed.current.delete(storyId);
         } else {
           console.log('[UnifiedStoryViewerV10] ✅ Story view inserted');
         }
@@ -325,6 +339,7 @@ function UnifiedStoryViewerV10({
       console.log('[UnifiedStoryViewerV10] 🔄 Story view recorded - avatars will update via real-time subscription');
     } catch (error) {
       console.error('[UnifiedStoryViewerV10] ❌ Error:', error);
+      hasMarkedAsViewed.current.delete(storyId);
     }
   }, [interactionUserId, interactionLocalId, isInteractingAsLocal, isOwner]);
 
@@ -389,8 +404,17 @@ function UnifiedStoryViewerV10({
       });
       setCurrentIndex(initialIndex);
       setLoading(true);
+      setIsPaused(false);
       progressValues.forEach(p => p.setValue(0));
       viewStartTime.current = Date.now();
+      hasMarkedAsViewed.current.clear();
+    } else {
+      // Reset state when closing
+      setIsPaused(false);
+      setLoading(false);
+      setStoryMessage('');
+      setSendingMessage(false);
+      setShowStoryStats(false);
     }
   }, [visible, initialIndex, progressValues, stories.length, duration]);
 
@@ -815,6 +839,7 @@ function UnifiedStoryViewerV10({
             </View>
           )}
 
+          {/* ✅ PROGRESS BARS - Always visible at the top */}
           <BlurView intensity={20} tint="dark" style={styles.progressContainer}>
             {stories.map((_, index) => (
               <View key={index} style={styles.progressBarWrapper}>

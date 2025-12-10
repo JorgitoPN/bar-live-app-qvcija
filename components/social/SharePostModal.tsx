@@ -57,23 +57,53 @@ export default function SharePostModal({
   const [sending, setSending] = useState(false);
   const [selectedRecipients, setSelectedRecipients] = useState<Set<string>>(new Set());
 
-  // ✅ FIXED: Define loadRecipients with useCallback BEFORE using it
+  // ✅ FIXED: Predictive search - filter as user types
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      // Show all users and locals when no search query
+      setFilteredResults([...allUsers, ...allLocals]);
+      return;
+    }
+
+    const query = searchQuery.toLowerCase().trim();
+    
+    // Filter users by name or username (without @ prefix)
+    const filteredUsers = allUsers.filter(u =>
+      u.nombre.toLowerCase().includes(query) ||
+      u.username?.toLowerCase().includes(query)
+    );
+
+    // Filter locals by name
+    const filteredLocals = allLocals.filter(l =>
+      l.nombre.toLowerCase().includes(query)
+    );
+
+    setFilteredResults([...filteredUsers, ...filteredLocals]);
+  }, [searchQuery, allUsers, allLocals]);
+
+  // ✅ FIXED: Define loadRecipients with useCallback BEFORE using it in useEffect
   const loadRecipients = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
+      console.log('[SharePostModal] 📥 Loading recipients for user:', user.id);
 
       // Load users (followers and following)
       const [followersResult, followingResult] = await Promise.all([
         supabase
           .from('seguidores')
           .select('seguidor_id, seguidor:usuarios!seguidores_seguidor_id_fkey(id, nombre, username, avatar)')
-          .eq('seguido_id', user.id),
+          .eq('seguido_id', user.id)
+          .is('local_id', null),
         supabase
           .from('seguidores')
           .select('seguido_id, seguido:usuarios!seguidores_seguido_id_fkey(id, nombre, username, avatar)')
-          .eq('seguidor_id', user.id),
+          .eq('seguidor_id', user.id)
+          .is('local_id', null),
       ]);
 
       const followersUsers = followersResult.data?.map(f => f.seguidor).filter(Boolean) || [];
@@ -118,7 +148,7 @@ export default function SharePostModal({
         locals: activeLocals.length,
       });
     } catch (error) {
-      console.error('[SharePostModal] Error loading recipients:', error);
+      console.error('[SharePostModal] ❌ Error loading recipients:', error);
       Alert.alert('Error', 'No se pudieron cargar los destinatarios');
     } finally {
       setLoading(false);
@@ -128,33 +158,11 @@ export default function SharePostModal({
   // ✅ FIXED: Now loadRecipients is defined before being used
   useEffect(() => {
     if (visible) {
+      setSearchQuery('');
+      setSelectedRecipients(new Set());
       loadRecipients();
     }
   }, [visible, loadRecipients]);
-
-  // ✅ FIXED: Predictive search - filter as user types
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      // Show all users and locals when no search query
-      setFilteredResults([...allUsers, ...allLocals]);
-      return;
-    }
-
-    const query = searchQuery.toLowerCase().trim();
-    
-    // Filter users by name or username (without @ prefix)
-    const filteredUsers = allUsers.filter(u =>
-      u.nombre.toLowerCase().includes(query) ||
-      u.username?.toLowerCase().includes(query)
-    );
-
-    // Filter locals by name
-    const filteredLocals = allLocals.filter(l =>
-      l.nombre.toLowerCase().includes(query)
-    );
-
-    setFilteredResults([...filteredUsers, ...filteredLocals]);
-  }, [searchQuery, allUsers, allLocals]);
 
   const handleShare = async () => {
     if (!user || selectedRecipients.size === 0 || sending) {
@@ -257,9 +265,11 @@ export default function SharePostModal({
       }
 
       Alert.alert('Éxito', 'Publicación compartida correctamente');
+      setSelectedRecipients(new Set());
+      setSearchQuery('');
       onClose();
     } catch (error) {
-      console.error('[SharePostModal] Error sharing post:', error);
+      console.error('[SharePostModal] ❌ Error sharing post:', error);
       Alert.alert('Error', 'No se pudo compartir la publicación');
     } finally {
       setSending(false);
