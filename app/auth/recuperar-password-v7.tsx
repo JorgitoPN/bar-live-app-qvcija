@@ -92,16 +92,14 @@ export default function RecuperarPasswordV7Screen() {
       }
       
       console.log('[RecuperarPasswordV7] 🔄 Cambiando a paso de token...');
-      // Always move to token step for security (don't reveal if email exists)
-      setCurrentStep('token');
-      console.log('[RecuperarPasswordV7] ✅ Paso cambiado a token');
     } catch (error: any) {
       console.error('[RecuperarPasswordV7] ❌ Exception:', error);
-      // Always move to token step for security
-      console.log('[RecuperarPasswordV7] 🔄 Cambiando a paso de token (después de error)...');
-      setCurrentStep('token');
     } finally {
       setSendingCode(false);
+      // Always move to token step for security (don't reveal if email exists)
+      console.log('[RecuperarPasswordV7] 🔄 Ejecutando setCurrentStep("token")...');
+      setCurrentStep('token');
+      console.log('[RecuperarPasswordV7] ✅ setCurrentStep ejecutado');
       console.log('[RecuperarPasswordV7] 🏁 Proceso finalizado');
       console.log('═══════════════════════════════════════════════════════');
     }
