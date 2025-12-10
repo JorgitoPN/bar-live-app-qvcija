@@ -60,7 +60,7 @@ export default function SocialScreen() {
   const [userRole, setUserRole] = useState<UserRole>('cliente');
   const [localSubscription, setLocalSubscription] = useState<LocalSubscriptionInfo | null>(null);
   
-  // ✅ Story viewer state
+  // ✅ Story viewer state - SAME AS PROFILE PAGE
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
   const [selectedStories, setSelectedStories] = useState<Historia[]>([]);
@@ -501,6 +501,7 @@ export default function SocialScreen() {
     router.push('/crear/historia');
   };
 
+  // ✅ FIXED: Use the SAME pattern as profile page
   const handleHistoriaPress = useCallback((historia: Historia) => {
     console.log('[Social] 📖 Story pressed:', historia.id);
     
@@ -520,6 +521,7 @@ export default function SocialScreen() {
       clickedIndex: storyIndex,
     });
     
+    // ✅ SAME AS PROFILE PAGE
     setSelectedStories(authorStories);
     setCurrentStoryIndex(storyIndex >= 0 ? storyIndex : 0);
     setShowStoryViewer(true);
@@ -736,7 +738,7 @@ export default function SocialScreen() {
         windowSize={10}
       />
 
-      {/* ✅ UNIFIED STORY VIEWER V9.0 */}
+      {/* ✅ UNIFIED STORY VIEWER V9.0 - SAME AS PROFILE PAGE */}
       <UnifiedStoryViewerV9
         visible={showStoryViewer}
         stories={selectedStories}
