@@ -220,7 +220,7 @@ export default function RecuperarPasswordTokenScreen() {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>¿Olvidaste tu contraseña?</Text>
         <Text style={styles.headerSubtitle}>
-          {!emailSent ? 'Te enviaremos un código de 6 dígitos' : 'Introduce el código recibido'}
+          {!emailSent ? 'No te preocupes, te ayudaremos' : 'Introduce el código recibido'}
         </Text>
       </LinearGradient>
 
@@ -311,7 +311,7 @@ export default function RecuperarPasswordTokenScreen() {
                   size={80}
                   color="#10b981"
                 />
-                <Text style={styles.successTitle}>¡Código enviado!</Text>
+                <Text style={styles.successTitle}>¡Correo enviado!</Text>
                 <Text style={styles.successText}>
                   Si existe una cuenta asociada a:
                 </Text>
@@ -325,7 +325,7 @@ export default function RecuperarPasswordTokenScreen() {
                   <Text style={styles.emailText}>{email}</Text>
                 </View>
                 <Text style={styles.successSubtext}>
-                  Recibirás un correo con un código de 6 dígitos. El código expira en 15 minutos.
+                  Recibirás un correo con instrucciones para restablecer tu contraseña.
                 </Text>
               </View>
 
@@ -347,8 +347,8 @@ export default function RecuperarPasswordTokenScreen() {
                     <Text style={styles.stepNumberText}>2</Text>
                   </View>
                   <View style={styles.stepContent}>
-                    <Text style={styles.stepTitle}>Introduce el código</Text>
-                    <Text style={styles.stepText}>Ingresa el código de 6 dígitos que recibiste en el campo de abajo</Text>
+                    <Text style={styles.stepTitle}>Haz clic en el enlace</Text>
+                    <Text style={styles.stepText}>Presiona el botón en el correo</Text>
                   </View>
                 </View>
 
@@ -418,7 +418,7 @@ export default function RecuperarPasswordTokenScreen() {
               <View style={styles.tipsBox}>
                 <Text style={styles.tipsTitle}>💡 Consejos:</Text>
                 <Text style={styles.tipText}>• Revisa tu carpeta de spam si no ves el correo</Text>
-                <Text style={styles.tipText}>• El código expira en 15 minutos</Text>
+                <Text style={styles.tipText}>• El código expira en 1 hora</Text>
                 <Text style={styles.tipText}>• Puedes solicitar un nuevo código si es necesario</Text>
               </View>
 

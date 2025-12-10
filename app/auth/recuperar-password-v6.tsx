@@ -256,7 +256,7 @@ export default function RecuperarPasswordV6Screen() {
 
       // Show success message
       Alert.alert(
-        '✔️ Contraseña actualizada',
+        '✅ Contraseña actualizada',
         'Tu contraseña ha sido actualizada correctamente. Iniciando sesión...',
         [
           {
@@ -271,14 +271,14 @@ export default function RecuperarPasswordV6Screen() {
 
                 if (signInError) {
                   console.error('[RecuperarPasswordV6] ❌ Error al iniciar sesión:', signInError);
-                  router.replace('/auth/login');
+                  router.replace('/auth/login-v6');
                 } else {
                   console.log('[RecuperarPasswordV6] ✅ Sesión iniciada');
                   router.replace('/(tabs)/explorar');
                 }
               } catch (loginError) {
                 console.error('[RecuperarPasswordV6] ❌ Exception al iniciar sesión:', loginError);
-                router.replace('/auth/login');
+                router.replace('/auth/login-v6');
               }
             },
           },
@@ -725,7 +725,7 @@ export default function RecuperarPasswordV6Screen() {
 
           <TouchableOpacity
             style={styles.backToLoginButton}
-            onPress={() => router.replace('/auth/login')}
+            onPress={() => router.replace('/auth/login-v6')}
           >
             <IconSymbol
               ios_icon_name="arrow.left"
@@ -750,7 +750,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    paddingTop: 60,
+    paddingTop: Platform.OS === 'android' ? 60 : 80,
     paddingBottom: 32,
     paddingHorizontal: 24,
   },
