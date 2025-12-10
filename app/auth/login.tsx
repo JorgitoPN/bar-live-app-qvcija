@@ -189,7 +189,8 @@ export default function LoginScreen() {
 
   const handleForgotPassword = async () => {
     if (!email.trim()) {
-      Alert.alert('Error', 'Por favor, ingresa tu correo electrónico primero');
+      // Navigate directly to v7 without email
+      router.push('/auth/recuperar-password-v7');
       return;
     }
 
