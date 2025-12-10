@@ -48,16 +48,29 @@ export function StoryStateProvider({ children }: { children: React.ReactNode }) 
     if (!user || stories.length === 0) return false;
     
     // Own stories always show border (for stats)
-    if (userId === user.id) return true;
+    if (userId === user.id) {
+      console.log('[StoryState] 👤 Own stories - always show border');
+      return true;
+    }
     
     // Check if ANY story is unviewed (Instagram logic)
-    return stories.some(s => !viewedStoryIds.has(s.id));
+    const hasUnviewed = stories.some(s => !viewedStoryIds.has(s.id));
+    console.log('[StoryState] 👁️ Instagram logic:', {
+      userId,
+      totalStories: stories.length,
+      viewedCount: stories.filter(s => viewedStoryIds.has(s.id)).length,
+      hasUnviewed,
+    });
+    
+    return hasUnviewed;
   }, [user, viewedStoryIds]);
 
   const markStoriesAsViewed = useCallback((storyIds: string[]) => {
+    console.log('[StoryState] 📝 Marking stories as viewed:', storyIds);
     setViewedStoryIds(prev => {
       const newSet = new Set(prev);
       storyIds.forEach(id => newSet.add(id));
+      console.log('[StoryState] ✅ Total viewed stories:', newSet.size);
       return newSet;
     });
   }, []);

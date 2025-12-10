@@ -94,7 +94,7 @@ const StoryAvatar = memo(function StoryAvatar({
       const storyIds = userStories.map(s => s.id);
       
       const channel = supabase
-        .channel(`story-views-${userId}`)
+        .channel(`story-views-${userId}-${Date.now()}`)
         .on(
           'postgres_changes',
           {
@@ -107,7 +107,28 @@ const StoryAvatar = memo(function StoryAvatar({
             // If a story from this user was viewed, recheck
             if (storyIds.includes(payload.new.historia_id)) {
               console.log('[StoryAvatar] ⚡ Story viewed, rechecking border (Instagram logic)');
-              checkUnviewedStories();
+              // Add a small delay to ensure database is updated
+              setTimeout(() => {
+                checkUnviewedStories();
+              }, 300);
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'historia_views',
+            filter: `usuario_id=eq.${user.id}`,
+          },
+          (payload) => {
+            // If a story from this user was viewed, recheck
+            if (storyIds.includes(payload.new.historia_id)) {
+              console.log('[StoryAvatar] ⚡ Story view updated, rechecking border (Instagram logic)');
+              setTimeout(() => {
+                checkUnviewedStories();
+              }, 300);
             }
           }
         )

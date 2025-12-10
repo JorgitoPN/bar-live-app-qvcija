@@ -131,6 +131,47 @@ export default function MiniFoodPlateAvatar({
     };
 
     checkUnviewedStories();
+
+    // Subscribe to real-time updates for story views
+    if (userId && user && hasStory) {
+      const channel = supabase
+        .channel(`mini-avatar-story-views-${userId}-${Date.now()}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'historia_views',
+            filter: `usuario_id=eq.${user.id}`,
+          },
+          (payload) => {
+            console.log('[MiniFoodPlateAvatar] ⚡ Story viewed, rechecking border');
+            setTimeout(() => {
+              checkUnviewedStories();
+            }, 300);
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'historia_views',
+            filter: `usuario_id=eq.${user.id}`,
+          },
+          (payload) => {
+            console.log('[MiniFoodPlateAvatar] ⚡ Story view updated, rechecking border');
+            setTimeout(() => {
+              checkUnviewedStories();
+            }, 300);
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
   }, [userId, user, hasStory]);
 
   // ✅ FIXED: Determine what to show

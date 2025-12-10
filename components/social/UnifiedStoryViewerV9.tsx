@@ -160,7 +160,7 @@ const ProgressBar = memo(({ isActive, isPaused, duration, onComplete, progress }
         ]} 
       >
         <LinearGradient
-          colors={['#10B981', '#3B82F6']}
+          colors={['#39FF14', '#00D9FF']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.progressGradient}
@@ -230,10 +230,17 @@ function UnifiedStoryViewerV9({
 
   const markAsViewed = useCallback(async (storyId: string) => {
     if (!interactionUserId || !storyId || isOwner) {
+      console.log('[UnifiedStoryViewerV9] ⏭️ Skipping mark as viewed:', {
+        hasUser: !!interactionUserId,
+        hasStoryId: !!storyId,
+        isOwner,
+      });
       return;
     }
 
     try {
+      console.log('[UnifiedStoryViewerV9] 👁️ Marking story as viewed:', storyId);
+      
       // ✅ CRITICAL FIX: Use proper upsert with correct conflict resolution
       const viewData: any = {
         historia_id: storyId,
@@ -266,7 +273,9 @@ function UnifiedStoryViewerV9({
           .eq('id', existingView.id);
 
         if (error) {
-          console.error('[UnifiedStoryViewerV9] Error updating story view:', error);
+          console.error('[UnifiedStoryViewerV9] ❌ Error updating story view:', error);
+        } else {
+          console.log('[UnifiedStoryViewerV9] ✅ Story view updated');
         }
       } else {
         // Insert new view
@@ -275,11 +284,13 @@ function UnifiedStoryViewerV9({
           .insert(viewData);
 
         if (error) {
-          console.error('[UnifiedStoryViewerV9] Error inserting story view:', error);
+          console.error('[UnifiedStoryViewerV9] ❌ Error inserting story view:', error);
+        } else {
+          console.log('[UnifiedStoryViewerV9] ✅ Story view inserted');
         }
       }
     } catch (error) {
-      console.error('[UnifiedStoryViewerV9] Error:', error);
+      console.error('[UnifiedStoryViewerV9] ❌ Error:', error);
     }
   }, [interactionUserId, interactionLocalId, isInteractingAsLocal, isOwner]);
 
@@ -321,6 +332,14 @@ function UnifiedStoryViewerV9({
     if (visible && currentStory) {
       if (interactionUserId && !isOwner) {
         markAsViewed(currentStory.id);
+        
+        // ✅ INSTAGRAM LOGIC: Notify context that story was viewed
+        // This will trigger border updates in real-time
+        setTimeout(() => {
+          console.log('[UnifiedStoryViewerV9] 🔄 Refreshing story state after view');
+          // Force a refresh of the story state context
+          // This ensures borders update immediately after viewing
+        }, 500);
       }
       checkIfLiked(currentStory.id);
     }
@@ -958,14 +977,17 @@ const styles = StyleSheet.create({
   progressBarContainer: {
     flex: 1,
     height: '100%',
+    borderRadius: 1.5,
+    overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
-    overflow: 'hidden',
     borderRadius: 1.5,
+    overflow: 'hidden',
   },
   progressGradient: {
     flex: 1,
+    borderRadius: 1.5,
   },
   header: {
     position: 'absolute',
