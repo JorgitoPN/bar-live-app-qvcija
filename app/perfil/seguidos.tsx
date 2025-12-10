@@ -24,6 +24,7 @@ interface Seguido {
   avatar?: string;
   bio?: string;
   tipo: 'usuario' | 'local';
+  localId?: string;
 }
 
 export default function SeguidosScreen() {
@@ -42,79 +43,42 @@ export default function SeguidosScreen() {
     if (!userId) return;
 
     try {
-      console.log('[Seguidos] Loading seguidos for user:', userId);
+      console.log('[Seguidos] 📥 Loading seguidos for user:', userId);
 
-      // ✅ FIXED: Use locales_guardados instead of locales_favoritos (which is just a view)
-      const [usersResult, localsResult] = await Promise.all([
-        // Load followed users
-        supabase
-          .from('seguidores')
-          .select(`
-            seguido_id,
-            usuarios!seguidores_seguido_id_fkey(
-              id,
-              nombre,
-              username,
-              avatar,
-              bio
-            )
-          `)
-          .eq('seguidor_id', userId),
-        
-        // ✅ FIXED: Use locales_guardados table (has proper foreign keys)
-        supabase
-          .from('locales_guardados')
-          .select(`
-            local_id,
-            locales!locales_guardados_local_id_fkey(
-              id,
-              nombre,
-              imagen_url,
-              descripcion_google
-            )
-          `)
-          .eq('usuario_id', userId)
-      ]);
+      // ✅ Use the new database function for better performance
+      const { data, error } = await supabase
+        .rpc('get_user_seguidos', { p_usuario_id: userId });
 
-      if (usersResult.error) {
-        console.error('[Seguidos] Error loading followed users:', usersResult.error);
+      if (error) {
+        console.error('[Seguidos] ❌ Error loading seguidos:', error);
+        setLoading(false);
+        setRefreshing(false);
+        return;
       }
 
-      if (localsResult.error) {
-        console.error('[Seguidos] Error loading followed locals:', localsResult.error);
-      }
+      console.log('[Seguidos] Raw data from function:', data);
 
-      // Format followed users
-      const formattedUsers: Seguido[] = (usersResult.data || [])
-        .filter(s => s.usuarios)
-        .map((s: any) => ({
-          id: s.usuarios.id,
-          nombre: s.usuarios.nombre,
-          username: s.usuarios.username,
-          avatar: s.usuarios.avatar,
-          bio: s.usuarios.bio,
-          tipo: 'usuario' as const,
-        }));
+      // ✅ Format the data
+      const formattedSeguidos: Seguido[] = (data || []).map((item: any) => ({
+        id: item.seguido_id,
+        nombre: item.nombre,
+        username: item.username,
+        avatar: item.avatar,
+        bio: item.bio,
+        tipo: item.tipo as 'usuario' | 'local',
+        localId: item.local_id,
+      }));
 
-      // ✅ FIXED: Format followed locals from locales_guardados
-      const formattedLocals: Seguido[] = (localsResult.data || [])
-        .filter(s => s.locales)
-        .map((s: any) => ({
-          id: s.locales.id,
-          nombre: s.locales.nombre,
-          username: undefined,
-          avatar: s.locales.imagen_url,
-          bio: s.locales.descripcion_google,
-          tipo: 'local' as const,
-        }));
-
-      // ✅ FIXED: Combine both users and locals
-      const allSeguidos = [...formattedUsers, ...formattedLocals];
-
-      setSeguidos(allSeguidos);
-      console.log('[Seguidos] ✅ Loaded', formattedUsers.length, 'users and', formattedLocals.length, 'locals');
+      setSeguidos(formattedSeguidos);
+      
+      const localCount = formattedSeguidos.filter(s => s.tipo === 'local').length;
+      const userCount = formattedSeguidos.filter(s => s.tipo === 'usuario').length;
+      
+      console.log('[Seguidos] ✅ Loaded', formattedSeguidos.length, 'seguidos');
+      console.log('[Seguidos] 🏪 Local profiles:', localCount);
+      console.log('[Seguidos] 👤 User profiles:', userCount);
     } catch (error) {
-      console.error('[Seguidos] Error loading seguidos:', error);
+      console.error('[Seguidos] ❌ Error:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -131,9 +95,13 @@ export default function SeguidosScreen() {
   };
 
   const handleUserPress = (seguido: Seguido) => {
-    if (seguido.tipo === 'local') {
-      router.push(`/perfil/local?localId=${seguido.id}`);
+    if (seguido.tipo === 'local' && seguido.localId) {
+      // ✅ Navigate to local profile page
+      console.log('[Seguidos] 🏪 Opening local profile:', seguido.nombre, seguido.localId);
+      router.push(`/perfil/local?localId=${seguido.localId}`);
     } else {
+      // ✅ Navigate to user profile page
+      console.log('[Seguidos] 👤 Opening user profile:', seguido.nombre);
       if (user && seguido.id === user.id) {
         router.push('/(tabs)/perfil');
       } else {
@@ -212,7 +180,7 @@ export default function SeguidosScreen() {
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Cargando...</Text>
+          <Text style={styles.loadingText}>Cargando seguidos...</Text>
         </View>
       ) : (
         <FlatList
@@ -227,6 +195,9 @@ export default function SeguidosScreen() {
               <IconSymbol ios_icon_name="person.2" android_material_icon_name="people" size={64} color={colors.textSecondary} />
               <Text style={styles.emptyText}>
                 {isOwnProfile ? 'No sigues a nadie aún' : 'No sigue a nadie aún'}
+              </Text>
+              <Text style={styles.emptySubtext}>
+                Sigue a usuarios y perfiles de locales para ver su contenido aquí
               </Text>
             </View>
           }
@@ -337,11 +308,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 60,
+    paddingHorizontal: 32,
   },
   emptyText: {
     fontSize: 16,
-    color: colors.textSecondary,
+    fontWeight: '600',
+    color: colors.text,
     marginTop: 16,
+    textAlign: 'center',
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 8,
     textAlign: 'center',
   },
 });
