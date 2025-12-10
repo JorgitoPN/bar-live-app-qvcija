@@ -1,14 +1,14 @@
 
 import React, { memo, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
-// ✅ DEFAULT AVATAR URL - Barlive branded default avatar
-const DEFAULT_AVATAR_URL = 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=400&h=400&fit=crop';
+// ✅ DEFAULT AVATAR ICON - Simple user icon (non-realistic)
+const DEFAULT_AVATAR_ICON = 'person.circle.fill';
 
 // ✅ NEON GREEN COLOR - Phosphorescent green for story borders
 const NEON_GREEN = '#39FF14';
@@ -122,8 +122,8 @@ const StoryAvatar = memo(function StoryAvatar({
   const ringSize = size + 8;
   const avatarSize = size - 4;
 
-  // ✅ FIXED: Use default avatar if no avatar URL provided
-  const displayAvatarUrl = avatarUrl || DEFAULT_AVATAR_URL;
+  // ✅ FIXED: Check if avatar exists
+  const hasAvatar = !!avatarUrl;
 
   return (
     <TouchableOpacity 
@@ -141,20 +141,50 @@ const StoryAvatar = memo(function StoryAvatar({
             style={[styles.gradientRing, { width: ringSize, height: ringSize, borderRadius: ringSize / 2 }]}
           >
             <View style={[styles.innerRing, { width: avatarSize + 4, height: avatarSize + 4, borderRadius: (avatarSize + 4) / 2 }]}>
-              <Image
-                source={{ uri: displayAvatarUrl }}
-                style={[styles.avatar, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}
-              />
+              {hasAvatar ? (
+                <View style={[styles.avatarImageContainer, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}>
+                  <IconSymbol
+                    ios_icon_name={DEFAULT_AVATAR_ICON}
+                    android_material_icon_name="account_circle"
+                    size={avatarSize}
+                    color={colors.primary}
+                  />
+                </View>
+              ) : (
+                <View style={[styles.avatarPlaceholder, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}>
+                  <IconSymbol
+                    ios_icon_name={DEFAULT_AVATAR_ICON}
+                    android_material_icon_name="account_circle"
+                    size={avatarSize * 0.8}
+                    color={colors.primary}
+                  />
+                </View>
+              )}
             </View>
           </LinearGradient>
         ) : (
           // ✅ INSTAGRAM LOGIC: No border for fully viewed stories (border disappears)
           <View style={[styles.viewedRing, { width: ringSize, height: ringSize, borderRadius: ringSize / 2 }]}>
             <View style={[styles.innerRing, { width: avatarSize + 4, height: avatarSize + 4, borderRadius: (avatarSize + 4) / 2 }]}>
-              <Image
-                source={{ uri: displayAvatarUrl }}
-                style={[styles.avatar, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}
-              />
+              {hasAvatar ? (
+                <View style={[styles.avatarImageContainer, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}>
+                  <IconSymbol
+                    ios_icon_name={DEFAULT_AVATAR_ICON}
+                    android_material_icon_name="account_circle"
+                    size={avatarSize}
+                    color={colors.primary}
+                  />
+                </View>
+              ) : (
+                <View style={[styles.avatarPlaceholder, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}>
+                  <IconSymbol
+                    ios_icon_name={DEFAULT_AVATAR_ICON}
+                    android_material_icon_name="account_circle"
+                    size={avatarSize * 0.8}
+                    color={colors.primary}
+                  />
+                </View>
+              )}
             </View>
           </View>
         )}
@@ -191,11 +221,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  avatar: {
+  avatarImageContainer: {
     backgroundColor: colors.cardBackground,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   avatarPlaceholder: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.cardBackground,
     justifyContent: 'center',
     alignItems: 'center',
   },

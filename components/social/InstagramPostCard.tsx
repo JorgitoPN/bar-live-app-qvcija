@@ -23,9 +23,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// ✅ DEFAULT AVATAR URL - Barlive branded default avatar
-const DEFAULT_AVATAR_URL = 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=400&h=400&fit=crop';
-
 interface Post {
   id: string;
   autor_id: string;
@@ -78,12 +75,13 @@ export default function InstagramPostCard({
   const [authorAvatar, setAuthorAvatar] = useState<string | null>(null);
   const [authorName, setAuthorName] = useState<string>('Usuario');
   const [loadingAuthor, setLoadingAuthor] = useState(true);
+  const [hasStory, setHasStory] = useState(false);
 
   const isOwner = post.tipo === 'usuario' 
     ? post.autor_id === user?.id
     : false;
 
-  // ✅ FIXED: Load author data on mount
+  // ✅ FIXED: Load author data and check for stories on mount
   useEffect(() => {
     const loadAuthorData = async () => {
       try {
@@ -110,6 +108,18 @@ export default function InstagramPostCard({
           if (!error && userData) {
             setAuthorName(userData.username || userData.nombre);
             setAuthorAvatar(userData.avatar || null);
+          }
+
+          // ✅ NEW: Check if user has active stories (within last 24 hours)
+          const { data: storiesData, error: storiesError } = await supabase
+            .from('historias')
+            .select('id')
+            .eq('autor_id', post.autor_id)
+            .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+            .limit(1);
+
+          if (!storiesError && storiesData && storiesData.length > 0) {
+            setHasStory(true);
           }
         }
       } catch (error) {
@@ -270,20 +280,19 @@ export default function InstagramPostCard({
     ? captionText.substring(0, 100) + '...' 
     : captionText;
 
-  // ✅ FIXED: Use fetched avatar or default avatar
-  const displayAvatar = authorAvatar || DEFAULT_AVATAR_URL;
-
   return (
     <>
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.authorInfo} onPress={handleProfilePress}>
-            {/* ✅ FIXED: Always show avatar (fetched or default) */}
+            {/* ✅ FIXED: Show avatar with story border if user has stories */}
             <MiniFoodPlateAvatar
-              imageUrl={displayAvatar}
+              imageUrl={authorAvatar || undefined}
               size={40}
               nombre={authorName}
+              hasStory={hasStory}
+              userId={post.autor_id}
             />
             <View style={styles.authorText}>
               <Text style={styles.authorName}>{displayUsername}</Text>

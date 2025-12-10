@@ -1,12 +1,14 @@
 
-import React from 'react';
-import { View, Image, StyleSheet, ViewStyle, Text } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, ViewStyle, Text } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
+import { supabase } from '@/utils/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 
-// ✅ DEFAULT AVATAR URL - Barlive branded default avatar
-const DEFAULT_AVATAR_URL = 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=400&h=400&fit=crop';
+// ✅ DEFAULT AVATAR ICON - Simple user icon (non-realistic)
+const DEFAULT_AVATAR_ICON = 'person.circle.fill';
 
 // ✅ NEON GREEN COLOR - Phosphorescent green for story borders
 const NEON_GREEN = '#39FF14';
@@ -20,18 +22,19 @@ interface MiniFoodPlateAvatarProps {
   placeholderText?: string;
   nombre?: string;
   style?: ViewStyle;
+  userId?: string; // ✅ NEW: User ID to check for unviewed stories
 }
 
 /**
- * ✅ MINI FOOD PLATE AVATAR v4.0 - Instagram-style story borders
+ * ✅ MINI FOOD PLATE AVATAR v5.0 - Instagram-style story borders with dynamic checking
  * Compact version of FoodPlateAvatar for use in posts, comments, etc.
  * Features:
  * - Smaller size optimized for inline use
  * - NEON GREEN border for unviewed stories (Instagram logic)
  * - Border DISAPPEARS when all stories are viewed (Instagram logic)
- * - Default avatar with user's first letter OR default Barlive avatar
- * - Fallback to icon if no name available
+ * - Default avatar with user icon (non-realistic)
  * - ALWAYS shows an avatar (never empty)
+ * - Dynamically checks for unviewed stories if userId provided
  */
 export default function MiniFoodPlateAvatar({
   imageUrl,
@@ -42,19 +45,100 @@ export default function MiniFoodPlateAvatar({
   placeholderText,
   nombre,
   style,
+  userId,
 }: MiniFoodPlateAvatarProps) {
+  const { user } = useAuth();
+  const [hasUnviewedStories, setHasUnviewedStories] = useState(false);
+  const [loadingStories, setLoadingStories] = useState(false);
+
   const plateSize = size;
   const imageSize = size * 0.85; // Image is 85% of plate size for mini version
   const rimWidth = size * 0.06; // Rim is 6% of plate size
 
+  // ✅ NEW: Dynamically check for unviewed stories if userId is provided
+  useEffect(() => {
+    const checkUnviewedStories = async () => {
+      if (!userId || !user || !hasStory) {
+        setHasUnviewedStories(false);
+        return;
+      }
+
+      // If viewing own stories, always show border (for stats access)
+      if (userId === user.id) {
+        setHasUnviewedStories(true);
+        return;
+      }
+
+      setLoadingStories(true);
+
+      try {
+        // Get all stories from this user
+        const { data: userStories, error: storiesError } = await supabase
+          .from('historias')
+          .select('id')
+          .eq('autor_id', userId)
+          .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+
+        if (storiesError) {
+          console.error('[MiniFoodPlateAvatar] Error fetching stories:', storiesError);
+          setHasUnviewedStories(false);
+          setLoadingStories(false);
+          return;
+        }
+
+        if (!userStories || userStories.length === 0) {
+          setHasUnviewedStories(false);
+          setLoadingStories(false);
+          return;
+        }
+
+        const storyIds = userStories.map(s => s.id);
+
+        // Check which stories have been viewed by the current user
+        const { data: viewedStories, error: viewsError } = await supabase
+          .from('historia_views')
+          .select('historia_id')
+          .eq('usuario_id', user.id)
+          .in('historia_id', storyIds);
+
+        if (viewsError) {
+          console.error('[MiniFoodPlateAvatar] Error checking viewed stories:', viewsError);
+          setHasUnviewedStories(true);
+          setLoadingStories(false);
+          return;
+        }
+
+        const viewedStoryIds = new Set(viewedStories?.map(v => v.historia_id) || []);
+
+        // ✅ INSTAGRAM LOGIC: Show neon green border ONLY if there are unviewed stories
+        const hasUnviewed = userStories.some(s => !viewedStoryIds.has(s.id));
+
+        console.log('[MiniFoodPlateAvatar] 👁️ Instagram-style border logic:', {
+          userId,
+          totalStories: userStories.length,
+          viewedCount: viewedStoryIds.size,
+          hasUnviewed,
+          willShowBorder: hasUnviewed,
+        });
+
+        setHasUnviewedStories(hasUnviewed);
+      } catch (error) {
+        console.error('[MiniFoodPlateAvatar] Error:', error);
+        setHasUnviewedStories(true);
+      } finally {
+        setLoadingStories(false);
+      }
+    };
+
+    checkUnviewedStories();
+  }, [userId, user, hasStory]);
+
   // ✅ FIXED: Determine what to show
-  const shouldShowImage = !!imageUrl;
-  const shouldShowLetter = !imageUrl && (placeholderText || nombre);
-  const shouldShowDefaultAvatar = !imageUrl && !placeholderText && !nombre;
+  const shouldShowIcon = !imageUrl;
 
   // ✅ INSTAGRAM LOGIC: Show neon green ring ONLY if has story AND not viewed
   // If viewed, the ring disappears completely (Instagram behavior)
-  const showStoryRing = hasStory && !isViewed;
+  const showStoryRing = hasStory && (userId ? hasUnviewedStories : !isViewed);
 
   return (
     <View style={[styles.container, { width: plateSize, height: plateSize }, style]}>
@@ -100,23 +184,7 @@ export default function MiniFoodPlateAvatar({
             },
           ]}
         >
-          {shouldShowImage ? (
-            <Image
-              source={{ uri: imageUrl }}
-              style={[
-                styles.foodImage,
-                {
-                  width: imageSize,
-                  height: imageSize,
-                  borderRadius: imageSize / 2,
-                },
-              ]}
-              resizeMode="cover"
-              onError={() => {
-                console.log('[MiniFoodPlateAvatar] ⚠️ Image failed to load, will show fallback');
-              }}
-            />
-          ) : shouldShowLetter ? (
+          {shouldShowIcon ? (
             <View
               style={[
                 styles.foodPlaceholder,
@@ -127,25 +195,31 @@ export default function MiniFoodPlateAvatar({
                 },
               ]}
             >
-              <View style={styles.placeholderTextContainer}>
-                <Text style={[styles.placeholderText, { fontSize: size * 0.4 }]}>
-                  {(placeholderText || nombre || 'U').charAt(0).toUpperCase()}
-                </Text>
-              </View>
+              <IconSymbol
+                ios_icon_name={DEFAULT_AVATAR_ICON}
+                android_material_icon_name="account_circle"
+                size={imageSize * 0.9}
+                color={colors.primary}
+              />
             </View>
           ) : (
-            <Image
-              source={{ uri: DEFAULT_AVATAR_URL }}
+            <View
               style={[
-                styles.foodImage,
+                styles.foodPlaceholder,
                 {
                   width: imageSize,
                   height: imageSize,
                   borderRadius: imageSize / 2,
                 },
               ]}
-              resizeMode="cover"
-            />
+            >
+              <IconSymbol
+                ios_icon_name={DEFAULT_AVATAR_ICON}
+                android_material_icon_name="account_circle"
+                size={imageSize * 0.9}
+                color={colors.primary}
+              />
+            </View>
           )}
         </View>
       </View>
@@ -186,11 +260,8 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
-  foodImage: {
-    backgroundColor: '#F5F5F5',
-  },
   foodPlaceholder: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: colors.cardBackground,
     justifyContent: 'center',
     alignItems: 'center',
   },

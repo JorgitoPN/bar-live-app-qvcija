@@ -30,8 +30,8 @@ import { useInteractionContext } from '@/hooks/useInteractionContext';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-// ✅ DEFAULT AVATAR URL - Barlive branded default avatar
-const DEFAULT_AVATAR_URL = 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=400&h=400&fit=crop';
+// ✅ DEFAULT AVATAR - Simple user icon (non-realistic)
+const DEFAULT_AVATAR_ICON = 'person.circle.fill';
 
 interface Story {
   id: string;
@@ -98,7 +98,8 @@ const ProgressBar = memo(({ isActive, isPaused, duration, onComplete, progress }
       return;
     }
 
-    const currentValue = (progress as any)._value || 0;
+    // ✅ FIXED: Safely get current value with fallback
+    const currentValue = (progress as any)?._value ?? 0;
     const remainingDuration = duration * (1 - currentValue);
 
     animationRef.current = Animated.timing(progress, {
@@ -156,7 +157,7 @@ ProgressBar.displayName = 'ProgressBar';
  * - Like and message functionality
  * - Smooth animations and gestures
  * - Proper view tracking
- * - Default avatars for users without profile pictures
+ * - Default avatars for users without profile pictures (icon-based, non-realistic)
  */
 function UnifiedStoryViewerV9({
   visible,
@@ -662,8 +663,8 @@ function UnifiedStoryViewerV9({
     ? truncateName(authorName)
     : (currentStory.autor?.username || currentStory.autorUsername || authorName).replace(/^@/, '');
 
-  // ✅ FIXED: Use default avatar if no avatar URL
-  const displayAvatarUrl = authorAvatar || DEFAULT_AVATAR_URL;
+  // ✅ FIXED: Check if avatar exists
+  const hasAvatar = !!authorAvatar;
 
   return (
     <Modal
@@ -727,11 +728,22 @@ function UnifiedStoryViewerV9({
               activeOpacity={0.7}
             >
               <View style={styles.avatarWrapper}>
-                {/* ✅ FIXED: Always show avatar (fetched or default) */}
-                <Image
-                  source={{ uri: displayAvatarUrl }}
-                  style={styles.authorAvatar}
-                />
+                {/* ✅ FIXED: Show icon if no avatar, otherwise show image */}
+                {hasAvatar ? (
+                  <Image
+                    source={{ uri: authorAvatar }}
+                    style={styles.authorAvatar}
+                  />
+                ) : (
+                  <View style={styles.authorAvatarPlaceholder}>
+                    <IconSymbol
+                      ios_icon_name={DEFAULT_AVATAR_ICON}
+                      android_material_icon_name="account_circle"
+                      size={36}
+                      color={colors.headerText}
+                    />
+                  </View>
+                )}
               </View>
               <View style={styles.authorTextContainer}>
                 <Text style={styles.authorName}>{displayName}</Text>
@@ -963,7 +975,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: colors.primary,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
