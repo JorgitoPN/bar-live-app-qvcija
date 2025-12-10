@@ -88,16 +88,22 @@ const ProgressBar = memo(({ isActive, isPaused, duration, onComplete, progress }
   const animationRef = useRef<Animated.CompositeAnimation | null>(null);
 
   useEffect(() => {
+    // ✅ CRITICAL FIX: Always clean up previous animation first
+    if (animationRef.current) {
+      try {
+        animationRef.current.stop();
+      } catch (error) {
+        console.log('[ProgressBar] Error stopping animation:', error);
+      }
+      animationRef.current = null;
+    }
+
     if (!isActive) {
       progress.setValue(0);
       return;
     }
 
     if (isPaused) {
-      // ✅ FIXED: Stop animation properly with null check
-      if (animationRef.current && typeof animationRef.current.stop === 'function') {
-        animationRef.current.stop();
-      }
       return;
     }
 
@@ -105,23 +111,36 @@ const ProgressBar = memo(({ isActive, isPaused, duration, onComplete, progress }
     const currentValue = (progress as any)?._value ?? 0;
     const remainingDuration = duration * (1 - currentValue);
 
-    animationRef.current = Animated.timing(progress, {
+    // ✅ CRITICAL FIX: Create new animation and store reference
+    const newAnimation = Animated.timing(progress, {
       toValue: 1,
       duration: remainingDuration,
       easing: Easing.linear,
       useNativeDriver: false,
     });
 
-    animationRef.current.start(({ finished }) => {
-      if (finished) {
-        onComplete();
-      }
-    });
+    animationRef.current = newAnimation;
+
+    // ✅ CRITICAL FIX: Start animation with proper error handling
+    try {
+      newAnimation.start(({ finished }) => {
+        if (finished) {
+          onComplete();
+        }
+      });
+    } catch (error) {
+      console.log('[ProgressBar] Error starting animation:', error);
+    }
 
     return () => {
-      // ✅ FIXED: Clean up animation properly with null check
-      if (animationRef.current && typeof animationRef.current.stop === 'function') {
-        animationRef.current.stop();
+      // ✅ CRITICAL FIX: Clean up animation properly with null check
+      if (animationRef.current) {
+        try {
+          animationRef.current.stop();
+        } catch (error) {
+          console.log('[ProgressBar] Error in cleanup:', error);
+        }
+        animationRef.current = null;
       }
     };
   }, [isActive, isPaused, duration, onComplete, progress]);
