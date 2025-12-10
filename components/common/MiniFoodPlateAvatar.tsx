@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ViewStyle, Text } from 'react-native';
+import { View, StyleSheet, ViewStyle, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -134,7 +134,7 @@ export default function MiniFoodPlateAvatar({
   }, [userId, user, hasStory]);
 
   // ✅ FIXED: Determine what to show
-  const shouldShowIcon = !imageUrl;
+  const shouldShowImage = !!imageUrl;
 
   // ✅ INSTAGRAM LOGIC: Show neon green ring ONLY if has story AND not viewed
   // If viewed, the ring disappears completely (Instagram behavior)
@@ -184,24 +184,19 @@ export default function MiniFoodPlateAvatar({
             },
           ]}
         >
-          {shouldShowIcon ? (
-            <View
+          {shouldShowImage ? (
+            <Image
+              source={{ uri: imageUrl }}
               style={[
-                styles.foodPlaceholder,
+                styles.foodImage,
                 {
                   width: imageSize,
                   height: imageSize,
                   borderRadius: imageSize / 2,
                 },
               ]}
-            >
-              <IconSymbol
-                ios_icon_name={DEFAULT_AVATAR_ICON}
-                android_material_icon_name="account_circle"
-                size={imageSize * 0.9}
-                color={colors.primary}
-              />
-            </View>
+              resizeMode="cover"
+            />
           ) : (
             <View
               style={[
@@ -259,6 +254,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 2,
     elevation: 2,
+  },
+  foodImage: {
+    backgroundColor: colors.cardBackground,
   },
   foodPlaceholder: {
     backgroundColor: colors.cardBackground,

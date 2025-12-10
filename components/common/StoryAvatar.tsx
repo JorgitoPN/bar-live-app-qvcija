@@ -1,6 +1,6 @@
 
 import React, { memo, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -142,14 +142,11 @@ const StoryAvatar = memo(function StoryAvatar({
           >
             <View style={[styles.innerRing, { width: avatarSize + 4, height: avatarSize + 4, borderRadius: (avatarSize + 4) / 2 }]}>
               {hasAvatar ? (
-                <View style={[styles.avatarImageContainer, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}>
-                  <IconSymbol
-                    ios_icon_name={DEFAULT_AVATAR_ICON}
-                    android_material_icon_name="account_circle"
-                    size={avatarSize}
-                    color={colors.primary}
-                  />
-                </View>
+                <Image
+                  source={{ uri: avatarUrl }}
+                  style={[styles.avatarImage, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}
+                  resizeMode="cover"
+                />
               ) : (
                 <View style={[styles.avatarPlaceholder, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}>
                   <IconSymbol
@@ -167,14 +164,11 @@ const StoryAvatar = memo(function StoryAvatar({
           <View style={[styles.viewedRing, { width: ringSize, height: ringSize, borderRadius: ringSize / 2 }]}>
             <View style={[styles.innerRing, { width: avatarSize + 4, height: avatarSize + 4, borderRadius: (avatarSize + 4) / 2 }]}>
               {hasAvatar ? (
-                <View style={[styles.avatarImageContainer, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}>
-                  <IconSymbol
-                    ios_icon_name={DEFAULT_AVATAR_ICON}
-                    android_material_icon_name="account_circle"
-                    size={avatarSize}
-                    color={colors.primary}
-                  />
-                </View>
+                <Image
+                  source={{ uri: avatarUrl }}
+                  style={[styles.avatarImage, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}
+                  resizeMode="cover"
+                />
               ) : (
                 <View style={[styles.avatarPlaceholder, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}>
                   <IconSymbol
@@ -221,10 +215,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  avatarImageContainer: {
+  avatarImage: {
     backgroundColor: colors.cardBackground,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   avatarPlaceholder: {
     backgroundColor: colors.cardBackground,

@@ -94,7 +94,10 @@ const ProgressBar = memo(({ isActive, isPaused, duration, onComplete, progress }
     }
 
     if (isPaused) {
-      animationRef.current?.stop();
+      // ✅ FIXED: Stop animation properly
+      if (animationRef.current) {
+        animationRef.current.stop();
+      }
       return;
     }
 
@@ -116,7 +119,10 @@ const ProgressBar = memo(({ isActive, isPaused, duration, onComplete, progress }
     });
 
     return () => {
-      animationRef.current?.stop();
+      // ✅ FIXED: Clean up animation properly
+      if (animationRef.current) {
+        animationRef.current.stop();
+      }
     };
   }, [isActive, isPaused, duration, onComplete, progress]);
 
@@ -728,7 +734,7 @@ function UnifiedStoryViewerV9({
               activeOpacity={0.7}
             >
               <View style={styles.avatarWrapper}>
-                {/* ✅ FIXED: Show icon if no avatar, otherwise show image */}
+                {/* ✅ FIXED: Show image if avatar exists, otherwise show icon */}
                 {hasAvatar ? (
                   <Image
                     source={{ uri: authorAvatar }}
