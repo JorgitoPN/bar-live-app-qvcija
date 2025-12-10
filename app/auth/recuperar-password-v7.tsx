@@ -92,14 +92,23 @@ export default function RecuperarPasswordV7Screen() {
       }
       
       console.log('[RecuperarPasswordV7] 🔄 Cambiando a paso de token...');
+      
+      // Always move to token step for security (don't reveal if email exists)
+      // Use setTimeout to ensure state update happens after current execution
+      setTimeout(() => {
+        console.log('[RecuperarPasswordV7] 🔄 Ejecutando setCurrentStep("token")...');
+        setCurrentStep('token');
+        console.log('[RecuperarPasswordV7] ✅ setCurrentStep ejecutado');
+      }, 100);
+      
     } catch (error: any) {
       console.error('[RecuperarPasswordV7] ❌ Exception:', error);
+      // Still navigate to token step for security
+      setTimeout(() => {
+        setCurrentStep('token');
+      }, 100);
     } finally {
       setSendingCode(false);
-      // Always move to token step for security (don't reveal if email exists)
-      console.log('[RecuperarPasswordV7] 🔄 Ejecutando setCurrentStep("token")...');
-      setCurrentStep('token');
-      console.log('[RecuperarPasswordV7] ✅ setCurrentStep ejecutado');
       console.log('[RecuperarPasswordV7] 🏁 Proceso finalizado');
       console.log('═══════════════════════════════════════════════════════');
     }
@@ -181,8 +190,13 @@ export default function RecuperarPasswordV7Screen() {
 
       console.log('[RecuperarPasswordV7] ✅ Token válido');
       console.log('[RecuperarPasswordV7] 🔄 Cambiando a paso de contraseña...');
-      setCurrentStep('password');
-      console.log('[RecuperarPasswordV7] ✅ Paso cambiado a password');
+      
+      // Use setTimeout to ensure state update happens properly
+      setTimeout(() => {
+        setCurrentStep('password');
+        console.log('[RecuperarPasswordV7] ✅ Paso cambiado a password');
+      }, 100);
+      
     } catch (error: any) {
       console.error('[RecuperarPasswordV7] ❌ Error:', error);
       Alert.alert('Error', 'Ocurrió un error al validar el código. Por favor, intenta nuevamente.');
@@ -421,70 +435,10 @@ export default function RecuperarPasswordV7Screen() {
                   size={80}
                   color={colors.primary}
                 />
-                <Text style={styles.infoTitle}>¡Correo enviado!</Text>
+                <Text style={styles.infoTitle}>Recupera tu cuenta</Text>
                 <Text style={styles.infoText}>
-                  Si existe una cuenta asociada a:
+                  Ingresa tu correo electrónico y te enviaremos un código de 6 dígitos para restablecer tu contraseña.
                 </Text>
-                <View style={styles.emailBadge}>
-                  <IconSymbol
-                    ios_icon_name="envelope.fill"
-                    android_material_icon_name="email"
-                    size={16}
-                    color={colors.primary}
-                  />
-                  <Text style={styles.emailText}>{email}</Text>
-                </View>
-                <Text style={[styles.infoText, { marginTop: 16 }]}>
-                  Recibirás un correo con instrucciones para restablecer tu contraseña.
-                </Text>
-              </View>
-
-              <View style={styles.stepsBox}>
-                <Text style={styles.stepsTitle}>📋 Próximos pasos:</Text>
-                <View style={styles.stepItem}>
-                  <View style={styles.stepNumber}>
-                    <Text style={styles.stepNumberText}>1</Text>
-                  </View>
-                  <View style={styles.stepContent}>
-                    <Text style={styles.stepTitle}>Revisa tu correo</Text>
-                    <Text style={styles.stepDescription}>
-                      Busca el correo de Barlive en tu bandeja de entrada
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.stepItem}>
-                  <View style={styles.stepNumber}>
-                    <Text style={styles.stepNumberText}>2</Text>
-                  </View>
-                  <View style={styles.stepContent}>
-                    <Text style={styles.stepTitle}>Haz clic en el enlace</Text>
-                    <Text style={styles.stepDescription}>
-                      Presiona el botón en el correo
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.stepItem}>
-                  <View style={styles.stepNumber}>
-                    <Text style={styles.stepNumberText}>3</Text>
-                  </View>
-                  <View style={styles.stepContent}>
-                    <Text style={styles.stepTitle}>Crea tu nueva contraseña</Text>
-                    <Text style={styles.stepDescription}>
-                      Ingresa una contraseña segura y confírmala
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.stepItem}>
-                  <View style={styles.stepNumber}>
-                    <Text style={styles.stepNumberText}>4</Text>
-                  </View>
-                  <View style={styles.stepContent}>
-                    <Text style={styles.stepTitle}>¡Listo!</Text>
-                    <Text style={styles.stepDescription}>
-                      Vuelve a Barlive e inicia sesión
-                    </Text>
-                  </View>
-                </View>
               </View>
 
               <View style={styles.inputContainer}>
@@ -531,6 +485,43 @@ export default function RecuperarPasswordV7Screen() {
                   </>
                 )}
               </TouchableOpacity>
+
+              <View style={styles.stepsBox}>
+                <Text style={styles.stepsTitle}>📋 Próximos pasos:</Text>
+                <View style={styles.stepItem}>
+                  <View style={styles.stepNumber}>
+                    <Text style={styles.stepNumberText}>1</Text>
+                  </View>
+                  <View style={styles.stepContent}>
+                    <Text style={styles.stepTitle}>Revisa tu correo</Text>
+                    <Text style={styles.stepDescription}>
+                      Busca el correo de Barlive en tu bandeja de entrada
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.stepItem}>
+                  <View style={styles.stepNumber}>
+                    <Text style={styles.stepNumberText}>2</Text>
+                  </View>
+                  <View style={styles.stepContent}>
+                    <Text style={styles.stepTitle}>Introduce el código</Text>
+                    <Text style={styles.stepDescription}>
+                      Ingresa el código de 6 dígitos que recibiste
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.stepItem}>
+                  <View style={styles.stepNumber}>
+                    <Text style={styles.stepNumberText}>3</Text>
+                  </View>
+                  <View style={styles.stepContent}>
+                    <Text style={styles.stepTitle}>Crea tu nueva contraseña</Text>
+                    <Text style={styles.stepDescription}>
+                      Ingresa una contraseña segura y confírmala
+                    </Text>
+                  </View>
+                </View>
+              </View>
 
               <View style={styles.securityNote}>
                 <IconSymbol
@@ -641,43 +632,6 @@ export default function RecuperarPasswordV7Screen() {
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.stepsBox}>
-                <Text style={styles.stepsTitle}>📋 Próximos pasos:</Text>
-                <View style={styles.stepItem}>
-                  <View style={styles.stepNumber}>
-                    <Text style={styles.stepNumberText}>1</Text>
-                  </View>
-                  <View style={styles.stepContent}>
-                    <Text style={styles.stepTitle}>Revisa tu correo</Text>
-                    <Text style={styles.stepDescription}>
-                      Busca el correo de Barlive en tu bandeja de entrada
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.stepItem}>
-                  <View style={styles.stepNumber}>
-                    <Text style={styles.stepNumberText}>2</Text>
-                  </View>
-                  <View style={styles.stepContent}>
-                    <Text style={styles.stepTitle}>Haz clic en el enlace</Text>
-                    <Text style={styles.stepDescription}>
-                      Presiona el botón en el correo
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.stepItem}>
-                  <View style={styles.stepNumber}>
-                    <Text style={styles.stepNumberText}>3</Text>
-                  </View>
-                  <View style={styles.stepContent}>
-                    <Text style={styles.stepTitle}>Crea tu nueva contraseña</Text>
-                    <Text style={styles.stepDescription}>
-                      Ingresa una contraseña segura y confírmala
-                    </Text>
-                  </View>
-                </View>
-              </View>
-
               <View style={styles.helpBox}>
                 <Text style={styles.helpTitle}>💡 Consejos:</Text>
                 <Text style={styles.helpText}>
@@ -687,7 +641,7 @@ export default function RecuperarPasswordV7Screen() {
                   • El código expira en 1 hora por seguridad
                 </Text>
                 <Text style={styles.helpText}>
-                  • Si no recibes el correo, puedes reenviarlo
+                  • Si no recibes el correo, puedes solicitar uno nuevo
                 </Text>
               </View>
 
