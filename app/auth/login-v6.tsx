@@ -365,7 +365,7 @@ export default function LoginV6Screen() {
           {/* Forgot Password */}
           <TouchableOpacity
             style={styles.forgotButton}
-            onPress={() => router.push('/auth/recuperar-password-v6')}
+            onPress={() => router.push('/auth/recuperar-password-v7')}
             disabled={loading}
           >
             <Text style={styles.forgotButtonText}>¿Olvidaste tu contraseña?</Text>
