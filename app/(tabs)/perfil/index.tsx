@@ -425,15 +425,20 @@ export default function PerfilScreen() {
 
       console.log('[Perfil] ✅ Loading user profile');
       
-      const { count: seguidoresCount } = await supabase
-        .from('seguidores')
-        .select('*', { count: 'exact', head: true })
-        .eq('seguido_id', user.id);
+      // ✅ FIXED: Use new database functions that include local follows
+      const { data: seguidoresData } = await supabase
+        .rpc('get_total_seguidores_count', { p_usuario_id: user.id });
 
-      const { count: seguidosCount } = await supabase
-        .from('seguidores')
-        .select('*', { count: 'exact', head: true })
-        .eq('seguidor_id', user.id);
+      const { data: seguidosData } = await supabase
+        .rpc('get_total_siguiendo_count', { p_usuario_id: user.id });
+
+      const seguidoresCount = seguidoresData || 0;
+      const seguidosCount = seguidosData || 0;
+
+      console.log('[Perfil] ✅ Follower counts (including locals):', {
+        seguidores: seguidoresCount,
+        siguiendo: seguidosCount,
+      });
 
       const { count: publicacionesCount } = await supabase
         .from('posts')

@@ -97,30 +97,27 @@ export default function UsuarioPerfilScreen() {
 
   const loadFollowerCounts = useCallback(async (targetUserId: string) => {
     try {
-      console.log('[UsuarioPerfil] 🔄 Loading follower counts from seguidores table...');
+      console.log('[UsuarioPerfil] 🔄 Loading follower counts (including locals)...');
 
-      const { count: seguidoresCount, error: seguidoresError } = await supabase
-        .from('seguidores')
-        .select('*', { count: 'exact', head: true })
-        .eq('seguido_id', targetUserId);
+      // ✅ FIXED: Use new database functions that include local follows
+      const { data: seguidoresData, error: seguidoresError } = await supabase
+        .rpc('get_total_seguidores_count', { p_usuario_id: targetUserId });
 
       if (seguidoresError) {
         console.error('[UsuarioPerfil] Error counting followers:', seguidoresError);
       }
 
-      const { count: seguidosCount, error: seguidosError } = await supabase
-        .from('seguidores')
-        .select('*', { count: 'exact', head: true })
-        .eq('seguidor_id', targetUserId);
+      const { data: seguidosData, error: seguidosError } = await supabase
+        .rpc('get_total_siguiendo_count', { p_usuario_id: targetUserId });
 
       if (seguidosError) {
         console.error('[UsuarioPerfil] Error counting following:', seguidosError);
       }
 
-      const actualSeguidores = seguidoresCount || 0;
-      const actualSeguidos = seguidosCount || 0;
+      const actualSeguidores = seguidoresData || 0;
+      const actualSeguidos = seguidosData || 0;
 
-      console.log('[UsuarioPerfil] ✅ Actual counts - Seguidores:', actualSeguidores, 'Seguidos:', actualSeguidos);
+      console.log('[UsuarioPerfil] ✅ Actual counts (including locals) - Seguidores:', actualSeguidores, 'Siguiendo:', actualSeguidos);
 
       const { error: updateError } = await supabase
         .from('usuarios')
