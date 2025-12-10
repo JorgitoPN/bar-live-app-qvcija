@@ -33,14 +33,14 @@ import FloatingTabBar, { TabBarItem } from '@/components/FloatingTabBar';
 import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
 import OfertaTrabajoCard from '@/components/empleo/OfertaTrabajoCard';
 import StoryStatsModal from '@/components/social/StoryStatsModal';
-import UnifiedStoryViewerV9 from '@/components/social/UnifiedStoryViewerV9';
+import UnifiedStoryViewerV10 from '@/components/social/UnifiedStoryViewerV10';
+import StoryAvatarV10 from '@/components/common/StoryAvatarV10';
 import { PROVINCIAS, getProvinceVariations, filterByProvincia } from '@/utils/provinceNormalizer';
 import EventBanner from '@/components/eventos/EventBanner';
 import { useLocalEvent } from '@/hooks/useLocalEvent';
-import { useStoryState } from '@/contexts/StoryStateContext';
 
-// ✅ VERSION MARKER - Force cache bust: v4.0.0 - Fixed story avatar functionality
-const SCREEN_VERSION = '4.0.0';
+// ✅ VERSION MARKER - Force cache bust: v10.0.0 - Using V10 story system
+const SCREEN_VERSION = '10.0.0';
 
 const { width, height } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -75,6 +75,15 @@ interface LocalStory {
     nombre: string;
     imagen_url?: string;
   };
+  autor?: {
+    id: string;
+    nombre: string;
+    username?: string;
+    avatar?: string;
+  };
+  autorNombre?: string;
+  autorAvatar?: string;
+  autorUsername?: string;
 }
 
 interface LocalEvent {
@@ -121,7 +130,6 @@ export default function LocalPerfilScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { user } = useAuth();
-  const { hasUnviewedStories } = useStoryState();
   
   const { 
     currentMode,
@@ -145,7 +153,7 @@ export default function LocalPerfilScreen() {
   const [ofertasTrabajo, setOfertasTrabajo] = useState<OfertaTrabajo[]>([]);
   const [loadingEmpleo, setLoadingEmpleo] = useState(false);
 
-  // ✅ FIXED: Use UnifiedStoryViewer component
+  // ✅ FIXED: Use UnifiedStoryViewerV10 component
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [localStories, setLocalStories] = useState<LocalStory[]>([]);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
@@ -321,7 +329,7 @@ export default function LocalPerfilScreen() {
     }
 
     try {
-      console.log('[LocalPerfil] ✅ Loading local data for:', localId);
+      console.log('[LocalPerfil] ✅ V10.0 - Loading local data for:', localId);
 
       const { data: localData, error: localError } = await supabase
         .from('locales')
@@ -410,50 +418,14 @@ export default function LocalPerfilScreen() {
         setContentLoaded(prev => ({ ...prev, eventos: true }));
       }
 
-      if (storiesResult.data && user) {
-        console.log('[LocalPerfil] ✅ Loaded', storiesResult.data.length, 'stories for local');
-        const storyIds = storiesResult.data.map(s => s.id);
+      if (storiesResult.data) {
+        console.log('[LocalPerfil] ✅ V10.0 - Loaded', storiesResult.data.length, 'stories for local');
         
-        const [viewedData, viewsCountData, likesCountData, likedData] = await Promise.all([
-          supabase
-            .from('historia_views')
-            .select('historia_id')
-            .eq('usuario_id', user.id)
-            .in('historia_id', storyIds),
-          supabase
-            .from('historia_views')
-            .select('historia_id')
-            .in('historia_id', storyIds),
-          supabase
-            .from('historia_likes')
-            .select('historia_id')
-            .in('historia_id', storyIds),
-          supabase
-            .from('historia_likes')
-            .select('historia_id')
-            .eq('usuario_id', user.id)
-            .in('historia_id', storyIds),
-        ]);
-
-        const viewedStoryIds = new Set(viewedData.data?.map(v => v.historia_id) || []);
-        const likedStoryIds = new Set(likedData.data?.map(l => l.historia_id) || []);
-        
-        const viewsCounts = viewsCountData.data?.reduce((acc, v) => {
-          acc[v.historia_id] = (acc[v.historia_id] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>) || {};
-        
-        const likesCounts = likesCountData.data?.reduce((acc, l) => {
-          acc[l.historia_id] = (acc[l.historia_id] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>) || {};
-
-        const storiesWithStatus = storiesResult.data.map(story => ({
+        // ✅ Format stories with proper author data for V10 viewer
+        const storiesWithAuthor = storiesResult.data.map(story => ({
           ...story,
-          visto_por_usuario: viewedStoryIds.has(story.id),
-          views_count: viewsCounts[story.id] || 0,
-          likes_count: likesCounts[story.id] || 0,
-          liked_by_user: likedStoryIds.has(story.id),
+          autorNombre: localData.nombre,
+          autorAvatar: localData.imagen_url,
           local: {
             id: localData.id,
             nombre: localData.nombre,
@@ -461,22 +433,15 @@ export default function LocalPerfilScreen() {
           },
         }));
 
-        setLocalStories(storiesWithStatus);
-      } else if (storiesResult.data) {
-        setLocalStories(storiesResult.data.map(story => ({
-          ...story,
-          local: {
-            id: localData.id,
-            nombre: localData.nombre,
-            imagen_url: localData.imagen_url,
-          },
-        })));
+        setLocalStories(storiesWithAuthor);
+      } else {
+        setLocalStories([]);
       }
 
       setIsFavorito(!!favResult.data);
       setContentLoaded(prev => ({ ...prev, info: true }));
 
-      console.log('[LocalPerfil] ✅ Local data loaded successfully');
+      console.log('[LocalPerfil] ✅ V10.0 - Local data loaded successfully');
     } catch (error) {
       console.error('[LocalPerfil] Error loading data:', error);
     } finally {
@@ -779,16 +744,18 @@ export default function LocalPerfilScreen() {
     }
   };
 
-  // ✅ FIXED: Handle avatar press - view stories or create new story
+  // ✅ FIXED: Handle avatar press - view stories or create new story - V10
   const handleAvatarPress = useCallback(() => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para ver historias');
       return;
     }
 
+    console.log('[LocalPerfil] V10.0 - Avatar pressed. Stories count:', localStories.length);
+
     if (localStories.length > 0) {
       // View existing stories
-      console.log('[LocalPerfil] 📖 Opening story viewer with', localStories.length, 'stories');
+      console.log('[LocalPerfil] ✅ V10.0 - Opening story viewer with', localStories.length, 'stories');
       setCurrentStoryIndex(0);
       setShowStoryViewer(true);
     } else if (isOwner) {
@@ -931,11 +898,9 @@ export default function LocalPerfilScreen() {
 
   const estado = getEstadoLocal(local);
   const hasActiveStory = localStories.length > 0;
-  const showStoryOutline = hasActiveStory && hasUnviewedStories(localId, localStories);
 
-  console.log('[LocalPerfil] 👁️ Story outline status:', {
+  console.log('[LocalPerfil] 👁️ V10.0 - Story status:', {
     hasActiveStory,
-    showStoryOutline,
     storiesCount: localStories.length,
   });
 
@@ -1019,27 +984,17 @@ export default function LocalPerfilScreen() {
             ]}
           >
             <View style={styles.profileHeader}>
-              <TouchableOpacity 
-                style={styles.avatarContainer}
-                onPress={handleAvatarPress}
-                activeOpacity={0.8}
-              >
-                {/* ✅ INSTAGRAM-STYLE: Show outline for unviewed stories */}
-                {showStoryOutline && (
-                  <LinearGradient
-                    colors={[colors.primary, colors.secondary]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.storyRing}
-                  />
-                )}
-                {local.imagen_url ? (
-                  <Image source={{ uri: local.imagen_url }} style={styles.avatar} />
-                ) : (
-                  <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                    <IconSymbol ios_icon_name="building.2" android_material_icon_name="store" size={40} color={colors.headerText} />
-                  </View>
-                )}
+              {/* ✅ FIXED: Use StoryAvatarV10 component */}
+              <View style={styles.avatarContainer}>
+                <StoryAvatarV10
+                  userId={localId}
+                  userStories={localStories}
+                  avatarUrl={local.imagen_url}
+                  userName={local.nombre}
+                  size={88}
+                  onPress={handleAvatarPress}
+                  showLabel={false}
+                />
                 {/* ✅ NEW: Always show '+' icon for owners to add stories */}
                 {isOwner && (
                   <TouchableOpacity 
@@ -1057,7 +1012,7 @@ export default function LocalPerfilScreen() {
                     </LinearGradient>
                   </TouchableOpacity>
                 )}
-              </TouchableOpacity>
+              </View>
               <View style={styles.profileInfo}>
                 <Text style={styles.profileName}>{local.nombre}</Text>
                 {categoriasLocal.length > 0 && (
@@ -1474,21 +1429,21 @@ export default function LocalPerfilScreen() {
         </View>
       </ScrollView>
 
-      {/* ✅ UNIFIED STORY VIEWER V9.0 */}
-      <UnifiedStoryViewerV9
+      {/* ✅ UNIFIED STORY VIEWER V10.0 - INSTAGRAM-STYLE WITH AUTO-CLOSE */}
+      <UnifiedStoryViewerV10
         visible={showStoryViewer}
         stories={localStories}
         initialIndex={currentStoryIndex}
         onClose={() => {
-          console.log('[LocalPerfil] Closing story viewer');
+          console.log('[LocalPerfil] V10.0 - Closing story viewer');
           setShowStoryViewer(false);
         }}
         onStoryChange={(index) => {
-          console.log('[LocalPerfil] Story changed to index:', index);
+          console.log('[LocalPerfil] V10.0 - Story changed to index:', index);
           setCurrentStoryIndex(index);
         }}
         onStoryDelete={async (storyId) => {
-          console.log('[LocalPerfil] Story deleted:', storyId);
+          console.log('[LocalPerfil] V10.0 - Story deleted:', storyId);
           await loadLocalData();
         }}
       />
@@ -1772,28 +1727,6 @@ const styles = StyleSheet.create({
   avatarContainer: {
     position: 'relative',
     marginRight: 20,
-  },
-  storyRing: {
-    position: 'absolute',
-    top: -4,
-    left: -4,
-    right: -4,
-    bottom: -4,
-    borderRadius: 48,
-    zIndex: 0,
-  },
-  avatar: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    borderWidth: 4,
-    borderColor: colors.headerText,
-    zIndex: 1,
-  },
-  avatarPlaceholder: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   // ✅ NEW: Add story button styles (matching user profile)
   addStoryButton: {
@@ -2299,6 +2232,11 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 28,
     marginRight: 12,
+  },
+  avatarPlaceholder: {
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   avatarText: {
     fontSize: 20,

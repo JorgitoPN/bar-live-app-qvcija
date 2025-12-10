@@ -28,6 +28,7 @@ export function StoryStateProvider({ children }: { children: React.ReactNode }) 
   const [viewedStoryIds, setViewedStoryIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastRefreshTime = useRef<number>(0);
 
   // Load viewed stories on mount and when user changes
   useEffect(() => {
@@ -40,6 +41,14 @@ export function StoryStateProvider({ children }: { children: React.ReactNode }) 
 
   const loadViewedStories = async () => {
     if (!user || loading) return;
+
+    // ✅ Prevent excessive refreshes (max once per second)
+    const now = Date.now();
+    if (now - lastRefreshTime.current < 1000) {
+      console.log('[StoryStateV10] ⏭️ Skipping refresh - too soon');
+      return;
+    }
+    lastRefreshTime.current = now;
 
     setLoading(true);
     try {

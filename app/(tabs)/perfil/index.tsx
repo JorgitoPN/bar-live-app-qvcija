@@ -28,7 +28,6 @@ import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
 import UnifiedStoryViewerV10 from '@/components/social/UnifiedStoryViewerV10';
 import StoryAvatarV10 from '@/components/common/StoryAvatarV10';
-import { useStoryState } from '@/contexts/StoryStateContextV10';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -67,7 +66,6 @@ interface PerfilProfesional {
 export default function PerfilScreen() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const { hasUnviewedStories, markStoriesAsViewed } = useStoryState();
   const { 
     currentMode, 
     ownedLocals,
@@ -423,19 +421,26 @@ export default function PerfilScreen() {
 
       await loadUnreadCounts();
 
-      console.log('[Perfil] ✅ Loading user profile');
+      console.log('[Perfil] ✅ V10.0 - Loading user profile with updated functions');
       
-      // ✅ FIXED: Use new database functions that include local follows
-      const { data: seguidoresData } = await supabase
+      // ✅ FIXED: Use updated database functions that include local follows
+      const { data: seguidoresData, error: seguidoresError } = await supabase
         .rpc('get_total_seguidores_count', { p_usuario_id: user.id });
 
-      const { data: seguidosData } = await supabase
+      const { data: seguidosData, error: seguidosError } = await supabase
         .rpc('get_total_siguiendo_count', { p_usuario_id: user.id });
+
+      if (seguidoresError) {
+        console.error('[Perfil] Error loading seguidores count:', seguidoresError);
+      }
+      if (seguidosError) {
+        console.error('[Perfil] Error loading seguidos count:', seguidosError);
+      }
 
       const seguidoresCount = seguidoresData || 0;
       const seguidosCount = seguidosData || 0;
 
-      console.log('[Perfil] ✅ Follower counts (including locals):', {
+      console.log('[Perfil] ✅ V10.0 - Follower counts (including locals):', {
         seguidores: seguidoresCount,
         siguiendo: seguidosCount,
       });
@@ -700,7 +705,7 @@ export default function PerfilScreen() {
           <View style={styles.statDivider} />
           <TouchableOpacity style={styles.statItem} onPress={handleSeguidos}>
             <Text style={styles.statNumber}>{seguidos}</Text>
-            <Text style={styles.statLabel}>Seguidos</Text>
+            <Text style={styles.statLabel}>Siguiendo</Text>
           </TouchableOpacity>
         </View>
 
