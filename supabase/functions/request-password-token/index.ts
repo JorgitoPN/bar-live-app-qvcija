@@ -21,9 +21,13 @@ serve(async (req) => {
   }
 
   try {
+    console.log('[RequestPasswordToken] ═══════════════════════════════════════');
+    console.log('[RequestPasswordToken] 🚀 Starting password token request');
+    
     const { email } = await req.json();
 
     if (!email) {
+      console.error('[RequestPasswordToken] ❌ No email provided');
       return new Response(
         JSON.stringify({ error: 'Email is required' }),
         {
@@ -37,7 +41,24 @@ serve(async (req) => {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
-    console.log('[RequestPasswordToken] Processing request for:', normalizedEmail);
+    console.log('[RequestPasswordToken] 📧 Email:', normalizedEmail);
+
+    // Check if RESEND_API_KEY is configured
+    if (!RESEND_API_KEY) {
+      console.error('[RequestPasswordToken] ❌ RESEND_API_KEY not configured');
+      return new Response(
+        JSON.stringify({ error: 'Email service not configured' }),
+        {
+          status: 500,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+          },
+        }
+      );
+    }
+
+    console.log('[RequestPasswordToken] ✅ RESEND_API_KEY is configured');
 
     // Create Supabase Admin client
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
@@ -51,13 +72,14 @@ serve(async (req) => {
     const { data: userData, error: userError } = await supabaseAdmin.auth.admin.listUsers();
     
     if (userError) {
-      console.error('[RequestPasswordToken] Error fetching users:', userError);
+      console.error('[RequestPasswordToken] ❌ Error fetching users:', userError);
     }
 
     const userExists = userData?.users?.some(u => u.email?.toLowerCase() === normalizedEmail);
+    console.log('[RequestPasswordToken] 👤 User exists:', userExists);
 
     if (!userExists) {
-      console.log('[RequestPasswordToken] User not found, but returning success for security');
+      console.log('[RequestPasswordToken] ⚠️ User not found, but returning success for security');
       // Return success anyway to not reveal if email exists
       return new Response(
         JSON.stringify({ success: true }),
@@ -73,9 +95,9 @@ serve(async (req) => {
 
     // Generate 6-digit token
     const token = Math.floor(100000 + Math.random() * 900000).toString();
-    console.log('[RequestPasswordToken] Generated token:', token);
+    console.log('[RequestPasswordToken] 🔑 Generated token:', token);
 
-    // Store token in database with 1-hour expiration (as shown in the email template)
+    // Store token in database with 1-hour expiration
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
     
     const { error: insertError } = await supabaseAdmin
@@ -88,7 +110,7 @@ serve(async (req) => {
       });
 
     if (insertError) {
-      console.error('[RequestPasswordToken] Error storing token:', insertError);
+      console.error('[RequestPasswordToken] ❌ Error storing token:', insertError);
       return new Response(
         JSON.stringify({ error: 'Failed to generate token' }),
         {
@@ -100,6 +122,8 @@ serve(async (req) => {
         }
       );
     }
+
+    console.log('[RequestPasswordToken] ✅ Token stored in database');
 
     // Send email with token using Resend
     const emailHtml = `
@@ -229,6 +253,10 @@ serve(async (req) => {
 </html>
     `;
 
+    console.log('[RequestPasswordToken] 📧 Sending email via Resend...');
+    console.log('[RequestPasswordToken] 📧 From: Barlive <noreply@barliveapp.es>');
+    console.log('[RequestPasswordToken] 📧 To:', normalizedEmail);
+
     const emailResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -243,11 +271,31 @@ serve(async (req) => {
       }),
     });
 
+    const emailResponseText = await emailResponse.text();
+    console.log('[RequestPasswordToken] 📧 Resend API Response Status:', emailResponse.status);
+    console.log('[RequestPasswordToken] 📧 Resend API Response Body:', emailResponseText);
+
     if (!emailResponse.ok) {
-      const errorText = await emailResponse.text();
-      console.error('[RequestPasswordToken] Error sending email:', errorText);
+      console.error('[RequestPasswordToken] ❌ Resend API Error');
+      console.error('[RequestPasswordToken] ❌ Status:', emailResponse.status);
+      console.error('[RequestPasswordToken] ❌ Response:', emailResponseText);
+      
+      // Parse error message
+      let errorMessage = 'Failed to send email';
+      try {
+        const errorData = JSON.parse(emailResponseText);
+        errorMessage = errorData.message || errorData.error || errorMessage;
+        console.error('[RequestPasswordToken] ❌ Parsed Error:', errorMessage);
+      } catch (e) {
+        console.error('[RequestPasswordToken] ❌ Could not parse error response');
+      }
+
       return new Response(
-        JSON.stringify({ error: 'Failed to send email' }),
+        JSON.stringify({ 
+          error: 'Failed to send email',
+          details: errorMessage,
+          status: emailResponse.status
+        }),
         {
           status: 500,
           headers: {
@@ -258,7 +306,8 @@ serve(async (req) => {
       );
     }
 
-    console.log('[RequestPasswordToken] ✅ Token sent successfully');
+    console.log('[RequestPasswordToken] ✅ Email sent successfully via Resend');
+    console.log('[RequestPasswordToken] ═══════════════════════════════════════');
 
     return new Response(
       JSON.stringify({ success: true }),
@@ -271,10 +320,16 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('[RequestPasswordToken] Unexpected error:', error);
+    console.error('[RequestPasswordToken] ═══════════════════════════════════════');
+    console.error('[RequestPasswordToken] ❌ UNEXPECTED ERROR');
+    console.error('[RequestPasswordToken] ❌ Error:', error);
+    console.error('[RequestPasswordToken] ❌ Stack:', error.stack);
+    console.error('[RequestPasswordToken] ═══════════════════════════════════════');
+    
     return new Response(
       JSON.stringify({ 
         error: error.message || 'Internal server error',
+        type: error.name || 'UnknownError'
       }),
       {
         status: 500,
