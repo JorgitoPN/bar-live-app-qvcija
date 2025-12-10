@@ -57,30 +57,6 @@ export default function SharePostModal({
   const [sending, setSending] = useState(false);
   const [selectedRecipients, setSelectedRecipients] = useState<Set<string>>(new Set());
 
-  // ✅ FIXED: Predictive search - filter as user types
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      // Show all users and locals when no search query
-      setFilteredResults([...allUsers, ...allLocals]);
-      return;
-    }
-
-    const query = searchQuery.toLowerCase().trim();
-    
-    // Filter users by name or username (without @ prefix)
-    const filteredUsers = allUsers.filter(u =>
-      u.nombre.toLowerCase().includes(query) ||
-      u.username?.toLowerCase().includes(query)
-    );
-
-    // Filter locals by name
-    const filteredLocals = allLocals.filter(l =>
-      l.nombre.toLowerCase().includes(query)
-    );
-
-    setFilteredResults([...filteredUsers, ...filteredLocals]);
-  }, [searchQuery, allUsers, allLocals]);
-
   // ✅ FIXED: Define loadRecipients with useCallback BEFORE using it in useEffect
   const loadRecipients = useCallback(async () => {
     if (!user) {
@@ -163,6 +139,30 @@ export default function SharePostModal({
       loadRecipients();
     }
   }, [visible, loadRecipients]);
+
+  // ✅ FIXED: Predictive search - filter as user types
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      // Show all users and locals when no search query
+      setFilteredResults([...allUsers, ...allLocals]);
+      return;
+    }
+
+    const query = searchQuery.toLowerCase().trim();
+    
+    // Filter users by name or username (without @ prefix)
+    const filteredUsers = allUsers.filter(u =>
+      u.nombre.toLowerCase().includes(query) ||
+      u.username?.toLowerCase().includes(query)
+    );
+
+    // Filter locals by name
+    const filteredLocals = allLocals.filter(l =>
+      l.nombre.toLowerCase().includes(query)
+    );
+
+    setFilteredResults([...filteredUsers, ...filteredLocals]);
+  }, [searchQuery, allUsers, allLocals]);
 
   const handleShare = async () => {
     if (!user || selectedRecipients.size === 0 || sending) {

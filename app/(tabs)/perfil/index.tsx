@@ -26,8 +26,8 @@ import { useMode } from '@/contexts/ModeContext';
 import { supabase } from '@/utils/supabase';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
-import UnifiedStoryViewerV9 from '@/components/social/UnifiedStoryViewerV9';
-import StoryAvatar from '@/components/common/StoryAvatar';
+import UnifiedStoryViewerV10 from '@/components/social/UnifiedStoryViewerV10';
+import StoryAvatarV10 from '@/components/common/StoryAvatarV10';
 import { useStoryState } from '@/contexts/StoryStateContextV10';
 
 const { width } = Dimensions.get('window');
@@ -99,7 +99,7 @@ export default function PerfilScreen() {
   const [userStories, setUserStories] = useState<any[]>([]);
   const [loadingStories, setLoadingStories] = useState(false);
   
-  // ✅ Story viewer state
+  // ✅ Story viewer state - USING V10 NOW
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
 
@@ -370,7 +370,7 @@ export default function PerfilScreen() {
 
     setLoadingStories(true);
     try {
-      console.log('[Perfil] 📖 Loading stories for user:', user.id);
+      console.log('[Perfil] 📖 V10.0 - Loading stories for user:', user.id);
       
       const { data: userStoriesData, error } = await supabase
         .from('historias')
@@ -388,7 +388,7 @@ export default function PerfilScreen() {
       }
 
       if (userStoriesData && userStoriesData.length > 0) {
-        console.log('[Perfil] ✅ Loaded', userStoriesData.length, 'user stories');
+        console.log('[Perfil] ✅ V10.0 - Loaded', userStoriesData.length, 'user stories');
         
         const storiesWithAuthor = userStoriesData.map(story => ({
           ...story,
@@ -465,7 +465,7 @@ export default function PerfilScreen() {
   useEffect(() => {
     if (!authLoading) {
       if (user) {
-        console.log('[Perfil] ✅ Loading user profile');
+        console.log('[Perfil] ✅ V10.0 - Loading user profile');
         cargarDatosPerfil();
       } else {
         setLoading(false);
@@ -565,18 +565,18 @@ export default function PerfilScreen() {
     router.push(`/empleo/perfil-detalle?id=${perfilProfesional.id}`);
   };
 
-  // ✅ FIXED: Handle avatar press to view stories or create new one
+  // ✅ FIXED: Handle avatar press to view stories or create new one - V10
   const handleAvatarPress = useCallback(() => {
     if (!user) {
       setShowLoginModal(true);
       return;
     }
     
-    console.log('[Perfil] Avatar pressed. Stories count:', userStories.length);
+    console.log('[Perfil] V10.0 - Avatar pressed. Stories count:', userStories.length);
     
     if (userStories.length > 0) {
       // View existing stories
-      console.log('[Perfil] ✅ Opening story viewer with', userStories.length, 'stories');
+      console.log('[Perfil] ✅ V10.0 - Opening story viewer with', userStories.length, 'stories');
       setCurrentStoryIndex(0);
       setShowStoryViewer(true);
     } else {
@@ -626,13 +626,13 @@ export default function PerfilScreen() {
     return (
       <View style={styles.profileSection}>
         <View style={styles.profileHeader}>
-          {/* ✅ FIXED: Use StoryAvatar component with proper story data */}
+          {/* ✅ FIXED: Use StoryAvatarV10 component with proper story data */}
           {loadingStories ? (
             <View style={styles.avatarLoadingContainer}>
               <ActivityIndicator size="small" color={colors.primary} />
             </View>
           ) : (
-            <StoryAvatar
+            <StoryAvatarV10
               userId={user?.id || ''}
               userStories={userStories}
               avatarUrl={displayAvatar}
@@ -1091,21 +1091,21 @@ export default function PerfilScreen() {
         onClose={() => setShowProfileSwitcher(false)}
       />
 
-      {/* ✅ UNIFIED STORY VIEWER V9.0 */}
-      <UnifiedStoryViewerV9
+      {/* ✅ UNIFIED STORY VIEWER V10.0 - INSTAGRAM-STYLE WITH AUTO-CLOSE */}
+      <UnifiedStoryViewerV10
         visible={showStoryViewer}
         stories={userStories}
         initialIndex={currentStoryIndex}
         onClose={() => {
-          console.log('[Perfil] Closing story viewer');
+          console.log('[Perfil] V10.0 - Closing story viewer');
           setShowStoryViewer(false);
         }}
         onStoryChange={(index) => {
-          console.log('[Perfil] Story changed to index:', index);
+          console.log('[Perfil] V10.0 - Story changed to index:', index);
           setCurrentStoryIndex(index);
         }}
         onStoryDelete={async (storyId) => {
-          console.log('[Perfil] Story deleted:', storyId);
+          console.log('[Perfil] V10.0 - Story deleted:', storyId);
           await cargarHistorias();
         }}
       />
