@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -57,38 +57,8 @@ export default function SharePostModal({
   const [sending, setSending] = useState(false);
   const [selectedRecipients, setSelectedRecipients] = useState<Set<string>>(new Set());
 
-  // ✅ Fixed: Added loadRecipients to dependencies
-  useEffect(() => {
-    if (visible) {
-      loadRecipients();
-    }
-  }, [visible, loadRecipients]);
-
-  // ✅ FIXED: Predictive search - filter as user types
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      // Show all users and locals when no search query
-      setFilteredResults([...allUsers, ...allLocals]);
-      return;
-    }
-
-    const query = searchQuery.toLowerCase().trim();
-    
-    // Filter users by name or username (without @ prefix)
-    const filteredUsers = allUsers.filter(u =>
-      u.nombre.toLowerCase().includes(query) ||
-      u.username?.toLowerCase().includes(query)
-    );
-
-    // Filter locals by name
-    const filteredLocals = allLocals.filter(l =>
-      l.nombre.toLowerCase().includes(query)
-    );
-
-    setFilteredResults([...filteredUsers, ...filteredLocals]);
-  }, [searchQuery, allUsers, allLocals]);
-
-  const loadRecipients = async () => {
+  // ✅ FIXED: Define loadRecipients with useCallback BEFORE using it
+  const loadRecipients = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -153,7 +123,38 @@ export default function SharePostModal({
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  // ✅ FIXED: Now loadRecipients is defined before being used
+  useEffect(() => {
+    if (visible) {
+      loadRecipients();
+    }
+  }, [visible, loadRecipients]);
+
+  // ✅ FIXED: Predictive search - filter as user types
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      // Show all users and locals when no search query
+      setFilteredResults([...allUsers, ...allLocals]);
+      return;
+    }
+
+    const query = searchQuery.toLowerCase().trim();
+    
+    // Filter users by name or username (without @ prefix)
+    const filteredUsers = allUsers.filter(u =>
+      u.nombre.toLowerCase().includes(query) ||
+      u.username?.toLowerCase().includes(query)
+    );
+
+    // Filter locals by name
+    const filteredLocals = allLocals.filter(l =>
+      l.nombre.toLowerCase().includes(query)
+    );
+
+    setFilteredResults([...filteredUsers, ...filteredLocals]);
+  }, [searchQuery, allUsers, allLocals]);
 
   const handleShare = async () => {
     if (!user || selectedRecipients.size === 0 || sending) {

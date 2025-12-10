@@ -45,7 +45,7 @@ export default function SeguidosScreen() {
     try {
       console.log('[Seguidos] 📥 Loading seguidos for user:', userId);
 
-      // ✅ Use the new database function for better performance
+      // ✅ Use the database function for better performance
       const { data, error } = await supabase
         .rpc('get_user_seguidos', { p_usuario_id: userId });
 
@@ -58,16 +58,32 @@ export default function SeguidosScreen() {
 
       console.log('[Seguidos] Raw data from function:', data);
 
-      // ✅ Format the data
-      const formattedSeguidos: Seguido[] = (data || []).map((item: any) => ({
-        id: item.seguido_id,
-        nombre: item.nombre,
-        username: item.username,
-        avatar: item.avatar,
-        bio: item.bio,
-        tipo: item.tipo as 'usuario' | 'local',
-        localId: item.local_id,
-      }));
+      // ✅ Format the data - handle both user and local follows
+      const formattedSeguidos: Seguido[] = (data || []).map((item: any) => {
+        if (item.tipo === 'local') {
+          // Local profile follow
+          return {
+            id: item.local_id,
+            nombre: item.nombre || item.local_nombre,
+            username: undefined,
+            avatar: item.avatar || item.local_imagen,
+            bio: item.bio,
+            tipo: 'local' as const,
+            localId: item.local_id,
+          };
+        } else {
+          // User follow
+          return {
+            id: item.seguido_id,
+            nombre: item.nombre,
+            username: item.username,
+            avatar: item.avatar,
+            bio: item.bio,
+            tipo: 'usuario' as const,
+            localId: undefined,
+          };
+        }
+      });
 
       setSeguidos(formattedSeguidos);
       
