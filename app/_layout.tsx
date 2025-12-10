@@ -5,7 +5,7 @@ import { GlobalDataProvider } from '@/contexts/GlobalDataContext';
 import { ModeProvider } from '@/contexts/ModeContext';
 import { SelectedLocalProvider } from '@/contexts/SelectedLocalContext';
 import { WidgetProvider } from '@/contexts/WidgetContext';
-import { StoryStateProvider } from '@/contexts/StoryStateContextV10';
+import { StoryStateProvider } from '@/contexts/StoryStateContextV11';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
