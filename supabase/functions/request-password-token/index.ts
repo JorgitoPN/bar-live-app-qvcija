@@ -22,13 +22,31 @@ serve(async (req) => {
 
   try {
     console.log('[RequestPasswordToken] ═══════════════════════════════════════');
-    console.log('[RequestPasswordToken] 🚀 Starting password reset request');
+    console.log('[RequestPasswordToken] 🚀 Iniciando solicitud de token de contraseña');
+    console.log('[RequestPasswordToken] 📅 Marca de tiempo:', new Date().toISOString());
+    
+    // Check environment variables
+    console.log('[RequestPasswordToken] 🔍 Comprobando variables de entorno...');
+    console.log('[RequestPasswordToken] SUPABASE_URL:', SUPABASE_URL ? '✅ Establecer' : '❌ No establecer');
+    console.log('[RequestPasswordToken] SUPABASE_SERVICE_ROLE_KEY:', SUPABASE_SERVICE_ROLE_KEY ? '✅ Establecer' : '❌ No establecer');
+    console.log('[RequestPasswordToken] RESEND_API_KEY:', RESEND_API_KEY ? '✅ Establecer' : '❌ No establecer');
+    
+    if (RESEND_API_KEY) {
+      const keyPrefix = RESEND_API_KEY.substring(0, 10);
+      console.log('[RequestPasswordToken] 📧 RESEND_API_KEY (primeros 10 caracteres):', keyPrefix + '...');
+      
+      // Validate API key format
+      if (!RESEND_API_KEY.startsWith('re_')) {
+        console.error('[RequestPasswordToken] ⚠️ ADVERTENCIA: La clave API de Resend no comienza con "re_"');
+        console.error('[RequestPasswordToken] ⚠️ Esto podría indicar una clave API inválida o incorrecta');
+      }
+    }
     
     // Check if RESEND_API_KEY is configured
     if (!RESEND_API_KEY) {
-      console.error('[RequestPasswordToken] ❌ RESEND_API_KEY is not configured!');
+      console.error('[RequestPasswordToken] ❌ RESEND_API_KEY no está configurado!');
       return new Response(
-        JSON.stringify({ error: 'Email service not configured' }),
+        JSON.stringify({ error: 'Servicio de correo electrónico no configurado' }),
         {
           status: 500,
           headers: { 
@@ -42,9 +60,9 @@ serve(async (req) => {
     const { email } = await req.json();
 
     if (!email) {
-      console.error('[RequestPasswordToken] ❌ No email provided');
+      console.error('[RequestPasswordToken] ❌ No se proporcionó correo electrónico');
       return new Response(
-        JSON.stringify({ error: 'Email is required' }),
+        JSON.stringify({ error: 'El correo electrónico es obligatorio' }),
         {
           status: 400,
           headers: { 
@@ -56,7 +74,7 @@ serve(async (req) => {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
-    console.log('[RequestPasswordToken] 📧 Email:', normalizedEmail);
+    console.log('[RequestPasswordToken] 📧 Correo electrónico:', normalizedEmail);
 
     // Create Supabase Admin client
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
@@ -67,17 +85,18 @@ serve(async (req) => {
     });
 
     // Check if user exists (don't reveal this to the client for security)
+    console.log('[RequestPasswordToken] 🔍 Comprobando si el usuario existe...');
     const { data: userData, error: userError } = await supabaseAdmin.auth.admin.listUsers();
     
     if (userError) {
-      console.error('[RequestPasswordToken] ❌ Error fetching users:', userError);
+      console.error('[RequestPasswordToken] ❌ Error al obtener usuarios:', userError);
     }
 
     const userExists = userData?.users?.some(u => u.email?.toLowerCase() === normalizedEmail);
-    console.log('[RequestPasswordToken] 👤 User exists:', userExists);
+    console.log('[RequestPasswordToken] 👤 El usuario existe:', userExists ? 'verdadero' : 'falso');
 
     if (!userExists) {
-      console.log('[RequestPasswordToken] ⚠️ User not found, but returning success for security');
+      console.log('[RequestPasswordToken] ⚠️ Usuario no encontrado, pero devolviendo éxito por seguridad');
       // Return success anyway to not reveal if email exists
       return new Response(
         JSON.stringify({ success: true }),
@@ -93,12 +112,13 @@ serve(async (req) => {
 
     // Generate 6-digit token
     const token = Math.floor(100000 + Math.random() * 900000).toString();
-    console.log('[RequestPasswordToken] 🔑 Generated token:', token);
+    console.log('[RequestPasswordToken] 🔑 Token generado:', token);
 
     // Store token in database with 1-hour expiration
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    console.log('[RequestPasswordToken] ⏰ El token vence el:', expiresAt);
     
-    console.log('[RequestPasswordToken] 💾 Storing token in database...');
+    console.log('[RequestPasswordToken] 💾 Almacenando token en la base de datos...');
     const { error: insertError } = await supabaseAdmin
       .from('password_tokens')
       .insert({
@@ -109,9 +129,9 @@ serve(async (req) => {
       });
 
     if (insertError) {
-      console.error('[RequestPasswordToken] ❌ Error storing token:', insertError);
+      console.error('[RequestPasswordToken] ❌ Error al almacenar el token:', insertError);
       return new Response(
-        JSON.stringify({ error: 'Failed to generate token' }),
+        JSON.stringify({ error: 'Error al generar el token' }),
         {
           status: 500,
           headers: {
@@ -122,7 +142,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('[RequestPasswordToken] ✅ Token stored successfully');
+    console.log('[RequestPasswordToken] ✅ Token almacenado en la base de datos');
 
     // Send email with token using Resend
     const emailHtml = `
@@ -252,18 +272,18 @@ serve(async (req) => {
 </html>
     `;
 
-    console.log('[RequestPasswordToken] 📧 Sending email via Resend...');
-    console.log('[RequestPasswordToken] 📧 From: Barlive <noreply@barliveapp.es>');
-    console.log('[RequestPasswordToken] 📧 To:', normalizedEmail);
+    console.log('[RequestPasswordToken] 📧 Enviando correo electrónico a través de Reenviar...');
+    console.log('[RequestPasswordToken] 📧 De: BarLive <noreply@barliveapp.es>');
+    console.log('[RequestPasswordToken] 📧 Para:', normalizedEmail);
 
     const emailPayload = {
-      from: 'Barlive <noreply@barliveapp.es>',
+      from: 'BarLive <noreply@barliveapp.es>',
       to: [normalizedEmail],
       subject: '🔐 Código de Recuperación de Contraseña - Barlive',
       html: emailHtml,
     };
 
-    console.log('[RequestPasswordToken] 📦 Email payload prepared');
+    console.log('[RequestPasswordToken] 📦 Carga útil de correo electrónico preparada');
 
     const emailResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -274,26 +294,48 @@ serve(async (req) => {
       body: JSON.stringify(emailPayload),
     });
 
-    console.log('[RequestPasswordToken] 📬 Resend API response status:', emailResponse.status);
+    console.log('[RequestPasswordToken] 📧 Estado de respuesta de API de reenvío:', emailResponse.status);
 
     if (!emailResponse.ok) {
       const errorText = await emailResponse.text();
-      console.error('[RequestPasswordToken] ❌ Resend API error response:', errorText);
-      console.error('[RequestPasswordToken] ❌ Response status:', emailResponse.status);
-      console.error('[RequestPasswordToken] ❌ Response headers:', JSON.stringify(Object.fromEntries(emailResponse.headers.entries())));
+      console.error('[RequestPasswordToken] ❌ Error de API de reenvío');
+      console.error('[RequestPasswordToken] ❌ Estado:', emailResponse.status);
+      console.error('[RequestPasswordToken] 📧 Reenviar el cuerpo de la respuesta de la API:', errorText);
       
       // Parse error details if possible
+      let parsedError = null;
       try {
-        const errorJson = JSON.parse(errorText);
-        console.error('[RequestPasswordToken] ❌ Parsed error:', JSON.stringify(errorJson, null, 2));
+        parsedError = JSON.parse(errorText);
+        console.error('[RequestPasswordToken] ❌ Error analizado:', JSON.stringify(parsedError, null, 2));
+        
+        // Provide specific error messages
+        if (emailResponse.status === 401) {
+          console.error('[RequestPasswordToken] ❌ ERROR 401: La clave API de Resend no es válida o ha expirado');
+          console.error('[RequestPasswordToken] ❌ SOLUCIÓN: Actualiza RESEND_API_KEY en Supabase Dashboard → Project Settings → Edge Functions → Secrets');
+          console.error('[RequestPasswordToken] ❌ Obtén una nueva clave API de: https://resend.com/api-keys');
+        } else if (emailResponse.status === 403) {
+          console.error('[RequestPasswordToken] ❌ ERROR 403: El dominio no está verificado o no tienes permisos');
+          console.error('[RequestPasswordToken] ❌ SOLUCIÓN: Verifica el dominio barliveapp.es en Resend Dashboard');
+        } else if (emailResponse.status === 422) {
+          console.error('[RequestPasswordToken] ❌ ERROR 422: Datos de correo electrónico inválidos');
+          console.error('[RequestPasswordToken] ❌ Detalles:', parsedError);
+        }
       } catch (e) {
-        console.error('[RequestPasswordToken] ❌ Could not parse error as JSON');
+        console.error('[RequestPasswordToken] ❌ No se pudo analizar el error como JSON');
+      }
+
+      // Return user-friendly error
+      let userMessage = 'Error al enviar el correo electrónico';
+      if (emailResponse.status === 401) {
+        userMessage = 'Error de configuración del servicio de correo. Por favor, contacta con soporte.';
+      } else if (emailResponse.status === 403) {
+        userMessage = 'Error de verificación del dominio. Por favor, contacta con soporte.';
       }
 
       return new Response(
         JSON.stringify({ 
-          error: 'Failed to send email',
-          details: errorText,
+          error: userMessage,
+          details: parsedError || errorText,
           status: emailResponse.status
         }),
         {
@@ -307,8 +349,8 @@ serve(async (req) => {
     }
 
     const emailResult = await emailResponse.json();
-    console.log('[RequestPasswordToken] ✅ Email sent successfully!');
-    console.log('[RequestPasswordToken] 📧 Resend response:', JSON.stringify(emailResult, null, 2));
+    console.log('[RequestPasswordToken] ✅ ¡Correo electrónico enviado con éxito!');
+    console.log('[RequestPasswordToken] 📧 Respuesta de reenvío:', JSON.stringify(emailResult, null, 2));
     console.log('[RequestPasswordToken] ═══════════════════════════════════════');
 
     return new Response(
@@ -323,14 +365,14 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error('[RequestPasswordToken] ═══════════════════════════════════════');
-    console.error('[RequestPasswordToken] ❌ UNEXPECTED ERROR:', error);
-    console.error('[RequestPasswordToken] ❌ Error message:', error.message);
-    console.error('[RequestPasswordToken] ❌ Error stack:', error.stack);
+    console.error('[RequestPasswordToken] ❌ ERROR INESPERADO:', error);
+    console.error('[RequestPasswordToken] ❌ Mensaje de error:', error.message);
+    console.error('[RequestPasswordToken] ❌ Pila de errores:', error.stack);
     console.error('[RequestPasswordToken] ═══════════════════════════════════════');
     
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'Internal server error',
+        error: error.message || 'Error interno del servidor',
         type: error.name || 'UnknownError'
       }),
       {

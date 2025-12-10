@@ -87,12 +87,32 @@ export default function RecuperarPasswordV7Screen() {
 
       if (error) {
         console.error('[RecuperarPasswordV7] ❌ Error:', error);
+        
+        // Check if it's a configuration error
+        if (error.message && error.message.includes('configuración')) {
+          Alert.alert(
+            'Error de configuración',
+            'El servicio de correo electrónico no está configurado correctamente. Por favor, contacta con soporte.',
+            [{ text: 'OK' }]
+          );
+          return;
+        }
+        
+        // Generic error - still proceed to token step for security
+        console.log('[RecuperarPasswordV7] ⚠️ Error al enviar código, pero continuando por seguridad');
       } else {
         console.log('[RecuperarPasswordV7] ✅ Código enviado');
       }
       
     } catch (error: any) {
       console.error('[RecuperarPasswordV7] ❌ Exception:', error);
+      
+      // Show error but still proceed for security
+      Alert.alert(
+        'Aviso',
+        'Hubo un problema al enviar el código. Si tu correo está registrado, recibirás el código en breve. Si no lo recibes, por favor contacta con soporte.',
+        [{ text: 'Continuar', onPress: () => {} }]
+      );
     } finally {
       setSendingCode(false);
       console.log('[RecuperarPasswordV7] 🔄 Cambiando a paso de token...');
@@ -629,6 +649,18 @@ export default function RecuperarPasswordV7Screen() {
                 </Text>
                 <Text style={styles.helpText}>
                   • Si no recibes el correo, puedes solicitar uno nuevo
+                </Text>
+              </View>
+
+              <View style={styles.warningBox}>
+                <IconSymbol
+                  ios_icon_name="exclamationmark.triangle.fill"
+                  android_material_icon_name="warning"
+                  size={24}
+                  color="#f59e0b"
+                />
+                <Text style={styles.warningText}>
+                  Si no recibes el correo en unos minutos, puede haber un problema de configuración. Por favor, contacta con soporte en soporte@barliveapp.es
                 </Text>
               </View>
 
@@ -1209,6 +1241,23 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
     marginBottom: 8,
+    lineHeight: 18,
+  },
+  warningBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fef3c7',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: '#f59e0b',
+  },
+  warningText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#78350f',
+    marginLeft: 12,
     lineHeight: 18,
   },
   resendButton: {
