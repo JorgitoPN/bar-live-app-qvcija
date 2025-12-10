@@ -94,8 +94,8 @@ const ProgressBar = memo(({ isActive, isPaused, duration, onComplete, progress }
     }
 
     if (isPaused) {
-      // ✅ FIXED: Stop animation properly
-      if (animationRef.current) {
+      // ✅ FIXED: Stop animation properly with null check
+      if (animationRef.current && typeof animationRef.current.stop === 'function') {
         animationRef.current.stop();
       }
       return;
@@ -119,8 +119,8 @@ const ProgressBar = memo(({ isActive, isPaused, duration, onComplete, progress }
     });
 
     return () => {
-      // ✅ FIXED: Clean up animation properly
-      if (animationRef.current) {
+      // ✅ FIXED: Clean up animation properly with null check
+      if (animationRef.current && typeof animationRef.current.stop === 'function') {
         animationRef.current.stop();
       }
     };
