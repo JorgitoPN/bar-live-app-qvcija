@@ -28,7 +28,7 @@ import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
 import UnifiedStoryViewerV9 from '@/components/social/UnifiedStoryViewerV9';
 import StoryAvatar from '@/components/common/StoryAvatar';
-import { useStoryState } from '@/contexts/StoryStateContext';
+import { useStoryState } from '@/contexts/StoryStateContextV10';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
