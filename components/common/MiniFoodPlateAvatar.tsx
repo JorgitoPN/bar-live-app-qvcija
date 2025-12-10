@@ -1,153 +1,201 @@
 
-import React, { memo } from 'react';
-import { View, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import React from 'react';
+import { View, Image, StyleSheet, ViewStyle, Text } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
-import { useStoryState } from '@/contexts/StoryStateContext';
+
+// ✅ DEFAULT AVATAR URL - Barlive branded default avatar
+const DEFAULT_AVATAR_URL = 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=400&h=400&fit=crop';
 
 interface MiniFoodPlateAvatarProps {
-  userId: string;
-  userStories?: any[];
-  avatarUrl?: string;
+  imageUrl?: string;
   size?: number;
-  onPress?: () => void;
-  showStoryOutline?: boolean;
+  hasStory?: boolean;
+  isViewed?: boolean;
+  placeholderIcon?: string;
+  placeholderText?: string;
+  nombre?: string;
+  style?: ViewStyle;
 }
 
-// ✅ INSTAGRAM-STYLE: Consistent story outline color
-const STORY_OUTLINE_COLORS = ['#10B981', '#3B82F6']; // Green to Blue gradient
-
-const MiniFoodPlateAvatar = memo(function MiniFoodPlateAvatar({
-  userId,
-  userStories = [],
-  avatarUrl,
+/**
+ * ✅ MINI FOOD PLATE AVATAR v3.0
+ * Compact version of FoodPlateAvatar for use in posts, comments, etc.
+ * Features:
+ * - Smaller size optimized for inline use
+ * - Story ring support
+ * - Default avatar with user's first letter OR default Barlive avatar
+ * - Fallback to icon if no name available
+ * - ALWAYS shows an avatar (never empty)
+ */
+export default function MiniFoodPlateAvatar({
+  imageUrl,
   size = 40,
-  onPress,
-  showStoryOutline = true,
+  hasStory = false,
+  isViewed = false,
+  placeholderIcon = 'person.fill',
+  placeholderText,
+  nombre,
+  style,
 }: MiniFoodPlateAvatarProps) {
-  const { hasUnviewedStories } = useStoryState();
-  
-  const hasActiveStories = userStories.length > 0;
-  const showOutline = showStoryOutline && hasActiveStories && hasUnviewedStories(userId, userStories);
+  const plateSize = size;
+  const imageSize = size * 0.85; // Image is 85% of plate size for mini version
+  const rimWidth = size * 0.06; // Rim is 6% of plate size
 
-  const avatarSize = size;
-  const ringSize = size + 6;
-  const borderRadius = size / 2;
-  const ringBorderRadius = ringSize / 2;
+  // ✅ FIXED: Determine what to show
+  const shouldShowImage = !!imageUrl;
+  const shouldShowLetter = !imageUrl && (placeholderText || nombre);
+  const shouldShowDefaultAvatar = !imageUrl && !placeholderText && !nombre;
 
-  const content = (
-    <View style={[styles.container, { width: ringSize, height: ringSize }]}>
-      <View style={[styles.avatarWrapper, { width: ringSize, height: ringSize }]}>
-        {/* ✅ Story outline ring */}
-        {showOutline && (
-          <LinearGradient
-            colors={STORY_OUTLINE_COLORS}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[
-              styles.storyRing,
-              {
-                width: ringSize,
-                height: ringSize,
-                borderRadius: ringBorderRadius,
-              },
-            ]}
-          />
-        )}
+  return (
+    <View style={[styles.container, { width: plateSize, height: plateSize }, style]}>
+      {/* Story Ring (if has story) */}
+      {hasStory && !isViewed && (
+        <LinearGradient
+          colors={[colors.primary, colors.secondary]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[
+            styles.storyRing,
+            {
+              width: plateSize + 4,
+              height: plateSize + 4,
+              borderRadius: (plateSize + 4) / 2,
+              top: -2,
+              left: -2,
+            },
+          ]}
+        />
+      )}
+
+      {/* Plate Base (outer circle) */}
+      <View
+        style={[
+          styles.plateBase,
+          {
+            width: plateSize,
+            height: plateSize,
+            borderRadius: plateSize / 2,
+            borderWidth: rimWidth,
+          },
+        ]}
+      >
+        {/* Food/Image Container (inner circle) */}
         <View
           style={[
-            styles.avatarContainer,
+            styles.foodContainer,
             {
-              width: avatarSize,
-              height: avatarSize,
-              borderRadius,
+              width: imageSize,
+              height: imageSize,
+              borderRadius: imageSize / 2,
             },
           ]}
         >
-          {avatarUrl ? (
+          {shouldShowImage ? (
             <Image
-              source={{ uri: avatarUrl }}
+              source={{ uri: imageUrl }}
               style={[
-                styles.avatar,
+                styles.foodImage,
                 {
-                  width: avatarSize,
-                  height: avatarSize,
-                  borderRadius,
+                  width: imageSize,
+                  height: imageSize,
+                  borderRadius: imageSize / 2,
                 },
               ]}
+              resizeMode="cover"
+              onError={() => {
+                console.log('[MiniFoodPlateAvatar] ⚠️ Image failed to load, will show fallback');
+              }}
             />
-          ) : (
+          ) : shouldShowLetter ? (
             <View
               style={[
-                styles.avatarPlaceholder,
+                styles.foodPlaceholder,
                 {
-                  width: avatarSize,
-                  height: avatarSize,
-                  borderRadius,
+                  width: imageSize,
+                  height: imageSize,
+                  borderRadius: imageSize / 2,
                 },
               ]}
             >
-              <IconSymbol
-                ios_icon_name="person.fill"
-                android_material_icon_name="person"
-                size={avatarSize * 0.5}
-                color={colors.textSecondary}
-              />
+              <View style={styles.placeholderTextContainer}>
+                <Text style={[styles.placeholderText, { fontSize: size * 0.4 }]}>
+                  {(placeholderText || nombre || 'U').charAt(0).toUpperCase()}
+                </Text>
+              </View>
             </View>
+          ) : (
+            <Image
+              source={{ uri: DEFAULT_AVATAR_URL }}
+              style={[
+                styles.foodImage,
+                {
+                  width: imageSize,
+                  height: imageSize,
+                  borderRadius: imageSize / 2,
+                },
+              ]}
+              resizeMode="cover"
+            />
           )}
         </View>
       </View>
     </View>
   );
-
-  if (onPress) {
-    return (
-      <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
-        {content}
-      </TouchableOpacity>
-    );
-  }
-
-  return content;
-});
+}
 
 const styles = StyleSheet.create({
   container: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarWrapper: {
     position: 'relative',
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
   },
   storyRing: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    margin: 'auto',
+    zIndex: 0,
   },
-  avatarContainer: {
-    backgroundColor: colors.background,
-    borderWidth: 2,
-    borderColor: colors.background,
+  plateBase: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E8E8E8',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+    // Plate shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  foodContainer: {
     overflow: 'hidden',
-    position: 'absolute',
-    top: 3,
-    left: 3,
+    backgroundColor: '#F5F5F5',
+    // Food shadow (inner)
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  avatar: {
-    width: '100%',
-    height: '100%',
+  foodImage: {
+    backgroundColor: '#F5F5F5',
   },
-  avatarPlaceholder: {
-    backgroundColor: colors.primary + '40',
+  foodPlaceholder: {
+    backgroundColor: '#F5F5F5',
     justifyContent: 'center',
     alignItems: 'center',
   },
+  placeholderTextContainer: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.primary + '20',
+  },
+  placeholderText: {
+    fontWeight: 'bold',
+    color: colors.primary,
+    textAlign: 'center',
+  },
 });
-
-export default MiniFoodPlateAvatar;

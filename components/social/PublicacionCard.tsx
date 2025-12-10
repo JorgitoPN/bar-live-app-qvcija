@@ -71,6 +71,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
   const [showTagsOverlay, setShowTagsOverlay] = useState(false);
   const [authorData, setAuthorData] = useState<{ nombre: string; avatar: string | null; username?: string } | null>(null);
   const [loadingAuthor, setLoadingAuthor] = useState(true);
+  const [imageError, setImageError] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
   console.log('[PublicacionCard] 🎭 Interaction context:', {
@@ -616,11 +617,21 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
           }}
           activeOpacity={0.7}
         >
-          {avatarUrl ? (
-            <Image source={{ uri: `${avatarUrl}?v=${Date.now()}` }} style={styles.avatar} />
+          {/* ✅ FIXED: Show avatar with proper fallback */}
+          {avatarUrl && !imageError ? (
+            <Image 
+              source={{ uri: `${avatarUrl}?v=${Date.now()}` }} 
+              style={styles.avatar}
+              onError={() => {
+                console.log('[PublicacionCard] ⚠️ Avatar image failed to load');
+                setImageError(true);
+              }}
+            />
           ) : (
             <View style={styles.avatarPlaceholder}>
-              <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={28} color="#FF6B6B" />
+              <Text style={styles.avatarText}>
+                {authorData?.nombre?.charAt(0).toUpperCase() || 'U'}
+              </Text>
             </View>
           )}
           <View style={styles.headerContent}>
@@ -889,9 +900,14 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: colors.cardBorder,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  avatarText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.headerText,
   },
   headerContent: {
     flex: 1,

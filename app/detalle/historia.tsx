@@ -4,7 +4,7 @@ import { View, StyleSheet, ActivityIndicator, Text } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/utils/supabase';
 import { colors } from '@/styles/commonStyles';
-import UnifiedStoryViewer from '@/components/social/UnifiedStoryViewer';
+import UnifiedStoryViewerV9 from '@/components/social/UnifiedStoryViewerV9';
 import { useMode } from '@/contexts/ModeContext';
 
 export default function HistoriaDetailScreen() {
@@ -138,13 +138,12 @@ export default function HistoriaDetailScreen() {
   }
 
   return (
-    <UnifiedStoryViewer
+    <UnifiedStoryViewerV9
       visible={true}
       stories={stories}
       initialIndex={initialIndex}
       onClose={handleClose}
       onStoryDelete={handleStoryDelete}
-      activeLocalProfileId={activeProfileType === 'local' ? activeProfileId : null}
     />
   );
 }

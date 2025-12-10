@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { colors } from '@/styles/commonStyles';
-import FoodPlateAvatar from '@/components/common/FoodPlateAvatar';
+import MiniFoodPlateAvatar from '@/components/common/MiniFoodPlateAvatar';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import PostViewerModal from './PostViewerModal';
@@ -21,6 +21,9 @@ import CommentsModal from './CommentsModal';
 import SharePostModal from './SharePostModal';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// ✅ DEFAULT AVATAR URL - Barlive branded default avatar
+const DEFAULT_AVATAR_URL = 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=400&h=400&fit=crop';
 
 interface Post {
   id: string;
@@ -46,6 +49,7 @@ interface Post {
   local?: {
     id: string;
     nombre: string;
+    imagen_url?: string;
   };
 }
 
@@ -68,9 +72,53 @@ export default function NewPostCard({
   const [showComments, setShowComments] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
 
+  // ✅ FIXED: Fetch author data dynamically
+  const [authorAvatar, setAuthorAvatar] = useState<string | null>(null);
+  const [authorName, setAuthorName] = useState<string>('Usuario');
+  const [loadingAuthor, setLoadingAuthor] = useState(true);
+
   const isOwner = post.tipo === 'usuario' 
     ? post.autor_id === user?.id
     : false;
+
+  // ✅ FIXED: Load author data on mount
+  useEffect(() => {
+    const loadAuthorData = async () => {
+      try {
+        if (post.tipo === 'local' && post.local_id) {
+          // Fetch local data
+          const { data: localData, error } = await supabase
+            .from('locales')
+            .select('nombre, imagen_url')
+            .eq('id', post.local_id)
+            .single();
+
+          if (!error && localData) {
+            setAuthorName(localData.nombre);
+            setAuthorAvatar(localData.imagen_url || null);
+          }
+        } else if (post.autor_id) {
+          // Fetch user data
+          const { data: userData, error } = await supabase
+            .from('usuarios')
+            .select('nombre, avatar, username')
+            .eq('id', post.autor_id)
+            .single();
+
+          if (!error && userData) {
+            setAuthorName(userData.username || userData.nombre);
+            setAuthorAvatar(userData.avatar || null);
+          }
+        }
+      } catch (error) {
+        console.error('[NewPostCard] Error loading author data:', error);
+      } finally {
+        setLoadingAuthor(false);
+      }
+    };
+
+    loadAuthorData();
+  }, [post.tipo, post.local_id, post.autor_id]);
 
   const handleProfilePress = () => {
     if (post.tipo === 'local' && post.local_id) {
@@ -214,16 +262,20 @@ export default function NewPostCard({
     ? post.local?.nombre
     : (post.autor.username || post.autor.nombre);
 
+  // ✅ FIXED: Use fetched avatar or default avatar
+  const displayAvatar = authorAvatar || DEFAULT_AVATAR_URL;
+
   return (
     <>
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.authorInfo} onPress={handleProfilePress}>
-            <FoodPlateAvatar
-              imageUrl={post.autor.avatar}
+            {/* ✅ FIXED: Always show avatar (fetched or default) */}
+            <MiniFoodPlateAvatar
+              imageUrl={displayAvatar}
               size={42}
-              nombre={post.autor.nombre}
+              nombre={authorName}
             />
             <View style={styles.authorText}>
               <Text style={styles.authorName}>{displayUsername}</Text>

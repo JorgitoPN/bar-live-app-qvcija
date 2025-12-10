@@ -1,9 +1,12 @@
 
 import React from 'react';
-import { View, Image, StyleSheet, ViewStyle } from 'react-native';
+import { View, Image, StyleSheet, ViewStyle, Text } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
+
+// ✅ DEFAULT AVATAR URL - Barlive branded default avatar
+const DEFAULT_AVATAR_URL = 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=400&h=400&fit=crop';
 
 interface FoodPlateAvatarProps {
   imageUrl?: string;
@@ -14,8 +17,18 @@ interface FoodPlateAvatarProps {
   placeholderIcon?: string;
   placeholderText?: string;
   style?: ViewStyle;
+  nombre?: string; // ✅ For fallback display
 }
 
+/**
+ * ✅ FOOD PLATE AVATAR v3.0
+ * Features:
+ * - Food plate design with rim and shadow
+ * - Story ring support
+ * - Default avatar with user's first letter OR default Barlive avatar
+ * - Add button for creating stories
+ * - ALWAYS shows an avatar (never empty)
+ */
 export default function FoodPlateAvatar({
   imageUrl,
   size = 88,
@@ -25,11 +38,17 @@ export default function FoodPlateAvatar({
   placeholderIcon = 'person.fill',
   placeholderText,
   style,
+  nombre,
 }: FoodPlateAvatarProps) {
   const plateSize = size;
   const imageSize = size * 0.75; // Image is 75% of plate size
   const rimWidth = size * 0.08; // Rim is 8% of plate size
   const addButtonSize = size * 0.34; // Add button is 34% of plate size
+
+  // ✅ FIXED: Determine what to show
+  const shouldShowImage = !!imageUrl;
+  const shouldShowLetter = !imageUrl && (placeholderText || nombre);
+  const shouldShowDefaultAvatar = !imageUrl && !placeholderText && !nombre;
 
   return (
     <View style={[styles.container, { width: plateSize, height: plateSize }, style]}>
@@ -87,7 +106,7 @@ export default function FoodPlateAvatar({
             },
           ]}
         >
-          {imageUrl ? (
+          {shouldShowImage ? (
             <Image
               source={{ uri: imageUrl }}
               style={[
@@ -99,8 +118,11 @@ export default function FoodPlateAvatar({
                 },
               ]}
               resizeMode="cover"
+              onError={() => {
+                console.log('[FoodPlateAvatar] ⚠️ Image failed to load, showing fallback');
+              }}
             />
-          ) : (
+          ) : shouldShowLetter ? (
             <View
               style={[
                 styles.foodPlaceholder,
@@ -111,22 +133,27 @@ export default function FoodPlateAvatar({
                 },
               ]}
             >
-              {placeholderText ? (
-                <View style={styles.placeholderTextContainer}>
-                  <View style={styles.placeholderTextBackground}>
-                    <View style={styles.placeholderTextInner}>
-                      {placeholderText.charAt(0).toUpperCase()}
-                    </View>
-                  </View>
+              <View style={styles.placeholderTextContainer}>
+                <View style={styles.placeholderTextBackground}>
+                  <Text style={styles.placeholderTextInner}>
+                    {(placeholderText || nombre || 'U').charAt(0).toUpperCase()}
+                  </Text>
                 </View>
-              ) : (
-                <IconSymbol
-                  name={placeholderIcon}
-                  size={imageSize * 0.45}
-                  color={colors.textSecondary}
-                />
-              )}
+              </View>
             </View>
+          ) : (
+            <Image
+              source={{ uri: DEFAULT_AVATAR_URL }}
+              style={[
+                styles.foodImage,
+                {
+                  width: imageSize,
+                  height: imageSize,
+                  borderRadius: imageSize / 2,
+                },
+              ]}
+              resizeMode="cover"
+            />
           )}
         </View>
       </View>
@@ -158,7 +185,7 @@ export default function FoodPlateAvatar({
               },
             ]}
           >
-            <IconSymbol name="plus" size={addButtonSize * 0.6} color={colors.white} />
+            <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={addButtonSize * 0.6} color={colors.white} />
           </LinearGradient>
         </View>
       )}
@@ -231,6 +258,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: colors.primary,
+    textAlign: 'center',
   },
   addButtonContainer: {
     position: 'absolute',

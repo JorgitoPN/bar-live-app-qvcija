@@ -24,6 +24,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { LinearGradient } from 'expo-linear-gradient';
 import NewPostCard from '@/components/social/NewPostCard';
 import NewBarraHistorias from '@/components/social/NewBarraHistorias';
+import UnifiedStoryViewerV9 from '@/components/social/UnifiedStoryViewerV9';
 import type { Publicacion, Historia } from '@/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -58,6 +59,11 @@ export default function SocialScreen() {
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [userRole, setUserRole] = useState<UserRole>('cliente');
   const [localSubscription, setLocalSubscription] = useState<LocalSubscriptionInfo | null>(null);
+  
+  // ✅ Story viewer state
+  const [showStoryViewer, setShowStoryViewer] = useState(false);
+  const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
+  const [selectedStories, setSelectedStories] = useState<Historia[]>([]);
   
   const isLoadingRef = useRef(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -495,13 +501,29 @@ export default function SocialScreen() {
     router.push('/crear/historia');
   };
 
-  const handleHistoriaPress = (historia: Historia) => {
+  const handleHistoriaPress = useCallback((historia: Historia) => {
     console.log('[Social] 📖 Story pressed:', historia.id);
-    router.push({
-      pathname: '/detalle/historia',
-      params: { id: historia.id },
+    
+    // Find all stories from the same author
+    const authorId = historia.tipo === 'usuario' ? historia.autor_id : historia.local_id;
+    const authorStories = historias.filter(h => {
+      const hAuthorId = h.tipo === 'usuario' ? h.autor_id : h.local_id;
+      return hAuthorId === authorId;
+    }).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    
+    // Find the index of the clicked story
+    const storyIndex = authorStories.findIndex(s => s.id === historia.id);
+    
+    console.log('[Social] 📖 Opening story viewer:', {
+      authorId,
+      totalStories: authorStories.length,
+      clickedIndex: storyIndex,
     });
-  };
+    
+    setSelectedStories(authorStories);
+    setCurrentStoryIndex(storyIndex >= 0 ? storyIndex : 0);
+    setShowStoryViewer(true);
+  }, [historias]);
 
   const handleStoriesUpdate = useCallback((updatedStories: Historia[]) => {
     console.log('[Social] ⚡ Stories updated in real-time:', updatedStories.length);
@@ -712,6 +734,26 @@ export default function SocialScreen() {
         updateCellsBatchingPeriod={50}
         initialNumToRender={5}
         windowSize={10}
+      />
+
+      {/* ✅ UNIFIED STORY VIEWER V9.0 */}
+      <UnifiedStoryViewerV9
+        visible={showStoryViewer}
+        stories={selectedStories}
+        initialIndex={currentStoryIndex}
+        onClose={() => {
+          console.log('[Social] Closing story viewer');
+          setShowStoryViewer(false);
+        }}
+        onStoryChange={(index) => {
+          console.log('[Social] Story changed to index:', index);
+          setCurrentStoryIndex(index);
+        }}
+        onStoryDelete={async (storyId) => {
+          console.log('[Social] Story deleted:', storyId);
+          setHistorias(prev => prev.filter(h => h.id !== storyId));
+          setSelectedStories(prev => prev.filter(h => h.id !== storyId));
+        }}
       />
     </View>
   );

@@ -26,7 +26,7 @@ import { useMode } from '@/contexts/ModeContext';
 import { supabase } from '@/utils/supabase';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
-import UnifiedStoryViewer from '@/components/social/UnifiedStoryViewer';
+import UnifiedStoryViewerV9 from '@/components/social/UnifiedStoryViewerV9';
 import StoryAvatar from '@/components/common/StoryAvatar';
 import { useStoryState } from '@/contexts/StoryStateContext';
 
@@ -1086,11 +1086,11 @@ export default function PerfilScreen() {
         onClose={() => setShowProfileSwitcher(false)}
       />
 
-      {/* ✅ UNIFIED STORY VIEWER */}
-      <UnifiedStoryViewer
+      {/* ✅ UNIFIED STORY VIEWER V9.0 */}
+      <UnifiedStoryViewerV9
         visible={showStoryViewer}
         stories={userStories}
-        initialStoryIndex={currentStoryIndex}
+        initialIndex={currentStoryIndex}
         onClose={() => {
           console.log('[Perfil] Closing story viewer');
           setShowStoryViewer(false);
@@ -1103,7 +1103,6 @@ export default function PerfilScreen() {
           console.log('[Perfil] Story deleted:', storyId);
           await cargarHistorias();
         }}
-        activeLocalProfileId={null}
       />
     </View>
   );

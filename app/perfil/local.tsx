@@ -33,7 +33,7 @@ import FloatingTabBar, { TabBarItem } from '@/components/FloatingTabBar';
 import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
 import OfertaTrabajoCard from '@/components/empleo/OfertaTrabajoCard';
 import StoryStatsModal from '@/components/social/StoryStatsModal';
-import UnifiedStoryViewer from '@/components/social/UnifiedStoryViewer';
+import UnifiedStoryViewerV9 from '@/components/social/UnifiedStoryViewerV9';
 import { PROVINCIAS, getProvinceVariations, filterByProvincia } from '@/utils/provinceNormalizer';
 import EventBanner from '@/components/eventos/EventBanner';
 import { useLocalEvent } from '@/hooks/useLocalEvent';
@@ -1474,8 +1474,8 @@ export default function LocalPerfilScreen() {
         </View>
       </ScrollView>
 
-      {/* ✅ FIXED: Use UnifiedStoryViewer component */}
-      <UnifiedStoryViewer
+      {/* ✅ UNIFIED STORY VIEWER V9.0 */}
+      <UnifiedStoryViewerV9
         visible={showStoryViewer}
         stories={localStories}
         initialIndex={currentStoryIndex}
@@ -1491,7 +1491,6 @@ export default function LocalPerfilScreen() {
           console.log('[LocalPerfil] Story deleted:', storyId);
           await loadLocalData();
         }}
-        activeLocalProfileId={isOwner ? localId : null}
       />
 
       {/* Create Options Modal */}

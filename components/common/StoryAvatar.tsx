@@ -7,6 +7,9 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
+// ✅ DEFAULT AVATAR URL - Barlive branded default avatar
+const DEFAULT_AVATAR_URL = 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=400&h=400&fit=crop';
+
 interface StoryAvatarProps {
   userId: string;
   userStories: any[];
@@ -114,6 +117,9 @@ const StoryAvatar = memo(function StoryAvatar({
   const ringSize = size + 8;
   const avatarSize = size - 4;
 
+  // ✅ FIXED: Use default avatar if no avatar URL provided
+  const displayAvatarUrl = avatarUrl || DEFAULT_AVATAR_URL;
+
   return (
     <TouchableOpacity 
       style={[styles.container, { width: size }]} 
@@ -130,42 +136,20 @@ const StoryAvatar = memo(function StoryAvatar({
             style={[styles.gradientRing, { width: ringSize, height: ringSize, borderRadius: ringSize / 2 }]}
           >
             <View style={[styles.innerRing, { width: avatarSize + 4, height: avatarSize + 4, borderRadius: (avatarSize + 4) / 2 }]}>
-              {avatarUrl ? (
-                <Image
-                  source={{ uri: avatarUrl }}
-                  style={[styles.avatar, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}
-                />
-              ) : (
-                <View style={[styles.avatarPlaceholder, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}>
-                  <IconSymbol 
-                    ios_icon_name="person.fill" 
-                    android_material_icon_name="person" 
-                    size={avatarSize * 0.5} 
-                    color="#fff" 
-                  />
-                </View>
-              )}
+              <Image
+                source={{ uri: displayAvatarUrl }}
+                style={[styles.avatar, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}
+              />
             </View>
           </LinearGradient>
         ) : (
           // ✅ Show simple border for viewed stories (no gradient)
           <View style={[styles.viewedRing, { width: ringSize, height: ringSize, borderRadius: ringSize / 2 }]}>
             <View style={[styles.innerRing, { width: avatarSize + 4, height: avatarSize + 4, borderRadius: (avatarSize + 4) / 2 }]}>
-              {avatarUrl ? (
-                <Image
-                  source={{ uri: avatarUrl }}
-                  style={[styles.avatar, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}
-                />
-              ) : (
-                <View style={[styles.avatarPlaceholder, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}>
-                  <IconSymbol 
-                    ios_icon_name="person.fill" 
-                    android_material_icon_name="person" 
-                    size={avatarSize * 0.5} 
-                    color="#fff" 
-                  />
-                </View>
-              )}
+              <Image
+                source={{ uri: displayAvatarUrl }}
+                style={[styles.avatar, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}
+              />
             </View>
           </View>
         )}

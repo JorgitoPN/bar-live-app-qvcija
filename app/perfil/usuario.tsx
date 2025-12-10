@@ -20,7 +20,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
-import UnifiedStoryViewer from '@/components/social/UnifiedStoryViewer';
+import UnifiedStoryViewerV9 from '@/components/social/UnifiedStoryViewerV9';
 import { useStoryState } from '@/contexts/StoryStateContext';
 
 const { width } = Dimensions.get('window');
@@ -691,8 +691,8 @@ export default function UsuarioPerfilScreen() {
         )}
       </ScrollView>
 
-      {/* ✅ UNIFIED STORY VIEWER */}
-      <UnifiedStoryViewer
+      {/* ✅ UNIFIED STORY VIEWER V9.0 */}
+      <UnifiedStoryViewerV9
         visible={showStoryViewer}
         stories={userStories}
         initialIndex={currentStoryIndex}
@@ -708,7 +708,6 @@ export default function UsuarioPerfilScreen() {
           console.log('[UsuarioPerfil] Story deleted:', storyId);
           await loadUserData();
         }}
-        activeLocalProfileId={null}
       />
     </View>
   );

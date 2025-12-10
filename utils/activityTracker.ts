@@ -86,6 +86,7 @@ export async function trackProfileView(
 
 /**
  * Track map interaction (view, click, zoom, pan)
+ * ✅ FIXED: Use sala_virtual_interacciones table instead of non-existent map_interactions
  */
 export async function trackMapInteraction(
   localId: string,
@@ -93,19 +94,27 @@ export async function trackMapInteraction(
   usuarioId?: string
 ): Promise<void> {
   try {
-    const { error } = await supabase.from('map_interactions').insert({
+    // ✅ FIXED: Track map interactions in sala_virtual_interacciones table
+    // This is a non-critical feature, so we silently skip if user is not logged in
+    if (!usuarioId) {
+      console.log('[ActivityTracker] ⚠️ No user ID, skipping map interaction tracking');
+      return;
+    }
+
+    const { error } = await supabase.from('sala_virtual_interacciones').insert({
       local_id: localId,
-      usuario_id: usuarioId || null,
-      interaction_type: interactionType,
+      usuario_id: usuarioId,
+      contenido: `Map ${interactionType}`,
+      tipo: 'sistema',
     });
 
     if (error) {
-      console.error('[ActivityTracker] Error tracking map interaction:', error);
+      console.log('[ActivityTracker] ⚠️ Could not track map interaction (non-critical):', error.message);
     } else {
       console.log('[ActivityTracker] ✅ Map interaction tracked:', { localId, interactionType });
     }
   } catch (error) {
-    console.error('[ActivityTracker] Error tracking map interaction:', error);
+    console.log('[ActivityTracker] ⚠️ Error tracking map interaction (non-critical)');
   }
 }
 
