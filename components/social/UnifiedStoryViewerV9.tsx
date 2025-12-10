@@ -33,6 +33,9 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 // ✅ DEFAULT AVATAR - Simple user icon (non-realistic)
 const DEFAULT_AVATAR_ICON = 'person.circle.fill';
 
+// ✅ STORY DURATION - 5 seconds per story (Instagram standard)
+const STORY_DURATION = 5000;
+
 interface Story {
   id: string;
   imagen_url?: string;
@@ -111,6 +114,14 @@ const ProgressBar = memo(({ isActive, isPaused, duration, onComplete, progress }
     const currentValue = (progress as any)?._value ?? 0;
     const remainingDuration = duration * (1 - currentValue);
 
+    console.log('[ProgressBar] ⏱️ Starting animation:', {
+      isActive,
+      isPaused,
+      currentValue,
+      remainingDuration,
+      duration,
+    });
+
     // ✅ CRITICAL FIX: Create new animation and store reference
     const newAnimation = Animated.timing(progress, {
       toValue: 1,
@@ -125,6 +136,7 @@ const ProgressBar = memo(({ isActive, isPaused, duration, onComplete, progress }
     try {
       newAnimation.start(({ finished }) => {
         if (finished) {
+          console.log('[ProgressBar] ✅ Animation finished, calling onComplete');
           onComplete();
         }
       });
@@ -183,6 +195,8 @@ ProgressBar.displayName = 'ProgressBar';
  * - Smooth animations and gestures
  * - Proper view tracking
  * - Default avatars for users without profile pictures (icon-based, non-realistic)
+ * - ✅ INSTAGRAM LOGIC: Auto-advance and auto-close after viewing all stories
+ * - ✅ INSTAGRAM LOGIC: Border updates in real-time after viewing
  */
 function UnifiedStoryViewerV9({
   visible,
@@ -226,6 +240,8 @@ function UnifiedStoryViewerV9({
     isInteractingAsLocal,
     isOwner,
     storyType: currentStory?.tipo,
+    currentIndex,
+    totalStories: stories.length,
   });
 
   const markAsViewed = useCallback(async (storyId: string) => {
@@ -289,6 +305,10 @@ function UnifiedStoryViewerV9({
           console.log('[UnifiedStoryViewerV9] ✅ Story view inserted');
         }
       }
+
+      // ✅ INSTAGRAM LOGIC: Trigger real-time update for avatar borders
+      // This will cause all StoryAvatar and MiniFoodPlateAvatar components to refresh
+      console.log('[UnifiedStoryViewerV9] 🔄 Story view recorded - avatars will update via real-time subscription');
     } catch (error) {
       console.error('[UnifiedStoryViewerV9] ❌ Error:', error);
     }
@@ -332,14 +352,6 @@ function UnifiedStoryViewerV9({
     if (visible && currentStory) {
       if (interactionUserId && !isOwner) {
         markAsViewed(currentStory.id);
-        
-        // ✅ INSTAGRAM LOGIC: Notify context that story was viewed
-        // This will trigger border updates in real-time
-        setTimeout(() => {
-          console.log('[UnifiedStoryViewerV9] 🔄 Refreshing story state after view');
-          // Force a refresh of the story state context
-          // This ensures borders update immediately after viewing
-        }, 500);
       }
       checkIfLiked(currentStory.id);
     }
@@ -347,13 +359,22 @@ function UnifiedStoryViewerV9({
 
   useEffect(() => {
     if (visible) {
+      console.log('[UnifiedStoryViewerV9] 🎬 Story viewer opened:', {
+        initialIndex,
+        totalStories: stories.length,
+      });
       setCurrentIndex(initialIndex);
       setLoading(true);
       progressValues.forEach(p => p.setValue(0));
     }
-  }, [visible, initialIndex, progressValues]);
+  }, [visible, initialIndex, progressValues, stories.length]);
 
   const handleNext = useCallback(() => {
+    console.log('[UnifiedStoryViewerV9] ⏭️ Next story:', {
+      currentIndex,
+      totalStories: stories.length,
+    });
+
     if (currentIndex < stories.length - 1) {
       progressValues[currentIndex].setValue(1);
       setCurrentIndex(currentIndex + 1);
@@ -362,11 +383,17 @@ function UnifiedStoryViewerV9({
         onStoryChange(currentIndex + 1);
       }
     } else {
+      // ✅ INSTAGRAM LOGIC: Auto-close when reaching the end
+      console.log('[UnifiedStoryViewerV9] 🏁 Reached end of stories, auto-closing');
       onClose();
     }
   }, [currentIndex, stories.length, progressValues, onStoryChange, onClose]);
 
   const handlePrevious = useCallback(() => {
+    console.log('[UnifiedStoryViewerV9] ⏮️ Previous story:', {
+      currentIndex,
+    });
+
     if (currentIndex > 0) {
       progressValues[currentIndex].setValue(0);
       setCurrentIndex(currentIndex - 1);
@@ -378,11 +405,13 @@ function UnifiedStoryViewerV9({
   }, [currentIndex, progressValues, onStoryChange]);
 
   const handleLongPressIn = useCallback(() => {
+    console.log('[UnifiedStoryViewerV9] ⏸️ Story paused');
     isLongPressing.current = true;
     setIsPaused(true);
   }, []);
 
   const handleLongPressOut = useCallback(() => {
+    console.log('[UnifiedStoryViewerV9] ▶️ Story resumed');
     isLongPressing.current = false;
     setIsPaused(false);
     if (longPressTimer.current) {
@@ -731,10 +760,16 @@ function UnifiedStoryViewerV9({
               source={{ uri: storyImageUrl }}
               style={styles.storyImage}
               resizeMode="contain"
-              onLoadStart={() => setLoading(true)}
-              onLoadEnd={() => setLoading(false)}
+              onLoadStart={() => {
+                console.log('[UnifiedStoryViewerV9] 🖼️ Image loading started');
+                setLoading(true);
+              }}
+              onLoadEnd={() => {
+                console.log('[UnifiedStoryViewerV9] ✅ Image loaded successfully');
+                setLoading(false);
+              }}
               onError={() => {
-                console.error('[UnifiedStoryViewerV9] Error loading image:', storyImageUrl);
+                console.error('[UnifiedStoryViewerV9] ❌ Error loading image:', storyImageUrl);
                 setLoading(false);
               }}
             />
@@ -757,7 +792,7 @@ function UnifiedStoryViewerV9({
                 <ProgressBar
                   isActive={index === currentIndex}
                   isPaused={isPaused || loading}
-                  duration={5000}
+                  duration={STORY_DURATION}
                   onComplete={handleNext}
                   progress={progressValues[index]}
                 />

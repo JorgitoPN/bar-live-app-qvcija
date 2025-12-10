@@ -271,11 +271,13 @@ export default function NewPostCard({
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.authorInfo} onPress={handleProfilePress}>
-            {/* ✅ FIXED: Always show avatar (fetched or default) */}
+            {/* ✅ INSTAGRAM LOGIC: Pass userId to enable story border checking */}
             <MiniFoodPlateAvatar
               imageUrl={displayAvatar}
               size={42}
               nombre={authorName}
+              userId={post.autor_id}
+              hasStory={true}
             />
             <View style={styles.authorText}>
               <Text style={styles.authorName}>{displayUsername}</Text>
