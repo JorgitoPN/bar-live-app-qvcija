@@ -71,6 +71,7 @@ interface UnifiedStoryViewerV9Props {
   onClose: () => void;
   onStoryChange?: (index: number) => void;
   onStoryDelete?: (storyId: string) => void;
+  duration?: number; // ✅ NEW: Allow custom duration
 }
 
 interface ProgressBarProps {
@@ -197,6 +198,7 @@ ProgressBar.displayName = 'ProgressBar';
  * - Default avatars for users without profile pictures (icon-based, non-realistic)
  * - ✅ INSTAGRAM LOGIC: Auto-advance and auto-close after viewing all stories
  * - ✅ INSTAGRAM LOGIC: Border updates in real-time after viewing
+ * - ✅ FIXED: Countdown timer works on all pages (Social, Profile, etc.)
  */
 function UnifiedStoryViewerV9({
   visible,
@@ -205,6 +207,7 @@ function UnifiedStoryViewerV9({
   onClose,
   onStoryChange,
   onStoryDelete,
+  duration = STORY_DURATION, // ✅ FIXED: Default to STORY_DURATION if not provided
 }: UnifiedStoryViewerV9Props) {
   const router = useRouter();
   const { user } = useAuth();
@@ -242,6 +245,7 @@ function UnifiedStoryViewerV9({
     storyType: currentStory?.tipo,
     currentIndex,
     totalStories: stories.length,
+    duration, // ✅ Log the duration being used
   });
 
   const markAsViewed = useCallback(async (storyId: string) => {
@@ -362,12 +366,13 @@ function UnifiedStoryViewerV9({
       console.log('[UnifiedStoryViewerV9] 🎬 Story viewer opened:', {
         initialIndex,
         totalStories: stories.length,
+        duration, // ✅ Log duration
       });
       setCurrentIndex(initialIndex);
       setLoading(true);
       progressValues.forEach(p => p.setValue(0));
     }
-  }, [visible, initialIndex, progressValues, stories.length]);
+  }, [visible, initialIndex, progressValues, stories.length, duration]);
 
   const handleNext = useCallback(() => {
     console.log('[UnifiedStoryViewerV9] ⏭️ Next story:', {
@@ -792,7 +797,7 @@ function UnifiedStoryViewerV9({
                 <ProgressBar
                   isActive={index === currentIndex}
                   isPaused={isPaused || loading}
-                  duration={STORY_DURATION}
+                  duration={duration} // ✅ FIXED: Use the duration prop
                   onComplete={handleNext}
                   progress={progressValues[index]}
                 />
