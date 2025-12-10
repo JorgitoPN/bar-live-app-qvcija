@@ -278,8 +278,8 @@ serve(async (req) => {
 
     console.log('[RequestPasswordToken] 📧 Sending email via Resend...');
     
-    // Use the verified custom domain for BarLive
-    const fromEmail = 'BarLive <noreply@noreply.barlive.app>';
+    // Use the verified domain from Resend configuration: barliveapp.es
+    const fromEmail = 'BarLive <noreply@barliveapp.es>';
     
     console.log('[RequestPasswordToken] 📧 From:', fromEmail);
     console.log('[RequestPasswordToken] 📧 To:', normalizedEmail);
