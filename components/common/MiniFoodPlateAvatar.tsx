@@ -8,6 +8,9 @@ import { colors } from '@/styles/commonStyles';
 // ✅ DEFAULT AVATAR URL - Barlive branded default avatar
 const DEFAULT_AVATAR_URL = 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=400&h=400&fit=crop';
 
+// ✅ NEON GREEN COLOR - Phosphorescent green for story borders
+const NEON_GREEN = '#39FF14';
+
 interface MiniFoodPlateAvatarProps {
   imageUrl?: string;
   size?: number;
@@ -24,7 +27,7 @@ interface MiniFoodPlateAvatarProps {
  * Compact version of FoodPlateAvatar for use in posts, comments, etc.
  * Features:
  * - Smaller size optimized for inline use
- * - Story ring support
+ * - Story ring support with NEON GREEN for unviewed stories
  * - Default avatar with user's first letter OR default Barlive avatar
  * - Fallback to icon if no name available
  * - ALWAYS shows an avatar (never empty)
@@ -50,10 +53,10 @@ export default function MiniFoodPlateAvatar({
 
   return (
     <View style={[styles.container, { width: plateSize, height: plateSize }, style]}>
-      {/* Story Ring (if has story) */}
+      {/* ✅ NEON GREEN Story Ring (if has story and not viewed) */}
       {hasStory && !isViewed && (
         <LinearGradient
-          colors={[colors.primary, colors.secondary]}
+          colors={[NEON_GREEN, NEON_GREEN]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[

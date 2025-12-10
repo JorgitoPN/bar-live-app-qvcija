@@ -119,17 +119,18 @@ const ProgressBar = memo(({ isActive, isPaused, duration, onComplete, progress }
     };
   }, [isActive, isPaused, duration, onComplete, progress]);
 
+  // ✅ FIXED: Ensure progress is defined before using interpolate
+  const widthValue = progress ? progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0%', '100%'],
+  }) : '0%';
+
   return (
     <View style={styles.progressBarContainer}>
       <Animated.View 
         style={[
           styles.progressBarFill, 
-          { 
-            width: progress.interpolate({
-              inputRange: [0, 1],
-              outputRange: ['0%', '100%'],
-            })
-          }
+          { width: widthValue }
         ]} 
       >
         <LinearGradient

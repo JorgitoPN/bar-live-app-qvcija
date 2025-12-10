@@ -10,6 +10,9 @@ import { useAuth } from '@/contexts/AuthContext';
 // ✅ DEFAULT AVATAR URL - Barlive branded default avatar
 const DEFAULT_AVATAR_URL = 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=400&h=400&fit=crop';
 
+// ✅ NEON GREEN COLOR - Phosphorescent green for story borders
+const NEON_GREEN = '#39FF14';
+
 interface StoryAvatarProps {
   userId: string;
   userStories: any[];
@@ -128,9 +131,9 @@ const StoryAvatar = memo(function StoryAvatar({
     >
       <View style={[styles.avatarWrapper, { width: ringSize, height: ringSize }]}>
         {hasUnviewedStories ? (
-          // ✅ Show gradient outline for unviewed stories
+          // ✅ NEON GREEN GRADIENT for unviewed stories
           <LinearGradient
-            colors={[colors.primary, colors.secondary]}
+            colors={[NEON_GREEN, NEON_GREEN]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={[styles.gradientRing, { width: ringSize, height: ringSize, borderRadius: ringSize / 2 }]}
