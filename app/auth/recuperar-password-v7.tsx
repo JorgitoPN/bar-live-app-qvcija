@@ -45,6 +45,7 @@ export default function RecuperarPasswordV7Screen() {
   const [updatingPassword, setUpdatingPassword] = useState(false);
 
   useEffect(() => {
+    console.log('[RecuperarPasswordV7] Current step changed to:', currentStep);
     // Auto-focus first token input when entering token step
     if (currentStep === 'token' && inputRefs.current[0]) {
       setTimeout(() => {
@@ -90,11 +91,14 @@ export default function RecuperarPasswordV7Screen() {
         console.log('[RecuperarPasswordV7] ✅ Código enviado');
       }
       
+      console.log('[RecuperarPasswordV7] 🔄 Cambiando a paso de token...');
       // Always move to token step for security (don't reveal if email exists)
       setCurrentStep('token');
+      console.log('[RecuperarPasswordV7] ✅ Paso cambiado a token');
     } catch (error: any) {
       console.error('[RecuperarPasswordV7] ❌ Exception:', error);
       // Always move to token step for security
+      console.log('[RecuperarPasswordV7] 🔄 Cambiando a paso de token (después de error)...');
       setCurrentStep('token');
     } finally {
       setSendingCode(false);
@@ -178,7 +182,9 @@ export default function RecuperarPasswordV7Screen() {
       }
 
       console.log('[RecuperarPasswordV7] ✅ Token válido');
+      console.log('[RecuperarPasswordV7] 🔄 Cambiando a paso de contraseña...');
       setCurrentStep('password');
+      console.log('[RecuperarPasswordV7] ✅ Paso cambiado a password');
     } catch (error: any) {
       console.error('[RecuperarPasswordV7] ❌ Error:', error);
       Alert.alert('Error', 'Ocurrió un error al validar el código. Por favor, intenta nuevamente.');
@@ -372,6 +378,8 @@ export default function RecuperarPasswordV7Screen() {
     }
   };
 
+  console.log('[RecuperarPasswordV7] Rendering with currentStep:', currentStep);
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -461,7 +469,7 @@ export default function RecuperarPasswordV7Screen() {
                       color="#fff"
                       style={styles.buttonIcon}
                     />
-                    <Text style={styles.buttonText}>Enviar código de recuperación</Text>
+                    <Text style={styles.buttonText}>Enviar enlace de recuperación</Text>
                   </>
                 )}
               </TouchableOpacity>
