@@ -23,7 +23,7 @@ interface Seguido {
   username?: string;
   avatar?: string;
   bio?: string;
-  tipo: 'usuario' | 'local'; // ✅ NEW: Track type
+  tipo: 'usuario' | 'local';
 }
 
 export default function SeguidosScreen() {
@@ -44,7 +44,7 @@ export default function SeguidosScreen() {
     try {
       console.log('[Seguidos] Loading seguidos for user:', userId);
 
-      // ✅ FIXED: Load BOTH users and locals that the user follows
+      // ✅ FIXED: Use locales_guardados instead of locales_favoritos (which is just a view)
       const [usersResult, localsResult] = await Promise.all([
         // Load followed users
         supabase
@@ -61,12 +61,12 @@ export default function SeguidosScreen() {
           `)
           .eq('seguidor_id', userId),
         
-        // ✅ NEW: Load followed locals
+        // ✅ FIXED: Use locales_guardados table (has proper foreign keys)
         supabase
-          .from('locales_favoritos')
+          .from('locales_guardados')
           .select(`
             local_id,
-            locales!locales_favoritos_local_id_fkey(
+            locales!locales_guardados_local_id_fkey(
               id,
               nombre,
               imagen_url,
@@ -96,13 +96,13 @@ export default function SeguidosScreen() {
           tipo: 'usuario' as const,
         }));
 
-      // ✅ NEW: Format followed locals
+      // ✅ FIXED: Format followed locals from locales_guardados
       const formattedLocals: Seguido[] = (localsResult.data || [])
         .filter(s => s.locales)
         .map((s: any) => ({
           id: s.locales.id,
           nombre: s.locales.nombre,
-          username: undefined, // Locals don't have usernames
+          username: undefined,
           avatar: s.locales.imagen_url,
           bio: s.locales.descripcion_google,
           tipo: 'local' as const,
@@ -132,10 +132,8 @@ export default function SeguidosScreen() {
 
   const handleUserPress = (seguido: Seguido) => {
     if (seguido.tipo === 'local') {
-      // Navigate to local profile
       router.push(`/perfil/local?localId=${seguido.id}`);
     } else {
-      // Navigate to user profile
       if (user && seguido.id === user.id) {
         router.push('/(tabs)/perfil');
       } else {
@@ -174,7 +172,6 @@ export default function SeguidosScreen() {
       <View style={styles.userInfo}>
         <View style={styles.userNameRow}>
           <Text style={styles.userName}>{item.nombre}</Text>
-          {/* ✅ NEW: Show badge for locals */}
           {item.tipo === 'local' && (
             <View style={styles.localBadge}>
               <IconSymbol ios_icon_name="building.2" android_material_icon_name="store" size={12} color={colors.primary} />

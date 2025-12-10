@@ -23,8 +23,8 @@ import HeaderSocial from '@/components/layout/HeaderSocial';
 import { IconSymbol } from '@/components/IconSymbol';
 import { LinearGradient } from 'expo-linear-gradient';
 import NewPostCard from '@/components/social/NewPostCard';
-import NewBarraHistorias from '@/components/social/NewBarraHistorias';
-import UnifiedStoryViewerV9 from '@/components/social/UnifiedStoryViewerV9';
+import InstagramStoriesBarV10 from '@/components/social/InstagramStoriesBarV10';
+import UnifiedStoryViewerV10 from '@/components/social/UnifiedStoryViewerV10';
 import type { Publicacion, Historia } from '@/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -60,7 +60,7 @@ export default function SocialScreen() {
   const [userRole, setUserRole] = useState<UserRole>('cliente');
   const [localSubscription, setLocalSubscription] = useState<LocalSubscriptionInfo | null>(null);
   
-  // ✅ Story viewer state - SAME AS PROFILE PAGE
+  // ✅ FIXED: Story viewer state - USING V10 NOW
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
   const [selectedStories, setSelectedStories] = useState<Historia[]>([]);
@@ -80,7 +80,7 @@ export default function SocialScreen() {
     ? (modeLocalData?.nombre || 'Local')
     : (user?.nombre || 'Usuario');
 
-  console.log('[Social] 🎭 Active Profile:', {
+  console.log('[Social] 🎭 V10.0 - Active Profile:', {
     activeProfileType,
     activeProfileId,
     isInteractingAsLocal,
@@ -501,9 +501,9 @@ export default function SocialScreen() {
     router.push('/crear/historia');
   };
 
-  // ✅ FIXED: Use the SAME pattern as profile page
+  // ✅ FIXED: Use the SAME pattern as profile page with V10
   const handleHistoriaPress = useCallback((historia: Historia) => {
-    console.log('[Social] 📖 Story pressed:', historia.id);
+    console.log('[Social] 📖 V10.0 - Story pressed:', historia.id);
     
     // Find all stories from the same author
     const authorId = historia.tipo === 'usuario' ? historia.autor_id : historia.local_id;
@@ -515,20 +515,20 @@ export default function SocialScreen() {
     // Find the index of the clicked story
     const storyIndex = authorStories.findIndex(s => s.id === historia.id);
     
-    console.log('[Social] 📖 Opening story viewer:', {
+    console.log('[Social] 📖 V10.0 - Opening story viewer:', {
       authorId,
       totalStories: authorStories.length,
       clickedIndex: storyIndex,
     });
     
-    // ✅ SAME AS PROFILE PAGE
+    // ✅ SAME AS PROFILE PAGE - V10
     setSelectedStories(authorStories);
     setCurrentStoryIndex(storyIndex >= 0 ? storyIndex : 0);
     setShowStoryViewer(true);
   }, [historias]);
 
   const handleStoriesUpdate = useCallback((updatedStories: Historia[]) => {
-    console.log('[Social] ⚡ Stories updated in real-time:', updatedStories.length);
+    console.log('[Social] ⚡ V10.0 - Stories updated in real-time:', updatedStories.length);
     setHistorias(updatedStories);
   }, []);
 
@@ -628,8 +628,9 @@ export default function SocialScreen() {
         </View>
       )}
 
+      {/* ✅ FIXED: Using InstagramStoriesBarV10 */}
       <View style={styles.storiesSection}>
-        <NewBarraHistorias
+        <InstagramStoriesBarV10
           historias={historias}
           onHistoriaPress={handleHistoriaPress}
           onCrearHistoria={handleCreateStory}
@@ -738,21 +739,21 @@ export default function SocialScreen() {
         windowSize={10}
       />
 
-      {/* ✅ UNIFIED STORY VIEWER V9.0 - SAME AS PROFILE PAGE */}
-      <UnifiedStoryViewerV9
+      {/* ✅ FIXED: UNIFIED STORY VIEWER V10.0 - INSTAGRAM-STYLE WITH AUTO-CLOSE */}
+      <UnifiedStoryViewerV10
         visible={showStoryViewer}
         stories={selectedStories}
         initialIndex={currentStoryIndex}
         onClose={() => {
-          console.log('[Social] Closing story viewer');
+          console.log('[Social] V10.0 - Closing story viewer');
           setShowStoryViewer(false);
         }}
         onStoryChange={(index) => {
-          console.log('[Social] Story changed to index:', index);
+          console.log('[Social] V10.0 - Story changed to index:', index);
           setCurrentStoryIndex(index);
         }}
         onStoryDelete={async (storyId) => {
-          console.log('[Social] Story deleted:', storyId);
+          console.log('[Social] V10.0 - Story deleted:', storyId);
           setHistorias(prev => prev.filter(h => h.id !== storyId));
           setSelectedStories(prev => prev.filter(h => h.id !== storyId));
         }}
