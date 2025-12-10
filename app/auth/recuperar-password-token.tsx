@@ -325,7 +325,7 @@ export default function RecuperarPasswordTokenScreen() {
                   <Text style={styles.emailText}>{email}</Text>
                 </View>
                 <Text style={styles.successSubtext}>
-                  Recibirás un correo con instrucciones para restablecer tu contraseña.
+                  Recibirás un correo con un código de 6 dígitos para restablecer tu contraseña.
                 </Text>
               </View>
 
@@ -347,8 +347,8 @@ export default function RecuperarPasswordTokenScreen() {
                     <Text style={styles.stepNumberText}>2</Text>
                   </View>
                   <View style={styles.stepContent}>
-                    <Text style={styles.stepTitle}>Haz clic en el enlace</Text>
-                    <Text style={styles.stepText}>Presiona el botón en el correo</Text>
+                    <Text style={styles.stepTitle}>Copia el código</Text>
+                    <Text style={styles.stepText}>Copia el código de 6 dígitos del correo</Text>
                   </View>
                 </View>
 
@@ -357,8 +357,8 @@ export default function RecuperarPasswordTokenScreen() {
                     <Text style={styles.stepNumberText}>3</Text>
                   </View>
                   <View style={styles.stepContent}>
-                    <Text style={styles.stepTitle}>Crea tu nueva contraseña</Text>
-                    <Text style={styles.stepText}>Ingresa una contraseña segura y confírmala</Text>
+                    <Text style={styles.stepTitle}>Introduce el código aquí abajo</Text>
+                    <Text style={styles.stepText}>Pega o escribe el código en los campos de abajo</Text>
                   </View>
                 </View>
 
@@ -367,53 +367,56 @@ export default function RecuperarPasswordTokenScreen() {
                     <Text style={styles.stepNumberText}>4</Text>
                   </View>
                   <View style={styles.stepContent}>
-                    <Text style={styles.stepTitle}>¡Listo!</Text>
-                    <Text style={styles.stepText}>Vuelve a Barlive e inicia sesión</Text>
+                    <Text style={styles.stepTitle}>Crea tu nueva contraseña</Text>
+                    <Text style={styles.stepText}>Ingresa una contraseña segura y confírmala</Text>
                   </View>
                 </View>
               </View>
 
-              <Text style={styles.tokenLabel}>Código de verificación</Text>
-              <View style={styles.tokenContainer}>
-                {token.map((digit, index) => (
-                  <TextInput
-                    key={index}
-                    ref={(ref) => (inputRefs.current[index] = ref)}
-                    style={[
-                      styles.tokenInput,
-                      digit && styles.tokenInputFilled,
-                    ]}
-                    value={digit}
-                    onChangeText={(value) => handleTokenChange(value, index)}
-                    onKeyPress={(e) => handleKeyPress(e, index)}
-                    keyboardType="number-pad"
-                    maxLength={1}
-                    selectTextOnFocus
-                    editable={!validatingToken}
-                  />
-                ))}
-              </View>
-
-              <TouchableOpacity
-                style={[styles.button, validatingToken && styles.buttonDisabled]}
-                onPress={handleValidateToken}
-                disabled={validatingToken}
-              >
-                {validatingToken ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <>
-                    <IconSymbol
-                      ios_icon_name="checkmark.circle.fill"
-                      android_material_icon_name="check_circle"
-                      size={20}
-                      color="#fff"
-                      style={styles.buttonIcon}
+              <View style={styles.tokenSection}>
+                <Text style={styles.tokenSectionTitle}>Introduce el código aquí:</Text>
+                <Text style={styles.tokenLabel}>Código de verificación (6 dígitos)</Text>
+                <View style={styles.tokenContainer}>
+                  {token.map((digit, index) => (
+                    <TextInput
+                      key={index}
+                      ref={(ref) => (inputRefs.current[index] = ref)}
+                      style={[
+                        styles.tokenInput,
+                        digit && styles.tokenInputFilled,
+                      ]}
+                      value={digit}
+                      onChangeText={(value) => handleTokenChange(value, index)}
+                      onKeyPress={(e) => handleKeyPress(e, index)}
+                      keyboardType="number-pad"
+                      maxLength={1}
+                      selectTextOnFocus
+                      editable={!validatingToken}
                     />
-                    <Text style={styles.buttonText}>Validar código y continuar</Text>
-                  </>
-                )}
-              </TouchableOpacity>
+                  ))}
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.button, validatingToken && styles.buttonDisabled]}
+                  onPress={handleValidateToken}
+                  disabled={validatingToken}
+                >
+                  {validatingToken ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <>
+                      <IconSymbol
+                        ios_icon_name="checkmark.circle.fill"
+                        android_material_icon_name="check_circle"
+                        size={20}
+                        color="#fff"
+                        style={styles.buttonIcon}
+                      />
+                      <Text style={styles.buttonText}>Validar código y continuar</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
 
               <View style={styles.tipsBox}>
                 <Text style={styles.tipsTitle}>💡 Consejos:</Text>
@@ -709,6 +712,32 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     lineHeight: 18,
   },
+  tokenSection: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 16,
+    padding: 24,
+    marginBottom: 24,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
+  },
+  tokenSectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
   tokenLabel: {
     fontSize: 15,
     fontWeight: '600',
@@ -725,7 +754,7 @@ const styles = StyleSheet.create({
   tokenInput: {
     width: 50,
     height: 60,
-    backgroundColor: colors.cardBackground,
+    backgroundColor: colors.background,
     borderWidth: 2,
     borderColor: colors.cardBorder,
     borderRadius: 12,
