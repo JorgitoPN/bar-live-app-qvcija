@@ -23,11 +23,12 @@ interface MiniFoodPlateAvatarProps {
 }
 
 /**
- * ✅ MINI FOOD PLATE AVATAR v3.0
+ * ✅ MINI FOOD PLATE AVATAR v4.0 - Instagram-style story borders
  * Compact version of FoodPlateAvatar for use in posts, comments, etc.
  * Features:
  * - Smaller size optimized for inline use
- * - Story ring support with NEON GREEN for unviewed stories
+ * - NEON GREEN border for unviewed stories (Instagram logic)
+ * - Border DISAPPEARS when all stories are viewed (Instagram logic)
  * - Default avatar with user's first letter OR default Barlive avatar
  * - Fallback to icon if no name available
  * - ALWAYS shows an avatar (never empty)
@@ -51,10 +52,14 @@ export default function MiniFoodPlateAvatar({
   const shouldShowLetter = !imageUrl && (placeholderText || nombre);
   const shouldShowDefaultAvatar = !imageUrl && !placeholderText && !nombre;
 
+  // ✅ INSTAGRAM LOGIC: Show neon green ring ONLY if has story AND not viewed
+  // If viewed, the ring disappears completely (Instagram behavior)
+  const showStoryRing = hasStory && !isViewed;
+
   return (
     <View style={[styles.container, { width: plateSize, height: plateSize }, style]}>
-      {/* ✅ NEON GREEN Story Ring (if has story and not viewed) */}
-      {hasStory && !isViewed && (
+      {/* ✅ INSTAGRAM-STYLE: NEON GREEN Story Ring (only if unviewed) */}
+      {showStoryRing && (
         <LinearGradient
           colors={[NEON_GREEN, NEON_GREEN]}
           start={{ x: 0, y: 0 }}

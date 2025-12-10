@@ -53,7 +53,7 @@ const StoryAvatar = memo(function StoryAvatar({
       try {
         const storyIds = userStories.map(s => s.id);
         
-        // Check which stories have been viewed by the current user
+        // ✅ INSTAGRAM LOGIC: Check which stories have been viewed by the current user
         const { data: viewedStories, error } = await supabase
           .from('historia_views')
           .select('historia_id')
@@ -68,14 +68,16 @@ const StoryAvatar = memo(function StoryAvatar({
 
         const viewedStoryIds = new Set(viewedStories?.map(v => v.historia_id) || []);
         
-        // Show gradient outline if ANY story is unviewed
+        // ✅ INSTAGRAM LOGIC: Show neon green border ONLY if there are unviewed stories
+        // If ALL stories are viewed, the border disappears
         const hasUnviewed = userStories.some(s => !viewedStoryIds.has(s.id));
         
-        console.log('[StoryAvatar] 👁️ Unviewed check:', {
+        console.log('[StoryAvatar] 👁️ Instagram-style border logic:', {
           userId,
           totalStories: userStories.length,
           viewedCount: viewedStoryIds.size,
           hasUnviewed,
+          willShowBorder: hasUnviewed,
         });
         
         setHasUnviewedStories(hasUnviewed);
@@ -104,7 +106,7 @@ const StoryAvatar = memo(function StoryAvatar({
           (payload) => {
             // If a story from this user was viewed, recheck
             if (storyIds.includes(payload.new.historia_id)) {
-              console.log('[StoryAvatar] ⚡ Story viewed, rechecking outline');
+              console.log('[StoryAvatar] ⚡ Story viewed, rechecking border (Instagram logic)');
               checkUnviewedStories();
             }
           }
@@ -131,7 +133,7 @@ const StoryAvatar = memo(function StoryAvatar({
     >
       <View style={[styles.avatarWrapper, { width: ringSize, height: ringSize }]}>
         {hasUnviewedStories ? (
-          // ✅ NEON GREEN GRADIENT for unviewed stories
+          // ✅ NEON GREEN GRADIENT for unviewed stories (Instagram-style)
           <LinearGradient
             colors={[NEON_GREEN, NEON_GREEN]}
             start={{ x: 0, y: 0 }}
@@ -146,7 +148,7 @@ const StoryAvatar = memo(function StoryAvatar({
             </View>
           </LinearGradient>
         ) : (
-          // ✅ Show simple border for viewed stories (no gradient)
+          // ✅ INSTAGRAM LOGIC: No border for fully viewed stories (border disappears)
           <View style={[styles.viewedRing, { width: ringSize, height: ringSize, borderRadius: ringSize / 2 }]}>
             <View style={[styles.innerRing, { width: avatarSize + 4, height: avatarSize + 4, borderRadius: (avatarSize + 4) / 2 }]}>
               <Image
