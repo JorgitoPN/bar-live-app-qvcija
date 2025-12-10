@@ -91,24 +91,14 @@ export default function RecuperarPasswordV7Screen() {
         console.log('[RecuperarPasswordV7] ✅ Código enviado');
       }
       
-      console.log('[RecuperarPasswordV7] 🔄 Cambiando a paso de token...');
-      
-      // Always move to token step for security (don't reveal if email exists)
-      // Use setTimeout to ensure state update happens after current execution
-      setTimeout(() => {
-        console.log('[RecuperarPasswordV7] 🔄 Ejecutando setCurrentStep("token")...');
-        setCurrentStep('token');
-        console.log('[RecuperarPasswordV7] ✅ setCurrentStep ejecutado');
-      }, 100);
-      
     } catch (error: any) {
       console.error('[RecuperarPasswordV7] ❌ Exception:', error);
-      // Still navigate to token step for security
-      setTimeout(() => {
-        setCurrentStep('token');
-      }, 100);
     } finally {
       setSendingCode(false);
+      console.log('[RecuperarPasswordV7] 🔄 Cambiando a paso de token...');
+      // Always move to token step for security (don't reveal if email exists)
+      setCurrentStep('token');
+      console.log('[RecuperarPasswordV7] ✅ Paso cambiado a token');
       console.log('[RecuperarPasswordV7] 🏁 Proceso finalizado');
       console.log('═══════════════════════════════════════════════════════');
     }
@@ -191,11 +181,8 @@ export default function RecuperarPasswordV7Screen() {
       console.log('[RecuperarPasswordV7] ✅ Token válido');
       console.log('[RecuperarPasswordV7] 🔄 Cambiando a paso de contraseña...');
       
-      // Use setTimeout to ensure state update happens properly
-      setTimeout(() => {
-        setCurrentStep('password');
-        console.log('[RecuperarPasswordV7] ✅ Paso cambiado a password');
-      }, 100);
+      setCurrentStep('password');
+      console.log('[RecuperarPasswordV7] ✅ Paso cambiado a password');
       
     } catch (error: any) {
       console.error('[RecuperarPasswordV7] ❌ Error:', error);
@@ -547,7 +534,7 @@ export default function RecuperarPasswordV7Screen() {
                   size={80}
                   color={colors.primary}
                 />
-                <Text style={styles.infoTitle}>¡Correo enviado!</Text>
+                <Text style={styles.infoTitle}>¡Código enviado!</Text>
                 <Text style={styles.infoText}>
                   Si existe una cuenta asociada a:
                 </Text>
