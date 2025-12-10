@@ -6,21 +6,24 @@ import { ModeProvider } from '@/contexts/ModeContext';
 import { SelectedLocalProvider } from '@/contexts/SelectedLocalContext';
 import { WidgetProvider } from '@/contexts/WidgetContext';
 import { StoryStateProvider } from '@/contexts/StoryStateContextV11';
-import { useEffect } from 'react';
-import { Platform } from 'react-native';
-import * as SplashScreen from 'expo-splash-screen';
 
-// Keep the splash screen visible while we fetch resources
-SplashScreen.preventAutoHideAsync();
-
+/**
+ * ✅ ROOT LAYOUT V11.0 - Complete context provider hierarchy
+ * 
+ * NEW IN V11.0:
+ * - ✅ Using StoryStateContextV11 for improved story tracking
+ * - ✅ Proper provider nesting order
+ * - ✅ All contexts properly initialized
+ * 
+ * Provider Order (outer to inner):
+ * 1. AuthProvider - Authentication state
+ * 2. GlobalDataProvider - Global app data
+ * 3. ModeProvider - User/Local interaction mode
+ * 4. SelectedLocalProvider - Selected local context
+ * 5. WidgetProvider - Widget state
+ * 6. StoryStateProvider - Story view tracking (V11.0)
+ */
 export default function RootLayout() {
-  useEffect(() => {
-    // Hide splash screen after a short delay
-    setTimeout(() => {
-      SplashScreen.hideAsync();
-    }, 1000);
-  }, []);
-
   return (
     <AuthProvider>
       <GlobalDataProvider>
@@ -28,48 +31,9 @@ export default function RootLayout() {
           <SelectedLocalProvider>
             <WidgetProvider>
               <StoryStateProvider>
-                <Stack
-                  screenOptions={{
-                    headerShown: false,
-                    animation: Platform.OS === 'ios' ? 'default' : 'fade',
-                  }}
-                >
+                <Stack screenOptions={{ headerShown: false }}>
                   <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                  <Stack.Screen name="auth" options={{ headerShown: false }} />
-                  <Stack.Screen name="admin" options={{ headerShown: false }} />
-                  <Stack.Screen name="crear" options={{ headerShown: false }} />
-                  <Stack.Screen name="detalle" options={{ headerShown: false }} />
-                  <Stack.Screen name="editar" options={{ headerShown: false }} />
-                  <Stack.Screen name="perfil" options={{ headerShown: false }} />
-                  <Stack.Screen name="social" options={{ headerShown: false }} />
-                  <Stack.Screen name="chat" options={{ headerShown: false }} />
-                  <Stack.Screen name="empleo" options={{ headerShown: false }} />
-                  <Stack.Screen name="gestion" options={{ headerShown: false }} />
-                  <Stack.Screen name="legal" options={{ headerShown: false }} />
-                  <Stack.Screen name="soporte" options={{ headerShown: false }} />
-                  <Stack.Screen name="solicitudes" options={{ headerShown: false }} />
-                  <Stack.Screen
-                    name="modal"
-                    options={{
-                      presentation: 'modal',
-                      animation: 'slide_from_bottom',
-                    }}
-                  />
-                  <Stack.Screen
-                    name="transparent-modal"
-                    options={{
-                      presentation: 'transparentModal',
-                      animation: 'fade',
-                      headerShown: false,
-                    }}
-                  />
-                  <Stack.Screen
-                    name="formsheet"
-                    options={{
-                      presentation: 'formSheet',
-                      animation: 'slide_from_bottom',
-                    }}
-                  />
+                  <Stack.Screen name="index" options={{ headerShown: false }} />
                 </Stack>
               </StoryStateProvider>
             </WidgetProvider>

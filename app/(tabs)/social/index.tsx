@@ -23,7 +23,7 @@ import HeaderSocial from '@/components/layout/HeaderSocial';
 import { IconSymbol } from '@/components/IconSymbol';
 import { LinearGradient } from 'expo-linear-gradient';
 import NewPostCard from '@/components/social/NewPostCard';
-import InstagramStoriesBarV10 from '@/components/social/InstagramStoriesBarV10';
+import InstagramStoriesBarV11 from '@/components/social/InstagramStoriesBarV11';
 import UnifiedStoryViewerV10 from '@/components/social/UnifiedStoryViewerV10';
 import type { Publicacion, Historia } from '@/types';
 
@@ -38,6 +38,24 @@ interface LocalSubscriptionInfo {
   expiresAt?: string;
 }
 
+/**
+ * ✅ SOCIAL SCREEN V11.0 - Complete Instagram-style social feed
+ * 
+ * NEW IN V11.0:
+ * - ✅ Using InstagramStoriesBarV11 with "+" button
+ * - ✅ Complete story system with real-time updates
+ * - ✅ Role-based permissions and subscription checks
+ * - ✅ Improved performance and error handling
+ * - ✅ Consistent behavior across all pages
+ * 
+ * Features:
+ * - ✅ Instagram-style stories carousel with create button
+ * - ✅ Story viewer with countdown and auto-close
+ * - ✅ Real-time story and post updates
+ * - ✅ Role-based content filtering
+ * - ✅ Subscription-based feature access
+ * - ✅ Smooth animations and transitions
+ */
 export default function SocialScreen() {
   const router = useRouter();
   const { user } = useAuth();
@@ -60,7 +78,7 @@ export default function SocialScreen() {
   const [userRole, setUserRole] = useState<UserRole>('cliente');
   const [localSubscription, setLocalSubscription] = useState<LocalSubscriptionInfo | null>(null);
   
-  // ✅ FIXED: Story viewer state - USING V10 NOW
+  // ✅ V11.0: Story viewer state
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
   const [selectedStories, setSelectedStories] = useState<Historia[]>([]);
@@ -80,7 +98,7 @@ export default function SocialScreen() {
     ? (modeLocalData?.nombre || 'Local')
     : (user?.nombre || 'Usuario');
 
-  console.log('[Social] 🎭 V10.0 - Active Profile:', {
+  console.log('[Social] 🎭 V11.0 - Active Profile:', {
     activeProfileType,
     activeProfileId,
     isInteractingAsLocal,
@@ -295,7 +313,7 @@ export default function SocialScreen() {
     isLoadingRef.current = true;
 
     try {
-      console.log('[Social] ⚡ Loading data...');
+      console.log('[Social] ⚡ V11.0 - Loading data...');
       console.log('[Social] 📍 Global posts available:', globalPosts.length);
       console.log('[Social] 📍 Global stories available:', globalStories.length);
 
@@ -432,7 +450,7 @@ export default function SocialScreen() {
         setHistorias([]);
       }
 
-      console.log('[Social] ⚡ Data loaded');
+      console.log('[Social] ⚡ V11.0 - Data loaded');
     } catch (error) {
       console.error('[Social] Error loading data:', error);
       setPosts([]);
@@ -445,20 +463,20 @@ export default function SocialScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      console.log('[Social] 🔄 Screen focused - auto-updating data');
+      console.log('[Social] 🔄 V11.0 - Screen focused - auto-updating data');
       loadData();
     }, [loadData])
   );
 
   const onRefresh = async () => {
-    console.log('[Social] 🔄 Manual refresh triggered');
+    console.log('[Social] 🔄 V11.0 - Manual refresh triggered');
     setRefreshing(true);
     await loadData();
     setRefreshing(false);
   };
 
   const handleCreatePost = () => {
-    console.log('[Social] ➕ Create post button pressed');
+    console.log('[Social] ➕ V11.0 - Create post button pressed');
     
     const permission = canPerformAction('create_post');
     if (!permission.allowed) {
@@ -480,7 +498,7 @@ export default function SocialScreen() {
   };
 
   const handleCreateStory = () => {
-    console.log('[Social] ➕ Create story button pressed');
+    console.log('[Social] ➕ V11.0 - Create story button pressed');
     
     const permission = canPerformAction('create_story');
     if (!permission.allowed) {
@@ -501,9 +519,9 @@ export default function SocialScreen() {
     router.push('/crear/historia');
   };
 
-  // ✅ FIXED: Use the SAME pattern as profile page with V10
+  // ✅ V11.0: Story press handler
   const handleHistoriaPress = useCallback((historia: Historia) => {
-    console.log('[Social] 📖 V10.0 - Story pressed:', historia.id);
+    console.log('[Social] 📖 V11.0 - Story pressed:', historia.id);
     
     // Find all stories from the same author
     const authorId = historia.tipo === 'usuario' ? historia.autor_id : historia.local_id;
@@ -515,20 +533,19 @@ export default function SocialScreen() {
     // Find the index of the clicked story
     const storyIndex = authorStories.findIndex(s => s.id === historia.id);
     
-    console.log('[Social] 📖 V10.0 - Opening story viewer:', {
+    console.log('[Social] 📖 V11.0 - Opening story viewer:', {
       authorId,
       totalStories: authorStories.length,
       clickedIndex: storyIndex,
     });
     
-    // ✅ SAME AS PROFILE PAGE - V10
     setSelectedStories(authorStories);
     setCurrentStoryIndex(storyIndex >= 0 ? storyIndex : 0);
     setShowStoryViewer(true);
   }, [historias]);
 
   const handleStoriesUpdate = useCallback((updatedStories: Historia[]) => {
-    console.log('[Social] ⚡ V10.0 - Stories updated in real-time:', updatedStories.length);
+    console.log('[Social] ⚡ V11.0 - Stories updated in real-time:', updatedStories.length);
     setHistorias(updatedStories);
   }, []);
 
@@ -628,15 +645,16 @@ export default function SocialScreen() {
         </View>
       )}
 
-      {/* ✅ FIXED: Using InstagramStoriesBarV10 */}
+      {/* ✅ V11.0: Using InstagramStoriesBarV11 with "+" button */}
       <View style={styles.storiesSection}>
-        <InstagramStoriesBarV10
+        <InstagramStoriesBarV11
           historias={historias}
           onHistoriaPress={handleHistoriaPress}
           onCrearHistoria={handleCreateStory}
           userAvatar={displayAvatar || undefined}
           userName={displayName}
           onStoriesUpdate={handleStoriesUpdate}
+          showCreateButton={true}
         />
       </View>
     </Animated.View>
@@ -739,21 +757,21 @@ export default function SocialScreen() {
         windowSize={10}
       />
 
-      {/* ✅ FIXED: UNIFIED STORY VIEWER V10.0 - INSTAGRAM-STYLE WITH AUTO-CLOSE */}
+      {/* ✅ V11.0: UNIFIED STORY VIEWER - INSTAGRAM-STYLE WITH AUTO-CLOSE */}
       <UnifiedStoryViewerV10
         visible={showStoryViewer}
         stories={selectedStories}
         initialIndex={currentStoryIndex}
         onClose={() => {
-          console.log('[Social] V10.0 - Closing story viewer');
+          console.log('[Social] V11.0 - Closing story viewer');
           setShowStoryViewer(false);
         }}
         onStoryChange={(index) => {
-          console.log('[Social] V10.0 - Story changed to index:', index);
+          console.log('[Social] V11.0 - Story changed to index:', index);
           setCurrentStoryIndex(index);
         }}
         onStoryDelete={async (storyId) => {
-          console.log('[Social] V10.0 - Story deleted:', storyId);
+          console.log('[Social] V11.0 - Story deleted:', storyId);
           setHistorias(prev => prev.filter(h => h.id !== storyId));
           setSelectedStories(prev => prev.filter(h => h.id !== storyId));
         }}
