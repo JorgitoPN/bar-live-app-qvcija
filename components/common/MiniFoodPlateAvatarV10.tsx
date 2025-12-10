@@ -39,7 +39,7 @@ interface MiniFoodPlateAvatarV10Props {
  */
 export default function MiniFoodPlateAvatarV10({
   imageUrl,
-  size = 40,
+  size = 48,
   hasStory = false,
   placeholderIcon = 'person.fill',
   placeholderText,

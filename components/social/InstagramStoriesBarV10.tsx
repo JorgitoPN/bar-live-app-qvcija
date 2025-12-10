@@ -36,7 +36,7 @@ const CreateStoryButton = memo(({
           userStories={[]}
           avatarUrl={userAvatar}
           userName={userName || 'Tu historia'}
-          size={72}
+          size={92}
           onPress={onPress}
           showLabel={false}
         />
@@ -47,7 +47,7 @@ const CreateStoryButton = memo(({
             end={{ x: 1, y: 0 }}
             style={styles.addButtonGradient}
           >
-            <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={16} color={colors.white} />
+            <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={18} color={colors.white} />
           </LinearGradient>
         </View>
       </View>
@@ -73,6 +73,7 @@ const truncateName = (name: string, maxLength: number = 10): string => {
  * - ✅ Grouped stories by author
  * - ✅ Create story button with gradient
  * - ✅ Optimized with memo for performance
+ * - ✅ LARGER AVATARS (92px) for better visibility
  */
 const InstagramStoriesBarV10 = memo(function InstagramStoriesBarV10({
   historias,
@@ -250,7 +251,7 @@ const InstagramStoriesBarV10 = memo(function InstagramStoriesBarV10({
                 userStories={userStories}
                 avatarUrl={userAvatar}
                 userName={isInteractingAsLocal ? activeLocalData?.nombre || 'Tu local' : 'Tu historia'}
-                size={72}
+                size={92}
                 onPress={() => onHistoriaPress(userStories[0])}
                 showLabel={true}
                 labelText={isInteractingAsLocal 
@@ -289,7 +290,7 @@ const InstagramStoriesBarV10 = memo(function InstagramStoriesBarV10({
                 userStories={stories}
                 avatarUrl={avatarUrl || undefined}
                 userName={truncatedName}
-                size={72}
+                size={92}
                 onPress={() => onHistoriaPress(latestStory)}
                 showLabel={true}
                 labelText={truncatedName}
@@ -323,7 +324,7 @@ const styles = StyleSheet.create({
   },
   createStory: {
     alignItems: 'center',
-    width: 72,
+    width: 92,
   },
   storyAvatarContainer: {
     position: 'relative',
@@ -333,11 +334,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     overflow: 'hidden',
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: colors.background,
     zIndex: 2,
   },
@@ -349,7 +350,7 @@ const styles = StyleSheet.create({
   },
   storyContainer: {
     alignItems: 'center',
-    width: 72,
+    width: 92,
   },
   storyLabel: {
     fontSize: 12,
