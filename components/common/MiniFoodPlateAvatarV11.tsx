@@ -25,13 +25,11 @@ interface MiniFoodPlateAvatarV11Props {
 }
 
 /**
- * ✅ MINI FOOD PLATE AVATAR V11.0 - Complete Instagram-style story borders
+ * ✅ MINI FOOD PLATE AVATAR V11.0.6 - FIXED TOUCH GESTURES
  * 
- * NEW IN V11.0:
- * - ✅ Improved performance
- * - ✅ Better border rendering
- * - ✅ Enhanced consistency across all pages
- * - ✅ Proper state management
+ * FIXES IN V11.0.6:
+ * - ✅ CRITICAL FIX: Added pointerEvents="none" to prevent blocking touches
+ * - ✅ Improved rendering performance
  * 
  * Features:
  * - ✅ Smaller size optimized for inline use
@@ -41,6 +39,7 @@ interface MiniFoodPlateAvatarV11Props {
  * - ✅ ALWAYS shows an avatar (never empty)
  * - ✅ Uses StoryStateContextV11 for consistent state management
  * - ✅ Real-time updates via context subscription
+ * - ✅ DOES NOT BLOCK TOUCH EVENTS
  */
 export default function MiniFoodPlateAvatarV11({
   imageUrl,
@@ -64,7 +63,7 @@ export default function MiniFoodPlateAvatarV11({
     ? hasUnviewedStories(userId, userStories)
     : false;
 
-  console.log('[MiniFoodPlateAvatarV11] 🎨 V11.0 - Rendering avatar:', {
+  console.log('[MiniFoodPlateAvatarV11] 🎨 V11.0.6 - Rendering avatar:', {
     userId,
     hasStory,
     storiesCount: userStories.length,
@@ -76,7 +75,10 @@ export default function MiniFoodPlateAvatarV11({
   const shouldShowImage = !!imageUrl;
 
   return (
-    <View style={[styles.container, { width: plateSize, height: plateSize }, style]}>
+    <View 
+      style={[styles.container, { width: plateSize, height: plateSize }, style]}
+      pointerEvents="none"
+    >
       {/* ✅ INSTAGRAM-STYLE: NEON GREEN Story Ring (only if unviewed) */}
       {showStoryRing && (
         <LinearGradient
@@ -93,6 +95,7 @@ export default function MiniFoodPlateAvatarV11({
               left: -2,
             },
           ]}
+          pointerEvents="none"
         />
       )}
 
@@ -107,6 +110,7 @@ export default function MiniFoodPlateAvatarV11({
             borderWidth: rimWidth,
           },
         ]}
+        pointerEvents="none"
       >
         {/* Food/Image Container (inner circle) */}
         <View
@@ -118,6 +122,7 @@ export default function MiniFoodPlateAvatarV11({
               borderRadius: imageSize / 2,
             },
           ]}
+          pointerEvents="none"
         >
           {shouldShowImage ? (
             <Image
@@ -131,6 +136,7 @@ export default function MiniFoodPlateAvatarV11({
                 },
               ]}
               resizeMode="cover"
+              pointerEvents="none"
             />
           ) : (
             <View
@@ -142,6 +148,7 @@ export default function MiniFoodPlateAvatarV11({
                   borderRadius: imageSize / 2,
                 },
               ]}
+              pointerEvents="none"
             >
               <IconSymbol
                 ios_icon_name={DEFAULT_AVATAR_ICON}

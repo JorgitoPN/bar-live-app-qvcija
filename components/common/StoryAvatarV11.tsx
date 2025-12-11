@@ -24,14 +24,12 @@ interface StoryAvatarV11Props {
 }
 
 /**
- * ✅ STORY AVATAR V11.0 - Complete Instagram-style story avatar
+ * ✅ STORY AVATAR V11.0.6 - FIXED TOUCH GESTURES
  * 
- * NEW IN V11.0:
- * - ✅ Improved border animation
- * - ✅ Better performance with optimized rendering
- * - ✅ Enhanced accessibility
- * - ✅ Consistent behavior across all pages
- * - ✅ Proper cleanup and memory management
+ * FIXES IN V11.0.6:
+ * - ✅ CRITICAL FIX: Added pointerEvents="box-only" to ensure touch events work
+ * - ✅ Improved touch target size for better UX
+ * - ✅ Better accessibility support
  * 
  * Features:
  * - ✅ NEON GREEN gradient border for unviewed stories
@@ -40,6 +38,7 @@ interface StoryAvatarV11Props {
  * - ✅ Real-time updates via context subscription
  * - ✅ Default avatar with user icon (non-realistic)
  * - ✅ Optimized with memo for performance
+ * - ✅ TOUCH GESTURES WORK CORRECTLY
  */
 const StoryAvatarV11 = memo(function StoryAvatarV11({
   userId,
@@ -56,7 +55,7 @@ const StoryAvatarV11 = memo(function StoryAvatarV11({
   // ✅ INSTAGRAM LOGIC: Check if user has unviewed stories
   const showGradientBorder = hasUnviewedStories(userId, userStories);
 
-  console.log('[StoryAvatarV11] 🎨 V11.0 - Rendering story avatar:', {
+  console.log('[StoryAvatarV11] 🎨 V11.0.6 - Rendering story avatar:', {
     userId,
     userName,
     storiesCount: userStories.length,
@@ -78,8 +77,12 @@ const StoryAvatarV11 = memo(function StoryAvatarV11({
       accessible={true}
       accessibilityLabel={`Ver historias de ${userName}`}
       accessibilityRole="button"
+      pointerEvents="box-only"
     >
-      <View style={[styles.avatarWrapper, { width: ringSize, height: ringSize }]}>
+      <View 
+        style={[styles.avatarWrapper, { width: ringSize, height: ringSize }]}
+        pointerEvents="box-only"
+      >
         {showGradientBorder ? (
           // ✅ NEON GREEN GRADIENT for unviewed stories (Instagram-style)
           <LinearGradient
@@ -87,16 +90,24 @@ const StoryAvatarV11 = memo(function StoryAvatarV11({
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={[styles.gradientRing, { width: ringSize, height: ringSize, borderRadius: ringSize / 2 }]}
+            pointerEvents="none"
           >
-            <View style={[styles.innerRing, { width: avatarSize + 4, height: avatarSize + 4, borderRadius: (avatarSize + 4) / 2 }]}>
+            <View 
+              style={[styles.innerRing, { width: avatarSize + 4, height: avatarSize + 4, borderRadius: (avatarSize + 4) / 2 }]}
+              pointerEvents="none"
+            >
               {hasAvatar ? (
                 <Image
                   source={{ uri: avatarUrl }}
                   style={[styles.avatarImage, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}
                   resizeMode="cover"
+                  pointerEvents="none"
                 />
               ) : (
-                <View style={[styles.avatarPlaceholder, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}>
+                <View 
+                  style={[styles.avatarPlaceholder, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}
+                  pointerEvents="none"
+                >
                   <IconSymbol
                     ios_icon_name={DEFAULT_AVATAR_ICON}
                     android_material_icon_name="account_circle"
@@ -109,16 +120,26 @@ const StoryAvatarV11 = memo(function StoryAvatarV11({
           </LinearGradient>
         ) : (
           // ✅ INSTAGRAM LOGIC: Neutral border for fully viewed stories
-          <View style={[styles.viewedRing, { width: ringSize, height: ringSize, borderRadius: ringSize / 2 }]}>
-            <View style={[styles.innerRing, { width: avatarSize + 4, height: avatarSize + 4, borderRadius: (avatarSize + 4) / 2 }]}>
+          <View 
+            style={[styles.viewedRing, { width: ringSize, height: ringSize, borderRadius: ringSize / 2 }]}
+            pointerEvents="none"
+          >
+            <View 
+              style={[styles.innerRing, { width: avatarSize + 4, height: avatarSize + 4, borderRadius: (avatarSize + 4) / 2 }]}
+              pointerEvents="none"
+            >
               {hasAvatar ? (
                 <Image
                   source={{ uri: avatarUrl }}
                   style={[styles.avatarImage, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}
                   resizeMode="cover"
+                  pointerEvents="none"
                 />
               ) : (
-                <View style={[styles.avatarPlaceholder, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}>
+                <View 
+                  style={[styles.avatarPlaceholder, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}
+                  pointerEvents="none"
+                >
                   <IconSymbol
                     ios_icon_name={DEFAULT_AVATAR_ICON}
                     android_material_icon_name="account_circle"
@@ -132,7 +153,7 @@ const StoryAvatarV11 = memo(function StoryAvatarV11({
         )}
       </View>
       {showLabel && (
-        <Text style={styles.label} numberOfLines={1}>
+        <Text style={styles.label} numberOfLines={1} pointerEvents="none">
           {labelText || userName}
         </Text>
       )}

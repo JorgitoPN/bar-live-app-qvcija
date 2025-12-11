@@ -25,6 +25,7 @@ import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useInteractionContext } from '@/hooks/useInteractionContext';
+import { useStoryState } from '@/contexts/StoryStateContextV11';
 import StoryStatsModal from './StoryStatsModal';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -252,6 +253,7 @@ function StoryViewer({
   const router = useRouter();
   const { user } = useAuth();
   const { interactionUserId, interactionLocalId, isInteractingAsLocal } = useInteractionContext();
+  const { markStoriesAsViewed, refreshStoryState } = useStoryState();
   
   const [currentStoryIndex, setCurrentStoryIndex] = useState(initialIndex);
   const [isPaused, setIsPaused] = useState(false);
@@ -402,11 +404,17 @@ function StoryViewer({
         }
 
         await supabase.from('historia_views').insert(viewData);
+        
+        // ✅ V11.0.6: CRITICAL FIX - Mark story as viewed in context immediately
+        markStoriesAsViewed([storyId]);
+        
+        // ✅ V11.0.6: CRITICAL FIX - Trigger aggressive refresh
+        refreshStoryState();
       }
     } catch (error) {
       console.error('[StoryViewer] Error marking story as viewed:', error);
     }
-  }, [interactionUserId, interactionLocalId, isInteractingAsLocal, stories]);
+  }, [interactionUserId, interactionLocalId, isInteractingAsLocal, stories, markStoriesAsViewed, refreshStoryState]);
 
   const handleNextStory = useCallback(() => {
     if (currentStory && interactionUserId) {
@@ -419,9 +427,12 @@ function StoryViewer({
       setImageLoaded(false);
       onStoryChange?.(newIndex);
     } else {
+      // ✅ V11.0.6: CRITICAL FIX - Trigger final refresh before closing
+      console.log('[StoryViewer] 🔄 V11.0.6 - Final refresh before closing');
+      refreshStoryState();
       onClose();
     }
-  }, [currentStoryIndex, stories.length, currentStory, interactionUserId, markStoryAsViewed, onClose, onStoryChange]);
+  }, [currentStoryIndex, stories.length, currentStory, interactionUserId, markStoryAsViewed, onClose, onStoryChange, refreshStoryState]);
 
   const handlePreviousStory = useCallback(() => {
     if (currentStoryIndex > 0) {
@@ -430,9 +441,12 @@ function StoryViewer({
       setImageLoaded(false);
       onStoryChange?.(newIndex);
     } else {
+      // ✅ V11.0.6: CRITICAL FIX - Trigger final refresh before closing
+      console.log('[StoryViewer] 🔄 V11.0.6 - Final refresh before closing');
+      refreshStoryState();
       onClose();
     }
-  }, [currentStoryIndex, onClose, onStoryChange]);
+  }, [currentStoryIndex, onClose, onStoryChange, refreshStoryState]);
 
   // ✅ FIXED: Handle story like with interaction context
   const handleStoryLike = useCallback(async () => {
@@ -609,6 +623,10 @@ function StoryViewer({
               if (error) throw error;
 
               onStoryDelete?.(currentStory.id);
+              
+              // ✅ V11.0.6: CRITICAL FIX - Trigger refresh after deletion
+              refreshStoryState();
+              
               onClose();
 
               Alert.alert('Éxito', 'Historia eliminada correctamente');
@@ -620,7 +638,7 @@ function StoryViewer({
         },
       ]
     );
-  }, [currentStory, interactionUserId, interactionLocalId, onStoryDelete, onClose]);
+  }, [currentStory, interactionUserId, interactionLocalId, onStoryDelete, onClose, refreshStoryState]);
 
   const handleSendStoryMessage = useCallback(async () => {
     if (!currentStory || !user || !storyMessage.trim() || sendingMessage) {
@@ -871,11 +889,11 @@ function StoryViewer({
   const panResponder = useMemo(
     () => PanResponder.create({
       onStartShouldSetPanResponder: () => true,
-      onStartShouldSetPanResponderCapture: () => false,
+      onStartShouldSetPanResponderCapture: () => true,
       onMoveShouldSetPanResponder: (_, gestureState) => {
         return Math.abs(gestureState.dx) > 10 || Math.abs(gestureState.dy) > 10;
       },
-      onMoveShouldSetPanResponderCapture: () => false,
+      onMoveShouldSetPanResponderCapture: () => true,
       
       onPanResponderGrant: handleTouchStart,
       onPanResponderMove: (_, gestureState) => handleTouchMove(gestureState),
@@ -887,6 +905,9 @@ function StoryViewer({
           longPressTimer.current = null;
         }
       },
+      
+      onPanResponderTerminationRequest: () => false,
+      onShouldBlockNativeResponder: () => false,
     }),
     [handleTouchStart, handleTouchMove, handleTouchEnd]
   );
@@ -945,7 +966,7 @@ function StoryViewer({
       >
         <View style={styles.storyViewerModal} {...panResponder.panHandlers}>
           {/* Progress bars */}
-          <BlurView intensity={20} tint="dark" style={styles.progressContainer}>
+          <BlurView intensity={20} tint="dark" style={styles.progressContainer} pointerEvents="none">
             <View style={styles.progressBarsWrapper}>
               {stories.map((_, index) => (
                 <ProgressBar
@@ -962,7 +983,7 @@ function StoryViewer({
           </BlurView>
 
           {/* Header */}
-          <BlurView intensity={30} tint="dark" style={styles.storyHeader}>
+          <BlurView intensity={30} tint="dark" style={styles.storyHeader} pointerEvents="box-none">
             <TouchableOpacity 
               style={styles.storyAutorInfo}
               onPress={handleNavigateToStoryAuthorProfile}
@@ -1010,13 +1031,13 @@ function StoryViewer({
           </BlurView>
 
           {/* Story content */}
-          <View style={styles.storyContent}>
+          <View style={styles.storyContent} pointerEvents="none">
             <StoryImage uri={currentStory.imagen} onLoad={() => setImageLoaded(true)} />
           </View>
 
           {/* Owner controls */}
           {isCurrentStoryOwner && (
-            <BlurView intensity={30} tint="dark" style={styles.storyOwnerControls}>
+            <BlurView intensity={30} tint="dark" style={styles.storyOwnerControls} pointerEvents="box-none">
               {/* ✅ FIXED: Eye button for viewing statistics */}
               <TouchableOpacity
                 style={styles.storyControlButton}
@@ -1050,7 +1071,7 @@ function StoryViewer({
 
           {/* Interaction bar */}
           {!isCurrentStoryOwner && (
-            <BlurView intensity={30} tint="dark" style={styles.storyInteractionBar}>
+            <BlurView intensity={30} tint="dark" style={styles.storyInteractionBar} pointerEvents="box-none">
               <View style={styles.storyMessageInputContainer}>
                 <TextInput
                   style={styles.storyMessageInput}
