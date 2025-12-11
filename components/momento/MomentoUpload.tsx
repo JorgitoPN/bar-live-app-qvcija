@@ -14,11 +14,12 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
-import { supabase } from '@/app/integrations/supabase/client';
+import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
+import * as FileSystem from 'expo-file-system';
 import { decode } from 'base64-arraybuffer';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -93,29 +94,25 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
   };
 
   const uploadMomento = async () => {
-    if (!user || !selectedImage) {
-      console.error('[MomentoUpload] Missing required data:', {
-        hasUser: !!user,
-        hasImage: !!selectedImage,
-      });
-      Alert.alert(
-        'Error de autenticación',
-        'No estás autenticado. Por favor, inicia sesión nuevamente.'
-      );
+    if (!selectedImage) {
+      console.error('[MomentoUpload] No image selected');
+      Alert.alert('Error', 'Por favor selecciona una imagen');
       return;
     }
 
     try {
       setUploading(true);
 
-      console.log('[MomentoUpload] 🚀 Iniciando subida de Momento...', {
-        userId: user.id,
+      console.log('[MomentoUpload] 🚀 Iniciando subida de Momento...');
+      console.log('[MomentoUpload] 📊 Estado inicial:', {
+        hasUser: !!user,
+        userId: user?.id,
         activeProfileType,
         activeProfileId,
       });
 
-      // Ensure we have a valid session before proceeding
-      console.log('[MomentoUpload] 🔍 Verificando y refrescando sesión si es necesario...');
+      // CRITICAL: Ensure we have a valid session before proceeding
+      console.log('[MomentoUpload] 🔍 Verificando sesión válida...');
       const validSession = await ensureValidSession();
       
       if (!validSession) {
@@ -130,34 +127,38 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
 
       console.log('[MomentoUpload] ✅ Sesión válida confirmada:', {
         userId: validSession.user.id,
+        email: validSession.user.email,
         role: validSession.user.role,
         expiresAt: new Date(validSession.expires_at! * 1000).toLocaleString(),
+        accessToken: validSession.access_token ? 'presente' : 'ausente',
       });
 
-      // Wait a moment to ensure the session is fully propagated
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Get user ID from the validated session
+      const currentUserId = validSession.user.id;
+
+      console.log('[MomentoUpload] 👤 Usuario confirmado:', currentUserId);
 
       // Prepare momento data
       let momentoData: any = {
-        autor_id: user.id,
+        autor_id: currentUserId,
         tipo: 'usuario',
         categoria: 'general',
       };
 
       // Verify ownership if uploading as local
       if (activeProfileType === 'local' && activeProfileId) {
-        console.log('[MomentoUpload] Verifying local ownership...');
+        console.log('[MomentoUpload] 🏢 Verificando propiedad del local...');
         
         const { data: ownershipData, error: ownershipError } = await supabase
           .from('propietarios_locales')
           .select('id, local_id, propietario_id, activo')
-          .eq('propietario_id', user.id)
+          .eq('propietario_id', currentUserId)
           .eq('local_id', activeProfileId)
           .eq('activo', true)
           .single();
 
         if (ownershipError || !ownershipData) {
-          console.error('[MomentoUpload] Ownership verification failed:', ownershipError);
+          console.error('[MomentoUpload] ❌ Verificación de propiedad falló:', ownershipError);
           Alert.alert(
             'Error de permisos',
             'No tienes permisos para subir momentos como este local. Verifica que seas propietario activo del local.'
@@ -166,43 +167,48 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
           return;
         }
 
-        console.log('[MomentoUpload] ✅ Ownership verified:', ownershipData);
+        console.log('[MomentoUpload] ✅ Propiedad verificada:', ownershipData);
         
         // Set momento data for local
         momentoData.tipo = 'local';
         momentoData.local_id = activeProfileId;
       }
 
-      console.log('[MomentoUpload] Momento data prepared:', momentoData);
+      console.log('[MomentoUpload] 📝 Datos del momento preparados:', momentoData);
 
-      // Convert image to base64
-      const response = await fetch(selectedImage);
-      const blob = await response.blob();
-      
-      // Convert blob to ArrayBuffer
-      const arrayBuffer = await blob.arrayBuffer();
-      const uint8Array = new Uint8Array(arrayBuffer);
+      // Convert image to base64 using FileSystem
+      console.log('[MomentoUpload] 📸 Convirtiendo imagen a base64...');
+      const base64 = await FileSystem.readAsStringAsync(selectedImage, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      console.log('[MomentoUpload] ✅ Imagen convertida, tamaño:', base64.length, 'caracteres');
 
       // Upload to Supabase Storage with user ID in path (required by RLS)
       // Path format: {user_id}/{filename}
       const fileName = `momento-${Date.now()}.jpg`;
-      const filePath = `${user.id}/${fileName}`;
+      const filePath = `${currentUserId}/${fileName}`;
 
-      console.log('[MomentoUpload] Uploading to storage bucket "momentos"');
-      console.log('[MomentoUpload] File path:', filePath);
-      console.log('[MomentoUpload] User ID:', user.id);
-      console.log('[MomentoUpload] File size:', uint8Array.length, 'bytes');
+      console.log('[MomentoUpload] 📤 Subiendo a storage bucket "momentos"');
+      console.log('[MomentoUpload] 📁 Ruta del archivo:', filePath);
+      console.log('[MomentoUpload] 👤 ID de usuario:', currentUserId);
+
+      // Decode base64 to ArrayBuffer for upload
+      console.log('[MomentoUpload] 🔄 Decodificando base64 a ArrayBuffer...');
+      const arrayBuffer = decode(base64);
+
+      console.log('[MomentoUpload] 📦 Tamaño del buffer:', arrayBuffer.byteLength, 'bytes');
 
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('momentos')
-        .upload(filePath, uint8Array, {
+        .upload(filePath, arrayBuffer, {
           contentType: 'image/jpeg',
           upsert: false,
         });
 
       if (uploadError) {
-        console.error('[MomentoUpload] Storage upload error:', uploadError);
-        console.error('[MomentoUpload] Error details:', {
+        console.error('[MomentoUpload] ❌ Error de subida al storage:', uploadError);
+        console.error('[MomentoUpload] 📋 Detalles del error:', {
           message: uploadError.message,
           statusCode: (uploadError as any).statusCode,
           name: uploadError.name,
@@ -227,17 +233,19 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
         return;
       }
 
-      console.log('[MomentoUpload] ✅ Storage upload successful:', uploadData);
+      console.log('[MomentoUpload] ✅ Subida al storage exitosa:', uploadData);
 
       // Get public URL
       const { data: urlData } = supabase.storage
         .from('momentos')
         .getPublicUrl(filePath);
 
+      console.log('[MomentoUpload] 🔗 URL pública generada:', urlData.publicUrl);
+
       // Add image URL to momento data
       momentoData.imagen_url = urlData.publicUrl;
 
-      console.log('[MomentoUpload] Creating momento record:', momentoData);
+      console.log('[MomentoUpload] 💾 Creando registro en la base de datos...');
 
       // Insert momento record
       const { data: insertData, error: insertError } = await supabase
@@ -247,8 +255,8 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
         .single();
 
       if (insertError) {
-        console.error('[MomentoUpload] Database insert error:', insertError);
-        console.error('[MomentoUpload] Insert error details:', {
+        console.error('[MomentoUpload] ❌ Error insertando en base de datos:', insertError);
+        console.error('[MomentoUpload] 📋 Detalles del error:', {
           code: insertError.code,
           message: insertError.message,
           details: insertError.details,
@@ -273,7 +281,7 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
         return;
       }
 
-      console.log('[MomentoUpload] ✅ Momento created successfully:', insertData);
+      console.log('[MomentoUpload] ✅ Momento creado exitosamente:', insertData);
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert('¡Éxito!', 'Tu Momento se ha publicado');
@@ -282,7 +290,7 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
       onSuccess();
       onClose();
     } catch (error) {
-      console.error('[MomentoUpload] Error uploading:', error);
+      console.error('[MomentoUpload] ❌ Error inesperado:', error);
       Alert.alert('Error', 'No se pudo subir el Momento. Por favor, intenta de nuevo.');
     } finally {
       setUploading(false);

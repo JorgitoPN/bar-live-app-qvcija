@@ -24,10 +24,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Helper function to ensure we have a valid session
   const ensureValidSession = async (): Promise<Session | null> => {
-    console.log('[AuthContext] 🔍 Verificando sesión...');
+    console.log('[AuthContext] 🔍 ensureValidSession - Iniciando verificación...');
     
     try {
-      // First, try to get the current session
+      // ALWAYS get fresh session from Supabase to ensure we have the latest state
+      console.log('[AuthContext] 🔄 Obteniendo sesión fresca de Supabase...');
       const { data: { session: currentSession }, error: getError } = await supabase.auth.getSession();
       
       if (getError) {
@@ -40,22 +41,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return null;
       }
 
-      // Check if session is about to expire (less than 5 minutes)
+      console.log('[AuthContext] 📊 Sesión obtenida:', {
+        userId: currentSession.user.id,
+        email: currentSession.user.email,
+        expiresAt: new Date(currentSession.expires_at! * 1000).toLocaleString(),
+        hasAccessToken: !!currentSession.access_token,
+      });
+
+      // Check if session needs refresh
       const expiresAt = currentSession.expires_at! * 1000;
       const now = Date.now();
       const timeUntilExpiry = expiresAt - now;
 
-      console.log('[AuthContext] 📅 Sesión expira en:', Math.floor(timeUntilExpiry / 1000 / 60), 'minutos');
+      console.log('[AuthContext] ⏱️ Tiempo hasta expiración:', Math.floor(timeUntilExpiry / 1000 / 60), 'minutos');
 
-      // If session is expired or about to expire, refresh it
+      // If session is expired or about to expire (less than 5 minutes), refresh it
       if (timeUntilExpiry < 5 * 60 * 1000) {
-        console.log('[AuthContext] ⏰ Sesión próxima a expirar, refrescando...');
+        console.log('[AuthContext] 🔄 Sesión próxima a expirar o expirada, refrescando...');
         
         const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
         
         if (refreshError) {
           console.error('[AuthContext] ❌ Error refrescando sesión:', refreshError);
-          return null;
+          // If refresh failed and session is expired, return null
+          if (timeUntilExpiry <= 0) {
+            console.error('[AuthContext] ❌ Sesión expirada y no se pudo refrescar');
+            return null;
+          }
+          // If refresh failed but session is still valid, use current session
+          console.log('[AuthContext] ⚠️ Usando sesión actual a pesar del error de refresh');
+          setSession(currentSession);
+          return currentSession;
         }
 
         if (!refreshedSession) {
@@ -72,10 +88,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return refreshedSession;
       }
 
-      console.log('[AuthContext] ✅ Sesión válida');
+      console.log('[AuthContext] ✅ Sesión válida, actualizando estado');
+      // Update state with fresh session
+      setSession(currentSession);
       return currentSession;
     } catch (error) {
-      console.error('[AuthContext] ❌ Error en ensureValidSession:', error);
+      console.error('[AuthContext] ❌ Error inesperado en ensureValidSession:', error);
       return null;
     }
   };
@@ -195,7 +213,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       subscription = data.subscription;
 
-      // Set up automatic session refresh every 30 minutes
+      // Set up automatic session refresh every 5 minutes
       // This ensures the session stays fresh and prevents expiration during uploads
       refreshInterval = setInterval(async () => {
         try {
@@ -208,7 +226,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             
             // Refresh if less than 10 minutes until expiry
             if (timeUntilExpiry < 10 * 60 * 1000) {
-              console.log('[AuthContext] ⏰ Sesión próxima a expirar, refrescando...');
+              console.log('[AuthContext] ⏰ Sesión próxima a expirar, refrescando automáticamente...');
               const { data: { session: refreshedSession }, error } = await supabase.auth.refreshSession();
               
               if (error) {
