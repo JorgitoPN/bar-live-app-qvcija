@@ -20,9 +20,9 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
-import UnifiedStoryViewerV11 from '@/components/social/UnifiedStoryViewerV11';
-import { useStoryState } from '@/contexts/StoryStateContextV11';
-import StoryAvatarV11 from '@/components/common/StoryAvatarV11';
+import UnifiedStoryViewer from '@/components/social/UnifiedStoryViewer';
+import { useStoryContext } from '@/contexts/StoryContext';
+import StoryAvatar from '@/components/common/StoryAvatar';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -54,7 +54,7 @@ export default function UsuarioPerfilScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { user: currentUser } = useAuth();
-  const { hasUnviewedStories } = useStoryState();
+  const { hasUnviewedStories } = useStoryContext();
   
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -583,8 +583,8 @@ export default function UsuarioPerfilScreen() {
               activeOpacity={0.8}
               disabled={!hasActiveStory}
             >
-              {/* ✅ V11.0: Use StoryAvatarV11 component */}
-              <StoryAvatarV11
+              {/* ✅ V11.0: Use StoryAvatar component */}
+              <StoryAvatar
                 userId={userId}
                 userStories={userStories}
                 avatarUrl={usuario.avatar}
@@ -684,7 +684,7 @@ export default function UsuarioPerfilScreen() {
       </ScrollView>
 
       {/* ✅ V11.0: UNIFIED STORY VIEWER - INSTAGRAM-STYLE WITH AUTO-CLOSE */}
-      <UnifiedStoryViewerV11
+      <UnifiedStoryViewer
         visible={showStoryViewer}
         stories={userStories}
         initialIndex={currentStoryIndex}

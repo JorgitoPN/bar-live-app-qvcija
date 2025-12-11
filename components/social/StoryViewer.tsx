@@ -25,7 +25,7 @@ import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useInteractionContext } from '@/hooks/useInteractionContext';
-import { useStoryState } from '@/contexts/StoryStateContextV11';
+import { useStoryContext } from '@/contexts/StoryContext';
 import StoryStatsModal from './StoryStatsModal';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -253,7 +253,7 @@ function StoryViewer({
   const router = useRouter();
   const { user } = useAuth();
   const { interactionUserId, interactionLocalId, isInteractingAsLocal } = useInteractionContext();
-  const { markStoriesAsViewed, refreshStoryState } = useStoryState();
+  const { markStoriesAsViewed, refreshStoryState } = useStoryContext();
   
   const [currentStoryIndex, setCurrentStoryIndex] = useState(initialIndex);
   const [isPaused, setIsPaused] = useState(false);

@@ -1,10 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { View, StyleSheet, ViewStyle, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
-import { useStoryState } from '@/contexts/StoryStateContextV10';
+import { useStoryContext } from '@/contexts/StoryContext';
 
 // ✅ DEFAULT AVATAR ICON - Simple user icon (non-realistic)
 const DEFAULT_AVATAR_ICON = 'person.circle.fill';
@@ -34,7 +34,7 @@ interface MiniFoodPlateAvatarV10Props {
  * - ✅ Border DISAPPEARS when all stories are viewed (Instagram logic)
  * - ✅ Default avatar with user icon (non-realistic)
  * - ✅ ALWAYS shows an avatar (never empty)
- * - ✅ Uses StoryStateContext for consistent state management
+ * - ✅ Uses StoryContext for consistent state management
  * - ✅ Real-time updates via context subscription
  */
 export default function MiniFoodPlateAvatarV10({
@@ -48,7 +48,7 @@ export default function MiniFoodPlateAvatarV10({
   userId,
   userStories = [],
 }: MiniFoodPlateAvatarV10Props) {
-  const { hasUnviewedStories } = useStoryState();
+  const { hasUnviewedStories } = useStoryContext();
 
   const plateSize = size;
   const imageSize = size * 0.85; // Image is 85% of plate size for mini version

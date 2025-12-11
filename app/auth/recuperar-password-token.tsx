@@ -26,7 +26,7 @@ export default function RecuperarPasswordTokenScreen() {
   const [emailSent, setEmailSent] = useState(false);
   const [token, setToken] = useState(['', '', '', '', '', '']);
   const [validatingToken, setValidatingToken] = useState(false);
-  const inputRefs = useRef<Array<TextInput | null>>([]);
+  const inputRefs = useRef<(TextInput | null)[]>([]);
 
   useEffect(() => {
     // Focus first token input when email is sent

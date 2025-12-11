@@ -33,8 +33,8 @@ import FloatingTabBar, { TabBarItem } from '@/components/FloatingTabBar';
 import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
 import OfertaTrabajoCard from '@/components/empleo/OfertaTrabajoCard';
 import StoryStatsModal from '@/components/social/StoryStatsModal';
-import UnifiedStoryViewerV11 from '@/components/social/UnifiedStoryViewerV11';
-import StoryAvatarV11 from '@/components/common/StoryAvatarV11';
+import UnifiedStoryViewer from '@/components/social/UnifiedStoryViewer';
+import StoryAvatar from '@/components/common/StoryAvatar';
 import { PROVINCIAS, getProvinceVariations, filterByProvincia } from '@/utils/provinceNormalizer';
 import EventBanner from '@/components/eventos/EventBanner';
 import { useLocalEvent } from '@/hooks/useLocalEvent';
@@ -153,7 +153,7 @@ export default function LocalPerfilScreen() {
   const [ofertasTrabajo, setOfertasTrabajo] = useState<OfertaTrabajo[]>([]);
   const [loadingEmpleo, setLoadingEmpleo] = useState(false);
 
-  // ✅ FIXED: Use UnifiedStoryViewerV11 component
+  // ✅ FIXED: Use UnifiedStoryViewer component
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [localStories, setLocalStories] = useState<LocalStory[]>([]);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
@@ -984,9 +984,9 @@ export default function LocalPerfilScreen() {
             ]}
           >
             <View style={styles.profileHeader}>
-              {/* ✅ FIXED: Use StoryAvatarV11 component */}
+              {/* ✅ FIXED: Use StoryAvatar component */}
               <View style={styles.avatarContainer}>
-                <StoryAvatarV11
+                <StoryAvatar
                   userId={localId}
                   userStories={localStories}
                   avatarUrl={local.imagen_url}
@@ -1430,7 +1430,7 @@ export default function LocalPerfilScreen() {
       </ScrollView>
 
       {/* ✅ UNIFIED STORY VIEWER V11.0 - INSTAGRAM-STYLE WITH AUTO-CLOSE */}
-      <UnifiedStoryViewerV11
+      <UnifiedStoryViewer
         visible={showStoryViewer}
         stories={localStories}
         initialIndex={currentStoryIndex}
