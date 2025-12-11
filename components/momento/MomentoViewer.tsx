@@ -76,46 +76,7 @@ export default function MomentoViewer({
   const glowAnim = useRef(new Animated.Value(0)).current;
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
 
-  // Pan responder for swipe gestures
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        return Math.abs(gestureState.dx) > 10 || Math.abs(gestureState.dy) > 10;
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        // Swipe down to close
-        if (gestureState.dy > 100) {
-          handleClose();
-        }
-        // Swipe left/right for next/previous momento
-        else if (gestureState.dx > 50) {
-          handlePrevious();
-        } else if (gestureState.dx < -50) {
-          handleNext();
-        }
-      },
-    })
-  ).current;
-
-  useEffect(() => {
-    if (visible) {
-      loadMomentos();
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
-    } else {
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [visible, authorId, authorType, fadeAnim]);
-
-  const loadMomentos = async () => {
+  const loadMomentos = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -222,7 +183,7 @@ export default function MomentoViewer({
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, authorId, authorType, onClose, progressAnims]);
 
   const markAsViewed = async (momentoId: string) => {
     if (!user) return;
@@ -435,7 +396,7 @@ export default function MomentoViewer({
     );
   };
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (currentIndex < momentos.length - 1) {
       setCurrentIndex(currentIndex + 1);
       if (!momentos[currentIndex + 1].user_has_viewed) {
@@ -444,7 +405,7 @@ export default function MomentoViewer({
     } else {
       onClose();
     }
-  };
+  }, [currentIndex, momentos, onClose]);
 
   const handlePrevious = () => {
     if (currentIndex > 0) {
@@ -475,6 +436,45 @@ export default function MomentoViewer({
     }).start();
   };
 
+  // Pan responder for swipe gestures
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return Math.abs(gestureState.dx) > 10 || Math.abs(gestureState.dy) > 10;
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        // Swipe down to close
+        if (gestureState.dy > 100) {
+          handleClose();
+        }
+        // Swipe left/right for next/previous momento
+        else if (gestureState.dx > 50) {
+          handlePrevious();
+        } else if (gestureState.dx < -50) {
+          handleNext();
+        }
+      },
+    })
+  ).current;
+
+  useEffect(() => {
+    if (visible) {
+      loadMomentos();
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [visible, authorId, authorType, fadeAnim, loadMomentos]);
+
   // Auto-progress timer
   useEffect(() => {
     if (!paused && momentos.length > 0 && !loading) {
@@ -494,7 +494,7 @@ export default function MomentoViewer({
         progressAnims[currentIndex].setValue(0);
       };
     }
-  }, [currentIndex, paused, momentos, loading, progressAnims]);
+  }, [currentIndex, paused, momentos, loading, progressAnims, handleNext]);
 
   if (!visible) return null;
 

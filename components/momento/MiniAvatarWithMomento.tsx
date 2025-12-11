@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, Image, TouchableOpacity, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -31,34 +31,7 @@ export default function MiniAvatarWithMomento({
   const BORDER_WIDTH = size * 0.075;
   const innerSize = size - BORDER_WIDTH * 2;
 
-  useEffect(() => {
-    if (showMomentoBorder && (userId || localId)) {
-      checkUnviewedMomentos();
-    }
-  }, [userId, localId, showMomentoBorder]);
-
-  useEffect(() => {
-    if (hasUnviewedMomentos) {
-      const pulse = Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.08,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-        ])
-      );
-      pulse.start();
-      return () => pulse.stop();
-    }
-  }, [hasUnviewedMomentos, pulseAnim]);
-
-  const checkUnviewedMomentos = async () => {
+  const checkUnviewedMomentos = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -96,7 +69,34 @@ export default function MiniAvatarWithMomento({
     } catch (error) {
       console.error('[MiniAvatarWithMomento] Error checking momentos:', error);
     }
-  };
+  }, [user, userId, localId]);
+
+  useEffect(() => {
+    if (showMomentoBorder && (userId || localId)) {
+      checkUnviewedMomentos();
+    }
+  }, [userId, localId, showMomentoBorder, checkUnviewedMomentos]);
+
+  useEffect(() => {
+    if (hasUnviewedMomentos) {
+      const pulse = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.08,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      pulse.start();
+      return () => pulse.stop();
+    }
+  }, [hasUnviewedMomentos, pulseAnim]);
 
   const renderAvatar = () => (
     <View
