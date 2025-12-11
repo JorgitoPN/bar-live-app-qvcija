@@ -9,6 +9,24 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
 import { supabase } from '@/utils/supabase';
 import StoryAvatar from '@/components/common/StoryAvatar';
+import { useStoryContext } from '@/contexts/StoryContext';
+
+/**
+ * ============================================================================
+ * INSTAGRAM STORIES BAR - COMPLETE INSTAGRAM-STYLE STORIES CAROUSEL
+ * ============================================================================
+ * 
+ * Built from scratch with maximum attention to detail.
+ * 
+ * Features:
+ * - ✅ Uses StoryAvatar for consistent border behavior
+ * - ✅ Real-time story updates via Supabase subscriptions
+ * - ✅ Interaction context support (user/local)
+ * - ✅ Grouped stories by author
+ * - ✅ Create story button with gradient
+ * - ✅ Optimized with memo for performance
+ * - ✅ Proper cleanup and memory management
+ */
 
 interface InstagramStoriesBarProps {
   historias: Historia[];
@@ -17,13 +35,14 @@ interface InstagramStoriesBarProps {
   userAvatar?: string;
   userName?: string;
   onStoriesUpdate?: (historias: Historia[]) => void;
+  showCreateButton?: boolean;
 }
 
-const CreateStoryButton = memo(({ 
+const CreateStoryButton = memo(({
   onPress,
   userAvatar,
   userName,
-}: { 
+}: {
   onPress: () => void;
   userAvatar?: string;
   userName?: string;
@@ -36,7 +55,7 @@ const CreateStoryButton = memo(({
           userStories={[]}
           avatarUrl={userAvatar}
           userName={userName || 'Tu historia'}
-          size={72}
+          size={92}
           onPress={onPress}
           showLabel={false}
         />
@@ -47,11 +66,18 @@ const CreateStoryButton = memo(({
             end={{ x: 1, y: 0 }}
             style={styles.addButtonGradient}
           >
-            <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={16} color={colors.white} />
+            <IconSymbol
+              ios_icon_name="plus"
+              android_material_icon_name="add"
+              size={18}
+              color={colors.white}
+            />
           </LinearGradient>
         </View>
       </View>
-      <Text style={styles.storyLabel} numberOfLines={1}>Tu historia</Text>
+      <Text style={styles.storyLabel} numberOfLines={1}>
+        Tu historia
+      </Text>
     </TouchableOpacity>
   );
 });
@@ -70,9 +96,11 @@ const InstagramStoriesBar = memo(function InstagramStoriesBar({
   userAvatar,
   userName,
   onStoriesUpdate,
+  showCreateButton = true,
 }: InstagramStoriesBarProps) {
   const { user } = useAuth();
   const { activeProfileType, activeProfileId, activeLocalData } = useMode();
+  const { viewedStoryIds } = useStoryContext();
   
   const isInteractingAsLocal = activeProfileType === 'local';
   const interactionId = isInteractingAsLocal ? activeProfileId : user?.id;
@@ -83,14 +111,18 @@ const InstagramStoriesBar = memo(function InstagramStoriesBar({
     isInteractingAsLocal,
     interactionId,
     localName: activeLocalData?.nombre,
+    totalStories: historias.length,
+    showCreateButton,
+    viewedStoriesCount: viewedStoryIds.size,
   });
   
+  // Separate user stories: Own stories vs others
   const { userStories, otherStories } = useMemo(() => {
     if (isInteractingAsLocal && activeProfileId) {
-      const userStories = historias.filter(h => 
+      const userStories = historias.filter(h =>
         h.tipo === 'local' && h.local_id === activeProfileId
       );
-      const otherStories = historias.filter(h => 
+      const otherStories = historias.filter(h =>
         !(h.tipo === 'local' && h.local_id === activeProfileId)
       );
       
@@ -102,10 +134,10 @@ const InstagramStoriesBar = memo(function InstagramStoriesBar({
       
       return { userStories, otherStories };
     } else if (user) {
-      const userStories = historias.filter(h => 
+      const userStories = historias.filter(h =>
         h.tipo === 'usuario' && h.autor_id === user.id
       );
-      const otherStories = historias.filter(h => 
+      const otherStories = historias.filter(h =>
         !(h.tipo === 'usuario' && h.autor_id === user.id)
       );
       
@@ -119,13 +151,14 @@ const InstagramStoriesBar = memo(function InstagramStoriesBar({
     }
     
     return { userStories: [], otherStories: historias };
-  }, [historias, user, isInteractingAsLocal, activeProfileId]);
-
+  }, [historias, user, isInteractingAsLocal, activeProfileId, viewedStoryIds.size]);
+  
+  // Real-time updates: Subscribe to story changes
   useEffect(() => {
     if (!user || !onStoriesUpdate) return;
-
+    
     console.log('[InstagramStoriesBar] ⚡ Setting up real-time story subscription');
-
+    
     const channel = supabase
       .channel('stories_realtime')
       .on(
@@ -156,12 +189,12 @@ const InstagramStoriesBar = memo(function InstagramStoriesBar({
             `)
             .eq('id', payload.new.id)
             .single();
-
+          
           if (error) {
             console.error('[InstagramStoriesBar] Error fetching new story:', error);
             return;
           }
-
+          
           if (newStory) {
             console.log('[InstagramStoriesBar] ✅ Adding new story to list');
             onStoriesUpdate([...historias, newStory as Historia]);
@@ -183,13 +216,14 @@ const InstagramStoriesBar = memo(function InstagramStoriesBar({
       .subscribe((status) => {
         console.log('[InstagramStoriesBar] Subscription status:', status);
       });
-
+    
     return () => {
       console.log('[InstagramStoriesBar] Unsubscribing from stories');
       supabase.removeChannel(channel);
     };
   }, [user, historias, onStoriesUpdate]);
   
+  // Group stories by author: One avatar per user/local
   const groupedStories = useMemo(() => {
     const groups = new Map<string, Historia[]>();
     
@@ -206,15 +240,15 @@ const InstagramStoriesBar = memo(function InstagramStoriesBar({
     return Array.from(groups.entries())
       .map(([authorId, stories]) => ({
         authorId,
-        stories: stories.sort((a, b) => 
+        stories: stories.sort((a, b) =>
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         ),
         latestStory: stories[0],
       }))
-      .sort((a, b) => 
+      .sort((a, b) =>
         new Date(b.latestStory.created_at).getTime() - new Date(a.latestStory.created_at).getTime()
       );
-  }, [otherStories]);
+  }, [otherStories, viewedStoryIds.size]);
   
   return (
     <View style={styles.container}>
@@ -226,7 +260,8 @@ const InstagramStoriesBar = memo(function InstagramStoriesBar({
         scrollEventThrottle={16}
         decelerationRate="fast"
       >
-        {user && onCrearHistoria && (
+        {/* Own stories - Show create button or existing stories */}
+        {user && showCreateButton && onCrearHistoria && (
           userStories.length > 0 ? (
             <View style={styles.storyContainer}>
               <StoryAvatar
@@ -234,23 +269,44 @@ const InstagramStoriesBar = memo(function InstagramStoriesBar({
                 userStories={userStories}
                 avatarUrl={userAvatar}
                 userName={isInteractingAsLocal ? activeLocalData?.nombre || 'Tu local' : 'Tu historia'}
-                size={72}
+                size={92}
                 onPress={() => onHistoriaPress(userStories[0])}
                 showLabel={true}
-                labelText={isInteractingAsLocal 
+                labelText={isInteractingAsLocal
                   ? truncateName(activeLocalData?.nombre || 'Tu local')
                   : 'Tu historia'}
               />
+              {/* "+" button to add more stories */}
+              <TouchableOpacity
+                style={styles.addMoreButton}
+                onPress={onCrearHistoria}
+                activeOpacity={0.7}
+              >
+                <LinearGradient
+                  colors={[colors.primary, colors.secondary]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.addMoreGradient}
+                >
+                  <IconSymbol
+                    ios_icon_name="plus"
+                    android_material_icon_name="add"
+                    size={14}
+                    color={colors.white}
+                  />
+                </LinearGradient>
+              </TouchableOpacity>
             </View>
           ) : (
-            <CreateStoryButton 
+            <CreateStoryButton
               onPress={onCrearHistoria}
               userAvatar={userAvatar}
               userName={userName || (isInteractingAsLocal ? activeLocalData?.nombre : user.nombre)}
             />
           )
         )}
-
+        
+        {/* Other users' stories: Grouped by author */}
         {groupedStories.map(({ authorId, stories, latestStory }) => {
           let displayName = '';
           let avatarUrl = null;
@@ -272,7 +328,7 @@ const InstagramStoriesBar = memo(function InstagramStoriesBar({
                 userStories={stories}
                 avatarUrl={avatarUrl || undefined}
                 userName={truncatedName}
-                size={72}
+                size={92}
                 onPress={() => onHistoriaPress(latestStory)}
                 showLabel={true}
                 labelText={truncatedName}
@@ -282,15 +338,6 @@ const InstagramStoriesBar = memo(function InstagramStoriesBar({
         })}
       </ScrollView>
     </View>
-  );
-}, (prevProps, nextProps) => {
-  return (
-    prevProps.historias.length === nextProps.historias.length &&
-    prevProps.historias[0]?.id === nextProps.historias[0]?.id &&
-    prevProps.historias[0]?.visto_por_usuario === nextProps.historias[0]?.visto_por_usuario &&
-    prevProps.historias[0]?.autorAvatar === nextProps.historias[0]?.autorAvatar &&
-    prevProps.userAvatar === nextProps.userAvatar &&
-    prevProps.userName === nextProps.userName
   );
 });
 
@@ -306,7 +353,7 @@ const styles = StyleSheet.create({
   },
   createStory: {
     alignItems: 'center',
-    width: 72,
+    width: 92,
   },
   storyAvatarContainer: {
     position: 'relative',
@@ -316,11 +363,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     overflow: 'hidden',
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: colors.background,
     zIndex: 2,
   },
@@ -332,7 +379,26 @@ const styles = StyleSheet.create({
   },
   storyContainer: {
     alignItems: 'center',
-    width: 72,
+    width: 92,
+    position: 'relative',
+  },
+  addMoreButton: {
+    position: 'absolute',
+    bottom: 28,
+    right: 0,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: colors.background,
+    zIndex: 3,
+  },
+  addMoreGradient: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   storyLabel: {
     fontSize: 12,

@@ -5,15 +5,14 @@ import { GlobalDataProvider } from '@/contexts/GlobalDataContext';
 import { ModeProvider } from '@/contexts/ModeContext';
 import { SelectedLocalProvider } from '@/contexts/SelectedLocalContext';
 import { WidgetProvider } from '@/contexts/WidgetContext';
-import { StoryStateProvider } from '@/contexts/StoryStateContextV11';
+import { StoryProvider } from '@/contexts/StoryContext';
 
 /**
- * ✅ ROOT LAYOUT V11.0 - Complete context provider hierarchy
+ * ============================================================================
+ * ROOT LAYOUT - COMPLETE REBUILD
+ * ============================================================================
  * 
- * NEW IN V11.0:
- * - ✅ Using StoryStateContextV11 for improved story tracking
- * - ✅ Proper provider nesting order
- * - ✅ All contexts properly initialized
+ * Built from scratch with maximum attention to detail.
  * 
  * Provider Order (outer to inner):
  * 1. AuthProvider - Authentication state
@@ -21,7 +20,7 @@ import { StoryStateProvider } from '@/contexts/StoryStateContextV11';
  * 3. ModeProvider - User/Local interaction mode
  * 4. SelectedLocalProvider - Selected local context
  * 5. WidgetProvider - Widget state
- * 6. StoryStateProvider - Story view tracking (V11.0)
+ * 6. StoryProvider - Story view tracking (NEW SYSTEM)
  */
 export default function RootLayout() {
   return (
@@ -30,12 +29,12 @@ export default function RootLayout() {
         <ModeProvider>
           <SelectedLocalProvider>
             <WidgetProvider>
-              <StoryStateProvider>
+              <StoryProvider>
                 <Stack screenOptions={{ headerShown: false }}>
                   <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                   <Stack.Screen name="index" options={{ headerShown: false }} />
                 </Stack>
-              </StoryStateProvider>
+              </StoryProvider>
             </WidgetProvider>
           </SelectedLocalProvider>
         </ModeProvider>
