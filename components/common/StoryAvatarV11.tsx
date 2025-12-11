@@ -9,7 +9,7 @@ import { useStoryState } from '@/contexts/StoryStateContextV11';
 // ✅ DEFAULT AVATAR ICON - Simple user icon (non-realistic)
 const DEFAULT_AVATAR_ICON = 'person.circle.fill';
 
-// ✅ NEON GREEN COLOR - Phosphorescent green for story borders
+// ✅ NEON GREEN COLOR - Phosphorescent green for story borders (Instagram-style)
 const NEON_GREEN = '#39FF14';
 
 interface StoryAvatarV11Props {
@@ -24,13 +24,14 @@ interface StoryAvatarV11Props {
 }
 
 /**
- * ✅ STORY AVATAR V11.1.0 - FIXED TOUCH GESTURES
+ * ✅ STORY AVATAR V11.2.0 - COMPLETE INSTAGRAM-STYLE AVATAR WITH BORDER
  * 
- * FIXES IN V11.1.0:
+ * COMPLETE IMPLEMENTATION:
  * - ✅ CRITICAL FIX: Proper touch event handling with activeOpacity
  * - ✅ CRITICAL FIX: Removed pointerEvents that were blocking touches
  * - ✅ Improved touch target size for better UX
  * - ✅ Better accessibility support
+ * - ✅ Optimized with memo for performance
  * 
  * Features:
  * - ✅ NEON GREEN gradient border for unviewed stories
@@ -38,8 +39,8 @@ interface StoryAvatarV11Props {
  * - ✅ Uses StoryStateContextV11 for consistent state management
  * - ✅ Real-time updates via context subscription
  * - ✅ Default avatar with user icon (non-realistic)
- * - ✅ Optimized with memo for performance
  * - ✅ TOUCH GESTURES WORK CORRECTLY
+ * - ✅ Larger avatars (92px default) for better visibility
  */
 const StoryAvatarV11 = memo(function StoryAvatarV11({
   userId,
@@ -56,7 +57,7 @@ const StoryAvatarV11 = memo(function StoryAvatarV11({
   // ✅ INSTAGRAM LOGIC: Check if user has unviewed stories
   const showGradientBorder = hasUnviewedStories(userId, userStories);
 
-  console.log('[StoryAvatarV11.1.0] 🎨 Rendering story avatar:', {
+  console.log('[StoryAvatarV11.2.0] 🎨 Rendering story avatar:', {
     userId,
     userName,
     storiesCount: userStories.length,
