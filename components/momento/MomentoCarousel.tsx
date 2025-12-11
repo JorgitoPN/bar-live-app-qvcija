@@ -339,6 +339,7 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
                 />
               </View>
             )}
+            {/* Plus icon with higher z-index to appear above the border */}
             <View style={styles.addIconContainer}>
               <LinearGradient
                 colors={[colors.primary, colors.secondary]}
@@ -430,12 +431,13 @@ const styles = StyleSheet.create({
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
     backgroundColor: '#fff',
-    overflow: 'hidden',
+    overflow: 'visible', // Changed from 'hidden' to 'visible' to allow icon to appear above
     position: 'relative',
   },
   avatarImage: {
     width: '100%',
     height: '100%',
+    borderRadius: AVATAR_SIZE / 2,
   },
   avatarPlaceholder: {
     width: '100%',
@@ -443,6 +445,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBackground,
     justifyContent: 'center',
     alignItems: 'center',
+    borderRadius: AVATAR_SIZE / 2,
   },
   avatarName: {
     fontSize: 12,
@@ -453,15 +456,20 @@ const styles = StyleSheet.create({
   },
   addIconContainer: {
     position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    bottom: -2, // Moved slightly down to be more visible
+    right: -2, // Moved slightly right to be more visible
+    width: 30, // Increased from 28
+    height: 30, // Increased from 28
+    borderRadius: 15,
     borderWidth: 3,
-    borderColor: '#fff',
+    borderColor: colors.background, // Use background color instead of white for better contrast
     overflow: 'hidden',
-    zIndex: 10,
+    zIndex: 100, // Very high z-index to ensure it's above everything
+    elevation: 10, // For Android shadow/elevation
+    shadowColor: '#000', // iOS shadow
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
   },
   addIconGradient: {
     width: '100%',

@@ -104,11 +104,20 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
         activeProfileId,
       });
 
+      // Prepare momento data
+      let momentoData: any = {
+        autor_id: user.id,
+        tipo: 'usuario',
+        categoria: 'general',
+      };
+
       // Verify ownership if uploading as local
       if (activeProfileType === 'local' && activeProfileId) {
+        console.log('[MomentoUpload] Verifying local ownership...');
+        
         const { data: ownershipData, error: ownershipError } = await supabase
           .from('propietarios_locales')
-          .select('id')
+          .select('id, local_id, propietario_id')
           .eq('propietario_id', user.id)
           .eq('local_id', activeProfileId)
           .single();
@@ -120,8 +129,14 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
           return;
         }
 
-        console.log('[MomentoUpload] ✅ Ownership verified');
+        console.log('[MomentoUpload] ✅ Ownership verified:', ownershipData);
+        
+        // Set momento data for local
+        momentoData.tipo = 'local';
+        momentoData.local_id = activeProfileId;
       }
+
+      console.log('[MomentoUpload] Momento data prepared:', momentoData);
 
       // Convert image to base64
       const response = await fetch(selectedImage);
@@ -133,7 +148,7 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
           const base64data = reader.result as string;
           const base64String = base64data.split(',')[1];
 
-          // Upload to Supabase Storage
+          // Upload to Supabase Storage with user ID in path (required by RLS)
           const fileName = `momento-${Date.now()}.jpg`;
           const filePath = `momentos/${user.id}/${fileName}`;
 
@@ -158,30 +173,40 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
             .from('momentos')
             .getPublicUrl(filePath);
 
-          // Create momento record
-          const momentoData: any = {
-            autor_id: user.id,
-            tipo: activeProfileType === 'local' ? 'local' : 'usuario',
-            imagen_url: urlData.publicUrl,
-            categoria: 'general',
-          };
-
-          if (activeProfileType === 'local' && activeProfileId) {
-            momentoData.local_id = activeProfileId;
-          }
+          // Add image URL to momento data
+          momentoData.imagen_url = urlData.publicUrl;
 
           console.log('[MomentoUpload] Creating momento record:', momentoData);
 
-          const { error: insertError } = await supabase
+          // Insert momento record
+          const { data: insertData, error: insertError } = await supabase
             .from('momentos')
-            .insert(momentoData);
+            .insert(momentoData)
+            .select()
+            .single();
 
           if (insertError) {
             console.error('[MomentoUpload] Database insert error:', insertError);
+            console.error('[MomentoUpload] Insert error details:', {
+              code: insertError.code,
+              message: insertError.message,
+              details: insertError.details,
+              hint: insertError.hint,
+            });
+            
+            // Provide more specific error message
+            if (insertError.message.includes('row-level security')) {
+              Alert.alert(
+                'Error de permisos',
+                'No tienes permisos para crear este Momento. Verifica que estés autenticado correctamente.'
+              );
+            } else {
+              Alert.alert('Error', 'No se pudo crear el Momento');
+            }
             throw insertError;
           }
 
-          console.log('[MomentoUpload] ✅ Momento created successfully');
+          console.log('[MomentoUpload] ✅ Momento created successfully:', insertData);
 
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           Alert.alert('¡Éxito!', 'Tu Momento se ha publicado');
@@ -191,10 +216,16 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
           onClose();
         } catch (error) {
           console.error('[MomentoUpload] Error uploading:', error);
-          Alert.alert('Error', 'No se pudo subir el Momento');
+          // Error already handled above
         } finally {
           setUploading(false);
         }
+      };
+
+      reader.onerror = () => {
+        console.error('[MomentoUpload] FileReader error');
+        Alert.alert('Error', 'No se pudo leer la imagen');
+        setUploading(false);
       };
 
       reader.readAsDataURL(blob);
