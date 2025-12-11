@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -25,7 +25,11 @@ export default function CambiarEmailScreen() {
   const [loading, setLoading] = useState(false);
   const [loadingUser, setLoadingUser] = useState(true);
 
-  const loadCurrentUser = useCallback(async () => {
+  useEffect(() => {
+    loadCurrentUser();
+  }, []);
+
+  const loadCurrentUser = async () => {
     try {
       const { data: { user }, error } = await supabase.auth.getUser();
       
@@ -48,11 +52,7 @@ export default function CambiarEmailScreen() {
     } finally {
       setLoadingUser(false);
     }
-  }, [router]);
-
-  useEffect(() => {
-    loadCurrentUser();
-  }, [loadCurrentUser]);
+  };
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

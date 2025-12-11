@@ -24,9 +24,9 @@ export default function RecuperarPasswordTokenScreen() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
-  const [token, setToken] = useState<string[]>(['', '', '', '', '', '']);
+  const [token, setToken] = useState(['', '', '', '', '', '']);
   const [validatingToken, setValidatingToken] = useState(false);
-  const inputRefs = useRef<(TextInput | null)[]>([]);
+  const inputRefs = useRef<Array<TextInput | null>>([]);
 
   useEffect(() => {
     // Focus first token input when email is sent
@@ -146,7 +146,7 @@ export default function RecuperarPasswordTokenScreen() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `${(await supabase.auth.getSession()).data.session?.access_token || ''}`,
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || ''}`,
         },
         body: JSON.stringify({ 
           email: email.trim().toLowerCase(), 

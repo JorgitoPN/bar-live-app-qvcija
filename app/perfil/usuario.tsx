@@ -20,8 +20,9 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
-import StoryViewer from '@/components/social/StoryViewer';
-import StoryAvatar from '@/components/common/StoryAvatar';
+import UnifiedStoryViewerV11 from '@/components/social/UnifiedStoryViewerV11';
+import { useStoryState } from '@/contexts/StoryStateContextV11';
+import StoryAvatarV11 from '@/components/common/StoryAvatarV11';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -53,6 +54,7 @@ export default function UsuarioPerfilScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { user: currentUser } = useAuth();
+  const { hasUnviewedStories } = useStoryState();
   
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -98,6 +100,7 @@ export default function UsuarioPerfilScreen() {
     try {
       console.log('[UsuarioPerfil] 🔄 Loading follower counts (including locals)...');
 
+      // ✅ FIXED: Use new database functions that include local follows
       const { data: seguidoresData, error: seguidoresError } = await supabase
         .rpc('get_total_seguidores_count', { p_usuario_id: targetUserId });
 
@@ -184,6 +187,7 @@ export default function UsuarioPerfilScreen() {
 
       console.log('[UsuarioPerfil] ✅ User stats loaded - Posts:', actualPostCount, 'Seguidores:', followerCounts.seguidores, 'Seguidos:', followerCounts.seguidos);
 
+      // ✅ Load user stories
       const { data: userStoriesData } = await supabase
         .from('historias')
         .select('id, autor_id, tipo, imagen, imagen_url, created_at, expires_at, visto')
@@ -495,6 +499,7 @@ export default function UsuarioPerfilScreen() {
     router.push(`/perfil/seguidos?userId=${userId}`);
   };
 
+  // ✅ FIXED: Handle avatar press to open story viewer
   const handleAvatarPress = useCallback(() => {
     if (!currentUser) {
       Alert.alert('Error', 'Debes iniciar sesión para ver historias');
@@ -528,6 +533,13 @@ export default function UsuarioPerfilScreen() {
   }
 
   const hasActiveStory = userStories.length > 0;
+  const showStoryOutline = hasActiveStory && hasUnviewedStories(userId, userStories);
+
+  console.log('[UsuarioPerfil] 👁️ Story outline status:', {
+    hasActiveStory,
+    showStoryOutline,
+    storiesCount: userStories.length,
+  });
 
   return (
     <View style={styles.container}>
@@ -571,7 +583,8 @@ export default function UsuarioPerfilScreen() {
               activeOpacity={0.8}
               disabled={!hasActiveStory}
             >
-              <StoryAvatar
+              {/* ✅ V11.0: Use StoryAvatarV11 component */}
+              <StoryAvatarV11
                 userId={userId}
                 userStories={userStories}
                 avatarUrl={usuario.avatar}
@@ -670,13 +683,22 @@ export default function UsuarioPerfilScreen() {
         )}
       </ScrollView>
 
-      <StoryViewer
+      {/* ✅ V11.0: UNIFIED STORY VIEWER - INSTAGRAM-STYLE WITH AUTO-CLOSE */}
+      <UnifiedStoryViewerV11
         visible={showStoryViewer}
         stories={userStories}
         initialIndex={currentStoryIndex}
         onClose={() => {
           console.log('[UsuarioPerfil] Closing story viewer');
           setShowStoryViewer(false);
+        }}
+        onStoryChange={(index) => {
+          console.log('[UsuarioPerfil] Story changed to index:', index);
+          setCurrentStoryIndex(index);
+        }}
+        onStoryDelete={async (storyId) => {
+          console.log('[UsuarioPerfil] Story deleted:', storyId);
+          await loadUserData();
         }}
       />
     </View>
