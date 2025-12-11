@@ -143,6 +143,7 @@ export default function PerfilScreen() {
       const hasUnviewed = momentosData.some(m => !viewedIds.has(m.id));
 
       setHasUnviewedMomentos(hasUnviewed);
+      console.log('[Perfil] ✅ Unviewed momentos check:', { hasUnviewed, total: momentosData.length });
     } catch (error) {
       console.error('[Perfil] Error checking unviewed momentos:', error);
     }

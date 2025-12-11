@@ -472,7 +472,7 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Show "Tu momento" section first if user has momentos */}
+        {/* Show "Tu momento" section first - either with momentos or as add button */}
         {userMomento ? renderUserMomento() : renderAddButton()}
         
         {/* Show other users' momentos in the carousel */}
