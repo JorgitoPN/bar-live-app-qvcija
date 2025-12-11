@@ -35,6 +35,55 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
+  // Helper function to ensure we have a valid session
+  const ensureValidSession = async () => {
+    console.log('[MomentoUpload] 🔍 Verificando sesión...');
+    
+    // First, try to get the current session
+    const { data: { session: currentSession }, error: getError } = await supabase.auth.getSession();
+    
+    if (getError) {
+      console.error('[MomentoUpload] ❌ Error obteniendo sesión:', getError);
+      return null;
+    }
+
+    if (!currentSession) {
+      console.error('[MomentoUpload] ❌ No hay sesión activa');
+      return null;
+    }
+
+    // Check if session is about to expire (less than 5 minutes)
+    const expiresAt = currentSession.expires_at! * 1000;
+    const now = Date.now();
+    const timeUntilExpiry = expiresAt - now;
+
+    console.log('[MomentoUpload] 📅 Sesión expira en:', Math.floor(timeUntilExpiry / 1000 / 60), 'minutos');
+
+    if (timeUntilExpiry < 5 * 60 * 1000) {
+      console.log('[MomentoUpload] ⏰ Sesión próxima a expirar, refrescando...');
+      
+      const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+      
+      if (refreshError) {
+        console.error('[MomentoUpload] ❌ Error refrescando sesión:', refreshError);
+        return null;
+      }
+
+      if (!refreshedSession) {
+        console.error('[MomentoUpload] ❌ No se pudo refrescar la sesión');
+        return null;
+      }
+
+      console.log('[MomentoUpload] ✅ Sesión refrescada exitosamente');
+      console.log('[MomentoUpload] 📅 Nueva expiración:', new Date(refreshedSession.expires_at! * 1000).toLocaleString());
+      
+      return refreshedSession;
+    }
+
+    console.log('[MomentoUpload] ✅ Sesión válida');
+    return currentSession;
+  };
+
   const pickImage = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -93,7 +142,7 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
   };
 
   const uploadMomento = async () => {
-    if (!user || !session || !selectedImage) {
+    if (!user || !selectedImage) {
       console.error('[MomentoUpload] Missing required data:', {
         hasUser: !!user,
         hasSession: !!session,
@@ -109,19 +158,19 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
     try {
       setUploading(true);
 
-      console.log('[MomentoUpload] Starting upload...', {
+      console.log('[MomentoUpload] 🚀 Iniciando subida de Momento...', {
         userId: user.id,
         activeProfileType,
         activeProfileId,
-        sessionValid: !!session.access_token,
-        sessionExpiry: session.expires_at,
+        sessionValid: !!session?.access_token,
+        sessionExpiry: session?.expires_at ? new Date(session.expires_at * 1000).toLocaleString() : 'N/A',
       });
 
-      // Verify and refresh session if needed
-      const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+      // Ensure we have a valid session before proceeding
+      const validSession = await ensureValidSession();
       
-      if (sessionError || !currentSession) {
-        console.error('[MomentoUpload] Session validation failed:', sessionError);
+      if (!validSession) {
+        console.error('[MomentoUpload] ❌ No se pudo obtener una sesión válida');
         Alert.alert(
           'Sesión expirada',
           'Tu sesión ha expirado. Por favor, cierra sesión y vuelve a iniciar sesión.'
@@ -130,10 +179,10 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
         return;
       }
 
-      console.log('[MomentoUpload] ✅ Session validated:', {
-        userId: currentSession.user.id,
-        role: currentSession.user.role,
-        expiresAt: currentSession.expires_at,
+      console.log('[MomentoUpload] ✅ Sesión válida confirmada:', {
+        userId: validSession.user.id,
+        role: validSession.user.role,
+        expiresAt: new Date(validSession.expires_at! * 1000).toLocaleString(),
       });
 
       // Prepare momento data

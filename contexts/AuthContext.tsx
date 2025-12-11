@@ -41,6 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (currentSession) {
           console.log('[AuthContext] ✅ Sesión existente encontrada para:', currentSession.user.email);
+          console.log('[AuthContext] 📅 Sesión expira en:', new Date(currentSession.expires_at! * 1000).toLocaleString());
           setSession(currentSession);
           
           // Load user profile
@@ -76,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Listen for auth state changes
     let subscription: { unsubscribe: () => void } | null = null;
+    let refreshInterval: NodeJS.Timeout | null = null;
     
     if (isSupabaseConfigured()) {
       const { data } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
@@ -91,6 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (event === 'SIGNED_IN' && currentSession) {
           console.log('[AuthContext] ✅ Usuario inició sesión:', currentSession.user.email);
+          console.log('[AuthContext] 📅 Sesión expira en:', new Date(currentSession.expires_at! * 1000).toLocaleString());
           setLoading(true);
           
           // Load user profile
@@ -115,7 +118,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(null);
           setSession(null);
         } else if (event === 'TOKEN_REFRESHED') {
-          console.log('[AuthContext] 🔄 Token refrescado');
+          console.log('[AuthContext] 🔄 Token refrescado exitosamente');
+          if (currentSession) {
+            console.log('[AuthContext] 📅 Nueva expiración:', new Date(currentSession.expires_at! * 1000).toLocaleString());
+          }
           // Session is already updated, just log
         } else if (event === 'USER_UPDATED') {
           console.log('[AuthContext] 🔄 Usuario actualizado');
@@ -129,12 +135,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       
       subscription = data.subscription;
+
+      // Set up automatic session refresh every 30 minutes
+      // This ensures the session stays fresh and prevents expiration during uploads
+      refreshInterval = setInterval(async () => {
+        try {
+          const { data: { session: currentSession } } = await supabase.auth.getSession();
+          
+          if (currentSession) {
+            const expiresAt = currentSession.expires_at! * 1000;
+            const now = Date.now();
+            const timeUntilExpiry = expiresAt - now;
+            
+            // Refresh if less than 10 minutes until expiry
+            if (timeUntilExpiry < 10 * 60 * 1000) {
+              console.log('[AuthContext] ⏰ Sesión próxima a expirar, refrescando...');
+              const { data: { session: refreshedSession }, error } = await supabase.auth.refreshSession();
+              
+              if (error) {
+                console.error('[AuthContext] ❌ Error refrescando sesión automáticamente:', error);
+              } else if (refreshedSession) {
+                console.log('[AuthContext] ✅ Sesión refrescada automáticamente');
+                console.log('[AuthContext] 📅 Nueva expiración:', new Date(refreshedSession.expires_at! * 1000).toLocaleString());
+                setSession(refreshedSession);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('[AuthContext] ❌ Error en refresh automático:', error);
+        }
+      }, 5 * 60 * 1000); // Check every 5 minutes
     }
 
     return () => {
       if (subscription) {
         console.log('[AuthContext] 🧹 Limpiando suscripción');
         subscription.unsubscribe();
+      }
+      if (refreshInterval) {
+        console.log('[AuthContext] 🧹 Limpiando intervalo de refresh');
+        clearInterval(refreshInterval);
       }
     };
   }, [initializing]);
