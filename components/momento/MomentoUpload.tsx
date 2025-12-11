@@ -114,6 +114,26 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
         activeProfileType,
         activeProfileId,
         sessionValid: !!session.access_token,
+        sessionExpiry: session.expires_at,
+      });
+
+      // Verify and refresh session if needed
+      const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !currentSession) {
+        console.error('[MomentoUpload] Session validation failed:', sessionError);
+        Alert.alert(
+          'Sesión expirada',
+          'Tu sesión ha expirado. Por favor, cierra sesión y vuelve a iniciar sesión.'
+        );
+        setUploading(false);
+        return;
+      }
+
+      console.log('[MomentoUpload] ✅ Session validated:', {
+        userId: currentSession.user.id,
+        role: currentSession.user.role,
+        expiresAt: currentSession.expires_at,
       });
 
       // Prepare momento data
@@ -157,120 +177,113 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
       // Convert image to base64
       const response = await fetch(selectedImage);
       const blob = await response.blob();
-      const reader = new FileReader();
+      
+      // Convert blob to ArrayBuffer
+      const arrayBuffer = await blob.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
 
-      reader.onloadend = async () => {
-        try {
-          const base64data = reader.result as string;
-          const base64String = base64data.split(',')[1];
+      // Upload to Supabase Storage with user ID in path (required by RLS)
+      // Path format: {user_id}/{filename}
+      const fileName = `momento-${Date.now()}.jpg`;
+      const filePath = `${user.id}/${fileName}`;
 
-          // Upload to Supabase Storage with user ID in path (required by RLS)
-          // Path format: {user_id}/{filename} (NOT momentos/{user_id}/{filename})
-          const fileName = `momento-${Date.now()}.jpg`;
-          const filePath = `${user.id}/${fileName}`;
+      console.log('[MomentoUpload] Uploading to storage bucket "momentos"');
+      console.log('[MomentoUpload] File path:', filePath);
+      console.log('[MomentoUpload] User ID:', user.id);
+      console.log('[MomentoUpload] File size:', uint8Array.length, 'bytes');
 
-          console.log('[MomentoUpload] Uploading to storage bucket "momentos" with path:', filePath);
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('momentos')
+        .upload(filePath, uint8Array, {
+          contentType: 'image/jpeg',
+          upsert: false,
+        });
 
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('momentos')
-            .upload(filePath, decode(base64String), {
-              contentType: 'image/jpeg',
-              upsert: false,
-            });
-
-          if (uploadError) {
-            console.error('[MomentoUpload] Storage upload error:', uploadError);
-            console.error('[MomentoUpload] Error details:', {
-              message: uploadError.message,
-              statusCode: (uploadError as any).statusCode,
-              name: (uploadError as any).name,
-            });
-            
-            // Provide more specific error message
-            if (uploadError.message.includes('row-level security') || uploadError.message.includes('policy')) {
-              Alert.alert(
-                'Error de permisos',
-                'No tienes permisos para subir archivos. Verifica que estés autenticado correctamente y que tu sesión sea válida.'
-              );
-            } else if (uploadError.message.includes('Duplicate')) {
-              Alert.alert('Error', 'Ya existe un archivo con ese nombre. Intenta de nuevo.');
-            } else {
-              Alert.alert('Error', `No se pudo subir la imagen: ${uploadError.message}`);
-            }
-            throw uploadError;
-          }
-
-          console.log('[MomentoUpload] ✅ Storage upload successful:', uploadData);
-
-          // Get public URL
-          const { data: urlData } = supabase.storage
-            .from('momentos')
-            .getPublicUrl(filePath);
-
-          // Add image URL to momento data
-          momentoData.imagen_url = urlData.publicUrl;
-
-          console.log('[MomentoUpload] Creating momento record:', momentoData);
-
-          // Insert momento record
-          const { data: insertData, error: insertError } = await supabase
-            .from('momentos')
-            .insert(momentoData)
-            .select()
-            .single();
-
-          if (insertError) {
-            console.error('[MomentoUpload] Database insert error:', insertError);
-            console.error('[MomentoUpload] Insert error details:', {
-              code: insertError.code,
-              message: insertError.message,
-              details: insertError.details,
-              hint: insertError.hint,
-            });
-            
-            // Provide more specific error message
-            if (insertError.message.includes('row-level security') || insertError.message.includes('policy')) {
-              Alert.alert(
-                'Error de permisos',
-                'No tienes permisos para crear este Momento. Verifica que estés autenticado correctamente.'
-              );
-            } else if (insertError.message.includes('propietarios_locales')) {
-              Alert.alert(
-                'Error de permisos',
-                'No tienes permisos para crear Momentos como este local. Verifica que seas propietario activo del local.'
-              );
-            } else {
-              Alert.alert('Error', `No se pudo crear el Momento: ${insertError.message}`);
-            }
-            throw insertError;
-          }
-
-          console.log('[MomentoUpload] ✅ Momento created successfully:', insertData);
-
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          Alert.alert('¡Éxito!', 'Tu Momento se ha publicado');
-          
-          setSelectedImage(null);
-          onSuccess();
-          onClose();
-        } catch (error) {
-          console.error('[MomentoUpload] Error uploading:', error);
-          // Error already handled above
-        } finally {
-          setUploading(false);
+      if (uploadError) {
+        console.error('[MomentoUpload] Storage upload error:', uploadError);
+        console.error('[MomentoUpload] Error details:', {
+          message: uploadError.message,
+          statusCode: (uploadError as any).statusCode,
+          name: uploadError.name,
+        });
+        
+        // Provide more specific error message
+        if (uploadError.message.includes('row-level security') || uploadError.message.includes('policy')) {
+          Alert.alert(
+            'Error de permisos',
+            'No tienes permisos para subir archivos. Esto puede deberse a:\n\n' +
+            '1. Tu sesión ha expirado\n' +
+            '2. No estás autenticado correctamente\n' +
+            '3. Hay un problema con los permisos de almacenamiento\n\n' +
+            'Por favor, cierra sesión y vuelve a iniciar sesión.'
+          );
+        } else if (uploadError.message.includes('Duplicate')) {
+          Alert.alert('Error', 'Ya existe un archivo con ese nombre. Intenta de nuevo.');
+        } else {
+          Alert.alert('Error', `No se pudo subir la imagen: ${uploadError.message}`);
         }
-      };
-
-      reader.onerror = () => {
-        console.error('[MomentoUpload] FileReader error');
-        Alert.alert('Error', 'No se pudo leer la imagen');
         setUploading(false);
-      };
+        return;
+      }
 
-      reader.readAsDataURL(blob);
+      console.log('[MomentoUpload] ✅ Storage upload successful:', uploadData);
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('momentos')
+        .getPublicUrl(filePath);
+
+      // Add image URL to momento data
+      momentoData.imagen_url = urlData.publicUrl;
+
+      console.log('[MomentoUpload] Creating momento record:', momentoData);
+
+      // Insert momento record
+      const { data: insertData, error: insertError } = await supabase
+        .from('momentos')
+        .insert(momentoData)
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('[MomentoUpload] Database insert error:', insertError);
+        console.error('[MomentoUpload] Insert error details:', {
+          code: insertError.code,
+          message: insertError.message,
+          details: insertError.details,
+          hint: insertError.hint,
+        });
+        
+        // Provide more specific error message
+        if (insertError.message.includes('row-level security') || insertError.message.includes('policy')) {
+          Alert.alert(
+            'Error de permisos',
+            'No tienes permisos para crear este Momento. Verifica que estés autenticado correctamente.'
+          );
+        } else if (insertError.message.includes('propietarios_locales')) {
+          Alert.alert(
+            'Error de permisos',
+            'No tienes permisos para crear Momentos como este local. Verifica que seas propietario activo del local.'
+          );
+        } else {
+          Alert.alert('Error', `No se pudo crear el Momento: ${insertError.message}`);
+        }
+        setUploading(false);
+        return;
+      }
+
+      console.log('[MomentoUpload] ✅ Momento created successfully:', insertData);
+
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert('¡Éxito!', 'Tu Momento se ha publicado');
+      
+      setSelectedImage(null);
+      onSuccess();
+      onClose();
     } catch (error) {
-      console.error('[MomentoUpload] Error preparing upload:', error);
-      Alert.alert('Error', 'No se pudo preparar la imagen');
+      console.error('[MomentoUpload] Error uploading:', error);
+      Alert.alert('Error', 'No se pudo subir el Momento. Por favor, intenta de nuevo.');
+    } finally {
       setUploading(false);
     }
   };
