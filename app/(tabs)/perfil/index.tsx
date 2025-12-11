@@ -359,7 +359,7 @@ export default function PerfilScreen() {
     }
   }, [user]);
 
-  // ✅ V11.0: Load user stories with proper error handling
+  // ✅ V11.0: FIXED - Load user stories with correct column name (imagen, not imagen_url)
   const cargarHistorias = useCallback(async () => {
     if (!user) {
       console.log('[Perfil] No user, skipping stories load');
@@ -370,16 +370,17 @@ export default function PerfilScreen() {
     try {
       console.log('[Perfil] 📖 V11.0 - Loading stories for user:', user.id);
       
+      // ✅ CRITICAL FIX: Use 'imagen' column, not 'imagen_url'
       const { data: userStoriesData, error } = await supabase
         .from('historias')
-        .select('id, autor_id, tipo, imagen, imagen_url, created_at, expires_at')
+        .select('id, autor_id, tipo, imagen, created_at, expires_at')
         .eq('autor_id', user.id)
         .eq('tipo', 'usuario')
         .gt('expires_at', new Date().toISOString())
         .order('created_at', { ascending: true });
 
       if (error) {
-        console.error('[Perfil] Error loading stories:', error);
+        console.error('[Perfil] ❌ Error loading stories:', error);
         setUserStories([]);
         setLoadingStories(false);
         return;
@@ -406,7 +407,7 @@ export default function PerfilScreen() {
         setUserStories([]);
       }
     } catch (error) {
-      console.error('[Perfil] Error loading stories:', error);
+      console.error('[Perfil] ❌ Error loading stories:', error);
       setUserStories([]);
     } finally {
       setLoadingStories(false);
