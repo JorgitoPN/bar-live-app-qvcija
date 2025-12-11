@@ -77,6 +77,7 @@ export default function MomentoViewer({
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
   const momentoViewRef = useRef<View>(null);
+  const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const loadMomentos = useCallback(async () => {
     if (!user || !authorId) return;
@@ -479,8 +480,14 @@ export default function MomentoViewer({
   };
 
   const handleNext = useCallback(() => {
+    // Clear any existing timer
+    if (progressTimerRef.current) {
+      clearTimeout(progressTimerRef.current);
+      progressTimerRef.current = null;
+    }
+
     if (currentIndex < momentos.length - 1) {
-      // Keep the current progress bar at 100% before moving to next
+      // Set current progress bar to 100% (keep it full)
       if (progressAnims[currentIndex]) {
         progressAnims[currentIndex].setValue(1);
       }
@@ -495,6 +502,12 @@ export default function MomentoViewer({
   }, [currentIndex, momentos, onClose, progressAnims]);
 
   const handlePrevious = () => {
+    // Clear any existing timer
+    if (progressTimerRef.current) {
+      clearTimeout(progressTimerRef.current);
+      progressTimerRef.current = null;
+    }
+
     if (currentIndex > 0) {
       // Reset current progress bar
       if (progressAnims[currentIndex]) {
@@ -505,6 +518,12 @@ export default function MomentoViewer({
   };
 
   const handleClose = () => {
+    // Clear any existing timer
+    if (progressTimerRef.current) {
+      clearTimeout(progressTimerRef.current);
+      progressTimerRef.current = null;
+    }
+
     // Reset all state before closing
     setCurrentIndex(0);
     setMomentos([]);
@@ -580,7 +599,13 @@ export default function MomentoViewer({
   // Auto-progress timer
   useEffect(() => {
     if (!paused && momentos.length > 0 && !loading && visible) {
-      const timer = setTimeout(() => {
+      // Clear any existing timer
+      if (progressTimerRef.current) {
+        clearTimeout(progressTimerRef.current);
+      }
+
+      // Set new timer
+      progressTimerRef.current = setTimeout(() => {
         handleNext();
       }, MOMENTO_DURATION);
 
@@ -592,8 +617,10 @@ export default function MomentoViewer({
       }).start();
 
       return () => {
-        clearTimeout(timer);
-        // Don't reset progress bar here - let handleNext do it
+        if (progressTimerRef.current) {
+          clearTimeout(progressTimerRef.current);
+          progressTimerRef.current = null;
+        }
       };
     }
   }, [currentIndex, paused, momentos, loading, progressAnims, handleNext, visible]);
@@ -691,10 +718,14 @@ export default function MomentoViewer({
                 style={[
                   styles.progressBarFill,
                   {
-                    width: progressAnims[index]?.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: ['0%', '100%'],
-                    }) || (index < currentIndex ? '100%' : '0%'),
+                    width: index < currentIndex 
+                      ? '100%' 
+                      : index === currentIndex
+                      ? progressAnims[index]?.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['0%', '100%'],
+                        })
+                      : '0%',
                   },
                 ]}
               />

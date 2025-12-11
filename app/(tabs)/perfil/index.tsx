@@ -26,10 +26,11 @@ import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
 import MomentoUpload from '@/components/momento/MomentoUpload';
 import MomentoViewer from '@/components/momento/MomentoViewer';
-import MiniAvatarWithMomento from '@/components/momento/MiniAvatarWithMomento';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
+const AVATAR_SIZE = 88;
+const BORDER_WIDTH = 3;
 
 interface Post {
   id: string;
@@ -79,6 +80,7 @@ export default function PerfilScreen() {
   const [showProfileSwitcher, setShowProfileSwitcher] = useState(false);
   const [showMomentoUpload, setShowMomentoUpload] = useState(false);
   const [showMomentoViewer, setShowMomentoViewer] = useState(false);
+  const [hasUnviewedMomentos, setHasUnviewedMomentos] = useState(false);
   
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
@@ -98,6 +100,53 @@ export default function PerfilScreen() {
 
   const userRole = user?.rol_app || 'cliente';
   const isPropietario = userRole === 'propietario' || (userRole === 'admin' && currentMode === 'propietario');
+
+  const checkUnviewedMomentos = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      // Determine which ID to check based on active profile
+      const checkId = activeProfileType === 'local' ? activeProfileId : user.id;
+      const checkType = activeProfileType === 'local' ? 'local' : 'usuario';
+
+      if (!checkId) return;
+
+      // Get momentos for this user/local
+      const query = supabase
+        .from('momentos')
+        .select('id')
+        .eq('tipo', checkType)
+        .gt('expires_at', new Date().toISOString());
+
+      if (checkType === 'usuario') {
+        query.eq('autor_id', checkId);
+      } else {
+        query.eq('local_id', checkId);
+      }
+
+      const { data: momentosData } = await query;
+
+      if (!momentosData || momentosData.length === 0) {
+        setHasUnviewedMomentos(false);
+        return;
+      }
+
+      // Check if user has viewed any of these momentos
+      const momentoIds = momentosData.map(m => m.id);
+      const { data: viewsData } = await supabase
+        .from('momento_views')
+        .select('momento_id')
+        .eq('usuario_id', user.id)
+        .in('momento_id', momentoIds);
+
+      const viewedIds = new Set(viewsData?.map(v => v.momento_id) || []);
+      const hasUnviewed = momentosData.some(m => !viewedIds.has(m.id));
+
+      setHasUnviewedMomentos(hasUnviewed);
+    } catch (error) {
+      console.error('[Perfil] Error checking unviewed momentos:', error);
+    }
+  }, [user, activeProfileType, activeProfileId]);
 
   const loadUnreadCounts = useCallback(async () => {
     if (!user) return;
@@ -361,6 +410,7 @@ export default function PerfilScreen() {
       setLoading(true);
 
       await loadUnreadCounts();
+      await checkUnviewedMomentos();
 
       console.log('[Perfil] ✅ Loading user profile with updated functions');
       
@@ -402,7 +452,7 @@ export default function PerfilScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user, loadUnreadCounts, cargarPosts]);
+  }, [user, loadUnreadCounts, checkUnviewedMomentos, cargarPosts]);
 
   useEffect(() => {
     if (!authLoading) {
@@ -429,6 +479,43 @@ export default function PerfilScreen() {
       }
     }
   }, [activeTab, user, cargarPosts, cargarFavoritos, cargarEtiquetados, cargarPerfilProfesional]);
+
+  // Subscribe to momento changes
+  useEffect(() => {
+    if (!user) return;
+
+    const subscription = supabase
+      .channel('momento-profile-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'momentos',
+        },
+        () => {
+          console.log('[Perfil] Momento update detected');
+          checkUnviewedMomentos();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'momento_views',
+        },
+        () => {
+          console.log('[Perfil] View update detected');
+          checkUnviewedMomentos();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [user, checkUnviewedMomentos]);
 
   const displayName = user?.nombre || 'Usuario';
   const displayAvatar = user?.avatar;
@@ -555,15 +642,76 @@ export default function PerfilScreen() {
     return (
       <View style={styles.profileSection}>
         <View style={styles.profileHeader}>
-          <View style={styles.avatarWrapper}>
-            <MiniAvatarWithMomento
-              userId={activeProfileType === 'usuario' ? user?.id : undefined}
-              localId={activeProfileType === 'local' ? activeProfileId : undefined}
-              imageUrl={displayAvatar || undefined}
-              size={88}
-              onPress={handleOpenMomentoViewer}
-              showMomentoBorder={true}
-            />
+          <TouchableOpacity 
+            style={styles.avatarWrapper}
+            onPress={handleOpenMomentoViewer}
+            activeOpacity={0.8}
+          >
+            {hasUnviewedMomentos ? (
+              <LinearGradient
+                colors={['#00FF88', '#00CC6A', '#00FF88']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[
+                  styles.avatarBorder,
+                  {
+                    width: AVATAR_SIZE + BORDER_WIDTH * 2,
+                    height: AVATAR_SIZE + BORDER_WIDTH * 2,
+                    borderRadius: (AVATAR_SIZE + BORDER_WIDTH * 2) / 2,
+                  },
+                ]}
+              >
+                <View style={styles.avatarInner}>
+                  {displayAvatar ? (
+                    <Image
+                      source={{ uri: displayAvatar }}
+                      style={styles.avatarImage}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View style={styles.avatarPlaceholder}>
+                      <IconSymbol
+                        ios_icon_name={activeProfileType === 'local' ? 'building.2.fill' : 'person.fill'}
+                        android_material_icon_name={activeProfileType === 'local' ? 'store' : 'person'}
+                        size={AVATAR_SIZE * 0.5}
+                        color={colors.primary}
+                      />
+                    </View>
+                  )}
+                </View>
+              </LinearGradient>
+            ) : (
+              <View
+                style={[
+                  styles.avatarBorder,
+                  styles.avatarBorderViewed,
+                  {
+                    width: AVATAR_SIZE + BORDER_WIDTH * 2,
+                    height: AVATAR_SIZE + BORDER_WIDTH * 2,
+                    borderRadius: (AVATAR_SIZE + BORDER_WIDTH * 2) / 2,
+                  },
+                ]}
+              >
+                <View style={styles.avatarInner}>
+                  {displayAvatar ? (
+                    <Image
+                      source={{ uri: displayAvatar }}
+                      style={styles.avatarImage}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View style={styles.avatarPlaceholder}>
+                      <IconSymbol
+                        ios_icon_name={activeProfileType === 'local' ? 'building.2.fill' : 'person.fill'}
+                        android_material_icon_name={activeProfileType === 'local' ? 'store' : 'person'}
+                        size={AVATAR_SIZE * 0.5}
+                        color={colors.primary}
+                      />
+                    </View>
+                  )}
+                </View>
+              </View>
+            )}
             <TouchableOpacity 
               style={styles.addMomentoButton}
               onPress={() => setShowMomentoUpload(true)}
@@ -583,7 +731,7 @@ export default function PerfilScreen() {
                 />
               </LinearGradient>
             </TouchableOpacity>
-          </View>
+          </TouchableOpacity>
           
           <View style={styles.profileInfo}>
             <Text style={styles.profileName}>{displayName}</Text>
@@ -1118,6 +1266,34 @@ const styles = StyleSheet.create({
     position: 'relative',
     marginRight: 20,
   },
+  avatarBorder: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: BORDER_WIDTH,
+  },
+  avatarBorderViewed: {
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  avatarInner: {
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+    borderRadius: AVATAR_SIZE / 2,
+    backgroundColor: '#fff',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: AVATAR_SIZE / 2,
+  },
+  avatarPlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: colors.cardBackground,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: AVATAR_SIZE / 2,
+  },
   addMomentoButton: {
     position: 'absolute',
     bottom: 0,
@@ -1126,7 +1302,7 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 14,
     borderWidth: 3,
-    borderColor: colors.white,
+    borderColor: colors.headerGradientStart,
     overflow: 'hidden',
     zIndex: 10,
   },
