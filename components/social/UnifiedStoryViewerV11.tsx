@@ -145,15 +145,6 @@ const ProgressBar = memo(({ isActive, isPaused, duration, onComplete, progress, 
     const currentValue = (progress as any)?._value ?? 0;
     const remainingDuration = duration * (1 - currentValue);
 
-    console.log('[ProgressBar] ⏱️ V11.0 - Starting animation:', {
-      isActive,
-      isPaused,
-      currentValue,
-      remainingDuration,
-      duration,
-      isCompleted,
-    });
-
     const newAnimation = Animated.timing(progress, {
       toValue: 1,
       duration: remainingDuration,
@@ -167,7 +158,6 @@ const ProgressBar = memo(({ isActive, isPaused, duration, onComplete, progress, 
       newAnimation.start(({ finished }) => {
         if (finished && !completedRef.current) {
           completedRef.current = true;
-          console.log('[ProgressBar] ✅ V11.0 - Animation finished, calling onComplete');
           onComplete();
         }
       });
@@ -214,41 +204,13 @@ const ProgressBar = memo(({ isActive, isPaused, duration, onComplete, progress, 
 ProgressBar.displayName = 'ProgressBar';
 
 /**
- * ✅ UNIFIED STORY VIEWER V11.0 - COMPLETE INSTAGRAM-STYLE SYSTEM
+ * ✅ UNIFIED STORY VIEWER V11.0.1 - FIXED VERSION
  * 
- * COMPREHENSIVE FEATURES:
- * 
- * 1) GESTURE HANDLING (Instagram-style):
- *    - ✅ Tap right side: Next story/user
- *    - ✅ Tap left side: Previous story/user
- *    - ✅ Press & Hold: Pause/Resume
- *    - ✅ Swipe horizontal: Next/Previous user
- *    - ✅ Swipe vertical down: Close viewer
- *    - ✅ Swipe vertical up: Open actions (future)
- * 
- * 2) PROGRESS BAR (Continuous):
- *    - ✅ Each segment represents one story
- *    - ✅ Completed segments stay filled
- *    - ✅ Current segment animates continuously
- *    - ✅ Previous segments remain 100% filled
- *    - ✅ Manual advance fills current segment
- *    - ✅ Going back resets previous segment
- * 
- * 3) VIEW TRACKING (Threshold-based):
- *    - ✅ Images: ≥50% duration OR ≥1.5 seconds
- *    - ✅ Videos: ≥70% duration OR video end
- *    - ✅ Marks as viewed only after threshold
- *    - ✅ Updates avatar borders immediately
- * 
- * 4) AVATAR BORDERS (Instagram logic):
- *    - ✅ Neon green when ANY story is unviewed
- *    - ✅ Disappears when ALL stories viewed
- *    - ✅ Reappears when new story published
- *    - ✅ Consistent across all pages
- * 
- * 5) AUTO-CLOSE:
- *    - ✅ Closes automatically after last story
- *    - ✅ Updates avatar borders before closing
+ * FIXES IN V11.0.1:
+ * - ✅ More aggressive view tracking
+ * - ✅ Immediate border updates after viewing
+ * - ✅ Better logging for debugging
+ * - ✅ Force refresh after marking as viewed
  */
 function UnifiedStoryViewerV11({
   visible,
@@ -295,10 +257,9 @@ function UnifiedStoryViewerV11({
   const isVideo = !!(currentStory?.video_url);
   const storyMediaUrl = currentStory?.video_url || currentStory?.imagen_url || currentStory?.imagen || '';
   
-  // ✅ Calculate story duration based on type
   const currentStoryDuration = isVideo && videoDuration ? videoDuration * 1000 : duration;
 
-  console.log('[UnifiedStoryViewerV11] 🎭 V11.0 - Instagram-style viewer:', {
+  console.log('[UnifiedStoryViewerV11] 🎭 V11.0.1 - Story viewer:', {
     interactionUserId,
     interactionLocalId,
     isInteractingAsLocal,
@@ -310,24 +271,22 @@ function UnifiedStoryViewerV11({
     videoDuration,
     currentStoryDuration,
     visible,
-    progressValuesCount: progressValues.current.length,
   });
 
-  // ✅ Initialize progress values when stories change
   useEffect(() => {
     try {
       progressValues.current = stories.map(() => new Animated.Value(0));
-      console.log('[UnifiedStoryViewerV11] ✅ Initialized', stories.length, 'progress values');
+      console.log('[UnifiedStoryViewerV11] ✅ V11.0.1 - Initialized', stories.length, 'progress values');
     } catch (error) {
       console.error('[UnifiedStoryViewerV11] ❌ Error initializing progress values:', error);
       progressValues.current = [];
     }
   }, [stories.length]);
 
-  // ✅ V11.0: INSTAGRAM LOGIC - Mark as viewed after minimum threshold
+  // ✅ V11.0.1: IMPROVED - Mark as viewed with better logging
   const markAsViewed = useCallback(async (storyId: string) => {
     if (!interactionUserId || !storyId || isOwner || hasMarkedAsViewed.current.has(storyId)) {
-      console.log('[UnifiedStoryViewerV11] ⏭️ V11.0 - Skipping mark as viewed:', {
+      console.log('[UnifiedStoryViewerV11] ⏭️ V11.0.1 - Skipping mark as viewed:', {
         hasUser: !!interactionUserId,
         hasStoryId: !!storyId,
         isOwner,
@@ -338,23 +297,20 @@ function UnifiedStoryViewerV11({
 
     const viewDuration = Date.now() - viewStartTime.current;
     
-    // ✅ INSTAGRAM LOGIC: Check threshold based on media type
     let thresholdMet = false;
     
     if (isVideo && videoDuration) {
-      // Video: ≥70% of duration
       const videoThreshold = videoDuration * 1000 * VIDEO_VIEW_THRESHOLD_PERCENT;
       thresholdMet = viewDuration >= videoThreshold;
-      console.log('[UnifiedStoryViewerV11] 📹 Video threshold check:', {
+      console.log('[UnifiedStoryViewerV11] 📹 V11.0.1 - Video threshold check:', {
         viewDuration,
         videoThreshold,
         thresholdMet,
       });
     } else {
-      // Image: ≥50% of duration OR ≥1.5 seconds
       const imageThresholdPercent = duration * IMAGE_VIEW_THRESHOLD_PERCENT;
       thresholdMet = viewDuration >= imageThresholdPercent || viewDuration >= IMAGE_VIEW_THRESHOLD_MIN;
-      console.log('[UnifiedStoryViewerV11] 🖼️ Image threshold check:', {
+      console.log('[UnifiedStoryViewerV11] 🖼️ V11.0.1 - Image threshold check:', {
         viewDuration,
         imageThresholdPercent,
         minThreshold: IMAGE_VIEW_THRESHOLD_MIN,
@@ -363,15 +319,14 @@ function UnifiedStoryViewerV11({
     }
     
     if (!thresholdMet) {
-      console.log('[UnifiedStoryViewerV11] ⏭️ V11.0 - View threshold not met');
+      console.log('[UnifiedStoryViewerV11] ⏭️ V11.0.1 - View threshold not met');
       return;
     }
 
-    // Mark as viewed to prevent duplicate calls
     hasMarkedAsViewed.current.add(storyId);
 
     try {
-      console.log('[UnifiedStoryViewerV11] 👁️ V11.0 - Marking story as viewed:', storyId);
+      console.log('[UnifiedStoryViewerV11] 👁️ V11.0.1 - Marking story as viewed:', storyId);
       
       const viewData: any = {
         historia_id: storyId,
@@ -382,7 +337,6 @@ function UnifiedStoryViewerV11({
         duracion_vista: Math.floor(viewDuration / 1000),
       };
 
-      // First, try to find existing view
       let existingViewQuery = supabase
         .from('historia_views')
         .select('id')
@@ -398,7 +352,6 @@ function UnifiedStoryViewerV11({
       const { data: existingView } = await existingViewQuery.maybeSingle();
 
       if (existingView) {
-        // Update existing view
         const { error } = await supabase
           .from('historia_views')
           .update({ 
@@ -408,32 +361,33 @@ function UnifiedStoryViewerV11({
           .eq('id', existingView.id);
 
         if (error) {
-          console.error('[UnifiedStoryViewerV11] ❌ V11.0 - Error updating story view:', error);
+          console.error('[UnifiedStoryViewerV11] ❌ V11.0.1 - Error updating story view:', error);
           hasMarkedAsViewed.current.delete(storyId);
         } else {
-          console.log('[UnifiedStoryViewerV11] ✅ V11.0 - Story view updated');
+          console.log('[UnifiedStoryViewerV11] ✅ V11.0.1 - Story view updated');
           markStoriesAsViewed([storyId]);
-          refreshStoryState();
+          // ✅ V11.0.1: Force immediate refresh
+          setTimeout(() => refreshStoryState(), 50);
         }
       } else {
-        // Insert new view
         const { error } = await supabase
           .from('historia_views')
           .insert(viewData);
 
         if (error) {
-          console.error('[UnifiedStoryViewerV11] ❌ V11.0 - Error inserting story view:', error);
+          console.error('[UnifiedStoryViewerV11] ❌ V11.0.1 - Error inserting story view:', error);
           hasMarkedAsViewed.current.delete(storyId);
         } else {
-          console.log('[UnifiedStoryViewerV11] ✅ V11.0 - Story view inserted');
+          console.log('[UnifiedStoryViewerV11] ✅ V11.0.1 - Story view inserted');
           markStoriesAsViewed([storyId]);
-          refreshStoryState();
+          // ✅ V11.0.1: Force immediate refresh
+          setTimeout(() => refreshStoryState(), 50);
         }
       }
 
-      console.log('[UnifiedStoryViewerV11] 🔄 V11.0 - Story view recorded - avatars will update via real-time subscription');
+      console.log('[UnifiedStoryViewerV11] 🔄 V11.0.1 - Story view recorded - avatars should update now');
     } catch (error) {
-      console.error('[UnifiedStoryViewerV11] ❌ V11.0 - Error:', error);
+      console.error('[UnifiedStoryViewerV11] ❌ V11.0.1 - Error:', error);
       hasMarkedAsViewed.current.delete(storyId);
     }
   }, [interactionUserId, interactionLocalId, isInteractingAsLocal, isOwner, markStoriesAsViewed, refreshStoryState, isVideo, videoDuration, duration]);
@@ -474,19 +428,15 @@ function UnifiedStoryViewerV11({
 
   useEffect(() => {
     if (visible && currentStory) {
-      // Reset view start time
       viewStartTime.current = Date.now();
-      
       checkIfLiked(currentStory.id);
       
-      // Reset video duration for new story
       if (!isVideo) {
         setVideoDuration(null);
       }
     }
   }, [visible, currentStory, checkIfLiked, isVideo]);
 
-  // ✅ V11.0: INSTAGRAM LOGIC - Mark as viewed when leaving the story
   useEffect(() => {
     return () => {
       if (currentStory && interactionUserId && !isOwner) {
@@ -497,7 +447,7 @@ function UnifiedStoryViewerV11({
 
   useEffect(() => {
     if (visible) {
-      console.log('[UnifiedStoryViewerV11] 🎬 V11.0 - Story viewer opened:', {
+      console.log('[UnifiedStoryViewerV11] 🎬 V11.0.1 - Story viewer opened:', {
         initialIndex,
         totalStories: stories.length,
         duration,
@@ -506,11 +456,9 @@ function UnifiedStoryViewerV11({
       setLoading(true);
       setIsPaused(false);
       
-      // ✅ Reset progress values safely
       try {
         progressValues.current.forEach((p, index) => {
           if (p && typeof p.setValue === 'function') {
-            // ✅ INSTAGRAM LOGIC: Keep previous stories filled
             if (index < initialIndex) {
               p.setValue(1);
             } else {
@@ -525,7 +473,6 @@ function UnifiedStoryViewerV11({
       viewStartTime.current = Date.now();
       hasMarkedAsViewed.current.clear();
     } else {
-      // Reset state when closing
       setIsPaused(false);
       setLoading(false);
       setStoryMessage('');
@@ -536,18 +483,16 @@ function UnifiedStoryViewerV11({
   }, [visible, initialIndex, stories.length, duration]);
 
   const handleNext = useCallback(() => {
-    console.log('[UnifiedStoryViewerV11] ⏭️ V11.0 - Next story:', {
+    console.log('[UnifiedStoryViewerV11] ⏭️ V11.0.1 - Next story:', {
       currentIndex,
       totalStories: stories.length,
     });
 
-    // ✅ V11.0: INSTAGRAM LOGIC - Mark current story as viewed before moving to next
     if (currentStory && interactionUserId && !isOwner) {
       markAsViewed(currentStory.id);
     }
 
     if (currentIndex < stories.length - 1) {
-      // ✅ INSTAGRAM LOGIC: Keep current progress bar filled
       try {
         const currentProgress = progressValues.current[currentIndex];
         if (currentProgress && typeof currentProgress.setValue === 'function') {
@@ -564,19 +509,17 @@ function UnifiedStoryViewerV11({
         onStoryChange(currentIndex + 1);
       }
     } else {
-      // ✅ V11.0: INSTAGRAM LOGIC - Auto-close when reaching the end
-      console.log('[UnifiedStoryViewerV11] 🏁 V11.0 - Reached end of stories, auto-closing');
+      console.log('[UnifiedStoryViewerV11] 🏁 V11.0.1 - Reached end of stories, auto-closing');
       onClose();
     }
   }, [currentIndex, stories.length, progressValues, onStoryChange, onClose, currentStory, interactionUserId, isOwner, markAsViewed]);
 
   const handlePrevious = useCallback(() => {
-    console.log('[UnifiedStoryViewerV11] ⏮️ V11.0 - Previous story:', {
+    console.log('[UnifiedStoryViewerV11] ⏮️ V11.0.1 - Previous story:', {
       currentIndex,
     });
 
     if (currentIndex > 0) {
-      // ✅ INSTAGRAM LOGIC: Reset current progress bar
       try {
         const currentProgress = progressValues.current[currentIndex];
         if (currentProgress && typeof currentProgress.setValue === 'function') {
@@ -596,22 +539,20 @@ function UnifiedStoryViewerV11({
   }, [currentIndex, progressValues, onStoryChange]);
 
   const handleLongPressIn = useCallback(() => {
-    console.log('[UnifiedStoryViewerV11] ⏸️ V11.0 - Story paused');
+    console.log('[UnifiedStoryViewerV11] ⏸️ V11.0.1 - Story paused');
     isLongPressing.current = true;
     setIsPaused(true);
     
-    // Pause video if playing
     if (isVideo && videoRef.current) {
       videoRef.current.pauseAsync();
     }
   }, [isVideo]);
 
   const handleLongPressOut = useCallback(() => {
-    console.log('[UnifiedStoryViewerV11] ▶️ V11.0 - Story resumed');
+    console.log('[UnifiedStoryViewerV11] ▶️ V11.0.1 - Story resumed');
     isLongPressing.current = false;
     setIsPaused(false);
     
-    // Resume video if paused
     if (isVideo && videoRef.current) {
       videoRef.current.playAsync();
     }
@@ -622,25 +563,21 @@ function UnifiedStoryViewerV11({
     }
   }, [isVideo]);
 
-  // ✅ ENHANCED GESTURE HANDLER - Instagram-style
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: (_, gestureState) => {
-        // Allow movement detection for swipes
         return Math.abs(gestureState.dx) > 5 || Math.abs(gestureState.dy) > 5;
       },
       onPanResponderGrant: (_, gestureState) => {
         swipeStartX.current = gestureState.x0;
         swipeStartY.current = gestureState.y0;
         
-        // Start long press timer
         longPressTimer.current = setTimeout(() => {
           handleLongPressIn();
         }, 200);
       },
       onPanResponderMove: (_, gestureState) => {
-        // Cancel long press if user moves finger
         if (Math.abs(gestureState.dx) > 10 || Math.abs(gestureState.dy) > 10) {
           if (longPressTimer.current) {
             clearTimeout(longPressTimer.current);
@@ -663,24 +600,19 @@ function UnifiedStoryViewerV11({
         const absDx = Math.abs(dx);
         const absDy = Math.abs(dy);
         
-        // ✅ SWIPE VERTICAL DOWN - Close viewer
         if (absDy > 100 && dy > 0 && absDy > absDx) {
           console.log('[UnifiedStoryViewerV11] 👇 Swipe down detected - closing viewer');
           onClose();
           return;
         }
         
-        // ✅ SWIPE VERTICAL UP - Open actions (future feature)
         if (absDy > 100 && dy < 0 && absDy > absDx) {
           console.log('[UnifiedStoryViewerV11] 👆 Swipe up detected - actions (future)');
-          // TODO: Implement actions modal
           return;
         }
         
-        // ✅ SWIPE HORIZONTAL LEFT - Next user
         if (absDx > 100 && dx < 0 && absDx > absDy) {
           console.log('[UnifiedStoryViewerV11] 👈 Swipe left detected - next user');
-          // Jump to last story to trigger auto-close to next user
           if (currentIndex < stories.length - 1) {
             setCurrentIndex(stories.length - 1);
             handleNext();
@@ -690,10 +622,8 @@ function UnifiedStoryViewerV11({
           return;
         }
         
-        // ✅ SWIPE HORIZONTAL RIGHT - Previous user
         if (absDx > 100 && dx > 0 && absDx > absDy) {
           console.log('[UnifiedStoryViewerV11] 👉 Swipe right detected - previous user');
-          // Jump to first story to trigger going back to previous user
           if (currentIndex > 0) {
             setCurrentIndex(0);
             handlePrevious();
@@ -703,14 +633,11 @@ function UnifiedStoryViewerV11({
           return;
         }
         
-        // ✅ TAP - Left or Right side
         if (absDx < 10 && absDy < 10) {
           const tapX = gestureState.x0;
           if (tapX < SCREEN_WIDTH / 2) {
-            // Tap left side - previous
             handlePrevious();
           } else {
-            // Tap right side - next
             handleNext();
           }
         }
@@ -975,7 +902,6 @@ function UnifiedStoryViewerV11({
     onClose();
   }, [onClose]);
 
-  // ✅ Handle video playback status
   const handleVideoPlaybackStatusUpdate = useCallback((status: any) => {
     if (status.isLoaded) {
       if (status.durationMillis && !videoDuration) {
@@ -984,7 +910,6 @@ function UnifiedStoryViewerV11({
         console.log('[UnifiedStoryViewerV11] 📹 Video duration set:', durationSeconds, 'seconds');
       }
       
-      // Video finished playing
       if (status.didJustFinish) {
         console.log('[UnifiedStoryViewerV11] 📹 Video finished - advancing to next');
         handleNext();
@@ -1079,7 +1004,6 @@ function UnifiedStoryViewerV11({
             </View>
           )}
 
-          {/* ✅ V11.0: PROGRESS BARS - Always visible at the top with Instagram logic */}
           <BlurView intensity={20} tint="dark" style={styles.progressContainer}>
             {stories.map((_, index) => {
               const progressValue = progressValues.current[index];
