@@ -20,7 +20,6 @@ import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import MessageBubble from '@/components/chat/MessageBubble';
-import { cleanupExpiredStoryImages } from '@/utils/storyMessageCleanup';
 
 interface Message {
   id: string;
@@ -59,9 +58,6 @@ export default function ConversacionScreen() {
 
   const loadMessages = useCallback(async (chatIdToLoad: string) => {
     try {
-      // Clean up expired story images before loading
-      await cleanupExpiredStoryImages();
-
       const { data, error } = await supabase
         .from('mensajes')
         .select('*')

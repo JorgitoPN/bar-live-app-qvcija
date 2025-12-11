@@ -50,10 +50,9 @@ const BADGE_INFO: Record<string, { title: string; icon: string; androidIcon: str
 };
 
 export function BadgeNotification({ badge }: BadgeNotificationProps) {
-  const fadeAnim = new Animated.Value(0);
-  const slideAnim = new Animated.Value(-100);
+  const fadeAnim = React.useMemo(() => new Animated.Value(0), []);
+  const slideAnim = React.useMemo(() => new Animated.Value(-100), []);
 
-  // ✅ Fixed: Added fadeAnim and slideAnim to dependencies
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {

@@ -21,7 +21,6 @@ import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import { LinearGradient } from 'expo-linear-gradient';
 import InstagramPostCard from '@/components/social/InstagramPostCard';
-import InstagramStoriesBar from '@/components/social/InstagramStoriesBar';
 import InstagramHeader from '@/components/social/InstagramHeader';
 import type { Publicacion, Historia } from '@/types';
 
@@ -268,16 +267,7 @@ export default function SocialScreenV9() {
         },
       ]}
     >
-      <View style={styles.storiesSection}>
-        <InstagramStoriesBar
-          historias={historias}
-          onHistoriaPress={handleHistoriaPress}
-          onCrearHistoria={handleCreateStory}
-          userAvatar={displayAvatar || undefined}
-          userName={displayName}
-          onStoriesUpdate={handleStoriesUpdate}
-        />
-      </View>
+      {/* Stories section removed */}
     </Animated.View>
   );
 

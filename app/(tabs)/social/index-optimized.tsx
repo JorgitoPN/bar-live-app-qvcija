@@ -9,8 +9,6 @@ import { intelligentPreloader } from '@/utils/intelligentPreloader';
 import InitialLoadingScreen from '@/components/common/InitialLoadingScreen';
 import { LinearGradient } from 'expo-linear-gradient';
 import ParsedText from '@/components/social/ParsedText';
-import StoryViewer from '@/components/social/StoryViewer';
-import { preloadStoryImages } from '@/utils/storyPreloader';
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
@@ -111,8 +109,6 @@ export default function SocialScreen() {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [selectedStoryIndex, setSelectedStoryIndex] = useState<number | null>(null);
-  const [showStoryViewer, setShowStoryViewer] = useState(false);
   
   const isLoadingRef = useRef(false);
   const isOwnerMode = currentMode === 'owner';
@@ -292,14 +288,6 @@ export default function SocialScreen() {
           setHistorias(otherStoriesWithStatus);
           
           await advancedCache.set('social:stories', otherStoriesWithStatus, 'high');
-          
-          if (otherStoriesWithStatus.length > 0) {
-            console.log('[Social] 🚀 Starting intelligent preload...');
-            setTimeout(() => {
-              intelligentPreloader.preloadStoryImages(otherStoriesWithStatus, 0, 10);
-              intelligentPreloader.preloadPostImages(posts, 0, 5);
-            }, 500);
-          }
         } else {
           setHistorias(otherStories);
           await advancedCache.set('social:stories', otherStories, 'high');
@@ -451,8 +439,8 @@ export default function SocialScreen() {
   }, []);
 
   const handleHistoriaPress = useCallback((index: number) => {
-    setSelectedStoryIndex(index);
-    setShowStoryViewer(true);
+    console.log('[Social] Story pressed:', index);
+    // Story viewer functionality removed
   }, []);
 
   const handleCrearHistoria = useCallback(() => {
@@ -669,19 +657,6 @@ export default function SocialScreen() {
           </View>
         ))}
       </ScrollView>
-
-      {showStoryViewer && selectedStoryIndex !== null && (
-        <StoryViewer
-          visible={showStoryViewer}
-          stories={[...userStories, ...historias]}
-          initialIndex={selectedStoryIndex}
-          onClose={() => {
-            setShowStoryViewer(false);
-            setSelectedStoryIndex(null);
-          }}
-          onStoryChange={(index) => setSelectedStoryIndex(index)}
-        />
-      )}
 
       <LoginRequiredModal
         visible={showLoginModal}

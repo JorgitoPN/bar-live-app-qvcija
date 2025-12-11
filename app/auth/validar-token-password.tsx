@@ -25,7 +25,7 @@ export default function ValidarTokenPasswordScreen() {
   
   const [token, setToken] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
-  const inputRefs = useRef<Array<TextInput | null>>([]);
+  const inputRefs = useRef<(TextInput | null)[]>([]);
 
   useEffect(() => {
     // Focus first input on mount

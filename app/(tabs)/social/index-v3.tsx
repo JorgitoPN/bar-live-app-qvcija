@@ -22,7 +22,6 @@ import HeaderSocial from '@/components/layout/HeaderSocial';
 import { IconSymbol } from '@/components/IconSymbol';
 import { LinearGradient } from 'expo-linear-gradient';
 import NewPostCard from '@/components/social/NewPostCard';
-import EnhancedStoryCarousel from '@/components/social/EnhancedStoryCarousel';
 import type { Publicacion, Historia } from '@/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -321,17 +320,7 @@ export default function SocialScreenV3() {
         },
       ]}
     >
-      {/* ✅ ENHANCED: Story Carousel */}
-      <View style={styles.storiesSection}>
-        <EnhancedStoryCarousel
-          historias={historias}
-          onHistoriaPress={handleHistoriaPress}
-          onCrearHistoria={handleCreateStory}
-          userAvatar={displayAvatar || undefined}
-          userName={displayName}
-          onStoriesUpdate={handleStoriesUpdate}
-        />
-      </View>
+      {/* Stories section removed */}
 
       {/* ✅ NEW: Feed Filter Tabs */}
       <View style={styles.filterTabsContainer}>

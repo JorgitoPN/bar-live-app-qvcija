@@ -20,7 +20,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import MiniFoodPlateAvatarV11 from '@/components/common/MiniFoodPlateAvatarV11';
+import MiniFoodPlateAvatar from '@/components/common/MiniFoodPlateAvatar';
 
 interface Comment {
   id: string;
@@ -467,13 +467,11 @@ export default function CommentsModal({
         </View>
       )}
       <View style={styles.commentItem}>
-        <MiniFoodPlateAvatarV11
+        <MiniFoodPlateAvatar
           imageUrl={item.usuario.avatar}
           size={36}
           nombre={item.usuario.nombre}
           userId={item.autor_id}
-          userStories={authorStories[item.autor_id] || []}
-          hasStory={(authorStories[item.autor_id] || []).length > 0}
         />
         <View style={styles.commentContent}>
           <View style={styles.commentBubble}>
@@ -518,13 +516,11 @@ export default function CommentsModal({
         <View style={styles.repliesContainer}>
           {item.replies.map((reply) => (
             <View key={reply.id} style={styles.replyItem}>
-              <MiniFoodPlateAvatarV11
+              <MiniFoodPlateAvatar
                 imageUrl={reply.usuario.avatar}
                 size={28}
                 nombre={reply.usuario.nombre}
                 userId={reply.autor_id}
-                userStories={authorStories[reply.autor_id] || []}
-                hasStory={(authorStories[reply.autor_id] || []).length > 0}
               />
               <View style={styles.commentContent}>
                 <View style={styles.commentBubble}>
@@ -632,13 +628,11 @@ export default function CommentsModal({
               </View>
             )}
             <View style={styles.inputRow}>
-              <MiniFoodPlateAvatarV11
+              <MiniFoodPlateAvatar
                 imageUrl={user.avatar}
                 size={36}
                 nombre={user.nombre}
                 userId={user.id}
-                userStories={authorStories[user.id] || []}
-                hasStory={(authorStories[user.id] || []).length > 0}
               />
               <View style={styles.inputWrapper}>
                 <TextInput

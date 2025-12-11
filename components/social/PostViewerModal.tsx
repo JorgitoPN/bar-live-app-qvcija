@@ -21,7 +21,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import MiniFoodPlateAvatarV11 from '@/components/common/MiniFoodPlateAvatarV11';
+import MiniFoodPlateAvatar from '@/components/common/MiniFoodPlateAvatar';
 import CommentsModal from './CommentsModal';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -249,13 +249,11 @@ export default function PostViewerModal({
           {/* Header */}
           <BlurView intensity={30} tint="dark" style={styles.header}>
             <View style={styles.authorInfo}>
-              <MiniFoodPlateAvatarV11
+              <MiniFoodPlateAvatar
                 imageUrl={post.autor.avatar}
                 size={36}
                 nombre={post.autor.nombre}
                 userId={post.tipo === 'local' ? post.local_id : post.autor_id}
-                userStories={authorStories}
-                hasStory={authorStories.length > 0}
               />
               <View style={styles.authorText}>
                 <Text style={styles.authorName}>{displayUsername}</Text>

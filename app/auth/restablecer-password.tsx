@@ -31,7 +31,7 @@ export default function RestablecerPasswordScreen() {
 
   useEffect(() => {
     checkSession();
-  }, []);
+  }, [checkSession]);
 
   const checkSession = async () => {
     try {

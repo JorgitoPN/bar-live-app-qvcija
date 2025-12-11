@@ -13,7 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { colors } from '@/styles/commonStyles';
-import MiniFoodPlateAvatarV11 from '@/components/common/MiniFoodPlateAvatarV11';
+import MiniFoodPlateAvatar from '@/components/common/MiniFoodPlateAvatar';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import PostViewerModal from './PostViewerModal';
@@ -298,14 +298,11 @@ export default function NewPostCard({
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.authorInfo} onPress={handleProfilePress}>
-            {/* ✅ V11.0: Use MiniFoodPlateAvatarV11 with story state context */}
-            <MiniFoodPlateAvatarV11
+            <MiniFoodPlateAvatar
               imageUrl={displayAvatar}
               size={42}
               nombre={authorName}
               userId={post.tipo === 'local' ? post.local_id : post.autor_id}
-              userStories={authorStories}
-              hasStory={authorStories.length > 0}
             />
             <View style={styles.authorText}>
               <Text style={styles.authorName}>{displayUsername}</Text>

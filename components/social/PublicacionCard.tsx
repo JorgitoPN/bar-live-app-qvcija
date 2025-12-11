@@ -302,7 +302,6 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
     loadTags();
   }, [post?.id]);
 
-  // ✅ Fixed: Added interactionLocalId and interactionType to dependencies
   const handleLike = useCallback(async () => {
     console.log('[PublicacionCard] handleLike - Interaction context:', {
       interactionUserId,
@@ -392,7 +391,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
     }
 
     if (onLike) onLike();
-  }, [liked, likesCount, onLike, interactionUserId, interactionType, interactionLocalId, isInteractingAsLocal, post.id]);
+  }, [liked, likesCount, onLike, interactionUserId, interactionType, interactionLocalId, isInteractingAsLocal, post.id, user?.id]);
 
   // ✅ Fixed: Added interactionLocalId and interactionType to dependencies
   const handleSave = useCallback(async () => {

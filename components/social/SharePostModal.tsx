@@ -18,7 +18,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import MiniFoodPlateAvatarV11 from '@/components/common/MiniFoodPlateAvatarV11';
+import MiniFoodPlateAvatar from '@/components/common/MiniFoodPlateAvatar';
 import { router } from 'expo-router';
 
 interface User {
@@ -333,13 +333,11 @@ export default function SharePostModal({
         onPress={() => toggleRecipient(item.id)}
         activeOpacity={0.7}
       >
-        <MiniFoodPlateAvatarV11
+        <MiniFoodPlateAvatar
           imageUrl={isUser ? (item as User).avatar : (item as Local).imagen_url}
           size={48}
           nombre={item.nombre}
           userId={item.id}
-          userStories={recipientStories[item.id] || []}
-          hasStory={(recipientStories[item.id] || []).length > 0}
         />
         <View style={styles.recipientInfo}>
           <Text style={styles.recipientName}>{item.nombre}</Text>

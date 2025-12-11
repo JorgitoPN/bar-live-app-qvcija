@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -41,14 +41,7 @@ export function RankingModal({ visible, onClose, localId }: RankingModalProps) {
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<'diario' | 'semanal' | 'mensual'>('diario');
 
-  // ✅ Fixed: Added loadRanking to dependencies
-  useEffect(() => {
-    if (visible) {
-      loadRanking();
-    }
-  }, [visible, period, loadRanking]);
-
-  const loadRanking = async () => {
+  const loadRanking = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -79,7 +72,13 @@ export function RankingModal({ visible, onClose, localId }: RankingModalProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [localId, period]);
+
+  useEffect(() => {
+    if (visible) {
+      loadRanking();
+    }
+  }, [visible, loadRanking]);
 
   const getMedalColor = (position: number) => {
     switch (position) {

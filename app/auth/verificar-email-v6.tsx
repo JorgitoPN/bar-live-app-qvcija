@@ -52,7 +52,7 @@ export default function VerificarEmailV6Screen() {
         }),
       ])
     ).start();
-  }, []);
+  }, [fadeAnim, pulseAnim]);
 
   useEffect(() => {
     if (countdown > 0) {

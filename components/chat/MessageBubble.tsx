@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Pressable } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
-import { isStoryExpired, getExpiredStoryText } from '@/utils/storyMessageCleanup';
 import { useRouter } from 'expo-router';
 
 interface Message {
@@ -30,15 +29,6 @@ interface MessageBubbleProps {
 export default function MessageBubble({ message, isOwn, otroUsuario, onLongPress }: MessageBubbleProps) {
   const router = useRouter();
   const [storyExpired, setStoryExpired] = useState(false);
-
-  useEffect(() => {
-    // Check if story has expired
-    if (message.historia_id && message.historia_imagen) {
-      isStoryExpired(message.historia_id).then(expired => {
-        setStoryExpired(expired);
-      });
-    }
-  }, [message.historia_id, message.historia_imagen]);
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -85,35 +75,17 @@ export default function MessageBubble({ message, isOwn, otroUsuario, onLongPress
       );
     }
 
-    // Story message with snapshot
+    // Story message with snapshot (deprecated - stories removed)
     if (message.tipo_mensaje === 'historia' || message.historia_id) {
-      if (storyExpired || !message.historia_imagen) {
-        return (
-          <View style={styles.expiredStoryContainer}>
-            <IconSymbol name="exclamationmark.triangle" size={20} color={colors.textSecondary} />
-            <Text style={styles.expiredStoryText}>{getExpiredStoryText()}</Text>
-          </View>
-        );
-      }
-
       return (
-        <View style={styles.storyContainer}>
-          <TouchableOpacity onPress={handleStoryPress} activeOpacity={0.8}>
-            <Image 
-              source={{ uri: message.historia_imagen }} 
-              style={styles.storyImage}
-              resizeMode="cover"
-            />
-            <View style={styles.storyBadge}>
-              <IconSymbol name="camera.fill" size={14} color="#fff" />
-              <Text style={styles.storyBadgeText}>Historia</Text>
-            </View>
-          </TouchableOpacity>
-          {message.contenido && (
-            <Text style={[styles.messageText, isOwn && styles.messageTextOwn]}>
-              {message.contenido}
-            </Text>
-          )}
+        <View style={styles.expiredStoryContainer}>
+          <IconSymbol 
+            ios_icon_name="exclamationmark.triangle" 
+            android_material_icon_name="warning" 
+            size={20} 
+            color={colors.textSecondary} 
+          />
+          <Text style={styles.expiredStoryText}>Historia no disponible</Text>
         </View>
       );
     }

@@ -35,7 +35,7 @@ export default function RecuperarPasswordV7Screen() {
   // Token step
   const [token, setToken] = useState(['', '', '', '', '', '']);
   const [validatingToken, setValidatingToken] = useState(false);
-  const inputRefs = useRef<Array<TextInput | null>>([]);
+  const inputRefs = useRef<(TextInput | null)[]>([]);
   
   // Password step
   const [newPassword, setNewPassword] = useState('');
