@@ -22,53 +22,9 @@ export default function DetalleLayout() {
         sheetCornerRadius: 20,
         sheetGrabberVisible: true,
         gestureEnabled: true,
+        gestureDirection: 'vertical',
         animation: 'slide_from_bottom',
       }}
-    >
-      <Stack.Screen 
-        name="local" 
-        options={{
-          presentation: 'formSheet',
-          sheetAllowedDetents: [0.95],
-          sheetCornerRadius: 20,
-          sheetGrabberVisible: true,
-          gestureEnabled: true,
-          animation: 'slide_from_bottom',
-        }}
-      />
-      <Stack.Screen 
-        name="evento" 
-        options={{
-          presentation: 'formSheet',
-          sheetAllowedDetents: [0.95],
-          sheetCornerRadius: 20,
-          sheetGrabberVisible: true,
-          gestureEnabled: true,
-          animation: 'slide_from_bottom',
-        }}
-      />
-      <Stack.Screen 
-        name="sala-virtual" 
-        options={{
-          presentation: 'formSheet',
-          sheetAllowedDetents: [0.95],
-          sheetCornerRadius: 20,
-          sheetGrabberVisible: true,
-          gestureEnabled: true,
-          animation: 'slide_from_bottom',
-        }}
-      />
-      <Stack.Screen 
-        name="local-updated" 
-        options={{
-          presentation: 'formSheet',
-          sheetAllowedDetents: [0.95],
-          sheetCornerRadius: 20,
-          sheetGrabberVisible: true,
-          gestureEnabled: true,
-          animation: 'slide_from_bottom',
-        }}
-      />
-    </Stack>
+    />
   );
 }
