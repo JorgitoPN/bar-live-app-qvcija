@@ -33,14 +33,14 @@ import FloatingTabBar, { TabBarItem } from '@/components/FloatingTabBar';
 import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
 import OfertaTrabajoCard from '@/components/empleo/OfertaTrabajoCard';
 import StoryStatsModal from '@/components/social/StoryStatsModal';
-import UnifiedStoryViewerV10 from '@/components/social/UnifiedStoryViewerV10';
-import StoryAvatarV10 from '@/components/common/StoryAvatarV10';
+import UnifiedStoryViewerV11 from '@/components/social/UnifiedStoryViewerV11';
+import StoryAvatarV11 from '@/components/common/StoryAvatarV11';
 import { PROVINCIAS, getProvinceVariations, filterByProvincia } from '@/utils/provinceNormalizer';
 import EventBanner from '@/components/eventos/EventBanner';
 import { useLocalEvent } from '@/hooks/useLocalEvent';
 
-// ✅ VERSION MARKER - Force cache bust: v10.0.0 - Using V10 story system
-const SCREEN_VERSION = '10.0.0';
+// ✅ VERSION MARKER - Force cache bust: v11.0.0 - Using V11 story system
+const SCREEN_VERSION = '11.0.0';
 
 const { width, height } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -132,7 +132,7 @@ export default function LocalPerfilScreen() {
   const { user } = useAuth();
   
   const { 
-    currentMode,
+    currentMode, 
     activeProfileId,
     activeProfileType,
     switchToLocalProfile,
@@ -153,7 +153,7 @@ export default function LocalPerfilScreen() {
   const [ofertasTrabajo, setOfertasTrabajo] = useState<OfertaTrabajo[]>([]);
   const [loadingEmpleo, setLoadingEmpleo] = useState(false);
 
-  // ✅ FIXED: Use UnifiedStoryViewerV10 component
+  // ✅ FIXED: Use UnifiedStoryViewerV11 component
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [localStories, setLocalStories] = useState<LocalStory[]>([]);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
@@ -329,7 +329,7 @@ export default function LocalPerfilScreen() {
     }
 
     try {
-      console.log('[LocalPerfil] ✅ V10.0 - Loading local data for:', localId);
+      console.log('[LocalPerfil] ✅ V11.0 - Loading local data for:', localId);
 
       const { data: localData, error: localError } = await supabase
         .from('locales')
@@ -419,9 +419,9 @@ export default function LocalPerfilScreen() {
       }
 
       if (storiesResult.data) {
-        console.log('[LocalPerfil] ✅ V10.0 - Loaded', storiesResult.data.length, 'stories for local');
+        console.log('[LocalPerfil] ✅ V11.0 - Loaded', storiesResult.data.length, 'stories for local');
         
-        // ✅ Format stories with proper author data for V10 viewer
+        // ✅ Format stories with proper author data for V11 viewer
         const storiesWithAuthor = storiesResult.data.map(story => ({
           ...story,
           autorNombre: localData.nombre,
@@ -441,7 +441,7 @@ export default function LocalPerfilScreen() {
       setIsFavorito(!!favResult.data);
       setContentLoaded(prev => ({ ...prev, info: true }));
 
-      console.log('[LocalPerfil] ✅ V10.0 - Local data loaded successfully');
+      console.log('[LocalPerfil] ✅ V11.0 - Local data loaded successfully');
     } catch (error) {
       console.error('[LocalPerfil] Error loading data:', error);
     } finally {
@@ -744,18 +744,18 @@ export default function LocalPerfilScreen() {
     }
   };
 
-  // ✅ FIXED: Handle avatar press - view stories or create new story - V10
+  // ✅ FIXED: Handle avatar press - view stories or create new story - V11
   const handleAvatarPress = useCallback(() => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para ver historias');
       return;
     }
 
-    console.log('[LocalPerfil] V10.0 - Avatar pressed. Stories count:', localStories.length);
+    console.log('[LocalPerfil] V11.0 - Avatar pressed. Stories count:', localStories.length);
 
     if (localStories.length > 0) {
       // View existing stories
-      console.log('[LocalPerfil] ✅ V10.0 - Opening story viewer with', localStories.length, 'stories');
+      console.log('[LocalPerfil] ✅ V11.0 - Opening story viewer with', localStories.length, 'stories');
       setCurrentStoryIndex(0);
       setShowStoryViewer(true);
     } else if (isOwner) {
@@ -899,7 +899,7 @@ export default function LocalPerfilScreen() {
   const estado = getEstadoLocal(local);
   const hasActiveStory = localStories.length > 0;
 
-  console.log('[LocalPerfil] 👁️ V10.0 - Story status:', {
+  console.log('[LocalPerfil] 👁️ V11.0 - Story status:', {
     hasActiveStory,
     storiesCount: localStories.length,
   });
@@ -984,9 +984,9 @@ export default function LocalPerfilScreen() {
             ]}
           >
             <View style={styles.profileHeader}>
-              {/* ✅ FIXED: Use StoryAvatarV10 component */}
+              {/* ✅ FIXED: Use StoryAvatarV11 component */}
               <View style={styles.avatarContainer}>
-                <StoryAvatarV10
+                <StoryAvatarV11
                   userId={localId}
                   userStories={localStories}
                   avatarUrl={local.imagen_url}
@@ -1429,21 +1429,21 @@ export default function LocalPerfilScreen() {
         </View>
       </ScrollView>
 
-      {/* ✅ UNIFIED STORY VIEWER V10.0 - INSTAGRAM-STYLE WITH AUTO-CLOSE */}
-      <UnifiedStoryViewerV10
+      {/* ✅ UNIFIED STORY VIEWER V11.0 - INSTAGRAM-STYLE WITH AUTO-CLOSE */}
+      <UnifiedStoryViewerV11
         visible={showStoryViewer}
         stories={localStories}
         initialIndex={currentStoryIndex}
         onClose={() => {
-          console.log('[LocalPerfil] V10.0 - Closing story viewer');
+          console.log('[LocalPerfil] V11.0 - Closing story viewer');
           setShowStoryViewer(false);
         }}
         onStoryChange={(index) => {
-          console.log('[LocalPerfil] V10.0 - Story changed to index:', index);
+          console.log('[LocalPerfil] V11.0 - Story changed to index:', index);
           setCurrentStoryIndex(index);
         }}
         onStoryDelete={async (storyId) => {
-          console.log('[LocalPerfil] V10.0 - Story deleted:', storyId);
+          console.log('[LocalPerfil] V11.0 - Story deleted:', storyId);
           await loadLocalData();
         }}
       />
