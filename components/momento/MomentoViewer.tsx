@@ -20,6 +20,8 @@ import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import * as FileSystem from 'expo-file-system/legacy';
+import { captureRef } from 'react-native-view-shot';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MOMENTO_DURATION = 6000; // 6 seconds per momento
@@ -74,6 +76,7 @@ export default function MomentoViewer({
   const progressAnims = useRef<Animated.Value[]>([]).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
+  const momentoViewRef = useRef<View>(null);
 
   const loadMomentos = useCallback(async () => {
     if (!user || !authorId) return;
@@ -172,9 +175,16 @@ export default function MomentoViewer({
         progressAnims.push(new Animated.Value(0));
       });
 
+      // Find first unviewed momento or start at beginning
+      const firstUnviewedIndex = momentosWithStatus.findIndex(m => !m.user_has_viewed);
+      const startIndex = firstUnviewedIndex >= 0 ? firstUnviewedIndex : 0;
+      
+      setCurrentIndex(startIndex);
+      console.log('[MomentoViewer] Starting at index:', startIndex, 'of', momentosWithStatus.length);
+
       // Mark first momento as viewed
-      if (momentosWithStatus.length > 0 && !momentosWithStatus[0].user_has_viewed) {
-        markAsViewed(momentosWithStatus[0].id);
+      if (momentosWithStatus.length > 0 && !momentosWithStatus[startIndex].user_has_viewed) {
+        markAsViewed(momentosWithStatus[startIndex].id);
       }
 
       console.log('[MomentoViewer] ✅ Loaded momentos:', momentosWithStatus.length);
@@ -264,10 +274,67 @@ export default function MomentoViewer({
     }
   };
 
-  const handleSendMessage = async () => {
-    if (!user || !author) return;
+  const captureMomentoScreenshot = async (): Promise<string | null> => {
+    if (!momentoViewRef.current) return null;
 
     try {
+      console.log('[MomentoViewer] Capturing momento screenshot...');
+      
+      // Capture the momento view as an image
+      const uri = await captureRef(momentoViewRef, {
+        format: 'jpg',
+        quality: 0.8,
+      });
+
+      console.log('[MomentoViewer] Screenshot captured:', uri);
+      return uri;
+    } catch (error) {
+      console.error('[MomentoViewer] Error capturing screenshot:', error);
+      return null;
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!user || !author || momentos.length === 0) return;
+
+    const currentMomento = momentos[currentIndex];
+    if (!currentMomento) return;
+
+    try {
+      // Capture screenshot of the momento
+      const screenshotUri = await captureMomentoScreenshot();
+      
+      let screenshotUrl: string | null = null;
+      
+      if (screenshotUri) {
+        // Upload screenshot to storage
+        const fileName = `momento-screenshot-${Date.now()}.jpg`;
+        const filePath = `${user.id}/momento-screenshots/${fileName}`;
+        
+        const base64 = await FileSystem.readAsStringAsync(screenshotUri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        
+        const { decode } = await import('base64-arraybuffer');
+        const arrayBuffer = decode(base64);
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('momentos')
+          .upload(filePath, arrayBuffer, {
+            contentType: 'image/jpeg',
+            upsert: false,
+          });
+        
+        if (!uploadError && uploadData) {
+          const { data: urlData } = supabase.storage
+            .from('momentos')
+            .getPublicUrl(filePath);
+          
+          screenshotUrl = urlData.publicUrl;
+          console.log('[MomentoViewer] Screenshot uploaded:', screenshotUrl);
+        }
+      }
+
       // Create or get existing chat
       const { data: existingChat } = await supabase
         .from('chats')
@@ -291,12 +358,21 @@ export default function MomentoViewer({
       }
 
       if (chatId) {
-        // Navigate to chat with momento reference
+        // Store momento message with screenshot
+        await supabase.from('momento_messages').insert({
+          momento_id: currentMomento.id,
+          chat_id: chatId,
+          remitente_id: user.id,
+          mensaje: 'Respondió a tu Momento',
+          momento_screenshot_url: screenshotUrl,
+        });
+
+        // Navigate to chat
         router.push({
           pathname: '/chat/conversacion',
           params: {
             chatId,
-            momentoId: momentos[currentIndex]?.id,
+            momentoId: currentMomento.id,
           },
         });
         onClose();
@@ -543,7 +619,7 @@ export default function MomentoViewer({
         <View style={styles.backgroundOverlay} />
         
         {/* Momento Image */}
-        <View style={styles.imageContainer} {...panResponder.panHandlers}>
+        <View style={styles.imageContainer} {...panResponder.panHandlers} ref={momentoViewRef} collapsable={false}>
           <TouchableOpacity
             style={styles.imageTouchable}
             activeOpacity={1}

@@ -521,13 +521,14 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
 const styles = StyleSheet.create({
   container: {
     backgroundColor: colors.background,
-    paddingVertical: 12,
+    paddingVertical: 16, // Increased from 12 to 16 to prevent top cropping
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
   },
   scrollContent: {
     paddingHorizontal: 12,
     gap: 16,
+    alignItems: 'center', // Center items vertically to prevent cropping
   },
   loadingContainer: {
     paddingVertical: 20,
