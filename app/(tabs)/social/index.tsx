@@ -24,7 +24,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { LinearGradient } from 'expo-linear-gradient';
 import NewPostCard from '@/components/social/NewPostCard';
 import InstagramStoriesBarV11 from '@/components/social/InstagramStoriesBarV11';
-import UnifiedStoryViewerV10 from '@/components/social/UnifiedStoryViewerV10';
+import UnifiedStoryViewerV11 from '@/components/social/UnifiedStoryViewerV11';
 import type { Publicacion, Historia } from '@/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -43,10 +43,12 @@ interface LocalSubscriptionInfo {
  * 
  * NEW IN V11.0:
  * - ✅ Using InstagramStoriesBarV11 with "+" button
+ * - ✅ Using UnifiedStoryViewerV11 with improved state management
  * - ✅ Complete story system with real-time updates
  * - ✅ Role-based permissions and subscription checks
  * - ✅ Improved performance and error handling
  * - ✅ Consistent behavior across all pages
+ * - ✅ Avatar borders disappear when all stories are viewed
  * 
  * Features:
  * - ✅ Instagram-style stories carousel with create button
@@ -758,7 +760,7 @@ export default function SocialScreen() {
       />
 
       {/* ✅ V11.0: UNIFIED STORY VIEWER - INSTAGRAM-STYLE WITH AUTO-CLOSE */}
-      <UnifiedStoryViewerV10
+      <UnifiedStoryViewerV11
         visible={showStoryViewer}
         stories={selectedStories}
         initialIndex={currentStoryIndex}
