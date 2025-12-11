@@ -24,6 +24,7 @@ import { useMode } from '@/contexts/ModeContext';
 import { supabase } from '@/utils/supabase';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
+import MomentoUpload from '@/components/momento/MomentoUpload';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -72,6 +73,7 @@ export default function PerfilScreen() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showCreateOptions, setShowCreateOptions] = useState(false);
   const [showProfileSwitcher, setShowProfileSwitcher] = useState(false);
+  const [showMomentoUpload, setShowMomentoUpload] = useState(false);
   
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
@@ -500,6 +502,11 @@ export default function PerfilScreen() {
     router.push(`/empleo/perfil-detalle?id=${perfilProfesional.id}`);
   };
 
+  const handleMomentoUploadSuccess = () => {
+    // Refresh data after momento upload
+    cargarDatosPerfil();
+  };
+
   const renderGridPost = (post: Post) => {
     const firstImage = post.imagenes && post.imagenes.length > 0 
       ? post.imagenes[0] 
@@ -532,13 +539,34 @@ export default function PerfilScreen() {
     return (
       <View style={styles.profileSection}>
         <View style={styles.profileHeader}>
-          {displayAvatar ? (
-            <Image source={{ uri: displayAvatar }} style={styles.avatar} />
-          ) : (
-            <View style={[styles.avatar, styles.avatarPlaceholder]}>
-              <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={40} color={colors.headerText} />
-            </View>
-          )}
+          <View style={styles.avatarWrapper}>
+            {displayAvatar ? (
+              <Image source={{ uri: displayAvatar }} style={styles.avatar} />
+            ) : (
+              <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={40} color={colors.headerText} />
+              </View>
+            )}
+            <TouchableOpacity 
+              style={styles.addMomentoButton}
+              onPress={() => setShowMomentoUpload(true)}
+              activeOpacity={0.8}
+            >
+              <LinearGradient
+                colors={[colors.primary, colors.secondary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.addMomentoGradient}
+              >
+                <IconSymbol
+                  ios_icon_name="plus"
+                  android_material_icon_name="add"
+                  size={18}
+                  color="#fff"
+                />
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
           
           <View style={styles.profileInfo}>
             <Text style={styles.profileName}>{displayName}</Text>
@@ -944,6 +972,12 @@ export default function PerfilScreen() {
         </Pressable>
       </Modal>
 
+      <MomentoUpload
+        visible={showMomentoUpload}
+        onClose={() => setShowMomentoUpload(false)}
+        onSuccess={handleMomentoUploadSuccess}
+      />
+
       <LoginRequiredModal
         visible={showLoginModal}
         onClose={() => setShowLoginModal(false)}
@@ -1056,6 +1090,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     position: 'relative',
   },
+  avatarWrapper: {
+    position: 'relative',
+    marginRight: 20,
+  },
   avatar: {
     width: 88,
     height: 88,
@@ -1068,9 +1106,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  addMomentoButton: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 3,
+    borderColor: colors.white,
+    overflow: 'hidden',
+    zIndex: 10,
+  },
+  addMomentoGradient: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   profileInfo: {
     flex: 1,
-    marginLeft: 20,
+    marginLeft: 0,
   },
   profileName: {
     fontSize: 22,

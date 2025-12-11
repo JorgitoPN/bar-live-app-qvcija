@@ -18,7 +18,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const AVATAR_SIZE = 72;
+const AVATAR_SIZE = 84; // Increased from 72
 const BORDER_WIDTH = 3;
 
 interface MomentoAuthor {
@@ -349,7 +349,7 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
                 <IconSymbol
                   ios_icon_name="plus"
                   android_material_icon_name="add"
-                  size={16}
+                  size={18}
                   color="#fff"
                 />
               </LinearGradient>
@@ -455,12 +455,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 3,
     borderColor: '#fff',
     overflow: 'hidden',
+    zIndex: 10,
   },
   addIconGradient: {
     width: '100%',

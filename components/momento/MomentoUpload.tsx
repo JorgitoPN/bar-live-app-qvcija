@@ -98,6 +98,31 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
     try {
       setUploading(true);
 
+      console.log('[MomentoUpload] Starting upload...', {
+        userId: user.id,
+        activeProfileType,
+        activeProfileId,
+      });
+
+      // Verify ownership if uploading as local
+      if (activeProfileType === 'local' && activeProfileId) {
+        const { data: ownershipData, error: ownershipError } = await supabase
+          .from('propietarios_locales')
+          .select('id')
+          .eq('propietario_id', user.id)
+          .eq('local_id', activeProfileId)
+          .single();
+
+        if (ownershipError || !ownershipData) {
+          console.error('[MomentoUpload] Ownership verification failed:', ownershipError);
+          Alert.alert('Error', 'No tienes permisos para subir momentos como este local');
+          setUploading(false);
+          return;
+        }
+
+        console.log('[MomentoUpload] ✅ Ownership verified');
+      }
+
       // Convert image to base64
       const response = await fetch(selectedImage);
       const blob = await response.blob();
@@ -112,6 +137,8 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
           const fileName = `momento-${Date.now()}.jpg`;
           const filePath = `momentos/${user.id}/${fileName}`;
 
+          console.log('[MomentoUpload] Uploading to storage:', filePath);
+
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from('momentos')
             .upload(filePath, decode(base64String), {
@@ -119,7 +146,12 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
               upsert: false,
             });
 
-          if (uploadError) throw uploadError;
+          if (uploadError) {
+            console.error('[MomentoUpload] Storage upload error:', uploadError);
+            throw uploadError;
+          }
+
+          console.log('[MomentoUpload] ✅ Storage upload successful');
 
           // Get public URL
           const { data: urlData } = supabase.storage
@@ -138,11 +170,18 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
             momentoData.local_id = activeProfileId;
           }
 
+          console.log('[MomentoUpload] Creating momento record:', momentoData);
+
           const { error: insertError } = await supabase
             .from('momentos')
             .insert(momentoData);
 
-          if (insertError) throw insertError;
+          if (insertError) {
+            console.error('[MomentoUpload] Database insert error:', insertError);
+            throw insertError;
+          }
+
+          console.log('[MomentoUpload] ✅ Momento created successfully');
 
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           Alert.alert('¡Éxito!', 'Tu Momento se ha publicado');
