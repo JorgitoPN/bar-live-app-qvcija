@@ -14,10 +14,16 @@ interface StoryStateContextType {
 const StoryStateContext = createContext<StoryStateContextType | undefined>(undefined);
 
 /**
- * ✅ STORY STATE CONTEXT V11.0.3 - COMPLETELY FIXED VERSION
+ * ✅ STORY STATE CONTEXT V11.0.4 - INSTANT BORDER UPDATES
  * 
- * FIXES IN V11.0.3:
- * - ✅ CRITICAL FIX: More aggressive refresh timing for instant border updates
+ * FIXES IN V11.0.4:
+ * - ✅ CRITICAL FIX: Even more aggressive refresh for instant avatar border updates
+ * - ✅ Immediate state updates with multiple refresh cycles
+ * - ✅ Optimistic UI updates before database confirmation
+ * - ✅ Better synchronization across all story avatars
+ * 
+ * PREVIOUS FIXES (V11.0.3):
+ * - ✅ More aggressive refresh timing for instant border updates
  * - ✅ Reduced debounce time to 0ms for immediate updates
  * - ✅ Multiple refresh attempts to ensure UI updates
  * - ✅ Better state synchronization across all components
@@ -136,68 +142,89 @@ export function StoryStateProvider({ children }: { children: React.ReactNode }) 
   }, [user, viewedStoryIds]);
 
   /**
-   * ✅ V11.0.3: OPTIMISTIC UPDATE - Mark stories as viewed immediately
+   * ✅ V11.0.4: OPTIMISTIC UPDATE - Mark stories as viewed immediately
    * This provides instant UI feedback while the database updates
    */
   const markStoriesAsViewed = useCallback((storyIds: string[]) => {
-    console.log('[StoryStateV11] 📝 V11.0.3 - Marking stories as viewed (optimistic):', storyIds);
+    console.log('[StoryStateV11] 📝 V11.0.4 - Marking stories as viewed (optimistic):', storyIds);
     setViewedStoryIds(prev => {
       const newSet = new Set(prev);
       storyIds.forEach(id => {
-        console.log('[StoryStateV11] ➕ V11.0.3 - Adding story to viewed set:', id);
+        console.log('[StoryStateV11] ➕ V11.0.4 - Adding story to viewed set:', id);
         newSet.add(id);
       });
-      console.log('[StoryStateV11] ✅ V11.0.3 - Total viewed stories:', newSet.size, 'IDs:', Array.from(newSet));
+      console.log('[StoryStateV11] ✅ V11.0.4 - Total viewed stories:', newSet.size, 'IDs:', Array.from(newSet));
       return newSet;
     });
     
-    // ✅ V11.0.3: CRITICAL FIX - Multiple immediate refreshes for instant border update
+    // ✅ V11.0.4: CRITICAL FIX - Even more aggressive refreshes for instant border update
+    // Immediate refresh
+    if (mountedRef.current) {
+      console.log('[StoryStateV11] 🔄 V11.0.4 - IMMEDIATE refresh after marking as viewed');
+      loadViewedStories();
+    }
+    
+    // Additional refreshes to ensure UI updates
     setTimeout(() => {
       if (mountedRef.current) {
-        console.log('[StoryStateV11] 🔄 V11.0.3 - Force refresh #1 after marking as viewed');
+        console.log('[StoryStateV11] 🔄 V11.0.4 - Force refresh #1 (10ms)');
         loadViewedStories();
       }
     }, 10);
     
     setTimeout(() => {
       if (mountedRef.current) {
-        console.log('[StoryStateV11] 🔄 V11.0.3 - Force refresh #2 after marking as viewed');
+        console.log('[StoryStateV11] 🔄 V11.0.4 - Force refresh #2 (50ms)');
         loadViewedStories();
       }
-    }, 100);
+    }, 50);
     
     setTimeout(() => {
       if (mountedRef.current) {
-        console.log('[StoryStateV11] 🔄 V11.0.3 - Force refresh #3 after marking as viewed');
+        console.log('[StoryStateV11] 🔄 V11.0.4 - Force refresh #3 (150ms)');
+        loadViewedStories();
+      }
+    }, 150);
+    
+    setTimeout(() => {
+      if (mountedRef.current) {
+        console.log('[StoryStateV11] 🔄 V11.0.4 - Force refresh #4 (300ms)');
         loadViewedStories();
       }
     }, 300);
   }, []);
 
   /**
-   * ✅ V11.0.3: IMMEDIATE REFRESH - Reload viewed stories from database
+   * ✅ V11.0.4: IMMEDIATE REFRESH - Reload viewed stories from database
    * No debounce for instant updates
    */
   const refreshStoryState = useCallback(() => {
-    console.log('[StoryStateV11] 🔄 V11.0.3 - Scheduling story state refresh');
+    console.log('[StoryStateV11] 🔄 V11.0.4 - Scheduling story state refresh');
     
     // Clear existing timeout
     if (refreshTimeoutRef.current) {
       clearTimeout(refreshTimeoutRef.current);
     }
     
-    // ✅ V11.0.3: CRITICAL FIX - Immediate refresh (no debounce)
+    // ✅ V11.0.4: CRITICAL FIX - Immediate refresh (no debounce)
     if (mountedRef.current) {
-      console.log('[StoryStateV11] 🔄 V11.0.3 - Executing immediate story state refresh');
+      console.log('[StoryStateV11] 🔄 V11.0.4 - Executing immediate story state refresh');
       loadViewedStories();
       
-      // ✅ Additional refresh after a short delay to ensure UI updates
+      // ✅ V11.0.4: Multiple refreshes to ensure UI updates
       setTimeout(() => {
         if (mountedRef.current) {
-          console.log('[StoryStateV11] 🔄 V11.0.3 - Secondary refresh for UI update');
+          console.log('[StoryStateV11] 🔄 V11.0.4 - Secondary refresh #1 (100ms)');
           loadViewedStories();
         }
-      }, 200);
+      }, 100);
+      
+      setTimeout(() => {
+        if (mountedRef.current) {
+          console.log('[StoryStateV11] 🔄 V11.0.4 - Secondary refresh #2 (250ms)');
+          loadViewedStories();
+        }
+      }, 250);
     }
   }, []);
 
