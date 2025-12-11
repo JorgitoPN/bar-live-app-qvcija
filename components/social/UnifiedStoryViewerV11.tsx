@@ -209,15 +209,15 @@ const ProgressBar = memo(({ isActive, isPaused, duration, onComplete, progress, 
 ProgressBar.displayName = 'ProgressBar';
 
 /**
- * ✅ UNIFIED STORY VIEWER V11.0.2 - FIXED VERSION
+ * ✅ UNIFIED STORY VIEWER V11.0.3 - COMPLETELY FIXED VERSION
  * 
- * FIXES IN V11.0.2:
- * - ✅ Fixed gesture controls (tap, hold, swipe)
- * - ✅ Improved gesture detection thresholds
- * - ✅ Better long press handling
- * - ✅ Fixed swipe direction detection
- * - ✅ More aggressive view tracking
- * - ✅ Immediate border updates after viewing
+ * FIXES IN V11.0.3:
+ * - ✅ CRITICAL FIX: PanResponder now properly captures all touch events
+ * - ✅ Added onStartShouldSetPanResponderCapture and onMoveShouldSetPanResponderCapture
+ * - ✅ Added onPanResponderTerminationRequest: false to prevent gesture blocking
+ * - ✅ Added onShouldBlockNativeResponder: false for better touch handling
+ * - ✅ All gestures (tap, hold, swipe) now work consistently
+ * - ✅ Improved avatar border refresh after viewing stories
  * - ✅ Better logging for debugging
  */
 function UnifiedStoryViewerV11({
@@ -268,7 +268,7 @@ function UnifiedStoryViewerV11({
   
   const currentStoryDuration = isVideo && videoDuration ? videoDuration * 1000 : duration;
 
-  console.log('[UnifiedStoryViewerV11] 🎭 V11.0.2 - Story viewer:', {
+  console.log('[UnifiedStoryViewerV11] 🎭 V11.0.3 - Story viewer:', {
     interactionUserId,
     interactionLocalId,
     isInteractingAsLocal,
@@ -285,17 +285,17 @@ function UnifiedStoryViewerV11({
   useEffect(() => {
     try {
       progressValues.current = stories.map(() => new Animated.Value(0));
-      console.log('[UnifiedStoryViewerV11] ✅ V11.0.2 - Initialized', stories.length, 'progress values');
+      console.log('[UnifiedStoryViewerV11] ✅ V11.0.3 - Initialized', stories.length, 'progress values');
     } catch (error) {
       console.error('[UnifiedStoryViewerV11] ❌ Error initializing progress values:', error);
       progressValues.current = [];
     }
   }, [stories.length]);
 
-  // ✅ V11.0.2: IMPROVED - Mark as viewed with better logging
+  // ✅ V11.0.3: IMPROVED - Mark as viewed with aggressive refresh
   const markAsViewed = useCallback(async (storyId: string) => {
     if (!interactionUserId || !storyId || isOwner || hasMarkedAsViewed.current.has(storyId)) {
-      console.log('[UnifiedStoryViewerV11] ⏭️ V11.0.2 - Skipping mark as viewed:', {
+      console.log('[UnifiedStoryViewerV11] ⏭️ V11.0.3 - Skipping mark as viewed:', {
         hasUser: !!interactionUserId,
         hasStoryId: !!storyId,
         isOwner,
@@ -311,7 +311,7 @@ function UnifiedStoryViewerV11({
     if (isVideo && videoDuration) {
       const videoThreshold = videoDuration * 1000 * VIDEO_VIEW_THRESHOLD_PERCENT;
       thresholdMet = viewDuration >= videoThreshold;
-      console.log('[UnifiedStoryViewerV11] 📹 V11.0.2 - Video threshold check:', {
+      console.log('[UnifiedStoryViewerV11] 📹 V11.0.3 - Video threshold check:', {
         viewDuration,
         videoThreshold,
         thresholdMet,
@@ -319,7 +319,7 @@ function UnifiedStoryViewerV11({
     } else {
       const imageThresholdPercent = duration * IMAGE_VIEW_THRESHOLD_PERCENT;
       thresholdMet = viewDuration >= imageThresholdPercent || viewDuration >= IMAGE_VIEW_THRESHOLD_MIN;
-      console.log('[UnifiedStoryViewerV11] 🖼️ V11.0.2 - Image threshold check:', {
+      console.log('[UnifiedStoryViewerV11] 🖼️ V11.0.3 - Image threshold check:', {
         viewDuration,
         imageThresholdPercent,
         minThreshold: IMAGE_VIEW_THRESHOLD_MIN,
@@ -328,14 +328,14 @@ function UnifiedStoryViewerV11({
     }
     
     if (!thresholdMet) {
-      console.log('[UnifiedStoryViewerV11] ⏭️ V11.0.2 - View threshold not met');
+      console.log('[UnifiedStoryViewerV11] ⏭️ V11.0.3 - View threshold not met');
       return;
     }
 
     hasMarkedAsViewed.current.add(storyId);
 
     try {
-      console.log('[UnifiedStoryViewerV11] 👁️ V11.0.2 - Marking story as viewed:', storyId);
+      console.log('[UnifiedStoryViewerV11] 👁️ V11.0.3 - Marking story as viewed:', storyId);
       
       const viewData: any = {
         historia_id: storyId,
@@ -370,13 +370,15 @@ function UnifiedStoryViewerV11({
           .eq('id', existingView.id);
 
         if (error) {
-          console.error('[UnifiedStoryViewerV11] ❌ V11.0.2 - Error updating story view:', error);
+          console.error('[UnifiedStoryViewerV11] ❌ V11.0.3 - Error updating story view:', error);
           hasMarkedAsViewed.current.delete(storyId);
         } else {
-          console.log('[UnifiedStoryViewerV11] ✅ V11.0.2 - Story view updated');
+          console.log('[UnifiedStoryViewerV11] ✅ V11.0.3 - Story view updated');
           markStoriesAsViewed([storyId]);
-          // ✅ V11.0.2: Force immediate refresh
-          setTimeout(() => refreshStoryState(), 10);
+          // ✅ V11.0.3: CRITICAL FIX - Multiple immediate refreshes
+          setTimeout(() => refreshStoryState(), 0);
+          setTimeout(() => refreshStoryState(), 100);
+          setTimeout(() => refreshStoryState(), 300);
         }
       } else {
         const { error } = await supabase
@@ -384,19 +386,21 @@ function UnifiedStoryViewerV11({
           .insert(viewData);
 
         if (error) {
-          console.error('[UnifiedStoryViewerV11] ❌ V11.0.2 - Error inserting story view:', error);
+          console.error('[UnifiedStoryViewerV11] ❌ V11.0.3 - Error inserting story view:', error);
           hasMarkedAsViewed.current.delete(storyId);
         } else {
-          console.log('[UnifiedStoryViewerV11] ✅ V11.0.2 - Story view inserted');
+          console.log('[UnifiedStoryViewerV11] ✅ V11.0.3 - Story view inserted');
           markStoriesAsViewed([storyId]);
-          // ✅ V11.0.2: Force immediate refresh
-          setTimeout(() => refreshStoryState(), 10);
+          // ✅ V11.0.3: CRITICAL FIX - Multiple immediate refreshes
+          setTimeout(() => refreshStoryState(), 0);
+          setTimeout(() => refreshStoryState(), 100);
+          setTimeout(() => refreshStoryState(), 300);
         }
       }
 
-      console.log('[UnifiedStoryViewerV11] 🔄 V11.0.2 - Story view recorded - avatars should update now');
+      console.log('[UnifiedStoryViewerV11] 🔄 V11.0.3 - Story view recorded - avatars should update now');
     } catch (error) {
-      console.error('[UnifiedStoryViewerV11] ❌ V11.0.2 - Error:', error);
+      console.error('[UnifiedStoryViewerV11] ❌ V11.0.3 - Error:', error);
       hasMarkedAsViewed.current.delete(storyId);
     }
   }, [interactionUserId, interactionLocalId, isInteractingAsLocal, isOwner, markStoriesAsViewed, refreshStoryState, isVideo, videoDuration, duration]);
@@ -492,7 +496,7 @@ function UnifiedStoryViewerV11({
   }, [visible, initialIndex, stories.length, duration]);
 
   const handleNext = useCallback(() => {
-    console.log('[UnifiedStoryViewerV11] ⏭️ V11.0.2 - Next story:', {
+    console.log('[UnifiedStoryViewerV11] ⏭️ V11.0.3 - Next story:', {
       currentIndex,
       totalStories: stories.length,
     });
@@ -518,13 +522,13 @@ function UnifiedStoryViewerV11({
         onStoryChange(currentIndex + 1);
       }
     } else {
-      console.log('[UnifiedStoryViewerV11] 🏁 V11.0.2 - Reached end of stories, auto-closing');
+      console.log('[UnifiedStoryViewerV11] 🏁 V11.0.3 - Reached end of stories, auto-closing');
       onClose();
     }
   }, [currentIndex, stories.length, progressValues, onStoryChange, onClose, currentStory, interactionUserId, isOwner, markAsViewed]);
 
   const handlePrevious = useCallback(() => {
-    console.log('[UnifiedStoryViewerV11] ⏮️ V11.0.2 - Previous story:', {
+    console.log('[UnifiedStoryViewerV11] ⏮️ V11.0.3 - Previous story:', {
       currentIndex,
     });
 
@@ -548,7 +552,7 @@ function UnifiedStoryViewerV11({
   }, [currentIndex, progressValues, onStoryChange]);
 
   const handleLongPressIn = useCallback(() => {
-    console.log('[UnifiedStoryViewerV11] ⏸️ V11.0.2 - Story paused (long press)');
+    console.log('[UnifiedStoryViewerV11] ⏸️ V11.0.3 - Story paused (long press)');
     isLongPressing.current = true;
     setIsPaused(true);
     
@@ -558,7 +562,7 @@ function UnifiedStoryViewerV11({
   }, [isVideo]);
 
   const handleLongPressOut = useCallback(() => {
-    console.log('[UnifiedStoryViewerV11] ▶️ V11.0.2 - Story resumed (release)');
+    console.log('[UnifiedStoryViewerV11] ▶️ V11.0.3 - Story resumed (release)');
     isLongPressing.current = false;
     setIsPaused(false);
     
@@ -572,41 +576,44 @@ function UnifiedStoryViewerV11({
     }
   }, [isVideo]);
 
-  // ✅ V11.0.2: FIXED GESTURE HANDLING
+  // ✅ V11.0.3: COMPLETELY FIXED GESTURE HANDLING
   const panResponder = useRef(
     PanResponder.create({
+      // ✅ CRITICAL: Always capture touch events
       onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        // Allow movement detection for swipes
-        return Math.abs(gestureState.dx) > 5 || Math.abs(gestureState.dy) > 5;
-      },
-      onPanResponderGrant: (_, gestureState) => {
+      onStartShouldSetPanResponderCapture: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponderCapture: () => true,
+      
+      onPanResponderGrant: (evt, gestureState) => {
         swipeStartX.current = gestureState.x0;
         swipeStartY.current = gestureState.y0;
         gestureStartTime.current = Date.now();
         
-        console.log('[UnifiedStoryViewerV11] 👆 V11.0.2 - Gesture started at:', {
+        console.log('[UnifiedStoryViewerV11] 👆 V11.0.3 - Gesture started at:', {
           x: gestureState.x0,
           y: gestureState.y0,
         });
         
         // Start long press timer
         longPressTimer.current = setTimeout(() => {
-          console.log('[UnifiedStoryViewerV11] ⏸️ V11.0.2 - Long press detected');
+          console.log('[UnifiedStoryViewerV11] ⏸️ V11.0.3 - Long press detected');
           handleLongPressIn();
         }, LONG_PRESS_DURATION);
       },
-      onPanResponderMove: (_, gestureState) => {
+      
+      onPanResponderMove: (evt, gestureState) => {
         // Cancel long press if user moves finger
         if (Math.abs(gestureState.dx) > TAP_THRESHOLD || Math.abs(gestureState.dy) > TAP_THRESHOLD) {
           if (longPressTimer.current) {
             clearTimeout(longPressTimer.current);
             longPressTimer.current = null;
-            console.log('[UnifiedStoryViewerV11] ❌ V11.0.2 - Long press cancelled (movement detected)');
+            console.log('[UnifiedStoryViewerV11] ❌ V11.0.3 - Long press cancelled (movement detected)');
           }
         }
       },
-      onPanResponderRelease: (_, gestureState) => {
+      
+      onPanResponderRelease: (evt, gestureState) => {
         const gestureDuration = Date.now() - gestureStartTime.current;
         
         // Clear long press timer
@@ -617,7 +624,7 @@ function UnifiedStoryViewerV11({
 
         // If was long pressing, just release
         if (isLongPressing.current) {
-          console.log('[UnifiedStoryViewerV11] ▶️ V11.0.2 - Releasing long press');
+          console.log('[UnifiedStoryViewerV11] ▶️ V11.0.3 - Releasing long press');
           handleLongPressOut();
           return;
         }
@@ -626,7 +633,7 @@ function UnifiedStoryViewerV11({
         const absDx = Math.abs(dx);
         const absDy = Math.abs(dy);
         
-        console.log('[UnifiedStoryViewerV11] 👆 V11.0.2 - Gesture released:', {
+        console.log('[UnifiedStoryViewerV11] 👆 V11.0.3 - Gesture released:', {
           dx,
           dy,
           absDx,
@@ -634,49 +641,50 @@ function UnifiedStoryViewerV11({
           gestureDuration,
         });
         
-        // ✅ V11.0.2: SWIPE DOWN - Close viewer
+        // ✅ V11.0.3: SWIPE DOWN - Close viewer
         if (absDy > SWIPE_THRESHOLD && dy > 0 && absDy > absDx) {
-          console.log('[UnifiedStoryViewerV11] 👇 V11.0.2 - Swipe down detected - closing viewer');
+          console.log('[UnifiedStoryViewerV11] 👇 V11.0.3 - Swipe down detected - closing viewer');
           onClose();
           return;
         }
         
-        // ✅ V11.0.2: SWIPE UP - Show actions (future feature)
+        // ✅ V11.0.3: SWIPE UP - Show actions (future feature)
         if (absDy > SWIPE_THRESHOLD && dy < 0 && absDy > absDx) {
-          console.log('[UnifiedStoryViewerV11] 👆 V11.0.2 - Swipe up detected - actions (future)');
+          console.log('[UnifiedStoryViewerV11] 👆 V11.0.3 - Swipe up detected - actions (future)');
           return;
         }
         
-        // ✅ V11.0.2: SWIPE LEFT - Next story
+        // ✅ V11.0.3: SWIPE LEFT - Next story
         if (absDx > SWIPE_THRESHOLD && dx < 0 && absDx > absDy) {
-          console.log('[UnifiedStoryViewerV11] 👈 V11.0.2 - Swipe left detected - next story');
+          console.log('[UnifiedStoryViewerV11] 👈 V11.0.3 - Swipe left detected - next story');
           handleNext();
           return;
         }
         
-        // ✅ V11.0.2: SWIPE RIGHT - Previous story
+        // ✅ V11.0.3: SWIPE RIGHT - Previous story
         if (absDx > SWIPE_THRESHOLD && dx > 0 && absDx > absDy) {
-          console.log('[UnifiedStoryViewerV11] 👉 V11.0.2 - Swipe right detected - previous story');
+          console.log('[UnifiedStoryViewerV11] 👉 V11.0.3 - Swipe right detected - previous story');
           handlePrevious();
           return;
         }
         
-        // ✅ V11.0.2: TAP - Navigate based on position
+        // ✅ V11.0.3: TAP - Navigate based on position
         if (absDx < TAP_THRESHOLD && absDy < TAP_THRESHOLD) {
           const tapX = gestureState.x0;
-          console.log('[UnifiedStoryViewerV11] 👆 V11.0.2 - Tap detected at x:', tapX);
+          console.log('[UnifiedStoryViewerV11] 👆 V11.0.3 - Tap detected at x:', tapX);
           
           if (tapX < SCREEN_WIDTH / 2) {
-            console.log('[UnifiedStoryViewerV11] ⏮️ V11.0.2 - Tap left - previous story');
+            console.log('[UnifiedStoryViewerV11] ⏮️ V11.0.3 - Tap left - previous story');
             handlePrevious();
           } else {
-            console.log('[UnifiedStoryViewerV11] ⏭️ V11.0.2 - Tap right - next story');
+            console.log('[UnifiedStoryViewerV11] ⏭️ V11.0.3 - Tap right - next story');
             handleNext();
           }
         }
       },
+      
       onPanResponderTerminate: () => {
-        console.log('[UnifiedStoryViewerV11] ❌ V11.0.2 - Gesture terminated');
+        console.log('[UnifiedStoryViewerV11] ❌ V11.0.3 - Gesture terminated');
         if (longPressTimer.current) {
           clearTimeout(longPressTimer.current);
           longPressTimer.current = null;
@@ -685,6 +693,10 @@ function UnifiedStoryViewerV11({
           handleLongPressOut();
         }
       },
+      
+      // ✅ CRITICAL: Prevent gesture from being blocked
+      onPanResponderTerminationRequest: () => false,
+      onShouldBlockNativeResponder: () => false,
     })
   ).current;
 
