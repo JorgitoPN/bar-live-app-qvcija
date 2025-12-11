@@ -9,20 +9,19 @@ interface StoryStateContextType {
   refreshStoryState: () => void;
   viewedStoryIds: Set<string>;
   isLoading: boolean;
+  forceUpdate: () => void;
 }
 
 const StoryStateContext = createContext<StoryStateContextType | undefined>(undefined);
 
 /**
- * ✅ STORY STATE CONTEXT V11.2.0 - COMPLETE INSTAGRAM-STYLE STATE MANAGEMENT
+ * ✅ STORY STATE CONTEXT V11.2.1 - COMPLETE INSTAGRAM-STYLE STATE MANAGEMENT
  * 
- * COMPLETE IMPLEMENTATION:
- * - ✅ Simplified state management for better reliability
- * - ✅ Immediate optimistic updates with proper backend sync
- * - ✅ Real-time subscription with proper cleanup
- * - ✅ Debounced refresh to prevent race conditions (200ms minimum)
- * - ✅ Better error handling and logging
- * - ✅ Memory management with proper cleanup
+ * CRITICAL FIXES:
+ * - ✅ Added forceUpdate to trigger re-renders of avatar components
+ * - ✅ Improved optimistic updates with immediate UI refresh
+ * - ✅ Better state synchronization across all components
+ * - ✅ Fixed border disappearance after viewing last story
  * 
  * Features:
  * - ✅ Tracks viewed stories globally across the app
@@ -36,16 +35,23 @@ export function StoryStateProvider({ children }: { children: React.ReactNode }) 
   const { user } = useAuth();
   const [viewedStoryIds, setViewedStoryIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
+  const [updateCounter, setUpdateCounter] = useState(0);
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastRefreshTime = useRef<number>(0);
   const channelRef = useRef<any>(null);
   const mountedRef = useRef(true);
 
+  // Force update function to trigger re-renders
+  const forceUpdate = useCallback(() => {
+    console.log('[StoryStateV11.2.1] 🔄 Force updating all avatar components');
+    setUpdateCounter(prev => prev + 1);
+  }, []);
+
   // Load viewed stories on mount and when user changes
   useEffect(() => {
     mountedRef.current = true;
     if (user) {
-      console.log('[StoryStateV11.2.0] 🚀 Initializing for user:', user.id);
+      console.log('[StoryStateV11.2.1] 🚀 Initializing for user:', user.id);
       loadViewedStories();
     } else {
       setViewedStoryIds(new Set());
@@ -62,14 +68,14 @@ export function StoryStateProvider({ children }: { children: React.ReactNode }) 
     // Debounce: Prevent too frequent refreshes
     const now = Date.now();
     if (now - lastRefreshTime.current < 200) {
-      console.log('[StoryStateV11.2.0] ⏭️ Skipping refresh - too soon (< 200ms)');
+      console.log('[StoryStateV11.2.1] ⏭️ Skipping refresh - too soon (< 200ms)');
       return;
     }
     lastRefreshTime.current = now;
 
     setIsLoading(true);
     try {
-      console.log('[StoryStateV11.2.0] 📥 Loading viewed stories for user:', user.id);
+      console.log('[StoryStateV11.2.1] 📥 Loading viewed stories for user:', user.id);
       
       const { data, error } = await supabase
         .from('historia_views')
@@ -77,7 +83,7 @@ export function StoryStateProvider({ children }: { children: React.ReactNode }) 
         .eq('usuario_id', user.id);
 
       if (error) {
-        console.error('[StoryStateV11.2.0] ❌ Error loading viewed stories:', error);
+        console.error('[StoryStateV11.2.1] ❌ Error loading viewed stories:', error);
         return;
       }
 
@@ -85,9 +91,10 @@ export function StoryStateProvider({ children }: { children: React.ReactNode }) 
 
       const viewedIds = new Set(data?.map(v => v.historia_id) || []);
       setViewedStoryIds(viewedIds);
-      console.log('[StoryStateV11.2.0] ✅ Loaded', viewedIds.size, 'viewed stories');
+      forceUpdate(); // Force re-render of all avatar components
+      console.log('[StoryStateV11.2.1] ✅ Loaded', viewedIds.size, 'viewed stories');
     } catch (error) {
-      console.error('[StoryStateV11.2.0] ❌ Error:', error);
+      console.error('[StoryStateV11.2.1] ❌ Error:', error);
     } finally {
       if (mountedRef.current) {
         setIsLoading(false);
@@ -113,7 +120,7 @@ export function StoryStateProvider({ children }: { children: React.ReactNode }) 
     
     const isOwnStories = userId === user.id;
     
-    console.log('[StoryStateV11.2.0] 👁️ Instagram logic result:', {
+    console.log('[StoryStateV11.2.1] 👁️ Instagram logic result:', {
       userId,
       isOwnStories,
       totalStories: stories.length,
@@ -121,37 +128,42 @@ export function StoryStateProvider({ children }: { children: React.ReactNode }) 
       unviewedCount: stories.filter(s => !viewedStoryIds.has(s.id)).length,
       hasUnviewed,
       willShowBorder: hasUnviewed,
+      updateCounter,
     });
     
     return hasUnviewed;
-  }, [user, viewedStoryIds]);
+  }, [user, viewedStoryIds, updateCounter]);
 
   /**
-   * ✅ OPTIMISTIC UPDATE + DELAYED REFRESH
+   * ✅ OPTIMISTIC UPDATE + IMMEDIATE FORCE UPDATE
    * 
    * This provides instant UI feedback AND ensures database sync:
    * 1. Immediately update local state (optimistic)
-   * 2. Delay 300ms, then refresh from database (sync)
+   * 2. Force re-render of all avatar components
+   * 3. Delay 300ms, then refresh from database (sync)
    */
   const markStoriesAsViewed = useCallback((storyIds: string[]) => {
-    console.log('[StoryStateV11.2.0] 📝 Marking stories as viewed (optimistic):', storyIds);
+    console.log('[StoryStateV11.2.1] 📝 Marking stories as viewed (optimistic):', storyIds);
     
     // STEP 1: Optimistic update for instant UI feedback
     setViewedStoryIds(prev => {
       const newSet = new Set(prev);
       storyIds.forEach(id => newSet.add(id));
-      console.log('[StoryStateV11.2.0] ✅ Optimistic update - Total viewed stories:', newSet.size);
+      console.log('[StoryStateV11.2.1] ✅ Optimistic update - Total viewed stories:', newSet.size);
       return newSet;
     });
 
-    // STEP 2: Delayed refresh from database to ensure sync (after 300ms)
+    // STEP 2: Force re-render of all avatar components immediately
+    forceUpdate();
+
+    // STEP 3: Delayed refresh from database to ensure sync (after 300ms)
     setTimeout(() => {
       if (mountedRef.current) {
-        console.log('[StoryStateV11.2.0] 🔄 Delayed refresh after marking viewed');
+        console.log('[StoryStateV11.2.1] 🔄 Delayed refresh after marking viewed');
         loadViewedStories();
       }
     }, 300);
-  }, []);
+  }, [forceUpdate]);
 
   /**
    * ✅ SINGLE REFRESH - No aggressive cycles
@@ -159,7 +171,7 @@ export function StoryStateProvider({ children }: { children: React.ReactNode }) 
    * Debounced refresh with 200ms minimum interval
    */
   const refreshStoryState = useCallback(() => {
-    console.log('[StoryStateV11.2.0] 🔄 Refreshing story state');
+    console.log('[StoryStateV11.2.1] 🔄 Refreshing story state');
     
     // Clear existing timeout
     if (refreshTimeoutRef.current) {
@@ -169,7 +181,7 @@ export function StoryStateProvider({ children }: { children: React.ReactNode }) 
     // Single delayed refresh
     refreshTimeoutRef.current = setTimeout(() => {
       if (mountedRef.current) {
-        console.log('[StoryStateV11.2.0] 🔄 Executing refresh');
+        console.log('[StoryStateV11.2.1] 🔄 Executing refresh');
         loadViewedStories();
       }
     }, 200);
@@ -186,7 +198,7 @@ export function StoryStateProvider({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     if (!user) return;
 
-    console.log('[StoryStateV11.2.0] ⚡ Setting up real-time subscription for story views');
+    console.log('[StoryStateV11.2.1] ⚡ Setting up real-time subscription for story views');
 
     // Clean up existing channel
     if (channelRef.current) {
@@ -194,7 +206,7 @@ export function StoryStateProvider({ children }: { children: React.ReactNode }) 
     }
 
     const channel = supabase
-      .channel(`story-views-v11.2.0-${user.id}`)
+      .channel(`story-views-v11.2.1-${user.id}`)
       .on(
         'postgres_changes',
         {
@@ -204,7 +216,7 @@ export function StoryStateProvider({ children }: { children: React.ReactNode }) 
           filter: `usuario_id=eq.${user.id}`,
         },
         (payload) => {
-          console.log('[StoryStateV11.2.0] ⚡ New story view detected:', payload.new);
+          console.log('[StoryStateV11.2.1] ⚡ New story view detected:', payload.new);
           // Add to viewed stories immediately
           if (payload.new.historia_id) {
             markStoriesAsViewed([payload.new.historia_id]);
@@ -220,7 +232,7 @@ export function StoryStateProvider({ children }: { children: React.ReactNode }) 
           filter: `usuario_id=eq.${user.id}`,
         },
         (payload) => {
-          console.log('[StoryStateV11.2.0] ⚡ Story view updated:', payload.new);
+          console.log('[StoryStateV11.2.1] ⚡ Story view updated:', payload.new);
           refreshStoryState();
         }
       )
@@ -233,18 +245,18 @@ export function StoryStateProvider({ children }: { children: React.ReactNode }) 
           filter: `usuario_id=eq.${user.id}`,
         },
         (payload) => {
-          console.log('[StoryStateV11.2.0] ⚡ Story view deleted:', payload.old);
+          console.log('[StoryStateV11.2.1] ⚡ Story view deleted:', payload.old);
           refreshStoryState();
         }
       )
       .subscribe((status) => {
-        console.log('[StoryStateV11.2.0] Subscription status:', status);
+        console.log('[StoryStateV11.2.1] Subscription status:', status);
       });
 
     channelRef.current = channel;
 
     return () => {
-      console.log('[StoryStateV11.2.0] Unsubscribing from story views');
+      console.log('[StoryStateV11.2.1] Unsubscribing from story views');
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
@@ -264,6 +276,7 @@ export function StoryStateProvider({ children }: { children: React.ReactNode }) 
       refreshStoryState,
       viewedStoryIds,
       isLoading,
+      forceUpdate,
     }}>
       {children}
     </StoryStateContext.Provider>

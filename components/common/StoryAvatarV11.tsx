@@ -24,14 +24,13 @@ interface StoryAvatarV11Props {
 }
 
 /**
- * ✅ STORY AVATAR V11.2.0 - COMPLETE INSTAGRAM-STYLE AVATAR WITH BORDER
+ * ✅ STORY AVATAR V11.2.1 - COMPLETE INSTAGRAM-STYLE AVATAR WITH BORDER
  * 
- * COMPLETE IMPLEMENTATION:
- * - ✅ CRITICAL FIX: Proper touch event handling with activeOpacity
- * - ✅ CRITICAL FIX: Removed pointerEvents that were blocking touches
- * - ✅ Improved touch target size for better UX
- * - ✅ Better accessibility support
- * - ✅ Optimized with memo for performance
+ * CRITICAL FIXES:
+ * - ✅ Removed custom memo comparison - now uses default shallow comparison
+ * - ✅ Added viewedStoryIds dependency to force re-renders
+ * - ✅ Improved logging for debugging
+ * - ✅ Better touch event handling
  * 
  * Features:
  * - ✅ NEON GREEN gradient border for unviewed stories
@@ -52,17 +51,18 @@ const StoryAvatarV11 = memo(function StoryAvatarV11({
   showLabel = false,
   labelText,
 }: StoryAvatarV11Props) {
-  const { hasUnviewedStories } = useStoryState();
+  const { hasUnviewedStories, viewedStoryIds } = useStoryState();
 
   // ✅ INSTAGRAM LOGIC: Check if user has unviewed stories
   const showGradientBorder = hasUnviewedStories(userId, userStories);
 
-  console.log('[StoryAvatarV11.2.0] 🎨 Rendering story avatar:', {
+  console.log('[StoryAvatarV11.2.1] 🎨 Rendering story avatar:', {
     userId,
     userName,
     storiesCount: userStories.length,
     showGradientBorder,
     hasAvatar: !!avatarUrl,
+    viewedStoriesCount: viewedStoryIds.size,
   });
 
   const ringSize = size + 8;
@@ -138,17 +138,6 @@ const StoryAvatarV11 = memo(function StoryAvatarV11({
         </Text>
       )}
     </TouchableOpacity>
-  );
-}, (prevProps, nextProps) => {
-  // ✅ OPTIMIZED: Only re-render if essential props change
-  return (
-    prevProps.userId === nextProps.userId &&
-    prevProps.userStories.length === nextProps.userStories.length &&
-    prevProps.avatarUrl === nextProps.avatarUrl &&
-    prevProps.userName === nextProps.userName &&
-    prevProps.size === nextProps.size &&
-    prevProps.showLabel === nextProps.showLabel &&
-    prevProps.labelText === nextProps.labelText
   );
 });
 

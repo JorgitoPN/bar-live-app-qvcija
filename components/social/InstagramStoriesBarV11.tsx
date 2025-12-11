@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
 import { supabase } from '@/utils/supabase';
 import StoryAvatarV11 from '@/components/common/StoryAvatarV11';
+import { useStoryState } from '@/contexts/StoryStateContextV11';
 
 interface InstagramStoriesBarV11Props {
   historias: Historia[];
@@ -65,16 +66,13 @@ const truncateName = (name: string, maxLength: number = 10): string => {
 };
 
 /**
- * ✅ INSTAGRAM STORIES BAR V11.2.0 - COMPLETE INSTAGRAM-STYLE STORIES CAROUSEL
+ * ✅ INSTAGRAM STORIES BAR V11.2.1 - COMPLETE INSTAGRAM-STYLE STORIES CAROUSEL
  * 
- * COMPLETE IMPLEMENTATION:
- * - ✅ Added "+" button for creating stories from social page
- * - ✅ Improved performance with better memoization
- * - ✅ Enhanced real-time updates
- * - ✅ Better error handling
- * - ✅ Consistent behavior across all pages
- * - ✅ Proper cleanup on unmount
- * - ✅ LARGER AVATARS (92px) for better visibility
+ * CRITICAL FIXES:
+ * - ✅ Added viewedStoryIds dependency to force re-renders
+ * - ✅ Removed custom memo comparison for better reactivity
+ * - ✅ Improved logging for debugging
+ * - ✅ Better state synchronization
  * 
  * Features:
  * - ✅ Uses StoryAvatarV11 for consistent border behavior
@@ -95,11 +93,12 @@ const InstagramStoriesBarV11 = memo(function InstagramStoriesBarV11({
 }: InstagramStoriesBarV11Props) {
   const { user } = useAuth();
   const { activeProfileType, activeProfileId, activeLocalData } = useMode();
+  const { viewedStoryIds } = useStoryState();
   
   const isInteractingAsLocal = activeProfileType === 'local';
   const interactionId = isInteractingAsLocal ? activeProfileId : user?.id;
   
-  console.log('[InstagramStoriesBarV11.2.0] 🎭 Interaction context:', {
+  console.log('[InstagramStoriesBarV11.2.1] 🎭 Interaction context:', {
     activeProfileType,
     activeProfileId,
     isInteractingAsLocal,
@@ -107,6 +106,7 @@ const InstagramStoriesBarV11 = memo(function InstagramStoriesBarV11({
     localName: activeLocalData?.nombre,
     totalStories: historias.length,
     showCreateButton,
+    viewedStoriesCount: viewedStoryIds.size,
   });
   
   // ✅ SEPARATE USER STORIES: Own stories vs others
@@ -119,7 +119,7 @@ const InstagramStoriesBarV11 = memo(function InstagramStoriesBarV11({
         !(h.tipo === 'local' && h.local_id === activeProfileId)
       );
       
-      console.log('[InstagramStoriesBarV11.2.0] 🏢 Local mode stories:', {
+      console.log('[InstagramStoriesBarV11.2.1] 🏢 Local mode stories:', {
         localId: activeProfileId,
         userStories: userStories.length,
         otherStories: otherStories.length,
@@ -134,7 +134,7 @@ const InstagramStoriesBarV11 = memo(function InstagramStoriesBarV11({
         !(h.tipo === 'usuario' && h.autor_id === user.id)
       );
       
-      console.log('[InstagramStoriesBarV11.2.0] 👤 User mode stories:', {
+      console.log('[InstagramStoriesBarV11.2.1] 👤 User mode stories:', {
         userId: user.id,
         userStories: userStories.length,
         otherStories: otherStories.length,
@@ -144,16 +144,16 @@ const InstagramStoriesBarV11 = memo(function InstagramStoriesBarV11({
     }
     
     return { userStories: [], otherStories: historias };
-  }, [historias, user, isInteractingAsLocal, activeProfileId]);
+  }, [historias, user, isInteractingAsLocal, activeProfileId, viewedStoryIds.size]);
 
   // ✅ REAL-TIME UPDATES: Subscribe to story changes
   useEffect(() => {
     if (!user || !onStoriesUpdate) return;
 
-    console.log('[InstagramStoriesBarV11.2.0] ⚡ Setting up real-time story subscription');
+    console.log('[InstagramStoriesBarV11.2.1] ⚡ Setting up real-time story subscription');
 
     const channel = supabase
-      .channel('stories_realtime_v11.2.0')
+      .channel('stories_realtime_v11.2.1')
       .on(
         'postgres_changes',
         {
@@ -162,7 +162,7 @@ const InstagramStoriesBarV11 = memo(function InstagramStoriesBarV11({
           table: 'historias',
         },
         async (payload) => {
-          console.log('[InstagramStoriesBarV11.2.0] ⚡ New story detected:', payload);
+          console.log('[InstagramStoriesBarV11.2.1] ⚡ New story detected:', payload);
           
           const { data: newStory, error } = await supabase
             .from('historias')
@@ -184,12 +184,12 @@ const InstagramStoriesBarV11 = memo(function InstagramStoriesBarV11({
             .single();
 
           if (error) {
-            console.error('[InstagramStoriesBarV11.2.0] Error fetching new story:', error);
+            console.error('[InstagramStoriesBarV11.2.1] Error fetching new story:', error);
             return;
           }
 
           if (newStory) {
-            console.log('[InstagramStoriesBarV11.2.0] ✅ Adding new story to list');
+            console.log('[InstagramStoriesBarV11.2.1] ✅ Adding new story to list');
             onStoriesUpdate([...historias, newStory as Historia]);
           }
         }
@@ -202,16 +202,16 @@ const InstagramStoriesBarV11 = memo(function InstagramStoriesBarV11({
           table: 'historias',
         },
         (payload) => {
-          console.log('[InstagramStoriesBarV11.2.0] ⚡ Story deleted:', payload);
+          console.log('[InstagramStoriesBarV11.2.1] ⚡ Story deleted:', payload);
           onStoriesUpdate(historias.filter(h => h.id !== payload.old.id));
         }
       )
       .subscribe((status) => {
-        console.log('[InstagramStoriesBarV11.2.0] Subscription status:', status);
+        console.log('[InstagramStoriesBarV11.2.1] Subscription status:', status);
       });
 
     return () => {
-      console.log('[InstagramStoriesBarV11.2.0] Unsubscribing from stories');
+      console.log('[InstagramStoriesBarV11.2.1] Unsubscribing from stories');
       supabase.removeChannel(channel);
     };
   }, [user, historias, onStoriesUpdate]);
@@ -241,7 +241,7 @@ const InstagramStoriesBarV11 = memo(function InstagramStoriesBarV11({
       .sort((a, b) => 
         new Date(b.latestStory.created_at).getTime() - new Date(a.latestStory.created_at).getTime()
       );
-  }, [otherStories]);
+  }, [otherStories, viewedStoryIds.size]);
   
   return (
     <View style={styles.container}>
@@ -326,16 +326,6 @@ const InstagramStoriesBarV11 = memo(function InstagramStoriesBarV11({
         })}
       </ScrollView>
     </View>
-  );
-}, (prevProps, nextProps) => {
-  return (
-    prevProps.historias.length === nextProps.historias.length &&
-    prevProps.historias[0]?.id === nextProps.historias[0]?.id &&
-    prevProps.historias[0]?.visto_por_usuario === nextProps.historias[0]?.visto_por_usuario &&
-    prevProps.historias[0]?.autorAvatar === nextProps.historias[0]?.autorAvatar &&
-    prevProps.userAvatar === nextProps.userAvatar &&
-    prevProps.userName === nextProps.userName &&
-    prevProps.showCreateButton === nextProps.showCreateButton
   );
 });
 
