@@ -3,11 +3,11 @@ import { Stack } from 'expo-router';
 
 /**
  * ============================================================================
- * DETALLE LAYOUT - MODAL PRESENTATION
+ * DETALLE LAYOUT - MODAL PRESENTATION WITH GESTURE SUPPORT
  * ============================================================================
  * 
- * This layout configures all detail pages to open as modals.
- * The local details page should open as a modal, not full screen.
+ * This layout configures all detail pages to open as modals with drag-to-close gesture.
+ * Users can swipe down to close the modal.
  */
 export default function DetalleLayout() {
   return (
@@ -16,6 +16,8 @@ export default function DetalleLayout() {
         headerShown: false,
         presentation: 'modal',
         animation: 'slide_from_bottom',
+        gestureEnabled: true,
+        gestureDirection: 'vertical',
       }}
     >
       <Stack.Screen 
@@ -23,6 +25,8 @@ export default function DetalleLayout() {
         options={{
           presentation: 'modal',
           animation: 'slide_from_bottom',
+          gestureEnabled: true,
+          gestureDirection: 'vertical',
         }}
       />
       <Stack.Screen 
@@ -30,13 +34,8 @@ export default function DetalleLayout() {
         options={{
           presentation: 'modal',
           animation: 'slide_from_bottom',
-        }}
-      />
-      <Stack.Screen 
-        name="historia" 
-        options={{
-          presentation: 'modal',
-          animation: 'slide_from_bottom',
+          gestureEnabled: true,
+          gestureDirection: 'vertical',
         }}
       />
       <Stack.Screen 
@@ -44,6 +43,8 @@ export default function DetalleLayout() {
         options={{
           presentation: 'modal',
           animation: 'slide_from_bottom',
+          gestureEnabled: true,
+          gestureDirection: 'vertical',
         }}
       />
       <Stack.Screen 
@@ -51,6 +52,8 @@ export default function DetalleLayout() {
         options={{
           presentation: 'modal',
           animation: 'slide_from_bottom',
+          gestureEnabled: true,
+          gestureDirection: 'vertical',
         }}
       />
     </Stack>

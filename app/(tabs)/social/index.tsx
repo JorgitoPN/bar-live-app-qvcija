@@ -23,10 +23,7 @@ import HeaderSocial from '@/components/layout/HeaderSocial';
 import { IconSymbol } from '@/components/IconSymbol';
 import { LinearGradient } from 'expo-linear-gradient';
 import NewPostCard from '@/components/social/NewPostCard';
-import InstagramStoriesBar from '@/components/social/InstagramStoriesBar';
-import UnifiedStoryViewer from '@/components/social/UnifiedStoryViewer';
-import { useStoryContext } from '@/contexts/StoryContext';
-import type { Publicacion, Historia } from '@/types';
+import type { Publicacion } from '@/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -43,8 +40,7 @@ export default function SocialScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { 
-    posts: globalPosts, 
-    stories: globalStories,
+    posts: globalPosts,
   } = useGlobalData();
   const { 
     activeProfileType,
@@ -53,17 +49,12 @@ export default function SocialScreen() {
   } = useMode();
 
   const [posts, setPosts] = useState<Publicacion[]>([]);
-  const [historias, setHistorias] = useState<Historia[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [userRole, setUserRole] = useState<UserRole>('cliente');
   const [localSubscription, setLocalSubscription] = useState<LocalSubscriptionInfo | null>(null);
-  
-  const [showStoryViewer, setShowStoryViewer] = useState(false);
-  const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
-  const [selectedStories, setSelectedStories] = useState<Historia[]>([]);
   
   const isLoadingRef = useRef(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -202,13 +193,13 @@ export default function SocialScreen() {
     }
   }, [user]);
 
-  const canPerformAction = useCallback((action: 'create_post' | 'create_story' | 'view_analytics' | 'create_event') => {
+  const canPerformAction = useCallback((action: 'create_post' | 'view_analytics' | 'create_event') => {
     if (userRole === 'admin') {
       return { allowed: true, reason: '' };
     }
 
     if (userRole === 'cliente') {
-      if (action === 'create_post' || action === 'create_story') {
+      if (action === 'create_post') {
         return { allowed: true, reason: '' };
       }
       return { 
@@ -219,7 +210,7 @@ export default function SocialScreen() {
 
     if (userRole === 'propietario') {
       if (!isInteractingAsLocal) {
-        if (action === 'create_post' || action === 'create_story') {
+        if (action === 'create_post') {
           return { allowed: true, reason: '' };
         }
         return { 
@@ -238,7 +229,7 @@ export default function SocialScreen() {
       const plan = localSubscription.plan;
 
       if (plan === 'free') {
-        if (action === 'create_post' || action === 'create_story') {
+        if (action === 'create_post') {
           return { 
             allowed: false, 
             reason: 'Actualiza a un plan de pago para publicar contenido' 
@@ -251,7 +242,7 @@ export default function SocialScreen() {
       }
 
       if (plan === 'basic') {
-        if (action === 'create_post' || action === 'create_story') {
+        if (action === 'create_post') {
           return { allowed: true, reason: '' };
         }
         if (action === 'view_analytics') {
@@ -284,7 +275,6 @@ export default function SocialScreen() {
     try {
       console.log('[Social] ⚡ Loading data...');
       console.log('[Social] 📍 Global posts available:', globalPosts.length);
-      console.log('[Social] 📍 Global stories available:', globalStories.length);
 
       await loadUnreadCounts();
 
@@ -372,57 +362,15 @@ export default function SocialScreen() {
         setPosts([]);
       }
 
-      let filteredStories = globalStories;
-
-      if (userRole !== 'admin') {
-        filteredStories = await Promise.all(
-          globalStories.map(async (story) => {
-            if (story.tipo === 'local' && story.local_id) {
-              const { data: subData } = await supabase
-                .from('suscripciones_locales')
-                .select(`
-                  estado,
-                  planes_suscripcion (
-                    nombre,
-                    activo
-                  )
-                `)
-                .eq('local_id', story.local_id)
-                .eq('estado', 'activa')
-                .single();
-
-              if (subData && subData.planes_suscripcion) {
-                const planName = (subData.planes_suscripcion as any).nombre;
-                if (planName === 'basic' || planName === 'premium' || planName === 'enterprise') {
-                  return story;
-                }
-              }
-              return null;
-            }
-            return story;
-          })
-        ).then(stories => stories.filter(s => s !== null) as Historia[]);
-      }
-
-      if (filteredStories.length > 0) {
-        console.log('[Social] ⚡⚡⚡ INSTANT stories from global data:', filteredStories.length);
-        
-        let validStories = filteredStories.filter(s => s && s.id);
-        setHistorias(validStories);
-      } else {
-        setHistorias([]);
-      }
-
       console.log('[Social] ⚡ Data loaded successfully');
     } catch (error) {
       console.error('[Social] Error loading data:', error);
       setPosts([]);
-      setHistorias([]);
     } finally {
       isLoadingRef.current = false;
       setIsInitialLoad(false);
     }
-  }, [user, globalPosts, globalStories, loadUnreadCounts, userRole]);
+  }, [user, globalPosts, loadUnreadCounts, userRole]);
 
   useFocusEffect(
     useCallback(() => {
@@ -460,61 +408,11 @@ export default function SocialScreen() {
     router.push('/crear/publicacion');
   };
 
-  const handleCreateStory = () => {
-    console.log('[Social] ➕ Create story button pressed');
-    
-    const permission = canPerformAction('create_story');
-    if (!permission.allowed) {
-      Alert.alert(
-        'Acción no permitida',
-        permission.reason,
-        [
-          { text: 'Entendido', style: 'cancel' },
-          ...(localSubscription && !localSubscription.isActive ? [{
-            text: 'Ver planes',
-            onPress: () => router.push('/gestion/planes-suscripcion'),
-          }] : []),
-        ]
-      );
-      return;
-    }
-
-    router.push('/crear/historia');
-  };
-
-  const handleHistoriaPress = useCallback((historia: Historia) => {
-    console.log('[Social] 📖 Story pressed:', historia.id);
-    
-    const authorId = historia.tipo === 'usuario' ? historia.autor_id : historia.local_id;
-    const authorStories = historias.filter(h => {
-      const hAuthorId = h.tipo === 'usuario' ? h.autor_id : h.local_id;
-      return hAuthorId === authorId;
-    }).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-    
-    const storyIndex = authorStories.findIndex(s => s.id === historia.id);
-    
-    console.log('[Social] 📖 Opening story viewer:', {
-      authorId,
-      totalStories: authorStories.length,
-      clickedIndex: storyIndex,
-    });
-    
-    setSelectedStories(authorStories);
-    setCurrentStoryIndex(storyIndex >= 0 ? storyIndex : 0);
-    setShowStoryViewer(true);
-  }, [historias]);
-
-  const handleStoriesUpdate = useCallback((updatedStories: Historia[]) => {
-    console.log('[Social] ⚡ Stories updated in real-time:', updatedStories.length);
-    setHistorias(updatedStories);
-  }, []);
-
   if (isInitialLoad && posts.length === 0) {
     return (
       <View style={styles.container}>
         <HeaderSocial 
           onCreatePost={handleCreatePost}
-          onCreateStory={handleCreateStory}
           unreadNotifications={unreadNotifications}
           unreadMessages={unreadMessages}
         />
@@ -602,18 +500,6 @@ export default function SocialScreen() {
           </LinearGradient>
         </View>
       )}
-
-      <View style={styles.storiesSection}>
-        <InstagramStoriesBar
-          historias={historias}
-          onHistoriaPress={handleHistoriaPress}
-          onCrearHistoria={handleCreateStory}
-          userAvatar={displayAvatar || undefined}
-          userName={displayName}
-          onStoriesUpdate={handleStoriesUpdate}
-          showCreateButton={true}
-        />
-      </View>
     </Animated.View>
   );
 
@@ -687,7 +573,6 @@ export default function SocialScreen() {
     <View style={styles.container}>
       <HeaderSocial 
         onCreatePost={handleCreatePost}
-        onCreateStory={handleCreateStory}
         unreadNotifications={unreadNotifications}
         unreadMessages={unreadMessages}
       />
@@ -712,25 +597,6 @@ export default function SocialScreen() {
         updateCellsBatchingPeriod={50}
         initialNumToRender={5}
         windowSize={10}
-      />
-
-      <UnifiedStoryViewer
-        visible={showStoryViewer}
-        stories={selectedStories}
-        initialIndex={currentStoryIndex}
-        onClose={() => {
-          console.log('[Social] Closing story viewer');
-          setShowStoryViewer(false);
-        }}
-        onStoryChange={(index) => {
-          console.log('[Social] Story changed to index:', index);
-          setCurrentStoryIndex(index);
-        }}
-        onStoryDelete={async (storyId) => {
-          console.log('[Social] Story deleted:', storyId);
-          setHistorias(prev => prev.filter(h => h.id !== storyId));
-          setSelectedStories(prev => prev.filter(h => h.id !== storyId));
-        }}
       />
     </View>
   );
@@ -823,11 +689,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#fff',
     fontFamily: 'System',
-  },
-  storiesSection: {
-    backgroundColor: colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
   },
   emptyState: {
     flex: 1,

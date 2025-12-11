@@ -9,7 +9,6 @@ interface GlobalDataContextType {
   // Data
   locales: Local[];
   posts: any[];
-  stories: any[];
   eventos: any[];
   ofertas: any[];
   
@@ -32,23 +31,21 @@ const GlobalDataContext = createContext<GlobalDataContextType | undefined>(undef
 const CACHE_KEYS = {
   LOCALES: 'global_cache_locales',
   POSTS: 'global_cache_posts',
-  STORIES: 'global_cache_stories',
   EVENTOS: 'global_cache_eventos',
   OFERTAS: 'global_cache_ofertas',
   TIMESTAMP: 'global_cache_timestamp',
 };
 
-const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes - longer cache for instant loading
-const BACKGROUND_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes - more frequent updates
+const CACHE_DURATION = 30 * 60 * 1000;
+const BACKGROUND_REFRESH_INTERVAL = 5 * 60 * 1000;
 
 export function GlobalDataProvider({ children }: { children: ReactNode }) {
   const [locales, setLocales] = useState<Local[]>([]);
   const [posts, setPosts] = useState<any[]>([]);
-  const [stories, setStories] = useState<any[]>([]);
   const [eventos, setEventos] = useState<any[]>([]);
   const [ofertas, setOfertas] = useState<any[]>([]);
   
-  const [isInitialLoading, setIsInitialLoading] = useState(false); // ✅ Start as false for instant display
+  const [isInitialLoading, setIsInitialLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(0);
@@ -57,25 +54,9 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
   const backgroundRefreshTimer = useRef<NodeJS.Timeout | null>(null);
   const preloadedImagesRef = useRef<Set<string>>(new Set());
 
-  /**
-   * ✅ CRITICAL: Preload story and post images aggressively
-   */
-  const preloadImages = useCallback(async (stories: any[], posts: any[]) => {
+  const preloadImages = useCallback(async (posts: any[]) => {
     const imagesToPreload: string[] = [];
     
-    // Preload ALL story images
-    stories.forEach(story => {
-      if (story.imagen && !preloadedImagesRef.current.has(story.imagen)) {
-        imagesToPreload.push(story.imagen);
-        preloadedImagesRef.current.add(story.imagen);
-      }
-      if (story.autor?.avatar && !preloadedImagesRef.current.has(story.autor.avatar)) {
-        imagesToPreload.push(story.autor.avatar);
-        preloadedImagesRef.current.add(story.autor.avatar);
-      }
-    });
-    
-    // Preload first 20 post images
     posts.slice(0, 20).forEach(post => {
       if (post.imagen && !preloadedImagesRef.current.has(post.imagen)) {
         imagesToPreload.push(post.imagen);
@@ -98,7 +79,6 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
     if (imagesToPreload.length > 0) {
       console.log('[GlobalData] 🚀 Preloading', imagesToPreload.length, 'images...');
       
-      // Preload in background without blocking
       Promise.allSettled(
         imagesToPreload.map(uri => Image.prefetch(uri))
       ).then(results => {
@@ -110,9 +90,6 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  /**
-   * Load data from AsyncStorage cache
-   */
   const loadFromCache = useCallback(async (): Promise<boolean> => {
     try {
       console.log('[GlobalData] 📦 Loading from cache...');
@@ -120,27 +97,20 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
       const [
         cachedLocales,
         cachedPosts,
-        cachedStories,
         cachedEventos,
         cachedOfertas,
         cachedTimestamp,
       ] = await Promise.all([
         AsyncStorage.getItem(CACHE_KEYS.LOCALES),
         AsyncStorage.getItem(CACHE_KEYS.POSTS),
-        AsyncStorage.getItem(CACHE_KEYS.STORIES),
         AsyncStorage.getItem(CACHE_KEYS.EVENTOS),
         AsyncStorage.getItem(CACHE_KEYS.OFERTAS),
         AsyncStorage.getItem(CACHE_KEYS.TIMESTAMP),
       ]);
 
       const timestamp = cachedTimestamp ? parseInt(cachedTimestamp, 10) : 0;
-      const now = Date.now();
-      
-      // ✅ CRITICAL: Accept cache even if expired for INSTANT display
-      // We'll refresh in background
       let hasData = false;
 
-      // Parse cached data
       if (cachedLocales) {
         const parsedLocales = JSON.parse(cachedLocales);
         setLocales(parsedLocales);
@@ -152,17 +122,7 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
         const parsedPosts = JSON.parse(cachedPosts);
         setPosts(parsedPosts);
         console.log('[GlobalData] ⚡ INSTANT posts from cache:', parsedPosts.length);
-        hasData = true;
-      }
-
-      if (cachedStories) {
-        const parsedStories = JSON.parse(cachedStories);
-        setStories(parsedStories);
-        console.log('[GlobalData] ⚡ INSTANT stories from cache:', parsedStories.length);
-        
-        // ✅ CRITICAL: Preload story images immediately
-        preloadImages(parsedStories, cachedPosts ? JSON.parse(cachedPosts) : []);
-        
+        preloadImages(parsedPosts);
         hasData = true;
       }
 
@@ -192,13 +152,9 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
     }
   }, [preloadImages]);
 
-  /**
-   * Save data to AsyncStorage cache
-   */
   const saveToCache = useCallback(async (data: {
     locales?: Local[];
     posts?: any[];
-    stories?: any[];
     eventos?: any[];
     ofertas?: any[];
   }) => {
@@ -214,9 +170,6 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
       if (data.posts) {
         promises.push(AsyncStorage.setItem(CACHE_KEYS.POSTS, JSON.stringify(data.posts)));
       }
-      if (data.stories) {
-        promises.push(AsyncStorage.setItem(CACHE_KEYS.STORIES, JSON.stringify(data.stories)));
-      }
       if (data.eventos) {
         promises.push(AsyncStorage.setItem(CACHE_KEYS.EVENTOS, JSON.stringify(data.eventos)));
       }
@@ -231,9 +184,6 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  /**
-   * Transform local data
-   */
   const transformarLocal = useCallback((local: any): Local => {
     const CATEGORIAS_EXCLUIDAS = ['terrazas', 'rooftops', 'lounge'];
     let categoriasLocal = local.barlive_types || [];
@@ -255,22 +205,16 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  /**
-   * Load all data from Supabase
-   */
   const loadFromSupabase = useCallback(async () => {
     try {
       console.log('[GlobalData] 🌐 Loading from Supabase...');
 
-      // Load all data in parallel for maximum speed
       const [
         localesResult,
         postsResult,
-        storiesResult,
         eventosResult,
         ofertasResult,
       ] = await Promise.all([
-        // Locales
         supabase
           .from('locales')
           .select('*')
@@ -278,7 +222,6 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
           .order('destacado', { ascending: false })
           .order('rating', { ascending: false }),
         
-        // Posts - Load ALL posts (both user and local)
         supabase
           .from('posts')
           .select(`
@@ -289,18 +232,6 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
           .order('created_at', { ascending: false })
           .limit(100),
         
-        // Stories - Load ALL stories (both user and local)
-        supabase
-          .from('historias')
-          .select(`
-            *,
-            autor:usuarios!historias_autor_id_fkey(nombre, avatar, username),
-            local:locales!historias_local_id_fkey(nombre, imagen_url)
-          `)
-          .gte('expires_at', new Date().toISOString())
-          .order('created_at', { ascending: true }),
-        
-        // Eventos
         supabase
           .from('eventos')
           .select('*')
@@ -308,7 +239,6 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
           .order('fecha', { ascending: true })
           .limit(50),
         
-        // Ofertas de trabajo
         supabase
           .from('ofertas_trabajo')
           .select(`
@@ -320,14 +250,12 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
           .limit(50),
       ]);
 
-      // Process locales
       if (!localesResult.error && localesResult.data) {
         const transformedLocales = localesResult.data.map(transformarLocal);
         setLocales(transformedLocales);
         console.log('[GlobalData] ✅ Locales loaded:', transformedLocales.length);
       }
 
-      // Process posts - map autor field to use local info if tipo='local'
       if (!postsResult.error && postsResult.data) {
         const mappedPosts = postsResult.data.map(post => ({
           ...post,
@@ -341,49 +269,19 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
         }));
         setPosts(mappedPosts);
         console.log('[GlobalData] ✅ Posts loaded:', mappedPosts.length);
+        preloadImages(mappedPosts);
       }
 
-      // Process stories - map autor field to use local info if tipo='local'
-      if (!storiesResult.error && storiesResult.data) {
-        const mappedStories = storiesResult.data.map(story => ({
-          ...story,
-          autor: story.tipo === 'local' && story.local 
-            ? {
-                nombre: story.local.nombre,
-                avatar: story.local.imagen_url,
-                username: story.local.nombre,
-              }
-            : story.autor,
-        }));
-        setStories(mappedStories);
-        console.log('[GlobalData] ✅ Stories loaded:', mappedStories.length);
-        
-        // ✅ CRITICAL: Preload story images immediately
-        preloadImages(mappedStories, postsResult.data ? postsResult.data.map(post => ({
-          ...post,
-          autor: post.tipo === 'local' && post.local 
-            ? {
-                nombre: post.local.nombre,
-                avatar: post.local.imagen_url,
-                username: post.local.nombre,
-              }
-            : post.autor,
-        })) : []);
-      }
-
-      // Process eventos
       if (!eventosResult.error && eventosResult.data) {
         setEventos(eventosResult.data);
         console.log('[GlobalData] ✅ Eventos loaded:', eventosResult.data.length);
       }
 
-      // Process ofertas
       if (!ofertasResult.error && ofertasResult.data) {
         setOfertas(ofertasResult.data);
         console.log('[GlobalData] ✅ Ofertas loaded:', ofertasResult.data.length);
       }
 
-      // Save to cache
       await saveToCache({
         locales: localesResult.data ? localesResult.data.map(transformarLocal) : undefined,
         posts: postsResult.data ? postsResult.data.map(post => ({
@@ -395,16 +293,6 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
                 username: post.local.nombre,
               }
             : post.autor,
-        })) : undefined,
-        stories: storiesResult.data ? storiesResult.data.map(story => ({
-          ...story,
-          autor: story.tipo === 'local' && story.local 
-            ? {
-                nombre: story.local.nombre,
-                avatar: story.local.imagen_url,
-                username: story.local.nombre,
-              }
-            : story.autor,
         })) : undefined,
         eventos: eventosResult.data || undefined,
         ofertas: ofertasResult.data || undefined,
@@ -418,9 +306,6 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
     }
   }, [transformarLocal, saveToCache, preloadImages]);
 
-  /**
-   * Refresh data (can be silent or with loading indicator)
-   */
   const refreshData = useCallback(async (silent: boolean = false) => {
     if (isLoadingRef.current) {
       console.log('[GlobalData] Already loading, skipping...');
@@ -443,46 +328,33 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
     }
   }, [loadFromSupabase]);
 
-  /**
-   * Update local in memory (optimistic update)
-   */
   const updateLocal = useCallback((localId: string, updates: Partial<Local>) => {
     setLocales(prev => prev.map(local =>
       local.id === localId ? { ...local, ...updates } : local
     ));
   }, []);
 
-  /**
-   * Update post in memory (optimistic update)
-   */
   const updatePost = useCallback((postId: string, updates: Partial<any>) => {
     setPosts(prev => prev.map(post =>
       post.id === postId ? { ...post, ...updates } : post
     ));
   }, []);
 
-  /**
-   * ✅ CRITICAL: Initialize data on mount - INSTANT START
-   */
   useEffect(() => {
     const initialize = async () => {
       console.log('[GlobalData] 🚀 Initializing...');
       
-      // ✅ INSTANT: Load from cache first (even if expired)
       const hasCache = await loadFromCache();
       
       if (hasCache) {
-        // ✅ INSTANT: Show cached data immediately
         console.log('[GlobalData] ⚡⚡⚡ INSTANT START with cached data');
         setHasLoadedOnce(true);
         
-        // ✅ Load fresh data in background WITHOUT blocking UI
         setTimeout(() => {
           console.log('[GlobalData] 🔄 Background refresh...');
           refreshData(true);
-        }, 10); // Minimal delay
+        }, 10);
       } else {
-        // No cache, load from Supabase
         console.log('[GlobalData] 📡 No cache, loading from Supabase...');
         await loadFromSupabase();
       }
@@ -490,7 +362,6 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
 
     initialize();
 
-    // Set up background refresh timer
     backgroundRefreshTimer.current = setInterval(() => {
       console.log('[GlobalData] ⏰ Background refresh triggered');
       refreshData(true);
@@ -503,13 +374,9 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
     };
   }, [loadFromCache, loadFromSupabase, refreshData]);
 
-  /**
-   * Subscribe to real-time updates
-   */
   useEffect(() => {
     console.log('[GlobalData] 📡 Setting up real-time subscriptions...');
 
-    // Subscribe to locales changes
     const localesChannel = supabase
       .channel('global-locales-changes')
       .on(
@@ -526,7 +393,6 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
       )
       .subscribe();
 
-    // Subscribe to posts changes
     const postsChannel = supabase
       .channel('global-posts-changes')
       .on(
@@ -543,7 +409,6 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
       )
       .subscribe();
 
-    // Subscribe to likes changes to update post like counts in real-time
     const likesChannel = supabase
       .channel('global-likes-changes')
       .on(
@@ -560,36 +425,16 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
       )
       .subscribe();
 
-    // Subscribe to stories changes
-    const storiesChannel = supabase
-      .channel('global-stories-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'historias',
-        },
-        () => {
-          console.log('[GlobalData] 🔄 Stories changed, refreshing...');
-          refreshData(true);
-        }
-      )
-      .subscribe();
-
     return () => {
       supabase.removeChannel(localesChannel);
       supabase.removeChannel(postsChannel);
       supabase.removeChannel(likesChannel);
-      supabase.removeChannel(storiesChannel);
     };
   }, [refreshData]);
 
-  // ✅ Memoize context value to prevent unnecessary re-renders
   const value: GlobalDataContextType = React.useMemo(() => ({
     locales,
     posts,
-    stories,
     eventos,
     ofertas,
     isInitialLoading,
@@ -602,7 +447,6 @@ export function GlobalDataProvider({ children }: { children: ReactNode }) {
   }), [
     locales,
     posts,
-    stories,
     eventos,
     ofertas,
     isInitialLoading,

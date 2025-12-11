@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -13,9 +13,7 @@ import {
   Modal,
   Pressable,
   Linking,
-  Alert,
   Platform,
-  Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -26,9 +24,6 @@ import { useMode } from '@/contexts/ModeContext';
 import { supabase } from '@/utils/supabase';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
-import UnifiedStoryViewer from '@/components/social/UnifiedStoryViewer';
-import StoryAvatar from '@/components/common/StoryAvatar';
-import { useStoryContext } from '@/contexts/StoryContext';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -93,14 +88,6 @@ export default function PerfilScreen() {
   
   const [perfilProfesional, setPerfilProfesional] = useState<PerfilProfesional | null>(null);
   const [loadingEmpleo, setLoadingEmpleo] = useState(false);
-
-  // User stories state
-  const [userStories, setUserStories] = useState<any[]>([]);
-  const [loadingStories, setLoadingStories] = useState(false);
-  
-  // Story viewer state
-  const [showStoryViewer, setShowStoryViewer] = useState(false);
-  const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
 
   const userRole = user?.rol_app || 'cliente';
   const isPropietario = userRole === 'propietario' || (userRole === 'admin' && currentMode === 'propietario');
@@ -360,59 +347,6 @@ export default function PerfilScreen() {
     }
   }, [user]);
 
-  const cargarHistorias = useCallback(async () => {
-    if (!user) {
-      console.log('[Perfil] No user, skipping stories load');
-      return;
-    }
-
-    setLoadingStories(true);
-    try {
-      console.log('[Perfil] 📖 Loading stories for user:', user.id);
-      
-      const { data: userStoriesData, error } = await supabase
-        .from('historias')
-        .select('id, autor_id, tipo, imagen, created_at, expires_at')
-        .eq('autor_id', user.id)
-        .eq('tipo', 'usuario')
-        .gt('expires_at', new Date().toISOString())
-        .order('created_at', { ascending: true });
-
-      if (error) {
-        console.error('[Perfil] ❌ Error loading stories:', error);
-        setUserStories([]);
-        setLoadingStories(false);
-        return;
-      }
-
-      if (userStoriesData && userStoriesData.length > 0) {
-        console.log('[Perfil] ✅ Loaded', userStoriesData.length, 'user stories');
-        
-        const storiesWithAuthor = userStoriesData.map(story => ({
-          ...story,
-          autorNombre: user.nombre,
-          autorAvatar: user.avatar,
-          autor: {
-            id: user.id,
-            nombre: user.nombre,
-            avatar: user.avatar,
-            username: user.username,
-          },
-        }));
-        
-        setUserStories(storiesWithAuthor);
-      } else {
-        console.log('[Perfil] No active stories found');
-        setUserStories([]);
-      }
-    } catch (error) {
-      console.error('[Perfil] ❌ Error loading stories:', error);
-      setUserStories([]);
-    } finally {
-      setLoadingStories(false);
-    }
-  }, [user]);
-
   const cargarDatosPerfil = useCallback(async () => {
     if (!user) return;
 
@@ -454,17 +388,14 @@ export default function PerfilScreen() {
       setSeguidos(seguidosCount || 0);
       setPublicaciones(publicacionesCount || 0);
 
-      await Promise.all([
-        cargarPosts(),
-        cargarHistorias(),
-      ]);
+      await cargarPosts();
     } catch (error) {
       console.error('[Perfil] Error cargando datos:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user, loadUnreadCounts, cargarPosts, cargarHistorias]);
+  }, [user, loadUnreadCounts, cargarPosts]);
 
   useEffect(() => {
     if (!authLoading) {
@@ -569,32 +500,6 @@ export default function PerfilScreen() {
     router.push(`/empleo/perfil-detalle?id=${perfilProfesional.id}`);
   };
 
-  const handleAvatarPress = useCallback(() => {
-    if (!user) {
-      setShowLoginModal(true);
-      return;
-    }
-    
-    console.log('[Perfil] Avatar pressed. Stories count:', userStories.length);
-    
-    if (userStories.length > 0) {
-      console.log('[Perfil] ✅ Opening story viewer with', userStories.length, 'stories');
-      setCurrentStoryIndex(0);
-      setShowStoryViewer(true);
-    } else {
-      console.log('[Perfil] No stories found, redirecting to create story');
-      router.push('/crear/historia');
-    }
-  }, [user, userStories, router]);
-
-  const handleAddStory = () => {
-    if (!user) {
-      setShowLoginModal(true);
-      return;
-    }
-    router.push('/crear/historia');
-  };
-
   const renderGridPost = (post: Post) => {
     const firstImage = post.imagenes && post.imagenes.length > 0 
       ? post.imagenes[0] 
@@ -627,36 +532,13 @@ export default function PerfilScreen() {
     return (
       <View style={styles.profileSection}>
         <View style={styles.profileHeader}>
-          {loadingStories ? (
-            <View style={styles.avatarLoadingContainer}>
-              <ActivityIndicator size="small" color={colors.primary} />
-            </View>
+          {displayAvatar ? (
+            <Image source={{ uri: displayAvatar }} style={styles.avatar} />
           ) : (
-            <StoryAvatar
-              userId={user?.id || ''}
-              userStories={userStories}
-              avatarUrl={displayAvatar}
-              userName={displayName}
-              size={88}
-              onPress={handleAvatarPress}
-              showLabel={false}
-            />
+            <View style={[styles.avatar, styles.avatarPlaceholder]}>
+              <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={40} color={colors.headerText} />
+            </View>
           )}
-          
-          <TouchableOpacity 
-            style={styles.addStoryButton}
-            onPress={handleAddStory}
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={[colors.primary, colors.secondary]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.addStoryGradient}
-            >
-              <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={14} color={colors.white} />
-            </LinearGradient>
-          </TouchableOpacity>
           
           <View style={styles.profileInfo}>
             <Text style={styles.profileName}>{displayName}</Text>
@@ -1043,24 +925,6 @@ export default function PerfilScreen() {
                 style={styles.createOptionButton}
                 onPress={() => {
                   setShowCreateOptions(false);
-                  router.push('/crear/historia');
-                }}
-                activeOpacity={0.8}
-              >
-                <View style={styles.createOptionIcon}>
-                  <IconSymbol ios_icon_name="camera.fill" android_material_icon_name="camera_alt" size={24} color={colors.headerText} />
-                </View>
-                <View style={styles.createOptionInfo}>
-                  <Text style={styles.createOptionTitle}>Historia</Text>
-                  <Text style={styles.createOptionDescription}>
-                    Comparte un momento que desaparece en 24 horas
-                  </Text>
-                </View>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.createOptionButton}
-                onPress={() => {
-                  setShowCreateOptions(false);
                   router.push('/crear/publicacion');
                 }}
                 activeOpacity={0.8}
@@ -1088,24 +952,6 @@ export default function PerfilScreen() {
       <ProfileSwitcher
         visible={showProfileSwitcher}
         onClose={() => setShowProfileSwitcher(false)}
-      />
-
-      <UnifiedStoryViewer
-        visible={showStoryViewer}
-        stories={userStories}
-        initialIndex={currentStoryIndex}
-        onClose={() => {
-          console.log('[Perfil] Closing story viewer');
-          setShowStoryViewer(false);
-        }}
-        onStoryChange={(index) => {
-          console.log('[Perfil] Story changed to index:', index);
-          setCurrentStoryIndex(index);
-        }}
-        onStoryDelete={async (storyId) => {
-          console.log('[Perfil] Story deleted:', storyId);
-          await cargarHistorias();
-        }}
       />
     </View>
   );
@@ -1210,29 +1056,15 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     position: 'relative',
   },
-  avatarLoadingContainer: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: colors.cardBackground,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  addStoryButton: {
-    position: 'absolute',
-    bottom: 0,
-    left: 68,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    overflow: 'hidden',
+  avatar: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
     borderWidth: 3,
     borderColor: colors.white,
-    zIndex: 2,
   },
-  addStoryGradient: {
-    width: '100%',
-    height: '100%',
+  avatarPlaceholder: {
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
   },

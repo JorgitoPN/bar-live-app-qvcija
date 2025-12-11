@@ -5,14 +5,14 @@ import { GlobalDataProvider } from '@/contexts/GlobalDataContext';
 import { ModeProvider } from '@/contexts/ModeContext';
 import { SelectedLocalProvider } from '@/contexts/SelectedLocalContext';
 import { WidgetProvider } from '@/contexts/WidgetContext';
-import { StoryProvider } from '@/contexts/StoryContext';
 
 /**
  * ============================================================================
- * ROOT LAYOUT - COMPLETE REBUILD
+ * ROOT LAYOUT - STORY SYSTEM REMOVED
  * ============================================================================
  * 
  * Built from scratch with maximum attention to detail.
+ * Story system has been completely removed.
  * 
  * Provider Order (outer to inner):
  * 1. AuthProvider - Authentication state
@@ -20,7 +20,6 @@ import { StoryProvider } from '@/contexts/StoryContext';
  * 3. ModeProvider - User/Local interaction mode
  * 4. SelectedLocalProvider - Selected local context
  * 5. WidgetProvider - Widget state
- * 6. StoryProvider - Story view tracking (NEW SYSTEM)
  */
 export default function RootLayout() {
   return (
@@ -29,12 +28,10 @@ export default function RootLayout() {
         <ModeProvider>
           <SelectedLocalProvider>
             <WidgetProvider>
-              <StoryProvider>
-                <Stack screenOptions={{ headerShown: false }}>
-                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                  <Stack.Screen name="index" options={{ headerShown: false }} />
-                </Stack>
-              </StoryProvider>
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="index" options={{ headerShown: false }} />
+              </Stack>
             </WidgetProvider>
           </SelectedLocalProvider>
         </ModeProvider>
