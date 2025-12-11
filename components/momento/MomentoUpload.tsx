@@ -30,7 +30,7 @@ interface MomentoUploadProps {
 }
 
 export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUploadProps) {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const { activeProfileType, activeProfileId } = useMode();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -93,7 +93,18 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
   };
 
   const uploadMomento = async () => {
-    if (!user || !selectedImage) return;
+    if (!user || !session || !selectedImage) {
+      console.error('[MomentoUpload] Missing required data:', {
+        hasUser: !!user,
+        hasSession: !!session,
+        hasImage: !!selectedImage,
+      });
+      Alert.alert(
+        'Error de autenticación',
+        'No estás autenticado. Por favor, inicia sesión nuevamente.'
+      );
+      return;
+    }
 
     try {
       setUploading(true);
@@ -102,6 +113,7 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
         userId: user.id,
         activeProfileType,
         activeProfileId,
+        sessionValid: !!session.access_token,
       });
 
       // Prepare momento data
@@ -117,7 +129,7 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
         
         const { data: ownershipData, error: ownershipError } = await supabase
           .from('propietarios_locales')
-          .select('id, local_id, propietario_id')
+          .select('id, local_id, propietario_id, activo')
           .eq('propietario_id', user.id)
           .eq('local_id', activeProfileId)
           .eq('activo', true)
@@ -127,7 +139,7 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
           console.error('[MomentoUpload] Ownership verification failed:', ownershipError);
           Alert.alert(
             'Error de permisos',
-            'No tienes permisos para subir momentos como este local. Verifica que seas propietario del local.'
+            'No tienes permisos para subir momentos como este local. Verifica que seas propietario activo del local.'
           );
           setUploading(false);
           return;
@@ -153,11 +165,11 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
           const base64String = base64data.split(',')[1];
 
           // Upload to Supabase Storage with user ID in path (required by RLS)
-          // Path format: momentos/{user_id}/{filename}
+          // Path format: {user_id}/{filename} (NOT momentos/{user_id}/{filename})
           const fileName = `momento-${Date.now()}.jpg`;
           const filePath = `${user.id}/${fileName}`;
 
-          console.log('[MomentoUpload] Uploading to storage:', filePath);
+          console.log('[MomentoUpload] Uploading to storage bucket "momentos" with path:', filePath);
 
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from('momentos')
@@ -171,14 +183,17 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
             console.error('[MomentoUpload] Error details:', {
               message: uploadError.message,
               statusCode: (uploadError as any).statusCode,
+              name: (uploadError as any).name,
             });
             
             // Provide more specific error message
             if (uploadError.message.includes('row-level security') || uploadError.message.includes('policy')) {
               Alert.alert(
                 'Error de permisos',
-                'No tienes permisos para subir archivos. Verifica que estés autenticado correctamente.'
+                'No tienes permisos para subir archivos. Verifica que estés autenticado correctamente y que tu sesión sea válida.'
               );
+            } else if (uploadError.message.includes('Duplicate')) {
+              Alert.alert('Error', 'Ya existe un archivo con ese nombre. Intenta de nuevo.');
             } else {
               Alert.alert('Error', `No se pudo subir la imagen: ${uploadError.message}`);
             }
@@ -222,7 +237,7 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
             } else if (insertError.message.includes('propietarios_locales')) {
               Alert.alert(
                 'Error de permisos',
-                'No tienes permisos para crear Momentos como este local. Verifica que seas propietario del local.'
+                'No tienes permisos para crear Momentos como este local. Verifica que seas propietario activo del local.'
               );
             } else {
               Alert.alert('Error', `No se pudo crear el Momento: ${insertError.message}`);
