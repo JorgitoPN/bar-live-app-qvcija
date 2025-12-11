@@ -7,80 +7,66 @@ import { Stack } from 'expo-router';
  * ============================================================================
  * 
  * This layout configures all detail pages to open as modals with:
- * - Rounded top corners
- * - Drag-to-close gesture
- * - Slide from bottom animation
+ * - Rounded top corners (using formSheet presentation)
+ * - Drag-to-close gesture enabled
+ * - Sheet behavior on mobile
+ * - Proper modal presentation on all platforms
  */
 export default function DetalleLayout() {
   return (
     <Stack
       screenOptions={{
         headerShown: false,
-        presentation: 'modal',
-        animation: 'slide_from_bottom',
+        presentation: 'formSheet',
+        sheetAllowedDetents: [0.95],
+        sheetCornerRadius: 20,
+        sheetGrabberVisible: true,
         gestureEnabled: true,
-        gestureDirection: 'vertical',
-        contentStyle: {
-          borderTopLeftRadius: 20,
-          borderTopRightRadius: 20,
-          overflow: 'hidden',
-        },
+        animation: 'slide_from_bottom',
       }}
     >
       <Stack.Screen 
         name="local" 
         options={{
-          presentation: 'modal',
-          animation: 'slide_from_bottom',
+          presentation: 'formSheet',
+          sheetAllowedDetents: [0.95],
+          sheetCornerRadius: 20,
+          sheetGrabberVisible: true,
           gestureEnabled: true,
-          gestureDirection: 'vertical',
-          contentStyle: {
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            overflow: 'hidden',
-          },
+          animation: 'slide_from_bottom',
         }}
       />
       <Stack.Screen 
         name="evento" 
         options={{
-          presentation: 'modal',
-          animation: 'slide_from_bottom',
+          presentation: 'formSheet',
+          sheetAllowedDetents: [0.95],
+          sheetCornerRadius: 20,
+          sheetGrabberVisible: true,
           gestureEnabled: true,
-          gestureDirection: 'vertical',
-          contentStyle: {
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            overflow: 'hidden',
-          },
+          animation: 'slide_from_bottom',
         }}
       />
       <Stack.Screen 
         name="sala-virtual" 
         options={{
-          presentation: 'modal',
-          animation: 'slide_from_bottom',
+          presentation: 'formSheet',
+          sheetAllowedDetents: [0.95],
+          sheetCornerRadius: 20,
+          sheetGrabberVisible: true,
           gestureEnabled: true,
-          gestureDirection: 'vertical',
-          contentStyle: {
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            overflow: 'hidden',
-          },
+          animation: 'slide_from_bottom',
         }}
       />
       <Stack.Screen 
         name="local-updated" 
         options={{
-          presentation: 'modal',
-          animation: 'slide_from_bottom',
+          presentation: 'formSheet',
+          sheetAllowedDetents: [0.95],
+          sheetCornerRadius: 20,
+          sheetGrabberVisible: true,
           gestureEnabled: true,
-          gestureDirection: 'vertical',
-          contentStyle: {
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
-            overflow: 'hidden',
-          },
+          animation: 'slide_from_bottom',
         }}
       />
     </Stack>
