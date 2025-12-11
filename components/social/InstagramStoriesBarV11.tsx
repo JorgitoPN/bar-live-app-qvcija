@@ -20,6 +20,9 @@ interface InstagramStoriesBarV11Props {
   showCreateButton?: boolean;
 }
 
+// ✅ INCREASED AVATAR SIZE - 110px for better visibility (was 92px)
+const AVATAR_SIZE = 110;
+
 const CreateStoryButton = memo(({ 
   onPress,
   userAvatar,
@@ -37,7 +40,7 @@ const CreateStoryButton = memo(({
           userStories={[]}
           avatarUrl={userAvatar}
           userName={userName || 'Tu historia'}
-          size={92}
+          size={AVATAR_SIZE}
           onPress={onPress}
           showLabel={false}
         />
@@ -48,7 +51,7 @@ const CreateStoryButton = memo(({
             end={{ x: 1, y: 0 }}
             style={styles.addButtonGradient}
           >
-            <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={18} color={colors.white} />
+            <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={20} color={colors.white} />
           </LinearGradient>
         </View>
       </View>
@@ -59,21 +62,19 @@ const CreateStoryButton = memo(({
 
 CreateStoryButton.displayName = 'CreateStoryButton';
 
-const truncateName = (name: string, maxLength: number = 10): string => {
+const truncateName = (name: string, maxLength: number = 12): string => {
   if (name.length <= maxLength) return name;
   return name.substring(0, maxLength - 1) + '...';
 };
 
 /**
- * ✅ INSTAGRAM STORIES BAR V11.0 - Complete Instagram-style stories carousel
+ * ✅ INSTAGRAM STORIES BAR V11.0.6 - LARGER AVATARS
  * 
- * NEW IN V11.0:
- * - ✅ Added "+" button for creating stories from social page
- * - ✅ Improved performance with better memoization
- * - ✅ Enhanced real-time updates
- * - ✅ Better error handling
- * - ✅ Consistent behavior across all pages
- * - ✅ Proper cleanup on unmount
+ * NEW IN V11.0.6:
+ * - ✅ INCREASED AVATAR SIZE from 92px to 110px for better visibility
+ * - ✅ Adjusted spacing and layout for larger avatars
+ * - ✅ Improved add button size and positioning
+ * - ✅ Better text truncation for longer names
  * 
  * Features:
  * - ✅ Uses StoryAvatarV11 for consistent border behavior
@@ -82,7 +83,6 @@ const truncateName = (name: string, maxLength: number = 10): string => {
  * - ✅ Grouped stories by author
  * - ✅ Create story button with gradient
  * - ✅ Optimized with memo for performance
- * - ✅ LARGER AVATARS (92px) for better visibility
  */
 const InstagramStoriesBarV11 = memo(function InstagramStoriesBarV11({
   historias,
@@ -99,7 +99,7 @@ const InstagramStoriesBarV11 = memo(function InstagramStoriesBarV11({
   const isInteractingAsLocal = activeProfileType === 'local';
   const interactionId = isInteractingAsLocal ? activeProfileId : user?.id;
   
-  console.log('[InstagramStoriesBarV11] 🎭 V11.0 - Interaction context:', {
+  console.log('[InstagramStoriesBarV11] 🎭 V11.0.6 - Interaction context:', {
     activeProfileType,
     activeProfileId,
     isInteractingAsLocal,
@@ -107,6 +107,7 @@ const InstagramStoriesBarV11 = memo(function InstagramStoriesBarV11({
     localName: activeLocalData?.nombre,
     totalStories: historias.length,
     showCreateButton,
+    avatarSize: AVATAR_SIZE,
   });
   
   // ✅ SEPARATE USER STORIES: Own stories vs others
@@ -253,7 +254,7 @@ const InstagramStoriesBarV11 = memo(function InstagramStoriesBarV11({
         scrollEventThrottle={16}
         decelerationRate="fast"
       >
-        {/* ✅ V11.0: OWN STORIES - Show create button or existing stories */}
+        {/* ✅ V11.0.6: OWN STORIES - Show create button or existing stories */}
         {user && showCreateButton && onCrearHistoria && (
           userStories.length > 0 ? (
             <View style={styles.storyContainer}>
@@ -262,14 +263,14 @@ const InstagramStoriesBarV11 = memo(function InstagramStoriesBarV11({
                 userStories={userStories}
                 avatarUrl={userAvatar}
                 userName={isInteractingAsLocal ? activeLocalData?.nombre || 'Tu local' : 'Tu historia'}
-                size={92}
+                size={AVATAR_SIZE}
                 onPress={() => onHistoriaPress(userStories[0])}
                 showLabel={true}
                 labelText={isInteractingAsLocal 
                   ? truncateName(activeLocalData?.nombre || 'Tu local')
                   : 'Tu historia'}
               />
-              {/* ✅ V11.0: NEW - "+" button to add more stories */}
+              {/* ✅ V11.0.6: "+" button to add more stories */}
               <TouchableOpacity 
                 style={styles.addMoreButton}
                 onPress={onCrearHistoria}
@@ -281,7 +282,7 @@ const InstagramStoriesBarV11 = memo(function InstagramStoriesBarV11({
                   end={{ x: 1, y: 0 }}
                   style={styles.addMoreGradient}
                 >
-                  <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={14} color={colors.white} />
+                  <IconSymbol ios_icon_name="plus" android_material_icon_name="add" size={16} color={colors.white} />
                 </LinearGradient>
               </TouchableOpacity>
             </View>
@@ -316,7 +317,7 @@ const InstagramStoriesBarV11 = memo(function InstagramStoriesBarV11({
                 userStories={stories}
                 avatarUrl={avatarUrl || undefined}
                 userName={truncatedName}
-                size={92}
+                size={AVATAR_SIZE}
                 onPress={() => onHistoriaPress(latestStory)}
                 showLabel={true}
                 labelText={truncatedName}
@@ -342,28 +343,28 @@ const InstagramStoriesBarV11 = memo(function InstagramStoriesBarV11({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: colors.background,
-    paddingVertical: 12,
+    paddingVertical: 16,
     borderBottomWidth: 0,
   },
   scrollContent: {
-    paddingHorizontal: 12,
-    gap: 16,
+    paddingHorizontal: 16,
+    gap: 20,
   },
   createStory: {
     alignItems: 'center',
-    width: 92,
+    width: AVATAR_SIZE,
   },
   storyAvatarContainer: {
     position: 'relative',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   createAddButton: {
     position: 'absolute',
     bottom: 0,
     right: 0,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     overflow: 'hidden',
     borderWidth: 3,
     borderColor: colors.background,
@@ -377,16 +378,16 @@ const styles = StyleSheet.create({
   },
   storyContainer: {
     alignItems: 'center',
-    width: 92,
+    width: AVATAR_SIZE,
     position: 'relative',
   },
   addMoreButton: {
     position: 'absolute',
-    bottom: 28,
+    bottom: 32,
     right: 0,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     overflow: 'hidden',
     borderWidth: 2,
     borderColor: colors.background,
@@ -399,11 +400,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   storyLabel: {
-    fontSize: 12,
+    fontSize: 13,
     color: colors.text,
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: 6,
     fontFamily: 'System',
+    fontWeight: '500',
   },
 });
 

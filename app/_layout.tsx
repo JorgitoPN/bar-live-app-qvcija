@@ -13,6 +13,7 @@ import { ModeProvider } from '@/contexts/ModeContext';
 import { SelectedLocalProvider } from '@/contexts/SelectedLocalContext';
 import { WidgetProvider } from '@/contexts/WidgetContext';
 import { StoryProvider } from '@/contexts/StoryContext';
+import { StoryStateProvider } from '@/contexts/StoryStateContextV11';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -40,24 +41,26 @@ export default function RootLayout() {
             <SelectedLocalProvider>
               <WidgetProvider>
                 <StoryProvider>
-                  <Stack>
-                    <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                    <Stack.Screen name="auth" options={{ headerShown: false }} />
-                    <Stack.Screen name="admin" options={{ headerShown: false }} />
-                    <Stack.Screen name="crear" options={{ headerShown: false }} />
-                    <Stack.Screen name="detalle" options={{ headerShown: false }} />
-                    <Stack.Screen name="editar" options={{ headerShown: false }} />
-                    <Stack.Screen name="empleo" options={{ headerShown: false }} />
-                    <Stack.Screen name="gestion" options={{ headerShown: false }} />
-                    <Stack.Screen name="legal" options={{ headerShown: false }} />
-                    <Stack.Screen name="perfil" options={{ headerShown: false }} />
-                    <Stack.Screen name="social" options={{ headerShown: false }} />
-                    <Stack.Screen name="solicitudes" options={{ headerShown: false }} />
-                    <Stack.Screen name="soporte" options={{ headerShown: false }} />
-                    <Stack.Screen name="chat" options={{ headerShown: false }} />
-                    <Stack.Screen name="+not-found" />
-                  </Stack>
-                  <StatusBar style="auto" />
+                  <StoryStateProvider>
+                    <Stack>
+                      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                      <Stack.Screen name="auth" options={{ headerShown: false }} />
+                      <Stack.Screen name="admin" options={{ headerShown: false }} />
+                      <Stack.Screen name="crear" options={{ headerShown: false }} />
+                      <Stack.Screen name="detalle" options={{ headerShown: false }} />
+                      <Stack.Screen name="editar" options={{ headerShown: false }} />
+                      <Stack.Screen name="empleo" options={{ headerShown: false }} />
+                      <Stack.Screen name="gestion" options={{ headerShown: false }} />
+                      <Stack.Screen name="legal" options={{ headerShown: false }} />
+                      <Stack.Screen name="perfil" options={{ headerShown: false }} />
+                      <Stack.Screen name="social" options={{ headerShown: false }} />
+                      <Stack.Screen name="solicitudes" options={{ headerShown: false }} />
+                      <Stack.Screen name="soporte" options={{ headerShown: false }} />
+                      <Stack.Screen name="chat" options={{ headerShown: false }} />
+                      <Stack.Screen name="+not-found" />
+                    </Stack>
+                    <StatusBar style="auto" />
+                  </StoryStateProvider>
                 </StoryProvider>
               </WidgetProvider>
             </SelectedLocalProvider>

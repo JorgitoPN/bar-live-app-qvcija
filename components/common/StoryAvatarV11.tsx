@@ -24,14 +24,13 @@ interface StoryAvatarV11Props {
 }
 
 /**
- * ✅ STORY AVATAR V11.0 - Complete Instagram-style story avatar
+ * ✅ STORY AVATAR V11.0.6 - LARGER AVATARS
  * 
- * NEW IN V11.0:
- * - ✅ Improved border animation
- * - ✅ Better performance with optimized rendering
- * - ✅ Enhanced accessibility
- * - ✅ Consistent behavior across all pages
- * - ✅ Proper cleanup and memory management
+ * NEW IN V11.0.6:
+ * - ✅ Better support for larger avatar sizes (110px)
+ * - ✅ Improved border thickness for larger avatars
+ * - ✅ Enhanced visual hierarchy
+ * - ✅ Better icon scaling
  * 
  * Features:
  * - ✅ NEON GREEN gradient border for unviewed stories
@@ -46,7 +45,7 @@ const StoryAvatarV11 = memo(function StoryAvatarV11({
   userStories,
   avatarUrl,
   userName,
-  size = 92,
+  size = 110,
   onPress,
   showLabel = false,
   labelText,
@@ -56,16 +55,18 @@ const StoryAvatarV11 = memo(function StoryAvatarV11({
   // ✅ INSTAGRAM LOGIC: Check if user has unviewed stories
   const showGradientBorder = hasUnviewedStories(userId, userStories);
 
-  console.log('[StoryAvatarV11] 🎨 V11.0 - Rendering story avatar:', {
+  console.log('[StoryAvatarV11] 🎨 V11.0.6 - Rendering story avatar:', {
     userId,
     userName,
     storiesCount: userStories.length,
     showGradientBorder,
     hasAvatar: !!avatarUrl,
+    size,
   });
 
-  const ringSize = size + 8;
-  const avatarSize = size - 4;
+  // ✅ V11.0.6: Adjusted ring and avatar sizes for better proportions
+  const ringSize = size + 10;
+  const avatarSize = size - 6;
 
   // ✅ Check if avatar exists
   const hasAvatar = !!avatarUrl;
@@ -88,7 +89,7 @@ const StoryAvatarV11 = memo(function StoryAvatarV11({
             end={{ x: 1, y: 1 }}
             style={[styles.gradientRing, { width: ringSize, height: ringSize, borderRadius: ringSize / 2 }]}
           >
-            <View style={[styles.innerRing, { width: avatarSize + 4, height: avatarSize + 4, borderRadius: (avatarSize + 4) / 2 }]}>
+            <View style={[styles.innerRing, { width: avatarSize + 6, height: avatarSize + 6, borderRadius: (avatarSize + 6) / 2 }]}>
               {hasAvatar ? (
                 <Image
                   source={{ uri: avatarUrl }}
@@ -100,7 +101,7 @@ const StoryAvatarV11 = memo(function StoryAvatarV11({
                   <IconSymbol
                     ios_icon_name={DEFAULT_AVATAR_ICON}
                     android_material_icon_name="account_circle"
-                    size={avatarSize * 0.8}
+                    size={avatarSize * 0.75}
                     color={colors.primary}
                   />
                 </View>
@@ -110,7 +111,7 @@ const StoryAvatarV11 = memo(function StoryAvatarV11({
         ) : (
           // ✅ INSTAGRAM LOGIC: Neutral border for fully viewed stories
           <View style={[styles.viewedRing, { width: ringSize, height: ringSize, borderRadius: ringSize / 2 }]}>
-            <View style={[styles.innerRing, { width: avatarSize + 4, height: avatarSize + 4, borderRadius: (avatarSize + 4) / 2 }]}>
+            <View style={[styles.innerRing, { width: avatarSize + 6, height: avatarSize + 6, borderRadius: (avatarSize + 6) / 2 }]}>
               {hasAvatar ? (
                 <Image
                   source={{ uri: avatarUrl }}
@@ -122,7 +123,7 @@ const StoryAvatarV11 = memo(function StoryAvatarV11({
                   <IconSymbol
                     ios_icon_name={DEFAULT_AVATAR_ICON}
                     android_material_icon_name="account_circle"
-                    size={avatarSize * 0.8}
+                    size={avatarSize * 0.75}
                     color={colors.primary}
                   />
                 </View>
@@ -166,7 +167,7 @@ const styles = StyleSheet.create({
   viewedRing: {
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
+    borderWidth: 2.5,
     borderColor: 'rgba(200, 200, 200, 0.3)',
   },
   innerRing: {
@@ -184,10 +185,11 @@ const styles = StyleSheet.create({
   },
   label: {
     marginTop: 8,
-    fontSize: 12,
+    fontSize: 13,
     color: colors.text,
     textAlign: 'center',
     maxWidth: '100%',
+    fontWeight: '500',
   },
 });
 
