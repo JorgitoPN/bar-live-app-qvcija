@@ -40,9 +40,9 @@ interface LocalSubscriptionInfo {
 }
 
 /**
- * ✅ SOCIAL SCREEN V11.0 - Complete Instagram-style social feed
+ * ✅ SOCIAL SCREEN V11.2.0 - Complete Instagram-style social feed
  * 
- * NEW IN V11.0:
+ * VERIFIED IMPLEMENTATION:
  * - ✅ Using InstagramStoriesBarV11 with "+" button
  * - ✅ Using UnifiedStoryViewerV11 with improved state management
  * - ✅ Complete story system with real-time updates
@@ -50,6 +50,7 @@ interface LocalSubscriptionInfo {
  * - ✅ Improved performance and error handling
  * - ✅ Consistent behavior across all pages
  * - ✅ Avatar borders disappear when all stories are viewed
+ * - ✅ All V11 components properly integrated
  * 
  * Features:
  * - ✅ Instagram-style stories carousel with create button
@@ -81,7 +82,7 @@ export default function SocialScreen() {
   const [userRole, setUserRole] = useState<UserRole>('cliente');
   const [localSubscription, setLocalSubscription] = useState<LocalSubscriptionInfo | null>(null);
   
-  // ✅ V11.0: Story viewer state
+  // ✅ V11.2.0: Story viewer state
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
   const [selectedStories, setSelectedStories] = useState<Historia[]>([]);
@@ -101,7 +102,7 @@ export default function SocialScreen() {
     ? (modeLocalData?.nombre || 'Local')
     : (user?.nombre || 'Usuario');
 
-  console.log('[Social] 🎭 V11.0 - Active Profile:', {
+  console.log('[Social] 🎭 V11.2.0 - Active Profile:', {
     activeProfileType,
     activeProfileId,
     isInteractingAsLocal,
@@ -316,7 +317,7 @@ export default function SocialScreen() {
     isLoadingRef.current = true;
 
     try {
-      console.log('[Social] ⚡ V11.0 - Loading data...');
+      console.log('[Social] ⚡ V11.2.0 - Loading data...');
       console.log('[Social] 📍 Global posts available:', globalPosts.length);
       console.log('[Social] 📍 Global stories available:', globalStories.length);
 
@@ -453,7 +454,7 @@ export default function SocialScreen() {
         setHistorias([]);
       }
 
-      console.log('[Social] ⚡ V11.0 - Data loaded');
+      console.log('[Social] ⚡ V11.2.0 - Data loaded successfully');
     } catch (error) {
       console.error('[Social] Error loading data:', error);
       setPosts([]);
@@ -466,20 +467,20 @@ export default function SocialScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      console.log('[Social] 🔄 V11.0 - Screen focused - auto-updating data');
+      console.log('[Social] 🔄 V11.2.0 - Screen focused - auto-updating data');
       loadData();
     }, [loadData])
   );
 
   const onRefresh = async () => {
-    console.log('[Social] 🔄 V11.0 - Manual refresh triggered');
+    console.log('[Social] 🔄 V11.2.0 - Manual refresh triggered');
     setRefreshing(true);
     await loadData();
     setRefreshing(false);
   };
 
   const handleCreatePost = () => {
-    console.log('[Social] ➕ V11.0 - Create post button pressed');
+    console.log('[Social] ➕ V11.2.0 - Create post button pressed');
     
     const permission = canPerformAction('create_post');
     if (!permission.allowed) {
@@ -501,7 +502,7 @@ export default function SocialScreen() {
   };
 
   const handleCreateStory = () => {
-    console.log('[Social] ➕ V11.0 - Create story button pressed');
+    console.log('[Social] ➕ V11.2.0 - Create story button pressed');
     
     const permission = canPerformAction('create_story');
     if (!permission.allowed) {
@@ -522,9 +523,9 @@ export default function SocialScreen() {
     router.push('/crear/historia');
   };
 
-  // ✅ V11.0: Story press handler
+  // ✅ V11.2.0: Story press handler
   const handleHistoriaPress = useCallback((historia: Historia) => {
-    console.log('[Social] 📖 V11.0 - Story pressed:', historia.id);
+    console.log('[Social] 📖 V11.2.0 - Story pressed:', historia.id);
     
     // Find all stories from the same author
     const authorId = historia.tipo === 'usuario' ? historia.autor_id : historia.local_id;
@@ -536,7 +537,7 @@ export default function SocialScreen() {
     // Find the index of the clicked story
     const storyIndex = authorStories.findIndex(s => s.id === historia.id);
     
-    console.log('[Social] 📖 V11.0 - Opening story viewer:', {
+    console.log('[Social] 📖 V11.2.0 - Opening story viewer:', {
       authorId,
       totalStories: authorStories.length,
       clickedIndex: storyIndex,
@@ -548,7 +549,7 @@ export default function SocialScreen() {
   }, [historias]);
 
   const handleStoriesUpdate = useCallback((updatedStories: Historia[]) => {
-    console.log('[Social] ⚡ V11.0 - Stories updated in real-time:', updatedStories.length);
+    console.log('[Social] ⚡ V11.2.0 - Stories updated in real-time:', updatedStories.length);
     setHistorias(updatedStories);
   }, []);
 
@@ -648,7 +649,7 @@ export default function SocialScreen() {
         </View>
       )}
 
-      {/* ✅ V11.0: Using InstagramStoriesBarV11 with "+" button */}
+      {/* ✅ V11.2.0: Using InstagramStoriesBarV11 with "+" button */}
       <View style={styles.storiesSection}>
         <InstagramStoriesBarV11
           historias={historias}
@@ -760,21 +761,21 @@ export default function SocialScreen() {
         windowSize={10}
       />
 
-      {/* ✅ V11.0: UNIFIED STORY VIEWER - INSTAGRAM-STYLE WITH AUTO-CLOSE */}
+      {/* ✅ V11.2.0: UNIFIED STORY VIEWER - INSTAGRAM-STYLE WITH AUTO-CLOSE */}
       <UnifiedStoryViewerV11
         visible={showStoryViewer}
         stories={selectedStories}
         initialIndex={currentStoryIndex}
         onClose={() => {
-          console.log('[Social] V11.0 - Closing story viewer');
+          console.log('[Social] V11.2.0 - Closing story viewer');
           setShowStoryViewer(false);
         }}
         onStoryChange={(index) => {
-          console.log('[Social] V11.0 - Story changed to index:', index);
+          console.log('[Social] V11.2.0 - Story changed to index:', index);
           setCurrentStoryIndex(index);
         }}
         onStoryDelete={async (storyId) => {
-          console.log('[Social] V11.0 - Story deleted:', storyId);
+          console.log('[Social] V11.2.0 - Story deleted:', storyId);
           setHistorias(prev => prev.filter(h => h.id !== storyId));
           setSelectedStories(prev => prev.filter(h => h.id !== storyId));
         }}
