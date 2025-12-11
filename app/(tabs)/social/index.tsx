@@ -25,6 +25,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import NewPostCard from '@/components/social/NewPostCard';
 import InstagramStoriesBarV11 from '@/components/social/InstagramStoriesBarV11';
 import UnifiedStoryViewerV11 from '@/components/social/UnifiedStoryViewerV11';
+import { useStoryState } from '@/contexts/StoryStateContextV11';
 import type { Publicacion, Historia } from '@/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');

@@ -20,7 +20,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import FoodPlateAvatar from '@/components/common/FoodPlateAvatar';
+import MiniFoodPlateAvatarV11 from '@/components/common/MiniFoodPlateAvatarV11';
 
 interface Comment {
   id: string;
@@ -39,6 +39,10 @@ interface Comment {
     avatar?: string;
   };
   replies?: Comment[];
+}
+
+interface AuthorStories {
+  [userId: string]: any[];
 }
 
 interface CommentsModalProps {
@@ -63,8 +67,9 @@ export default function CommentsModal({
   const [sending, setSending] = useState(false);
   const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
   const [editingComment, setEditingComment] = useState<Comment | null>(null);
+  const [authorStories, setAuthorStories] = useState<AuthorStories>({});
 
-  // ✅ Fixed: Define loadComments with useCallback before useEffect
+  // ✅ V11.0: Load comments and author stories
   const loadComments = useCallback(async () => {
     try {
       setLoading(true);
@@ -140,6 +145,36 @@ export default function CommentsModal({
         }));
 
         setComments(enrichedComments);
+
+        // ✅ V11.0: Load stories for all comment authors
+        const uniqueAuthorIds = new Set<string>();
+        commentsData.forEach(comment => {
+          uniqueAuthorIds.add(comment.autor_id);
+          if (repliesByParent[comment.id]) {
+            repliesByParent[comment.id].forEach((reply: any) => {
+              uniqueAuthorIds.add(reply.autor_id);
+            });
+          }
+        });
+
+        const storiesMap: AuthorStories = {};
+        
+        for (const authorId of uniqueAuthorIds) {
+          const { data: storiesData } = await supabase
+            .from('historias')
+            .select('id, autor_id, tipo, imagen, imagen_url, created_at, expires_at')
+            .eq('tipo', 'usuario')
+            .eq('autor_id', authorId)
+            .gt('expires_at', new Date().toISOString())
+            .order('created_at', { ascending: true });
+
+          if (storiesData && storiesData.length > 0) {
+            storiesMap[authorId] = storiesData;
+          }
+        }
+
+        setAuthorStories(storiesMap);
+        console.log('[CommentsModal] ✅ V11.0 - Loaded stories for', Object.keys(storiesMap).length, 'authors');
       } else {
         setComments(commentsData || []);
       }
@@ -432,10 +467,13 @@ export default function CommentsModal({
         </View>
       )}
       <View style={styles.commentItem}>
-        <FoodPlateAvatar
+        <MiniFoodPlateAvatarV11
           imageUrl={item.usuario.avatar}
           size={36}
           nombre={item.usuario.nombre}
+          userId={item.autor_id}
+          userStories={authorStories[item.autor_id] || []}
+          hasStory={(authorStories[item.autor_id] || []).length > 0}
         />
         <View style={styles.commentContent}>
           <View style={styles.commentBubble}>
@@ -480,10 +518,13 @@ export default function CommentsModal({
         <View style={styles.repliesContainer}>
           {item.replies.map((reply) => (
             <View key={reply.id} style={styles.replyItem}>
-              <FoodPlateAvatar
+              <MiniFoodPlateAvatarV11
                 imageUrl={reply.usuario.avatar}
                 size={28}
                 nombre={reply.usuario.nombre}
+                userId={reply.autor_id}
+                userStories={authorStories[reply.autor_id] || []}
+                hasStory={(authorStories[reply.autor_id] || []).length > 0}
               />
               <View style={styles.commentContent}>
                 <View style={styles.commentBubble}>
@@ -591,10 +632,13 @@ export default function CommentsModal({
               </View>
             )}
             <View style={styles.inputRow}>
-              <FoodPlateAvatar
+              <MiniFoodPlateAvatarV11
                 imageUrl={user.avatar}
                 size={36}
                 nombre={user.nombre}
+                userId={user.id}
+                userStories={authorStories[user.id] || []}
+                hasStory={(authorStories[user.id] || []).length > 0}
               />
               <View style={styles.inputWrapper}>
                 <TextInput

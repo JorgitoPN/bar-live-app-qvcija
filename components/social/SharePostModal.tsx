@@ -18,7 +18,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import FoodPlateAvatar from '@/components/common/FoodPlateAvatar';
+import MiniFoodPlateAvatarV11 from '@/components/common/MiniFoodPlateAvatarV11';
 import { router } from 'expo-router';
 
 interface User {
@@ -56,6 +56,7 @@ export default function SharePostModal({
   const [searchQuery, setSearchQuery] = useState('');
   const [sending, setSending] = useState(false);
   const [selectedRecipients, setSelectedRecipients] = useState<Set<string>>(new Set());
+  const [recipientStories, setRecipientStories] = useState<{ [key: string]: any[] }>({});
 
   // ✅ FIXED: Define loadRecipients with useCallback BEFORE using it in useEffect
   const loadRecipients = useCallback(async () => {
@@ -123,6 +124,40 @@ export default function SharePostModal({
         users: uniqueUsers.length,
         locals: activeLocals.length,
       });
+
+      // ✅ V11.0: Load stories for all users
+      const storiesMap: { [key: string]: any[] } = {};
+      
+      for (const u of uniqueUsers) {
+        const { data: storiesData } = await supabase
+          .from('historias')
+          .select('id, autor_id, tipo, imagen, imagen_url, created_at, expires_at')
+          .eq('tipo', 'usuario')
+          .eq('autor_id', u.id)
+          .gt('expires_at', new Date().toISOString())
+          .order('created_at', { ascending: true });
+
+        if (storiesData && storiesData.length > 0) {
+          storiesMap[u.id] = storiesData;
+        }
+      }
+
+      for (const l of activeLocals) {
+        const { data: storiesData } = await supabase
+          .from('historias')
+          .select('id, autor_id, tipo, imagen, imagen_url, created_at, expires_at')
+          .eq('tipo', 'local')
+          .eq('local_id', l.id)
+          .gt('expires_at', new Date().toISOString())
+          .order('created_at', { ascending: true });
+
+        if (storiesData && storiesData.length > 0) {
+          storiesMap[l.id] = storiesData;
+        }
+      }
+
+      setRecipientStories(storiesMap);
+      console.log('[SharePostModal] ✅ V11.0 - Loaded stories for', Object.keys(storiesMap).length, 'recipients');
     } catch (error) {
       console.error('[SharePostModal] ❌ Error loading recipients:', error);
       Alert.alert('Error', 'No se pudieron cargar los destinatarios');
@@ -298,10 +333,13 @@ export default function SharePostModal({
         onPress={() => toggleRecipient(item.id)}
         activeOpacity={0.7}
       >
-        <FoodPlateAvatar
+        <MiniFoodPlateAvatarV11
           imageUrl={isUser ? (item as User).avatar : (item as Local).imagen_url}
           size={48}
           nombre={item.nombre}
+          userId={item.id}
+          userStories={recipientStories[item.id] || []}
+          hasStory={(recipientStories[item.id] || []).length > 0}
         />
         <View style={styles.recipientInfo}>
           <Text style={styles.recipientName}>{item.nombre}</Text>

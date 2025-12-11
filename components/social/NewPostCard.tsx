@@ -13,7 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { colors } from '@/styles/commonStyles';
-import MiniFoodPlateAvatar from '@/components/common/MiniFoodPlateAvatar';
+import MiniFoodPlateAvatarV11 from '@/components/common/MiniFoodPlateAvatarV11';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import PostViewerModal from './PostViewerModal';
@@ -76,12 +76,13 @@ export default function NewPostCard({
   const [authorAvatar, setAuthorAvatar] = useState<string | null>(null);
   const [authorName, setAuthorName] = useState<string>('Usuario');
   const [loadingAuthor, setLoadingAuthor] = useState(true);
+  const [authorStories, setAuthorStories] = useState<any[]>([]);
 
   const isOwner = post.tipo === 'usuario' 
     ? post.autor_id === user?.id
     : false;
 
-  // ✅ FIXED: Load author data on mount
+  // ✅ V11.0: Load author data and stories on mount
   useEffect(() => {
     const loadAuthorData = async () => {
       try {
@@ -97,6 +98,19 @@ export default function NewPostCard({
             setAuthorName(localData.nombre);
             setAuthorAvatar(localData.imagen_url || null);
           }
+
+          // ✅ V11.0: Load local stories
+          const { data: storiesData } = await supabase
+            .from('historias')
+            .select('id, autor_id, tipo, imagen, imagen_url, created_at, expires_at')
+            .eq('tipo', 'local')
+            .eq('local_id', post.local_id)
+            .gt('expires_at', new Date().toISOString())
+            .order('created_at', { ascending: true });
+
+          if (storiesData) {
+            setAuthorStories(storiesData);
+          }
         } else if (post.autor_id) {
           // Fetch user data
           const { data: userData, error } = await supabase
@@ -108,6 +122,19 @@ export default function NewPostCard({
           if (!error && userData) {
             setAuthorName(userData.username || userData.nombre);
             setAuthorAvatar(userData.avatar || null);
+          }
+
+          // ✅ V11.0: Load user stories
+          const { data: storiesData } = await supabase
+            .from('historias')
+            .select('id, autor_id, tipo, imagen, imagen_url, created_at, expires_at')
+            .eq('tipo', 'usuario')
+            .eq('autor_id', post.autor_id)
+            .gt('expires_at', new Date().toISOString())
+            .order('created_at', { ascending: true });
+
+          if (storiesData) {
+            setAuthorStories(storiesData);
           }
         }
       } catch (error) {
@@ -271,13 +298,14 @@ export default function NewPostCard({
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.authorInfo} onPress={handleProfilePress}>
-            {/* ✅ INSTAGRAM LOGIC: Pass userId to enable story border checking */}
-            <MiniFoodPlateAvatar
+            {/* ✅ V11.0: Use MiniFoodPlateAvatarV11 with story state context */}
+            <MiniFoodPlateAvatarV11
               imageUrl={displayAvatar}
               size={42}
               nombre={authorName}
-              userId={post.autor_id}
-              hasStory={true}
+              userId={post.tipo === 'local' ? post.local_id : post.autor_id}
+              userStories={authorStories}
+              hasStory={authorStories.length > 0}
             />
             <View style={styles.authorText}>
               <Text style={styles.authorName}>{displayUsername}</Text>
