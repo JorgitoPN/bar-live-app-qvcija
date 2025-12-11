@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, Image, TouchableOpacity, Animated } from 'react-native';
+import { View, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -26,7 +26,6 @@ export default function MiniAvatarWithMomento({
 }: MiniAvatarWithMomentoProps) {
   const { user } = useAuth();
   const [hasUnviewedMomentos, setHasUnviewedMomentos] = useState(false);
-  const pulseAnim = React.useRef(new Animated.Value(1)).current;
 
   // Use a fixed border width of 3px to match social feed momentos
   const BORDER_WIDTH = 3;
@@ -78,27 +77,6 @@ export default function MiniAvatarWithMomento({
     }
   }, [userId, localId, showMomentoBorder, checkUnviewedMomentos]);
 
-  useEffect(() => {
-    if (hasUnviewedMomentos) {
-      const pulse = Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.08,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-        ])
-      );
-      pulse.start();
-      return () => pulse.stop();
-    }
-  }, [hasUnviewedMomentos, pulseAnim]);
-
   const renderAvatar = () => (
     <View
       style={[
@@ -146,15 +124,12 @@ export default function MiniAvatarWithMomento({
   );
 
   const content = (
-    <Animated.View
+    <View
       style={[
         styles.container,
         {
           width: size,
           height: size,
-        },
-        hasUnviewedMomentos && {
-          transform: [{ scale: pulseAnim }],
         },
       ]}
     >
@@ -191,7 +166,7 @@ export default function MiniAvatarWithMomento({
           {renderAvatar()}
         </View>
       )}
-    </Animated.View>
+    </View>
   );
 
   if (onPress) {

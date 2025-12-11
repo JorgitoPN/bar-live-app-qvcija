@@ -19,6 +19,8 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
+import MiniAvatarWithMomento from '@/components/momento/MiniAvatarWithMomento';
+import MomentoViewer from '@/components/momento/MomentoViewer';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -34,6 +36,7 @@ export default function UsuarioPerfilScreen() {
   const [posts, setPosts] = useState<any[]>([]);
   const [isFollowing, setIsFollowing] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
+  const [showMomentoViewer, setShowMomentoViewer] = useState(false);
   const [stats, setStats] = useState({
     posts: 0,
     seguidores: 0,
@@ -431,6 +434,11 @@ export default function UsuarioPerfilScreen() {
     router.push(`/perfil/seguidos?userId=${userId}`);
   };
 
+  const handleOpenMomentoViewer = () => {
+    if (!userId) return;
+    setShowMomentoViewer(true);
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -485,13 +493,13 @@ export default function UsuarioPerfilScreen() {
         >
           <View style={styles.profileHeader}>
             <View style={styles.avatarContainer}>
-              {usuario.avatar ? (
-                <Image source={{ uri: usuario.avatar }} style={styles.avatar} />
-              ) : (
-                <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                  <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={40} color={colors.headerText} />
-                </View>
-              )}
+              <MiniAvatarWithMomento
+                userId={userId}
+                imageUrl={usuario.avatar || undefined}
+                size={88}
+                onPress={handleOpenMomentoViewer}
+                showMomentoBorder={true}
+              />
             </View>
             <View style={styles.profileInfo}>
               <Text style={styles.profileName}>{usuario.nombre}</Text>
@@ -581,6 +589,13 @@ export default function UsuarioPerfilScreen() {
           </View>
         )}
       </ScrollView>
+
+      <MomentoViewer
+        visible={showMomentoViewer}
+        authorId={userId}
+        authorType="usuario"
+        onClose={() => setShowMomentoViewer(false)}
+      />
     </View>
   );
 }
@@ -625,18 +640,6 @@ const styles = StyleSheet.create({
   avatarContainer: {
     position: 'relative',
     marginRight: 20,
-  },
-  avatar: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    borderWidth: 3,
-    borderColor: colors.white,
-  },
-  avatarPlaceholder: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   profileInfo: {
     flex: 1,

@@ -7,7 +7,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  Animated,
   Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -43,27 +42,6 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
   const [authors, setAuthors] = useState<MomentoAuthor[]>([]);
   const [userMomento, setUserMomento] = useState<MomentoAuthor | null>(null);
   const [loading, setLoading] = useState(true);
-  const pulseAnim = React.useRef(new Animated.Value(1)).current;
-
-  // Pulsing animation for unviewed borders
-  useEffect(() => {
-    const pulse = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    pulse.start();
-    return () => pulse.stop();
-  }, [pulseAnim]);
 
   const loadMomentos = useCallback(async () => {
     if (!user) return;
@@ -254,14 +232,7 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
         onPress={() => onOpenViewer(author.id, author.tipo)}
         activeOpacity={0.7}
       >
-        <Animated.View
-          style={[
-            styles.avatarBorderContainer,
-            author.hasUnviewed && {
-              transform: [{ scale: pulseAnim }],
-            },
-          ]}
-        >
+        <View style={styles.avatarBorderContainer}>
           {author.hasUnviewed ? (
             <LinearGradient
               colors={['#00FF88', '#00CC6A', '#00FF88']}
@@ -327,7 +298,7 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
               </View>
             </View>
           )}
-        </Animated.View>
+        </View>
 
         <Text style={styles.avatarName} numberOfLines={1}>
           {author.nombre}
@@ -345,14 +316,7 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
         onPress={() => onOpenViewer(userMomento.id, userMomento.tipo)}
         activeOpacity={0.7}
       >
-        <Animated.View
-          style={[
-            styles.avatarBorderContainer,
-            userMomento.hasUnviewed && {
-              transform: [{ scale: pulseAnim }],
-            },
-          ]}
-        >
+        <View style={styles.avatarBorderContainer}>
           {userMomento.hasUnviewed ? (
             <LinearGradient
               colors={['#00FF88', '#00CC6A', '#00FF88']}
@@ -418,7 +382,7 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
               </View>
             </View>
           )}
-        </Animated.View>
+        </View>
 
         <Text style={styles.avatarName} numberOfLines={1}>
           Tu Momento
