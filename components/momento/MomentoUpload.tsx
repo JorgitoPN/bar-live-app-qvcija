@@ -120,11 +120,15 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
           .select('id, local_id, propietario_id')
           .eq('propietario_id', user.id)
           .eq('local_id', activeProfileId)
+          .eq('activo', true)
           .single();
 
         if (ownershipError || !ownershipData) {
           console.error('[MomentoUpload] Ownership verification failed:', ownershipError);
-          Alert.alert('Error', 'No tienes permisos para subir momentos como este local');
+          Alert.alert(
+            'Error de permisos',
+            'No tienes permisos para subir momentos como este local. Verifica que seas propietario del local.'
+          );
           setUploading(false);
           return;
         }
@@ -149,8 +153,9 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
           const base64String = base64data.split(',')[1];
 
           // Upload to Supabase Storage with user ID in path (required by RLS)
+          // Path format: momentos/{user_id}/{filename}
           const fileName = `momento-${Date.now()}.jpg`;
-          const filePath = `momentos/${user.id}/${fileName}`;
+          const filePath = `${user.id}/${fileName}`;
 
           console.log('[MomentoUpload] Uploading to storage:', filePath);
 
@@ -163,10 +168,24 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
 
           if (uploadError) {
             console.error('[MomentoUpload] Storage upload error:', uploadError);
+            console.error('[MomentoUpload] Error details:', {
+              message: uploadError.message,
+              statusCode: (uploadError as any).statusCode,
+            });
+            
+            // Provide more specific error message
+            if (uploadError.message.includes('row-level security') || uploadError.message.includes('policy')) {
+              Alert.alert(
+                'Error de permisos',
+                'No tienes permisos para subir archivos. Verifica que estés autenticado correctamente.'
+              );
+            } else {
+              Alert.alert('Error', `No se pudo subir la imagen: ${uploadError.message}`);
+            }
             throw uploadError;
           }
 
-          console.log('[MomentoUpload] ✅ Storage upload successful');
+          console.log('[MomentoUpload] ✅ Storage upload successful:', uploadData);
 
           // Get public URL
           const { data: urlData } = supabase.storage
@@ -195,13 +214,18 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
             });
             
             // Provide more specific error message
-            if (insertError.message.includes('row-level security')) {
+            if (insertError.message.includes('row-level security') || insertError.message.includes('policy')) {
               Alert.alert(
                 'Error de permisos',
                 'No tienes permisos para crear este Momento. Verifica que estés autenticado correctamente.'
               );
+            } else if (insertError.message.includes('propietarios_locales')) {
+              Alert.alert(
+                'Error de permisos',
+                'No tienes permisos para crear Momentos como este local. Verifica que seas propietario del local.'
+              );
             } else {
-              Alert.alert('Error', 'No se pudo crear el Momento');
+              Alert.alert('Error', `No se pudo crear el Momento: ${insertError.message}`);
             }
             throw insertError;
           }

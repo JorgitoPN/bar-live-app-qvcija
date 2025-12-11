@@ -36,14 +36,10 @@ interface Evento {
   destacado: boolean;
   activo: boolean;
   created_at: string;
-  local?: {
-    nombre: string;
-    provincia: string;
-  };
-  propietario?: {
-    nombre: string;
-    email: string;
-  };
+  local_nombre?: string;
+  local_provincia?: string;
+  propietario_nombre?: string;
+  propietario_email?: string;
 }
 
 const EVENTOS_POR_PAGINA = 20;
@@ -65,13 +61,10 @@ export default function GestionarEventosScreen() {
     try {
       setLoading(true);
 
+      // Use the view to avoid relationship ambiguity
       let query = supabase
-        .from('eventos')
-        .select(`
-          *,
-          local:locales(nombre, provincia),
-          propietario:usuarios(nombre, email)
-        `, { count: 'exact' });
+        .from('eventos_with_details')
+        .select('*', { count: 'exact' });
 
       // Apply filters
       if (busqueda) {
@@ -102,9 +95,35 @@ export default function GestionarEventosScreen() {
         .order('created_at', { ascending: false })
         .range(desde, hasta);
 
-      if (error) throw error;
+      if (error) {
+        console.error('[GestionarEventos] Error loading eventos:', error);
+        throw error;
+      }
 
-      setEventos(data || []);
+      // Transform the data to match the expected format
+      const transformedData = (data || []).map((item: any) => ({
+        id: item.id,
+        titulo: item.titulo,
+        descripcion: item.descripcion,
+        fecha: item.fecha,
+        hora: item.hora,
+        hora_inicio: item.hora_inicio,
+        hora_fin: item.hora_fin,
+        precio: item.precio,
+        imagen_url: item.imagen_url,
+        local_id: item.local_id,
+        propietario_id: item.propietario_id,
+        provincia: item.provincia,
+        destacado: item.destacado,
+        activo: item.activo,
+        created_at: item.created_at,
+        local_nombre: item.local_nombre,
+        local_provincia: item.local_provincia,
+        propietario_nombre: item.propietario_nombre,
+        propietario_email: item.propietario_email,
+      }));
+
+      setEventos(transformedData);
       setTotalEventos(count || 0);
     } catch (error) {
       console.error('[GestionarEventos] Error cargando eventos:', error);
@@ -248,8 +267,8 @@ export default function GestionarEventosScreen() {
           )}
           <View style={styles.eventoInfo}>
             <Text style={styles.eventoTitulo} numberOfLines={2}>{item.titulo}</Text>
-            {item.local && (
-              <Text style={styles.eventoLocal}>{item.local.nombre}</Text>
+            {item.local_nombre && (
+              <Text style={styles.eventoLocal}>{item.local_nombre}</Text>
             )}
             <View style={styles.eventoMeta}>
               <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={14} color={colors.textSecondary} />
