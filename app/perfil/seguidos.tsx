@@ -110,19 +110,26 @@ export default function SeguidosScreen() {
     loadSeguidos();
   };
 
+  // ✅ CRITICAL FIX: Handle both user and local profile navigation
   const handleUserPress = (seguido: Seguido) => {
-    if (seguido.tipo === 'local' && seguido.localId) {
-      // ✅ Navigate to local profile page
-      console.log('[Seguidos] 🏪 Opening local profile:', seguido.nombre, seguido.localId);
-      router.push(`/perfil/local?localId=${seguido.localId}`);
-    } else {
-      // ✅ Navigate to user profile page
-      console.log('[Seguidos] 👤 Opening user profile:', seguido.nombre);
-      if (user && seguido.id === user.id) {
-        router.push('/(tabs)/perfil');
+    try {
+      if (seguido.tipo === 'local' && seguido.localId) {
+        // ✅ Navigate to local profile page
+        console.log('[Seguidos] 🏪 Opening local profile:', seguido.nombre, seguido.localId);
+        router.push(`/perfil/local?localId=${seguido.localId}`);
       } else {
-        router.push(`/perfil/usuario?userId=${seguido.id}`);
+        // ✅ Navigate to user profile page
+        console.log('[Seguidos] 👤 Opening user profile:', seguido.nombre);
+        if (user && seguido.id === user.id) {
+          router.push('/(tabs)/perfil');
+        } else {
+          router.push(`/perfil/usuario?userId=${seguido.id}`);
+        }
       }
+    } catch (error) {
+      console.error('[Seguidos] ❌ Error navigating to profile:', error);
+      // Show a user-friendly error message
+      alert('No se pudo abrir el perfil. Por favor, intenta de nuevo.');
     }
   };
 

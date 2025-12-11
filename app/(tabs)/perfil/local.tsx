@@ -33,14 +33,14 @@ import FloatingTabBar, { TabBarItem } from '@/components/FloatingTabBar';
 import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
 import OfertaTrabajoCard from '@/components/empleo/OfertaTrabajoCard';
 import StoryStatsModal from '@/components/social/StoryStatsModal';
-import UnifiedStoryViewerV9 from '@/components/social/UnifiedStoryViewerV9';
+import UnifiedStoryViewerV11 from '@/components/social/UnifiedStoryViewerV11';
 import { PROVINCIAS, getProvinceVariations, filterByProvincia } from '@/utils/provinceNormalizer';
 import EventBanner from '@/components/eventos/EventBanner';
 import { useLocalEvent } from '@/hooks/useLocalEvent';
-import { useStoryState } from '@/contexts/StoryStateContext';
+import { useStoryState } from '@/contexts/StoryStateContextV11';
 
-// ✅ VERSION MARKER - Force cache bust: v5.0.0 - Fixed database queries and story borders
-const SCREEN_VERSION = '5.0.0';
+// ✅ VERSION MARKER - Force cache bust: v6.0.0 - Fixed story context and progress bars
+const SCREEN_VERSION = '6.0.0';
 
 const { width, height } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -121,6 +121,8 @@ export default function LocalPerfilScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { user } = useAuth();
+  
+  // ✅ CRITICAL FIX: Use V11 story state context
   const { hasUnviewedStories } = useStoryState();
   
   const { 
@@ -145,7 +147,7 @@ export default function LocalPerfilScreen() {
   const [ofertasTrabajo, setOfertasTrabajo] = useState<OfertaTrabajo[]>([]);
   const [loadingEmpleo, setLoadingEmpleo] = useState(false);
 
-  // ✅ FIXED: Use UnifiedStoryViewer component
+  // ✅ FIXED: Use UnifiedStoryViewerV11 component
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [localStories, setLocalStories] = useState<LocalStory[]>([]);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
@@ -934,6 +936,8 @@ export default function LocalPerfilScreen() {
 
   const estado = getEstadoLocal(local);
   const hasActiveStory = localStories.length > 0;
+  
+  // ✅ CRITICAL FIX: Use V11 story state context
   const showStoryOutline = hasActiveStory && hasUnviewedStories(localId, localStories);
 
   console.log('[LocalPerfil] 👁️ Story outline status:', {
@@ -1477,8 +1481,8 @@ export default function LocalPerfilScreen() {
         </View>
       </ScrollView>
 
-      {/* ✅ UNIFIED STORY VIEWER V9.0 */}
-      <UnifiedStoryViewerV9
+      {/* ✅ UNIFIED STORY VIEWER V11.0 */}
+      <UnifiedStoryViewerV11
         visible={showStoryViewer}
         stories={localStories}
         initialIndex={currentStoryIndex}

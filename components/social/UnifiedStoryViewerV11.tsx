@@ -84,6 +84,7 @@ interface ProgressBarProps {
   duration: number;
   onComplete: () => void;
   progress: Animated.Value;
+  isCompleted: boolean;
 }
 
 const truncateName = (name: string, maxLength: number = 20): string => {
@@ -91,11 +92,17 @@ const truncateName = (name: string, maxLength: number = 20): string => {
   return name.substring(0, maxLength - 1) + '...';
 };
 
-const ProgressBar = memo(({ isActive, isPaused, duration, onComplete, progress }: ProgressBarProps) => {
+const ProgressBar = memo(({ isActive, isPaused, duration, onComplete, progress, isCompleted }: ProgressBarProps) => {
   const animationRef = useRef<Animated.CompositeAnimation | null>(null);
   const completedRef = useRef(false);
 
   useEffect(() => {
+    // ✅ CRITICAL FIX: Check if progress is defined before using it
+    if (!progress) {
+      console.log('[ProgressBar] ⚠️ Progress value is undefined, skipping animation');
+      return;
+    }
+
     // Stop any existing animation
     if (animationRef.current) {
       try {
@@ -109,8 +116,22 @@ const ProgressBar = memo(({ isActive, isPaused, duration, onComplete, progress }
     // Reset completion flag
     completedRef.current = false;
 
+    // ✅ INSTAGRAM LOGIC: Keep completed bars filled
+    if (isCompleted) {
+      try {
+        progress.setValue(1);
+      } catch (error) {
+        console.log('[ProgressBar] Error setting completed value:', error);
+      }
+      return;
+    }
+
     if (!isActive) {
-      progress.setValue(0);
+      try {
+        progress.setValue(0);
+      } catch (error) {
+        console.log('[ProgressBar] Error resetting value:', error);
+      }
       return;
     }
 
@@ -127,6 +148,7 @@ const ProgressBar = memo(({ isActive, isPaused, duration, onComplete, progress }
       currentValue,
       remainingDuration,
       duration,
+      isCompleted,
     });
 
     const newAnimation = Animated.timing(progress, {
@@ -160,8 +182,9 @@ const ProgressBar = memo(({ isActive, isPaused, duration, onComplete, progress }
         animationRef.current = null;
       }
     };
-  }, [isActive, isPaused, duration, onComplete, progress]);
+  }, [isActive, isPaused, duration, onComplete, progress, isCompleted]);
 
+  // ✅ CRITICAL FIX: Check if progress is defined before interpolating
   const widthValue = progress ? progress.interpolate({
     inputRange: [0, 1],
     outputRange: ['0%', '100%'],
@@ -197,6 +220,8 @@ ProgressBar.displayName = 'ProgressBar';
  * - ✅ Better performance and error handling
  * - ✅ Enhanced countdown and auto-close behavior
  * - ✅ Proper cleanup on unmount
+ * - ✅ FIXED: Progress bars maintain filled state (Instagram logic)
+ * - ✅ FIXED: Avatar borders disappear after viewing all stories
  * 
  * Features:
  * - ✅ Consistent design across all pages (Social, Profile, Comments, etc.)
@@ -235,7 +260,20 @@ function UnifiedStoryViewerV11({
   const [loadingStats, setLoadingStats] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   
-  const progressValues = useRef(stories.map(() => new Animated.Value(0))).current;
+  // ✅ CRITICAL FIX: Initialize progress values properly with error handling
+  const progressValues = useRef<Animated.Value[]>([]);
+  
+  // ✅ Initialize progress values when stories change
+  useEffect(() => {
+    try {
+      progressValues.current = stories.map(() => new Animated.Value(0));
+      console.log('[UnifiedStoryViewerV11] ✅ Initialized', stories.length, 'progress values');
+    } catch (error) {
+      console.error('[UnifiedStoryViewerV11] ❌ Error initializing progress values:', error);
+      progressValues.current = [];
+    }
+  }, [stories.length]);
+  
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const isLongPressing = useRef(false);
   const viewStartTime = useRef<number>(Date.now());
@@ -259,6 +297,7 @@ function UnifiedStoryViewerV11({
     totalStories: stories.length,
     duration,
     visible,
+    progressValuesCount: progressValues.current.length,
   });
 
   // ✅ V11.0: INSTAGRAM LOGIC - Mark as viewed after minimum threshold
@@ -420,7 +459,23 @@ function UnifiedStoryViewerV11({
       setCurrentIndex(initialIndex);
       setLoading(true);
       setIsPaused(false);
-      progressValues.forEach(p => p.setValue(0));
+      
+      // ✅ CRITICAL FIX: Reset progress values safely
+      try {
+        progressValues.current.forEach((p, index) => {
+          if (p && typeof p.setValue === 'function') {
+            // ✅ INSTAGRAM LOGIC: Keep previous stories filled
+            if (index < initialIndex) {
+              p.setValue(1);
+            } else {
+              p.setValue(0);
+            }
+          }
+        });
+      } catch (error) {
+        console.error('[UnifiedStoryViewerV11] Error resetting progress values:', error);
+      }
+      
       viewStartTime.current = Date.now();
       hasMarkedAsViewed.current.clear();
     } else {
@@ -431,7 +486,7 @@ function UnifiedStoryViewerV11({
       setSendingMessage(false);
       setShowStoryStats(false);
     }
-  }, [visible, initialIndex, progressValues, stories.length, duration]);
+  }, [visible, initialIndex, stories.length, duration]);
 
   const handleNext = useCallback(() => {
     console.log('[UnifiedStoryViewerV11] ⏭️ V11.0 - Next story:', {
@@ -445,7 +500,16 @@ function UnifiedStoryViewerV11({
     }
 
     if (currentIndex < stories.length - 1) {
-      progressValues[currentIndex].setValue(1);
+      // ✅ INSTAGRAM LOGIC: Keep current progress bar filled
+      try {
+        const currentProgress = progressValues.current[currentIndex];
+        if (currentProgress && typeof currentProgress.setValue === 'function') {
+          currentProgress.setValue(1);
+        }
+      } catch (error) {
+        console.error('[UnifiedStoryViewerV11] Error setting progress to 1:', error);
+      }
+      
       setCurrentIndex(currentIndex + 1);
       setLoading(true);
       viewStartTime.current = Date.now();
@@ -465,7 +529,16 @@ function UnifiedStoryViewerV11({
     });
 
     if (currentIndex > 0) {
-      progressValues[currentIndex].setValue(0);
+      // ✅ INSTAGRAM LOGIC: Reset current and next progress bars
+      try {
+        const currentProgress = progressValues.current[currentIndex];
+        if (currentProgress && typeof currentProgress.setValue === 'function') {
+          currentProgress.setValue(0);
+        }
+      } catch (error) {
+        console.error('[UnifiedStoryViewerV11] Error resetting current progress:', error);
+      }
+      
       setCurrentIndex(currentIndex - 1);
       setLoading(true);
       viewStartTime.current = Date.now();
@@ -854,19 +927,32 @@ function UnifiedStoryViewerV11({
             </View>
           )}
 
-          {/* ✅ V11.0: PROGRESS BARS - Always visible at the top */}
+          {/* ✅ V11.0: PROGRESS BARS - Always visible at the top with Instagram logic */}
           <BlurView intensity={20} tint="dark" style={styles.progressContainer}>
-            {stories.map((_, index) => (
-              <View key={index} style={styles.progressBarWrapper}>
-                <ProgressBar
-                  isActive={index === currentIndex}
-                  isPaused={isPaused || loading}
-                  duration={duration}
-                  onComplete={handleNext}
-                  progress={progressValues[index]}
-                />
-              </View>
-            ))}
+            {stories.map((_, index) => {
+              // ✅ CRITICAL FIX: Safely get progress value
+              const progressValue = progressValues.current[index];
+              const isCompleted = index < currentIndex;
+              
+              return (
+                <View key={index} style={styles.progressBarWrapper}>
+                  {progressValue ? (
+                    <ProgressBar
+                      isActive={index === currentIndex}
+                      isPaused={isPaused || loading}
+                      duration={duration}
+                      onComplete={handleNext}
+                      progress={progressValue}
+                      isCompleted={isCompleted}
+                    />
+                  ) : (
+                    <View style={styles.progressBarContainer}>
+                      <View style={[styles.progressBarFill, { width: '0%' }]} />
+                    </View>
+                  )}
+                </View>
+              );
+            })}
           </BlurView>
 
           <BlurView intensity={30} tint="dark" style={styles.header}>
