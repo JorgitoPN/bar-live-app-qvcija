@@ -24,10 +24,11 @@ interface StoryAvatarV11Props {
 }
 
 /**
- * ✅ STORY AVATAR V11.0.6 - FIXED TOUCH GESTURES
+ * ✅ STORY AVATAR V11.1.0 - FIXED TOUCH GESTURES
  * 
- * FIXES IN V11.0.6:
- * - ✅ CRITICAL FIX: Added pointerEvents="box-only" to ensure touch events work
+ * FIXES IN V11.1.0:
+ * - ✅ CRITICAL FIX: Proper touch event handling with activeOpacity
+ * - ✅ CRITICAL FIX: Removed pointerEvents that were blocking touches
  * - ✅ Improved touch target size for better UX
  * - ✅ Better accessibility support
  * 
@@ -55,7 +56,7 @@ const StoryAvatarV11 = memo(function StoryAvatarV11({
   // ✅ INSTAGRAM LOGIC: Check if user has unviewed stories
   const showGradientBorder = hasUnviewedStories(userId, userStories);
 
-  console.log('[StoryAvatarV11] 🎨 V11.0.6 - Rendering story avatar:', {
+  console.log('[StoryAvatarV11.1.0] 🎨 Rendering story avatar:', {
     userId,
     userName,
     storiesCount: userStories.length,
@@ -77,12 +78,8 @@ const StoryAvatarV11 = memo(function StoryAvatarV11({
       accessible={true}
       accessibilityLabel={`Ver historias de ${userName}`}
       accessibilityRole="button"
-      pointerEvents="box-only"
     >
-      <View 
-        style={[styles.avatarWrapper, { width: ringSize, height: ringSize }]}
-        pointerEvents="box-only"
-      >
+      <View style={[styles.avatarWrapper, { width: ringSize, height: ringSize }]}>
         {showGradientBorder ? (
           // ✅ NEON GREEN GRADIENT for unviewed stories (Instagram-style)
           <LinearGradient
@@ -90,24 +87,16 @@ const StoryAvatarV11 = memo(function StoryAvatarV11({
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={[styles.gradientRing, { width: ringSize, height: ringSize, borderRadius: ringSize / 2 }]}
-            pointerEvents="none"
           >
-            <View 
-              style={[styles.innerRing, { width: avatarSize + 4, height: avatarSize + 4, borderRadius: (avatarSize + 4) / 2 }]}
-              pointerEvents="none"
-            >
+            <View style={[styles.innerRing, { width: avatarSize + 4, height: avatarSize + 4, borderRadius: (avatarSize + 4) / 2 }]}>
               {hasAvatar ? (
                 <Image
                   source={{ uri: avatarUrl }}
                   style={[styles.avatarImage, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}
                   resizeMode="cover"
-                  pointerEvents="none"
                 />
               ) : (
-                <View 
-                  style={[styles.avatarPlaceholder, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}
-                  pointerEvents="none"
-                >
+                <View style={[styles.avatarPlaceholder, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}>
                   <IconSymbol
                     ios_icon_name={DEFAULT_AVATAR_ICON}
                     android_material_icon_name="account_circle"
@@ -120,26 +109,16 @@ const StoryAvatarV11 = memo(function StoryAvatarV11({
           </LinearGradient>
         ) : (
           // ✅ INSTAGRAM LOGIC: Neutral border for fully viewed stories
-          <View 
-            style={[styles.viewedRing, { width: ringSize, height: ringSize, borderRadius: ringSize / 2 }]}
-            pointerEvents="none"
-          >
-            <View 
-              style={[styles.innerRing, { width: avatarSize + 4, height: avatarSize + 4, borderRadius: (avatarSize + 4) / 2 }]}
-              pointerEvents="none"
-            >
+          <View style={[styles.viewedRing, { width: ringSize, height: ringSize, borderRadius: ringSize / 2 }]}>
+            <View style={[styles.innerRing, { width: avatarSize + 4, height: avatarSize + 4, borderRadius: (avatarSize + 4) / 2 }]}>
               {hasAvatar ? (
                 <Image
                   source={{ uri: avatarUrl }}
                   style={[styles.avatarImage, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}
                   resizeMode="cover"
-                  pointerEvents="none"
                 />
               ) : (
-                <View 
-                  style={[styles.avatarPlaceholder, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}
-                  pointerEvents="none"
-                >
+                <View style={[styles.avatarPlaceholder, { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }]}>
                   <IconSymbol
                     ios_icon_name={DEFAULT_AVATAR_ICON}
                     android_material_icon_name="account_circle"
@@ -153,7 +132,7 @@ const StoryAvatarV11 = memo(function StoryAvatarV11({
         )}
       </View>
       {showLabel && (
-        <Text style={styles.label} numberOfLines={1} pointerEvents="none">
+        <Text style={styles.label} numberOfLines={1}>
           {labelText || userName}
         </Text>
       )}
