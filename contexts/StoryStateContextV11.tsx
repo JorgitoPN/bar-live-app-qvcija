@@ -23,6 +23,7 @@ const StoryStateContext = createContext<StoryStateContextType | undefined>(undef
  * - ✅ Consistent border behavior across all pages
  * - ✅ Proper cleanup on unmount
  * - ✅ Loading state for better UX
+ * - ✅ FIXED: Own stories border disappears after viewing all stories
  * 
  * Features:
  * - ✅ Tracks viewed stories globally
@@ -86,7 +87,7 @@ export function StoryStateProvider({ children }: { children: React.ReactNode }) 
 
   /**
    * ✅ V11.0: INSTAGRAM LOGIC - Check if user has unviewed stories
-   * - Own stories always show border (for stats access)
+   * - ✅ FIXED: Own stories also check for unviewed status
    * - Other users: Show border ONLY if at least one story is unviewed
    * - Border disappears when ALL stories are viewed
    */
@@ -95,17 +96,14 @@ export function StoryStateProvider({ children }: { children: React.ReactNode }) 
       return false;
     }
     
-    // Own stories always show border (for stats)
-    if (userId === user.id) {
-      console.log('[StoryStateV11] 👤 Own stories - always show border');
-      return true;
-    }
-    
-    // ✅ INSTAGRAM LOGIC: Check if ANY story is unviewed
+    // ✅ FIXED: Check if ANY story is unviewed (including own stories)
     const hasUnviewed = stories.some(s => !viewedStoryIds.has(s.id));
+    
+    const isOwnStories = userId === user.id;
     
     console.log('[StoryStateV11] 👁️ Instagram logic:', {
       userId,
+      isOwnStories,
       totalStories: stories.length,
       viewedCount: stories.filter(s => viewedStoryIds.has(s.id)).length,
       hasUnviewed,

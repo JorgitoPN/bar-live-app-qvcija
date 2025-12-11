@@ -649,7 +649,7 @@ export default function PerfilScreen() {
             />
           )}
           
-          {/* ✅ '+' button to add story */}
+          {/* ✅ FIXED: '+' button with WHITE border */}
           <TouchableOpacity 
             style={styles.addStoryButton}
             onPress={handleAddStory}
@@ -1235,7 +1235,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     overflow: 'hidden',
     borderWidth: 3,
-    borderColor: colors.headerGradientStart,
+    borderColor: colors.white,
     zIndex: 2,
   },
   addStoryGradient: {
