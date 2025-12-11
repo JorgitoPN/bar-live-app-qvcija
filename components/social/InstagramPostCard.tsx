@@ -13,7 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { colors } from '@/styles/commonStyles';
-import MiniFoodPlateAvatar from '@/components/common/MiniFoodPlateAvatar';
+import MiniAvatarWithMomento from '@/components/momento/MiniAvatarWithMomento';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import PostViewerModal from './PostViewerModal';
@@ -71,17 +71,16 @@ export default function InstagramPostCard({
   const [showShareModal, setShowShareModal] = useState(false);
   const [showFullCaption, setShowFullCaption] = useState(false);
   
-  // ✅ FIXED: Fetch author data dynamically
+  // Fetch author data dynamically
   const [authorAvatar, setAuthorAvatar] = useState<string | null>(null);
   const [authorName, setAuthorName] = useState<string>('Usuario');
   const [loadingAuthor, setLoadingAuthor] = useState(true);
-  const [hasStory, setHasStory] = useState(false);
 
   const isOwner = post.tipo === 'usuario' 
     ? post.autor_id === user?.id
     : false;
 
-  // ✅ FIXED: Load author data and check for stories on mount
+  // Load author data on mount
   useEffect(() => {
     const loadAuthorData = async () => {
       try {
@@ -108,18 +107,6 @@ export default function InstagramPostCard({
           if (!error && userData) {
             setAuthorName(userData.username || userData.nombre);
             setAuthorAvatar(userData.avatar || null);
-          }
-
-          // ✅ NEW: Check if user has active stories (within last 24 hours)
-          const { data: storiesData, error: storiesError } = await supabase
-            .from('historias')
-            .select('id')
-            .eq('autor_id', post.autor_id)
-            .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
-            .limit(1);
-
-          if (!storiesError && storiesData && storiesData.length > 0) {
-            setHasStory(true);
           }
         }
       } catch (error) {
@@ -286,13 +273,13 @@ export default function InstagramPostCard({
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.authorInfo} onPress={handleProfilePress}>
-            {/* ✅ FIXED: Show avatar with story border if user has stories */}
-            <MiniFoodPlateAvatar
+            {/* Show avatar with momento border if user has unviewed momentos */}
+            <MiniAvatarWithMomento
+              userId={post.tipo === 'usuario' ? post.autor_id : undefined}
+              localId={post.tipo === 'local' ? post.local_id : undefined}
               imageUrl={authorAvatar || undefined}
               size={40}
-              nombre={authorName}
-              hasStory={hasStory}
-              userId={post.autor_id}
+              showMomentoBorder={true}
             />
             <View style={styles.authorText}>
               <Text style={styles.authorName}>{displayUsername}</Text>

@@ -480,6 +480,11 @@ export default function MomentoViewer({
 
   const handleNext = useCallback(() => {
     if (currentIndex < momentos.length - 1) {
+      // Keep the current progress bar at 100% before moving to next
+      if (progressAnims[currentIndex]) {
+        progressAnims[currentIndex].setValue(1);
+      }
+      
       setCurrentIndex(currentIndex + 1);
       if (!momentos[currentIndex + 1]?.user_has_viewed) {
         markAsViewed(momentos[currentIndex + 1].id);
@@ -487,10 +492,14 @@ export default function MomentoViewer({
     } else {
       onClose();
     }
-  }, [currentIndex, momentos, onClose]);
+  }, [currentIndex, momentos, onClose, progressAnims]);
 
   const handlePrevious = () => {
     if (currentIndex > 0) {
+      // Reset current progress bar
+      if (progressAnims[currentIndex]) {
+        progressAnims[currentIndex].setValue(0);
+      }
       setCurrentIndex(currentIndex - 1);
     }
   };
@@ -584,7 +593,7 @@ export default function MomentoViewer({
 
       return () => {
         clearTimeout(timer);
-        progressAnims[currentIndex]?.setValue(0);
+        // Don't reset progress bar here - let handleNext do it
       };
     }
   }, [currentIndex, paused, momentos, loading, progressAnims, handleNext, visible]);
@@ -685,8 +694,7 @@ export default function MomentoViewer({
                     width: progressAnims[index]?.interpolate({
                       inputRange: [0, 1],
                       outputRange: ['0%', '100%'],
-                    }) || '0%',
-                    opacity: index === currentIndex ? 1 : index < currentIndex ? 1 : 0.3,
+                    }) || (index < currentIndex ? '100%' : '0%'),
                   },
                 ]}
               />

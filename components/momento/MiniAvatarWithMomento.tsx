@@ -27,8 +27,8 @@ export default function MiniAvatarWithMomento({
   const { user } = useAuth();
   const [hasUnviewedMomentos, setHasUnviewedMomentos] = useState(false);
 
-  // Use a fixed border width of 3px to match social feed momentos
-  const BORDER_WIDTH = 3;
+  // Use a fixed border width of 2px to match social feed momentos (thinner border)
+  const BORDER_WIDTH = 2;
   const innerSize = size - BORDER_WIDTH * 2;
 
   const checkUnviewedMomentos = useCallback(async () => {
@@ -74,6 +74,39 @@ export default function MiniAvatarWithMomento({
   useEffect(() => {
     if (showMomentoBorder && (userId || localId)) {
       checkUnviewedMomentos();
+
+      // Subscribe to real-time updates
+      const subscription = supabase
+        .channel(`momento-updates-${userId || localId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'momentos',
+          },
+          () => {
+            console.log('[MiniAvatarWithMomento] Momento update detected');
+            checkUnviewedMomentos();
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'momento_views',
+          },
+          () => {
+            console.log('[MiniAvatarWithMomento] View update detected');
+            checkUnviewedMomentos();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(subscription);
+      };
     }
   }, [userId, localId, showMomentoBorder, checkUnviewedMomentos]);
 
