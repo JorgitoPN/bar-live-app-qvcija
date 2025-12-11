@@ -6,7 +6,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { useColorScheme } from 'react-native';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { GlobalDataProvider } from '@/contexts/GlobalDataContext';
 import { ModeProvider } from '@/contexts/ModeContext';
