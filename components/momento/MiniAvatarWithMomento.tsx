@@ -28,7 +28,8 @@ export default function MiniAvatarWithMomento({
   const [hasUnviewedMomentos, setHasUnviewedMomentos] = useState(false);
   const pulseAnim = React.useRef(new Animated.Value(1)).current;
 
-  const BORDER_WIDTH = size * 0.075;
+  // Use a fixed border width of 3px to match social feed momentos
+  const BORDER_WIDTH = 3;
   const innerSize = size - BORDER_WIDTH * 2;
 
   const checkUnviewedMomentos = useCallback(async () => {

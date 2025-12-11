@@ -217,6 +217,8 @@ export default function MomentoViewer({
     if (!user || momentos.length === 0) return;
 
     const currentMomento = momentos[currentIndex];
+    if (!currentMomento) return;
+
     const hasLiked = currentMomento.user_has_liked;
 
     try {
@@ -294,7 +296,7 @@ export default function MomentoViewer({
           pathname: '/chat/conversacion',
           params: {
             chatId,
-            momentoId: momentos[currentIndex].id,
+            momentoId: momentos[currentIndex]?.id,
           },
         });
         onClose();
@@ -309,6 +311,7 @@ export default function MomentoViewer({
     if (momentos.length === 0) return;
 
     const currentMomento = momentos[currentIndex];
+    if (!currentMomento) return;
 
     try {
       // Load viewers and likers
@@ -353,6 +356,7 @@ export default function MomentoViewer({
     if (!user || momentos.length === 0) return;
 
     const currentMomento = momentos[currentIndex];
+    if (!currentMomento) return;
 
     // Check if user is the author
     if (currentMomento.autor_id !== user.id) {
@@ -401,7 +405,7 @@ export default function MomentoViewer({
   const handleNext = useCallback(() => {
     if (currentIndex < momentos.length - 1) {
       setCurrentIndex(currentIndex + 1);
-      if (!momentos[currentIndex + 1].user_has_viewed) {
+      if (!momentos[currentIndex + 1]?.user_has_viewed) {
         markAsViewed(momentos[currentIndex + 1].id);
       }
     } else {
@@ -523,7 +527,15 @@ export default function MomentoViewer({
   }
 
   const currentMomento = momentos[currentIndex];
-  const isAuthor = user?.id === currentMomento?.autor_id;
+  
+  // Safety check: if currentMomento is undefined, close the viewer
+  if (!currentMomento) {
+    console.error('[MomentoViewer] Current momento is undefined');
+    handleClose();
+    return null;
+  }
+
+  const isAuthor = user?.id === currentMomento.autor_id;
 
   return (
     <Modal visible={visible} transparent animationType="fade">
@@ -561,11 +573,22 @@ export default function MomentoViewer({
                 },
               ]}
             >
-              <Image
-                source={{ uri: currentMomento.imagen_url }}
-                style={styles.image}
-                resizeMode="contain"
-              />
+              {currentMomento.imagen_url ? (
+                <Image
+                  source={{ uri: currentMomento.imagen_url }}
+                  style={styles.image}
+                  resizeMode="contain"
+                />
+              ) : (
+                <View style={styles.imagePlaceholder}>
+                  <IconSymbol
+                    ios_icon_name="photo"
+                    android_material_icon_name="photo"
+                    size={64}
+                    color="#fff"
+                  />
+                </View>
+              )}
               {paused && (
                 <View style={styles.pausedOverlay}>
                   <View style={styles.glowEffect} />
@@ -810,6 +833,13 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
+  },
+  imagePlaceholder: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   pausedOverlay: {
     ...StyleSheet.absoluteFillObject,
