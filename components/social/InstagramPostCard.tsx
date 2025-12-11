@@ -19,7 +19,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import PostViewerModal from './PostViewerModal';
 import CommentsModal from './CommentsModal';
 import SharePostModal from './SharePostModal';
-import { LinearGradient } from 'expo-linear-gradient';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -202,6 +201,11 @@ export default function InstagramPostCard({
   };
 
   const handleDelete = async () => {
+    if (!user) {
+      Alert.alert('Error', 'Debes iniciar sesión para eliminar publicaciones');
+      return;
+    }
+
     Alert.alert(
       'Eliminar publicación',
       '¿Estás seguro de que quieres eliminar esta publicación?',
@@ -212,27 +216,45 @@ export default function InstagramPostCard({
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log('[InstagramPostCard] Deleting post:', post.id);
+              console.log('[InstagramPostCard] 🗑️ Attempting to delete post:', {
+                postId: post.id,
+                userId: user.id,
+                autorId: post.autor_id,
+                isOwner,
+              });
               
-              // Delete from the correct table: 'posts' not 'publicaciones'
-              const { error } = await supabase
+              // Verify ownership before deletion
+              if (post.autor_id !== user.id) {
+                console.error('[InstagramPostCard] ❌ User is not the owner of this post');
+                Alert.alert('Error', 'No tienes permiso para eliminar esta publicación');
+                return;
+              }
+
+              // Delete from the posts table
+              const { error, data } = await supabase
                 .from('posts')
                 .delete()
-                .eq('id', post.id);
+                .eq('id', post.id)
+                .eq('autor_id', user.id); // Double-check ownership in query
 
               if (error) {
-                console.error('[InstagramPostCard] Delete error:', error);
+                console.error('[InstagramPostCard] ❌ Delete error:', error);
                 throw error;
               }
 
               console.log('[InstagramPostCard] ✅ Post deleted successfully');
+              Alert.alert('Éxito', 'Publicación eliminada correctamente');
 
+              // Trigger update callback
               if (onUpdate) {
                 onUpdate();
               }
-            } catch (error) {
-              console.error('[InstagramPostCard] Error deleting post:', error);
-              Alert.alert('Error', 'No se pudo eliminar la publicación');
+            } catch (error: any) {
+              console.error('[InstagramPostCard] ❌ Error deleting post:', error);
+              Alert.alert(
+                'Error', 
+                error.message || 'No se pudo eliminar la publicación. Por favor, intenta de nuevo.'
+              );
             }
           },
         },
@@ -297,9 +319,11 @@ export default function InstagramPostCard({
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.moreButton} onPress={isOwner ? handleDelete : undefined}>
-            <Ionicons name="ellipsis-vertical" size={20} color={colors.text} />
-          </TouchableOpacity>
+          {isOwner && (
+            <TouchableOpacity style={styles.moreButton} onPress={handleDelete}>
+              <Ionicons name="trash-outline" size={22} color={colors.text} />
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Images */}

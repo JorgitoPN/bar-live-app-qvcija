@@ -198,6 +198,11 @@ export default function NewPostCard({
   };
 
   const handleDelete = async () => {
+    if (!user) {
+      Alert.alert('Error', 'Debes iniciar sesión para eliminar publicaciones');
+      return;
+    }
+
     Alert.alert(
       'Eliminar publicación',
       '¿Estás seguro de que quieres eliminar esta publicación?',
@@ -208,27 +213,45 @@ export default function NewPostCard({
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log('[NewPostCard] Deleting post:', post.id);
+              console.log('[NewPostCard] 🗑️ Attempting to delete post:', {
+                postId: post.id,
+                userId: user.id,
+                autorId: post.autor_id,
+                isOwner,
+              });
               
-              // Delete from the correct table: 'posts' not 'publicaciones'
-              const { error } = await supabase
+              // Verify ownership before deletion
+              if (post.autor_id !== user.id) {
+                console.error('[NewPostCard] ❌ User is not the owner of this post');
+                Alert.alert('Error', 'No tienes permiso para eliminar esta publicación');
+                return;
+              }
+
+              // Delete from the posts table
+              const { error, data } = await supabase
                 .from('posts')
                 .delete()
-                .eq('id', post.id);
+                .eq('id', post.id)
+                .eq('autor_id', user.id); // Double-check ownership in query
 
               if (error) {
-                console.error('[NewPostCard] Delete error:', error);
+                console.error('[NewPostCard] ❌ Delete error:', error);
                 throw error;
               }
 
               console.log('[NewPostCard] ✅ Post deleted successfully');
+              Alert.alert('Éxito', 'Publicación eliminada correctamente');
 
+              // Trigger update callback
               if (onUpdate) {
                 onUpdate();
               }
-            } catch (error) {
-              console.error('[NewPostCard] Error deleting post:', error);
-              Alert.alert('Error', 'No se pudo eliminar la publicación');
+            } catch (error: any) {
+              console.error('[NewPostCard] ❌ Error deleting post:', error);
+              Alert.alert(
+                'Error', 
+                error.message || 'No se pudo eliminar la publicación. Por favor, intenta de nuevo.'
+              );
             }
           },
         },
@@ -289,7 +312,7 @@ export default function NewPostCard({
 
           {isOwner && (
             <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
-              <Ionicons name="trash-outline" size={22} color="#000" />
+              <Ionicons name="trash-outline" size={22} color={colors.text} />
             </TouchableOpacity>
           )}
         </View>
