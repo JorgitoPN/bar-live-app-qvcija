@@ -212,12 +212,20 @@ export default function InstagramPostCard({
           style: 'destructive',
           onPress: async () => {
             try {
+              console.log('[InstagramPostCard] Deleting post:', post.id);
+              
+              // Delete from the correct table: 'posts' not 'publicaciones'
               const { error } = await supabase
-                .from('publicaciones')
+                .from('posts')
                 .delete()
                 .eq('id', post.id);
 
-              if (error) throw error;
+              if (error) {
+                console.error('[InstagramPostCard] Delete error:', error);
+                throw error;
+              }
+
+              console.log('[InstagramPostCard] ✅ Post deleted successfully');
 
               if (onUpdate) {
                 onUpdate();

@@ -48,7 +48,8 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
 
     try {
       setLoading(true);
-      console.log('[MomentoCarousel] Loading momentos...');
+      console.log('[MomentoCarousel] Loading momentos for user:', user.id);
+      console.log('[MomentoCarousel] Active profile:', { activeProfileType, activeProfileId });
 
       // Get all momentos that haven't expired (24h)
       const { data: momentosData, error: momentosError } = await supabase
@@ -76,11 +77,14 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
       if (momentosError) throw momentosError;
 
       if (!momentosData || momentosData.length === 0) {
+        console.log('[MomentoCarousel] No momentos found');
         setAuthors([]);
         setUserMomento(null);
         setLoading(false);
         return;
       }
+
+      console.log('[MomentoCarousel] Found momentos:', momentosData.length);
 
       // Get viewed momentos by current user
       const momentoIds = momentosData.map(m => m.id);
@@ -106,6 +110,16 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
         const isCurrentLocalMomento = activeProfileType === 'local' && momento.local_id === activeProfileId;
         const isOwnMomento = isCurrentUserMomento || isCurrentLocalMomento;
 
+        console.log('[MomentoCarousel] Processing momento:', {
+          momentoId: momento.id,
+          tipo: momento.tipo,
+          autorId: momento.autor_id,
+          localId: momento.local_id,
+          isCurrentUserMomento,
+          isCurrentLocalMomento,
+          isOwnMomento,
+        });
+
         if (!authorsMap.has(authorKey)) {
           const authorData = momento.tipo === 'local' 
             ? momento.locales 
@@ -129,6 +143,7 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
           // Store user's own momento separately
           if (isOwnMomento) {
             currentUserMomento = authorInfo;
+            console.log('[MomentoCarousel] Found own momento:', authorInfo);
           }
         }
 
@@ -156,9 +171,25 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
       // Filter out current user/local from the main carousel
       const filteredAuthors = Array.from(authorsMap.values()).filter(author => {
         if (activeProfileType === 'usuario') {
-          return !(author.tipo === 'usuario' && author.id === user.id);
+          // Exclude if this is the current user's momento
+          const isCurrentUser = author.tipo === 'usuario' && author.id === user.id;
+          console.log('[MomentoCarousel] Filtering user momento:', {
+            authorId: author.id,
+            userId: user.id,
+            isCurrentUser,
+            excluded: isCurrentUser,
+          });
+          return !isCurrentUser;
         } else if (activeProfileType === 'local') {
-          return !(author.tipo === 'local' && author.id === activeProfileId);
+          // Exclude if this is the current local's momento
+          const isCurrentLocal = author.tipo === 'local' && author.id === activeProfileId;
+          console.log('[MomentoCarousel] Filtering local momento:', {
+            authorId: author.id,
+            localId: activeProfileId,
+            isCurrentLocal,
+            excluded: isCurrentLocal,
+          });
+          return !isCurrentLocal;
         }
         return true;
       });
@@ -179,6 +210,7 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
         total: momentosData.length,
         others: sortedAuthors.length,
         userOwn: currentUserMomento ? 1 : 0,
+        userOwnDetails: currentUserMomento,
       });
     } catch (error) {
       console.error('[MomentoCarousel] Error loading momentos:', error);

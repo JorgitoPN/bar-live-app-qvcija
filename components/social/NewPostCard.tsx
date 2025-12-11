@@ -13,7 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { colors } from '@/styles/commonStyles';
-import MiniFoodPlateAvatar from '@/components/common/MiniFoodPlateAvatar';
+import MiniAvatarWithMomento from '@/components/momento/MiniAvatarWithMomento';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import PostViewerModal from './PostViewerModal';
@@ -208,12 +208,20 @@ export default function NewPostCard({
           style: 'destructive',
           onPress: async () => {
             try {
+              console.log('[NewPostCard] Deleting post:', post.id);
+              
+              // Delete from the correct table: 'posts' not 'publicaciones'
               const { error } = await supabase
-                .from('publicaciones')
+                .from('posts')
                 .delete()
                 .eq('id', post.id);
 
-              if (error) throw error;
+              if (error) {
+                console.error('[NewPostCard] Delete error:', error);
+                throw error;
+              }
+
+              console.log('[NewPostCard] ✅ Post deleted successfully');
 
               if (onUpdate) {
                 onUpdate();
@@ -264,11 +272,12 @@ export default function NewPostCard({
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.authorInfo} onPress={handleProfilePress}>
-            <MiniFoodPlateAvatar
+            <MiniAvatarWithMomento
               imageUrl={displayAvatar}
               size={42}
-              nombre={authorName}
-              userId={post.tipo === 'local' ? post.local_id : post.autor_id}
+              userId={post.tipo === 'usuario' ? post.autor_id : undefined}
+              localId={post.tipo === 'local' ? post.local_id : undefined}
+              showMomentoBorder={true}
             />
             <View style={styles.authorText}>
               <Text style={styles.authorName}>{displayUsername}</Text>
