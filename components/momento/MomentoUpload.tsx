@@ -30,59 +30,10 @@ interface MomentoUploadProps {
 }
 
 export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUploadProps) {
-  const { user, session } = useAuth();
+  const { user, ensureValidSession } = useAuth();
   const { activeProfileType, activeProfileId } = useMode();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-
-  // Helper function to ensure we have a valid session
-  const ensureValidSession = async () => {
-    console.log('[MomentoUpload] 🔍 Verificando sesión...');
-    
-    // First, try to get the current session
-    const { data: { session: currentSession }, error: getError } = await supabase.auth.getSession();
-    
-    if (getError) {
-      console.error('[MomentoUpload] ❌ Error obteniendo sesión:', getError);
-      return null;
-    }
-
-    if (!currentSession) {
-      console.error('[MomentoUpload] ❌ No hay sesión activa');
-      return null;
-    }
-
-    // Check if session is about to expire (less than 5 minutes)
-    const expiresAt = currentSession.expires_at! * 1000;
-    const now = Date.now();
-    const timeUntilExpiry = expiresAt - now;
-
-    console.log('[MomentoUpload] 📅 Sesión expira en:', Math.floor(timeUntilExpiry / 1000 / 60), 'minutos');
-
-    if (timeUntilExpiry < 5 * 60 * 1000) {
-      console.log('[MomentoUpload] ⏰ Sesión próxima a expirar, refrescando...');
-      
-      const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
-      
-      if (refreshError) {
-        console.error('[MomentoUpload] ❌ Error refrescando sesión:', refreshError);
-        return null;
-      }
-
-      if (!refreshedSession) {
-        console.error('[MomentoUpload] ❌ No se pudo refrescar la sesión');
-        return null;
-      }
-
-      console.log('[MomentoUpload] ✅ Sesión refrescada exitosamente');
-      console.log('[MomentoUpload] 📅 Nueva expiración:', new Date(refreshedSession.expires_at! * 1000).toLocaleString());
-      
-      return refreshedSession;
-    }
-
-    console.log('[MomentoUpload] ✅ Sesión válida');
-    return currentSession;
-  };
 
   const pickImage = async () => {
     try {
@@ -145,7 +96,6 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
     if (!user || !selectedImage) {
       console.error('[MomentoUpload] Missing required data:', {
         hasUser: !!user,
-        hasSession: !!session,
         hasImage: !!selectedImage,
       });
       Alert.alert(
@@ -162,11 +112,10 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
         userId: user.id,
         activeProfileType,
         activeProfileId,
-        sessionValid: !!session?.access_token,
-        sessionExpiry: session?.expires_at ? new Date(session.expires_at * 1000).toLocaleString() : 'N/A',
       });
 
       // Ensure we have a valid session before proceeding
+      console.log('[MomentoUpload] 🔍 Verificando y refrescando sesión si es necesario...');
       const validSession = await ensureValidSession();
       
       if (!validSession) {
@@ -184,6 +133,9 @@ export default function MomentoUpload({ visible, onClose, onSuccess }: MomentoUp
         role: validSession.user.role,
         expiresAt: new Date(validSession.expires_at! * 1000).toLocaleString(),
       });
+
+      // Wait a moment to ensure the session is fully propagated
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       // Prepare momento data
       let momentoData: any = {

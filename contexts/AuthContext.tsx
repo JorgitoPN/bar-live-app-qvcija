@@ -11,6 +11,7 @@ interface AuthContextType {
   loading: boolean;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  ensureValidSession: () => Promise<Session | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,6 +21,64 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [initializing, setInitializing] = useState(true);
+
+  // Helper function to ensure we have a valid session
+  const ensureValidSession = async (): Promise<Session | null> => {
+    console.log('[AuthContext] 🔍 Verificando sesión...');
+    
+    try {
+      // First, try to get the current session
+      const { data: { session: currentSession }, error: getError } = await supabase.auth.getSession();
+      
+      if (getError) {
+        console.error('[AuthContext] ❌ Error obteniendo sesión:', getError);
+        return null;
+      }
+
+      if (!currentSession) {
+        console.error('[AuthContext] ❌ No hay sesión activa');
+        return null;
+      }
+
+      // Check if session is about to expire (less than 5 minutes)
+      const expiresAt = currentSession.expires_at! * 1000;
+      const now = Date.now();
+      const timeUntilExpiry = expiresAt - now;
+
+      console.log('[AuthContext] 📅 Sesión expira en:', Math.floor(timeUntilExpiry / 1000 / 60), 'minutos');
+
+      // If session is expired or about to expire, refresh it
+      if (timeUntilExpiry < 5 * 60 * 1000) {
+        console.log('[AuthContext] ⏰ Sesión próxima a expirar, refrescando...');
+        
+        const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+        
+        if (refreshError) {
+          console.error('[AuthContext] ❌ Error refrescando sesión:', refreshError);
+          return null;
+        }
+
+        if (!refreshedSession) {
+          console.error('[AuthContext] ❌ No se pudo refrescar la sesión');
+          return null;
+        }
+
+        console.log('[AuthContext] ✅ Sesión refrescada exitosamente');
+        console.log('[AuthContext] 📅 Nueva expiración:', new Date(refreshedSession.expires_at! * 1000).toLocaleString());
+        
+        // Update the session in state
+        setSession(refreshedSession);
+        
+        return refreshedSession;
+      }
+
+      console.log('[AuthContext] ✅ Sesión válida');
+      return currentSession;
+    } catch (error) {
+      console.error('[AuthContext] ❌ Error en ensureValidSession:', error);
+      return null;
+    }
+  };
 
   useEffect(() => {
     console.log('[AuthContext] 🚀 Inicializando contexto de autenticación');
@@ -226,6 +285,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading,
     signOut: handleSignOut,
     refreshUser,
+    ensureValidSession,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
