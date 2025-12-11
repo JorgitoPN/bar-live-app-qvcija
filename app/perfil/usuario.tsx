@@ -20,8 +20,9 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { IconSymbol } from '@/components/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
-import UnifiedStoryViewerV9 from '@/components/social/UnifiedStoryViewerV9';
-import { useStoryState } from '@/contexts/StoryStateContext';
+import UnifiedStoryViewerV11 from '@/components/social/UnifiedStoryViewerV11';
+import { useStoryState } from '@/contexts/StoryStateContextV11';
+import StoryAvatarV11 from '@/components/common/StoryAvatarV11';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -582,22 +583,16 @@ export default function UsuarioPerfilScreen() {
               activeOpacity={0.8}
               disabled={!hasActiveStory}
             >
-              {/* ✅ INSTAGRAM-STYLE: Show outline for unviewed stories */}
-              {showStoryOutline && (
-                <LinearGradient
-                  colors={[colors.primary, colors.secondary]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.storyRing}
-                />
-              )}
-              {usuario.avatar ? (
-                <Image source={{ uri: usuario.avatar }} style={styles.avatar} />
-              ) : (
-                <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                  <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={40} color={colors.headerText} />
-                </View>
-              )}
+              {/* ✅ V11.0: Use StoryAvatarV11 component */}
+              <StoryAvatarV11
+                userId={userId}
+                userStories={userStories}
+                avatarUrl={usuario.avatar}
+                userName={usuario.nombre}
+                size={88}
+                onPress={handleAvatarPress}
+                showLabel={false}
+              />
             </TouchableOpacity>
             <View style={styles.profileInfo}>
               <Text style={styles.profileName}>{usuario.nombre}</Text>
@@ -688,8 +683,8 @@ export default function UsuarioPerfilScreen() {
         )}
       </ScrollView>
 
-      {/* ✅ UNIFIED STORY VIEWER V9.0 */}
-      <UnifiedStoryViewerV9
+      {/* ✅ V11.0: UNIFIED STORY VIEWER - INSTAGRAM-STYLE WITH AUTO-CLOSE */}
+      <UnifiedStoryViewerV11
         visible={showStoryViewer}
         stories={userStories}
         initialIndex={currentStoryIndex}
@@ -750,28 +745,6 @@ const styles = StyleSheet.create({
   avatarContainer: {
     position: 'relative',
     marginRight: 20,
-  },
-  storyRing: {
-    position: 'absolute',
-    top: -4,
-    left: -4,
-    right: -4,
-    bottom: -4,
-    borderRadius: 48,
-    zIndex: 0,
-  },
-  avatar: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    borderWidth: 4,
-    borderColor: colors.headerText,
-    zIndex: 1,
-  },
-  avatarPlaceholder: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   profileInfo: {
     flex: 1,
