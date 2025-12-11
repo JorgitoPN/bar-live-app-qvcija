@@ -339,95 +339,97 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
     );
   };
 
-  const renderUserMomento = () => {
-    if (!userMomento) return null;
-
-    return (
-      <TouchableOpacity
-        style={styles.avatarContainer}
-        onPress={() => onOpenViewer(userMomento.id, userMomento.tipo)}
-        activeOpacity={0.7}
-      >
-        <View style={styles.avatarBorderContainer}>
-          {userMomento.hasUnviewed ? (
-            <LinearGradient
-              colors={['#00FF88', '#00CC6A', '#00FF88']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={[
-                styles.avatarBorder,
-                {
-                  width: AVATAR_SIZE + BORDER_WIDTH * 2,
-                  height: AVATAR_SIZE + BORDER_WIDTH * 2,
-                  borderRadius: (AVATAR_SIZE + BORDER_WIDTH * 2) / 2,
-                },
-              ]}
-            >
-              <View style={styles.avatarInner}>
-                {userMomento.avatar ? (
-                  <Image
-                    source={{ uri: userMomento.avatar }}
-                    style={styles.avatarImage}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View style={styles.avatarPlaceholder}>
-                    <IconSymbol
-                      ios_icon_name={userMomento.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
-                      android_material_icon_name={userMomento.tipo === 'local' ? 'store' : 'person'}
-                      size={AVATAR_SIZE * 0.5}
-                      color={colors.primary}
-                    />
-                  </View>
-                )}
-              </View>
-            </LinearGradient>
-          ) : (
-            <View
-              style={[
-                styles.avatarBorder,
-                styles.avatarBorderViewed,
-                {
-                  width: AVATAR_SIZE + BORDER_WIDTH * 2,
-                  height: AVATAR_SIZE + BORDER_WIDTH * 2,
-                  borderRadius: (AVATAR_SIZE + BORDER_WIDTH * 2) / 2,
-                },
-              ]}
-            >
-              <View style={styles.avatarInner}>
-                {userMomento.avatar ? (
-                  <Image
-                    source={{ uri: userMomento.avatar }}
-                    style={styles.avatarImage}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View style={styles.avatarPlaceholder}>
-                    <IconSymbol
-                      ios_icon_name={userMomento.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
-                      android_material_icon_name={userMomento.tipo === 'local' ? 'store' : 'person'}
-                      size={AVATAR_SIZE * 0.5}
-                      color={colors.primary}
-                    />
-                  </View>
-                )}
-              </View>
-            </View>
-          )}
-        </View>
-
-        <Text style={styles.avatarName} numberOfLines={1}>
-          Tu Momento
-        </Text>
-      </TouchableOpacity>
-    );
-  };
-
-  const renderAddButton = () => {
-    const currentUserAvatar = activeProfileType === 'local' 
-      ? null // Get from local data
+  // Combined "Tu Momento" avatar - shows momento if exists, otherwise shows add button
+  const renderTuMomento = () => {
+    // Get current user/local avatar
+    const currentAvatar = activeProfileType === 'local' 
+      ? null // TODO: Get from local data if needed
       : user?.avatar;
 
+    // If user has a momento, show it with the momento viewer functionality
+    if (userMomento) {
+      return (
+        <TouchableOpacity
+          style={styles.avatarContainer}
+          onPress={() => onOpenViewer(userMomento.id, userMomento.tipo)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.avatarBorderContainer}>
+            {userMomento.hasUnviewed ? (
+              <LinearGradient
+                colors={['#00FF88', '#00CC6A', '#00FF88']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[
+                  styles.avatarBorder,
+                  {
+                    width: AVATAR_SIZE + BORDER_WIDTH * 2,
+                    height: AVATAR_SIZE + BORDER_WIDTH * 2,
+                    borderRadius: (AVATAR_SIZE + BORDER_WIDTH * 2) / 2,
+                  },
+                ]}
+              >
+                <View style={styles.avatarInner}>
+                  {userMomento.avatar ? (
+                    <Image
+                      source={{ uri: userMomento.avatar }}
+                      style={styles.avatarImage}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View style={styles.avatarPlaceholder}>
+                      <IconSymbol
+                        ios_icon_name={userMomento.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
+                        android_material_icon_name={userMomento.tipo === 'local' ? 'store' : 'person'}
+                        size={AVATAR_SIZE * 0.5}
+                        color={colors.primary}
+                      />
+                    </View>
+                  )}
+                </View>
+              </LinearGradient>
+            ) : (
+              <View
+                style={[
+                  styles.avatarBorder,
+                  styles.avatarBorderViewed,
+                  {
+                    width: AVATAR_SIZE + BORDER_WIDTH * 2,
+                    height: AVATAR_SIZE + BORDER_WIDTH * 2,
+                    borderRadius: (AVATAR_SIZE + BORDER_WIDTH * 2) / 2,
+                  },
+                ]}
+              >
+                <View style={styles.avatarInner}>
+                  {userMomento.avatar ? (
+                    <Image
+                      source={{ uri: userMomento.avatar }}
+                      style={styles.avatarImage}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View style={styles.avatarPlaceholder}>
+                      <IconSymbol
+                        ios_icon_name={userMomento.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
+                        android_material_icon_name={userMomento.tipo === 'local' ? 'store' : 'person'}
+                        size={AVATAR_SIZE * 0.5}
+                        color={colors.primary}
+                      />
+                    </View>
+                  )}
+                </View>
+              </View>
+            )}
+          </View>
+
+          <Text style={styles.avatarName} numberOfLines={1}>
+            Tu Momento
+          </Text>
+        </TouchableOpacity>
+      );
+    }
+
+    // If no momento, show add button with user's avatar
     return (
       <TouchableOpacity
         style={styles.avatarContainer}
@@ -446,9 +448,9 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
           ]}
         >
           <View style={styles.avatarInner}>
-            {currentUserAvatar ? (
+            {currentAvatar ? (
               <Image
-                source={{ uri: currentUserAvatar }}
+                source={{ uri: currentAvatar }}
                 style={styles.avatarImage}
                 resizeMode="cover"
               />
@@ -504,8 +506,8 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Show "Tu momento" section first - either with momentos or as add button */}
-        {userMomento ? renderUserMomento() : renderAddButton()}
+        {/* Always show "Tu Momento" first - either with momento or as add button */}
+        {renderTuMomento()}
         
         {/* Show other users' momentos in the carousel */}
         {authors.map((author, index) => renderAvatar(author, index))}
@@ -517,14 +519,14 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
 const styles = StyleSheet.create({
   container: {
     backgroundColor: colors.background,
-    paddingVertical: 16, // Increased from 12 to 16 to prevent top cropping
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
   },
   scrollContent: {
     paddingHorizontal: 12,
     gap: 16,
-    alignItems: 'center', // Center items vertically to prevent cropping
+    alignItems: 'center',
   },
   loadingContainer: {
     paddingVertical: 20,
