@@ -25,6 +25,8 @@ import { supabase } from '@/utils/supabase';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
 import MomentoUpload from '@/components/momento/MomentoUpload';
+import MomentoViewer from '@/components/momento/MomentoViewer';
+import MiniAvatarWithMomento from '@/components/momento/MiniAvatarWithMomento';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -66,6 +68,8 @@ export default function PerfilScreen() {
   const { 
     currentMode, 
     ownedLocals,
+    activeProfileType,
+    activeProfileId,
   } = useMode();
   
   const [refreshing, setRefreshing] = useState(false);
@@ -74,6 +78,7 @@ export default function PerfilScreen() {
   const [showCreateOptions, setShowCreateOptions] = useState(false);
   const [showProfileSwitcher, setShowProfileSwitcher] = useState(false);
   const [showMomentoUpload, setShowMomentoUpload] = useState(false);
+  const [showMomentoViewer, setShowMomentoViewer] = useState(false);
   
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
@@ -507,6 +512,17 @@ export default function PerfilScreen() {
     cargarDatosPerfil();
   };
 
+  const handleOpenMomentoViewer = () => {
+    if (!user) return;
+    
+    // Determine which ID and type to use based on active profile
+    const viewerId = activeProfileType === 'local' ? activeProfileId : user.id;
+    const viewerType = activeProfileType === 'local' ? 'local' : 'usuario';
+    
+    console.log('[Perfil] Opening momento viewer:', { viewerId, viewerType });
+    setShowMomentoViewer(true);
+  };
+
   const renderGridPost = (post: Post) => {
     const firstImage = post.imagenes && post.imagenes.length > 0 
       ? post.imagenes[0] 
@@ -540,13 +556,14 @@ export default function PerfilScreen() {
       <View style={styles.profileSection}>
         <View style={styles.profileHeader}>
           <View style={styles.avatarWrapper}>
-            {displayAvatar ? (
-              <Image source={{ uri: displayAvatar }} style={styles.avatar} />
-            ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={40} color={colors.headerText} />
-              </View>
-            )}
+            <MiniAvatarWithMomento
+              userId={activeProfileType === 'usuario' ? user?.id : undefined}
+              localId={activeProfileType === 'local' ? activeProfileId : undefined}
+              imageUrl={displayAvatar || undefined}
+              size={88}
+              onPress={handleOpenMomentoViewer}
+              showMomentoBorder={true}
+            />
             <TouchableOpacity 
               style={styles.addMomentoButton}
               onPress={() => setShowMomentoUpload(true)}
@@ -978,6 +995,13 @@ export default function PerfilScreen() {
         onSuccess={handleMomentoUploadSuccess}
       />
 
+      <MomentoViewer
+        visible={showMomentoViewer}
+        authorId={activeProfileType === 'local' ? activeProfileId || '' : user?.id || ''}
+        authorType={activeProfileType === 'local' ? 'local' : 'usuario'}
+        onClose={() => setShowMomentoViewer(false)}
+      />
+
       <LoginRequiredModal
         visible={showLoginModal}
         onClose={() => setShowLoginModal(false)}
@@ -1093,18 +1117,6 @@ const styles = StyleSheet.create({
   avatarWrapper: {
     position: 'relative',
     marginRight: 20,
-  },
-  avatar: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    borderWidth: 3,
-    borderColor: colors.white,
-  },
-  avatarPlaceholder: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   addMomentoButton: {
     position: 'absolute',

@@ -74,13 +74,13 @@ export default function MomentoViewer({
   const progressAnims = useRef<Animated.Value[]>([]).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const glowAnim = useRef(new Animated.Value(0)).current;
-  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
 
   const loadMomentos = useCallback(async () => {
-    if (!user) return;
+    if (!user || !authorId) return;
 
     try {
       setLoading(true);
+      console.log('[MomentoViewer] Loading momentos for:', { authorId, authorType });
 
       // Load author info
       if (authorType === 'usuario') {
@@ -176,6 +176,8 @@ export default function MomentoViewer({
       if (momentosWithStatus.length > 0 && !momentosWithStatus[0].user_has_viewed) {
         markAsViewed(momentosWithStatus[0].id);
       }
+
+      console.log('[MomentoViewer] ✅ Loaded momentos:', momentosWithStatus.length);
     } catch (error) {
       console.error('[MomentoViewer] Error loading momentos:', error);
       Alert.alert('Error', 'No se pudieron cargar los Momentos');
@@ -414,6 +416,15 @@ export default function MomentoViewer({
   };
 
   const handleClose = () => {
+    // Reset all state before closing
+    setCurrentIndex(0);
+    setMomentos([]);
+    setAuthor(null);
+    setPaused(false);
+    setShowStats(false);
+    setViewers([]);
+    setLikers([]);
+    progressAnims.forEach(anim => anim.setValue(0));
     onClose();
   };
 
@@ -459,14 +470,16 @@ export default function MomentoViewer({
   ).current;
 
   useEffect(() => {
-    if (visible) {
+    if (visible && authorId) {
+      console.log('[MomentoViewer] Opening viewer for:', { authorId, authorType });
       loadMomentos();
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 300,
         useNativeDriver: true,
       }).start();
-    } else {
+    } else if (!visible) {
+      // Reset fade animation when closing
       Animated.timing(fadeAnim, {
         toValue: 0,
         duration: 200,
@@ -477,7 +490,7 @@ export default function MomentoViewer({
 
   // Auto-progress timer
   useEffect(() => {
-    if (!paused && momentos.length > 0 && !loading) {
+    if (!paused && momentos.length > 0 && !loading && visible) {
       const timer = setTimeout(() => {
         handleNext();
       }, MOMENTO_DURATION);
@@ -491,10 +504,10 @@ export default function MomentoViewer({
 
       return () => {
         clearTimeout(timer);
-        progressAnims[currentIndex].setValue(0);
+        progressAnims[currentIndex]?.setValue(0);
       };
     }
-  }, [currentIndex, paused, momentos, loading, progressAnims, handleNext]);
+  }, [currentIndex, paused, momentos, loading, progressAnims, handleNext, visible]);
 
   if (!visible) return null;
 
@@ -570,10 +583,10 @@ export default function MomentoViewer({
                 style={[
                   styles.progressBarFill,
                   {
-                    width: progressAnims[index].interpolate({
+                    width: progressAnims[index]?.interpolate({
                       inputRange: [0, 1],
                       outputRange: ['0%', '100%'],
-                    }),
+                    }) || '0%',
                     opacity: index === currentIndex ? 1 : index < currentIndex ? 1 : 0.3,
                   },
                 ]}

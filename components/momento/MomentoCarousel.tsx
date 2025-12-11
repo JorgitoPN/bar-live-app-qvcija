@@ -18,7 +18,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const AVATAR_SIZE = 84; // Increased from 72
+const AVATAR_SIZE = 84;
 const BORDER_WIDTH = 3;
 
 interface MomentoAuthor {
@@ -41,6 +41,7 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
   const { user } = useAuth();
   const { activeProfileType, activeProfileId } = useMode();
   const [authors, setAuthors] = useState<MomentoAuthor[]>([]);
+  const [userMomento, setUserMomento] = useState<MomentoAuthor | null>(null);
   const [loading, setLoading] = useState(true);
   const pulseAnim = React.useRef(new Animated.Value(1)).current;
 
@@ -69,6 +70,7 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
 
     try {
       setLoading(true);
+      console.log('[MomentoCarousel] Loading momentos...');
 
       // Get all momentos that haven't expired (24h)
       const { data: momentosData, error: momentosError } = await supabase
@@ -97,6 +99,7 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
 
       if (!momentosData || momentosData.length === 0) {
         setAuthors([]);
+        setUserMomento(null);
         setLoading(false);
         return;
       }
@@ -113,18 +116,24 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
 
       // Group momentos by author
       const authorsMap = new Map<string, MomentoAuthor>();
+      let currentUserMomento: MomentoAuthor | null = null;
 
       momentosData.forEach((momento: any) => {
         const authorKey = momento.tipo === 'local' 
           ? `local-${momento.local_id}` 
           : `user-${momento.autor_id}`;
 
+        // Check if this is the current user's or current local's momento
+        const isCurrentUserMomento = activeProfileType === 'usuario' && momento.autor_id === user.id;
+        const isCurrentLocalMomento = activeProfileType === 'local' && momento.local_id === activeProfileId;
+        const isOwnMomento = isCurrentUserMomento || isCurrentLocalMomento;
+
         if (!authorsMap.has(authorKey)) {
           const authorData = momento.tipo === 'local' 
             ? momento.locales 
             : momento.usuarios;
 
-          authorsMap.set(authorKey, {
+          const authorInfo: MomentoAuthor = {
             id: momento.tipo === 'local' ? momento.local_id : momento.autor_id,
             nombre: authorData?.nombre || 'Usuario',
             avatar: momento.tipo === 'local' 
@@ -135,7 +144,14 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
             hasUnviewed: false,
             momentosCount: 0,
             lastMomentoAt: momento.created_at,
-          });
+          };
+
+          authorsMap.set(authorKey, authorInfo);
+
+          // Store user's own momento separately
+          if (isOwnMomento) {
+            currentUserMomento = authorInfo;
+          }
         }
 
         const author = authorsMap.get(authorKey)!;
@@ -150,10 +166,27 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
         if (new Date(momento.created_at) > new Date(author.lastMomentoAt)) {
           author.lastMomentoAt = momento.created_at;
         }
+
+        // Update user momento if it's the current user's
+        if (isOwnMomento && currentUserMomento) {
+          currentUserMomento.momentosCount = author.momentosCount;
+          currentUserMomento.hasUnviewed = author.hasUnviewed;
+          currentUserMomento.lastMomentoAt = author.lastMomentoAt;
+        }
       });
 
-      // Convert to array and sort by last momento time
-      const authorsArray = Array.from(authorsMap.values()).sort((a, b) => {
+      // Filter out current user/local from the main carousel
+      const filteredAuthors = Array.from(authorsMap.values()).filter(author => {
+        if (activeProfileType === 'usuario') {
+          return !(author.tipo === 'usuario' && author.id === user.id);
+        } else if (activeProfileType === 'local') {
+          return !(author.tipo === 'local' && author.id === activeProfileId);
+        }
+        return true;
+      });
+
+      // Sort by unviewed first, then by recency
+      const sortedAuthors = filteredAuthors.sort((a, b) => {
         // Prioritize unviewed
         if (a.hasUnviewed && !b.hasUnviewed) return -1;
         if (!a.hasUnviewed && b.hasUnviewed) return 1;
@@ -161,13 +194,20 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
         return new Date(b.lastMomentoAt).getTime() - new Date(a.lastMomentoAt).getTime();
       });
 
-      setAuthors(authorsArray);
+      setAuthors(sortedAuthors);
+      setUserMomento(currentUserMomento);
+
+      console.log('[MomentoCarousel] ✅ Loaded momentos:', {
+        total: momentosData.length,
+        others: sortedAuthors.length,
+        userOwn: currentUserMomento ? 1 : 0,
+      });
     } catch (error) {
       console.error('[MomentoCarousel] Error loading momentos:', error);
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, activeProfileType, activeProfileId]);
 
   useEffect(() => {
     loadMomentos();
@@ -207,10 +247,6 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
   }, [loadMomentos]);
 
   const renderAvatar = (author: MomentoAuthor, index: number) => {
-    const isCurrentUser = activeProfileType === 'usuario' && author.id === user?.id;
-    const isCurrentLocal = activeProfileType === 'local' && author.id === activeProfileId;
-    const isOwnProfile = isCurrentUser || isCurrentLocal;
-
     return (
       <TouchableOpacity
         key={`${author.tipo}-${author.id}`}
@@ -300,6 +336,97 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
     );
   };
 
+  const renderUserMomento = () => {
+    if (!userMomento) return null;
+
+    return (
+      <TouchableOpacity
+        style={styles.avatarContainer}
+        onPress={() => onOpenViewer(userMomento.id, userMomento.tipo)}
+        activeOpacity={0.7}
+      >
+        <Animated.View
+          style={[
+            styles.avatarBorderContainer,
+            userMomento.hasUnviewed && {
+              transform: [{ scale: pulseAnim }],
+            },
+          ]}
+        >
+          {userMomento.hasUnviewed ? (
+            <LinearGradient
+              colors={['#00FF88', '#00CC6A', '#00FF88']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[
+                styles.avatarBorder,
+                {
+                  width: AVATAR_SIZE + BORDER_WIDTH * 2,
+                  height: AVATAR_SIZE + BORDER_WIDTH * 2,
+                  borderRadius: (AVATAR_SIZE + BORDER_WIDTH * 2) / 2,
+                },
+              ]}
+            >
+              <View style={styles.avatarInner}>
+                {userMomento.avatar ? (
+                  <Image
+                    source={{ uri: userMomento.avatar }}
+                    style={styles.avatarImage}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={styles.avatarPlaceholder}>
+                    <IconSymbol
+                      ios_icon_name={userMomento.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
+                      android_material_icon_name={userMomento.tipo === 'local' ? 'store' : 'person'}
+                      size={AVATAR_SIZE * 0.5}
+                      color={colors.primary}
+                    />
+                  </View>
+                )}
+              </View>
+            </LinearGradient>
+          ) : (
+            <View
+              style={[
+                styles.avatarBorder,
+                styles.avatarBorderViewed,
+                {
+                  width: AVATAR_SIZE + BORDER_WIDTH * 2,
+                  height: AVATAR_SIZE + BORDER_WIDTH * 2,
+                  borderRadius: (AVATAR_SIZE + BORDER_WIDTH * 2) / 2,
+                },
+              ]}
+            >
+              <View style={styles.avatarInner}>
+                {userMomento.avatar ? (
+                  <Image
+                    source={{ uri: userMomento.avatar }}
+                    style={styles.avatarImage}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={styles.avatarPlaceholder}>
+                    <IconSymbol
+                      ios_icon_name={userMomento.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
+                      android_material_icon_name={userMomento.tipo === 'local' ? 'store' : 'person'}
+                      size={AVATAR_SIZE * 0.5}
+                      color={colors.primary}
+                    />
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
+        </Animated.View>
+
+        <Text style={styles.avatarName} numberOfLines={1}>
+          Tu Momento
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
   const renderAddButton = () => {
     const currentUserAvatar = activeProfileType === 'local' 
       ? null // Get from local data
@@ -381,7 +508,10 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {renderAddButton()}
+        {/* Show "Tu momento" section first if user has momentos */}
+        {userMomento ? renderUserMomento() : renderAddButton()}
+        
+        {/* Show other users' momentos in the carousel */}
         {authors.map((author, index) => renderAvatar(author, index))}
       </ScrollView>
     </View>
@@ -431,7 +561,7 @@ const styles = StyleSheet.create({
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
     backgroundColor: '#fff',
-    overflow: 'visible', // Changed from 'hidden' to 'visible' to allow icon to appear above
+    overflow: 'visible',
     position: 'relative',
   },
   avatarImage: {
@@ -456,17 +586,17 @@ const styles = StyleSheet.create({
   },
   addIconContainer: {
     position: 'absolute',
-    bottom: -2, // Moved slightly down to be more visible
-    right: -2, // Moved slightly right to be more visible
-    width: 30, // Increased from 28
-    height: 30, // Increased from 28
+    bottom: -2,
+    right: -2,
+    width: 30,
+    height: 30,
     borderRadius: 15,
     borderWidth: 3,
-    borderColor: colors.background, // Use background color instead of white for better contrast
+    borderColor: colors.background,
     overflow: 'hidden',
-    zIndex: 100, // Very high z-index to ensure it's above everything
-    elevation: 10, // For Android shadow/elevation
-    shadowColor: '#000', // iOS shadow
+    zIndex: 100,
+    elevation: 10,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 3,
