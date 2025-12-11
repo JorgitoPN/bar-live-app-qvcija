@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -34,13 +34,13 @@ export default function LoginV6Screen() {
   const passwordShakeAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  React.useEffect(() => {
+  useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 600,
       useNativeDriver: true,
     }).start();
-  }, []);
+  }, [fadeAnim]);
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -79,7 +79,6 @@ export default function LoginV6Screen() {
   };
 
   const handleLogin = async () => {
-    // Validate fields
     let hasError = false;
 
     if (!email.trim()) {
@@ -107,7 +106,6 @@ export default function LoginV6Screen() {
 
       console.log('[Login v6.0] 🔐 Attempting login:', normalizedEmail);
 
-      // Check if this is a Google user
       const { data: userData, error: userError } = await supabase
         .from('usuarios')
         .select('provider')
@@ -140,7 +138,6 @@ export default function LoginV6Screen() {
         return;
       }
 
-      // Sign in with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: normalizedEmail,
         password: password,
@@ -202,7 +199,6 @@ export default function LoginV6Screen() {
 
       console.log('[Login v6.0] ✅ Login successful:', authData.user.id);
       
-      // Navigate to main app
       router.replace('/(tabs)/explorar');
     } catch (error: any) {
       console.error('[Login v6.0] ❌ Error in handleLogin:', error);
@@ -256,7 +252,6 @@ export default function LoginV6Screen() {
         showsVerticalScrollIndicator={false}
       >
         <Animated.View style={[styles.formContainer, { opacity: fadeAnim }]}>
-          {/* Email Input */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Correo electrónico</Text>
             <Animated.View
@@ -308,7 +303,6 @@ export default function LoginV6Screen() {
             ) : null}
           </View>
 
-          {/* Password Input */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Contraseña</Text>
             <Animated.View
@@ -362,7 +356,6 @@ export default function LoginV6Screen() {
             ) : null}
           </View>
 
-          {/* Forgot Password */}
           <TouchableOpacity
             style={styles.forgotButton}
             onPress={() => router.push('/auth/recuperar-password-v7')}
@@ -371,7 +364,6 @@ export default function LoginV6Screen() {
             <Text style={styles.forgotButtonText}>¿Olvidaste tu contraseña?</Text>
           </TouchableOpacity>
 
-          {/* Login Button */}
           <TouchableOpacity
             style={[styles.button, loading && styles.buttonDisabled]}
             onPress={handleLogin}
@@ -401,14 +393,12 @@ export default function LoginV6Screen() {
             </LinearGradient>
           </TouchableOpacity>
 
-          {/* Divider */}
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
             <Text style={styles.dividerText}>o</Text>
             <View style={styles.dividerLine} />
           </View>
 
-          {/* Register Link */}
           <View style={styles.registerContainer}>
             <Text style={styles.registerText}>¿No tienes cuenta? </Text>
             <TouchableOpacity
@@ -419,7 +409,6 @@ export default function LoginV6Screen() {
             </TouchableOpacity>
           </View>
 
-          {/* Security Note */}
           <View style={styles.securityNote}>
             <IconSymbol
               ios_icon_name="lock.shield.fill"

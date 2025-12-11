@@ -23,9 +23,9 @@ import HeaderSocial from '@/components/layout/HeaderSocial';
 import { IconSymbol } from '@/components/IconSymbol';
 import { LinearGradient } from 'expo-linear-gradient';
 import NewPostCard from '@/components/social/NewPostCard';
-import InstagramStoriesBarV11 from '@/components/social/InstagramStoriesBarV11';
-import UnifiedStoryViewerV11 from '@/components/social/UnifiedStoryViewerV11';
-import { useStoryState } from '@/contexts/StoryStateContextV11';
+import InstagramStoriesBar from '@/components/social/InstagramStoriesBar';
+import UnifiedStoryViewer from '@/components/social/UnifiedStoryViewer';
+import { useStoryContext } from '@/contexts/StoryContext';
 import type { Publicacion, Historia } from '@/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -39,27 +39,6 @@ interface LocalSubscriptionInfo {
   expiresAt?: string;
 }
 
-/**
- * ✅ SOCIAL SCREEN V11.2.0 - Complete Instagram-style social feed
- * 
- * VERIFIED IMPLEMENTATION:
- * - ✅ Using InstagramStoriesBarV11 with "+" button
- * - ✅ Using UnifiedStoryViewerV11 with improved state management
- * - ✅ Complete story system with real-time updates
- * - ✅ Role-based permissions and subscription checks
- * - ✅ Improved performance and error handling
- * - ✅ Consistent behavior across all pages
- * - ✅ Avatar borders disappear when all stories are viewed
- * - ✅ All V11 components properly integrated
- * 
- * Features:
- * - ✅ Instagram-style stories carousel with create button
- * - ✅ Story viewer with countdown and auto-close
- * - ✅ Real-time story and post updates
- * - ✅ Role-based content filtering
- * - ✅ Subscription-based feature access
- * - ✅ Smooth animations and transitions
- */
 export default function SocialScreen() {
   const router = useRouter();
   const { user } = useAuth();
@@ -82,7 +61,6 @@ export default function SocialScreen() {
   const [userRole, setUserRole] = useState<UserRole>('cliente');
   const [localSubscription, setLocalSubscription] = useState<LocalSubscriptionInfo | null>(null);
   
-  // ✅ V11.2.0: Story viewer state
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
   const [selectedStories, setSelectedStories] = useState<Historia[]>([]);
@@ -102,7 +80,7 @@ export default function SocialScreen() {
     ? (modeLocalData?.nombre || 'Local')
     : (user?.nombre || 'Usuario');
 
-  console.log('[Social] 🎭 V11.2.0 - Active Profile:', {
+  console.log('[Social] 🎭 Active Profile:', {
     activeProfileType,
     activeProfileId,
     isInteractingAsLocal,
@@ -113,13 +91,11 @@ export default function SocialScreen() {
     localSubscription,
   });
 
-  // Load user role and subscription info
   useEffect(() => {
     const loadUserRoleAndSubscription = async () => {
       if (!user) return;
 
       try {
-        // Get user role
         const { data: userData, error: userError } = await supabase
           .from('usuarios')
           .select('rol_app')
@@ -131,7 +107,6 @@ export default function SocialScreen() {
           console.log('[Social] 👤 User role loaded:', userData.rol_app);
         }
 
-        // If interacting as local, get subscription info
         if (isInteractingAsLocal && interactionLocalId) {
           const { data: subData, error: subError } = await supabase
             .from('suscripciones_locales')
@@ -161,7 +136,6 @@ export default function SocialScreen() {
               isActive,
             });
           } else {
-            // No active subscription found
             setLocalSubscription({
               plan: 'free',
               isActive: false,
@@ -228,14 +202,11 @@ export default function SocialScreen() {
     }
   }, [user]);
 
-  // Check if user can perform action based on role and subscription
   const canPerformAction = useCallback((action: 'create_post' | 'create_story' | 'view_analytics' | 'create_event') => {
-    // Admin can do everything
     if (userRole === 'admin') {
       return { allowed: true, reason: '' };
     }
 
-    // Cliente can only create basic posts and stories
     if (userRole === 'cliente') {
       if (action === 'create_post' || action === 'create_story') {
         return { allowed: true, reason: '' };
@@ -246,9 +217,7 @@ export default function SocialScreen() {
       };
     }
 
-    // Propietario checks
     if (userRole === 'propietario') {
-      // If not interacting as local, same as cliente
       if (!isInteractingAsLocal) {
         if (action === 'create_post' || action === 'create_story') {
           return { allowed: true, reason: '' };
@@ -259,7 +228,6 @@ export default function SocialScreen() {
         };
       }
 
-      // Check subscription plan
       if (!localSubscription || !localSubscription.isActive) {
         return {
           allowed: false,
@@ -269,7 +237,6 @@ export default function SocialScreen() {
 
       const plan = localSubscription.plan;
 
-      // Free plan - very limited
       if (plan === 'free') {
         if (action === 'create_post' || action === 'create_story') {
           return { 
@@ -283,7 +250,6 @@ export default function SocialScreen() {
         };
       }
 
-      // Basic plan - standard features
       if (plan === 'basic') {
         if (action === 'create_post' || action === 'create_story') {
           return { allowed: true, reason: '' };
@@ -299,7 +265,6 @@ export default function SocialScreen() {
         }
       }
 
-      // Premium plan - all features
       if (plan === 'premium' || plan === 'enterprise') {
         return { allowed: true, reason: '' };
       }
@@ -317,21 +282,17 @@ export default function SocialScreen() {
     isLoadingRef.current = true;
 
     try {
-      console.log('[Social] ⚡ V11.2.0 - Loading data...');
+      console.log('[Social] ⚡ Loading data...');
       console.log('[Social] 📍 Global posts available:', globalPosts.length);
       console.log('[Social] 📍 Global stories available:', globalStories.length);
 
       await loadUnreadCounts();
 
-      // Filter posts based on role and permissions
       let filteredPosts = globalPosts;
 
-      // Admin sees everything
       if (userRole !== 'admin') {
-        // Filter out posts from locals without active subscriptions
         filteredPosts = await Promise.all(
           globalPosts.map(async (post) => {
-            // If post is from a local, check subscription
             if (post.tipo === 'local' && post.local_id) {
               const { data: subData } = await supabase
                 .from('suscripciones_locales')
@@ -346,7 +307,6 @@ export default function SocialScreen() {
                 .eq('estado', 'activa')
                 .single();
 
-              // Only show posts from locals with active paid subscriptions
               if (subData && subData.planes_suscripcion) {
                 const planName = (subData.planes_suscripcion as any).nombre;
                 if (planName === 'basic' || planName === 'premium' || planName === 'enterprise') {
@@ -412,7 +372,6 @@ export default function SocialScreen() {
         setPosts([]);
       }
 
-      // Filter stories based on role and permissions
       let filteredStories = globalStories;
 
       if (userRole !== 'admin') {
@@ -454,7 +413,7 @@ export default function SocialScreen() {
         setHistorias([]);
       }
 
-      console.log('[Social] ⚡ V11.2.0 - Data loaded successfully');
+      console.log('[Social] ⚡ Data loaded successfully');
     } catch (error) {
       console.error('[Social] Error loading data:', error);
       setPosts([]);
@@ -467,20 +426,20 @@ export default function SocialScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      console.log('[Social] 🔄 V11.2.0 - Screen focused - auto-updating data');
+      console.log('[Social] 🔄 Screen focused - auto-updating data');
       loadData();
     }, [loadData])
   );
 
   const onRefresh = async () => {
-    console.log('[Social] 🔄 V11.2.0 - Manual refresh triggered');
+    console.log('[Social] 🔄 Manual refresh triggered');
     setRefreshing(true);
     await loadData();
     setRefreshing(false);
   };
 
   const handleCreatePost = () => {
-    console.log('[Social] ➕ V11.2.0 - Create post button pressed');
+    console.log('[Social] ➕ Create post button pressed');
     
     const permission = canPerformAction('create_post');
     if (!permission.allowed) {
@@ -502,7 +461,7 @@ export default function SocialScreen() {
   };
 
   const handleCreateStory = () => {
-    console.log('[Social] ➕ V11.2.0 - Create story button pressed');
+    console.log('[Social] ➕ Create story button pressed');
     
     const permission = canPerformAction('create_story');
     if (!permission.allowed) {
@@ -523,21 +482,18 @@ export default function SocialScreen() {
     router.push('/crear/historia');
   };
 
-  // ✅ V11.2.0: Story press handler
   const handleHistoriaPress = useCallback((historia: Historia) => {
-    console.log('[Social] 📖 V11.2.0 - Story pressed:', historia.id);
+    console.log('[Social] 📖 Story pressed:', historia.id);
     
-    // Find all stories from the same author
     const authorId = historia.tipo === 'usuario' ? historia.autor_id : historia.local_id;
     const authorStories = historias.filter(h => {
       const hAuthorId = h.tipo === 'usuario' ? h.autor_id : h.local_id;
       return hAuthorId === authorId;
     }).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
     
-    // Find the index of the clicked story
     const storyIndex = authorStories.findIndex(s => s.id === historia.id);
     
-    console.log('[Social] 📖 V11.2.0 - Opening story viewer:', {
+    console.log('[Social] 📖 Opening story viewer:', {
       authorId,
       totalStories: authorStories.length,
       clickedIndex: storyIndex,
@@ -549,7 +505,7 @@ export default function SocialScreen() {
   }, [historias]);
 
   const handleStoriesUpdate = useCallback((updatedStories: Historia[]) => {
-    console.log('[Social] ⚡ V11.2.0 - Stories updated in real-time:', updatedStories.length);
+    console.log('[Social] ⚡ Stories updated in real-time:', updatedStories.length);
     setHistorias(updatedStories);
   }, []);
 
@@ -580,7 +536,6 @@ export default function SocialScreen() {
         },
       ]}
     >
-      {/* Role and subscription info banner */}
       {isInteractingAsLocal && localSubscription && (
         <View style={styles.subscriptionBanner}>
           <LinearGradient
@@ -629,7 +584,6 @@ export default function SocialScreen() {
         </View>
       )}
 
-      {/* Admin badge */}
       {userRole === 'admin' && (
         <View style={styles.adminBanner}>
           <LinearGradient
@@ -649,9 +603,8 @@ export default function SocialScreen() {
         </View>
       )}
 
-      {/* ✅ V11.2.0: Using InstagramStoriesBarV11 with "+" button */}
       <View style={styles.storiesSection}>
-        <InstagramStoriesBarV11
+        <InstagramStoriesBar
           historias={historias}
           onHistoriaPress={handleHistoriaPress}
           onCrearHistoria={handleCreateStory}
@@ -761,21 +714,20 @@ export default function SocialScreen() {
         windowSize={10}
       />
 
-      {/* ✅ V11.2.0: UNIFIED STORY VIEWER - INSTAGRAM-STYLE WITH AUTO-CLOSE */}
-      <UnifiedStoryViewerV11
+      <UnifiedStoryViewer
         visible={showStoryViewer}
         stories={selectedStories}
         initialIndex={currentStoryIndex}
         onClose={() => {
-          console.log('[Social] V11.2.0 - Closing story viewer');
+          console.log('[Social] Closing story viewer');
           setShowStoryViewer(false);
         }}
         onStoryChange={(index) => {
-          console.log('[Social] V11.2.0 - Story changed to index:', index);
+          console.log('[Social] Story changed to index:', index);
           setCurrentStoryIndex(index);
         }}
         onStoryDelete={async (storyId) => {
-          console.log('[Social] V11.2.0 - Story deleted:', storyId);
+          console.log('[Social] Story deleted:', storyId);
           setHistorias(prev => prev.filter(h => h.id !== storyId));
           setSelectedStories(prev => prev.filter(h => h.id !== storyId));
         }}

@@ -26,9 +26,9 @@ import { useMode } from '@/contexts/ModeContext';
 import { supabase } from '@/utils/supabase';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
-import UnifiedStoryViewerV11 from '@/components/social/UnifiedStoryViewerV11';
-import StoryAvatarV11 from '@/components/common/StoryAvatarV11';
-import { useStoryState } from '@/contexts/StoryStateContextV11';
+import UnifiedStoryViewer from '@/components/social/UnifiedStoryViewer';
+import StoryAvatar from '@/components/common/StoryAvatar';
+import { useStoryContext } from '@/contexts/StoryContext';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -94,11 +94,11 @@ export default function PerfilScreen() {
   const [perfilProfesional, setPerfilProfesional] = useState<PerfilProfesional | null>(null);
   const [loadingEmpleo, setLoadingEmpleo] = useState(false);
 
-  // ✅ V11.0: User stories state
+  // User stories state
   const [userStories, setUserStories] = useState<any[]>([]);
   const [loadingStories, setLoadingStories] = useState(false);
   
-  // ✅ V11.0: Story viewer state - USING V11 NOW
+  // Story viewer state
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
 
@@ -360,7 +360,6 @@ export default function PerfilScreen() {
     }
   }, [user]);
 
-  // ✅ V11.0: FIXED - Load user stories with correct column name (imagen, not imagen_url)
   const cargarHistorias = useCallback(async () => {
     if (!user) {
       console.log('[Perfil] No user, skipping stories load');
@@ -369,9 +368,8 @@ export default function PerfilScreen() {
 
     setLoadingStories(true);
     try {
-      console.log('[Perfil] 📖 V11.0 - Loading stories for user:', user.id);
+      console.log('[Perfil] 📖 Loading stories for user:', user.id);
       
-      // ✅ CRITICAL FIX: Use 'imagen' column, not 'imagen_url'
       const { data: userStoriesData, error } = await supabase
         .from('historias')
         .select('id, autor_id, tipo, imagen, created_at, expires_at')
@@ -388,7 +386,7 @@ export default function PerfilScreen() {
       }
 
       if (userStoriesData && userStoriesData.length > 0) {
-        console.log('[Perfil] ✅ V11.0 - Loaded', userStoriesData.length, 'user stories');
+        console.log('[Perfil] ✅ Loaded', userStoriesData.length, 'user stories');
         
         const storiesWithAuthor = userStoriesData.map(story => ({
           ...story,
@@ -423,9 +421,8 @@ export default function PerfilScreen() {
 
       await loadUnreadCounts();
 
-      console.log('[Perfil] ✅ V11.0 - Loading user profile with updated functions');
+      console.log('[Perfil] ✅ Loading user profile with updated functions');
       
-      // ✅ FIXED: Use updated database functions that include local follows
       const { data: seguidoresData, error: seguidoresError } = await supabase
         .rpc('get_total_seguidores_count', { p_usuario_id: user.id });
 
@@ -442,7 +439,7 @@ export default function PerfilScreen() {
       const seguidoresCount = seguidoresData || 0;
       const seguidosCount = seguidosData || 0;
 
-      console.log('[Perfil] ✅ V11.0 - Follower counts (including locals):', {
+      console.log('[Perfil] ✅ Follower counts (including locals):', {
         seguidores: seguidoresCount,
         siguiendo: seguidosCount,
       });
@@ -472,7 +469,7 @@ export default function PerfilScreen() {
   useEffect(() => {
     if (!authLoading) {
       if (user) {
-        console.log('[Perfil] ✅ V11.0 - Loading user profile');
+        console.log('[Perfil] ✅ Loading user profile');
         cargarDatosPerfil();
       } else {
         setLoading(false);
@@ -572,22 +569,19 @@ export default function PerfilScreen() {
     router.push(`/empleo/perfil-detalle?id=${perfilProfesional.id}`);
   };
 
-  // ✅ V11.0: Handle avatar press to view stories or create new one
   const handleAvatarPress = useCallback(() => {
     if (!user) {
       setShowLoginModal(true);
       return;
     }
     
-    console.log('[Perfil] V11.0 - Avatar pressed. Stories count:', userStories.length);
+    console.log('[Perfil] Avatar pressed. Stories count:', userStories.length);
     
     if (userStories.length > 0) {
-      // View existing stories
-      console.log('[Perfil] ✅ V11.0 - Opening story viewer with', userStories.length, 'stories');
+      console.log('[Perfil] ✅ Opening story viewer with', userStories.length, 'stories');
       setCurrentStoryIndex(0);
       setShowStoryViewer(true);
     } else {
-      // Create new story
       console.log('[Perfil] No stories found, redirecting to create story');
       router.push('/crear/historia');
     }
@@ -633,13 +627,12 @@ export default function PerfilScreen() {
     return (
       <View style={styles.profileSection}>
         <View style={styles.profileHeader}>
-          {/* ✅ V11.0: Use StoryAvatarV11 component with proper story data */}
           {loadingStories ? (
             <View style={styles.avatarLoadingContainer}>
               <ActivityIndicator size="small" color={colors.primary} />
             </View>
           ) : (
-            <StoryAvatarV11
+            <StoryAvatar
               userId={user?.id || ''}
               userStories={userStories}
               avatarUrl={displayAvatar}
@@ -650,7 +643,6 @@ export default function PerfilScreen() {
             />
           )}
           
-          {/* ✅ FIXED: '+' button with WHITE border */}
           <TouchableOpacity 
             style={styles.addStoryButton}
             onPress={handleAddStory}
@@ -1098,21 +1090,20 @@ export default function PerfilScreen() {
         onClose={() => setShowProfileSwitcher(false)}
       />
 
-      {/* ✅ V11.0: UNIFIED STORY VIEWER - INSTAGRAM-STYLE WITH AUTO-CLOSE */}
-      <UnifiedStoryViewerV11
+      <UnifiedStoryViewer
         visible={showStoryViewer}
         stories={userStories}
         initialIndex={currentStoryIndex}
         onClose={() => {
-          console.log('[Perfil] V11.0 - Closing story viewer');
+          console.log('[Perfil] Closing story viewer');
           setShowStoryViewer(false);
         }}
         onStoryChange={(index) => {
-          console.log('[Perfil] V11.0 - Story changed to index:', index);
+          console.log('[Perfil] Story changed to index:', index);
           setCurrentStoryIndex(index);
         }}
         onStoryDelete={async (storyId) => {
-          console.log('[Perfil] V11.0 - Story deleted:', storyId);
+          console.log('[Perfil] Story deleted:', storyId);
           await cargarHistorias();
         }}
       />

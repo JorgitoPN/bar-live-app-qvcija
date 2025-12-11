@@ -15,9 +15,7 @@ import {
   Modal,
   Pressable,
   Linking,
-  TextInput,
   FlatList,
-  KeyboardAvoidingView,
   Animated,
 } from 'react-native';
 import { colors } from '@/styles/commonStyles';
@@ -27,22 +25,19 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMode } from '@/contexts/ModeContext';
 import { supabase } from '@/utils/supabase';
-import { getEstadoLocal, calcularTiempoHasta } from '@/utils/timeUtils';
+import { getEstadoLocal } from '@/utils/timeUtils';
 import { getCategoryIcon } from '@/utils/categoryIcons';
 import FloatingTabBar, { TabBarItem } from '@/components/FloatingTabBar';
 import ProfileSwitcher from '@/components/perfil/ProfileSwitcher';
 import OfertaTrabajoCard from '@/components/empleo/OfertaTrabajoCard';
-import StoryStatsModal from '@/components/social/StoryStatsModal';
-import UnifiedStoryViewerV11 from '@/components/social/UnifiedStoryViewerV11';
-import { PROVINCIAS, getProvinceVariations, filterByProvincia } from '@/utils/provinceNormalizer';
+import UnifiedStoryViewer from '@/components/social/UnifiedStoryViewer';
 import EventBanner from '@/components/eventos/EventBanner';
 import { useLocalEvent } from '@/hooks/useLocalEvent';
-import { useStoryState } from '@/contexts/StoryStateContextV11';
+import { useStoryContext } from '@/contexts/StoryContext';
 
-// ✅ VERSION MARKER - Force cache bust: v6.0.0 - Fixed story context and progress bars
 const SCREEN_VERSION = '6.0.0';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
 
 interface LocalPost {
@@ -121,9 +116,7 @@ export default function LocalPerfilScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { user } = useAuth();
-  
-  // ✅ CRITICAL FIX: Use V11 story state context
-  const { hasUnviewedStories } = useStoryState();
+  const { hasUnviewedStories } = useStoryContext();
   
   const { 
     currentMode,
@@ -143,11 +136,9 @@ export default function LocalPerfilScreen() {
   const [isOwner, setIsOwner] = useState(false);
   const [activeTab, setActiveTab] = useState<'posts' | 'eventos' | 'empleo' | 'info'>('posts');
 
-  // Employment tab state - SIMPLIFIED for local profiles
   const [ofertasTrabajo, setOfertasTrabajo] = useState<OfertaTrabajo[]>([]);
   const [loadingEmpleo, setLoadingEmpleo] = useState(false);
 
-  // ✅ FIXED: Use UnifiedStoryViewerV11 component
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [localStories, setLocalStories] = useState<LocalStory[]>([]);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
@@ -155,7 +146,6 @@ export default function LocalPerfilScreen() {
   const [showCreateOptions, setShowCreateOptions] = useState(false);
   const [showProfileSwitcher, setShowProfileSwitcher] = useState(false);
 
-  // ✅ Followers/Following modals state
   const [showSeguidoresModal, setShowSeguidoresModal] = useState(false);
   const [showSeguidosModal, setShowSeguidosModal] = useState(false);
   const [seguidores, setSeguidores] = useState<Seguidor[]>([]);
@@ -174,7 +164,6 @@ export default function LocalPerfilScreen() {
   const isInteractingAsLocal = activeProfileType === 'local';
   const activeLocalProfileId = activeProfileType === 'local' ? activeProfileId : null;
 
-  // Pre-load all tab content to avoid loading states
   const [contentLoaded, setContentLoaded] = useState({
     posts: false,
     eventos: false,
@@ -182,7 +171,6 @@ export default function LocalPerfilScreen() {
     info: false,
   });
   
-  // Fetch active event for this local
   const { evento: activeEvent } = useLocalEvent(localId);
 
   useEffect(() => {
@@ -202,19 +190,6 @@ export default function LocalPerfilScreen() {
     ]).start();
   }, [fadeAnim, scaleAnim]);
 
-  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-    const R = 6371;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
-  };
-
-  // ✅ FIXED: Load followers for local - use locales_guardados instead of locales_favoritos
   const loadSeguidoresLocal = useCallback(async () => {
     if (!localId) return;
     
@@ -222,7 +197,6 @@ export default function LocalPerfilScreen() {
     try {
       console.log('[LocalPerfil] Loading followers for local:', localId);
 
-      // ✅ CRITICAL FIX: Use locales_guardados table directly (not the view)
       const { data, error } = await supabase
         .from('locales_guardados')
         .select(`
@@ -264,7 +238,6 @@ export default function LocalPerfilScreen() {
     }
   }, [localId]);
 
-  // ✅ Load following for local (locales that this local follows)
   const loadSeguidosLocal = useCallback(async () => {
     if (!localId || !local?.propietario_id) return;
     
@@ -272,7 +245,6 @@ export default function LocalPerfilScreen() {
     try {
       console.log('[LocalPerfil] Loading following for local:', localId);
 
-      // Get users that the local owner follows
       const { data, error } = await supabase
         .from('seguidores')
         .select(`
@@ -342,7 +314,6 @@ export default function LocalPerfilScreen() {
 
       setLocal(localData);
 
-      // ✅ Determine ownership based on propietario_id
       if (user && localData.propietario_id === user.id) {
         setIsOwner(true);
         console.log('[LocalPerfil] ✅ User IS OWNER of this local');
@@ -351,7 +322,6 @@ export default function LocalPerfilScreen() {
         console.log('[LocalPerfil] ✅ User is NOT owner of this local');
       }
 
-      // ✅ FIXED: Load followers count using locales_guardados
       const { count: followersCount } = await supabase
         .from('locales_guardados')
         .select('*', { count: 'exact', head: true })
@@ -359,7 +329,6 @@ export default function LocalPerfilScreen() {
 
       setSeguidoresCount(followersCount || 0);
 
-      // ✅ Load following count (users that the local owner follows)
       if (localData.propietario_id) {
         const { count: followingCount } = await supabase
           .from('seguidores')
@@ -394,7 +363,6 @@ export default function LocalPerfilScreen() {
           .gt('expires_at', new Date().toISOString())
           .order('created_at', { ascending: true }),
         
-        // ✅ FIXED: Use locales_guardados instead of locales_favoritos
         user ? supabase
           .from('locales_guardados')
           .select('id')
@@ -488,7 +456,6 @@ export default function LocalPerfilScreen() {
     }
   }, [localId, user, router]);
 
-  // ✅ UPDATED: Load employment data - ONLY job offers for this specific local
   const loadEmpleoData = useCallback(async () => {
     if (!localId) return;
     
@@ -496,7 +463,6 @@ export default function LocalPerfilScreen() {
     try {
       console.log('[LocalPerfil] Loading job offers for local:', localId);
 
-      // Load ONLY job offers for THIS specific local
       const { data: ofertasData, error: ofertasError } = await supabase
         .from('ofertas_trabajo')
         .select(`
@@ -527,7 +493,6 @@ export default function LocalPerfilScreen() {
     loadLocalData();
   }, [loadLocalData, localId]);
 
-  // Load employment data when tab is active
   useEffect(() => {
     if (activeTab === 'empleo' && !contentLoaded.empleo) {
       loadEmpleoData();
@@ -543,7 +508,6 @@ export default function LocalPerfilScreen() {
     setRefreshing(false);
   };
 
-  // ✅ FIXED: Toggle favorito using locales_guardados
   const toggleFavorito = async () => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para seguir locales');
@@ -716,7 +680,6 @@ export default function LocalPerfilScreen() {
     router.push(`/gestion/panel-analisis?localId=${localId}`);
   };
 
-  // ✅ FIXED: Route messages to local profile's independent messaging system
   const handleEnviarMensaje = async () => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para enviar mensajes');
@@ -729,13 +692,11 @@ export default function LocalPerfilScreen() {
     }
 
     try {
-      console.log('[LocalPerfil] 🔥🔥🔥 FIXED: Opening chat with LOCAL PROFILE (isolated messaging)');
+      console.log('[LocalPerfil] Opening chat with LOCAL PROFILE (isolated messaging)');
       console.log('[LocalPerfil] Local ID:', localId);
       console.log('[LocalPerfil] Local Owner ID:', local.propietario_id);
       console.log('[LocalPerfil] Current User ID:', user.id);
       
-      // ✅ CRITICAL FIX: Navigate to a LOCAL-SPECIFIC chat page
-      // This ensures messages are isolated to the local profile
       router.push(`/chat/conversacion?localId=${localId}&userId=${user.id}`);
     } catch (error) {
       console.error('[LocalPerfil] Error opening local chat:', error);
@@ -758,25 +719,20 @@ export default function LocalPerfilScreen() {
     }
   };
 
-  // ✅ Handle opening followers modal
   const handleSeguidores = async () => {
     setShowSeguidoresModal(true);
     await loadSeguidoresLocal();
   };
 
-  // ✅ Handle opening following modal
   const handleSeguidos = async () => {
     setShowSeguidosModal(true);
     await loadSeguidosLocal();
   };
 
-  // ✅ Handle user press in followers/following modals
   const handleUserPressInModal = (userId: string) => {
-    // Close the modal first
     setShowSeguidoresModal(false);
     setShowSeguidosModal(false);
     
-    // Navigate to profile
     if (user && userId === user.id) {
       router.push('/(tabs)/perfil');
     } else {
@@ -784,7 +740,6 @@ export default function LocalPerfilScreen() {
     }
   };
 
-  // ✅ FIXED: Handle avatar press - view stories or create new story
   const handleAvatarPress = useCallback(() => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para ver historias');
@@ -792,12 +747,10 @@ export default function LocalPerfilScreen() {
     }
 
     if (localStories.length > 0) {
-      // View existing stories
       console.log('[LocalPerfil] 📖 Opening story viewer with', localStories.length, 'stories');
       setCurrentStoryIndex(0);
       setShowStoryViewer(true);
     } else if (isOwner) {
-      // Create new story
       console.log('[LocalPerfil] ➕ No stories, opening create story');
       handleCrearHistoria();
     } else {
@@ -819,7 +772,6 @@ export default function LocalPerfilScreen() {
       userId: user?.id
     });
 
-    // Admin mode
     if (userRole === 'admin' && currentMode === 'admin') {
       console.log('📋 [getTabsForRole] Showing ADMIN tabs');
       return [
@@ -844,7 +796,6 @@ export default function LocalPerfilScreen() {
       ];
     }
 
-    // ✅ If user is owner of this local AND in propietario mode, show owner tabs with GESTION icon
     if (isOwner && currentMode === 'propietario') {
       console.log('🏢🏢🏢 [getTabsForRole] Showing OWNER tabs with GESTION icon (building.2) - User owns this local');
       return [
@@ -881,7 +832,6 @@ export default function LocalPerfilScreen() {
       ];
     }
 
-    // Default: client tabs (eventos, favoritos, social)
     console.log('👤 [getTabsForRole] Showing CLIENT tabs (eventos, favoritos, social) - Not owner or not in propietario mode');
     return [
       {
@@ -937,7 +887,6 @@ export default function LocalPerfilScreen() {
   const estado = getEstadoLocal(local);
   const hasActiveStory = localStories.length > 0;
   
-  // ✅ CRITICAL FIX: Use V11 story state context
   const showStoryOutline = hasActiveStory && hasUnviewedStories(localId, localStories);
 
   console.log('[LocalPerfil] 👁️ Story outline status:', {
@@ -1031,7 +980,6 @@ export default function LocalPerfilScreen() {
                 onPress={handleAvatarPress}
                 activeOpacity={0.8}
               >
-                {/* ✅ INSTAGRAM-STYLE: Show outline for unviewed stories */}
                 {showStoryOutline && (
                   <LinearGradient
                     colors={['#39FF14', '#39FF14']}
@@ -1047,7 +995,6 @@ export default function LocalPerfilScreen() {
                     <IconSymbol ios_icon_name="building.2" android_material_icon_name="store" size={40} color={colors.headerText} />
                   </View>
                 )}
-                {/* ✅ NEW: Always show '+' icon for owners to add stories */}
                 {isOwner && (
                   <TouchableOpacity 
                     style={styles.addStoryButton}
@@ -1092,14 +1039,12 @@ export default function LocalPerfilScreen() {
               <Text style={styles.statusText}>{estado.badge}</Text>
             </View>
 
-            {/* Event Banner */}
             {activeEvent && (
               <View style={{ marginBottom: 16 }}>
                 <EventBanner evento={activeEvent} compact={true} />
               </View>
             )}
 
-            {/* ✅ Stats container with clickable followers/following */}
             <View style={styles.statsContainer}>
               <View style={styles.statItem}>
                 <Text style={styles.statNumber}>{posts.length}</Text>
@@ -1117,7 +1062,6 @@ export default function LocalPerfilScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* ✅ UPDATED: 3 buttons in a single row with soft design */}
             <View style={styles.actionsContainer}>
               {isOwner ? (
                 <View style={styles.ownerButtonsRow}>
@@ -1330,10 +1274,8 @@ export default function LocalPerfilScreen() {
             </View>
           )}
 
-          {/* ✅ UPDATED: Simplified Employment Tab - Only Job Offers */}
           {activeTab === 'empleo' && (
             <View style={styles.empleoContainer}>
-              {/* ✅ Title section */}
               <View style={styles.empleoHeader}>
                 <Text style={styles.empleoHeaderTitle}>
                   {isOwner ? 'Mis Ofertas de Empleo' : 'Ofertas de Empleo'}
@@ -1345,7 +1287,6 @@ export default function LocalPerfilScreen() {
                 </Text>
               </View>
 
-              {/* Content */}
               {loadingEmpleo ? (
                 <View style={styles.loadingContainer}>
                   <ActivityIndicator size="large" color={colors.primary} />
@@ -1481,8 +1422,7 @@ export default function LocalPerfilScreen() {
         </View>
       </ScrollView>
 
-      {/* ✅ UNIFIED STORY VIEWER V11.0 */}
-      <UnifiedStoryViewerV11
+      <UnifiedStoryViewer
         visible={showStoryViewer}
         stories={localStories}
         initialIndex={currentStoryIndex}
@@ -1500,7 +1440,6 @@ export default function LocalPerfilScreen() {
         }}
       />
 
-      {/* Create Options Modal */}
       <Modal
         visible={showCreateOptions}
         animationType="slide"
@@ -1560,7 +1499,6 @@ export default function LocalPerfilScreen() {
         </Pressable>
       </Modal>
 
-      {/* ✅ UPDATED: Seguidores Modal with LinearGradient header matching user profile design */}
       <Modal
         visible={showSeguidoresModal}
         animationType="slide"
@@ -1626,7 +1564,6 @@ export default function LocalPerfilScreen() {
         </View>
       </Modal>
 
-      {/* ✅ UPDATED: Seguidos Modal with LinearGradient header matching user profile design */}
       <Modal
         visible={showSeguidosModal}
         animationType="slide"
@@ -1802,7 +1739,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  // ✅ NEW: Add story button styles (matching user profile)
   addStoryButton: {
     position: 'absolute',
     bottom: 0,
@@ -1914,7 +1850,6 @@ const styles = StyleSheet.create({
   actionsContainer: {
     width: '100%',
   },
-  // ✅ NEW: Owner buttons in a single row with soft design
   ownerButtonsRow: {
     flexDirection: 'row',
     gap: 10,
@@ -1944,7 +1879,6 @@ const styles = StyleSheet.create({
     color: colors.primary,
     textAlign: 'center',
   },
-  // ✅ NEW: Visitor buttons in a single row with soft design
   visitorButtonsRow: {
     flexDirection: 'row',
     gap: 10,
@@ -2081,7 +2015,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.primary,
   },
-  // ✅ UPDATED: Simplified employment container styles
   empleoContainer: {
     flex: 1,
     padding: 16,
@@ -2280,7 +2213,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     lineHeight: 20,
   },
-  // ✅ UPDATED: Followers/Following modal styles matching user profile design
   followModalHeader: {
     paddingTop: 50,
     paddingBottom: 12,
