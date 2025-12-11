@@ -37,7 +37,6 @@ interface TaggedUser {
   position_y?: number;
 }
 
-// Memoized image component to prevent unnecessary re-renders
 const PostImage = memo(({ uri, onPress }: { uri: string; onPress: () => void }) => (
   <TouchableOpacity
     activeOpacity={0.95}
@@ -81,8 +80,6 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
     isInteractingAsLocal,
   });
 
-  // Fetch author data
-  // ✅ Fixed: Added post to dependencies
   useEffect(() => {
     const fetchAuthorData = async () => {
       if (!post) {
@@ -101,12 +98,10 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
           local_id: post.local_id
         });
         
-        // Use correct field names from database
         const actualAutorId = post.autor_id || post.autorId;
         const actualLocalId = post.local_id || post.localId;
         
         if (post.tipo === 'local' && actualLocalId) {
-          // Fetch local data
           const { data, error } = await supabase
             .from('locales')
             .select('nombre, imagen_url, logo')
@@ -124,7 +119,6 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
             });
           }
         } else if (actualAutorId) {
-          // Fetch user data
           const { data, error } = await supabase
             .from('usuarios')
             .select('nombre, avatar, username')
@@ -161,7 +155,6 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
     fetchAuthorData();
   }, [post]);
 
-  // ✅ FIXED: Check if post is liked on mount and when interaction context changes
   useEffect(() => {
     const checkIfLiked = async () => {
       if (!interactionUserId || !post?.id) return;
@@ -174,18 +167,15 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
           isInteractingAsLocal
         });
 
-        // Build query based on interaction context
         let query = supabase
           .from('likes')
           .select('id')
           .eq('post_id', post.id)
           .eq('usuario_id', interactionUserId);
 
-        // If interacting as local, filter by local_id
         if (isInteractingAsLocal && interactionLocalId) {
           query = query.eq('local_id', interactionLocalId);
         } else {
-          // If interacting as user, ensure local_id is null
           query = query.is('local_id', null);
         }
 
@@ -318,13 +308,11 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
     const newLiked = !liked;
     const previousLikesCount = likesCount;
     
-    // Optimistic update
     setLiked(newLiked);
     setLikesCount(newLiked ? likesCount + 1 : Math.max(0, likesCount - 1));
 
     try {
       if (newLiked) {
-        // ✅ FIXED: Insert like with local_id if interacting as local
         const likeData: any = {
           post_id: post.id,
           usuario_id: interactionUserId,
@@ -350,7 +338,6 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
         
         console.log('[PublicacionCard] ✅ Like added successfully');
       } else {
-        // ✅ FIXED: Delete like with correct filters
         let deleteQuery = supabase
           .from('likes')
           .delete()
@@ -373,7 +360,6 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
         console.log('[PublicacionCard] ✅ Like removed successfully');
       }
 
-      // ✅ FIXED: Update post likes count in database
       const { error: updateError } = await supabase
         .from('posts')
         .update({ likes: newLiked ? previousLikesCount + 1 : Math.max(0, previousLikesCount - 1) })
@@ -384,16 +370,14 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
       }
     } catch (error) {
       console.error('[PublicacionCard] Error toggling like:', error);
-      // Revert optimistic update
       setLiked(!newLiked);
       setLikesCount(previousLikesCount);
       Alert.alert('Error', 'No se pudo actualizar el me gusta');
     }
 
     if (onLike) onLike();
-  }, [liked, likesCount, onLike, interactionUserId, interactionType, interactionLocalId, isInteractingAsLocal, post.id, user?.id]);
+  }, [liked, likesCount, onLike, interactionUserId, interactionType, interactionLocalId, isInteractingAsLocal, post.id]);
 
-  // ✅ Fixed: Added interactionLocalId and interactionType to dependencies
   const handleSave = useCallback(async () => {
     console.log('[PublicacionCard] handleSave - Interaction context:', {
       interactionUserId,
@@ -431,7 +415,6 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
     }
   }, [saved, interactionUserId, interactionLocalId, interactionType, post.id]);
 
-  // ✅ Fixed: Added interactionLocalId and interactionType to dependencies
   const handleComment = useCallback(() => {
     console.log('[PublicacionCard] handleComment - Interaction context:', {
       interactionUserId,
@@ -459,12 +442,10 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
       return;
     }
     
-    // Get the first image from the post
     const postImage = post.imagenes && post.imagenes.length > 0 
       ? post.imagenes[0] 
       : post.imagen || null;
     
-    // Navigate to new chat with post data
     router.push({
       pathname: '/chat/nuevo-chat',
       params: { 
@@ -475,7 +456,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
     });
     
     if (onShare) onShare();
-  }, [interactionUserId, router, post, onShare, authorData]);
+  }, [interactionUserId, interactionLocalId, interactionType, router, post, onShare, authorData]);
 
   const handleDelete = useCallback(async () => {
     console.log('[PublicacionCard] handleDelete - User:', user?.id, 'Post autor:', post.autor_id || post.autorId);
@@ -578,7 +559,6 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
       ? [post.imagen] 
       : [];
 
-  // Use fetched author data with username fallback
   const displayName = loadingAuthor 
     ? 'Cargando...' 
     : authorData?.username 
@@ -616,7 +596,6 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
           }}
           activeOpacity={0.7}
         >
-          {/* ✅ FIXED: Show avatar with proper fallback */}
           {avatarUrl && !imageError ? (
             <Image 
               source={{ uri: `${avatarUrl}?v=${Date.now()}` }} 

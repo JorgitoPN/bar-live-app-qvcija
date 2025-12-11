@@ -25,19 +25,15 @@ export default function RecuperarPasswordV7Screen() {
   const params = useLocalSearchParams();
   const initialEmail = params.email as string || '';
   
-  // Flow control
   const [currentStep, setCurrentStep] = useState<FlowStep>('email');
   
-  // Email step
   const [email, setEmail] = useState(initialEmail);
   const [sendingCode, setSendingCode] = useState(false);
   
-  // Token step
-  const [token, setToken] = useState(['', '', '', '', '', '']);
+  const [token, setToken] = useState<string[]>(['', '', '', '', '', '']);
   const [validatingToken, setValidatingToken] = useState(false);
   const inputRefs = useRef<(TextInput | null)[]>([]);
   
-  // Password step
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -46,7 +42,6 @@ export default function RecuperarPasswordV7Screen() {
 
   useEffect(() => {
     console.log('[RecuperarPasswordV7] Current step changed to:', currentStep);
-    // Auto-focus first token input when entering token step
     if (currentStep === 'token' && inputRefs.current[0]) {
       setTimeout(() => {
         inputRefs.current[0]?.focus();
@@ -80,7 +75,6 @@ export default function RecuperarPasswordV7Screen() {
       console.log('═══════════════════════════════════════════════════════');
       console.log('[RecuperarPasswordV7] 📧 Email:', normalizedEmail);
 
-      // Call Edge Function to generate and send token
       const { data, error } = await supabase.functions.invoke('request-password-token', {
         body: { email: normalizedEmail },
       });
@@ -88,7 +82,6 @@ export default function RecuperarPasswordV7Screen() {
       if (error) {
         console.error('[RecuperarPasswordV7] ❌ Error:', error);
         
-        // Check if it's a configuration error
         if (error.message && error.message.includes('configuración')) {
           Alert.alert(
             'Error de configuración',
@@ -98,7 +91,6 @@ export default function RecuperarPasswordV7Screen() {
           return;
         }
         
-        // Generic error - still proceed to token step for security
         console.log('[RecuperarPasswordV7] ⚠️ Error al enviar código, pero continuando por seguridad');
       } else {
         console.log('[RecuperarPasswordV7] ✅ Código enviado');
@@ -107,7 +99,6 @@ export default function RecuperarPasswordV7Screen() {
     } catch (error: any) {
       console.error('[RecuperarPasswordV7] ❌ Exception:', error);
       
-      // Show error but still proceed for security
       Alert.alert(
         'Aviso',
         'Hubo un problema al enviar el código. Si tu correo está registrado, recibirás el código en breve. Si no lo recibes, por favor contacta con soporte.',
@@ -116,7 +107,6 @@ export default function RecuperarPasswordV7Screen() {
     } finally {
       setSendingCode(false);
       console.log('[RecuperarPasswordV7] 🔄 Cambiando a paso de token...');
-      // Always move to token step for security (don't reveal if email exists)
       setCurrentStep('token');
       console.log('[RecuperarPasswordV7] ✅ Paso cambiado a token');
       console.log('[RecuperarPasswordV7] 🏁 Proceso finalizado');
@@ -125,7 +115,6 @@ export default function RecuperarPasswordV7Screen() {
   };
 
   const handleTokenChange = (value: string, index: number) => {
-    // Only allow numbers
     if (value && !/^\d$/.test(value)) {
       return;
     }
@@ -134,12 +123,10 @@ export default function RecuperarPasswordV7Screen() {
     newToken[index] = value;
     setToken(newToken);
 
-    // Auto-focus next input
     if (value && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
 
-    // Auto-validate when all 6 digits are entered
     if (index === 5 && value) {
       const fullToken = [...newToken.slice(0, 5), value].join('');
       if (fullToken.length === 6) {
@@ -279,7 +266,6 @@ export default function RecuperarPasswordV7Screen() {
 
       console.log('[RecuperarPasswordV7] ✅ Contraseña actualizada');
 
-      // Show success message
       Alert.alert(
         '✅ Contraseña actualizada',
         'Tu contraseña ha sido actualizada correctamente. Iniciando sesión...',
@@ -287,7 +273,6 @@ export default function RecuperarPasswordV7Screen() {
           {
             text: 'OK',
             onPress: async () => {
-              // Auto-login
               try {
                 const { error: signInError } = await supabase.auth.signInWithPassword({
                   email: email.trim().toLowerCase(),
@@ -432,7 +417,6 @@ export default function RecuperarPasswordV7Screen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.formContainer}>
-          {/* STEP 1: EMAIL INPUT */}
           {currentStep === 'email' && (
             <>
               <View style={styles.infoBox}>
@@ -544,7 +528,6 @@ export default function RecuperarPasswordV7Screen() {
             </>
           )}
 
-          {/* STEP 2: TOKEN INPUT */}
           {currentStep === 'token' && (
             <>
               <View style={styles.infoBox}>
@@ -683,7 +666,6 @@ export default function RecuperarPasswordV7Screen() {
             </>
           )}
 
-          {/* STEP 3: NEW PASSWORD */}
           {currentStep === 'password' && (
             <>
               <View style={styles.infoBox}>

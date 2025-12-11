@@ -23,19 +23,17 @@ export default function ValidarTokenPasswordScreen() {
   const params = useLocalSearchParams();
   const email = params.email as string || '';
   
-  const [token, setToken] = useState(['', '', '', '', '', '']);
+  const [token, setToken] = useState<string[]>(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
   useEffect(() => {
-    // Focus first input on mount
     if (inputRefs.current[0]) {
       inputRefs.current[0].focus();
     }
   }, []);
 
   const handleTokenChange = (value: string, index: number) => {
-    // Only allow numbers
     if (value && !/^\d$/.test(value)) {
       return;
     }
@@ -44,7 +42,6 @@ export default function ValidarTokenPasswordScreen() {
     newToken[index] = value;
     setToken(newToken);
 
-    // Auto-focus next input
     if (value && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
@@ -73,11 +70,9 @@ export default function ValidarTokenPasswordScreen() {
       console.log('[ValidarTokenPassword] 📧 Email:', email);
       console.log('[ValidarTokenPassword] 🔢 Token:', fullToken);
 
-      // Get the project URL
       const { data: { project_url } } = await supabase.functions.getProjectUrl();
       const functionsUrl = project_url || 'https://embntaqwlwmgazvrglaf.supabase.co';
 
-      // Call the Edge Function to validate token
       const response = await fetch(`${functionsUrl}/functions/v1/validate-password-token`, {
         method: 'POST',
         headers: {
@@ -113,7 +108,6 @@ export default function ValidarTokenPasswordScreen() {
 
       console.log('[ValidarTokenPassword] ✅ Token válido');
 
-      // Navigate to new password screen
       router.push({
         pathname: '/auth/nueva-password-token',
         params: { email, token: fullToken },

@@ -3,11 +3,13 @@ import { Stack } from 'expo-router';
 
 /**
  * ============================================================================
- * DETALLE LAYOUT - MODAL PRESENTATION WITH GESTURE SUPPORT
+ * DETALLE LAYOUT - MODAL PRESENTATION WITH ROUNDED CORNERS
  * ============================================================================
  * 
- * This layout configures all detail pages to open as modals with drag-to-close gesture.
- * Users can swipe down to close the modal.
+ * This layout configures all detail pages to open as modals with:
+ * - Rounded top corners
+ * - Drag-to-close gesture
+ * - Slide from bottom animation
  */
 export default function DetalleLayout() {
   return (
@@ -18,6 +20,11 @@ export default function DetalleLayout() {
         animation: 'slide_from_bottom',
         gestureEnabled: true,
         gestureDirection: 'vertical',
+        contentStyle: {
+          borderTopLeftRadius: 20,
+          borderTopRightRadius: 20,
+          overflow: 'hidden',
+        },
       }}
     >
       <Stack.Screen 
@@ -27,6 +34,11 @@ export default function DetalleLayout() {
           animation: 'slide_from_bottom',
           gestureEnabled: true,
           gestureDirection: 'vertical',
+          contentStyle: {
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            overflow: 'hidden',
+          },
         }}
       />
       <Stack.Screen 
@@ -36,6 +48,11 @@ export default function DetalleLayout() {
           animation: 'slide_from_bottom',
           gestureEnabled: true,
           gestureDirection: 'vertical',
+          contentStyle: {
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            overflow: 'hidden',
+          },
         }}
       />
       <Stack.Screen 
@@ -45,6 +62,11 @@ export default function DetalleLayout() {
           animation: 'slide_from_bottom',
           gestureEnabled: true,
           gestureDirection: 'vertical',
+          contentStyle: {
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            overflow: 'hidden',
+          },
         }}
       />
       <Stack.Screen 
@@ -54,6 +76,11 @@ export default function DetalleLayout() {
           animation: 'slide_from_bottom',
           gestureEnabled: true,
           gestureDirection: 'vertical',
+          contentStyle: {
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            overflow: 'hidden',
+          },
         }}
       />
     </Stack>

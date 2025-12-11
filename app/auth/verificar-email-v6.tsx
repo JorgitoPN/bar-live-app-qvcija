@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -27,8 +27,8 @@ export default function VerificarEmailV6Screen() {
   const [canResend, setCanResend] = useState(false);
   const [countdown, setCountdown] = useState(60);
   
-  const fadeAnim = React.useRef(new Animated.Value(0)).current;
-  const pulseAnim = React.useRef(new Animated.Value(1)).current;
+  const fadeAnim = useMemo(() => new Animated.Value(0), []);
+  const pulseAnim = useMemo(() => new Animated.Value(1), []);
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -37,7 +37,6 @@ export default function VerificarEmailV6Screen() {
       useNativeDriver: true,
     }).start();
 
-    // Pulse animation for the email icon
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
@@ -121,7 +120,6 @@ export default function VerificarEmailV6Screen() {
         showsVerticalScrollIndicator={false}
       >
         <Animated.View style={[styles.mainContainer, { opacity: fadeAnim }]}>
-          {/* Email Icon */}
           <Animated.View style={[styles.iconContainer, { transform: [{ scale: pulseAnim }] }]}>
             <View style={styles.iconCircle}>
               <IconSymbol
@@ -133,13 +131,11 @@ export default function VerificarEmailV6Screen() {
             </View>
           </Animated.View>
 
-          {/* Title */}
           <Text style={styles.title}>¡Revisa tu correo!</Text>
           <Text style={styles.subtitle}>
             {nombre ? `Hola ${nombre}, ` : ''}Hemos enviado un correo de verificación a:
           </Text>
 
-          {/* Email Badge */}
           <View style={styles.emailBadge}>
             <IconSymbol
               ios_icon_name="envelope.fill"
@@ -150,7 +146,6 @@ export default function VerificarEmailV6Screen() {
             <Text style={styles.emailText}>{email}</Text>
           </View>
 
-          {/* Instructions */}
           <View style={styles.instructionsContainer}>
             <Text style={styles.instructionsTitle}>📋 Próximos pasos:</Text>
             
@@ -191,7 +186,6 @@ export default function VerificarEmailV6Screen() {
             </View>
           </View>
 
-          {/* Tips */}
           <View style={styles.tipsContainer}>
             <Text style={styles.tipsTitle}>💡 Consejos:</Text>
             <Text style={styles.tipText}>
@@ -205,7 +199,6 @@ export default function VerificarEmailV6Screen() {
             </Text>
           </View>
 
-          {/* Resend Button */}
           <TouchableOpacity
             style={[styles.resendButton, (!canResend || resending) && styles.resendButtonDisabled]}
             onPress={handleResendEmail}
@@ -230,7 +223,6 @@ export default function VerificarEmailV6Screen() {
             )}
           </TouchableOpacity>
 
-          {/* Back to Login */}
           <TouchableOpacity
             style={styles.loginButton}
             onPress={() => router.replace('/auth/login-v6')}

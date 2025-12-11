@@ -41,10 +41,6 @@ interface Comment {
   replies?: Comment[];
 }
 
-interface AuthorStories {
-  [userId: string]: any[];
-}
-
 interface CommentsModalProps {
   visible: boolean;
   postId: string;
@@ -67,14 +63,11 @@ export default function CommentsModal({
   const [sending, setSending] = useState(false);
   const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
   const [editingComment, setEditingComment] = useState<Comment | null>(null);
-  const [authorStories, setAuthorStories] = useState<AuthorStories>({});
 
-  // ✅ V11.0: Load comments and author stories
   const loadComments = useCallback(async () => {
     try {
       setLoading(true);
       
-      // Load comments with likes info
       const { data: commentsData, error } = await supabase
         .from('comentarios')
         .select(`
@@ -93,7 +86,6 @@ export default function CommentsModal({
 
       if (error) throw error;
 
-      // Load likes count and user's like status for each comment
       if (user && commentsData) {
         const commentIds = commentsData.map(c => c.id);
         
@@ -145,36 +137,6 @@ export default function CommentsModal({
         }));
 
         setComments(enrichedComments);
-
-        // ✅ V11.0: Load stories for all comment authors
-        const uniqueAuthorIds = new Set<string>();
-        commentsData.forEach(comment => {
-          uniqueAuthorIds.add(comment.autor_id);
-          if (repliesByParent[comment.id]) {
-            repliesByParent[comment.id].forEach((reply: any) => {
-              uniqueAuthorIds.add(reply.autor_id);
-            });
-          }
-        });
-
-        const storiesMap: AuthorStories = {};
-        
-        for (const authorId of uniqueAuthorIds) {
-          const { data: storiesData } = await supabase
-            .from('historias')
-            .select('id, autor_id, tipo, imagen, imagen_url, created_at, expires_at')
-            .eq('tipo', 'usuario')
-            .eq('autor_id', authorId)
-            .gt('expires_at', new Date().toISOString())
-            .order('created_at', { ascending: true });
-
-          if (storiesData && storiesData.length > 0) {
-            storiesMap[authorId] = storiesData;
-          }
-        }
-
-        setAuthorStories(storiesMap);
-        console.log('[CommentsModal] ✅ V11.0 - Loaded stories for', Object.keys(storiesMap).length, 'authors');
       } else {
         setComments(commentsData || []);
       }
@@ -186,7 +148,6 @@ export default function CommentsModal({
     }
   }, [postId, user]);
 
-  // ✅ Fixed: Now loadComments is defined before this useEffect
   useEffect(() => {
     if (visible) {
       loadComments();
@@ -204,7 +165,6 @@ export default function CommentsModal({
 
     try {
       if (editingComment) {
-        // Edit existing comment
         const { error } = await supabase
           .from('comentarios')
           .update({ texto: text })
@@ -215,7 +175,6 @@ export default function CommentsModal({
         setEditingComment(null);
         await loadComments();
       } else {
-        // Create new comment or reply
         const { data: newComment, error } = await supabase
           .from('comentarios')
           .insert({
@@ -239,7 +198,6 @@ export default function CommentsModal({
         if (error) throw error;
 
         if (replyingTo) {
-          // Reload to show new reply
           await loadComments();
           setReplyingTo(null);
         } else {
@@ -267,7 +225,6 @@ export default function CommentsModal({
 
     const newLikedState = !comment.user_has_liked;
     
-    // Optimistic update
     setComments(prev => prev.map(c => 
       c.id === comment.id 
         ? { 
@@ -293,7 +250,6 @@ export default function CommentsModal({
       }
     } catch (error) {
       console.error('[CommentsModal] Error toggling like:', error);
-      // Revert on error
       setComments(prev => prev.map(c => 
         c.id === comment.id 
           ? { 
@@ -386,13 +342,11 @@ export default function CommentsModal({
     const options: string[] = [];
     const actions: (() => void)[] = [];
 
-    // Options for everyone
     if (!isOwner) {
       options.push('Denunciar');
       actions.push(() => handleReportComment(comment));
     }
 
-    // Options for comment author
     if (isOwner) {
       options.push('Editar');
       actions.push(() => {
@@ -404,7 +358,6 @@ export default function CommentsModal({
       actions.push(() => handleDeleteComment(comment));
     }
 
-    // Options for post owner
     if (isPostOwner && !isOwner) {
       options.push('Eliminar comentario');
       actions.push(() => handleDeleteComment(comment));
@@ -511,7 +464,6 @@ export default function CommentsModal({
         </View>
       </View>
 
-      {/* Render replies */}
       {item.replies && item.replies.length > 0 && (
         <View style={styles.repliesContainer}>
           {item.replies.map((reply) => (
@@ -568,7 +520,6 @@ export default function CommentsModal({
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={0}
       >
-        {/* Header */}
         <BlurView intensity={80} tint="light" style={styles.header}>
           <Text style={styles.headerTitle}>Comentarios</Text>
           <TouchableOpacity
@@ -585,7 +536,6 @@ export default function CommentsModal({
           </TouchableOpacity>
         </BlurView>
 
-        {/* Comments List */}
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
@@ -601,7 +551,6 @@ export default function CommentsModal({
           />
         )}
 
-        {/* Input */}
         {user && (
           <BlurView intensity={80} tint="light" style={styles.inputContainer}>
             {(replyingTo || editingComment) && (

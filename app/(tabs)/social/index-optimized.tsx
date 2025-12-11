@@ -62,30 +62,6 @@ interface Post {
   };
 }
 
-interface Historia {
-  id: string;
-  imagen_url: string;
-  tipo: 'usuario' | 'local';
-  autor_id?: string;
-  local_id?: string;
-  created_at: string;
-  visto_por_usuario?: boolean;
-  liked_by_user?: boolean;
-  views_count?: number;
-  comments_count?: number;
-  autor?: {
-    id: string;
-    nombre: string;
-    username?: string;
-    avatar?: string;
-  };
-  local?: {
-    id: string;
-    nombre: string;
-    logo?: string;
-  };
-}
-
 export default function SocialScreen() {
   const router = useRouter();
   const { user } = useAuth();
@@ -101,11 +77,9 @@ export default function SocialScreen() {
     setCurrentMode,
   } = useMode();
   
-  const { posts: globalPosts, stories: globalStories, isInitialLoading, refreshData } = useGlobalData();
+  const { posts: globalPosts, isInitialLoading, refreshData } = useGlobalData();
   
   const [posts, setPosts] = useState<Post[]>([]);
-  const [historias, setHistorias] = useState<Historia[]>([]);
-  const [userStories, setUserStories] = useState<Historia[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -115,7 +89,6 @@ export default function SocialScreen() {
   const activeLocalProfileId = isOwnerMode ? activeProfileId : null;
   const isInteractingAsLocal = isOwnerMode && activeProfileType === 'local';
 
-  // ✅ FIXED: Added posts to dependency array
   const loadData = useCallback(async () => {
     if (isLoadingRef.current) {
       console.log('[Social] ⚡ Already loading, skipping...');
@@ -128,7 +101,6 @@ export default function SocialScreen() {
       console.log('[Social] ⚡ Loading with ADVANCED CACHE...');
       
       const cachedPosts = await advancedCache.get<Post[]>('social:posts');
-      const cachedStories = await advancedCache.get<Historia[]>('social:stories');
       
       if (cachedPosts && cachedPosts.length > 0) {
         console.log('[Social] ⚡⚡⚡ INSTANT posts from advanced cache:', cachedPosts.length);
@@ -202,105 +174,13 @@ export default function SocialScreen() {
         }
       }
 
-      if (cachedStories && cachedStories.length > 0) {
-        console.log('[Social] ⚡⚡⚡ INSTANT stories from advanced cache:', cachedStories.length);
-        setHistorias(cachedStories);
-      } else if (globalStories.length > 0) {
-        console.log('[Social] ⚡ INSTANT stories from global data:', globalStories.length);
-        
-        let userOwnStories: typeof globalStories = [];
-        let otherStories: typeof globalStories = [];
-
-        if (isOwnerMode && activeLocalProfileId) {
-          userOwnStories = globalStories.filter(s => s.tipo === 'local' && s.local_id === activeLocalProfileId);
-          otherStories = globalStories.filter(s => s.tipo === 'usuario');
-        } else if (user) {
-          const { data: followedLocals } = await supabase
-            .from('locales_favoritos')
-            .select('local_id')
-            .eq('usuario_id', user.id);
-
-          const followedLocalIds = new Set(followedLocals?.map(f => f.local_id) || []);
-          
-          userOwnStories = globalStories.filter(s => s.tipo === 'usuario' && s.autor_id === user.id);
-          otherStories = globalStories.filter(s => 
-            (s.tipo === 'usuario' && s.autor_id !== user.id) ||
-            (s.tipo === 'local' && s.local_id && followedLocalIds.has(s.local_id))
-          );
-        } else {
-          otherStories = globalStories.filter(s => s.tipo === 'usuario');
-        }
-        
-        if (user) {
-          const allStoryIds = globalStories.map(s => s.id);
-          
-          const [viewedData, likesData, viewsCountData, commentsCountData] = await Promise.all([
-            supabase
-              .from('historia_views')
-              .select('historia_id')
-              .eq('usuario_id', user.id)
-              .in('historia_id', allStoryIds),
-            supabase
-              .from('historia_likes')
-              .select('historia_id')
-              .eq('usuario_id', user.id)
-              .in('historia_id', allStoryIds),
-            supabase
-              .from('historia_views')
-              .select('historia_id')
-              .in('historia_id', allStoryIds),
-            supabase
-              .from('historia_comentarios')
-              .select('historia_id')
-              .in('historia_id', allStoryIds),
-          ]);
-          
-          const viewedStoryIds = new Set(viewedData.data?.map(v => v.historia_id) || []);
-          const likedStoryIds = new Set(likesData.data?.map(l => l.historia_id) || []);
-          
-          const viewsCounts = viewsCountData.data?.reduce((acc, v) => {
-            acc[v.historia_id] = (acc[v.historia_id] || 0) + 1;
-            return acc;
-          }, {} as Record<string, number>) || {};
-          
-          const commentsCounts = commentsCountData.data?.reduce((acc, c) => {
-            acc[c.historia_id] = (acc[c.historia_id] || 0) + 1;
-            return acc;
-          }, {} as Record<string, number>) || {};
-          
-          const userStoriesWithStatus = userOwnStories.map(story => ({
-            ...story,
-            visto_por_usuario: viewedStoryIds.has(story.id),
-            liked_by_user: likedStoryIds.has(story.id),
-            views_count: viewsCounts[story.id] || 0,
-            comments_count: commentsCounts[story.id] || 0,
-          }));
-          
-          const otherStoriesWithStatus = otherStories.map(story => ({
-            ...story,
-            visto_por_usuario: viewedStoryIds.has(story.id),
-            liked_by_user: likedStoryIds.has(story.id),
-            views_count: viewsCounts[story.id] || 0,
-            comments_count: commentsCounts[story.id] || 0,
-          }));
-          
-          setUserStories(userStoriesWithStatus);
-          setHistorias(otherStoriesWithStatus);
-          
-          await advancedCache.set('social:stories', otherStoriesWithStatus, 'high');
-        } else {
-          setHistorias(otherStories);
-          await advancedCache.set('social:stories', otherStories, 'high');
-        }
-      }
-
       console.log('[Social] ⚡ User-specific data loaded');
     } catch (error) {
       console.error('[Social] Error loading data:', error);
     } finally {
       isLoadingRef.current = false;
     }
-  }, [user, globalPosts, globalStories, isOwnerMode, activeLocalProfileId, posts]);
+  }, [user, globalPosts, isOwnerMode, activeLocalProfileId]);
 
   useEffect(() => {
     if (user) {
@@ -438,19 +318,6 @@ export default function SocialScreen() {
     Alert.alert('Compartir', 'Función de compartir próximamente');
   }, []);
 
-  const handleHistoriaPress = useCallback((index: number) => {
-    console.log('[Social] Story pressed:', index);
-    // Story viewer functionality removed
-  }, []);
-
-  const handleCrearHistoria = useCallback(() => {
-    if (!user) {
-      setShowLoginModal(true);
-      return;
-    }
-    router.push('/crear/historia');
-  }, [user, router]);
-
   const handleCrearPublicacion = useCallback(() => {
     if (!user) {
       setShowLoginModal(true);
@@ -486,78 +353,6 @@ export default function SocialScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.storiesContainer}
-          contentContainerStyle={styles.storiesContent}
-        >
-          <TouchableOpacity
-            style={styles.storyItem}
-            onPress={handleCrearHistoria}
-          >
-            <View style={styles.createStoryCircle}>
-              <IconSymbol
-                ios_icon_name="plus"
-                android_material_icon_name="add"
-                size={24}
-                color={colors.primary}
-              />
-            </View>
-            <Text style={styles.storyUsername}>Tu historia</Text>
-          </TouchableOpacity>
-
-          {userStories.map((historia, index) => (
-            <TouchableOpacity
-              key={historia.id}
-              style={styles.storyItem}
-              onPress={() => handleHistoriaPress(index)}
-            >
-              <View
-                style={[
-                  styles.storyCircle,
-                  historia.visto_por_usuario && styles.storyCircleViewed,
-                ]}
-              >
-                <Image
-                  source={{ uri: historia.imagen_url }}
-                  style={styles.storyImage}
-                />
-              </View>
-              <Text style={styles.storyUsername}>
-                {historia.tipo === 'usuario'
-                  ? historia.autor?.nombre || 'Usuario'
-                  : historia.local?.nombre || 'Local'}
-              </Text>
-            </TouchableOpacity>
-          ))}
-
-          {historias.map((historia, index) => (
-            <TouchableOpacity
-              key={historia.id}
-              style={styles.storyItem}
-              onPress={() => handleHistoriaPress(userStories.length + index)}
-            >
-              <View
-                style={[
-                  styles.storyCircle,
-                  historia.visto_por_usuario && styles.storyCircleViewed,
-                ]}
-              >
-                <Image
-                  source={{ uri: historia.imagen_url }}
-                  style={styles.storyImage}
-                />
-              </View>
-              <Text style={styles.storyUsername}>
-                {historia.tipo === 'usuario'
-                  ? historia.autor?.nombre || 'Usuario'
-                  : historia.local?.nombre || 'Local'}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
         {posts.map((post) => (
           <View key={post.id} style={styles.postCard}>
             <View style={styles.postHeader}>
@@ -691,53 +486,6 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-  },
-  storiesContainer: {
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    backgroundColor: colors.card,
-  },
-  storiesContent: {
-    paddingHorizontal: 12,
-    paddingVertical: 16,
-  },
-  storyItem: {
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  createStoryCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: colors.background,
-    borderWidth: 2,
-    borderColor: colors.primary,
-    borderStyle: 'dashed',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  storyCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    borderWidth: 3,
-    borderColor: colors.primary,
-    padding: 2,
-  },
-  storyCircleViewed: {
-    borderColor: colors.border,
-  },
-  storyImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 28,
-  },
-  storyUsername: {
-    marginTop: 4,
-    fontSize: 12,
-    color: colors.text,
-    maxWidth: 64,
-    textAlign: 'center',
   },
   postCard: {
     backgroundColor: colors.card,

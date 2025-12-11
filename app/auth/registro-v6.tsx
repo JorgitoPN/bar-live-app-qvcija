@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -46,7 +46,7 @@ export default function RegistroV6Screen() {
   const confirmPasswordShakeAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  React.useEffect(() => {
+  useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 600,
@@ -132,7 +132,6 @@ export default function RegistroV6Screen() {
   };
 
   const handleRegister = async () => {
-    // Validate all fields
     let hasError = false;
 
     if (!nombre.trim()) {
@@ -188,7 +187,6 @@ export default function RegistroV6Screen() {
 
       console.log('[Registro v6.0] 📝 Registering new user:', normalizedEmail);
 
-      // Check if email already exists
       const { data: existingUser, error: checkError } = await supabase
         .from('usuarios')
         .select('id, email_verified')
@@ -258,7 +256,6 @@ export default function RegistroV6Screen() {
         return;
       }
 
-      // Register with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: normalizedEmail,
         password: password,
@@ -293,7 +290,6 @@ export default function RegistroV6Screen() {
 
       console.log('[Registro v6.0] ✅ User created successfully:', authData.user.id);
 
-      // Navigate to verification screen
       router.push({
         pathname: '/auth/verificar-email-v6',
         params: { email: normalizedEmail, nombre: nombre.trim() },
@@ -373,7 +369,6 @@ export default function RegistroV6Screen() {
         showsVerticalScrollIndicator={false}
       >
         <Animated.View style={[styles.formContainer, { opacity: fadeAnim }]}>
-          {/* Nombre Input */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Nombre completo</Text>
             <Animated.View
@@ -423,7 +418,6 @@ export default function RegistroV6Screen() {
             ) : null}
           </View>
 
-          {/* Email Input */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Correo electrónico</Text>
             <Animated.View
@@ -475,7 +469,6 @@ export default function RegistroV6Screen() {
             ) : null}
           </View>
 
-          {/* Password Input */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Contraseña</Text>
             <Animated.View
@@ -546,7 +539,6 @@ export default function RegistroV6Screen() {
             ) : null}
           </View>
 
-          {/* Confirm Password Input */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Confirmar contraseña</Text>
             <Animated.View
@@ -610,7 +602,6 @@ export default function RegistroV6Screen() {
             ) : null}
           </View>
 
-          {/* Terms Checkbox */}
           <TouchableOpacity
             style={styles.termsContainer}
             onPress={() => setAcceptedTerms(!acceptedTerms)}
@@ -634,7 +625,6 @@ export default function RegistroV6Screen() {
             </Text>
           </TouchableOpacity>
 
-          {/* Register Button */}
           <TouchableOpacity
             style={[styles.button, loading && styles.buttonDisabled]}
             onPress={handleRegister}
@@ -664,14 +654,12 @@ export default function RegistroV6Screen() {
             </LinearGradient>
           </TouchableOpacity>
 
-          {/* Divider */}
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
             <Text style={styles.dividerText}>o</Text>
             <View style={styles.dividerLine} />
           </View>
 
-          {/* Login Link */}
           <View style={styles.loginContainer}>
             <Text style={styles.loginText}>¿Ya tienes cuenta? </Text>
             <TouchableOpacity
@@ -913,6 +901,310 @@ const styles = StyleSheet.create({
   },
   loginLink: {
     fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  stepIndicatorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
+  stepDot: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stepDotActive: {
+    backgroundColor: '#fff',
+  },
+  stepDotText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
+  stepLine: {
+    width: 40,
+    height: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    marginHorizontal: 8,
+  },
+  stepLineActive: {
+    backgroundColor: '#fff',
+  },
+  infoBox: {
+    alignItems: 'center',
+    backgroundColor: colors.cardBackground,
+    borderRadius: 16,
+    padding: 32,
+    marginBottom: 32,
+  },
+  infoTitle: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginTop: 20,
+    marginBottom: 12,
+  },
+  infoText: {
+    fontSize: 15,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  emailBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: `${colors.primary}15`,
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginTop: 16,
+  },
+  highlightBox: {
+    backgroundColor: `${colors.primary}15`,
+    borderRadius: 20,
+    padding: 24,
+    marginBottom: 24,
+    borderWidth: 3,
+    borderColor: colors.primary,
+  },
+  highlightHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  highlightTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.primary,
+    marginHorizontal: 12,
+    textAlign: 'center',
+  },
+  tokenLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  stepsBox: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 16,
+    padding: 24,
+    marginBottom: 24,
+  },
+  stepsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 20,
+  },
+  stepItem: {
+    flexDirection: 'row',
+    marginBottom: 20,
+  },
+  stepNumber: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  stepNumberText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  stepContent: {
+    flex: 1,
+  },
+  stepTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  stepDescription: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+  },
+  inputIcon: {
+    marginRight: 12,
+  },
+  tokenContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+    paddingHorizontal: 4,
+  },
+  tokenInput: {
+    width: 48,
+    height: 64,
+    backgroundColor: colors.background,
+    borderWidth: 3,
+    borderColor: colors.cardBorder,
+    borderRadius: 12,
+    fontSize: 28,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    color: colors.text,
+  },
+  tokenInputFilled: {
+    borderColor: colors.primary,
+    backgroundColor: '#fff',
+  },
+  validatingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  validatingText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginLeft: 12,
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 16,
+    fontSize: 16,
+    color: colors.text,
+  },
+  eyeButton: {
+    padding: 16,
+  },
+  requirementsBox: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+  },
+  requirementsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  requirementItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  requirementText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginLeft: 12,
+  },
+  requirementTextValid: {
+    color: '#10b981',
+  },
+  securityNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.primary,
+  },
+  securityText: {
+    flex: 1,
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginLeft: 12,
+    lineHeight: 18,
+  },
+  helpBox: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 20,
+  },
+  helpTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  helpText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: 8,
+    lineHeight: 18,
+  },
+  warningBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fef3c7',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: '#f59e0b',
+  },
+  warningText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#78350f',
+    marginLeft: 12,
+    lineHeight: 18,
+  },
+  resendButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: colors.primary,
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  resendButtonText: {
+    color: colors.primary,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  backToLoginButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  backToLoginIcon: {
+    marginRight: 8,
+  },
+  backToLoginText: {
+    fontSize: 15,
+    color: colors.textSecondary,
+  },
+  backToLoginTextBold: {
     fontWeight: '600',
     color: colors.primary,
   },

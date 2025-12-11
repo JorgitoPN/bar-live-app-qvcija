@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Pressable } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -10,10 +10,8 @@ interface Message {
   chat_id: string;
   remitente_id: string;
   contenido: string;
-  tipo_mensaje: 'texto' | 'post_compartido' | 'imagen' | 'historia';
+  tipo_mensaje: 'texto' | 'post_compartido' | 'imagen';
   post_compartido_id?: string;
-  historia_id?: string;
-  historia_imagen?: string;
   post_imagen?: string;
   leido: boolean;
   created_at: string;
@@ -28,7 +26,6 @@ interface MessageBubbleProps {
 
 export default function MessageBubble({ message, isOwn, otroUsuario, onLongPress }: MessageBubbleProps) {
   const router = useRouter();
-  const [storyExpired, setStoryExpired] = useState(false);
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -43,16 +40,7 @@ export default function MessageBubble({ message, isOwn, otroUsuario, onLongPress
     }
   };
 
-  const handleStoryPress = () => {
-    if (message.historia_id && !storyExpired) {
-      // Stories are ephemeral, so we just show the image
-      // The actual story might be expired, but we keep the snapshot
-      console.log('[MessageBubble] Story snapshot pressed');
-    }
-  };
-
   const renderContent = () => {
-    // Shared post with snapshot
     if (message.tipo_mensaje === 'post_compartido' && message.post_compartido_id) {
       return (
         <View style={styles.sharedPostContainer}>
@@ -75,22 +63,6 @@ export default function MessageBubble({ message, isOwn, otroUsuario, onLongPress
       );
     }
 
-    // Story message with snapshot (deprecated - stories removed)
-    if (message.tipo_mensaje === 'historia' || message.historia_id) {
-      return (
-        <View style={styles.expiredStoryContainer}>
-          <IconSymbol 
-            ios_icon_name="exclamationmark.triangle" 
-            android_material_icon_name="warning" 
-            size={20} 
-            color={colors.textSecondary} 
-          />
-          <Text style={styles.expiredStoryText}>Historia no disponible</Text>
-        </View>
-      );
-    }
-
-    // Regular text message
     return (
       <Text style={[styles.messageText, isOwn && styles.messageTextOwn]}>
         {message.contenido}
@@ -184,42 +156,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  storyContainer: {
-    gap: 8,
-  },
-  storyImage: {
-    width: 200,
-    height: 300,
-    borderRadius: 12,
-  },
-  storyBadge: {
-    position: 'absolute',
-    top: 8,
-    left: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  storyBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  expiredStoryContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 8,
-  },
-  expiredStoryText: {
-    fontSize: 14,
-    fontStyle: 'italic',
-    color: colors.textSecondary,
   },
   footer: {
     flexDirection: 'row',

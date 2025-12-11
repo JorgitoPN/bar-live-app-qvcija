@@ -22,7 +22,6 @@ import SharePostModal from './SharePostModal';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// ✅ DEFAULT AVATAR URL - Barlive branded default avatar
 const DEFAULT_AVATAR_URL = 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=400&h=400&fit=crop';
 
 interface Post {
@@ -72,22 +71,18 @@ export default function NewPostCard({
   const [showComments, setShowComments] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
 
-  // ✅ FIXED: Fetch author data dynamically
   const [authorAvatar, setAuthorAvatar] = useState<string | null>(null);
   const [authorName, setAuthorName] = useState<string>('Usuario');
   const [loadingAuthor, setLoadingAuthor] = useState(true);
-  const [authorStories, setAuthorStories] = useState<any[]>([]);
 
   const isOwner = post.tipo === 'usuario' 
     ? post.autor_id === user?.id
     : false;
 
-  // ✅ V11.0: Load author data and stories on mount
   useEffect(() => {
     const loadAuthorData = async () => {
       try {
         if (post.tipo === 'local' && post.local_id) {
-          // Fetch local data
           const { data: localData, error } = await supabase
             .from('locales')
             .select('nombre, imagen_url')
@@ -98,21 +93,7 @@ export default function NewPostCard({
             setAuthorName(localData.nombre);
             setAuthorAvatar(localData.imagen_url || null);
           }
-
-          // ✅ V11.0: Load local stories
-          const { data: storiesData } = await supabase
-            .from('historias')
-            .select('id, autor_id, tipo, imagen, imagen_url, created_at, expires_at')
-            .eq('tipo', 'local')
-            .eq('local_id', post.local_id)
-            .gt('expires_at', new Date().toISOString())
-            .order('created_at', { ascending: true });
-
-          if (storiesData) {
-            setAuthorStories(storiesData);
-          }
         } else if (post.autor_id) {
-          // Fetch user data
           const { data: userData, error } = await supabase
             .from('usuarios')
             .select('nombre, avatar, username')
@@ -122,19 +103,6 @@ export default function NewPostCard({
           if (!error && userData) {
             setAuthorName(userData.username || userData.nombre);
             setAuthorAvatar(userData.avatar || null);
-          }
-
-          // ✅ V11.0: Load user stories
-          const { data: storiesData } = await supabase
-            .from('historias')
-            .select('id, autor_id, tipo, imagen, imagen_url, created_at, expires_at')
-            .eq('tipo', 'usuario')
-            .eq('autor_id', post.autor_id)
-            .gt('expires_at', new Date().toISOString())
-            .order('created_at', { ascending: true });
-
-          if (storiesData) {
-            setAuthorStories(storiesData);
           }
         }
       } catch (error) {
@@ -289,13 +257,11 @@ export default function NewPostCard({
     ? post.local?.nombre
     : (post.autor.username || post.autor.nombre);
 
-  // ✅ FIXED: Use fetched avatar or default avatar
   const displayAvatar = authorAvatar || DEFAULT_AVATAR_URL;
 
   return (
     <>
       <View style={styles.container}>
-        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.authorInfo} onPress={handleProfilePress}>
             <MiniFoodPlateAvatar
@@ -319,7 +285,6 @@ export default function NewPostCard({
           )}
         </View>
 
-        {/* Images */}
         {post.imagenes.length > 0 && (
           <TouchableOpacity 
             style={styles.imagesContainer}
@@ -364,7 +329,6 @@ export default function NewPostCard({
           </TouchableOpacity>
         )}
 
-        {/* Actions */}
         <View style={styles.actions}>
           <View style={styles.leftActions}>
             <TouchableOpacity
@@ -405,7 +369,6 @@ export default function NewPostCard({
           </TouchableOpacity>
         </View>
 
-        {/* Stats */}
         <View style={styles.stats}>
           {likesCount > 0 && (
             <Text style={styles.statsText}>
@@ -413,7 +376,6 @@ export default function NewPostCard({
             </Text>
           )}
           
-          {/* Content */}
           {post.contenido && (
             <View style={styles.contentContainer}>
               <Text style={styles.content}>
@@ -435,7 +397,6 @@ export default function NewPostCard({
         </View>
       </View>
 
-      {/* Post Viewer Modal */}
       <PostViewerModal
         visible={showPostViewer}
         post={post}
@@ -443,7 +404,6 @@ export default function NewPostCard({
         onUpdate={onUpdate}
       />
 
-      {/* Comments Modal */}
       <CommentsModal
         visible={showComments}
         postId={post.id}
@@ -452,7 +412,6 @@ export default function NewPostCard({
         onCommentAdded={handleCommentsUpdate}
       />
 
-      {/* Share Modal */}
       <SharePostModal
         visible={showShareModal}
         postId={post.id}

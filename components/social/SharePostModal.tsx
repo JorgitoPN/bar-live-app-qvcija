@@ -17,9 +17,7 @@ import { colors } from '@/styles/commonStyles';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
 import { BlurView } from 'expo-blur';
-import { LinearGradient } from 'expo-linear-gradient';
 import MiniFoodPlateAvatar from '@/components/common/MiniFoodPlateAvatar';
-import { router } from 'expo-router';
 
 interface User {
   id: string;
@@ -56,9 +54,7 @@ export default function SharePostModal({
   const [searchQuery, setSearchQuery] = useState('');
   const [sending, setSending] = useState(false);
   const [selectedRecipients, setSelectedRecipients] = useState<Set<string>>(new Set());
-  const [recipientStories, setRecipientStories] = useState<{ [key: string]: any[] }>({});
 
-  // ✅ FIXED: Define loadRecipients with useCallback BEFORE using it in useEffect
   const loadRecipients = useCallback(async () => {
     if (!user) {
       setLoading(false);
@@ -69,7 +65,6 @@ export default function SharePostModal({
       setLoading(true);
       console.log('[SharePostModal] 📥 Loading recipients for user:', user.id);
 
-      // Load users (followers and following)
       const [followersResult, followingResult] = await Promise.all([
         supabase
           .from('seguidores')
@@ -86,7 +81,6 @@ export default function SharePostModal({
       const followersUsers = followersResult.data?.map(f => f.seguidor).filter(Boolean) || [];
       const followingUsers = followingResult.data?.map(f => f.seguido).filter(Boolean) || [];
       
-      // Combine and deduplicate
       const allUsersData = [...followersUsers, ...followingUsers];
       const uniqueUsers = Array.from(
         new Map(allUsersData.map(u => [u.id, u])).values()
@@ -94,7 +88,6 @@ export default function SharePostModal({
 
       setAllUsers(uniqueUsers as User[]);
 
-      // ✅ FIXED: Load locals with active standard or premium plans
       const { data: localsWithPlans } = await supabase
         .from('suscripciones_locales')
         .select(`
@@ -117,47 +110,12 @@ export default function SharePostModal({
 
       setAllLocals(activeLocals as Local[]);
       
-      // Initially show all results
       setFilteredResults([...uniqueUsers, ...activeLocals] as (User | Local)[]);
       
       console.log('[SharePostModal] ✅ Loaded recipients:', {
         users: uniqueUsers.length,
         locals: activeLocals.length,
       });
-
-      // ✅ V11.0: Load stories for all users
-      const storiesMap: { [key: string]: any[] } = {};
-      
-      for (const u of uniqueUsers) {
-        const { data: storiesData } = await supabase
-          .from('historias')
-          .select('id, autor_id, tipo, imagen, imagen_url, created_at, expires_at')
-          .eq('tipo', 'usuario')
-          .eq('autor_id', u.id)
-          .gt('expires_at', new Date().toISOString())
-          .order('created_at', { ascending: true });
-
-        if (storiesData && storiesData.length > 0) {
-          storiesMap[u.id] = storiesData;
-        }
-      }
-
-      for (const l of activeLocals) {
-        const { data: storiesData } = await supabase
-          .from('historias')
-          .select('id, autor_id, tipo, imagen, imagen_url, created_at, expires_at')
-          .eq('tipo', 'local')
-          .eq('local_id', l.id)
-          .gt('expires_at', new Date().toISOString())
-          .order('created_at', { ascending: true });
-
-        if (storiesData && storiesData.length > 0) {
-          storiesMap[l.id] = storiesData;
-        }
-      }
-
-      setRecipientStories(storiesMap);
-      console.log('[SharePostModal] ✅ V11.0 - Loaded stories for', Object.keys(storiesMap).length, 'recipients');
     } catch (error) {
       console.error('[SharePostModal] ❌ Error loading recipients:', error);
       Alert.alert('Error', 'No se pudieron cargar los destinatarios');
@@ -166,7 +124,6 @@ export default function SharePostModal({
     }
   }, [user]);
 
-  // ✅ FIXED: Now loadRecipients is defined before being used
   useEffect(() => {
     if (visible) {
       setSearchQuery('');
@@ -175,23 +132,19 @@ export default function SharePostModal({
     }
   }, [visible, loadRecipients]);
 
-  // ✅ FIXED: Predictive search - filter as user types
   useEffect(() => {
     if (!searchQuery.trim()) {
-      // Show all users and locals when no search query
       setFilteredResults([...allUsers, ...allLocals]);
       return;
     }
 
     const query = searchQuery.toLowerCase().trim();
     
-    // Filter users by name or username (without @ prefix)
     const filteredUsers = allUsers.filter(u =>
       u.nombre.toLowerCase().includes(query) ||
       u.username?.toLowerCase().includes(query)
     );
 
-    // Filter locals by name
     const filteredLocals = allLocals.filter(l =>
       l.nombre.toLowerCase().includes(query)
     );
@@ -210,14 +163,11 @@ export default function SharePostModal({
       const shareMessage = `📤 Publicación compartida: ${postContent || 'Ver publicación'}`;
 
       for (const recipientId of selectedRecipients) {
-        // Determine if recipient is a user or local
         const isLocal = allLocals.some(l => l.id === recipientId);
         
-        // Create or get chat
         let chatId: string;
         
         if (isLocal) {
-          // Chat with local
           const userId1 = user.id < recipientId ? user.id : recipientId;
           const userId2 = user.id < recipientId ? recipientId : user.id;
 
@@ -248,7 +198,6 @@ export default function SharePostModal({
             chatId = newChat.id;
           }
         } else {
-          // Chat with user
           const userId1 = user.id < recipientId ? user.id : recipientId;
           const userId2 = user.id < recipientId ? recipientId : user.id;
 
@@ -280,7 +229,6 @@ export default function SharePostModal({
           }
         }
 
-        // Send message with post reference
         await supabase.from('mensajes').insert({
           chat_id: chatId,
           remitente_id: user.id,
@@ -289,7 +237,6 @@ export default function SharePostModal({
           tipo_mensaje: 'post_share',
         });
 
-        // Update chat last message
         await supabase
           .from('chats')
           .update({
@@ -370,7 +317,6 @@ export default function SharePostModal({
       onRequestClose={onClose}
     >
       <View style={styles.container}>
-        {/* Header */}
         <BlurView intensity={80} tint="light" style={styles.header}>
           <TouchableOpacity
             style={styles.closeButton}
@@ -401,7 +347,6 @@ export default function SharePostModal({
           </TouchableOpacity>
         </BlurView>
 
-        {/* Search */}
         <View style={styles.searchContainer}>
           <IconSymbol
             ios_icon_name="magnifyingglass"
@@ -430,7 +375,6 @@ export default function SharePostModal({
           )}
         </View>
 
-        {/* Recipients List */}
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />

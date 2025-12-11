@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -29,17 +29,12 @@ export default function RestablecerPasswordScreen() {
   const [hasValidSession, setHasValidSession] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
 
-  useEffect(() => {
-    checkSession();
-  }, [checkSession]);
-
-  const checkSession = async () => {
+  const checkSession = useCallback(async () => {
     try {
       console.log('[RestablecerPassword] 🔍 Verificando sesión de recuperación...');
       console.log('[RestablecerPassword] Platform:', Platform.OS);
       console.log('[RestablecerPassword] URL:', Platform.OS === 'web' && typeof window !== 'undefined' ? window.location.href : 'N/A');
       
-      // First, check if we have hash parameters in the URL (web only)
       if (Platform.OS === 'web' && typeof window !== 'undefined') {
         const hash = window.location.hash;
         console.log('[RestablecerPassword] 📋 URL hash:', hash);
@@ -57,7 +52,6 @@ export default function RestablecerPasswordScreen() {
             accessTokenPreview: accessToken ? `${accessToken.substring(0, 20)}...` : null,
           });
 
-          // If we have a recovery token, set the session
           if (type === 'recovery' && accessToken) {
             console.log('[RestablecerPassword] 🔐 Estableciendo sesión de recuperación...');
             
@@ -88,7 +82,6 @@ export default function RestablecerPasswordScreen() {
               setHasValidSession(true);
               setCheckingSession(false);
               
-              // Clean the URL hash to avoid confusion
               if (window.history && window.history.replaceState) {
                 window.history.replaceState(null, '', window.location.pathname);
               }
@@ -98,7 +91,6 @@ export default function RestablecerPasswordScreen() {
         }
       }
       
-      // If no hash params or not web, check for existing session
       console.log('[RestablecerPassword] 🔍 Verificando sesión existente...');
       const { data: { session }, error } = await supabase.auth.getSession();
       
@@ -154,7 +146,11 @@ export default function RestablecerPasswordScreen() {
       setHasValidSession(false);
       setCheckingSession(false);
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    checkSession();
+  }, [checkSession]);
 
   const validatePassword = (password: string): { valid: boolean; message?: string } => {
     if (password.length < 8) {
@@ -235,7 +231,6 @@ export default function RestablecerPasswordScreen() {
           {
             text: 'Ir a iniciar sesión',
             onPress: () => {
-              // Sign out to force fresh login
               supabase.auth.signOut().then(() => {
                 router.replace('/auth/login');
               });

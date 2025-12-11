@@ -33,27 +33,23 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
   const [hasSocialProfile, setHasSocialProfile] = useState(false);
   const [checkingSocialProfile, setCheckingSocialProfile] = useState(true);
   
-  // Fetch active event for this local
   const { evento: activeEvent } = useLocalEvent(local.id);
 
   const estado = getEstadoLocal(local);
   const imagenPrincipal = local.imagenes?.[0] || local.imagen_url;
   const isDestacado = destacado || local.destacado;
 
-  // Preload local data when component becomes visible
   useEffect(() => {
     if (!hasPreloaded && local.id) {
       localPreloader.preload(local.id);
       setHasPreloaded(true);
       
-      // Notify parent that this card is visible
       if (onVisible) {
         onVisible();
       }
     }
   }, [local.id, hasPreloaded, onVisible]);
 
-  // FIXED: Check if local has social profile (posts or stories)
   useEffect(() => {
     const checkSocialProfile = async () => {
       if (!local.id) {
@@ -62,7 +58,6 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
       }
 
       try {
-        // Check for posts
         const { data: posts, error: postsError } = await supabase
           .from('posts')
           .select('id')
@@ -73,23 +68,6 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
         if (postsError) throw postsError;
 
         if (posts && posts.length > 0) {
-          setHasSocialProfile(true);
-          setCheckingSocialProfile(false);
-          return;
-        }
-
-        // Check for active stories
-        const { data: stories, error: storiesError } = await supabase
-          .from('historias')
-          .select('id')
-          .eq('tipo', 'local')
-          .eq('local_id', local.id)
-          .gt('expires_at', new Date().toISOString())
-          .limit(1);
-
-        if (storiesError) throw storiesError;
-
-        if (stories && stories.length > 0) {
           setHasSocialProfile(true);
         } else {
           setHasSocialProfile(false);
@@ -105,7 +83,6 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
     checkSocialProfile();
   }, [local.id]);
 
-  // Define checkIfFavorite before useEffect
   const checkIfFavorite = useCallback(async () => {
     if (!user) return;
     
@@ -121,12 +98,10 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
         setIsFavorite(true);
       }
     } catch (error) {
-      // Not favorited or error
       setIsFavorite(false);
     }
   }, [user, local.id]);
 
-  // Check if local is already favorited
   useEffect(() => {
     if (user) {
       checkIfFavorite();
@@ -134,14 +109,12 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
   }, [user, checkIfFavorite]);
 
   const handlePress = () => {
-    // Track profile view when user clicks on the card
     trackProfileView(local.id, user?.id, 'explore');
     router.push(`/detalle/local?id=${local.id}`);
   };
 
   const handlePerfilSocial = (e: any) => {
     e.stopPropagation();
-    // Track profile view when user clicks on social profile
     trackProfileView(local.id, user?.id, 'social');
     router.push(`/perfil/local?localId=${local.id}`);
   };
@@ -164,7 +137,6 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
     setLoadingFavorite(true);
     try {
       if (isFavorite) {
-        // Eliminar de favoritos
         const { error } = await supabase
           .from('locales_guardados')
           .delete()
@@ -174,7 +146,6 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
         if (error) throw error;
         setIsFavorite(false);
       } else {
-        // Agregar a favoritos
         const { error } = await supabase
           .from('locales_guardados')
           .insert({
@@ -195,28 +166,25 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
 
   const getBadgeColor = () => {
     if (estado.badge === 'Abierto ahora' || estado.badge === 'Abierto 24h') {
-      return '#22C55E'; // green-500
+      return '#22C55E';
     }
     if (estado.badge === 'Cierra pronto') {
-      return '#F97316'; // orange-500
+      return '#F97316';
     }
     if (estado.badge === 'Abre pronto') {
-      return '#EAB308'; // yellow-500
+      return '#EAB308';
     }
-    // Cerrado, "Abre a las X", "Abre [día] a las X", etc.
     if (estado.estaAbierto === false) {
-      return '#EF4444'; // red-500
+      return '#EF4444';
     }
-    return '#9CA3AF'; // gray-400
+    return '#9CA3AF';
   };
 
   const getBadgeText = () => {
-    // For 24h locals, just show "Abierto 24h" without time remaining
     if (estado.badge === 'Abierto 24h') {
       return 'Abierto 24h';
     }
     
-    // Format the badge text with time remaining
     if (estado.tiempoRestante) {
       if (estado.badge === 'Abierto ahora') {
         return `Abierto ahora • Cierra en ${estado.tiempoRestante}`;
@@ -227,13 +195,11 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
       if (estado.badge === 'Abre pronto') {
         return `Abre en ${estado.tiempoRestante}`;
       }
-      // For "Abre a las X" with time remaining
       return `${estado.badge} • ${estado.tiempoRestante}`;
     }
     return estado.badge;
   };
 
-  // Get overlay icon based on status
   const getOverlayIcon = () => {
     if (estado.overlayIcon === 'lock') {
       return 'lock.fill';
@@ -247,17 +213,14 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
     return null;
   };
 
-  // Get overlay icon color - ALWAYS WHITE
   const getOverlayIconColor = () => {
-    return '#FFFFFF'; // Always white for lock icon
+    return '#FFFFFF';
   };
 
-  // Determine if image should be dimmed
   const shouldDimImage = () => {
     return estado.estaAbierto === false || estado.estaAbierto === null;
   };
 
-  // Formatear categorías para mostrar - Filter out unwanted categories AND add PUB if needed
   const formatCategories = () => {
     const CATEGORIAS_EXCLUIDAS = ['terrazas', 'rooftops', 'lounge'];
     let categories = local.barlive_types || [];
@@ -265,10 +228,8 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
       categories = [local.barlive_type];
     }
     
-    // ✅ FIXED: Add PUB category dynamically if venue closes after 2 AM
     categories = addPubCategoryIfNeeded(categories, local.horarios_completos);
     
-    // Filter out excluded categories (case-insensitive)
     return categories.filter((cat: string) => 
       !CATEGORIAS_EXCLUIDAS.includes(cat.toLowerCase())
     );
@@ -277,9 +238,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
   const categoriasAMostrar = formatCategories();
   const overlayIcon = getOverlayIcon();
 
-  // Calculate rating from multiple sources - SAME LOGIC AS DETAIL PAGE
   const getRating = () => {
-    // Priority: rating > google_rating > valoracion_google
     if (local.rating && local.rating > 0) {
       return local.rating;
     }
@@ -303,7 +262,6 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
       onPress={handlePress} 
       activeOpacity={0.9}
     >
-      {/* Imagen */}
       <View style={styles.imageContainer}>
         {imagenPrincipal ? (
           <Image
@@ -317,22 +275,18 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
           </View>
         )}
 
-        {/* Dimmed overlay for closed/no info locals */}
         {shouldDimImage() && (
           <View style={styles.dimmedOverlay} />
         )}
 
-        {/* Overlay icon (lock, question mark, or clock) - CENTERED with proper color */}
         {overlayIcon && (
           <View style={styles.overlayIconContainer}>
             <IconSymbol name={overlayIcon} size={64} color={getOverlayIconColor()} />
           </View>
         )}
 
-        {/* Gradient overlay for better text visibility */}
         <View style={styles.imageOverlay} />
 
-        {/* Badge "Destacado" en la cabecera - Esquina superior izquierda */}
         {isDestacado && (
           <View style={styles.badgeDestacadoHeader}>
             <IconSymbol name="star.fill" size={14} color="#92400E" />
@@ -340,7 +294,6 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
           </View>
         )}
 
-        {/* Badge de estado con tiempo - Debajo del badge destacado o en la esquina superior izquierda */}
         <View style={[
           styles.badgeEstadoSuperior, 
           { backgroundColor: getBadgeColor() + 'E6' },
@@ -349,7 +302,6 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
           <Text style={styles.badgeEstadoSuperiorText} numberOfLines={1}>{getBadgeText()}</Text>
         </View>
 
-        {/* Valoración - Esquina superior derecha - SAME HEIGHT AS STATUS BADGE */}
         {displayRating > 0 && (
           <View style={styles.ratingBadge}>
             <IconSymbol name="star.fill" size={12} color="#FACC15" />
@@ -357,7 +309,6 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
           </View>
         )}
 
-        {/* Badge nuevo - Debajo de la valoración */}
         {local.nuevo && (
           <View style={styles.badgeNuevoContainer}>
             <View style={styles.badgeNuevo}>
@@ -366,7 +317,6 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
           </View>
         )}
 
-        {/* Botón de favorito - Esquina inferior derecha */}
         <TouchableOpacity
           style={styles.favoritoButton}
           onPress={toggleFavorito}
@@ -380,9 +330,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
         </TouchableOpacity>
       </View>
 
-      {/* Contenido */}
       <View style={styles.content}>
-        {/* Event Banner */}
         {activeEvent && (
           <EventBanner evento={activeEvent} compact={true} />
         )}
@@ -400,7 +348,6 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
           </Text>
         </View>
 
-        {/* Categorías del local */}
         {categoriasAMostrar.length > 0 && (
           <View style={styles.categoriasContainer}>
             {categoriasAMostrar.map((categoria, index) => (
@@ -412,7 +359,6 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
           </View>
         )}
 
-        {/* FIXED: Action buttons - Only show Perfil Social if local has social content */}
         <View style={styles.actionButtonsContainer}>
           {!checkingSocialProfile && hasSocialProfile && (
             <TouchableOpacity style={styles.perfilSocialButton} onPress={handlePerfilSocial}>

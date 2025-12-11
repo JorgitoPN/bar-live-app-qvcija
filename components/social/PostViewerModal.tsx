@@ -20,7 +20,6 @@ import { colors } from '@/styles/commonStyles';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase';
 import { BlurView } from 'expo-blur';
-import { LinearGradient } from 'expo-linear-gradient';
 import MiniFoodPlateAvatar from '@/components/common/MiniFoodPlateAvatar';
 import CommentsModal from './CommentsModal';
 
@@ -75,7 +74,6 @@ export default function PostViewerModal({
   const [loading, setLoading] = useState(true);
   const [showComments, setShowComments] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
-  const [authorStories, setAuthorStories] = useState<any[]>([]);
 
   useEffect(() => {
     if (post) {
@@ -85,41 +83,6 @@ export default function PostViewerModal({
       setCommentsCount(post.comentarios_count);
       setCurrentImageIndex(0);
       setLoading(true);
-
-      // ✅ V11.0: Load author stories
-      const loadAuthorStories = async () => {
-        try {
-          if (post.tipo === 'local' && post.local_id) {
-            const { data: storiesData } = await supabase
-              .from('historias')
-              .select('id, autor_id, tipo, imagen, imagen_url, created_at, expires_at')
-              .eq('tipo', 'local')
-              .eq('local_id', post.local_id)
-              .gt('expires_at', new Date().toISOString())
-              .order('created_at', { ascending: true });
-
-            if (storiesData) {
-              setAuthorStories(storiesData);
-            }
-          } else if (post.autor_id) {
-            const { data: storiesData } = await supabase
-              .from('historias')
-              .select('id, autor_id, tipo, imagen, imagen_url, created_at, expires_at')
-              .eq('tipo', 'usuario')
-              .eq('autor_id', post.autor_id)
-              .gt('expires_at', new Date().toISOString())
-              .order('created_at', { ascending: true });
-
-            if (storiesData) {
-              setAuthorStories(storiesData);
-            }
-          }
-        } catch (error) {
-          console.error('[PostViewerModal] Error loading author stories:', error);
-        }
-      };
-
-      loadAuthorStories();
     }
   }, [post]);
 
@@ -246,7 +209,6 @@ export default function PostViewerModal({
       >
         <StatusBar barStyle="light-content" backgroundColor="#000" />
         <View style={styles.container}>
-          {/* Header */}
           <BlurView intensity={30} tint="dark" style={styles.header}>
             <View style={styles.authorInfo}>
               <MiniFoodPlateAvatar
@@ -277,7 +239,6 @@ export default function PostViewerModal({
             </TouchableOpacity>
           </BlurView>
 
-          {/* Images */}
           <View style={styles.contentContainer}>
             {post.imagenes.length > 0 && (
               <ScrollView
@@ -328,7 +289,6 @@ export default function PostViewerModal({
             )}
           </View>
 
-          {/* Actions and Info */}
           <BlurView intensity={30} tint="dark" style={styles.footer}>
             <View style={styles.actions}>
               <View style={styles.leftActions}>
@@ -416,7 +376,6 @@ export default function PostViewerModal({
         </View>
       </Modal>
 
-      {/* Comments Modal */}
       <CommentsModal
         visible={showComments}
         postId={post.id}

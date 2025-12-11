@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { colors } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -50,8 +50,8 @@ const BADGE_INFO: Record<string, { title: string; icon: string; androidIcon: str
 };
 
 export function BadgeNotification({ badge }: BadgeNotificationProps) {
-  const fadeAnim = React.useMemo(() => new Animated.Value(0), []);
-  const slideAnim = React.useMemo(() => new Animated.Value(-100), []);
+  const fadeAnim = useMemo(() => new Animated.Value(0), []);
+  const slideAnim = useMemo(() => new Animated.Value(-100), []);
 
   useEffect(() => {
     Animated.parallel([

@@ -22,11 +22,10 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { LinearGradient } from 'expo-linear-gradient';
 import InstagramPostCard from '@/components/social/InstagramPostCard';
 import InstagramHeader from '@/components/social/InstagramHeader';
-import type { Publicacion, Historia } from '@/types';
+import type { Publicacion } from '@/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// ✅ VERSION 9.0 - Instagram-style social network
 const VERSION = '9.0.0';
 
 export default function SocialScreenV9() {
@@ -34,7 +33,6 @@ export default function SocialScreenV9() {
   const { user } = useAuth();
   const { 
     posts: globalPosts, 
-    stories: globalStories,
   } = useGlobalData();
   const { 
     activeProfileType,
@@ -43,7 +41,6 @@ export default function SocialScreenV9() {
   } = useMode();
 
   const [posts, setPosts] = useState<Publicacion[]>([]);
-  const [historias, setHistorias] = useState<Historia[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
@@ -127,7 +124,6 @@ export default function SocialScreenV9() {
     try {
       console.log(`[Social V${VERSION}] ⚡ Loading data...`);
       console.log(`[Social V${VERSION}] 📍 Global posts available:`, globalPosts.length);
-      console.log(`[Social V${VERSION}] 📍 Global stories available:`, globalStories.length);
 
       await loadUnreadCounts();
 
@@ -183,25 +179,15 @@ export default function SocialScreenV9() {
         setPosts([]);
       }
 
-      if (globalStories.length > 0) {
-        console.log(`[Social V${VERSION}] ⚡⚡⚡ INSTANT stories from global data:`, globalStories.length);
-        
-        let validStories = globalStories.filter(s => s && s.id);
-        setHistorias(validStories);
-      } else {
-        setHistorias([]);
-      }
-
       console.log(`[Social V${VERSION}] ⚡ Data loaded`);
     } catch (error) {
       console.error(`[Social V${VERSION}] Error loading data:`, error);
       setPosts([]);
-      setHistorias([]);
     } finally {
       isLoadingRef.current = false;
       setIsInitialLoad(false);
     }
-  }, [user, globalPosts, globalStories, loadUnreadCounts]);
+  }, [user, globalPosts, loadUnreadCounts]);
 
   useFocusEffect(
     useCallback(() => {
@@ -222,31 +208,12 @@ export default function SocialScreenV9() {
     router.push('/crear/publicacion');
   };
 
-  const handleCreateStory = () => {
-    console.log(`[Social V${VERSION}] ➕ Create story button pressed`);
-    router.push('/crear/historia');
-  };
-
-  const handleHistoriaPress = (historia: Historia) => {
-    console.log(`[Social V${VERSION}] 📖 Story pressed:`, historia.id);
-    router.push({
-      pathname: '/detalle/historia',
-      params: { id: historia.id },
-    });
-  };
-
-  const handleStoriesUpdate = useCallback((updatedStories: Historia[]) => {
-    console.log(`[Social V${VERSION}] ⚡ Stories updated in real-time:`, updatedStories.length);
-    setHistorias(updatedStories);
-  }, []);
-
   if (isInitialLoad && posts.length === 0) {
     return (
       <View style={styles.container}>
         <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
         <InstagramHeader 
           onCreatePost={handleCreatePost}
-          onCreateStory={handleCreateStory}
           unreadNotifications={unreadNotifications}
           unreadMessages={unreadMessages}
         />
@@ -266,9 +233,7 @@ export default function SocialScreenV9() {
           opacity: fadeAnim,
         },
       ]}
-    >
-      {/* Stories section removed */}
-    </Animated.View>
+    />
   );
 
   const renderPost = ({ item, index }: { item: Publicacion; index: number }) => (
@@ -330,7 +295,6 @@ export default function SocialScreenV9() {
       <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
       <InstagramHeader 
         onCreatePost={handleCreatePost}
-        onCreateStory={handleCreateStory}
         unreadNotifications={unreadNotifications}
         unreadMessages={unreadMessages}
       />

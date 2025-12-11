@@ -83,11 +83,11 @@ export function RankingModal({ visible, onClose, localId }: RankingModalProps) {
   const getMedalColor = (position: number) => {
     switch (position) {
       case 0:
-        return ['#FFD700', '#FFA500']; // Gold
+        return ['#FFD700', '#FFA500'];
       case 1:
-        return ['#C0C0C0', '#A8A8A8']; // Silver
+        return ['#C0C0C0', '#A8A8A8'];
       case 2:
-        return ['#CD7F32', '#B87333']; // Bronze
+        return ['#CD7F32', '#B87333'];
       default:
         return [colors.textSecondary, colors.textSecondary];
     }

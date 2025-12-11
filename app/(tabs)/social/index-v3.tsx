@@ -22,7 +22,7 @@ import HeaderSocial from '@/components/layout/HeaderSocial';
 import { IconSymbol } from '@/components/IconSymbol';
 import { LinearGradient } from 'expo-linear-gradient';
 import NewPostCard from '@/components/social/NewPostCard';
-import type { Publicacion, Historia } from '@/types';
+import type { Publicacion } from '@/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -31,7 +31,6 @@ export default function SocialScreenV3() {
   const { user } = useAuth();
   const { 
     posts: globalPosts, 
-    stories: globalStories,
   } = useGlobalData();
   const { 
     activeProfileType,
@@ -40,7 +39,6 @@ export default function SocialScreenV3() {
   } = useMode();
 
   const [posts, setPosts] = useState<Publicacion[]>([]);
-  const [historias, setHistorias] = useState<Historia[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
@@ -51,11 +49,9 @@ export default function SocialScreenV3() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
 
-  // ✅ Determine if user is interacting as a local
   const isInteractingAsLocal = activeProfileType === 'local';
   const interactionLocalId = isInteractingAsLocal ? activeProfileId : null;
   
-  // ✅ Get avatar and name for stories bar based on active profile
   const displayAvatar = isInteractingAsLocal 
     ? (modeLocalData?.imagen_url || null)
     : (user?.avatar || null);
@@ -73,7 +69,6 @@ export default function SocialScreenV3() {
     hasAvatar: !!displayAvatar,
   });
 
-  // ✅ ENTRANCE ANIMATION - Fixed: Added fadeAnim and slideAnim to dependencies
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -90,7 +85,6 @@ export default function SocialScreenV3() {
     ]).start();
   }, [fadeAnim, slideAnim]);
 
-  // ✅ Load unread counts
   const loadUnreadCounts = useCallback(async () => {
     if (!user) return;
 
@@ -138,9 +132,7 @@ export default function SocialScreenV3() {
     try {
       console.log('[SocialV3] ⚡ Loading data...');
       console.log('[SocialV3] 📍 Global posts available:', globalPosts.length);
-      console.log('[SocialV3] 📍 Global stories available:', globalStories.length);
 
-      // Load unread counts
       await loadUnreadCounts();
 
       if (globalPosts.length > 0) {
@@ -149,7 +141,6 @@ export default function SocialScreenV3() {
         let validPosts = globalPosts.filter(p => p && p.id);
         let filteredPosts = validPosts;
         
-        // ✅ Filter based on feed filter
         if (feedFilter === 'following' && user) {
           const { data: followedLocals } = await supabase
             .from('locales_favoritos')
@@ -212,45 +203,16 @@ export default function SocialScreenV3() {
         setPosts([]);
       }
 
-      if (globalStories.length > 0) {
-        console.log('[SocialV3] ⚡⚡⚡ INSTANT stories from global data:', globalStories.length);
-        
-        let validStories = globalStories.filter(s => s && s.id);
-        let filteredStories = validStories;
-        
-        // ✅ Filter based on feed filter
-        if (feedFilter === 'following' && user) {
-          const { data: followedLocals } = await supabase
-            .from('locales_favoritos')
-            .select('local_id')
-            .eq('usuario_id', user.id);
-
-          const followedLocalIds = new Set(followedLocals?.map(f => f.local_id) || []);
-          
-          filteredStories = validStories.filter(s => 
-            s.tipo === 'usuario' || 
-            (s.tipo === 'local' && s.local_id && followedLocalIds.has(s.local_id))
-          );
-          console.log('[SocialV3] 👥 Following filter - Stories count:', filteredStories.length);
-        }
-        
-        setHistorias(filteredStories);
-      } else {
-        setHistorias([]);
-      }
-
       console.log('[SocialV3] ⚡ Data loaded');
     } catch (error) {
       console.error('[SocialV3] Error loading data:', error);
       setPosts([]);
-      setHistorias([]);
     } finally {
       isLoadingRef.current = false;
       setIsInitialLoad(false);
     }
-  }, [user, globalPosts, globalStories, feedFilter, loadUnreadCounts]);
+  }, [user, globalPosts, feedFilter, loadUnreadCounts]);
 
-  // ✅ AUTO-UPDATE: Reload data every time the screen comes into focus
   useFocusEffect(
     useCallback(() => {
       console.log('[SocialV3] 🔄 Screen focused - auto-updating data');
@@ -270,24 +232,6 @@ export default function SocialScreenV3() {
     router.push('/crear/publicacion');
   };
 
-  const handleCreateStory = () => {
-    console.log('[SocialV3] ➕ Create story button pressed');
-    router.push('/crear/historia');
-  };
-
-  const handleHistoriaPress = (historia: Historia) => {
-    console.log('[SocialV3] 📖 Story pressed:', historia.id);
-    router.push({
-      pathname: '/detalle/historia',
-      params: { id: historia.id },
-    });
-  };
-
-  const handleStoriesUpdate = useCallback((updatedStories: Historia[]) => {
-    console.log('[SocialV3] ⚡ Stories updated in real-time:', updatedStories.length);
-    setHistorias(updatedStories);
-  }, []);
-
   const handleFilterChange = (filter: 'all' | 'following') => {
     setFeedFilter(filter);
     loadData();
@@ -298,7 +242,6 @@ export default function SocialScreenV3() {
       <View style={styles.container}>
         <HeaderSocial 
           onCreatePost={handleCreatePost}
-          onCreateStory={handleCreateStory}
           unreadNotifications={unreadNotifications}
           unreadMessages={unreadMessages}
         />
@@ -320,9 +263,6 @@ export default function SocialScreenV3() {
         },
       ]}
     >
-      {/* Stories section removed */}
-
-      {/* ✅ NEW: Feed Filter Tabs */}
       <View style={styles.filterTabsContainer}>
         <TouchableOpacity
           style={[styles.filterTab, feedFilter === 'all' && styles.filterTabActive]}
@@ -461,7 +401,6 @@ export default function SocialScreenV3() {
     <View style={styles.container}>
       <HeaderSocial 
         onCreatePost={handleCreatePost}
-        onCreateStory={handleCreateStory}
         unreadNotifications={unreadNotifications}
         unreadMessages={unreadMessages}
       />
