@@ -170,7 +170,7 @@ export default function MomentoViewer({
 
       setMomentos(momentosWithStatus);
 
-      // Initialize progress animations
+      // Initialize progress animations - set all previous momentos to 100%
       progressAnims.length = 0;
       momentosWithStatus.forEach(() => {
         progressAnims.push(new Animated.Value(0));
@@ -179,6 +179,11 @@ export default function MomentoViewer({
       // Find first unviewed momento or start at beginning
       const firstUnviewedIndex = momentosWithStatus.findIndex(m => !m.user_has_viewed);
       const startIndex = firstUnviewedIndex >= 0 ? firstUnviewedIndex : 0;
+      
+      // Set all previous progress bars to 100%
+      for (let i = 0; i < startIndex; i++) {
+        progressAnims[i].setValue(1);
+      }
       
       setCurrentIndex(startIndex);
       console.log('[MomentoViewer] Starting at index:', startIndex, 'of', momentosWithStatus.length);
@@ -489,7 +494,11 @@ export default function MomentoViewer({
     if (currentIndex < momentos.length - 1) {
       // Set current progress bar to 100% (keep it full)
       if (progressAnims[currentIndex]) {
-        progressAnims[currentIndex].setValue(1);
+        Animated.timing(progressAnims[currentIndex], {
+          toValue: 1,
+          duration: 100,
+          useNativeDriver: false,
+        }).start();
       }
       
       setCurrentIndex(currentIndex + 1);
