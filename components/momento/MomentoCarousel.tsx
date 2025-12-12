@@ -402,29 +402,6 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
                       />
                     </View>
                   )}
-                  {/* ✅ CRITICAL FIX: Plus icon positioned ABOVE the momento with higher z-index */}
-                  <TouchableOpacity 
-                    style={styles.addIconContainer}
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      onUploadMomento();
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <LinearGradient
-                      colors={[colors.primary, colors.secondary]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.addIconGradient}
-                    >
-                      <IconSymbol
-                        ios_icon_name="plus"
-                        android_material_icon_name="add"
-                        size={18}
-                        color="#fff"
-                      />
-                    </LinearGradient>
-                  </TouchableOpacity>
                 </View>
               </LinearGradient>
             ) : (
@@ -456,32 +433,32 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
                       />
                     </View>
                   )}
-                  {/* ✅ CRITICAL FIX: Plus icon positioned ABOVE the momento with higher z-index */}
-                  <TouchableOpacity 
-                    style={styles.addIconContainer}
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      onUploadMomento();
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <LinearGradient
-                      colors={[colors.primary, colors.secondary]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.addIconGradient}
-                    >
-                      <IconSymbol
-                        ios_icon_name="plus"
-                        android_material_icon_name="add"
-                        size={18}
-                        color="#fff"
-                      />
-                    </LinearGradient>
-                  </TouchableOpacity>
                 </View>
               </View>
             )}
+            {/* ✅ CRITICAL FIX: Plus icon positioned ABOVE the momento with higher z-index */}
+            <TouchableOpacity 
+              style={styles.addIconContainer}
+              onPress={(e) => {
+                e.stopPropagation();
+                onUploadMomento();
+              }}
+              activeOpacity={0.7}
+            >
+              <LinearGradient
+                colors={[colors.primary, colors.secondary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.addIconGradient}
+              >
+                <IconSymbol
+                  ios_icon_name="plus"
+                  android_material_icon_name="add"
+                  size={18}
+                  color="#fff"
+                />
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
 
           <Text style={styles.avatarName} numberOfLines={1}>
@@ -497,51 +474,60 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
         onPress={onUploadMomento}
         activeOpacity={0.7}
       >
-        <View
-          style={[
-            styles.avatarBorder,
-            styles.addButtonBorder,
-            {
-              width: AVATAR_SIZE + BORDER_WIDTH * 2,
-              height: AVATAR_SIZE + BORDER_WIDTH * 2,
-              borderRadius: (AVATAR_SIZE + BORDER_WIDTH * 2) / 2,
-            },
-          ]}
-        >
-          <View style={styles.avatarInner}>
-            {currentAvatar ? (
-              <Image
-                source={{ uri: currentAvatar }}
-                style={styles.avatarImage}
-                resizeMode="cover"
-              />
-            ) : (
-              <View style={styles.avatarPlaceholder}>
-                <IconSymbol
-                  ios_icon_name={activeProfileType === 'local' ? 'building.2.fill' : 'person.fill'}
-                  android_material_icon_name={activeProfileType === 'local' ? 'store' : 'person'}
-                  size={AVATAR_SIZE * 0.5}
-                  color={colors.primary}
+        <View style={styles.avatarBorderContainer}>
+          <View
+            style={[
+              styles.avatarBorder,
+              styles.addButtonBorder,
+              {
+                width: AVATAR_SIZE + BORDER_WIDTH * 2,
+                height: AVATAR_SIZE + BORDER_WIDTH * 2,
+                borderRadius: (AVATAR_SIZE + BORDER_WIDTH * 2) / 2,
+              },
+            ]}
+          >
+            <View style={styles.avatarInner}>
+              {currentAvatar ? (
+                <Image
+                  source={{ uri: currentAvatar }}
+                  style={styles.avatarImage}
+                  resizeMode="cover"
                 />
-              </View>
-            )}
-            {/* ✅ CRITICAL FIX: Plus icon positioned ABOVE the avatar with higher z-index */}
-            <View style={styles.addIconContainer}>
-              <LinearGradient
-                colors={[colors.primary, colors.secondary]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.addIconGradient}
-              >
-                <IconSymbol
-                  ios_icon_name="plus"
-                  android_material_icon_name="add"
-                  size={18}
-                  color="#fff"
-                />
-              </LinearGradient>
+              ) : (
+                <View style={styles.avatarPlaceholder}>
+                  <IconSymbol
+                    ios_icon_name={activeProfileType === 'local' ? 'building.2.fill' : 'person.fill'}
+                    android_material_icon_name={activeProfileType === 'local' ? 'store' : 'person'}
+                    size={AVATAR_SIZE * 0.5}
+                    color={colors.primary}
+                  />
+                </View>
+              )}
             </View>
           </View>
+          {/* ✅ CRITICAL FIX: Plus icon positioned ABOVE the avatar with higher z-index */}
+          <TouchableOpacity 
+            style={styles.addIconContainer}
+            onPress={(e) => {
+              e.stopPropagation();
+              onUploadMomento();
+            }}
+            activeOpacity={0.7}
+          >
+            <LinearGradient
+              colors={[colors.primary, colors.secondary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.addIconGradient}
+            >
+              <IconSymbol
+                ios_icon_name="plus"
+                android_material_icon_name="add"
+                size={18}
+                color="#fff"
+              />
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
         <Text style={styles.avatarName} numberOfLines={1}>
           Tu Momento
@@ -602,6 +588,7 @@ const styles = StyleSheet.create({
   },
   avatarBorderContainer: {
     marginBottom: 6,
+    position: 'relative',
   },
   avatarBorder: {
     justifyContent: 'center',
@@ -645,8 +632,8 @@ const styles = StyleSheet.create({
   // ✅ CRITICAL FIX: Improved positioning for plus icon to be ABOVE the momento
   addIconContainer: {
     position: 'absolute',
-    bottom: 0,
-    right: 0,
+    bottom: -4,
+    right: -4,
     width: 32,
     height: 32,
     borderRadius: 16,
