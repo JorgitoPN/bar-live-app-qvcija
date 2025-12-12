@@ -433,8 +433,9 @@ export default function DetalleLocalScreen() {
         return;
       }
 
-      setIsFavorite(!!data);
-      console.log('[DetalleLocal] ✅ Favorite status checked:', !!data);
+      const favoriteStatus = !!data;
+      setIsFavorite(favoriteStatus);
+      console.log('[DetalleLocal] ✅ Favorite status checked:', favoriteStatus, 'Data:', data);
     } catch (error) {
       console.error('[DetalleLocal] Error checking favorite:', error);
       setIsFavorite(false);
@@ -515,6 +516,8 @@ export default function DetalleLocalScreen() {
         setLoadingFavorite(false);
         return;
       }
+
+      console.log('[DetalleLocal] 🔄 Toggling favorite. Current state:', isFavorite);
 
       if (isFavorite) {
         // Remove from favorites
@@ -1150,15 +1153,13 @@ export default function DetalleLocalScreen() {
         </View>
       )}
 
-      {/* ✅ FIXED: Local Name Section - ONLY HERE, NOT DUPLICATED */}
-      <View style={styles.localNameSection}>
-        <Text style={styles.localNameText}>{local.nombre}</Text>
-      </View>
-
       {/* Content Card */}
       <View style={styles.contentCard}>
-        {/* Header Section - NO TITLE HERE */}
+        {/* Header Section with Local Name */}
         <View style={styles.headerSection}>
+          {/* ✅ Local Name - ONLY HERE */}
+          <Text style={styles.localNameText}>{local.nombre}</Text>
+
           {allCategories.length > 0 && (
             <View style={styles.categoriesRow}>
               {allCategories.map((categoria, index) => {
@@ -1213,7 +1214,7 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* Action Buttons Row - NO LOCAL NAME HERE */}
+        {/* Action Buttons Row */}
         <View style={styles.actionsRow}>
           {local.telefono && (
             <TouchableOpacity style={styles.actionBtn} onPress={handleCall}>
@@ -1895,7 +1896,7 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: 'rgba(25, 25, 25, 0.62)',
   },
   gallerySection: {
     backgroundColor: colors.background,
@@ -1928,25 +1929,19 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#fff',
   },
-  localNameSection: {
-    backgroundColor: colors.background,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  localNameText: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: colors.text,
-    letterSpacing: 0.5,
-  },
   contentCard: {
     backgroundColor: colors.background,
     padding: 16,
   },
   headerSection: {
     marginBottom: 16,
+  },
+  localNameText: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: colors.text,
+    letterSpacing: 0.5,
+    marginBottom: 12,
   },
   categoriesRow: {
     flexDirection: 'row',

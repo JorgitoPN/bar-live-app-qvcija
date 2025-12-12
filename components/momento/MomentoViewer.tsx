@@ -775,7 +775,7 @@ export default function MomentoViewer({
           </TouchableOpacity>
         </LinearGradient>
 
-        {/* Actions */}
+        {/* ✅ FIXED: Actions with more subtle icons and white delete icon */}
         <LinearGradient
           colors={['transparent', 'rgba(0,0,0,0.6)']}
           style={styles.actions}
@@ -784,8 +784,8 @@ export default function MomentoViewer({
             <IconSymbol
               ios_icon_name="paperplane.fill"
               android_material_icon_name="send"
-              size={28}
-              color="#fff"
+              size={24}
+              color="rgba(255, 255, 255, 0.9)"
             />
             <Text style={styles.actionLabel}>Mensaje</Text>
           </TouchableOpacity>
@@ -794,8 +794,8 @@ export default function MomentoViewer({
             <IconSymbol
               ios_icon_name={currentMomento.user_has_liked ? 'heart.fill' : 'heart'}
               android_material_icon_name={currentMomento.user_has_liked ? 'favorite' : 'favorite_border'}
-              size={28}
-              color={currentMomento.user_has_liked ? '#FF3B30' : '#fff'}
+              size={24}
+              color={currentMomento.user_has_liked ? '#FF3B30' : 'rgba(255, 255, 255, 0.9)'}
             />
             <Text style={styles.actionLabel}>
               {currentMomento.likes_count > 0 ? currentMomento.likes_count : 'Me gusta'}
@@ -807,8 +807,8 @@ export default function MomentoViewer({
               <IconSymbol
                 ios_icon_name="eye.fill"
                 android_material_icon_name="visibility"
-                size={28}
-                color="#fff"
+                size={24}
+                color="rgba(255, 255, 255, 0.9)"
               />
               <Text style={styles.actionLabel}>{currentMomento.vistas_count}</Text>
             </TouchableOpacity>
@@ -819,8 +819,8 @@ export default function MomentoViewer({
               <IconSymbol
                 ios_icon_name="trash.fill"
                 android_material_icon_name="delete"
-                size={28}
-                color="#FF3B30"
+                size={24}
+                color="rgba(255, 255, 255, 0.9)"
               />
               <Text style={styles.actionLabel}>Eliminar</Text>
             </TouchableOpacity>
@@ -1075,8 +1075,8 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   actionLabel: {
-    fontSize: 12,
-    color: '#fff',
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.9)',
     fontFamily: 'System',
     fontWeight: '600',
   },
