@@ -420,6 +420,8 @@ export default function DetalleLocalScreen() {
     }
     
     try {
+      console.log('[DetalleLocal] 🔍 Checking favorite status for user:', user.id, 'local:', params.id);
+      
       const { data, error } = await supabase
         .from('locales_guardados')
         .select('id')
@@ -503,12 +505,18 @@ export default function DetalleLocalScreen() {
     }
 
     setLoadingFavorite(true);
+    
+    // ✅ Optimistic UI update
+    const previousState = isFavorite;
+    setIsFavorite(!isFavorite);
+    
     try {
       // ✅ Refresh session to ensure auth.uid() is available
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError || !session) {
         console.error('[DetalleLocal] Session error:', sessionError);
+        setIsFavorite(previousState);
         Alert.alert(
           'Sesión expirada',
           'Tu sesión ha expirado. Por favor cierra sesión y vuelve a iniciar sesión.'
@@ -517,9 +525,9 @@ export default function DetalleLocalScreen() {
         return;
       }
 
-      console.log('[DetalleLocal] 🔄 Toggling favorite. Current state:', isFavorite);
+      console.log('[DetalleLocal] 🔄 Toggling favorite. Current state:', previousState, '-> New state:', !previousState);
 
-      if (isFavorite) {
+      if (previousState) {
         // Remove from favorites
         const { error } = await supabase
           .from('locales_guardados')
@@ -529,14 +537,13 @@ export default function DetalleLocalScreen() {
 
         if (error) {
           console.error('[DetalleLocal] Error removing favorite:', error);
+          setIsFavorite(previousState);
           Alert.alert('Error', 'No se pudo eliminar de favoritos. Por favor intenta de nuevo.');
           setLoadingFavorite(false);
           return;
         }
         
         console.log('[DetalleLocal] ✅ Removed from favorites');
-        setIsFavorite(false);
-        Alert.alert('Éxito', 'Local eliminado de favoritos');
       } else {
         // Add to favorites - use maybeSingle to check if already exists
         const { data: existing } = await supabase
@@ -550,7 +557,6 @@ export default function DetalleLocalScreen() {
           console.log('[DetalleLocal] Already in favorites');
           setIsFavorite(true);
           setLoadingFavorite(false);
-          Alert.alert('Info', 'Este local ya está en tus favoritos');
           return;
         }
 
@@ -563,6 +569,7 @@ export default function DetalleLocalScreen() {
 
         if (error) {
           console.error('[DetalleLocal] Error adding favorite:', error);
+          setIsFavorite(previousState);
           
           // Check if it's an RLS policy error
           if (error.code === '42501') {
@@ -579,11 +586,10 @@ export default function DetalleLocalScreen() {
         }
         
         console.log('[DetalleLocal] ✅ Added to favorites');
-        setIsFavorite(true);
-        Alert.alert('Éxito', 'Local agregado a favoritos');
       }
     } catch (error) {
       console.error('[DetalleLocal] Error toggling favorito:', error);
+      setIsFavorite(previousState);
       Alert.alert('Error', 'No se pudo actualizar favoritos. Por favor intenta de nuevo.');
     } finally {
       setLoadingFavorite(false);
