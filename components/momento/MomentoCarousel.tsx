@@ -48,8 +48,8 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
 
     try {
       setLoading(true);
-      console.log('[MomentoCarousel] Loading momentos for user:', user.id);
-      console.log('[MomentoCarousel] Active profile:', { activeProfileType, activeProfileId });
+      console.log('[MomentoCarousel] 🔄 Loading momentos for user:', user.id);
+      console.log('[MomentoCarousel] 🔄 Active profile:', { activeProfileType, activeProfileId });
 
       // Get all momentos that haven't expired (24h)
       const { data: momentosData, error: momentosError } = await supabase
@@ -77,14 +77,14 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
       if (momentosError) throw momentosError;
 
       if (!momentosData || momentosData.length === 0) {
-        console.log('[MomentoCarousel] No momentos found');
+        console.log('[MomentoCarousel] ℹ️ No momentos found');
         setAuthors([]);
         setUserMomento(null);
         setLoading(false);
         return;
       }
 
-      console.log('[MomentoCarousel] Found momentos:', momentosData.length);
+      console.log('[MomentoCarousel] ✅ Found momentos:', momentosData.length);
 
       // Get viewed momentos by current user
       const momentoIds = momentosData.map(m => m.id);
@@ -110,7 +110,7 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
         const isCurrentLocalMomento = activeProfileType === 'local' && momento.local_id === activeProfileId;
         const isOwnMomento = isCurrentUserMomento || isCurrentLocalMomento;
 
-        console.log('[MomentoCarousel] Processing momento:', {
+        console.log('[MomentoCarousel] 🔍 Processing momento:', {
           momentoId: momento.id,
           tipo: momento.tipo,
           autorId: momento.autor_id,
@@ -143,7 +143,7 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
           // Store user's own momento separately
           if (isOwnMomento) {
             currentUserMomento = authorInfo;
-            console.log('[MomentoCarousel] Found own momento:', authorInfo);
+            console.log('[MomentoCarousel] ✅ Found own momento:', authorInfo);
           }
         }
 
@@ -173,7 +173,7 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
         if (activeProfileType === 'usuario') {
           // Exclude if this is the current user's momento
           const isCurrentUser = author.tipo === 'usuario' && author.id === user.id;
-          console.log('[MomentoCarousel] Filtering user momento:', {
+          console.log('[MomentoCarousel] 🔍 Filtering user momento:', {
             authorId: author.id,
             userId: user.id,
             isCurrentUser,
@@ -183,7 +183,7 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
         } else if (activeProfileType === 'local') {
           // Exclude if this is the current local's momento
           const isCurrentLocal = author.tipo === 'local' && author.id === activeProfileId;
-          console.log('[MomentoCarousel] Filtering local momento:', {
+          console.log('[MomentoCarousel] 🔍 Filtering local momento:', {
             authorId: author.id,
             localId: activeProfileId,
             isCurrentLocal,
@@ -213,7 +213,7 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
         userOwnDetails: currentUserMomento,
       });
     } catch (error) {
-      console.error('[MomentoCarousel] Error loading momentos:', error);
+      console.error('[MomentoCarousel] ❌ Error loading momentos:', error);
     } finally {
       setLoading(false);
     }
@@ -233,7 +233,7 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
           table: 'momentos',
         },
         () => {
-          console.log('[MomentoCarousel] Real-time update detected');
+          console.log('[MomentoCarousel] 🔄 Real-time update detected');
           loadMomentos();
         }
       )
@@ -245,7 +245,7 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
           table: 'momento_views',
         },
         () => {
-          console.log('[MomentoCarousel] View update detected');
+          console.log('[MomentoCarousel] 🔄 View update detected');
           loadMomentos();
         }
       )

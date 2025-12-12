@@ -34,12 +34,16 @@ export default function MiniAvatarWithMomento({
 
   const checkUnviewedMomentos = useCallback(async () => {
     if (!user || !showMomentoBorder) {
+      console.log('[MiniAvatarWithMomento] ℹ️ Skipping check:', { hasUser: !!user, showMomentoBorder });
       setLoading(false);
+      setHasUnviewedMomentos(false);
       return;
     }
 
     if (!userId && !localId) {
+      console.log('[MiniAvatarWithMomento] ℹ️ No userId or localId provided');
       setLoading(false);
+      setHasUnviewedMomentos(false);
       return;
     }
 
