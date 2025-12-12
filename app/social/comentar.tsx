@@ -209,6 +209,7 @@ export default function ComentarScreen() {
 
   return (
     <View style={commonStyles.container}>
+      {/* ✅ FIXED: BarLive gradient header */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         start={{ x: 0, y: 0 }}

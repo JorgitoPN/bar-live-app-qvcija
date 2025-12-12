@@ -26,11 +26,12 @@ export default function ConfiguracionScreen() {
   
   const [notificacionesPush, setNotificacionesPush] = useState(true);
   const [notificacionesEmail, setNotificacionesEmail] = useState(true);
-  const [modoOscuro, setModoOscuro] = useState(false);
-  const [tamanoTexto, setTamanoTexto] = useState('medio');
+  const [notificacionesMenciones, setNotificacionesMenciones] = useState(true);
+  const [notificacionesComentarios, setNotificacionesComentarios] = useState(true);
+  const [notificacionesMeGusta, setNotificacionesMeGusta] = useState(true);
+  const [notificacionesNuevosSeguidores, setNotificacionesNuevosSeguidores] = useState(true);
   const [idioma, setIdioma] = useState('es');
   const [cacheSizeMB, setCacheSizeMB] = useState(0);
-  const [showTamanoModal, setShowTamanoModal] = useState(false);
   const [showIdiomaModal, setShowIdiomaModal] = useState(false);
 
   const loadUserSettings = useCallback(async () => {
@@ -39,15 +40,13 @@ export default function ConfiguracionScreen() {
 
       const { data, error } = await supabase
         .from('usuarios')
-        .select('notificaciones_push, notificaciones_email, modo_oscuro, tamano_texto, idioma')
+        .select('notificaciones_push, notificaciones_email, idioma')
         .eq('id', user.id)
         .single();
 
       if (data && !error) {
         setNotificacionesPush(data.notificaciones_push ?? true);
         setNotificacionesEmail(data.notificaciones_email ?? true);
-        setModoOscuro(data.modo_oscuro ?? false);
-        setTamanoTexto(data.tamano_texto ?? 'medio');
         setIdioma(data.idioma ?? 'es');
       }
 
@@ -236,13 +235,6 @@ export default function ConfiguracionScreen() {
     router.push('/legal/acerca-de');
   };
 
-  const handleTamanoTextoChange = (tamano: string) => {
-    setTamanoTexto(tamano);
-    updateUserSetting('tamano_texto', tamano);
-    setShowTamanoModal(false);
-    Alert.alert('Tamaño de texto actualizado', `El tamaño de texto se ha cambiado a ${tamano === 'pequeno' ? 'pequeño' : tamano === 'medio' ? 'medio' : 'grande'}`);
-  };
-
   const handleIdiomaChange = (nuevoIdioma: string) => {
     setIdioma(nuevoIdioma);
     updateUserSetting('idioma', nuevoIdioma);
@@ -269,6 +261,7 @@ export default function ConfiguracionScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* ✅ UPDATED: Notificaciones section with more options */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Notificaciones</Text>
           
@@ -285,7 +278,7 @@ export default function ConfiguracionScreen() {
                 setNotificacionesPush(value);
                 updateUserSetting('notificaciones_push', value);
               }}
-              trackColor={{ false: colors.border, true: colors.primary }}
+              trackColor={{ false: colors.cardBorder, true: colors.primary }}
               thumbColor="#FFFFFF"
             />
           </View>
@@ -303,28 +296,79 @@ export default function ConfiguracionScreen() {
                 setNotificacionesEmail(value);
                 updateUserSetting('notificaciones_email', value);
               }}
-              trackColor={{ false: colors.border, true: colors.primary }}
+              trackColor={{ false: colors.cardBorder, true: colors.primary }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+
+          <View style={styles.settingRow}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>Menciones</Text>
+              <Text style={styles.settingDescription}>
+                Cuando alguien te menciona
+              </Text>
+            </View>
+            <Switch
+              value={notificacionesMenciones}
+              onValueChange={setNotificacionesMenciones}
+              trackColor={{ false: colors.cardBorder, true: colors.primary }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+
+          <View style={styles.settingRow}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>Comentarios</Text>
+              <Text style={styles.settingDescription}>
+                Cuando alguien comenta tus publicaciones
+              </Text>
+            </View>
+            <Switch
+              value={notificacionesComentarios}
+              onValueChange={setNotificacionesComentarios}
+              trackColor={{ false: colors.cardBorder, true: colors.primary }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+
+          <View style={styles.settingRow}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>Me gusta</Text>
+              <Text style={styles.settingDescription}>
+                Cuando alguien le da me gusta a tus publicaciones
+              </Text>
+            </View>
+            <Switch
+              value={notificacionesMeGusta}
+              onValueChange={setNotificacionesMeGusta}
+              trackColor={{ false: colors.cardBorder, true: colors.primary }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+
+          <View style={styles.settingRow}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>Nuevos seguidores</Text>
+              <Text style={styles.settingDescription}>
+                Cuando alguien te empieza a seguir
+              </Text>
+            </View>
+            <Switch
+              value={notificacionesNuevosSeguidores}
+              onValueChange={setNotificacionesNuevosSeguidores}
+              trackColor={{ false: colors.cardBorder, true: colors.primary }}
               thumbColor="#FFFFFF"
             />
           </View>
         </View>
 
+        {/* ✅ UPDATED: Idioma section (removed Tamaño de texto) */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Apariencia</Text>
+          <Text style={styles.sectionTitle}>Idioma</Text>
           
-          <TouchableOpacity style={styles.settingRow} onPress={() => setShowTamanoModal(true)}>
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Tamaño de texto</Text>
-              <Text style={styles.settingDescription}>
-                {tamanoTexto === 'pequeno' ? 'Pequeño' : tamanoTexto === 'medio' ? 'Medio' : 'Grande'}
-              </Text>
-            </View>
-            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
-          </TouchableOpacity>
-
           <TouchableOpacity style={styles.settingRow} onPress={() => setShowIdiomaModal(true)}>
             <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Idioma</Text>
+              <Text style={styles.settingLabel}>Idioma de la aplicación</Text>
               <Text style={styles.settingDescription}>
                 {idioma === 'es' ? 'Español' : idioma === 'en' ? 'English' : 'Català'}
               </Text>
@@ -333,12 +377,16 @@ export default function ConfiguracionScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* ✅ UPDATED: Privacidad y Seguridad section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Privacidad y Seguridad</Text>
           
           <TouchableOpacity style={styles.settingRow} onPress={handleUsuariosBloqueados}>
             <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>Usuarios bloqueados</Text>
+              <Text style={styles.settingDescription}>
+                Gestiona los usuarios que has bloqueado
+              </Text>
             </View>
             <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
@@ -346,6 +394,9 @@ export default function ConfiguracionScreen() {
           <TouchableOpacity style={styles.settingRow} onPress={handleContenidoOculto}>
             <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>Contenido oculto</Text>
+              <Text style={styles.settingDescription}>
+                Publicaciones y comentarios ocultos
+              </Text>
             </View>
             <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
@@ -353,11 +404,35 @@ export default function ConfiguracionScreen() {
           <TouchableOpacity style={styles.settingRow} onPress={handleCambiarContrasena}>
             <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>Cambiar contraseña</Text>
+              <Text style={styles.settingDescription}>
+                Actualiza tu contraseña de acceso
+              </Text>
+            </View>
+            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.settingRow} onPress={() => Alert.alert('Próximamente', 'Esta función estará disponible pronto')}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>Privacidad de cuenta</Text>
+              <Text style={styles.settingDescription}>
+                Controla quién puede ver tu contenido
+              </Text>
+            </View>
+            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.settingRow} onPress={() => Alert.alert('Próximamente', 'Esta función estará disponible pronto')}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>Autenticación de dos factores</Text>
+              <Text style={styles.settingDescription}>
+                Añade una capa extra de seguridad
+              </Text>
             </View>
             <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
+        {/* ✅ UPDATED: Datos section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Datos</Text>
           
@@ -370,14 +445,28 @@ export default function ConfiguracionScreen() {
             </View>
             <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
+
+          <TouchableOpacity style={styles.settingRow} onPress={() => Alert.alert('Próximamente', 'Esta función estará disponible pronto')}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>Descargar mis datos</Text>
+              <Text style={styles.settingDescription}>
+                Solicita una copia de tu información
+              </Text>
+            </View>
+            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
         </View>
 
+        {/* ✅ UPDATED: Soporte section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Soporte</Text>
           
           <TouchableOpacity style={styles.settingRow} onPress={handleCentroAyuda}>
             <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>Centro de ayuda</Text>
+              <Text style={styles.settingDescription}>
+                Encuentra respuestas a tus preguntas
+              </Text>
             </View>
             <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
@@ -385,17 +474,34 @@ export default function ConfiguracionScreen() {
           <TouchableOpacity style={styles.settingRow} onPress={handleReportarProblema}>
             <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>Reportar un problema</Text>
+              <Text style={styles.settingDescription}>
+                Ayúdanos a mejorar BarLive
+              </Text>
+            </View>
+            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.settingRow} onPress={() => Alert.alert('Contacto', 'Escríbenos a soporte@barlive.app')}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>Contactar soporte</Text>
+              <Text style={styles.settingDescription}>
+                soporte@barlive.app
+              </Text>
             </View>
             <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
+        {/* ✅ UPDATED: Legal section with BarLive news */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Legal</Text>
           
           <TouchableOpacity style={styles.settingRow} onPress={handleTerminos}>
             <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>Términos y condiciones</Text>
+              <Text style={styles.settingDescription}>
+                Última actualización: Enero 2025
+              </Text>
             </View>
             <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
@@ -403,6 +509,9 @@ export default function ConfiguracionScreen() {
           <TouchableOpacity style={styles.settingRow} onPress={handlePrivacidad}>
             <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>Política de privacidad</Text>
+              <Text style={styles.settingDescription}>
+                Última actualización: Enero 2025
+              </Text>
             </View>
             <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
@@ -410,10 +519,27 @@ export default function ConfiguracionScreen() {
           <TouchableOpacity style={styles.settingRow} onPress={handleAcercaDe}>
             <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>Acerca de BarLive</Text>
-              <Text style={styles.settingDescription}>Versión 1.0.0</Text>
+              <Text style={styles.settingDescription}>
+                Versión 1.0.0 • Descubre la vida nocturna
+              </Text>
             </View>
             <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
+
+          <View style={styles.newsBox}>
+            <View style={styles.newsHeader}>
+              <IconSymbol name="sparkles" size={20} color={colors.primary} />
+              <Text style={styles.newsTitle}>Novedades de BarLive</Text>
+            </View>
+            <Text style={styles.newsText}>
+              • Nueva red social integrada para conectar con otros usuarios{'\n'}
+              • Salas virtuales en tiempo real para interactuar{'\n'}
+              • Sistema de momentos para compartir experiencias{'\n'}
+              • Perfiles de locales con información detallada{'\n'}
+              • Mapas interactivos con filtros avanzados{'\n'}
+              • Sistema de reseñas y valoraciones mejorado
+            </Text>
+          </View>
         </View>
 
         <View style={styles.section}>
@@ -429,34 +555,6 @@ export default function ConfiguracionScreen() {
         {/* Extra padding at bottom to ensure buttons are accessible */}
         <View style={{ height: 120 }} />
       </ScrollView>
-
-      <Modal
-        visible={showTamanoModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowTamanoModal(false)}
-      >
-        <Pressable style={styles.modalOverlay} onPress={() => setShowTamanoModal(false)}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Tamaño de texto</Text>
-            
-            {['pequeno', 'medio', 'grande'].map((size) => (
-              <TouchableOpacity
-                key={size}
-                style={styles.modalOption}
-                onPress={() => handleTamanoTextoChange(size)}
-              >
-                <Text style={styles.modalOptionText}>
-                  {size === 'pequeno' ? 'Pequeño' : size === 'medio' ? 'Medio' : 'Grande'}
-                </Text>
-                {tamanoTexto === size && (
-                  <IconSymbol name="checkmark" size={20} color={colors.primary} />
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-        </Pressable>
-      </Modal>
 
       <Modal
         visible={showIdiomaModal}
@@ -557,6 +655,31 @@ const styles = StyleSheet.create({
   settingDescription: {
     fontSize: 14,
     color: colors.textSecondary,
+  },
+  newsBox: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    padding: 16,
+    backgroundColor: colors.primary + '10',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
+  },
+  newsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  newsTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  newsText: {
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 22,
   },
   dangerButton: {
     marginHorizontal: 16,

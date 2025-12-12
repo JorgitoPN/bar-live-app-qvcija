@@ -167,7 +167,20 @@ export default function SharePostModal({
         
         let chatId: string;
         
+        // ✅ FIXED: Ensure both users exist in usuarios table before creating chat
         if (isLocal) {
+          // For local chats, verify the local exists
+          const { data: localExists } = await supabase
+            .from('locales')
+            .select('id')
+            .eq('id', recipientId)
+            .single();
+
+          if (!localExists) {
+            console.error('[SharePostModal] Local does not exist:', recipientId);
+            continue; // Skip this recipient
+          }
+
           const userId1 = user.id < recipientId ? user.id : recipientId;
           const userId2 = user.id < recipientId ? recipientId : user.id;
 
@@ -194,10 +207,25 @@ export default function SharePostModal({
               .select()
               .single();
 
-            if (error) throw error;
+            if (error) {
+              console.error('[SharePostModal] Error creating local chat:', error);
+              continue; // Skip this recipient
+            }
             chatId = newChat.id;
           }
         } else {
+          // ✅ FIXED: For user chats, verify the recipient user exists
+          const { data: userExists } = await supabase
+            .from('usuarios')
+            .select('id')
+            .eq('id', recipientId)
+            .single();
+
+          if (!userExists) {
+            console.error('[SharePostModal] User does not exist:', recipientId);
+            continue; // Skip this recipient
+          }
+
           const userId1 = user.id < recipientId ? user.id : recipientId;
           const userId2 = user.id < recipientId ? recipientId : user.id;
 
@@ -224,12 +252,16 @@ export default function SharePostModal({
               .select()
               .single();
 
-            if (error) throw error;
+            if (error) {
+              console.error('[SharePostModal] Error creating user chat:', error);
+              continue; // Skip this recipient
+            }
             chatId = newChat.id;
           }
         }
 
-        await supabase.from('mensajes').insert({
+        // Send message
+        const { error: messageError } = await supabase.from('mensajes').insert({
           chat_id: chatId,
           remitente_id: user.id,
           contenido: shareMessage,
@@ -237,6 +269,12 @@ export default function SharePostModal({
           tipo_mensaje: 'post_share',
         });
 
+        if (messageError) {
+          console.error('[SharePostModal] Error sending message:', messageError);
+          continue; // Skip this recipient
+        }
+
+        // Update chat last message
         await supabase
           .from('chats')
           .update({
