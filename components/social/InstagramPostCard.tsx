@@ -79,6 +79,36 @@ export default function InstagramPostCard({
     ? post.autor_id === user?.id
     : false;
 
+  // ✅ NEW: Subscribe to real-time like updates
+  useEffect(() => {
+    if (!post.id) return;
+
+    console.log('[InstagramPostCard] 🔄 Setting up real-time like subscription for post:', post.id);
+
+    const likesChannel = supabase
+      .channel(`post-likes-${post.id}`)
+      .on(
+        'broadcast',
+        { event: 'like_update' },
+        (payload) => {
+          console.log('[InstagramPostCard] 🔄 Real-time like update received:', payload);
+          if (payload.payload.postId === post.id) {
+            setLikesCount(payload.payload.likesCount);
+            // Only update liked state if it's for the current user
+            if (user && payload.payload.userId === user.id) {
+              setIsLiked(payload.payload.liked);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('[InstagramPostCard] 🔄 Cleaning up real-time like subscription for post:', post.id);
+      supabase.removeChannel(likesChannel);
+    };
+  }, [post.id, user]);
+
   // Load author data on mount
   useEffect(() => {
     const loadAuthorData = async () => {
@@ -137,8 +167,11 @@ export default function InstagramPostCard({
     }
 
     const newLikedState = !isLiked;
+    const newLikesCount = newLikedState ? likesCount + 1 : likesCount - 1;
+    
+    // Optimistic update
     setIsLiked(newLikedState);
-    setLikesCount(prev => newLikedState ? prev + 1 : prev - 1);
+    setLikesCount(newLikesCount);
 
     try {
       if (newLikedState) {
@@ -146,17 +179,44 @@ export default function InstagramPostCard({
           post_id: post.id,
           usuario_id: user.id,
         });
+        
+        // Update post likes count
+        await supabase
+          .from('posts')
+          .update({ likes: newLikesCount })
+          .eq('id', post.id);
       } else {
         await supabase
           .from('likes')
           .delete()
           .eq('post_id', post.id)
           .eq('usuario_id', user.id);
+        
+        // Update post likes count
+        await supabase
+          .from('posts')
+          .update({ likes: newLikesCount })
+          .eq('id', post.id);
       }
+
+      // ✅ NEW: Broadcast like update to all subscribers
+      await supabase.channel(`post-likes-${post.id}`).send({
+        type: 'broadcast',
+        event: 'like_update',
+        payload: {
+          postId: post.id,
+          likesCount: newLikesCount,
+          liked: newLikedState,
+          userId: user.id,
+        },
+      });
+
+      console.log('[InstagramPostCard] ✅ Like broadcasted successfully');
     } catch (error) {
       console.error('[InstagramPostCard] Error toggling like:', error);
+      // Revert optimistic update
       setIsLiked(!newLikedState);
-      setLikesCount(prev => newLikedState ? prev - 1 : prev + 1);
+      setLikesCount(newLikedState ? newLikesCount - 1 : newLikesCount + 1);
     }
   };
 

@@ -491,7 +491,7 @@ export default function DetalleLocalScreen() {
     }
   }, [params.id, cargarLocal]);
 
-  // ✅ FIXED: Toggle favorite function with improved error handling and RLS policy fix
+  // ✅ FIXED: Toggle favorite function with improved error handling and session refresh
   const toggleFavorito = async (e: any) => {
     e.stopPropagation();
     
@@ -502,6 +502,19 @@ export default function DetalleLocalScreen() {
 
     setLoadingFavorite(true);
     try {
+      // ✅ Refresh session to ensure auth.uid() is available
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        console.error('[DetalleLocal] Session error:', sessionError);
+        Alert.alert(
+          'Sesión expirada',
+          'Tu sesión ha expirado. Por favor cierra sesión y vuelve a iniciar sesión.'
+        );
+        setLoadingFavorite(false);
+        return;
+      }
+
       if (isFavorite) {
         // Remove from favorites
         const { error } = await supabase
@@ -519,6 +532,7 @@ export default function DetalleLocalScreen() {
         
         console.log('[DetalleLocal] ✅ Removed from favorites');
         setIsFavorite(false);
+        Alert.alert('Éxito', 'Local eliminado de favoritos');
       } else {
         // Add to favorites - use maybeSingle to check if already exists
         const { data: existing } = await supabase
@@ -532,6 +546,7 @@ export default function DetalleLocalScreen() {
           console.log('[DetalleLocal] Already in favorites');
           setIsFavorite(true);
           setLoadingFavorite(false);
+          Alert.alert('Info', 'Este local ya está en tus favoritos');
           return;
         }
 
@@ -561,6 +576,7 @@ export default function DetalleLocalScreen() {
         
         console.log('[DetalleLocal] ✅ Added to favorites');
         setIsFavorite(true);
+        Alert.alert('Éxito', 'Local agregado a favoritos');
       }
     } catch (error) {
       console.error('[DetalleLocal] Error toggling favorito:', error);
