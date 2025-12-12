@@ -1873,7 +1873,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  // ✅ FIXED: Favorite button styles
+  // ✅ FIXED: Favorite button styles with better visibility
   favoritoButton: {
     position: 'absolute',
     bottom: 12,
@@ -1883,12 +1883,18 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     overflow: 'hidden',
     zIndex: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   favoritoBlur: {
     width: '100%',
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   gallerySection: {
     backgroundColor: colors.background,
