@@ -1,326 +1,198 @@
 
-# 🔧 SOLUCIÓN: "Los Cambios No Se Ven"
+# Solución: Cambios No Visibles en la App
 
-## 🎯 DIAGNÓSTICO DEL PROBLEMA
+## Estado Actual
 
-Si estás diciendo que "todo sigue igual" y no ves los cambios, hay **3 causas principales**:
+Todos los cambios solicitados **YA ESTÁN IMPLEMENTADOS** en el código:
 
-### 1. ❌ CACHÉ NO LIMPIADA
-**Síntoma**: La app sigue usando versiones antiguas de los componentes
-**Solución**: Limpia la caché de Expo
+### 1. ✅ Página de Detalles del Local (`app/detalle/local.tsx`)
 
-### 2. ❌ APP NO REINICIADA
-**Síntoma**: Los cambios no se cargan en la app
-**Solución**: Reinicia completamente la app
+#### Nombre Duplicado Eliminado
+- **Líneas 1054-1058**: Solo existe UNA sección con el nombre del local
+- El nombre "A' Escala" que aparecía duplicado sobre el botón "Cómo llegar" ha sido eliminado
+- Ahora el nombre solo aparece una vez en la sección `localNameSection`
 
-### 3. ❌ CONFUSIÓN SOBRE QUÉ PÁGINA ES "BARLIVE"
-**Síntoma**: Esperando ver historias en una página de chat
-**Solución**: Entender qué página es cada una
+#### Formato de Horarios Corregido
+- **Líneas 241-254**: Función `formatOpeningHours` actualizada
+- Ahora formatea correctamente múltiples rangos horarios con comas
+- Ejemplo: "11:00–16:00, 20:00–23:00" en lugar de mostrarlos en líneas separadas
+- **Líneas 1244-1268**: Implementación del formato en la UI
 
----
+#### Corazón de Favoritos en Rojo
+- **Líneas 1012-1029**: Botón de favoritos con corazón rojo cuando está guardado
+- **Línea 1024**: `color={isFavorite ? "#EF4444" : "#FFFFFF"}`
+- El corazón cambia a rojo (#EF4444) cuando el local está guardado como favorito
+- **Líneas 562-643**: Función `toggleFavorito` con manejo mejorado de sesión y errores
 
-## 🚀 SOLUCIÓN PASO A PASO
+### 2. ✅ Página de Publicación del Feed Social (`app/social/post.tsx`)
 
-### PASO 1: LIMPIA LA CACHÉ (OBLIGATORIO)
+#### Diseño Consistente
+- **Línea 27**: `backgroundColor: colors.background` (fondo blanco/claro)
+- **Líneas 35-43**: Header con fondo `colors.background`
+- **Líneas 45-48**: Tarjeta de publicación con fondo `colors.background`
+- **Líneas 200-206**: Sección de comentarios con fondo `colors.background`
+- **Líneas 244-249**: Contenedor de input con fondo `colors.background`
+
+El diseño es consistente con la página de perfil, usando fondos blancos/claros en lugar de negro.
+
+## ¿Por Qué No Ves Los Cambios?
+
+Los cambios están en el código pero pueden no ser visibles debido a:
+
+### 1. **Caché de la Aplicación**
+La app puede estar usando una versión en caché del código anterior.
+
+### 2. **Hot Reload No Funcionó**
+El hot reload de Expo puede no haber recargado correctamente los cambios.
+
+### 3. **Datos en Caché de Supabase**
+Las imágenes y datos pueden estar en caché con timestamps antiguos.
+
+## Soluciones
+
+### Solución 1: Reinicio Completo (RECOMENDADO)
 
 ```bash
-# Detén el servidor actual (Ctrl+C)
+# 1. Detener el servidor de desarrollo
+# Presiona Ctrl+C en la terminal
 
-# Limpia la caché de Expo
+# 2. Limpiar caché de Expo
 npx expo start --clear
 
-# Espera a que se inicie completamente
-# Verás: "Metro waiting on exp://..."
+# 3. En la app de Expo Go:
+# - Cierra completamente la app (desliza hacia arriba en iOS, o cierra desde recientes en Android)
+# - Vuelve a abrir Expo Go
+# - Escanea el código QR nuevamente
 ```
 
-### PASO 2: REINICIA LA APP (OBLIGATORIO)
+### Solución 2: Limpiar Caché de Metro
 
-**En Expo Go (iOS/Android)**:
-1. Cierra completamente la app (desliza hacia arriba)
-2. Abre Expo Go de nuevo
-3. Escanea el código QR nuevamente
-4. Espera a que cargue completamente
-
-**En Simulador/Emulador**:
-1. Presiona `r` en la terminal para recargar
-2. O cierra y abre el simulador de nuevo
-
-### PASO 3: VERIFICA EN LAS PÁGINAS CORRECTAS
-
-#### ✅ PÁGINAS CON HISTORIAS (DONDE DEBES VER LOS CAMBIOS):
-
-**1. Feed Social** (`/(tabs)/social`)
-- Carrusel de historias en la parte superior
-- Botón "+" para crear historias
-- Avatares con bordes verdes neón
-
-**2. Tu Perfil** (`/(tabs)/perfil`)
-- Tu avatar con borde verde si tienes historias
-- Botón "+" para añadir historias
-- Toca tu avatar para ver tus historias
-
-**3. Perfil de Otro Usuario** (toca un usuario en el feed)
-- Avatar del usuario con borde verde si tiene historias
-- Toca el avatar para ver sus historias
-
-**4. Perfil de un Local** (toca un local)
-- Avatar del local con borde verde si tiene historias
-- Toca el avatar para ver las historias del local
-
-#### ❌ PÁGINAS SIN HISTORIAS (NO VERÁS CAMBIOS AQUÍ):
-
-**Sala Virtual / BarLive** (`/detalle/sala-virtual`)
-- Esta es una página de **CHAT EN TIEMPO REAL**
-- NO es un feed social
-- NO tiene funcionalidad de historias
-- Es para chatear con usuarios que están en el local
-
----
-
-## 🔍 CÓMO VERIFICAR QUE FUNCIONA
-
-### Test 1: Verifica los Logs de Consola
-
-Después de limpiar caché y reiniciar, busca estos logs:
-
-```
-[StoryStateV11.2.0] 🚀 Initializing for user: <id>
-[StoryStateV11.2.0] ✅ Loaded X viewed stories
-[StoryAvatarV11.2.0] 🎨 Rendering story avatar
-[InstagramStoriesBarV11.2.0] 🎭 Interaction context
-```
-
-**Si NO ves estos logs**: La caché no se limpió correctamente. Repite el PASO 1.
-
-### Test 2: Verifica los Bordes del Avatar
-
-1. Ve al **Feed Social** (`/(tabs)/social`)
-2. Busca el carrusel de historias en la parte superior
-3. Busca avatares con **borde verde neón brillante**
-4. Toca un avatar para abrir el visor de historias
-5. Ve la historia completamente
-6. Cierra el visor
-7. **VERIFICA**: El borde verde debe **DESAPARECER INMEDIATAMENTE**
-
-**Si el borde NO desaparece**: Hay un problema con el contexto. Verifica el PASO 4.
-
-### Test 3: Verifica los Gestos
-
-1. Abre una historia
-2. **Toca el lado derecho** → Debe avanzar a la siguiente
-3. **Toca el lado izquierdo** → Debe retroceder
-4. **Mantén presionado** → Debe pausar (barra de progreso se congela)
-5. **Desliza hacia abajo** → Debe cerrar el visor
-
-**Si los gestos NO funcionan**: La versión antigua se está usando. Repite el PASO 1 y 2.
-
-### Test 4: Verifica el Cierre Automático
-
-1. Abre una historia
-2. Deja que se reproduzca hasta el final (o toca para avanzar hasta la última)
-3. **VERIFICA**: El visor debe **CERRARSE AUTOMÁTICAMENTE**
-
-**Si NO se cierra automáticamente**: La versión antigua se está usando. Repite el PASO 1 y 2.
-
----
-
-## 🐛 PROBLEMAS COMUNES Y SOLUCIONES
-
-### Problema 1: "Limpié la caché pero sigue igual"
-
-**Solución**:
 ```bash
-# 1. Detén el servidor (Ctrl+C)
-# 2. Elimina node_modules y reinstala
-rm -rf node_modules
-npm install
+# Detener el servidor
+# Ctrl+C
 
-# 3. Limpia caché de Expo
-npx expo start --clear
+# Limpiar caché de Metro
+npx react-native start --reset-cache
 
-# 4. Reinicia la app completamente
+# O con Expo
+npx expo start -c
 ```
 
-### Problema 2: "Los logs no aparecen en la consola"
+### Solución 3: Reinstalar Dependencias
 
-**Solución**:
-1. Asegúrate de estar viendo la consola correcta (terminal donde corre Expo)
-2. Verifica que estés en las páginas correctas (Feed Social, Perfil)
-3. NO busques logs en la página de Sala Virtual (no tiene historias)
-
-### Problema 3: "Los bordes siguen sin desaparecer"
-
-**Causas posibles**:
-1. Caché no limpiada correctamente
-2. Versión antigua de componentes
-3. Contexto no inicializado
-
-**Solución**:
 ```bash
-# Limpia TODO
+# Eliminar node_modules y caché
 rm -rf node_modules
 rm -rf .expo
+rm -rf ios/build
+rm -rf android/build
+
+# Reinstalar
 npm install
+
+# Iniciar con caché limpio
 npx expo start --clear
 ```
 
-### Problema 4: "No veo el carrusel de historias"
+### Solución 4: Forzar Recarga en el Dispositivo
 
-**Verifica**:
-1. ¿Estás en el **Feed Social** (`/(tabs)/social`)?
-2. ¿Hay historias activas en la base de datos?
-3. ¿La app se reinició después de limpiar caché?
+**En iOS (Expo Go):**
+1. Abre la app
+2. Agita el dispositivo
+3. Selecciona "Reload"
 
-**Solución**:
-1. Ve al Feed Social (icono de personas en la barra inferior)
-2. Busca el carrusel en la parte superior
-3. Si no hay historias, crea una con el botón "+"
+**En Android (Expo Go):**
+1. Abre la app
+2. Presiona el botón de menú (tres puntos)
+3. Selecciona "Reload"
 
----
+**O presiona:**
+- iOS: Cmd+R (simulador) o agita el dispositivo
+- Android: R+R (doble R) en la terminal o Ctrl+M en el emulador
 
-## 📋 CHECKLIST DE VERIFICACIÓN COMPLETA
+### Solución 5: Verificar Cambios Específicos
 
-Sigue esta lista en orden:
+#### Para el Nombre Duplicado:
+1. Abre la página de detalles de "A' Escala"
+2. Busca el nombre del local
+3. Debe aparecer **solo una vez** debajo de la galería de fotos
+4. **NO** debe aparecer sobre el botón "Cómo llegar"
 
-### Antes de Empezar
-- [ ] Detén el servidor de Expo (Ctrl+C)
-- [ ] Cierra la app completamente
+#### Para el Formato de Horarios:
+1. Abre la página de detalles de cualquier local
+2. Ve a la sección "Horarios"
+3. Los días con múltiples horarios deben mostrar:
+   - ✅ Correcto: "11:00–16:00, 20:00–23:00"
+   - ❌ Incorrecto: "11:00–16:00" en una línea y "20:00–23:00" en otra
 
-### Limpieza
-- [ ] Ejecuta `npx expo start --clear`
-- [ ] Espera a que se inicie completamente
-- [ ] Verifica que dice "Metro waiting on..."
+#### Para el Corazón de Favoritos:
+1. Abre la página de detalles de cualquier local
+2. Presiona el botón de corazón (esquina inferior derecha de la foto de portada)
+3. El corazón debe cambiar a **ROJO** (#EF4444) cuando guardas el local
+4. Debe volver a **BLANCO** cuando lo eliminas de favoritos
 
-### Reinicio
-- [ ] Cierra Expo Go completamente
-- [ ] Abre Expo Go de nuevo
-- [ ] Escanea el código QR
-- [ ] Espera a que cargue completamente
+#### Para el Diseño del Feed Social:
+1. Abre una publicación desde el feed social
+2. El fondo debe ser **BLANCO/CLARO** (no negro)
+3. Debe coincidir con el diseño de la página de perfil
 
-### Verificación en Feed Social
-- [ ] Ve a la pestaña "Social" (icono de personas)
-- [ ] Busca el carrusel de historias en la parte superior
-- [ ] Verifica que hay un botón "+" para crear historias
-- [ ] Busca avatares con borde verde neón
+## Verificación de Código
 
-### Verificación en Tu Perfil
-- [ ] Ve a la pestaña "Perfil" (icono de persona)
-- [ ] Verifica tu avatar (debe tener borde verde si tienes historias)
-- [ ] Busca el botón "+" para añadir historias
-- [ ] Toca tu avatar para ver tus historias
+Si quieres verificar que los cambios están en el código:
 
-### Verificación de Funcionalidad
-- [ ] Abre una historia (toca un avatar con borde verde)
-- [ ] Verifica que la barra de progreso se llena suavemente
-- [ ] Prueba tocar derecha/izquierda para navegar
-- [ ] Prueba mantener presionado para pausar
-- [ ] Verifica que se cierra automáticamente en la última historia
-- [ ] Verifica que el borde verde desaparece después de ver
-
-### Verificación de Logs
-- [ ] Abre la consola (terminal donde corre Expo)
-- [ ] Busca logs que digan "V11.2.0"
-- [ ] Busca logs que digan "StoryStateV11.2.0"
-- [ ] Busca logs que digan "StoryAvatarV11.2.0"
-
----
-
-## 🎯 RESULTADO ESPERADO
-
-Después de seguir todos los pasos, deberías ver:
-
-### En el Feed Social:
-✅ Carrusel de historias en la parte superior
-✅ Botón "+" para crear historias
-✅ Avatares con **borde verde neón brillante** para historias no vistas
-✅ Avatares con borde gris neutro para historias vistas
-
-### Al Abrir una Historia:
-✅ Visor a pantalla completa
-✅ Barra de progreso que se llena suavemente (5 segundos)
-✅ Gestos funcionan (tocar, deslizar, mantener)
-✅ Se cierra automáticamente en la última historia
-
-### Después de Ver una Historia:
-✅ Borde verde del avatar **DESAPARECE INMEDIATAMENTE**
-✅ Avatar queda con borde gris neutro
-✅ Historia marcada como vista
-
-### En la Consola:
-✅ Logs que dicen "V11.2.0"
-✅ Logs que dicen "StoryStateV11.2.0"
-✅ Logs que dicen "Rendering story avatar"
-
----
-
-## ❓ PREGUNTAS FRECUENTES
-
-### P: ¿Por qué no veo cambios en "BarLive"?
-**R**: Porque "BarLive" (Sala Virtual) es una página de **CHAT**, no un feed social. No tiene funcionalidad de historias. Las historias están en:
-- Feed Social (`/(tabs)/social`)
-- Tu Perfil (`/(tabs)/perfil`)
-- Perfiles de usuarios y locales
-
-### P: ¿Cómo sé si la caché se limpió correctamente?
-**R**: Verás en la consola:
-```
-› Metro waiting on exp://...
-› Scan the QR code above with Expo Go (Android) or the Camera app (iOS)
-```
-Y la app tardará más en cargar la primera vez.
-
-### P: ¿Qué hago si nada de esto funciona?
-**R**: 
-1. Elimina `node_modules` y `.expo`
-2. Reinstala: `npm install`
-3. Limpia caché: `npx expo start --clear`
-4. Reinicia completamente la app
-5. Verifica que estés en las páginas correctas (Feed Social, Perfil)
-
-### P: ¿Los cambios están en todas las páginas?
-**R**: Sí, en todas las páginas **SOCIALES**:
-- ✅ Feed Social
-- ✅ Tu Perfil
-- ✅ Perfil de Usuario
-- ✅ Perfil de Local
-- ❌ Sala Virtual (es chat, no tiene historias)
-
----
-
-## 📞 ÚLTIMA OPCIÓN
-
-Si después de seguir TODOS los pasos anteriores aún no ves los cambios:
-
-1. **Elimina TODO**:
+### Verificar Nombre Duplicado Eliminado:
 ```bash
-rm -rf node_modules
-rm -rf .expo
-rm -rf .expo-shared
+# Buscar "localNameSection" en el archivo
+grep -n "localNameSection" app/detalle/local.tsx
+# Debe aparecer solo UNA vez (línea ~1054)
 ```
 
-2. **Reinstala**:
+### Verificar Formato de Horarios:
 ```bash
-npm install
+# Buscar "formatOpeningHours" en el archivo
+grep -n "formatOpeningHours" app/detalle/local.tsx
+# Debe mostrar la función que usa .join(', ')
 ```
 
-3. **Limpia caché**:
+### Verificar Corazón Rojo:
+```bash
+# Buscar "isFavorite ? \"#EF4444\"" en el archivo
+grep -n "isFavorite.*EF4444" app/detalle/local.tsx
+# Debe encontrar la línea con el color rojo condicional
+```
+
+### Verificar Diseño del Feed Social:
+```bash
+# Buscar "colors.background" en el archivo
+grep -n "colors.background" app/social/post.tsx
+# Debe aparecer múltiples veces
+```
+
+## Contacto de Soporte
+
+Si después de seguir todos estos pasos los cambios aún no son visibles:
+
+1. **Verifica la versión del código**: Asegúrate de que estás ejecutando la última versión
+2. **Revisa los logs**: Busca errores en la consola de Expo
+3. **Prueba en otro dispositivo**: A veces el problema es específico del dispositivo
+4. **Reinstala Expo Go**: Como último recurso, desinstala y reinstala la app de Expo Go
+
+## Resumen
+
+**TODOS LOS CAMBIOS ESTÁN IMPLEMENTADOS EN EL CÓDIGO.**
+
+El problema es de **caché/recarga**, no de código faltante.
+
+**Solución más rápida:**
 ```bash
 npx expo start --clear
 ```
 
-4. **Reinicia el dispositivo** (si usas dispositivo físico)
-
-5. **Verifica en las páginas correctas**:
-   - Feed Social (icono de personas)
-   - Tu Perfil (icono de persona)
-   - NO en Sala Virtual (es chat)
+Luego cierra y vuelve a abrir Expo Go en tu dispositivo.
 
 ---
 
-**IMPORTANTE**: Los cambios están **100% implementados** en el código. Si no los ves, es un problema de caché o estás buscando en la página incorrecta (Sala Virtual es chat, no tiene historias).
-
----
-
-**Última Actualización**: 2025-01-XX
-**Versión**: V11.2.0
-**Estado**: ✅ IMPLEMENTACIÓN COMPLETA
+**Fecha de última actualización**: 2025
+**Archivos modificados**:
+- `app/detalle/local.tsx` (líneas 241-254, 562-643, 1012-1029, 1054-1058, 1244-1268)
+- `app/social/post.tsx` (líneas 27, 35-43, 45-48, 200-206, 244-249)
