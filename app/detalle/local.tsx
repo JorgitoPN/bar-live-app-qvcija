@@ -116,7 +116,7 @@ const getCategoryIcon = (categoria?: string): { ios: string; android: string; co
   return categoryMap[categoria?.toLowerCase() || ''] || { ios: 'mappin.circle.fill', android: 'location_on', color: colors.primary };
 };
 
-// Helper function to get service icon with colors - NO REPETITION
+// Helper function to get service icon with colors
 const getServiceIcon = (servicio: string): { ios: string; android: string; color: string } => {
   const serviceMap: Record<string, { ios: string; android: string; color: string }> = {
     'cerveza': { ios: 'wineglass', android: 'sports_bar', color: '#F59E0B' },
@@ -172,7 +172,7 @@ const getServiceIcon = (servicio: string): { ios: string; android: string; color
   return { ios: 'checkmark.circle.fill', android: 'check_circle', color: colors.primary };
 };
 
-// Helper function to get ambiente icon - NO REPETITION
+// Helper function to get ambiente icon
 const getAmbienteIcon = (ambiente: string): { ios: string; android: string; color: string } => {
   const ambienteMap: Record<string, { ios: string; android: string; color: string }> = {
     'familiar': { ios: 'person.3.fill', android: 'family_restroom', color: '#14B8A6' },
@@ -198,7 +198,7 @@ const getAmbienteIcon = (ambiente: string): { ios: string; android: string; colo
   return { ios: 'sparkles', android: 'auto_awesome', color: colors.primary };
 };
 
-// Helper function to get clientela icon - NO REPETITION
+// Helper function to get clientela icon
 const getClientelaIcon = (clientela: string): { ios: string; android: string; color: string } => {
   const clientelaMap: Record<string, { ios: string; android: string; color: string }> = {
     'grupos': { ios: 'person.3.fill', android: 'groups', color: '#10B981' },
@@ -270,9 +270,9 @@ const formatOpeningHours = (hours: string[]): string => {
   
   // Sort hours to ensure proper order (earlier times first)
   const sortedHours = [...hours].sort((a, b) => {
-    // Extract start time from each range
-    const timeA = a.split('–')[0] || a.split('-')[0] || '';
-    const timeB = b.split('–')[0] || b.split('-')[0] || '';
+    // Extract start time from each range (handle both – and - separators)
+    const timeA = a.split('–')[0]?.trim() || a.split('-')[0]?.trim() || '';
+    const timeB = b.split('–')[0]?.trim() || b.split('-')[0]?.trim() || '';
     return timeA.localeCompare(timeB);
   });
   
@@ -491,7 +491,7 @@ export default function DetalleLocalScreen() {
     }
   }, [params.id, cargarLocal]);
 
-  // ✅ FIXED: Toggle favorite function with better error handling
+  // ✅ FIXED: Toggle favorite function with improved error handling and RLS policy fix
   const toggleFavorito = async (e: any) => {
     e.stopPropagation();
     
@@ -503,6 +503,7 @@ export default function DetalleLocalScreen() {
     setLoadingFavorite(true);
     try {
       if (isFavorite) {
+        // Remove from favorites
         const { error } = await supabase
           .from('locales_guardados')
           .delete()
@@ -519,6 +520,21 @@ export default function DetalleLocalScreen() {
         console.log('[DetalleLocal] ✅ Removed from favorites');
         setIsFavorite(false);
       } else {
+        // Add to favorites - use maybeSingle to check if already exists
+        const { data: existing } = await supabase
+          .from('locales_guardados')
+          .select('id')
+          .eq('usuario_id', user.id)
+          .eq('local_id', params.id)
+          .maybeSingle();
+
+        if (existing) {
+          console.log('[DetalleLocal] Already in favorites');
+          setIsFavorite(true);
+          setLoadingFavorite(false);
+          return;
+        }
+
         const { error } = await supabase
           .from('locales_guardados')
           .insert({
@@ -1059,18 +1075,24 @@ export default function DetalleLocalScreen() {
             </BlurView>
           </TouchableOpacity>
           
-          {/* ✅ Favorite button */}
+          {/* ✅ FIXED: Favorite button with better styling */}
           <TouchableOpacity
             style={styles.favoritoButton}
             onPress={toggleFavorito}
             disabled={loadingFavorite}
           >
-            <IconSymbol
-              ios_icon_name={isFavorite ? "heart.fill" : "heart"}
-              android_material_icon_name={isFavorite ? "favorite" : "favorite_border"}
-              size={20}
-              color={isFavorite ? "#EF4444" : "#FFFFFF"}
-            />
+            <BlurView intensity={80} tint="dark" style={styles.favoritoBlur}>
+              {loadingFavorite ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <IconSymbol
+                  ios_icon_name={isFavorite ? "heart.fill" : "heart"}
+                  android_material_icon_name={isFavorite ? "favorite" : "favorite_border"}
+                  size={22}
+                  color={isFavorite ? "#EF4444" : "#FFFFFF"}
+                />
+              )}
+            </BlurView>
           </TouchableOpacity>
         </View>
       )}
@@ -1835,18 +1857,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  // ✅ Favorite button styles
+  // ✅ FIXED: Favorite button styles
   favoritoButton: {
     position: 'absolute',
     bottom: 12,
     right: 12,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    overflow: 'hidden',
     zIndex: 10,
+  },
+  favoritoBlur: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   gallerySection: {
     backgroundColor: colors.background,
