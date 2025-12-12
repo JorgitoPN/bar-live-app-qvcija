@@ -1335,9 +1335,14 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 14,
     borderWidth: 3,
-    borderColor: colors.headerGradientStart,
+    borderColor: '#FFFFFF', // White border as requested
     overflow: 'hidden',
     zIndex: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    elevation: 5,
   },
   addMomentoGradient: {
     width: '100%',

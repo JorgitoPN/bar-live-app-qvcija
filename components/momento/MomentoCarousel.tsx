@@ -169,12 +169,14 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
       });
 
       // Filter out current user/local from the main carousel
+      // CRITICAL: This ensures the user's own momento ONLY appears in "Tu Momento"
       const filteredAuthors = Array.from(authorsMap.values()).filter(author => {
         if (activeProfileType === 'usuario') {
           // Exclude if this is the current user's momento
           const isCurrentUser = author.tipo === 'usuario' && author.id === user.id;
           console.log('[MomentoCarousel] 🔍 Filtering user momento:', {
             authorId: author.id,
+            authorTipo: author.tipo,
             userId: user.id,
             isCurrentUser,
             excluded: isCurrentUser,
@@ -185,6 +187,7 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
           const isCurrentLocal = author.tipo === 'local' && author.id === activeProfileId;
           console.log('[MomentoCarousel] 🔍 Filtering local momento:', {
             authorId: author.id,
+            authorTipo: author.tipo,
             localId: activeProfileId,
             isCurrentLocal,
             excluded: isCurrentLocal,
