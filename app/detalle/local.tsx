@@ -434,6 +434,7 @@ export default function DetalleLocalScreen() {
       }
 
       setIsFavorite(!!data);
+      console.log('[DetalleLocal] ✅ Favorite status checked:', !!data);
     } catch (error) {
       console.error('[DetalleLocal] Error checking favorite:', error);
       setIsFavorite(false);
