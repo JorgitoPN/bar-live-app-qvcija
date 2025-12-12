@@ -74,6 +74,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    backgroundColor: colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   backButton: {
     padding: 8,
@@ -81,10 +84,10 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: colors.headerText,
+    color: colors.text,
   },
   postCard: {
-    backgroundColor: colors.cardBackground,
+    backgroundColor: colors.background,
   },
   postHeader: {
     flexDirection: 'row',
@@ -205,6 +208,7 @@ const styles = StyleSheet.create({
   comentariosSection: {
     paddingTop: 8,
     paddingBottom: 100,
+    backgroundColor: colors.background,
   },
   comentariosSectionHeader: {
     paddingHorizontal: 16,
@@ -221,7 +225,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: colors.cardBackground,
+    backgroundColor: colors.background,
   },
   comentarioAvatar: {
     width: 32,
@@ -282,7 +286,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    backgroundColor: colors.cardBackground,
+    backgroundColor: colors.background,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
   },
@@ -298,7 +302,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: colors.background,
+    backgroundColor: colors.card,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
   },
@@ -380,7 +384,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 12,
     marginBottom: 8,
-    backgroundColor: colors.cardBackground,
+    backgroundColor: colors.card,
   },
   postOptionText: {
     fontSize: 16,
@@ -399,7 +403,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 12,
     marginBottom: 8,
-    backgroundColor: colors.cardBackground,
+    backgroundColor: colors.card,
   },
   userAvatar: {
     width: 48,
@@ -431,7 +435,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.cardBorder,
   },
   searchInput: {
-    backgroundColor: colors.cardBackground,
+    backgroundColor: colors.card,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -1500,16 +1504,13 @@ export default function PostDetailScreen() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <LinearGradient
-          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-          style={styles.header}
-        >
+        <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+            <IconSymbol name="chevron.left" size={24} color={colors.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Publicación</Text>
           <View style={{ width: 24 }} />
-        </LinearGradient>
+        </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -1520,16 +1521,13 @@ export default function PostDetailScreen() {
   if (!post) {
     return (
       <View style={styles.container}>
-        <LinearGradient
-          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-          style={styles.header}
-        >
+        <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+            <IconSymbol name="chevron.left" size={24} color={colors.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Publicación</Text>
           <View style={{ width: 24 }} />
-        </LinearGradient>
+        </View>
         <View style={styles.loadingContainer}>
           <Text style={{ color: colors.text }}>Publicación no encontrada</Text>
         </View>
@@ -1541,16 +1539,13 @@ export default function PostDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-        style={styles.header}
-      >
+      <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+          <IconSymbol name="chevron.left" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Publicación</Text>
         <View style={{ width: 24 }} />
-      </LinearGradient>
+      </View>
 
       <ScrollView 
         ref={scrollViewRef} 
@@ -1813,20 +1808,17 @@ export default function PostDetailScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
         >
-          <LinearGradient
-            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-            style={styles.header}
-          >
+          <View style={styles.header}>
             <TouchableOpacity onPress={() => {
               setShowUserList(false);
               setSearchQuery('');
               setSearchResults([]);
             }} style={styles.backButton}>
-              <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+              <IconSymbol name="chevron.left" size={24} color={colors.text} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Enviar a...</Text>
             <View style={{ width: 24 }} />
-          </LinearGradient>
+          </View>
 
           <View style={styles.searchContainer}>
             <TextInput
