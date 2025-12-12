@@ -161,34 +161,49 @@ export default function SharePostModal({
 
     try {
       const shareMessage = `📤 Publicación compartida: ${postContent || 'Ver publicación'}`;
+      let successCount = 0;
+      let failCount = 0;
 
       for (const recipientId of selectedRecipients) {
         const isLocal = allLocals.some(l => l.id === recipientId);
         
         let chatId: string;
         
-        // ✅ FIXED: Ensure both users exist in usuarios table before creating chat
+        // ✅ FIXED: Handle local and user chats differently
         if (isLocal) {
           // For local chats, verify the local exists
-          const { data: localExists } = await supabase
+          const { data: localExists, error: localCheckError } = await supabase
             .from('locales')
             .select('id')
             .eq('id', recipientId)
-            .single();
+            .maybeSingle();
 
-          if (!localExists) {
-            console.error('[SharePostModal] Local does not exist:', recipientId);
+          if (localCheckError || !localExists) {
+            console.error('[SharePostModal] Local does not exist:', recipientId, localCheckError);
+            failCount++;
             continue; // Skip this recipient
           }
 
-          const userId1 = user.id < recipientId ? user.id : recipientId;
-          const userId2 = user.id < recipientId ? recipientId : user.id;
+          // ✅ FIXED: For local chats, only verify the current user exists
+          const { data: currentUserExists } = await supabase
+            .from('usuarios')
+            .select('id')
+            .eq('id', user.id)
+            .maybeSingle();
 
+          if (!currentUserExists) {
+            console.error('[SharePostModal] Current user does not exist:', user.id);
+            failCount++;
+            continue;
+          }
+
+          // For local chats, use user.id as both usuario1_id and usuario2_id
+          // The local_id field will identify this as a local chat
           const { data: existingChat } = await supabase
             .from('chats')
             .select('id')
-            .eq('usuario1_id', userId1)
-            .eq('usuario2_id', userId2)
+            .eq('usuario1_id', user.id)
+            .eq('usuario2_id', user.id)
             .eq('local_id', recipientId)
             .maybeSingle();
 
@@ -198,8 +213,8 @@ export default function SharePostModal({
             const { data: newChat, error } = await supabase
               .from('chats')
               .insert({
-                usuario1_id: userId1,
-                usuario2_id: userId2,
+                usuario1_id: user.id,
+                usuario2_id: user.id,
                 local_id: recipientId,
                 ultimo_mensaje: shareMessage,
                 ultimo_mensaje_fecha: new Date().toISOString(),
@@ -209,21 +224,36 @@ export default function SharePostModal({
 
             if (error) {
               console.error('[SharePostModal] Error creating local chat:', error);
+              failCount++;
               continue; // Skip this recipient
             }
             chatId = newChat.id;
           }
         } else {
           // ✅ FIXED: For user chats, verify the recipient user exists
-          const { data: userExists } = await supabase
+          const { data: userExists, error: userCheckError } = await supabase
             .from('usuarios')
             .select('id')
             .eq('id', recipientId)
-            .single();
+            .maybeSingle();
 
-          if (!userExists) {
-            console.error('[SharePostModal] User does not exist:', recipientId);
+          if (userCheckError || !userExists) {
+            console.error('[SharePostModal] User does not exist:', recipientId, userCheckError);
+            failCount++;
             continue; // Skip this recipient
+          }
+
+          // ✅ FIXED: Also verify current user exists
+          const { data: currentUserExists } = await supabase
+            .from('usuarios')
+            .select('id')
+            .eq('id', user.id)
+            .maybeSingle();
+
+          if (!currentUserExists) {
+            console.error('[SharePostModal] Current user does not exist:', user.id);
+            failCount++;
+            continue;
           }
 
           const userId1 = user.id < recipientId ? user.id : recipientId;
@@ -254,6 +284,7 @@ export default function SharePostModal({
 
             if (error) {
               console.error('[SharePostModal] Error creating user chat:', error);
+              failCount++;
               continue; // Skip this recipient
             }
             chatId = newChat.id;
@@ -271,6 +302,7 @@ export default function SharePostModal({
 
         if (messageError) {
           console.error('[SharePostModal] Error sending message:', messageError);
+          failCount++;
           continue; // Skip this recipient
         }
 
@@ -282,12 +314,23 @@ export default function SharePostModal({
             ultimo_mensaje_fecha: new Date().toISOString(),
           })
           .eq('id', chatId);
+
+        successCount++;
       }
 
-      Alert.alert('Éxito', 'Publicación compartida correctamente');
-      setSelectedRecipients(new Set());
-      setSearchQuery('');
-      onClose();
+      if (successCount > 0) {
+        Alert.alert(
+          'Éxito', 
+          failCount > 0 
+            ? `Publicación compartida con ${successCount} destinatario(s). ${failCount} fallaron.`
+            : 'Publicación compartida correctamente'
+        );
+        setSelectedRecipients(new Set());
+        setSearchQuery('');
+        onClose();
+      } else {
+        Alert.alert('Error', 'No se pudo compartir la publicación con ningún destinatario');
+      }
     } catch (error) {
       console.error('[SharePostModal] ❌ Error sharing post:', error);
       Alert.alert('Error', 'No se pudo compartir la publicación');

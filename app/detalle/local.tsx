@@ -495,7 +495,7 @@ export default function DetalleLocalScreen() {
     }
   }, [params.id, cargarLocal]);
 
-  // ✅ FIXED: Toggle favorite function with comprehensive session handling
+  // ✅ FIXED: Toggle favorite function with comprehensive session handling and refresh
   const toggleFavorito = async (e: any) => {
     e.stopPropagation();
     
@@ -511,43 +511,52 @@ export default function DetalleLocalScreen() {
     setIsFavorite(!isFavorite);
     
     try {
-      // ✅ FIXED: Get current session and verify it's valid
-      console.log('[DetalleLocal] 🔄 Checking current session...');
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      // ✅ FIXED: Refresh session first to ensure it's valid
+      console.log('[DetalleLocal] 🔄 Refreshing session...');
       
-      if (sessionError) {
-        console.error('[DetalleLocal] Session error:', sessionError);
+      let session = null;
+      try {
+        const { data, error: refreshError } = await supabase.auth.refreshSession();
+        
+        if (refreshError) {
+          console.error('[DetalleLocal] Session refresh error:', refreshError);
+          throw new Error('SESSION_REFRESH_FAILED');
+        }
+        
+        session = data.session;
+      } catch (refreshErr: any) {
+        console.error('[DetalleLocal] Session refresh exception:', refreshErr);
         setIsFavorite(previousState);
+        setLoadingFavorite(false);
         Alert.alert(
           'Error de sesión',
-          'Hubo un problema con tu sesión. Por favor cierra sesión y vuelve a iniciar sesión.'
+          'No se pudo actualizar tu sesión. Por favor cierra sesión y vuelve a iniciar sesión.'
         );
-        setLoadingFavorite(false);
         return;
       }
 
       if (!session) {
-        console.error('[DetalleLocal] No active session found');
+        console.error('[DetalleLocal] No active session after refresh');
         setIsFavorite(previousState);
+        setLoadingFavorite(false);
         Alert.alert(
           'Sesión expirada',
           'Tu sesión ha expirado. Por favor cierra sesión y vuelve a iniciar sesión.'
         );
-        setLoadingFavorite(false);
         return;
       }
 
-      console.log('[DetalleLocal] ✅ Session is valid. User ID:', session.user.id);
+      console.log('[DetalleLocal] ✅ Session refreshed successfully. User ID:', session.user.id);
 
       // ✅ Verify user ID matches
       if (session.user.id !== user.id) {
         console.error('[DetalleLocal] User ID mismatch:', session.user.id, 'vs', user.id);
         setIsFavorite(previousState);
+        setLoadingFavorite(false);
         Alert.alert(
           'Error de autenticación',
           'Hay un problema con tu cuenta. Por favor cierra sesión y vuelve a iniciar sesión.'
         );
-        setLoadingFavorite(false);
         return;
       }
 
@@ -565,6 +574,7 @@ export default function DetalleLocalScreen() {
         if (error) {
           console.error('[DetalleLocal] Error removing favorite:', error);
           setIsFavorite(previousState);
+          setLoadingFavorite(false);
           
           // Provide specific error messages
           if (error.code === '42501') {
@@ -572,7 +582,7 @@ export default function DetalleLocalScreen() {
               'Error de permisos',
               'No tienes permisos para eliminar favoritos. Por favor cierra sesión y vuelve a iniciar sesión.'
             );
-          } else if (error.message.includes('session')) {
+          } else if (error.message && error.message.toLowerCase().includes('session')) {
             Alert.alert(
               'Sesión expirada',
               'Tu sesión ha expirado. Por favor cierra sesión y vuelve a iniciar sesión.'
@@ -581,7 +591,6 @@ export default function DetalleLocalScreen() {
             Alert.alert('Error', 'No se pudo eliminar de favoritos. Por favor intenta de nuevo.');
           }
           
-          setLoadingFavorite(false);
           return;
         }
         
@@ -614,6 +623,7 @@ export default function DetalleLocalScreen() {
         if (error) {
           console.error('[DetalleLocal] Error adding favorite:', error);
           setIsFavorite(previousState);
+          setLoadingFavorite(false);
           
           // Provide specific error messages
           if (error.code === '42501') {
@@ -621,7 +631,7 @@ export default function DetalleLocalScreen() {
               'Error de permisos',
               'No tienes permisos para agregar favoritos. Por favor cierra sesión y vuelve a iniciar sesión.'
             );
-          } else if (error.message.includes('session')) {
+          } else if (error.message && error.message.toLowerCase().includes('session')) {
             Alert.alert(
               'Sesión expirada',
               'Tu sesión ha expirado. Por favor cierra sesión y vuelve a iniciar sesión.'
@@ -634,7 +644,6 @@ export default function DetalleLocalScreen() {
             Alert.alert('Error', 'No se pudo agregar a favoritos. Por favor intenta de nuevo.');
           }
           
-          setLoadingFavorite(false);
           return;
         }
         
@@ -645,10 +654,15 @@ export default function DetalleLocalScreen() {
       setIsFavorite(previousState);
       
       // Check for specific error types
-      if (error.message && error.message.includes('session')) {
+      if (error.message && (error.message.toLowerCase().includes('session') || error.message === 'SESSION_REFRESH_FAILED')) {
         Alert.alert(
           'Sesión expirada',
           'Tu sesión ha expirado. Por favor cierra sesión y vuelve a iniciar sesión.'
+        );
+      } else if (error.name === 'AuthSessionMissingError') {
+        Alert.alert(
+          'Sesión no encontrada',
+          'No se encontró tu sesión. Por favor cierra sesión y vuelve a iniciar sesión.'
         );
       } else {
         Alert.alert('Error', 'No se pudo actualizar favoritos. Por favor intenta de nuevo.');
