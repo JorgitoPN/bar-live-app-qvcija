@@ -105,9 +105,14 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
           ? `local-${momento.local_id}` 
           : `user-${momento.autor_id}`;
 
-        // Check if this is the current user's or current local's momento
-        const isCurrentUserMomento = activeProfileType === 'usuario' && momento.autor_id === user.id;
-        const isCurrentLocalMomento = activeProfileType === 'local' && momento.local_id === activeProfileId;
+        // CRITICAL: Check if this is the current user's or current local's momento
+        // We need to be very explicit about the comparison
+        const isCurrentUserMomento = activeProfileType === 'usuario' && 
+                                     momento.tipo === 'usuario' && 
+                                     momento.autor_id === user.id;
+        const isCurrentLocalMomento = activeProfileType === 'local' && 
+                                      momento.tipo === 'local' && 
+                                      momento.local_id === activeProfileId;
         const isOwnMomento = isCurrentUserMomento || isCurrentLocalMomento;
 
         console.log('[MomentoCarousel] 🔍 Processing momento:', {
@@ -115,6 +120,9 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
           tipo: momento.tipo,
           autorId: momento.autor_id,
           localId: momento.local_id,
+          currentUserId: user.id,
+          activeProfileType,
+          activeProfileId,
           isCurrentUserMomento,
           isCurrentLocalMomento,
           isOwnMomento,
@@ -143,7 +151,11 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
           // Store user's own momento separately
           if (isOwnMomento) {
             currentUserMomento = authorInfo;
-            console.log('[MomentoCarousel] ✅ Found own momento:', authorInfo);
+            console.log('[MomentoCarousel] ✅ Found own momento:', {
+              id: authorInfo.id,
+              nombre: authorInfo.nombre,
+              tipo: authorInfo.tipo,
+            });
           }
         }
 
@@ -168,18 +180,20 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
         }
       });
 
-      // Filter out current user/local from the main carousel
-      // CRITICAL: This ensures the user's own momento ONLY appears in "Tu Momento"
+      // CRITICAL FILTERING: Remove current user/local from the main carousel
+      // The user's own momento should ONLY appear in "Tu Momento", never in the carousel
       const filteredAuthors = Array.from(authorsMap.values()).filter(author => {
         if (activeProfileType === 'usuario') {
           // Exclude if this is the current user's momento
+          // We check both tipo and id to be absolutely sure
           const isCurrentUser = author.tipo === 'usuario' && author.id === user.id;
           console.log('[MomentoCarousel] 🔍 Filtering user momento:', {
             authorId: author.id,
+            authorNombre: author.nombre,
             authorTipo: author.tipo,
             userId: user.id,
             isCurrentUser,
-            excluded: isCurrentUser,
+            willExclude: isCurrentUser,
           });
           return !isCurrentUser;
         } else if (activeProfileType === 'local') {
@@ -187,10 +201,11 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
           const isCurrentLocal = author.tipo === 'local' && author.id === activeProfileId;
           console.log('[MomentoCarousel] 🔍 Filtering local momento:', {
             authorId: author.id,
+            authorNombre: author.nombre,
             authorTipo: author.tipo,
             localId: activeProfileId,
             isCurrentLocal,
-            excluded: isCurrentLocal,
+            willExclude: isCurrentLocal,
           });
           return !isCurrentLocal;
         }
@@ -209,11 +224,20 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
       setAuthors(sortedAuthors);
       setUserMomento(currentUserMomento);
 
-      console.log('[MomentoCarousel] ✅ Loaded momentos:', {
-        total: momentosData.length,
-        others: sortedAuthors.length,
-        userOwn: currentUserMomento ? 1 : 0,
-        userOwnDetails: currentUserMomento,
+      console.log('[MomentoCarousel] ✅ Final carousel state:', {
+        totalMomentos: momentosData.length,
+        othersInCarousel: sortedAuthors.length,
+        userOwnMomento: currentUserMomento ? 1 : 0,
+        userOwnDetails: currentUserMomento ? {
+          id: currentUserMomento.id,
+          nombre: currentUserMomento.nombre,
+          tipo: currentUserMomento.tipo,
+        } : null,
+        carouselAuthors: sortedAuthors.map(a => ({
+          id: a.id,
+          nombre: a.nombre,
+          tipo: a.tipo,
+        })),
       });
     } catch (error) {
       console.error('[MomentoCarousel] ❌ Error loading momentos:', error);
@@ -512,7 +536,7 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
         {/* Always show "Tu Momento" first - either with momento or as add button */}
         {renderTuMomento()}
         
-        {/* Show other users' momentos in the carousel */}
+        {/* Show other users' momentos in the carousel - NEVER the current user's */}
         {authors.map((author, index) => renderAvatar(author, index))}
       </ScrollView>
     </View>
