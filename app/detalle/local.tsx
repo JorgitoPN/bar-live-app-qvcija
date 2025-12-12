@@ -681,6 +681,125 @@ export default function DetalleLocalScreen() {
     });
   };
 
+  // ✅ NEW: Handle delete review
+  const handleDeleteReview = async (reviewId: string) => {
+    if (!user) {
+      Alert.alert('Error', 'Debes iniciar sesión para eliminar reseñas');
+      return;
+    }
+
+    Alert.alert(
+      'Eliminar reseña',
+      '¿Estás seguro de que quieres eliminar esta reseña?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              console.log('[DetalleLocal] Deleting review:', reviewId);
+              
+              const { error } = await supabase
+                .from('reviews_barlive')
+                .delete()
+                .eq('id', reviewId)
+                .eq('usuario_id', user.id); // Ensure user owns the review
+
+              if (error) {
+                console.error('[DetalleLocal] Error deleting review:', error);
+                Alert.alert('Error', 'No se pudo eliminar la reseña');
+                return;
+              }
+
+              console.log('[DetalleLocal] ✅ Review deleted successfully');
+              Alert.alert('Éxito', 'Reseña eliminada correctamente');
+              
+              // Reload reviews
+              cargarReviewsBarlive();
+            } catch (error) {
+              console.error('[DetalleLocal] Error deleting review:', error);
+              Alert.alert('Error', 'No se pudo eliminar la reseña');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // ✅ NEW: Handle edit review
+  const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
+  const [editReviewRating, setEditReviewRating] = useState(5);
+  const [editReviewText, setEditReviewText] = useState('');
+  const [showEditReviewModal, setShowEditReviewModal] = useState(false);
+
+  const handleEditReview = (review: Review) => {
+    if (!user) {
+      Alert.alert('Error', 'Debes iniciar sesión para editar reseñas');
+      return;
+    }
+
+    setEditingReviewId(review.id);
+    setEditReviewRating(review.rating);
+    setEditReviewText(review.texto || '');
+    setShowEditReviewModal(true);
+  };
+
+  const handleSubmitEditReview = async () => {
+    if (!user || !editingReviewId) {
+      Alert.alert('Error', 'Debes iniciar sesión para editar reseñas');
+      return;
+    }
+
+    if (editReviewRating < 1 || editReviewRating > 5) {
+      Alert.alert('Error', 'Por favor selecciona una calificación');
+      return;
+    }
+
+    setSubmittingReview(true);
+    try {
+      console.log('[DetalleLocal] Updating review:', {
+        id: editingReviewId,
+        rating: editReviewRating,
+        texto: editReviewText
+      });
+
+      const { error } = await supabase
+        .from('reviews_barlive')
+        .update({
+          rating: editReviewRating,
+          texto: editReviewText.trim() || null,
+        })
+        .eq('id', editingReviewId)
+        .eq('usuario_id', user.id); // Ensure user owns the review
+
+      if (error) {
+        console.error('[DetalleLocal] Error updating review:', error);
+        Alert.alert('Error', 'No se pudo actualizar la reseña. Por favor intenta de nuevo.');
+        setSubmittingReview(false);
+        return;
+      }
+
+      console.log('[DetalleLocal] ✅ Review updated successfully');
+      Alert.alert('¡Gracias!', 'Tu reseña ha sido actualizada correctamente');
+      
+      // Reset form
+      setEditingReviewId(null);
+      setEditReviewRating(5);
+      setEditReviewText('');
+      setShowEditReviewModal(false);
+      
+      // Reload reviews
+      cargarReviewsBarlive();
+      
+      setSubmittingReview(false);
+    } catch (error) {
+      console.error('[DetalleLocal] Error updating review:', error);
+      Alert.alert('Error', 'No se pudo actualizar la reseña. Por favor intenta de nuevo.');
+      setSubmittingReview(false);
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -1302,6 +1421,9 @@ export default function DetalleLocalScreen() {
                 const { summary, needsExpansion } = summarizeText(reviewText);
                 const displayText = isExpanded ? reviewText : summary;
                 
+                // ✅ NEW: Check if user owns this review
+                const isOwner = user && !review.isGoogle && review.usuario_id === user.id;
+                
                 return (
                   <View key={review.id} style={styles.reviewCard}>
                     <View style={styles.reviewHeader}>
@@ -1309,12 +1431,41 @@ export default function DetalleLocalScreen() {
                         <Ionicons name="person" size={18} color={colors.textSecondary} />
                       </View>
                       <View style={styles.reviewInfo}>
-                        <Text style={styles.reviewAuthor}>Cliente del local</Text>
+                        <Text style={styles.reviewAuthor}>
+                          {isOwner ? 'Tu reseña' : 'Cliente del local'}
+                        </Text>
                         <View style={styles.reviewRating}>
                           <Ionicons name="star" size={14} color="#FFD700" />
                           <Text style={styles.reviewRatingText}>{review.rating}</Text>
                         </View>
                       </View>
+                      {/* ✅ NEW: Show edit/delete buttons for owner */}
+                      {isOwner && (
+                        <View style={styles.reviewActions}>
+                          <TouchableOpacity
+                            style={styles.reviewActionButton}
+                            onPress={() => handleEditReview(review)}
+                          >
+                            <IconSymbol 
+                              ios_icon_name="pencil" 
+                              android_material_icon_name="edit" 
+                              size={18} 
+                              color={colors.primary} 
+                            />
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.reviewActionButton}
+                            onPress={() => handleDeleteReview(review.id)}
+                          >
+                            <IconSymbol 
+                              ios_icon_name="trash" 
+                              android_material_icon_name="delete" 
+                              size={18} 
+                              color="#EF4444" 
+                            />
+                          </TouchableOpacity>
+                        </View>
+                      )}
                     </View>
                     {reviewText && (
                       <>
@@ -1416,6 +1567,75 @@ export default function DetalleLocalScreen() {
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
                   <Text style={styles.submitButtonText}>Publicar Reseña</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ✅ NEW: Edit Review Modal */}
+      <Modal
+        visible={showEditReviewModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => {
+          setShowEditReviewModal(false);
+          setEditingReviewId(null);
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Editar Reseña</Text>
+              <TouchableOpacity onPress={() => {
+                setShowEditReviewModal(false);
+                setEditingReviewId(null);
+              }}>
+                <Ionicons name="close" size={28} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalBody}>
+              <Text style={styles.modalLabel}>Calificación</Text>
+              <View style={styles.starsContainer}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <TouchableOpacity
+                    key={star}
+                    onPress={() => setEditReviewRating(star)}
+                    style={styles.starButton}
+                  >
+                    <Ionicons
+                      name={star <= editReviewRating ? 'star' : 'star-outline'}
+                      size={40}
+                      color={star <= editReviewRating ? '#FFD700' : colors.textSecondary}
+                    />
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={styles.modalLabel}>Comentario (opcional)</Text>
+              <TextInput
+                style={styles.textInput}
+                placeholder="Comparte tu experiencia..."
+                placeholderTextColor={colors.textSecondary}
+                value={editReviewText}
+                onChangeText={setEditReviewText}
+                multiline
+                numberOfLines={4}
+                maxLength={500}
+              />
+              <Text style={styles.characterCount}>{editReviewText.length}/500</Text>
+
+              <TouchableOpacity
+                style={[styles.submitButton, submittingReview && styles.submitButtonDisabled]}
+                onPress={handleSubmitEditReview}
+                disabled={submittingReview}
+              >
+                {submittingReview ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.submitButtonText}>Actualizar Reseña</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -1987,6 +2207,17 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
     color: colors.text,
+  },
+  // ✅ NEW: Review action buttons styles
+  reviewActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  reviewActionButton: {
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: colors.background,
   },
   reviewText: {
     fontSize: 14,
