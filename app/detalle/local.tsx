@@ -511,8 +511,9 @@ export default function DetalleLocalScreen() {
     setIsFavorite(!isFavorite);
     
     try {
-      // ✅ Refresh session to ensure auth.uid() is available
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      // ✅ FIXED: Refresh session to ensure auth.uid() is available
+      console.log('[DetalleLocal] 🔄 Refreshing session before toggle...');
+      const { data: { session }, error: sessionError } = await supabase.auth.refreshSession();
       
       if (sessionError || !session) {
         console.error('[DetalleLocal] Session error:', sessionError);
@@ -525,6 +526,7 @@ export default function DetalleLocalScreen() {
         return;
       }
 
+      console.log('[DetalleLocal] ✅ Session refreshed successfully');
       console.log('[DetalleLocal] 🔄 Toggling favorite. Current state:', previousState, '-> New state:', !previousState);
 
       if (previousState) {

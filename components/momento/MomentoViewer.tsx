@@ -981,6 +981,7 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 10,
   },
+  // ✅ FIXED: Progress bars with higher z-index to be above header
   progressContainer: {
     position: 'absolute',
     top: 60,
@@ -988,7 +989,7 @@ const styles = StyleSheet.create({
     right: 12,
     flexDirection: 'row',
     gap: 4,
-    zIndex: 100,
+    zIndex: 200,
   },
   progressBarBackground: {
     flex: 1,
@@ -1013,7 +1014,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    zIndex: 10,
+    zIndex: 100,
   },
   authorInfo: {
     flexDirection: 'row',
