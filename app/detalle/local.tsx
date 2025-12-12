@@ -221,28 +221,6 @@ const getClientelaIcon = (clientela: string): { ios: string; android: string; co
   return { ios: 'person.2.fill', android: 'people', color: colors.primary };
 };
 
-// Helper function to calculate distance
-const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): string => {
-  const R = 6371;
-  const dLat = deg2rad(lat2 - lat1);
-  const dLon = deg2rad(lon2 - lon1);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const d = R * c;
-  
-  if (d < 1) {
-    return `${Math.round(d * 1000)} m`;
-  }
-  return `${d.toFixed(1)} km`;
-};
-
-const deg2rad = (deg: number): number => {
-  return deg * (Math.PI / 180);
-};
-
 // Helper function to summarize text
 const summarizeText = (text: string, maxLength: number = 120): { summary: string; needsExpansion: boolean } => {
   if (!text || text.length <= maxLength) {
@@ -284,6 +262,22 @@ const normalizeDayName = (day: string): string => {
   return normalizations[day.toLowerCase()] || day;
 };
 
+// Helper function to format opening hours correctly
+const formatOpeningHours = (hours: string[]): string => {
+  if (!hours || hours.length === 0) {
+    return 'Cerrado';
+  }
+  
+  // Sort hours to ensure proper order (earlier times first)
+  const sortedHours = [...hours].sort((a, b) => {
+    const timeA = a.split('–')[0] || a.split('-')[0];
+    const timeB = b.split('–')[0] || b.split('-')[0];
+    return timeA.localeCompare(timeB);
+  });
+  
+  return sortedHours.join(', ');
+};
+
 export default function DetalleLocalScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
@@ -314,6 +308,9 @@ export default function DetalleLocalScreen() {
             latitude: location.coords.latitude,
             longitude: location.coords.longitude,
           });
+          console.log('[DetalleLocal] ✅ User location obtained:', location.coords.latitude, location.coords.longitude);
+        } else {
+          console.log('[DetalleLocal] ⚠️ Location permission not granted');
         }
       } catch (error) {
         console.error('[DetalleLocal] Error getting location:', error);
@@ -337,7 +334,13 @@ export default function DetalleLocalScreen() {
         : `${distKm.toFixed(1)} km`;
       
       setDistance(dist);
-      console.log('[DetalleLocal] ✅ Real distance calculated:', dist);
+      console.log('[DetalleLocal] ✅ Real distance calculated:', dist, 'from user:', userLocation, 'to local:', local.latitud, local.longitud);
+    } else {
+      console.log('[DetalleLocal] ⚠️ Cannot calculate distance - missing data:', {
+        hasUserLocation: !!userLocation,
+        hasLocalLat: !!local?.latitud,
+        hasLocalLon: !!local?.longitud
+      });
     }
   }, [userLocation, local]);
 
@@ -432,7 +435,9 @@ export default function DetalleLocalScreen() {
         destacado: data.destacado,
         hasAmbiente: !!data.ambiente_completo,
         hasClientela: !!data.clientela,
-        hasAnalisisReviews: !!data.analisis_reviews
+        hasAnalisisReviews: !!data.analisis_reviews,
+        latitud: data.latitud,
+        longitud: data.longitud
       });
       
       setLocal(data);
@@ -875,14 +880,14 @@ export default function DetalleLocalScreen() {
         </View>
       )}
 
-      {/* Local Name Section */}
+      {/* Local Name Section - ONLY BELOW GALLERY */}
       <View style={styles.localNameSection}>
         <Text style={styles.localNameText}>{local.nombre}</Text>
       </View>
 
       {/* Content Card */}
       <View style={styles.contentCard}>
-        {/* Header Section */}
+        {/* Header Section - NO TITLE HERE */}
         <View style={styles.headerSection}>
           {allCategories.length > 0 && (
             <View style={styles.categoriesRow}>
@@ -903,13 +908,21 @@ export default function DetalleLocalScreen() {
             </View>
           )}
 
+          {/* Address with Distance */}
           {local.direccion && (
             <View style={styles.addressCompact}>
               <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={18} color={colors.primary} />
               <Text style={styles.addressTextCompact} numberOfLines={1}>
                 {local.direccion}
-                {distance && ` • ${distance}`}
               </Text>
+            </View>
+          )}
+
+          {/* Distance Display - Separate and Prominent */}
+          {distance && (
+            <View style={styles.distanceContainer}>
+              <IconSymbol ios_icon_name="location.fill" android_material_icon_name="my_location" size={16} color={colors.primary} />
+              <Text style={styles.distanceText}>A {distance} de tu ubicación</Text>
             </View>
           )}
         </View>
@@ -1031,7 +1044,7 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* Schedule */}
+        {/* Schedule - FIXED FORMATTING */}
         {local.horarios_completos && Object.keys(local.horarios_completos).length > 0 && (
           <View style={styles.compactSection}>
             <View style={styles.compactSectionHeader}>
@@ -1046,7 +1059,10 @@ export default function DetalleLocalScreen() {
                 const hours = local.horarios_completos?.[dayNormalized] || [];
                 const isToday = dayNormalized.toLowerCase() === normalizeDayName(diaLogicoParaResaltar).toLowerCase();
                 
-                console.log(`[DetalleLocal] Day: ${dayDisplay} (normalized: ${dayNormalized}), Hours:`, hours, 'IsToday:', isToday);
+                // ✅ FIXED: Format hours correctly
+                const formattedHours = formatOpeningHours(hours);
+                
+                console.log(`[DetalleLocal] Day: ${dayDisplay} (normalized: ${dayNormalized}), Raw Hours:`, hours, 'Formatted:', formattedHours, 'IsToday:', isToday);
                 
                 return (
                   <View key={dayDisplay} style={[styles.scheduleRow, isToday && styles.scheduleRowToday]}>
@@ -1056,8 +1072,8 @@ export default function DetalleLocalScreen() {
                       </Text>
                       {isToday && <View style={styles.todayDot} />}
                     </View>
-                    <Text style={[styles.scheduleHoursCompact, isToday && styles.scheduleHoursTodayCompact]} numberOfLines={1}>
-                      {hours.length > 0 ? hours.join(', ') : 'Cerrado'}
+                    <Text style={[styles.scheduleHoursCompact, isToday && styles.scheduleHoursTodayCompact]} numberOfLines={2}>
+                      {formattedHours}
                     </Text>
                   </View>
                 );
@@ -1571,12 +1587,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 12,
+    marginBottom: 8,
   },
   addressTextCompact: {
     flex: 1,
     fontSize: 14,
     color: colors.text,
     fontWeight: '600',
+  },
+  distanceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.primary + '15',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
+  },
+  distanceText: {
+    fontSize: 14,
+    color: colors.primary,
+    fontWeight: '700',
   },
   descriptionSection: {
     marginBottom: 16,
