@@ -719,7 +719,7 @@ export default function MomentoViewer({
           </TouchableOpacity>
         </View>
 
-        {/* ✅ FIXED: Progress Bars - Higher z-index to be above header */}
+        {/* ✅ FIXED: Progress Bars - Positioned at the very top with highest z-index */}
         <View style={styles.progressContainer}>
           {momentos.map((_, index) => (
             <View key={index} style={styles.progressBarBackground}>
@@ -742,7 +742,7 @@ export default function MomentoViewer({
           ))}
         </View>
 
-        {/* Header */}
+        {/* ✅ FIXED: Header - Positioned below progress bars with lower z-index */}
         <LinearGradient
           colors={['rgba(0,0,0,0.6)', 'transparent']}
           style={styles.header}
@@ -775,7 +775,7 @@ export default function MomentoViewer({
           </TouchableOpacity>
         </LinearGradient>
 
-        {/* ✅ FIXED: Actions with more subtle icons (smaller size, reduced opacity) and WHITE delete icon */}
+        {/* Actions with more subtle icons (smaller size, reduced opacity) and WHITE delete icon */}
         <LinearGradient
           colors={['transparent', 'rgba(0,0,0,0.6)']}
           style={styles.actions}
@@ -981,15 +981,15 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 10,
   },
-  // ✅ FIXED: Progress bars with higher z-index to be above header
+  // ✅ FIXED: Progress bars positioned at the very top with highest z-index
   progressContainer: {
     position: 'absolute',
-    top: 60,
+    top: 50,
     left: 12,
     right: 12,
     flexDirection: 'row',
     gap: 4,
-    zIndex: 200,
+    zIndex: 300,
   },
   progressBarBackground: {
     flex: 1,
@@ -1003,18 +1003,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: PROGRESS_BAR_HEIGHT / 2,
   },
+  // ✅ FIXED: Header positioned below progress bars with lower z-index
   header: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    paddingTop: 50,
+    paddingTop: 60,
     paddingHorizontal: 16,
     paddingBottom: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    zIndex: 100,
+    zIndex: 200,
   },
   authorInfo: {
     flexDirection: 'row',
