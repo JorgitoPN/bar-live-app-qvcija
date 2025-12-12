@@ -719,7 +719,7 @@ export default function MomentoViewer({
           </TouchableOpacity>
         </View>
 
-        {/* Progress Bars */}
+        {/* ✅ FIXED: Progress Bars - Higher z-index to be above header */}
         <View style={styles.progressContainer}>
           {momentos.map((_, index) => (
             <View key={index} style={styles.progressBarBackground}>
@@ -775,7 +775,7 @@ export default function MomentoViewer({
           </TouchableOpacity>
         </LinearGradient>
 
-        {/* ✅ FIXED: Actions with more subtle icons (smaller size, reduced opacity) and white delete icon */}
+        {/* ✅ FIXED: Actions with more subtle icons (smaller size, reduced opacity) and WHITE delete icon */}
         <LinearGradient
           colors={['transparent', 'rgba(0,0,0,0.6)']}
           style={styles.actions}
@@ -784,8 +784,8 @@ export default function MomentoViewer({
             <IconSymbol
               ios_icon_name="paperplane.fill"
               android_material_icon_name="send"
-              size={22}
-              color="rgba(255, 255, 255, 0.85)"
+              size={20}
+              color="rgba(255, 255, 255, 0.75)"
             />
             <Text style={styles.actionLabel}>Mensaje</Text>
           </TouchableOpacity>
@@ -794,8 +794,8 @@ export default function MomentoViewer({
             <IconSymbol
               ios_icon_name={currentMomento.user_has_liked ? 'heart.fill' : 'heart'}
               android_material_icon_name={currentMomento.user_has_liked ? 'favorite' : 'favorite_border'}
-              size={22}
-              color={currentMomento.user_has_liked ? '#FF3B30' : 'rgba(255, 255, 255, 0.85)'}
+              size={20}
+              color={currentMomento.user_has_liked ? '#FF3B30' : 'rgba(255, 255, 255, 0.75)'}
             />
             <Text style={styles.actionLabel}>
               {currentMomento.likes_count > 0 ? currentMomento.likes_count : 'Me gusta'}
@@ -807,8 +807,8 @@ export default function MomentoViewer({
               <IconSymbol
                 ios_icon_name="eye.fill"
                 android_material_icon_name="visibility"
-                size={22}
-                color="rgba(255, 255, 255, 0.85)"
+                size={20}
+                color="rgba(255, 255, 255, 0.75)"
               />
               <Text style={styles.actionLabel}>{currentMomento.vistas_count}</Text>
             </TouchableOpacity>
@@ -819,8 +819,8 @@ export default function MomentoViewer({
               <IconSymbol
                 ios_icon_name="trash.fill"
                 android_material_icon_name="delete"
-                size={22}
-                color="rgba(255, 255, 255, 0.85)"
+                size={20}
+                color="rgba(255, 255, 255, 0.75)"
               />
               <Text style={styles.actionLabel}>Eliminar</Text>
             </TouchableOpacity>
@@ -988,7 +988,7 @@ const styles = StyleSheet.create({
     right: 12,
     flexDirection: 'row',
     gap: 4,
-    zIndex: 10,
+    zIndex: 100,
   },
   progressBarBackground: {
     flex: 1,
@@ -1076,7 +1076,7 @@ const styles = StyleSheet.create({
   },
   actionLabel: {
     fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.85)',
+    color: 'rgba(255, 255, 255, 0.75)',
     fontFamily: 'System',
     fontWeight: '500',
   },

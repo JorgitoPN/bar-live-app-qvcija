@@ -74,9 +74,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
   },
   backButton: {
     padding: 4,
@@ -84,7 +81,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: colors.text,
+    color: colors.headerText,
     flex: 1,
     textAlign: 'center',
   },
@@ -1534,13 +1531,19 @@ export default function PostDetailScreen() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
+        {/* ✅ FIXED: Header with BarLive gradient color */}
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.header}
+        >
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <IconSymbol name="chevron.left" size={24} color={colors.text} />
+            <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Publicación</Text>
           <View style={{ width: 24 }} />
-        </View>
+        </LinearGradient>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -1551,13 +1554,19 @@ export default function PostDetailScreen() {
   if (!post) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
+        {/* ✅ FIXED: Header with BarLive gradient color */}
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.header}
+        >
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <IconSymbol name="chevron.left" size={24} color={colors.text} />
+            <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Publicación</Text>
           <View style={{ width: 24 }} />
-        </View>
+        </LinearGradient>
         <View style={styles.loadingContainer}>
           <Text style={{ color: colors.text }}>Publicación no encontrada</Text>
         </View>
@@ -1569,10 +1578,15 @@ export default function PostDetailScreen() {
 
   return (
     <View style={styles.container}>
-      {/* ✅ FIXED: Instagram-style header with back button and title */}
-      <View style={styles.header}>
+      {/* ✅ FIXED: Header with BarLive gradient color */}
+      <LinearGradient
+        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.header}
+      >
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <IconSymbol name="chevron.left" size={28} color={colors.text} />
+          <IconSymbol name="chevron.left" size={28} color={colors.headerText} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Publicación</Text>
         {user && (
@@ -1597,14 +1611,14 @@ export default function PostDetailScreen() {
             }}
             activeOpacity={0.7}
           >
-            <IconSymbol name="trash" size={22} color={colors.textSecondary} />
+            <IconSymbol name="trash" size={22} color={colors.headerText} />
           </TouchableOpacity>
         )}
         {!user || (
           (post.tipo !== 'usuario' || post.autor_id !== user.id) &&
           (post.tipo !== 'local' || interactionLocalId !== post.local_id)
         ) && <View style={{ width: 40 }} />}
-      </View>
+      </LinearGradient>
 
       <ScrollView 
         ref={scrollViewRef} 
@@ -1863,17 +1877,23 @@ export default function PostDetailScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
         >
-          <View style={styles.header}>
+          {/* ✅ FIXED: Header with BarLive gradient color */}
+          <LinearGradient
+            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.header}
+          >
             <TouchableOpacity onPress={() => {
               setShowUserList(false);
               setSearchQuery('');
               setSearchResults([]);
             }} style={styles.backButton}>
-              <IconSymbol name="chevron.left" size={24} color={colors.text} />
+              <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Enviar a...</Text>
             <View style={{ width: 24 }} />
-          </View>
+          </LinearGradient>
 
           <View style={styles.searchContainer}>
             <TextInput
