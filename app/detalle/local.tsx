@@ -1213,7 +1213,7 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* Action Buttons Row */}
+        {/* Action Buttons Row - NO LOCAL NAME HERE */}
         <View style={styles.actionsRow}>
           {local.telefono && (
             <TouchableOpacity style={styles.actionBtn} onPress={handleCall}>

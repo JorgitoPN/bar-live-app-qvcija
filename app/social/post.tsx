@@ -79,12 +79,17 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   backButton: {
-    padding: 8,
+    padding: 4,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '700',
     color: colors.text,
+    flex: 1,
+    textAlign: 'center',
+  },
+  deleteButton: {
+    padding: 8,
   },
   postCard: {
     backgroundColor: colors.background,
@@ -92,13 +97,19 @@ const styles = StyleSheet.create({
   postHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  authorInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   postAvatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    marginRight: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginRight: 10,
   },
   avatarPlaceholder: {
     backgroundColor: colors.primary,
@@ -106,25 +117,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatarText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: colors.headerText,
   },
-  postAutorInfo: {
-    flex: 1,
-  },
   postAutorNombre: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
   },
-  postFecha: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  postOptionsButton: {
-    padding: 8,
+  postAutorBold: {
+    fontWeight: '600',
+    color: colors.text,
   },
   imageCarouselContainer: {
     position: 'relative',
@@ -176,34 +180,60 @@ const styles = StyleSheet.create({
   postActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
+    paddingTop: 4,
+    paddingBottom: 4,
+  },
+  leftActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   postActionButton: {
-    marginRight: 18,
-    padding: 4,
-  },
-  postActionButtonRight: {
-    marginLeft: 'auto',
-    padding: 4,
+    padding: 8,
   },
   postLikes: {
     paddingHorizontal: 12,
-    paddingBottom: 8,
+    paddingTop: 4,
+    paddingBottom: 4,
   },
   postLikesText: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '400',
     color: colors.text,
+  },
+  postLikesBold: {
+    fontWeight: '600',
   },
   postDescripcion: {
     paddingHorizontal: 12,
-    paddingBottom: 12,
+    paddingTop: 4,
+    paddingBottom: 4,
   },
   postDescripcionText: {
-    fontSize: 15,
+    fontSize: 14,
     color: colors.text,
-    lineHeight: 22,
+    lineHeight: 18,
+  },
+  viewCommentsButton: {
+    paddingHorizontal: 12,
+    paddingTop: 4,
+    paddingBottom: 4,
+  },
+  viewCommentsText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontWeight: '400',
+  },
+  postTimeContainer: {
+    paddingHorizontal: 12,
+    paddingTop: 4,
+    paddingBottom: 12,
+  },
+  postTimeText: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
   },
   comentariosSection: {
     paddingTop: 8,
@@ -1539,12 +1569,41 @@ export default function PostDetailScreen() {
 
   return (
     <View style={styles.container}>
+      {/* ✅ FIXED: Instagram-style header with back button and title */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <IconSymbol name="chevron.left" size={24} color={colors.text} />
+          <IconSymbol name="chevron.left" size={28} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Publicación</Text>
-        <View style={{ width: 24 }} />
+        {user && (
+          (post.tipo === 'usuario' && post.autor_id === user.id) ||
+          (post.tipo === 'local' && interactionLocalId === post.local_id)
+        ) && (
+          <TouchableOpacity 
+            style={styles.deleteButton} 
+            onPress={() => {
+              Alert.alert(
+                'Eliminar publicación',
+                '¿Estás seguro de que quieres eliminar esta publicación?',
+                [
+                  { text: 'Cancelar', style: 'cancel' },
+                  {
+                    text: 'Eliminar',
+                    style: 'destructive',
+                    onPress: handleDeletePost,
+                  },
+                ]
+              );
+            }}
+            activeOpacity={0.7}
+          >
+            <IconSymbol name="trash" size={22} color={colors.textSecondary} />
+          </TouchableOpacity>
+        )}
+        {!user || (
+          (post.tipo !== 'usuario' || post.autor_id !== user.id) &&
+          (post.tipo !== 'local' || interactionLocalId !== post.local_id)
+        ) && <View style={{ width: 40 }} />}
       </View>
 
       <ScrollView 
@@ -1552,10 +1611,12 @@ export default function PostDetailScreen() {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: 60 }}
       >
+        {/* ✅ FIXED: Instagram-style post card */}
         <View style={styles.postCard}>
+          {/* Author header */}
           <View style={styles.postHeader}>
             <TouchableOpacity
-              style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
+              style={styles.authorInfoRow}
               onPress={() => {
                 if (post.tipo === 'local' && post.local_id) {
                   router.push(`/perfil/local?localId=${post.local_id}`);
@@ -1576,38 +1637,11 @@ export default function PostDetailScreen() {
                   </Text>
                 </View>
               )}
-              <View style={styles.postAutorInfo}>
-                <Text style={styles.postAutorNombre}>{post.autorNombre}</Text>
-                <Text style={styles.postFecha}>{formatearFecha(post.created_at)}</Text>
-              </View>
+              <Text style={styles.postAutorNombre}>{post.autorNombre}</Text>
             </TouchableOpacity>
-            {user && (
-              (post.tipo === 'usuario' && post.autor_id === user.id) ||
-              (post.tipo === 'local' && interactionLocalId === post.local_id)
-            ) && (
-              <TouchableOpacity 
-                style={styles.postOptionsButton} 
-                onPress={() => {
-                  Alert.alert(
-                    'Eliminar publicación',
-                    '¿Estás seguro de que quieres eliminar esta publicación?',
-                    [
-                      { text: 'Cancelar', style: 'cancel' },
-                      {
-                        text: 'Eliminar',
-                        style: 'destructive',
-                        onPress: handleDeletePost,
-                      },
-                    ]
-                  );
-                }}
-                activeOpacity={0.7}
-              >
-                <IconSymbol name="trash" size={22} color={colors.textSecondary} />
-              </TouchableOpacity>
-            )}
           </View>
 
+          {/* Images carousel */}
           {post.images && post.images.length > 0 && (
             <View style={styles.imageCarouselContainer}>
               <ScrollView
@@ -1628,6 +1662,7 @@ export default function PostDetailScreen() {
                 ))}
               </ScrollView>
               
+              {/* Image indicators */}
               {post.images.length > 1 && (
                 <View style={styles.imageIndicatorContainer}>
                   {post.images.map((_: string, index: number) => (
@@ -1641,70 +1676,90 @@ export default function PostDetailScreen() {
                   ))}
                 </View>
               )}
-
-              {post.images.length > 1 && (
-                <View style={styles.imageCountBadge}>
-                  <Text style={styles.imageCountText}>
-                    {currentImageIndex + 1}/{post.images.length}
-                  </Text>
-                </View>
-              )}
             </View>
           )}
 
+          {/* Action buttons */}
           <View style={styles.postActions}>
+            <View style={styles.leftActions}>
+              <TouchableOpacity 
+                style={styles.postActionButton} 
+                onPress={toggleLike}
+                activeOpacity={0.7}
+              >
+                <IconSymbol
+                  name={post.liked ? 'heart.fill' : 'heart'}
+                  size={28}
+                  color={post.liked ? '#EF4444' : colors.text}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.postActionButton}
+                onPress={handleCommentPress}
+                activeOpacity={0.7}
+              >
+                <IconSymbol name="message" size={28} color={colors.text} />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.postActionButton} 
+                onPress={handleShare}
+                activeOpacity={0.7}
+              >
+                <IconSymbol name="paperplane" size={28} color={colors.text} />
+              </TouchableOpacity>
+            </View>
             <TouchableOpacity 
               style={styles.postActionButton} 
-              onPress={toggleLike}
-              activeOpacity={0.7}
-            >
-              <IconSymbol
-                name={post.liked ? 'heart.fill' : 'heart'}
-                size={26}
-                color={post.liked ? '#EF4444' : colors.text}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.postActionButton}
-              onPress={handleCommentPress}
-              activeOpacity={0.7}
-            >
-              <IconSymbol name="message" size={26} color={colors.text} />
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.postActionButton} 
-              onPress={handleShare}
-              activeOpacity={0.7}
-            >
-              <IconSymbol name="paperplane" size={26} color={colors.text} />
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.postActionButtonRight} 
               onPress={toggleSave}
               activeOpacity={0.7}
             >
               <IconSymbol
                 name={post.saved ? 'bookmark.fill' : 'bookmark'}
-                size={26}
+                size={28}
                 color={post.saved ? colors.primary : colors.text}
               />
             </TouchableOpacity>
           </View>
 
-          <View style={styles.postLikes}>
-            <Text style={styles.postLikesText}>{post.likes || 0} me gusta</Text>
-          </View>
+          {/* Likes count */}
+          {post.likes > 0 && (
+            <View style={styles.postLikes}>
+              <Text style={styles.postLikesText}>
+                <Text style={styles.postLikesBold}>{post.likes}</Text> Me gusta
+              </Text>
+            </View>
+          )}
 
+          {/* Caption */}
           {post.contenido && (
             <View style={styles.postDescripcion}>
               <Text style={styles.postDescripcionText}>
-                <Text style={{ fontWeight: '600' }}>{post.autorNombre}</Text>{' '}
+                <Text style={styles.postAutorBold}>{post.autorNombre}</Text>{' '}
                 <ParsedText text={post.contenido} style={styles.postDescripcionText} />
               </Text>
             </View>
           )}
+
+          {/* View comments link */}
+          {totalCommentCount > 0 && (
+            <TouchableOpacity 
+              style={styles.viewCommentsButton}
+              onPress={handleCommentPress}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.viewCommentsText}>
+                Ver {totalCommentCount === 1 ? 'el comentario' : `los ${totalCommentCount} comentarios`}
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Time ago */}
+          <View style={styles.postTimeContainer}>
+            <Text style={styles.postTimeText}>{formatearFecha(post.created_at)}</Text>
+          </View>
         </View>
 
+        {/* Comments section */}
         <View style={styles.comentariosSection}>
           {totalCommentCount > 0 && (
             <View style={styles.comentariosSectionHeader}>
