@@ -300,7 +300,7 @@ export default function DetalleLocalScreen() {
   const [loadingEventos, setLoadingEventos] = useState(false);
   const [expandedDescription, setExpandedDescription] = useState(false);
   
-  // ✅ NEW: Favorite state
+  // ✅ Favorite state
   const [isFavorite, setIsFavorite] = useState(false);
   const [loadingFavorite, setLoadingFavorite] = useState(false);
 
@@ -412,9 +412,12 @@ export default function DetalleLocalScreen() {
     }
   }, [params.id]);
 
-  // ✅ NEW: Check if local is favorite
+  // ✅ Check if local is favorite
   const checkIfFavorite = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setIsFavorite(false);
+      return;
+    }
     
     try {
       const { data, error } = await supabase
@@ -422,12 +425,17 @@ export default function DetalleLocalScreen() {
         .select('id')
         .eq('usuario_id', user.id)
         .eq('local_id', params.id)
-        .single();
+        .maybeSingle();
 
-      if (data) {
-        setIsFavorite(true);
+      if (error) {
+        console.error('[DetalleLocal] Error checking favorite:', error);
+        setIsFavorite(false);
+        return;
       }
+
+      setIsFavorite(!!data);
     } catch (error) {
+      console.error('[DetalleLocal] Error checking favorite:', error);
       setIsFavorite(false);
     }
   }, [user, params.id]);
@@ -483,7 +491,7 @@ export default function DetalleLocalScreen() {
     }
   }, [params.id, cargarLocal]);
 
-  // ✅ NEW: Toggle favorite function (copied from TarjetaLocal.tsx)
+  // ✅ FIXED: Toggle favorite function with better error handling
   const toggleFavorito = async (e: any) => {
     e.stopPropagation();
     
@@ -501,7 +509,14 @@ export default function DetalleLocalScreen() {
           .eq('usuario_id', user.id)
           .eq('local_id', params.id);
 
-        if (error) throw error;
+        if (error) {
+          console.error('[DetalleLocal] Error removing favorite:', error);
+          Alert.alert('Error', 'No se pudo eliminar de favoritos. Por favor intenta de nuevo.');
+          setLoadingFavorite(false);
+          return;
+        }
+        
+        console.log('[DetalleLocal] ✅ Removed from favorites');
         setIsFavorite(false);
       } else {
         const { error } = await supabase
@@ -511,12 +526,29 @@ export default function DetalleLocalScreen() {
             local_id: params.id as string,
           });
 
-        if (error) throw error;
+        if (error) {
+          console.error('[DetalleLocal] Error adding favorite:', error);
+          
+          // Check if it's an RLS policy error
+          if (error.code === '42501') {
+            Alert.alert(
+              'Error de permisos',
+              'No tienes permisos para agregar favoritos. Por favor cierra sesión y vuelve a iniciar sesión.'
+            );
+          } else {
+            Alert.alert('Error', 'No se pudo agregar a favoritos. Por favor intenta de nuevo.');
+          }
+          
+          setLoadingFavorite(false);
+          return;
+        }
+        
+        console.log('[DetalleLocal] ✅ Added to favorites');
         setIsFavorite(true);
       }
     } catch (error) {
-      console.error('Error toggling favorito:', error);
-      Alert.alert('Error', 'No se pudo actualizar favoritos');
+      console.error('[DetalleLocal] Error toggling favorito:', error);
+      Alert.alert('Error', 'No se pudo actualizar favoritos. Por favor intenta de nuevo.');
     } finally {
       setLoadingFavorite(false);
     }
@@ -683,7 +715,7 @@ export default function DetalleLocalScreen() {
     });
   };
 
-  // ✅ NEW: Handle delete review
+  // ✅ Handle delete review
   const handleDeleteReview = async (reviewId: string) => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para eliminar reseñas');
@@ -729,7 +761,7 @@ export default function DetalleLocalScreen() {
     );
   };
 
-  // ✅ NEW: Handle edit review
+  // ✅ Handle edit review
   const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
   const [editReviewRating, setEditReviewRating] = useState(5);
   const [editReviewText, setEditReviewText] = useState('');
@@ -1027,7 +1059,7 @@ export default function DetalleLocalScreen() {
             </BlurView>
           </TouchableOpacity>
           
-          {/* ✅ NEW: Favorite button (copied from TarjetaLocal.tsx) */}
+          {/* ✅ Favorite button */}
           <TouchableOpacity
             style={styles.favoritoButton}
             onPress={toggleFavorito}
@@ -1037,7 +1069,7 @@ export default function DetalleLocalScreen() {
               ios_icon_name={isFavorite ? "heart.fill" : "heart"}
               android_material_icon_name={isFavorite ? "favorite" : "favorite_border"}
               size={20}
-              color={isFavorite ? "#EF4444" : colors.headerText}
+              color={isFavorite ? "#EF4444" : "#FFFFFF"}
             />
           </TouchableOpacity>
         </View>
@@ -1079,7 +1111,7 @@ export default function DetalleLocalScreen() {
         </View>
       )}
 
-      {/* Local Name Section - ONLY BELOW GALLERY */}
+      {/* ✅ FIXED: Local Name Section - ONLY HERE, NOT DUPLICATED */}
       <View style={styles.localNameSection}>
         <Text style={styles.localNameText}>{local.nombre}</Text>
       </View>
@@ -1243,7 +1275,7 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* Schedule - FIXED FORMATTING */}
+        {/* ✅ FIXED: Schedule - Correct formatting with multiple time ranges */}
         {local.horarios_completos && Object.keys(local.horarios_completos).length > 0 && (
           <View style={styles.compactSection}>
             <View style={styles.compactSectionHeader}>
@@ -1423,7 +1455,7 @@ export default function DetalleLocalScreen() {
                 const { summary, needsExpansion } = summarizeText(reviewText);
                 const displayText = isExpanded ? reviewText : summary;
                 
-                // ✅ NEW: Check if user owns this review
+                // ✅ Check if user owns this review
                 const isOwner = user && !review.isGoogle && review.usuario_id === user.id;
                 
                 return (
@@ -1441,7 +1473,7 @@ export default function DetalleLocalScreen() {
                           <Text style={styles.reviewRatingText}>{review.rating}</Text>
                         </View>
                       </View>
-                      {/* ✅ NEW: Show edit/delete buttons for owner */}
+                      {/* ✅ Show edit/delete buttons for owner */}
                       {isOwner && (
                         <View style={styles.reviewActions}>
                           <TouchableOpacity
@@ -1576,7 +1608,7 @@ export default function DetalleLocalScreen() {
         </View>
       </Modal>
 
-      {/* ✅ NEW: Edit Review Modal */}
+      {/* ✅ Edit Review Modal */}
       <Modal
         visible={showEditReviewModal}
         transparent={true}
@@ -1803,7 +1835,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  // ✅ NEW: Favorite button styles (copied from TarjetaLocal.tsx)
+  // ✅ Favorite button styles
   favoritoButton: {
     position: 'absolute',
     bottom: 12,
@@ -2210,7 +2242,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: colors.text,
   },
-  // ✅ NEW: Review action buttons styles
+  // ✅ Review action buttons styles
   reviewActions: {
     flexDirection: 'row',
     alignItems: 'center',
