@@ -297,6 +297,10 @@ export default function DetalleLocalScreen() {
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [loadingEventos, setLoadingEventos] = useState(false);
   const [expandedDescription, setExpandedDescription] = useState(false);
+  
+  // ✅ NEW: Favorite state
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [loadingFavorite, setLoadingFavorite] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -406,6 +410,26 @@ export default function DetalleLocalScreen() {
     }
   }, [params.id]);
 
+  // ✅ NEW: Check if local is favorite
+  const checkIfFavorite = useCallback(async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('locales_guardados')
+        .select('id')
+        .eq('usuario_id', user.id)
+        .eq('local_id', params.id)
+        .single();
+
+      if (data) {
+        setIsFavorite(true);
+      }
+    } catch (error) {
+      setIsFavorite(false);
+    }
+  }, [user, params.id]);
+
   const cargarLocal = useCallback(async () => {
     try {
       const timestamp = Date.now();
@@ -444,17 +468,57 @@ export default function DetalleLocalScreen() {
       setLoading(false);
       cargarReviewsBarlive();
       cargarEventos();
+      checkIfFavorite();
     } catch (error) {
       console.error('[DetalleLocal] Error:', error);
       setLoading(false);
     }
-  }, [params.id, cargarReviewsBarlive, cargarEventos]);
+  }, [params.id, cargarReviewsBarlive, cargarEventos, checkIfFavorite]);
 
   useEffect(() => {
     if (params.id) {
       cargarLocal();
     }
   }, [params.id, cargarLocal]);
+
+  // ✅ NEW: Toggle favorite function (copied from TarjetaLocal.tsx)
+  const toggleFavorito = async (e: any) => {
+    e.stopPropagation();
+    
+    if (!user) {
+      Alert.alert('Inicia sesión', 'Debes iniciar sesión para agregar favoritos');
+      return;
+    }
+
+    setLoadingFavorite(true);
+    try {
+      if (isFavorite) {
+        const { error } = await supabase
+          .from('locales_guardados')
+          .delete()
+          .eq('usuario_id', user.id)
+          .eq('local_id', params.id);
+
+        if (error) throw error;
+        setIsFavorite(false);
+      } else {
+        const { error } = await supabase
+          .from('locales_guardados')
+          .insert({
+            usuario_id: user.id,
+            local_id: params.id as string,
+          });
+
+        if (error) throw error;
+        setIsFavorite(true);
+      }
+    } catch (error) {
+      console.error('Error toggling favorito:', error);
+      Alert.alert('Error', 'No se pudo actualizar favoritos');
+    } finally {
+      setLoadingFavorite(false);
+    }
+  };
 
   const handleCall = () => {
     if (local?.telefono) {
@@ -840,6 +904,20 @@ export default function DetalleLocalScreen() {
             <BlurView intensity={80} tint="dark" style={styles.buttonBlur}>
               <IconSymbol ios_icon_name="square.and.arrow.up" android_material_icon_name="share" size={22} color="#fff" />
             </BlurView>
+          </TouchableOpacity>
+          
+          {/* ✅ NEW: Favorite button (copied from TarjetaLocal.tsx) */}
+          <TouchableOpacity
+            style={styles.favoritoButton}
+            onPress={toggleFavorito}
+            disabled={loadingFavorite}
+          >
+            <IconSymbol
+              ios_icon_name={isFavorite ? "heart.fill" : "heart"}
+              android_material_icon_name={isFavorite ? "favorite" : "favorite_border"}
+              size={20}
+              color={isFavorite ? "#EF4444" : colors.headerText}
+            />
           </TouchableOpacity>
         </View>
       )}
@@ -1502,6 +1580,19 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  // ✅ NEW: Favorite button styles (copied from TarjetaLocal.tsx)
+  favoritoButton: {
+    position: 'absolute',
+    bottom: 12,
+    right: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
   },
   gallerySection: {
     backgroundColor: colors.background,
