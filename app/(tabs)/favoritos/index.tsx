@@ -11,6 +11,7 @@ import {
   TextInput,
   Image,
   Alert,
+  Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -21,6 +22,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 import { getEstadoLocal } from '@/utils/timeUtils';
 import { getCategoryIcon } from '@/utils/categoryIcons';
+import * as Location from 'expo-location';
+import { calcularDistancia } from '@/utils/locationUtils';
 
 const ITEMS_PER_PAGE = 20;
 
@@ -37,6 +40,28 @@ export default function FavoritosScreen() {
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [checkingSocialProfiles, setCheckingSocialProfiles] = useState<Set<string>>(new Set());
+  const [socialProfiles, setSocialProfiles] = useState<Map<string, boolean>>(new Map());
+
+  // Get user location
+  useEffect(() => {
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const location = await Location.getCurrentPositionAsync({});
+          setUserLocation({
+            lat: location.coords.latitude,
+            lng: location.coords.longitude,
+          });
+          console.log('[Favoritos] User location obtained:', location.coords);
+        }
+      } catch (error) {
+        console.error('[Favoritos] Error getting location:', error);
+      }
+    })();
+  }, []);
 
   const loadSavedLocales = useCallback(async () => {
     if (!user) {
@@ -66,7 +91,9 @@ export default function FavoritosScreen() {
             horarios_completos,
             estado_actual,
             destacado,
-            nuevo
+            nuevo,
+            google_rating,
+            valoracion_google
           )
         `)
         .eq('usuario_id', user.id)
@@ -79,6 +106,18 @@ export default function FavoritosScreen() {
           .filter(sl => sl.locales)
           .map((sl: any) => {
             const local = sl.locales;
+            
+            // ✅ Calculate real distance from user location
+            let distancia = null;
+            if (userLocation && local.latitud && local.longitud) {
+              distancia = calcularDistancia(
+                userLocation.lat,
+                userLocation.lng,
+                parseFloat(local.latitud),
+                parseFloat(local.longitud)
+              );
+            }
+            
             return {
               ...local,
               coordenadas: {
@@ -86,6 +125,7 @@ export default function FavoritosScreen() {
                 lng: parseFloat(local.longitud),
               },
               imagenes: local.galeria_urls || (local.imagen_url ? [local.imagen_url] : []),
+              distancia: distancia, // ✅ FIXED: Now includes real calculated distance
             };
           });
         
@@ -99,13 +139,42 @@ export default function FavoritosScreen() {
         setHasMore(formattedLocales.length > ITEMS_PER_PAGE);
         
         console.log('[Favoritos] Locales guardados cargados:', formattedLocales.length);
+        
+        // Check social profiles for all locales
+        checkSocialProfilesForLocales(formattedLocales.map(l => l.id));
       }
     } catch (error) {
       console.error('[Favoritos] Error cargando locales guardados:', error);
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, userLocation]);
+
+  // Check social profiles for multiple locales
+  const checkSocialProfilesForLocales = async (localIds: string[]) => {
+    if (localIds.length === 0) return;
+
+    try {
+      const { data: posts, error: postsError } = await supabase
+        .from('posts')
+        .select('local_id')
+        .eq('tipo', 'local')
+        .in('local_id', localIds);
+
+      if (postsError) throw postsError;
+
+      const newSocialProfiles = new Map(socialProfiles);
+      const localsWithPosts = new Set(posts?.map(p => p.local_id) || []);
+      
+      localIds.forEach(localId => {
+        newSocialProfiles.set(localId, localsWithPosts.has(localId));
+      });
+      
+      setSocialProfiles(newSocialProfiles);
+    } catch (error) {
+      console.error('[Favoritos] Error checking social profiles:', error);
+    }
+  };
 
   useEffect(() => {
     loadSavedLocales();
@@ -134,6 +203,31 @@ export default function FavoritosScreen() {
       };
     }
   }, [user, loadSavedLocales]);
+
+  // Recalculate distances when user location changes
+  useEffect(() => {
+    if (userLocation && allSavedLocales.length > 0) {
+      console.log('[Favoritos] Recalculating distances with new user location');
+      const updatedLocales = allSavedLocales.map(local => {
+        const distancia = calcularDistancia(
+          userLocation.lat,
+          userLocation.lng,
+          local.coordenadas.lat,
+          local.coordenadas.lng
+        );
+        return {
+          ...local,
+          distancia: distancia,
+        };
+      });
+      setAllSavedLocales(updatedLocales);
+      setFilteredLocales(updatedLocales);
+      
+      // Update displayed locales
+      const firstPage = updatedLocales.slice(0, currentPage * ITEMS_PER_PAGE);
+      setDisplayedLocales(firstPage);
+    }
+  }, [userLocation]);
 
   // Predictive search filter
   useEffect(() => {
@@ -243,10 +337,25 @@ export default function FavoritosScreen() {
     }
   };
 
+  // ✅ NEW: Handle "Como llegar" button
+  const handleComoLlegar = (local: any, e: any) => {
+    e.stopPropagation();
+    const { lat, lng } = local.coordenadas;
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+    Linking.openURL(url);
+  };
+
+  // ✅ NEW: Handle "Perfil Social" button
+  const handlePerfilSocial = (localId: string, e: any) => {
+    e.stopPropagation();
+    router.push(`/perfil/local?localId=${localId}`);
+  };
+
   const renderLocalCard = ({ item }: { item: any }) => {
     const estado = getEstadoLocal(item);
     const imagenPrincipal = item.imagenes?.[0] || item.imagen_url;
     const isDestacado = item.destacado;
+    const hasSocialProfile = socialProfiles.get(item.id) || false;
 
     const getBadgeColor = () => {
       if (estado.badge === 'Abierto ahora' || estado.badge === 'Abierto 24h') {
@@ -425,6 +534,44 @@ export default function FavoritosScreen() {
               ))}
             </View>
           )}
+
+          {/* ✅ NEW: Action buttons (same as TarjetaLocal) */}
+          <View style={styles.actionButtonsContainer}>
+            {hasSocialProfile && (
+              <TouchableOpacity 
+                style={styles.perfilSocialButton} 
+                onPress={(e) => handlePerfilSocial(item.id, e)}
+              >
+                <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={16} color={colors.headerText} />
+                <Text style={styles.perfilSocialText} numberOfLines={1}>Perfil Social</Text>
+              </TouchableOpacity>
+            )}
+            
+            <TouchableOpacity 
+              style={[
+                styles.comoLlegarButton,
+                !hasSocialProfile && styles.comoLlegarButtonFull
+              ]} 
+              onPress={(e) => handleComoLlegar(item, e)}
+            >
+              <View style={styles.comoLlegarContent}>
+                <View style={styles.comoLlegarLeft}>
+                  <IconSymbol ios_icon_name="arrow.triangle.turn.up.right.diamond.fill" android_material_icon_name="directions" size={16} color={colors.headerText} />
+                  <Text style={styles.comoLlegarText} numberOfLines={1}>Cómo llegar</Text>
+                </View>
+                
+                {/* ✅ NEW: Display real calculated distance */}
+                {item.distancia !== null && item.distancia !== undefined && (
+                  <View style={styles.distanciaInButton}>
+                    <IconSymbol ios_icon_name="location.fill" android_material_icon_name="location_on" size={14} color={colors.headerText} />
+                    <Text style={styles.distanciaInButtonText} numberOfLines={1}>
+                      {item.distancia.toFixed(1)} km
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </TouchableOpacity>
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -922,6 +1069,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
+    marginBottom: 12,
   },
   categoriaBadge: {
     flexDirection: 'row',
@@ -942,5 +1090,69 @@ const styles = StyleSheet.create({
     color: colors.primary,
     textTransform: 'capitalize',
     flexShrink: 1,
+  },
+  // ✅ NEW: Action buttons styles (same as TarjetaLocal)
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  perfilSocialButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.secondary + '99',
+    paddingHorizontal: 10,
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 6,
+    minWidth: 0,
+  },
+  perfilSocialText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.headerText,
+    flexShrink: 1,
+  },
+  comoLlegarButton: {
+    flex: 1,
+    backgroundColor: colors.primary + '99',
+    paddingHorizontal: 10,
+    paddingVertical: 12,
+    borderRadius: 8,
+    minWidth: 0,
+  },
+  comoLlegarButtonFull: {
+    flex: 1,
+  },
+  comoLlegarContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+  },
+  comoLlegarLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  comoLlegarText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.headerText,
+    flexShrink: 1,
+  },
+  distanciaInButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    flexShrink: 0,
+  },
+  distanciaInButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.headerText,
   },
 });

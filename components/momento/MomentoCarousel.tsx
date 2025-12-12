@@ -378,7 +378,7 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
     );
   };
 
-  // Combined "Tu Momento" avatar - shows momento if exists, otherwise shows add button
+  // ✅ FIXED: "Tu Momento" avatar ALWAYS shows the + icon for adding more momentos
   const renderTuMomento = () => {
     // Get current user/local avatar
     const currentAvatar = activeProfileType === 'local' 
@@ -386,6 +386,7 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
       : user?.avatar;
 
     // If user has a momento, show it with the momento viewer functionality
+    // BUT ALSO show the + icon so they can add more momentos
     if (userMomento) {
       return (
         <TouchableOpacity
@@ -425,6 +426,29 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
                       />
                     </View>
                   )}
+                  {/* ✅ CRITICAL FIX: Plus icon ALWAYS visible to add more momentos */}
+                  <TouchableOpacity 
+                    style={styles.addIconContainer}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      onUploadMomento();
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <LinearGradient
+                      colors={[colors.primary, colors.secondary]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.addIconGradient}
+                    >
+                      <IconSymbol
+                        ios_icon_name="plus"
+                        android_material_icon_name="add"
+                        size={18}
+                        color="#fff"
+                      />
+                    </LinearGradient>
+                  </TouchableOpacity>
                 </View>
               </LinearGradient>
             ) : (
@@ -456,6 +480,29 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
                       />
                     </View>
                   )}
+                  {/* ✅ CRITICAL FIX: Plus icon ALWAYS visible to add more momentos */}
+                  <TouchableOpacity 
+                    style={styles.addIconContainer}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      onUploadMomento();
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <LinearGradient
+                      colors={[colors.primary, colors.secondary]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.addIconGradient}
+                    >
+                      <IconSymbol
+                        ios_icon_name="plus"
+                        android_material_icon_name="add"
+                        size={18}
+                        color="#fff"
+                      />
+                    </LinearGradient>
+                  </TouchableOpacity>
                 </View>
               </View>
             )}

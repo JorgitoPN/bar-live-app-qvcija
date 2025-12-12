@@ -26,6 +26,7 @@ import { performanceOptimizer } from '@/utils/performanceOptimizer';
 import { trackMapInteraction } from '@/utils/activityTracker';
 import { useAuth } from '@/contexts/AuthContext';
 import { addPubCategoryIfNeeded, shouldHavePubCategory, getPrimaryIconForVenue } from '@/utils/categorizeLocal';
+import { calcularDistancia } from '@/utils/locationUtils';
 
 const { width, height } = Dimensions.get('window');
 
@@ -430,6 +431,17 @@ export default function MapaScreen() {
         isEventLive = now >= eventStartDate && now <= eventEndDate;
       }
       
+      // ✅ CRITICAL FIX: Calculate REAL distance from user location
+      let distancia = 0.5; // Default fallback
+      if (userLocation) {
+        distancia = calcularDistancia(
+          userLocation.lat,
+          userLocation.lng,
+          local.coordenadas.lat,
+          local.coordenadas.lng
+        );
+      }
+      
       return {
         id: local.id,
         lat: local.coordenadas.lat,
@@ -443,7 +455,7 @@ export default function MapaScreen() {
         overlayIcon: overlayIcon,
         rating: local.valoracion_google || local.rating,
         imagen: local.imagen_url || local.imagenes?.[0] || 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400',
-        distancia: local.distancia || 0.5,
+        distancia: distancia, // ✅ FIXED: Now using real calculated distance
         destacado: local.destacado || false,
         hasEvent: !!local.evento,
         isEventLive: isEventLive,
@@ -457,6 +469,7 @@ export default function MapaScreen() {
     console.log(`[MAP] 🗺️ GENERATING MAP HTML`);
     console.log(`[MAP] 🗺️ Total markers to display: ${markersData.length}`);
     console.log(`[MAP] 🗺️ Center: ${centerLat}, ${centerLng}`);
+    console.log(`[MAP] 🗺️ User location: ${userLocation ? 'Available' : 'Not available'}`);
     console.log(`[MAP] 🗺️ ========================================`);
 
     return `
@@ -806,6 +819,7 @@ export default function MapaScreen() {
         console.log('     - Lat/Lng: ' + data.lat + ', ' + data.lng);
         console.log('     - Categories: ' + JSON.stringify(data.categorias));
         console.log('     - Icon: ' + data.icon);
+        console.log('     - Distance: ' + data.distancia.toFixed(1) + ' km');
       });
       console.log('[MAP HTML] ========================================');
       
@@ -993,7 +1007,7 @@ export default function MapaScreen() {
       <View style={styles.mapContainer}>
         {Platform.OS === 'web' ? (
           <View style={styles.webNotSupported}>
-            <IconSymbol name="map" size={64} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="map" android_material_icon_name="map" size={64} color={colors.textSecondary} />
             <Text style={styles.webNotSupportedText}>
               Los mapas no están disponibles en la versión web de Natively.
             </Text>
@@ -1041,7 +1055,8 @@ export default function MapaScreen() {
                   categoriaSeleccionada === categoria.id && styles.categoriaIconContainerActive
                 ]}>
                   <IconSymbol 
-                    name={categoria.icon as any} 
+                    ios_icon_name={categoria.icon as any}
+                    android_material_icon_name={categoria.icon as any}
                     size={28} 
                     color={colors.primary}
                   />
@@ -1063,14 +1078,14 @@ export default function MapaScreen() {
           style={styles.controlButton}
           onPress={() => router.back()}
         >
-          <IconSymbol name="chevron.left" size={24} color={colors.text} />
+          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="chevron_left" size={24} color={colors.text} />
         </TouchableOpacity>
 
         <TouchableOpacity 
           style={styles.controlButton}
           onPress={() => setMostrarFiltros(true)}
         >
-          <IconSymbol name="line.3.horizontal.decrease.circle.fill" size={24} color={colors.primary} />
+          <IconSymbol ios_icon_name="line.3.horizontal.decrease.circle.fill" android_material_icon_name="filter_list" size={24} color={colors.primary} />
         </TouchableOpacity>
       </View>
 
@@ -1126,7 +1141,7 @@ export default function MapaScreen() {
         style={styles.centerButton}
         onPress={centerOnUser}
       >
-        <IconSymbol name="location.fill" size={24} color={colors.primary} />
+        <IconSymbol ios_icon_name="location.fill" android_material_icon_name="my_location" size={24} color={colors.primary} />
       </TouchableOpacity>
 
       {isLoading && (
