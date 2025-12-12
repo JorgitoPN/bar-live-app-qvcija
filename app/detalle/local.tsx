@@ -495,7 +495,7 @@ export default function DetalleLocalScreen() {
     }
   }, [params.id, cargarLocal]);
 
-  // ✅ FIXED: Toggle favorite function with improved error handling and session refresh
+  // ✅ FIXED: Toggle favorite function with comprehensive session handling
   const toggleFavorito = async (e: any) => {
     e.stopPropagation();
     
@@ -511,12 +511,23 @@ export default function DetalleLocalScreen() {
     setIsFavorite(!isFavorite);
     
     try {
-      // ✅ FIXED: Refresh session to ensure auth.uid() is available
-      console.log('[DetalleLocal] 🔄 Refreshing session before toggle...');
-      const { data: { session }, error: sessionError } = await supabase.auth.refreshSession();
+      // ✅ FIXED: Get current session and verify it's valid
+      console.log('[DetalleLocal] 🔄 Checking current session...');
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      if (sessionError || !session) {
+      if (sessionError) {
         console.error('[DetalleLocal] Session error:', sessionError);
+        setIsFavorite(previousState);
+        Alert.alert(
+          'Error de sesión',
+          'Hubo un problema con tu sesión. Por favor cierra sesión y vuelve a iniciar sesión.'
+        );
+        setLoadingFavorite(false);
+        return;
+      }
+
+      if (!session) {
+        console.error('[DetalleLocal] No active session found');
         setIsFavorite(previousState);
         Alert.alert(
           'Sesión expirada',
@@ -526,11 +537,25 @@ export default function DetalleLocalScreen() {
         return;
       }
 
-      console.log('[DetalleLocal] ✅ Session refreshed successfully');
+      console.log('[DetalleLocal] ✅ Session is valid. User ID:', session.user.id);
+
+      // ✅ Verify user ID matches
+      if (session.user.id !== user.id) {
+        console.error('[DetalleLocal] User ID mismatch:', session.user.id, 'vs', user.id);
+        setIsFavorite(previousState);
+        Alert.alert(
+          'Error de autenticación',
+          'Hay un problema con tu cuenta. Por favor cierra sesión y vuelve a iniciar sesión.'
+        );
+        setLoadingFavorite(false);
+        return;
+      }
+
       console.log('[DetalleLocal] 🔄 Toggling favorite. Current state:', previousState, '-> New state:', !previousState);
 
       if (previousState) {
         // Remove from favorites
+        console.log('[DetalleLocal] Removing from favorites...');
         const { error } = await supabase
           .from('locales_guardados')
           .delete()
@@ -540,7 +565,22 @@ export default function DetalleLocalScreen() {
         if (error) {
           console.error('[DetalleLocal] Error removing favorite:', error);
           setIsFavorite(previousState);
-          Alert.alert('Error', 'No se pudo eliminar de favoritos. Por favor intenta de nuevo.');
+          
+          // Provide specific error messages
+          if (error.code === '42501') {
+            Alert.alert(
+              'Error de permisos',
+              'No tienes permisos para eliminar favoritos. Por favor cierra sesión y vuelve a iniciar sesión.'
+            );
+          } else if (error.message.includes('session')) {
+            Alert.alert(
+              'Sesión expirada',
+              'Tu sesión ha expirado. Por favor cierra sesión y vuelve a iniciar sesión.'
+            );
+          } else {
+            Alert.alert('Error', 'No se pudo eliminar de favoritos. Por favor intenta de nuevo.');
+          }
+          
           setLoadingFavorite(false);
           return;
         }
@@ -548,6 +588,7 @@ export default function DetalleLocalScreen() {
         console.log('[DetalleLocal] ✅ Removed from favorites');
       } else {
         // Add to favorites - use maybeSingle to check if already exists
+        console.log('[DetalleLocal] Checking if already in favorites...');
         const { data: existing } = await supabase
           .from('locales_guardados')
           .select('id')
@@ -562,6 +603,7 @@ export default function DetalleLocalScreen() {
           return;
         }
 
+        console.log('[DetalleLocal] Adding to favorites...');
         const { error } = await supabase
           .from('locales_guardados')
           .insert({
@@ -573,12 +615,21 @@ export default function DetalleLocalScreen() {
           console.error('[DetalleLocal] Error adding favorite:', error);
           setIsFavorite(previousState);
           
-          // Check if it's an RLS policy error
+          // Provide specific error messages
           if (error.code === '42501') {
             Alert.alert(
               'Error de permisos',
               'No tienes permisos para agregar favoritos. Por favor cierra sesión y vuelve a iniciar sesión.'
             );
+          } else if (error.message.includes('session')) {
+            Alert.alert(
+              'Sesión expirada',
+              'Tu sesión ha expirado. Por favor cierra sesión y vuelve a iniciar sesión.'
+            );
+          } else if (error.code === '23505') {
+            // Duplicate key error - already exists
+            console.log('[DetalleLocal] Already in favorites (duplicate key)');
+            setIsFavorite(true);
           } else {
             Alert.alert('Error', 'No se pudo agregar a favoritos. Por favor intenta de nuevo.');
           }
@@ -589,10 +640,19 @@ export default function DetalleLocalScreen() {
         
         console.log('[DetalleLocal] ✅ Added to favorites');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('[DetalleLocal] Error toggling favorito:', error);
       setIsFavorite(previousState);
-      Alert.alert('Error', 'No se pudo actualizar favoritos. Por favor intenta de nuevo.');
+      
+      // Check for specific error types
+      if (error.message && error.message.includes('session')) {
+        Alert.alert(
+          'Sesión expirada',
+          'Tu sesión ha expirado. Por favor cierra sesión y vuelve a iniciar sesión.'
+        );
+      } else {
+        Alert.alert('Error', 'No se pudo actualizar favoritos. Por favor intenta de nuevo.');
+      }
     } finally {
       setLoadingFavorite(false);
     }
