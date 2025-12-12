@@ -28,8 +28,8 @@ export default function MiniAvatarWithMomento({
   const [hasUnviewedMomentos, setHasUnviewedMomentos] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Use a fixed border width of 2px to match social feed momentos (thinner border)
-  const BORDER_WIDTH = 2;
+  // Use a fixed border width of 3px for mini avatars (thicker and brighter)
+  const BORDER_WIDTH = 3;
   const innerSize = size - BORDER_WIDTH * 2;
 
   const checkUnviewedMomentos = useCallback(async () => {
@@ -209,7 +209,7 @@ export default function MiniAvatarWithMomento({
     >
       {hasUnviewedMomentos && !loading ? (
         <LinearGradient
-          colors={['#00FF88', '#00CC6A', '#00FF88']}
+          colors={['#00FF88', '#00FF88', '#00FF88']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[

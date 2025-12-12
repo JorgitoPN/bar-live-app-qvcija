@@ -18,7 +18,7 @@ import { useMode } from '@/contexts/ModeContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const AVATAR_SIZE = 84;
-const BORDER_WIDTH = 3;
+const BORDER_WIDTH = 4; // Increased from 3 to 4 for thicker border
 
 interface MomentoAuthor {
   id: string;
@@ -267,7 +267,7 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
         <View style={styles.avatarBorderContainer}>
           {author.hasUnviewed ? (
             <LinearGradient
-              colors={['#00FF88', '#00CC6A', '#00FF88']}
+              colors={['#00FF88', '#00FF88', '#00FF88']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={[
@@ -357,7 +357,7 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
           <View style={styles.avatarBorderContainer}>
             {userMomento.hasUnviewed ? (
               <LinearGradient
-                colors={['#00FF88', '#00CC6A', '#00FF88']}
+                colors={['#00FF88', '#00FF88', '#00FF88']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={[

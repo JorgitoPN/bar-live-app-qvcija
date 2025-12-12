@@ -30,7 +30,7 @@ import MomentoViewer from '@/components/momento/MomentoViewer';
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
 const AVATAR_SIZE = 88;
-const BORDER_WIDTH = 3;
+const BORDER_WIDTH = 4; // Increased from 3 to 4 for thicker border
 
 interface Post {
   id: string;
@@ -682,7 +682,7 @@ export default function PerfilScreen() {
           >
             {hasUnviewedMomentos ? (
               <LinearGradient
-                colors={['#00FF88', '#00CC6A', '#00FF88']}
+                colors={['#00FF88', '#00FF88', '#00FF88']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={[
