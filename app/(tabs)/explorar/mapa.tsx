@@ -89,19 +89,15 @@ export default function MapaScreen() {
       console.log('🔄 [MAP] ========================================');
       console.log('🔄 [MAP] Loading ALL active locals with location data...');
 
-      // Try cache first for INSTANT loading
       const cachedLocales = await performanceOptimizer.getCache<LocalWithEvent[]>('map_all_locales_with_events');
       if (cachedLocales && cachedLocales.length > 0) {
         console.log('⚡ [MAP] INSTANT load from cache:', cachedLocales.length);
         setTodosLosLocales(cachedLocales);
         setIsLoading(false);
-        // Continue loading in background to update cache
       } else {
         setIsLoading(true);
       }
 
-      // ✅ CRITICAL FIX: Load ALL active locals with location data
-      // This query matches EXACTLY what the list view uses
       const { data, error, count } = await supabase
         .from('locales')
         .select(`
@@ -126,20 +122,6 @@ export default function MapaScreen() {
 
       console.log(`✅ [MAP] Loaded ${data?.length || 0} active locals with location data from DB (total count: ${count})`);
 
-      // ✅ ENHANCED DEBUGGING: Log ALL locals loaded
-      console.log('📋 [MAP] ========================================');
-      console.log('📋 [MAP] ALL LOCALS LOADED FROM DATABASE:');
-      data?.forEach((local, index) => {
-        console.log(`  ${index + 1}. ${local.nombre}`);
-        console.log(`     - ID: ${local.id}`);
-        console.log(`     - Activo: ${local.activo}`);
-        console.log(`     - Lat/Lng: ${local.latitud}, ${local.longitud}`);
-        console.log(`     - barlive_types: ${JSON.stringify(local.barlive_types)}`);
-        console.log(`     - barlive_type: ${local.barlive_type}`);
-      });
-      console.log('📋 [MAP] ========================================');
-
-      // ✅ Fetch active events for all locals
       const now = new Date();
       const currentDate = now.toISOString().split('T')[0];
       
@@ -153,12 +135,10 @@ export default function MapaScreen() {
 
       console.log(`✅ [MAP] Loaded ${allEvents?.length || 0} active events`);
 
-      // Create a map of local_id to active event
       const eventsByLocal = new Map<string, any>();
       if (allEvents) {
         for (const event of allEvents) {
           if (!eventsByLocal.has(event.local_id)) {
-            // Check if event is live or upcoming
             const eventStartDate = new Date(`${event.fecha}T${event.hora}`);
             let eventEndDate: Date;
             if (event.fecha_fin && event.hora_fin) {
@@ -167,7 +147,6 @@ export default function MapaScreen() {
               eventEndDate = new Date(eventStartDate.getTime() + 4 * 60 * 60 * 1000);
             }
 
-            // Only include live or upcoming events
             if (now <= eventEndDate) {
               eventsByLocal.set(event.local_id, event);
             }
@@ -176,11 +155,8 @@ export default function MapaScreen() {
       }
 
       const localesTransformados: LocalWithEvent[] = (data || []).map((local) => {
-        // Get subscription plan
         const suscripcion = local.suscripciones_locales?.[0];
         const plan = suscripcion?.estado === 'activa' ? suscripcion.planes_suscripcion?.nombre : null;
-
-        // Get active event
         const evento = eventsByLocal.get(local.id) || null;
 
         return {
@@ -235,7 +211,6 @@ export default function MapaScreen() {
           enriquecido: local.enriquecido,
           barlive_type: local.barlive_type,
           barlive_types: local.barlive_types || [],
-          // Add event and plan data
           evento: evento,
           plan: plan,
         };
@@ -243,7 +218,6 @@ export default function MapaScreen() {
 
       setTodosLosLocales(localesTransformados);
       
-      // Cache for next time (5 minutes TTL)
       await performanceOptimizer.setCache('map_all_locales_with_events', localesTransformados, 5 * 60 * 1000);
       
       console.log(`✅ [MAP] Successfully loaded and cached ${localesTransformados.length} locals`);
@@ -260,10 +234,6 @@ export default function MapaScreen() {
   }, [cargarTodosLosLocalesEnriquecidos]);
 
   useEffect(() => {
-    // ✅ CRITICAL FIX: Removed CATEGORIAS_EXCLUIDAS to allow all venues to be shown
-    // Previously, venues with "lounge", "terrazas", or "rooftops" were excluded
-    // Now we show ALL venues and let the category filter handle the display
-    
     console.log('[MAP] 🔍 ========================================');
     console.log('[MAP] 🔍 FILTERING LOCALS FOR MAP DISPLAY');
     console.log('[MAP] 🔍 Selected category:', categoriaSeleccionada);
@@ -271,24 +241,18 @@ export default function MapaScreen() {
     console.log('[MAP] 📊 Total locals to filter:', todosLosLocales.length);
     
     const filtrados = todosLosLocales.filter(local => {
-      // ✅ Get all categories for this local AND add PUB dynamically
       let localCategories = local.barlive_types || (local.barlive_type ? [local.barlive_type] : []);
-      
-      // ✅ CRITICAL FIX: Add PUB category dynamically based on closing time
       localCategories = addPubCategoryIfNeeded(localCategories, local.horarios_completos);
       
-      // ✅ Category filtering
       let matchCategoria = false;
       if (categoriaSeleccionada === 'todos') {
         matchCategoria = true;
       } else {
-        // Check if the selected category is in the local's categories array (case-insensitive)
         matchCategoria = localCategories.some((cat: string) => 
           cat.toLowerCase() === categoriaSeleccionada.toLowerCase()
         );
       }
       
-      // Filter by open/closed state
       let matchEstado = true;
       if (filtroEstado === 'abiertos') {
         const estado = getEstadoLocal(local);
@@ -297,7 +261,6 @@ export default function MapaScreen() {
       
       const shouldShow = matchCategoria && matchEstado;
       
-      // ✅ ENHANCED DEBUGGING: Log every local's filtering decision
       if (!shouldShow) {
         console.log(`[MAP] ❌ Filtered out "${local.nombre}"`);
         console.log(`     - Categories: ${JSON.stringify(localCategories)}`);
@@ -310,20 +273,6 @@ export default function MapaScreen() {
     });
     
     console.log(`[MAP] ✅ Filtered locals for category "${categoriaSeleccionada}": ${filtrados.length} of ${todosLosLocales.length}`);
-    
-    // ✅ ENHANCED DEBUGGING: Log ALL filtered locals
-    console.log('[MAP] 📋 ========================================');
-    console.log('[MAP] 📋 ALL FILTERED LOCALS FOR MAP DISPLAY:');
-    filtrados.forEach((local, index) => {
-      const categories = addPubCategoryIfNeeded(
-        local.barlive_types || (local.barlive_type ? [local.barlive_type] : []),
-        local.horarios_completos
-      );
-      console.log(`  ${index + 1}. ${local.nombre}`);
-      console.log(`     - Categories: ${JSON.stringify(categories)}`);
-      console.log(`     - Lat/Lng: ${local.coordenadas.lat}, ${local.coordenadas.lng}`);
-    });
-    console.log('[MAP] 📋 ========================================');
     
     setLocalesFiltrados(filtrados);
   }, [todosLosLocales, categoriaSeleccionada, filtroEstado]);
@@ -364,7 +313,6 @@ export default function MapaScreen() {
 
   const handleVerDetalles = (localId: string) => {
     console.log('[MAP] Navigating to local details:', localId);
-    // Track map interaction when user clicks on a marker
     trackMapInteraction(localId, 'click', user?.id);
     router.push(`/detalle/local?id=${localId}`);
   };
@@ -378,11 +326,9 @@ export default function MapaScreen() {
         console.log('🗺️ [MAP] Navigating to local details:', data.id);
         handleVerDetalles(data.id);
       } else if (data.type === 'popup_opened' && data.id) {
-        // Track when popup is opened
         console.log('📍 [MAP] Popup opened for local:', data.id);
         trackMapInteraction(data.id, 'view', user?.id);
       } else if (data.type === 'zoom_close' && data.id) {
-        // Track when user zooms close to a local
         console.log('🔍 [MAP] Zoomed close to local:', data.id);
         trackMapInteraction(data.id, 'zoom', user?.id);
       }
@@ -401,11 +347,9 @@ export default function MapaScreen() {
       const estado = estaAbierto === true ? 'abierto' : 
                      estaAbierto === false ? 'cerrado' : 'sin_info';
       
-      // ✅ CRITICAL FIX: Get categories with PUB added dynamically
       let localCategories = local.barlive_types || (local.barlive_type ? [local.barlive_type] : []);
       localCategories = addPubCategoryIfNeeded(localCategories, local.horarios_completos);
       
-      // ✅ NEW: Use getPrimaryIconForVenue to get the correct icon based on closing time
       const icon = getPrimaryIconForVenue(localCategories, local.horarios_completos);
       
       let overlayIcon = null;
@@ -417,7 +361,6 @@ export default function MapaScreen() {
         overlayIcon = '🕐';
       }
 
-      // Check if event is live
       let isEventLive = false;
       if (local.evento) {
         const now = new Date();
@@ -431,8 +374,7 @@ export default function MapaScreen() {
         isEventLive = now >= eventStartDate && now <= eventEndDate;
       }
       
-      // ✅ CRITICAL FIX: Calculate REAL distance from user location
-      let distancia = 0.5; // Default fallback
+      let distancia = 0.5;
       if (userLocation) {
         distancia = calcularDistancia(
           userLocation.lat,
@@ -455,7 +397,7 @@ export default function MapaScreen() {
         overlayIcon: overlayIcon,
         rating: local.valoracion_google || local.rating,
         imagen: local.imagen_url || local.imagenes?.[0] || 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400',
-        distancia: distancia, // ✅ FIXED: Now using real calculated distance
+        distancia: distancia,
         destacado: local.destacado || false,
         hasEvent: !!local.evento,
         isEventLive: isEventLive,
@@ -812,27 +754,14 @@ export default function MapaScreen() {
       var markersData = ${JSON.stringify(markersData)};
       
       console.log('[MAP HTML] Markers data loaded:', markersData.length);
-      console.log('[MAP HTML] ========================================');
-      console.log('[MAP HTML] ALL MARKERS TO BE DISPLAYED:');
-      markersData.forEach(function(data, index) {
-        console.log('  ' + (index + 1) + '. ' + data.nombre);
-        console.log('     - Lat/Lng: ' + data.lat + ', ' + data.lng);
-        console.log('     - Categories: ' + JSON.stringify(data.categorias));
-        console.log('     - Icon: ' + data.icon);
-        console.log('     - Distance: ' + data.distancia.toFixed(1) + ' km');
-      });
-      console.log('[MAP HTML] ========================================');
       
-      // Track zoom events to detect when user zooms close to a local
       var lastZoom = map.getZoom();
       map.on('zoomend', function() {
         var currentZoom = map.getZoom();
-        // If zoom level is 16 or higher (close zoom), check which locals are in view
         if (currentZoom >= 16 && currentZoom > lastZoom) {
           var bounds = map.getBounds();
           markersData.forEach(function(data) {
             if (bounds.contains([data.lat, data.lng])) {
-              // Send message to React Native that user zoomed close to this local
               window.ReactNativeWebView.postMessage(JSON.stringify({
                 type: 'zoom_close',
                 id: data.id
@@ -850,7 +779,6 @@ export default function MapaScreen() {
           markerClass += ' custom-marker-destacado';
         }
         
-        // Create marker HTML with event indicator
         var markerHtml = data.icon;
         if (data.hasEvent) {
           var eventIndicatorClass = 'event-indicator';
@@ -883,7 +811,6 @@ export default function MapaScreen() {
         var destacadoBadge = data.destacado ? 
           '<div class="popup-badge-destacado">⭐ Destacado</div>' : '';
         
-        // Event banner for premium locals
         var eventBannerHtml = '';
         if (data.isPremium && data.hasEvent) {
           var eventBannerClass = 'popup-event-banner';
@@ -900,7 +827,6 @@ export default function MapaScreen() {
           '</div>';
         }
         
-        // Display categories (including PUB) in popup
         var categoriasHtml = '';
         if (data.categorias && data.categorias.length > 0) {
           categoriasHtml = '<div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">';
@@ -950,9 +876,7 @@ export default function MapaScreen() {
           offset: [0, -10]
         });
 
-        // Track when popup is opened
         marker.on('popupopen', function(e) {
-          // Send message to React Native that popup was opened
           window.ReactNativeWebView.postMessage(JSON.stringify({
             type: 'popup_opened',
             id: data.id
@@ -1058,7 +982,7 @@ export default function MapaScreen() {
                     ios_icon_name={categoria.icon as any}
                     android_material_icon_name={categoria.icon as any}
                     size={28} 
-                    color={colors.primary}
+                    color={categoriaSeleccionada === categoria.id ? '#FFFFFF' : colors.primary}
                   />
                 </View>
                 <Text style={[
@@ -1234,7 +1158,7 @@ const styles = StyleSheet.create({
   },
   categoriaIconContainerActive: {
     borderColor: colors.primary,
-    backgroundColor: '#FACC15',
+    backgroundColor: '#00FF88',
     shadowOpacity: 0.25,
   },
   categoriaLabel: {

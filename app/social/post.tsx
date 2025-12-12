@@ -524,7 +524,6 @@ export default function PostDetailScreen() {
         return;
       }
 
-      // ✅ FIXED: Check like status with local context
       let liked = false;
       if (interactionUserId) {
         let likeQuery = supabase
@@ -555,20 +554,16 @@ export default function PostDetailScreen() {
         saved = !!saveData;
       }
 
-      // ✅ CRITICAL FIX: Display username WITHOUT @ symbol
-      // For locals, use the local name directly
-      // For users, prioritize username over full name
       const displayName = data.tipo === 'local' && data.local 
         ? data.local.nombre 
         : data.autor?.username 
-          ? data.autor.username.replace(/^@/, '') // Remove @ if present
+          ? data.autor.username.replace(/^@/, '')
           : data.autor?.nombre || 'Usuario';
 
       const displayAvatar = data.tipo === 'local' && data.local 
         ? data.local.imagen_url 
         : data.autor?.avatar || '';
 
-      // Get images array - prioritize imagenes array, fallback to imagen field
       const images = data.imagenes && data.imagenes.length > 0 
         ? data.imagenes 
         : data.imagen 
@@ -590,6 +585,33 @@ export default function PostDetailScreen() {
       setLoading(false);
     }
   }, [params.id, user, interactionUserId, interactionLocalId, isInteractingAsLocal]);
+
+  // ✅ NEW: Subscribe to real-time like updates
+  useEffect(() => {
+    if (!params.id) return;
+
+    const likesChannel = supabase
+      .channel(`post-likes-${params.id}`)
+      .on(
+        'broadcast',
+        { event: 'like_update' },
+        (payload) => {
+          console.log('[PostDetail] 🔄 Real-time like update received:', payload);
+          if (payload.payload.postId === params.id && post) {
+            setPost({
+              ...post,
+              likes: payload.payload.likesCount,
+              liked: payload.payload.userId === interactionUserId ? payload.payload.liked : post.liked,
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(likesChannel);
+    };
+  }, [params.id, post, interactionUserId]);
 
   const loadComentarios = useCallback(async () => {
     try {
@@ -730,7 +752,6 @@ export default function PostDetailScreen() {
 
     isLikingRef.current = true;
 
-    // Optimistic update
     setPost({
       ...post,
       liked: !isLiked,
@@ -741,7 +762,6 @@ export default function PostDetailScreen() {
       if (isLiked) {
         console.log('[PostDetail] Removing like');
         
-        // ✅ FIXED: Delete like with correct filters
         let deleteQuery = supabase
           .from('likes')
           .delete()
@@ -761,18 +781,31 @@ export default function PostDetailScreen() {
           throw deleteError;
         }
         
+        const newLikesCount = Math.max(0, currentLikes - 1);
+        
         const { error: updateError } = await supabase
           .from('posts')
-          .update({ likes: Math.max(0, currentLikes - 1) })
+          .update({ likes: newLikesCount })
           .eq('id', params.id);
         
         if (updateError) {
           console.error('[PostDetail] Error updating post likes:', updateError);
         }
+
+        // ✅ NEW: Broadcast like update
+        await supabase.channel(`post-likes-${params.id}`).send({
+          type: 'broadcast',
+          event: 'like_update',
+          payload: {
+            postId: params.id,
+            likesCount: newLikesCount,
+            liked: false,
+            userId: interactionUserId,
+          },
+        });
       } else {
         console.log('[PostDetail] Adding like');
         
-        // ✅ FIXED: Insert like with local_id if interacting as local
         const likeData: any = {
           post_id: params.id,
           usuario_id: interactionUserId,
@@ -794,20 +827,33 @@ export default function PostDetailScreen() {
           throw insertError;
         }
         
+        const newLikesCount = currentLikes + 1;
+        
         const { error: updateError } = await supabase
           .from('posts')
-          .update({ likes: currentLikes + 1 })
+          .update({ likes: newLikesCount })
           .eq('id', params.id);
         
         if (updateError) {
           console.error('[PostDetail] Error updating post likes:', updateError);
         }
+
+        // ✅ NEW: Broadcast like update
+        await supabase.channel(`post-likes-${params.id}`).send({
+          type: 'broadcast',
+          event: 'like_update',
+          payload: {
+            postId: params.id,
+            likesCount: newLikesCount,
+            liked: true,
+            userId: interactionUserId,
+          },
+        });
       }
       
-      console.log('[PostDetail] Like toggled successfully');
+      console.log('[PostDetail] Like toggled successfully and broadcasted');
     } catch (error) {
       console.error('[PostDetail] Error toggling like:', error);
-      // Revert optimistic update
       setPost({
         ...post,
         liked: isLiked,

@@ -80,6 +80,34 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
     isInteractingAsLocal,
   });
 
+  // ✅ NEW: Subscribe to real-time like updates
+  useEffect(() => {
+    if (!post?.id) return;
+
+    const likesChannel = supabase
+      .channel(`post-likes-${post.id}`)
+      .on(
+        'broadcast',
+        { event: 'like_update' },
+        (payload) => {
+          console.log('[PublicacionCard] 🔄 Real-time like update received:', payload);
+          if (payload.payload.postId === post.id) {
+            setLikesCount(payload.payload.likesCount);
+            
+            // Update liked state if it's for the current user
+            if (payload.payload.userId === interactionUserId) {
+              setLiked(payload.payload.liked);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(likesChannel);
+    };
+  }, [post?.id, interactionUserId]);
+
   useEffect(() => {
     const fetchAuthorData = async () => {
       if (!post) {
@@ -360,14 +388,30 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
         console.log('[PublicacionCard] ✅ Like removed successfully');
       }
 
+      const newLikesCount = newLiked ? previousLikesCount + 1 : Math.max(0, previousLikesCount - 1);
+
       const { error: updateError } = await supabase
         .from('posts')
-        .update({ likes: newLiked ? previousLikesCount + 1 : Math.max(0, previousLikesCount - 1) })
+        .update({ likes: newLikesCount })
         .eq('id', post.id);
 
       if (updateError) {
         console.error('[PublicacionCard] Error updating post likes count:', updateError);
       }
+
+      // ✅ NEW: Broadcast like update to all subscribers
+      await supabase.channel(`post-likes-${post.id}`).send({
+        type: 'broadcast',
+        event: 'like_update',
+        payload: {
+          postId: post.id,
+          likesCount: newLikesCount,
+          liked: newLiked,
+          userId: interactionUserId,
+        },
+      });
+
+      console.log('[PublicacionCard] 📡 Broadcasted like update');
     } catch (error) {
       console.error('[PublicacionCard] Error toggling like:', error);
       setLiked(!newLiked);

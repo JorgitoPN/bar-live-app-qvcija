@@ -14,6 +14,7 @@ import ImageGalleryModal from '../../components/detalle/ImageGalleryModal';
 import { CATEGORIAS_EXCLUIDAS } from '../../utils/constants';
 import { getEstadoLocal } from '../../utils/timeUtils';
 import { useAuth } from '../../contexts/AuthContext';
+import { calcularDistancia } from '../../utils/locationUtils';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -322,13 +323,21 @@ export default function DetalleLocalScreen() {
 
   useEffect(() => {
     if (userLocation && local?.latitud && local?.longitud) {
-      const dist = calculateDistance(
+      // ✅ FIXED: Use calcularDistancia from locationUtils for consistent distance calculation
+      const distKm = calcularDistancia(
         userLocation.latitude,
         userLocation.longitude,
         Number(local.latitud),
         Number(local.longitud)
       );
+      
+      // Format distance for display
+      const dist = distKm < 1 
+        ? `${Math.round(distKm * 1000)} m` 
+        : `${distKm.toFixed(1)} km`;
+      
       setDistance(dist);
+      console.log('[DetalleLocal] ✅ Real distance calculated:', dist);
     }
   }, [userLocation, local]);
 

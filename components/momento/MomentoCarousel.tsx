@@ -18,7 +18,7 @@ import { useMode } from '@/contexts/ModeContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const AVATAR_SIZE = 84;
-const BORDER_WIDTH = 4; // Increased from 3 to 4 for thicker border
+const BORDER_WIDTH = 4;
 
 interface MomentoAuthor {
   id: string;
@@ -51,7 +51,6 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
       console.log('[MomentoCarousel] 🔄 Loading momentos for user:', user.id);
       console.log('[MomentoCarousel] 🔄 Active profile:', { activeProfileType, activeProfileId });
 
-      // Get all momentos that haven't expired (24h)
       const { data: momentosData, error: momentosError } = await supabase
         .from('momentos')
         .select(`
@@ -86,7 +85,6 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
 
       console.log('[MomentoCarousel] ✅ Found momentos:', momentosData.length);
 
-      // Get viewed momentos by current user
       const momentoIds = momentosData.map(m => m.id);
       const { data: viewsData } = await supabase
         .from('momento_views')
@@ -96,7 +94,6 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
 
       const viewedMomentoIds = new Set(viewsData?.map(v => v.momento_id) || []);
 
-      // Group momentos by author
       const authorsMap = new Map<string, MomentoAuthor>();
       let currentUserMomento: MomentoAuthor | null = null;
 
@@ -105,9 +102,6 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
           ? `local-${momento.local_id}` 
           : `user-${momento.autor_id}`;
 
-        // CRITICAL FIX: Check if this is the current user's or current local's momento
-        // activeProfileType can be 'usuario', 'local', or 'cliente'
-        // 'cliente' means the user is interacting as themselves (not as a local)
         const isInteractingAsUser = activeProfileType === 'usuario' || activeProfileType === 'cliente';
         const isCurrentUserMomento = isInteractingAsUser && 
                                      momento.tipo === 'usuario' && 
@@ -151,7 +145,6 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
 
           authorsMap.set(authorKey, authorInfo);
 
-          // Store user's own momento separately
           if (isOwnMomento) {
             currentUserMomento = authorInfo;
             console.log('[MomentoCarousel] ✅ Found own momento:', {
@@ -165,17 +158,14 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
         const author = authorsMap.get(authorKey)!;
         author.momentosCount++;
         
-        // Check if this momento is unviewed
         if (!viewedMomentoIds.has(momento.id)) {
           author.hasUnviewed = true;
         }
 
-        // Update last momento timestamp
         if (new Date(momento.created_at) > new Date(author.lastMomentoAt)) {
           author.lastMomentoAt = momento.created_at;
         }
 
-        // Update user momento if it's the current user's
         if (isOwnMomento && currentUserMomento) {
           currentUserMomento.momentosCount = author.momentosCount;
           currentUserMomento.hasUnviewed = author.hasUnviewed;
@@ -183,14 +173,10 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
         }
       });
 
-      // CRITICAL FILTERING: Remove current user/local from the main carousel
-      // The user's own momento should ONLY appear in "Tu Momento", never in the carousel
       const filteredAuthors = Array.from(authorsMap.values()).filter(author => {
-        // Check if user is interacting as themselves (not as a local)
         const isInteractingAsUser = activeProfileType === 'usuario' || activeProfileType === 'cliente';
         
         if (isInteractingAsUser) {
-          // Exclude if this is the current user's momento
           const isCurrentUser = author.tipo === 'usuario' && author.id === user.id;
           
           console.log('[MomentoCarousel] 🔍 Filtering user momento:', {
@@ -204,10 +190,8 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
             willExclude: isCurrentUser,
           });
           
-          // CRITICAL: Return false to exclude, true to include
           return !isCurrentUser;
         } else if (activeProfileType === 'local') {
-          // Exclude if this is the current local's momento
           const isCurrentLocal = author.tipo === 'local' && author.id === activeProfileId;
           
           console.log('[MomentoCarousel] 🔍 Filtering local momento:', {
@@ -224,12 +208,9 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
         return true;
       });
 
-      // Sort by unviewed first, then by recency
       const sortedAuthors = filteredAuthors.sort((a, b) => {
-        // Prioritize unviewed
         if (a.hasUnviewed && !b.hasUnviewed) return -1;
         if (!a.hasUnviewed && b.hasUnviewed) return 1;
-        // Then by recency
         return new Date(b.lastMomentoAt).getTime() - new Date(a.lastMomentoAt).getTime();
       });
 
@@ -261,7 +242,6 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
   useEffect(() => {
     loadMomentos();
 
-    // Subscribe to real-time updates
     const subscription = supabase
       .channel('momentos-changes')
       .on(
@@ -378,15 +358,11 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
     );
   };
 
-  // ✅ FIXED: "Tu Momento" avatar ALWAYS shows the + icon for adding more momentos
   const renderTuMomento = () => {
-    // Get current user/local avatar
     const currentAvatar = activeProfileType === 'local' 
-      ? null // TODO: Get from local data if needed
+      ? null
       : user?.avatar;
 
-    // If user has a momento, show it with the momento viewer functionality
-    // BUT ALSO show the + icon so they can add more momentos
     if (userMomento) {
       return (
         <TouchableOpacity
@@ -426,7 +402,7 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
                       />
                     </View>
                   )}
-                  {/* ✅ CRITICAL FIX: Plus icon ALWAYS visible to add more momentos */}
+                  {/* ✅ CRITICAL FIX: Plus icon positioned ABOVE the momento with higher z-index */}
                   <TouchableOpacity 
                     style={styles.addIconContainer}
                     onPress={(e) => {
@@ -480,7 +456,7 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
                       />
                     </View>
                   )}
-                  {/* ✅ CRITICAL FIX: Plus icon ALWAYS visible to add more momentos */}
+                  {/* ✅ CRITICAL FIX: Plus icon positioned ABOVE the momento with higher z-index */}
                   <TouchableOpacity 
                     style={styles.addIconContainer}
                     onPress={(e) => {
@@ -515,7 +491,6 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
       );
     }
 
-    // If no momento, show add button with user's avatar
     return (
       <TouchableOpacity
         style={styles.avatarContainer}
@@ -550,7 +525,7 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
                 />
               </View>
             )}
-            {/* Plus icon with higher z-index to appear above the border */}
+            {/* ✅ CRITICAL FIX: Plus icon positioned ABOVE the avatar with higher z-index */}
             <View style={styles.addIconContainer}>
               <LinearGradient
                 colors={[colors.primary, colors.secondary]}
@@ -592,10 +567,8 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Always show "Tu Momento" first - either with momento or as add button */}
         {renderTuMomento()}
         
-        {/* Show other users' momentos in the carousel - NEVER the current user's */}
         {authors.map((author, index) => renderAvatar(author, index))}
       </ScrollView>
     </View>
@@ -669,22 +642,23 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     maxWidth: AVATAR_SIZE + BORDER_WIDTH * 2,
   },
+  // ✅ CRITICAL FIX: Improved positioning for plus icon to be ABOVE the momento
   addIconContainer: {
     position: 'absolute',
-    bottom: -2,
-    right: -2,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    bottom: 0,
+    right: 0,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     borderWidth: 3,
     borderColor: colors.background,
     overflow: 'hidden',
-    zIndex: 100,
-    elevation: 10,
+    zIndex: 1000,
+    elevation: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
   },
   addIconGradient: {
     width: '100%',

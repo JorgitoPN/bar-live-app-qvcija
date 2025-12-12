@@ -44,7 +44,6 @@ export default function FavoritosScreen() {
   const [checkingSocialProfiles, setCheckingSocialProfiles] = useState<Set<string>>(new Set());
   const [socialProfiles, setSocialProfiles] = useState<Map<string, boolean>>(new Map());
 
-  // Get user location
   useEffect(() => {
     (async () => {
       try {
@@ -71,6 +70,7 @@ export default function FavoritosScreen() {
 
     try {
       console.log('[Favoritos] Cargando locales guardados...');
+      // ✅ FIXED: Removed valoracion_google from select query
       const { data: savedLocalesData, error: localesError } = await supabase
         .from('locales_guardados')
         .select(`
@@ -92,8 +92,7 @@ export default function FavoritosScreen() {
             estado_actual,
             destacado,
             nuevo,
-            google_rating,
-            valoracion_google
+            google_rating
           )
         `)
         .eq('usuario_id', user.id)
@@ -107,7 +106,6 @@ export default function FavoritosScreen() {
           .map((sl: any) => {
             const local = sl.locales;
             
-            // ✅ Calculate real distance from user location
             let distancia = null;
             if (userLocation && local.latitud && local.longitud) {
               distancia = calcularDistancia(
@@ -125,14 +123,13 @@ export default function FavoritosScreen() {
                 lng: parseFloat(local.longitud),
               },
               imagenes: local.galeria_urls || (local.imagen_url ? [local.imagen_url] : []),
-              distancia: distancia, // ✅ FIXED: Now includes real calculated distance
+              distancia: distancia,
             };
           });
         
         setAllSavedLocales(formattedLocales);
         setFilteredLocales(formattedLocales);
         
-        // Load first page
         const firstPage = formattedLocales.slice(0, ITEMS_PER_PAGE);
         setDisplayedLocales(firstPage);
         setCurrentPage(1);
@@ -140,7 +137,6 @@ export default function FavoritosScreen() {
         
         console.log('[Favoritos] Locales guardados cargados:', formattedLocales.length);
         
-        // Check social profiles for all locales
         checkSocialProfilesForLocales(formattedLocales.map(l => l.id));
       }
     } catch (error) {
@@ -150,7 +146,6 @@ export default function FavoritosScreen() {
     }
   }, [user, userLocation]);
 
-  // Check social profiles for multiple locales
   const checkSocialProfilesForLocales = async (localIds: string[]) => {
     if (localIds.length === 0) return;
 
@@ -180,7 +175,6 @@ export default function FavoritosScreen() {
     loadSavedLocales();
 
     if (user) {
-      // Subscribe to changes in saved locales
       const savedLocalesChannel = supabase
         .channel('user-saved-locales-changes')
         .on(
@@ -204,7 +198,6 @@ export default function FavoritosScreen() {
     }
   }, [user, loadSavedLocales]);
 
-  // Recalculate distances when user location changes
   useEffect(() => {
     if (userLocation && allSavedLocales.length > 0) {
       console.log('[Favoritos] Recalculating distances with new user location');
@@ -223,13 +216,11 @@ export default function FavoritosScreen() {
       setAllSavedLocales(updatedLocales);
       setFilteredLocales(updatedLocales);
       
-      // Update displayed locales
       const firstPage = updatedLocales.slice(0, currentPage * ITEMS_PER_PAGE);
       setDisplayedLocales(firstPage);
     }
   }, [userLocation]);
 
-  // Predictive search filter
   useEffect(() => {
     if (!searchQuery.trim()) {
       setFilteredLocales(allSavedLocales);
@@ -294,7 +285,6 @@ export default function FavoritosScreen() {
     setRefreshing(false);
   };
 
-  // ✅ FIXED: Use same logic as TarjetaLocal for toggling favorites
   const toggleFavorito = async (localId: string, e?: any) => {
     if (e) {
       e.stopPropagation();
@@ -314,7 +304,6 @@ export default function FavoritosScreen() {
     try {
       console.log('[Favoritos] Removing from favorites. User:', user.id, 'Local:', localId);
       
-      // ✅ FIXED: Delete from favorites with explicit usuario_id
       const { error } = await supabase
         .from('locales_guardados')
         .delete()
@@ -329,7 +318,6 @@ export default function FavoritosScreen() {
       
       console.log('[Favoritos] ✅ Removed from favorites');
       
-      // Reload the list
       await loadSavedLocales();
     } catch (error) {
       console.error('[Favoritos] Error removing favorito:', error);
@@ -337,7 +325,6 @@ export default function FavoritosScreen() {
     }
   };
 
-  // ✅ NEW: Handle "Como llegar" button
   const handleComoLlegar = (local: any, e: any) => {
     e.stopPropagation();
     const { lat, lng } = local.coordenadas;
@@ -345,7 +332,6 @@ export default function FavoritosScreen() {
     Linking.openURL(url);
   };
 
-  // ✅ NEW: Handle "Perfil Social" button
   const handlePerfilSocial = (localId: string, e: any) => {
     e.stopPropagation();
     router.push(`/perfil/local?localId=${localId}`);
@@ -418,9 +404,6 @@ export default function FavoritosScreen() {
       if (item.google_rating && item.google_rating > 0) {
         return item.google_rating;
       }
-      if (item.valoracion_google && item.valoracion_google > 0) {
-        return item.valoracion_google;
-      }
       return 0;
     };
 
@@ -435,7 +418,6 @@ export default function FavoritosScreen() {
         onPress={() => router.push(`/detalle/local?id=${item.id}`)}
         activeOpacity={0.9}
       >
-        {/* Imagen */}
         <View style={styles.imageContainer}>
           {imagenPrincipal ? (
             <Image
@@ -449,15 +431,12 @@ export default function FavoritosScreen() {
             </View>
           )}
 
-          {/* Dimmed overlay for closed/no info locals */}
           {shouldDimImage() && (
             <View style={styles.dimmedOverlay} />
           )}
 
-          {/* Gradient overlay for better text visibility */}
           <View style={styles.imageOverlay} />
 
-          {/* Badge "Destacado" */}
           {isDestacado && (
             <View style={styles.badgeDestacadoHeader}>
               <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={14} color="#92400E" />
@@ -465,7 +444,6 @@ export default function FavoritosScreen() {
             </View>
           )}
 
-          {/* Badge de estado */}
           <View style={[
             styles.badgeEstadoSuperior, 
             { backgroundColor: getBadgeColor() + 'E6' },
@@ -474,7 +452,6 @@ export default function FavoritosScreen() {
             <Text style={styles.badgeEstadoSuperiorText} numberOfLines={1}>{getBadgeText()}</Text>
           </View>
 
-          {/* Valoración */}
           {displayRating > 0 && (
             <View style={styles.ratingBadge}>
               <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={12} color="#FACC15" />
@@ -482,7 +459,6 @@ export default function FavoritosScreen() {
             </View>
           )}
 
-          {/* Badge nuevo */}
           {item.nuevo && (
             <View style={styles.badgeNuevoContainer}>
               <View style={styles.badgeNuevo}>
@@ -491,7 +467,6 @@ export default function FavoritosScreen() {
             </View>
           )}
 
-          {/* ✅ FIXED: Favorite button with same logic as TarjetaLocal */}
           <TouchableOpacity
             style={styles.favoritoButton}
             onPress={(e) => {
@@ -508,7 +483,6 @@ export default function FavoritosScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Contenido */}
         <View style={styles.content}>
           <View style={styles.header}>
             <Text style={styles.nombre} numberOfLines={1}>
@@ -523,7 +497,6 @@ export default function FavoritosScreen() {
             </Text>
           </View>
 
-          {/* Categorías del local */}
           {categoriasAMostrar.length > 0 && (
             <View style={styles.categoriasContainer}>
               {categoriasAMostrar.map((categoria: string, index: number) => (
@@ -535,7 +508,6 @@ export default function FavoritosScreen() {
             </View>
           )}
 
-          {/* ✅ NEW: Action buttons (same as TarjetaLocal) */}
           <View style={styles.actionButtonsContainer}>
             {hasSocialProfile && (
               <TouchableOpacity 
@@ -560,7 +532,6 @@ export default function FavoritosScreen() {
                   <Text style={styles.comoLlegarText} numberOfLines={1}>Cómo llegar</Text>
                 </View>
                 
-                {/* ✅ NEW: Display real calculated distance */}
                 {item.distancia !== null && item.distancia !== undefined && (
                   <View style={styles.distanciaInButton}>
                     <IconSymbol ios_icon_name="location.fill" android_material_icon_name="location_on" size={14} color={colors.headerText} />
@@ -686,7 +657,6 @@ export default function FavoritosScreen() {
       >
         <Text style={styles.headerTitle}>Locales Favoritos</Text>
         
-        {/* Search bar */}
         <View style={styles.searchContainer}>
           <IconSymbol 
             ios_icon_name="magnifyingglass" 
@@ -719,7 +689,6 @@ export default function FavoritosScreen() {
           )}
         </View>
         
-        {/* Results count */}
         {allSavedLocales.length > 0 && (
           <Text style={styles.resultsCount}>
             {searchQuery.trim() 
@@ -1091,7 +1060,6 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
     flexShrink: 1,
   },
-  // ✅ NEW: Action buttons styles (same as TarjetaLocal)
   actionButtonsContainer: {
     flexDirection: 'row',
     gap: 8,
