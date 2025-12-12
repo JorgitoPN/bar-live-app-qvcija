@@ -262,7 +262,7 @@ const normalizeDayName = (day: string): string => {
   return normalizations[day.toLowerCase()] || day;
 };
 
-// Helper function to format opening hours correctly
+// ✅ FIXED: Helper function to format opening hours correctly with multiple ranges
 const formatOpeningHours = (hours: string[]): string => {
   if (!hours || hours.length === 0) {
     return 'Cerrado';
@@ -270,11 +270,13 @@ const formatOpeningHours = (hours: string[]): string => {
   
   // Sort hours to ensure proper order (earlier times first)
   const sortedHours = [...hours].sort((a, b) => {
-    const timeA = a.split('–')[0] || a.split('-')[0];
-    const timeB = b.split('–')[0] || b.split('-')[0];
+    // Extract start time from each range
+    const timeA = a.split('–')[0] || a.split('-')[0] || '';
+    const timeB = b.split('–')[0] || b.split('-')[0] || '';
     return timeA.localeCompare(timeB);
   });
   
+  // Join multiple ranges with comma and space
   return sortedHours.join(', ');
 };
 
