@@ -105,9 +105,11 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
           ? `local-${momento.local_id}` 
           : `user-${momento.autor_id}`;
 
-        // CRITICAL: Check if this is the current user's or current local's momento
-        // We need to be very explicit about the comparison
-        const isCurrentUserMomento = activeProfileType === 'usuario' && 
+        // CRITICAL FIX: Check if this is the current user's or current local's momento
+        // activeProfileType can be 'usuario', 'local', or 'cliente'
+        // 'cliente' means the user is interacting as themselves (not as a local)
+        const isInteractingAsUser = activeProfileType === 'usuario' || activeProfileType === 'cliente';
+        const isCurrentUserMomento = isInteractingAsUser && 
                                      momento.tipo === 'usuario' && 
                                      momento.autor_id === user.id;
         const isCurrentLocalMomento = activeProfileType === 'local' && 
@@ -123,6 +125,7 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
           currentUserId: user.id,
           activeProfileType,
           activeProfileId,
+          isInteractingAsUser,
           isCurrentUserMomento,
           isCurrentLocalMomento,
           isOwnMomento,
@@ -183,22 +186,30 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
       // CRITICAL FILTERING: Remove current user/local from the main carousel
       // The user's own momento should ONLY appear in "Tu Momento", never in the carousel
       const filteredAuthors = Array.from(authorsMap.values()).filter(author => {
-        if (activeProfileType === 'usuario') {
+        // Check if user is interacting as themselves (not as a local)
+        const isInteractingAsUser = activeProfileType === 'usuario' || activeProfileType === 'cliente';
+        
+        if (isInteractingAsUser) {
           // Exclude if this is the current user's momento
-          // We check both tipo and id to be absolutely sure
           const isCurrentUser = author.tipo === 'usuario' && author.id === user.id;
+          
           console.log('[MomentoCarousel] 🔍 Filtering user momento:', {
             authorId: author.id,
             authorNombre: author.nombre,
             authorTipo: author.tipo,
             userId: user.id,
+            activeProfileType,
+            isInteractingAsUser,
             isCurrentUser,
             willExclude: isCurrentUser,
           });
+          
+          // CRITICAL: Return false to exclude, true to include
           return !isCurrentUser;
         } else if (activeProfileType === 'local') {
           // Exclude if this is the current local's momento
           const isCurrentLocal = author.tipo === 'local' && author.id === activeProfileId;
+          
           console.log('[MomentoCarousel] 🔍 Filtering local momento:', {
             authorId: author.id,
             authorNombre: author.nombre,
@@ -207,6 +218,7 @@ export default function MomentoCarousel({ onOpenViewer, onUploadMomento }: Momen
             isCurrentLocal,
             willExclude: isCurrentLocal,
           });
+          
           return !isCurrentLocal;
         }
         return true;
