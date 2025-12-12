@@ -4,7 +4,7 @@ import { View, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
-import { supabase } from '@/app/integrations/supabase/client';
+import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface MiniAvatarWithMomentoProps {
@@ -26,15 +26,26 @@ export default function MiniAvatarWithMomento({
 }: MiniAvatarWithMomentoProps) {
   const { user } = useAuth();
   const [hasUnviewedMomentos, setHasUnviewedMomentos] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // Use a fixed border width of 2px to match social feed momentos (thinner border)
   const BORDER_WIDTH = 2;
   const innerSize = size - BORDER_WIDTH * 2;
 
   const checkUnviewedMomentos = useCallback(async () => {
-    if (!user) return;
+    if (!user || !showMomentoBorder) {
+      setLoading(false);
+      return;
+    }
+
+    if (!userId && !localId) {
+      setLoading(false);
+      return;
+    }
 
     try {
+      console.log('[MiniAvatarWithMomento] 🔍 Checking momentos for:', { userId, localId });
+
       // Get momentos for this user/local
       const query = supabase
         .from('momentos')
@@ -47,67 +58,93 @@ export default function MiniAvatarWithMomento({
         query.eq('local_id', localId).eq('tipo', 'local');
       }
 
-      const { data: momentosData } = await query;
+      const { data: momentosData, error: momentosError } = await query;
 
-      if (!momentosData || momentosData.length === 0) {
+      if (momentosError) {
+        console.error('[MiniAvatarWithMomento] ❌ Error fetching momentos:', momentosError);
         setHasUnviewedMomentos(false);
+        setLoading(false);
         return;
       }
 
+      if (!momentosData || momentosData.length === 0) {
+        console.log('[MiniAvatarWithMomento] ℹ️ No momentos found');
+        setHasUnviewedMomentos(false);
+        setLoading(false);
+        return;
+      }
+
+      console.log('[MiniAvatarWithMomento] ✅ Found momentos:', momentosData.length);
+
       // Check if user has viewed any of these momentos
       const momentoIds = momentosData.map(m => m.id);
-      const { data: viewsData } = await supabase
+      const { data: viewsData, error: viewsError } = await supabase
         .from('momento_views')
         .select('momento_id')
         .eq('usuario_id', user.id)
         .in('momento_id', momentoIds);
 
+      if (viewsError) {
+        console.error('[MiniAvatarWithMomento] ❌ Error fetching views:', viewsError);
+      }
+
       const viewedIds = new Set(viewsData?.map(v => v.momento_id) || []);
       const hasUnviewed = momentosData.some(m => !viewedIds.has(m.id));
 
+      console.log('[MiniAvatarWithMomento] 🎯 Result:', {
+        totalMomentos: momentosData.length,
+        viewedCount: viewedIds.size,
+        hasUnviewed,
+      });
+
       setHasUnviewedMomentos(hasUnviewed);
     } catch (error) {
-      console.error('[MiniAvatarWithMomento] Error checking momentos:', error);
+      console.error('[MiniAvatarWithMomento] ❌ Error checking momentos:', error);
+      setHasUnviewedMomentos(false);
+    } finally {
+      setLoading(false);
     }
-  }, [user, userId, localId]);
+  }, [user, userId, localId, showMomentoBorder]);
 
   useEffect(() => {
-    if (showMomentoBorder && (userId || localId)) {
-      checkUnviewedMomentos();
+    checkUnviewedMomentos();
 
-      // Subscribe to real-time updates
-      const subscription = supabase
-        .channel(`momento-updates-${userId || localId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'momentos',
-          },
-          () => {
-            console.log('[MiniAvatarWithMomento] Momento update detected');
-            checkUnviewedMomentos();
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'momento_views',
-          },
-          () => {
-            console.log('[MiniAvatarWithMomento] View update detected');
-            checkUnviewedMomentos();
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(subscription);
-      };
+    if (!showMomentoBorder || (!userId && !localId)) {
+      return;
     }
+
+    // Subscribe to real-time updates
+    const subscription = supabase
+      .channel(`momento-updates-${userId || localId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'momentos',
+        },
+        () => {
+          console.log('[MiniAvatarWithMomento] 🔄 Momento update detected');
+          checkUnviewedMomentos();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'momento_views',
+        },
+        () => {
+          console.log('[MiniAvatarWithMomento] 🔄 View update detected');
+          checkUnviewedMomentos();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
   }, [userId, localId, showMomentoBorder, checkUnviewedMomentos]);
 
   const renderAvatar = () => (
@@ -166,7 +203,7 @@ export default function MiniAvatarWithMomento({
         },
       ]}
     >
-      {hasUnviewedMomentos ? (
+      {hasUnviewedMomentos && !loading ? (
         <LinearGradient
           colors={['#00FF88', '#00CC6A', '#00FF88']}
           start={{ x: 0, y: 0 }}

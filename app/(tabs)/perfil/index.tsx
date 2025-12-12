@@ -102,14 +102,22 @@ export default function PerfilScreen() {
   const isPropietario = userRole === 'propietario' || (userRole === 'admin' && currentMode === 'propietario');
 
   const checkUnviewedMomentos = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('[Perfil] ℹ️ No user, skipping momento check');
+      return;
+    }
 
     try {
       // Determine which ID to check based on active profile
       const checkId = activeProfileType === 'local' ? activeProfileId : user.id;
       const checkType = activeProfileType === 'local' ? 'local' : 'usuario';
 
-      if (!checkId) return;
+      if (!checkId) {
+        console.log('[Perfil] ℹ️ No checkId, skipping momento check');
+        return;
+      }
+
+      console.log('[Perfil] 🔍 Checking unviewed momentos:', { checkId, checkType });
 
       // Get momentos for this user/local
       const query = supabase
@@ -124,28 +132,47 @@ export default function PerfilScreen() {
         query.eq('local_id', checkId);
       }
 
-      const { data: momentosData } = await query;
+      const { data: momentosData, error: momentosError } = await query;
 
-      if (!momentosData || momentosData.length === 0) {
+      if (momentosError) {
+        console.error('[Perfil] ❌ Error fetching momentos:', momentosError);
         setHasUnviewedMomentos(false);
         return;
       }
 
+      if (!momentosData || momentosData.length === 0) {
+        console.log('[Perfil] ℹ️ No momentos found');
+        setHasUnviewedMomentos(false);
+        return;
+      }
+
+      console.log('[Perfil] ✅ Found momentos:', momentosData.length);
+
       // Check if user has viewed any of these momentos
       const momentoIds = momentosData.map(m => m.id);
-      const { data: viewsData } = await supabase
+      const { data: viewsData, error: viewsError } = await supabase
         .from('momento_views')
         .select('momento_id')
         .eq('usuario_id', user.id)
         .in('momento_id', momentoIds);
 
+      if (viewsError) {
+        console.error('[Perfil] ❌ Error fetching views:', viewsError);
+      }
+
       const viewedIds = new Set(viewsData?.map(v => v.momento_id) || []);
       const hasUnviewed = momentosData.some(m => !viewedIds.has(m.id));
 
+      console.log('[Perfil] 🎯 Unviewed momentos check result:', {
+        totalMomentos: momentosData.length,
+        viewedCount: viewedIds.size,
+        hasUnviewed,
+      });
+
       setHasUnviewedMomentos(hasUnviewed);
-      console.log('[Perfil] ✅ Unviewed momentos check:', { hasUnviewed, total: momentosData.length });
     } catch (error) {
-      console.error('[Perfil] Error checking unviewed momentos:', error);
+      console.error('[Perfil] ❌ Error checking unviewed momentos:', error);
+      setHasUnviewedMomentos(false);
     }
   }, [user, activeProfileType, activeProfileId]);
 
@@ -485,6 +512,8 @@ export default function PerfilScreen() {
   useEffect(() => {
     if (!user) return;
 
+    console.log('[Perfil] 🔄 Setting up momento subscriptions');
+
     const subscription = supabase
       .channel('momento-profile-updates')
       .on(
@@ -495,7 +524,7 @@ export default function PerfilScreen() {
           table: 'momentos',
         },
         () => {
-          console.log('[Perfil] Momento update detected');
+          console.log('[Perfil] 🔄 Momento update detected, rechecking...');
           checkUnviewedMomentos();
         }
       )
@@ -507,13 +536,14 @@ export default function PerfilScreen() {
           table: 'momento_views',
         },
         () => {
-          console.log('[Perfil] View update detected');
+          console.log('[Perfil] 🔄 View update detected, rechecking...');
           checkUnviewedMomentos();
         }
       )
       .subscribe();
 
     return () => {
+      console.log('[Perfil] 🔄 Cleaning up momento subscriptions');
       supabase.removeChannel(subscription);
     };
   }, [user, checkUnviewedMomentos]);
@@ -640,6 +670,8 @@ export default function PerfilScreen() {
   };
 
   const renderProfileHeader = () => {
+    console.log('[Perfil] 🎨 Rendering profile header with hasUnviewedMomentos:', hasUnviewedMomentos);
+
     return (
       <View style={styles.profileSection}>
         <View style={styles.profileHeader}>
