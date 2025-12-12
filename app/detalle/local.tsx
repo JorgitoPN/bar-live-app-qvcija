@@ -1091,7 +1091,7 @@ export default function DetalleLocalScreen() {
             </BlurView>
           </TouchableOpacity>
           
-          {/* ✅ FIXED: Favorite button with better styling */}
+          {/* ✅ FIXED: Favorite button with RED heart when saved */}
           <TouchableOpacity
             style={styles.favoritoButton}
             onPress={toggleFavorito}
@@ -1873,7 +1873,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  // ✅ FIXED: Favorite button styles with better visibility
+  // ✅ FIXED: Favorite button styles with RED heart when saved
   favoritoButton: {
     position: 'absolute',
     bottom: 12,
@@ -1932,7 +1932,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.cardBorder,
   },
   localNameText: {
     fontSize: 28,
@@ -1976,7 +1976,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: colors.card,
+    backgroundColor: colors.cardBackground,
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 12,
@@ -2105,7 +2105,7 @@ const styles = StyleSheet.create({
   },
   eventCard: {
     width: 180,
-    backgroundColor: colors.card,
+    backgroundColor: colors.cardBackground,
     borderRadius: 12,
     overflow: 'hidden',
   },
@@ -2128,7 +2128,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   scheduleCompact: {
-    backgroundColor: colors.card,
+    backgroundColor: colors.cardBackground,
     borderRadius: 12,
     padding: 10,
     gap: 6,
@@ -2199,7 +2199,7 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
   analysisBox: {
-    backgroundColor: colors.card,
+    backgroundColor: colors.cardBackground,
     borderRadius: 12,
     padding: 14,
   },
@@ -2244,7 +2244,7 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
   reviewCard: {
-    backgroundColor: colors.card,
+    backgroundColor: colors.cardBackground,
     padding: 12,
     borderRadius: 12,
     marginBottom: 10,
@@ -2307,7 +2307,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   noReviewsBox: {
-    backgroundColor: colors.card,
+    backgroundColor: colors.cardBackground,
     padding: 24,
     borderRadius: 12,
     alignItems: 'center',
@@ -2352,7 +2352,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.cardBorder,
   },
   modalTitle: {
     fontSize: 20,
@@ -2378,7 +2378,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   textInput: {
-    backgroundColor: colors.card,
+    backgroundColor: colors.cardBackground,
     borderRadius: 12,
     padding: 16,
     fontSize: 15,
@@ -2386,7 +2386,7 @@ const styles = StyleSheet.create({
     minHeight: 120,
     textAlignVertical: 'top',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.cardBorder,
   },
   characterCount: {
     fontSize: 12,
