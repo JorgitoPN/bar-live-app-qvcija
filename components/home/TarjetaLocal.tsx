@@ -83,30 +83,46 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
     checkSocialProfile();
   }, [local.id]);
 
+  // ✅ FIXED: Check if local is favorite - using direct user ID from AuthContext
   const checkIfFavorite = useCallback(async () => {
-    if (!user) return;
+    if (!user?.id) {
+      console.log('[TarjetaLocal] ⚠️ No user ID available for favorite check');
+      setIsFavorite(false);
+      return false;
+    }
     
     try {
+      console.log('[TarjetaLocal] 🔍 Checking favorite status for user:', user.id, 'local:', local.id);
+      
       const { data, error } = await supabase
         .from('locales_guardados')
         .select('id')
         .eq('usuario_id', user.id)
         .eq('local_id', local.id)
-        .single();
+        .maybeSingle();
 
-      if (data) {
-        setIsFavorite(true);
+      if (error) {
+        console.error('[TarjetaLocal] Error checking favorite:', error);
+        setIsFavorite(false);
+        return false;
       }
+
+      const favoriteStatus = !!data;
+      setIsFavorite(favoriteStatus);
+      console.log('[TarjetaLocal] ✅ Favorite status checked:', favoriteStatus, 'Data:', data);
+      return favoriteStatus;
     } catch (error) {
+      console.error('[TarjetaLocal] Error checking favorite:', error);
       setIsFavorite(false);
+      return false;
     }
-  }, [user, local.id]);
+  }, [user?.id, local.id]);
 
   useEffect(() => {
-    if (user) {
+    if (user?.id) {
       checkIfFavorite();
     }
-  }, [user, checkIfFavorite]);
+  }, [user?.id, checkIfFavorite]);
 
   const handlePress = () => {
     trackProfileView(local.id, user?.id, 'explore');
@@ -126,26 +142,61 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
     Linking.openURL(url);
   };
 
+  // ✅ FIXED: Toggle favorite function - simplified and using user.id directly
   const toggleFavorito = async (e: any) => {
     e.stopPropagation();
     
-    if (!user) {
+    if (!user?.id) {
+      console.log('[TarjetaLocal] ⚠️ No user logged in');
       Alert.alert('Inicia sesión', 'Debes iniciar sesión para agregar favoritos');
       return;
     }
 
     setLoadingFavorite(true);
+    
+    // ✅ Optimistic UI update
+    const previousState = isFavorite;
+    setIsFavorite(!isFavorite);
+    
     try {
-      if (isFavorite) {
+      console.log('[TarjetaLocal] 🔄 Toggling favorite. Current state:', previousState, '-> New state:', !previousState, 'User ID:', user.id);
+
+      if (previousState) {
+        // Remove from favorites
+        console.log('[TarjetaLocal] Removing from favorites...');
         const { error } = await supabase
           .from('locales_guardados')
           .delete()
           .eq('usuario_id', user.id)
           .eq('local_id', local.id);
 
-        if (error) throw error;
-        setIsFavorite(false);
+        if (error) {
+          console.error('[TarjetaLocal] Error removing favorite:', error);
+          setIsFavorite(previousState);
+          setLoadingFavorite(false);
+          Alert.alert('Error', 'No se pudo eliminar de favoritos');
+          return;
+        }
+        
+        console.log('[TarjetaLocal] ✅ Removed from favorites');
       } else {
+        // Add to favorites - use maybeSingle to check if already exists
+        console.log('[TarjetaLocal] Checking if already in favorites...');
+        const { data: existing } = await supabase
+          .from('locales_guardados')
+          .select('id')
+          .eq('usuario_id', user.id)
+          .eq('local_id', local.id)
+          .maybeSingle();
+
+        if (existing) {
+          console.log('[TarjetaLocal] Already in favorites');
+          setIsFavorite(true);
+          setLoadingFavorite(false);
+          return;
+        }
+
+        console.log('[TarjetaLocal] Adding to favorites...');
         const { error } = await supabase
           .from('locales_guardados')
           .insert({
@@ -153,11 +204,27 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
             local_id: local.id,
           });
 
-        if (error) throw error;
-        setIsFavorite(true);
+        if (error) {
+          console.error('[TarjetaLocal] Error adding favorite:', error);
+          setIsFavorite(previousState);
+          setLoadingFavorite(false);
+          
+          // Check for duplicate key error
+          if (error.code === '23505') {
+            console.log('[TarjetaLocal] Already in favorites (duplicate key)');
+            setIsFavorite(true);
+          } else {
+            Alert.alert('Error', 'No se pudo agregar a favoritos');
+          }
+          
+          return;
+        }
+        
+        console.log('[TarjetaLocal] ✅ Added to favorites');
       }
-    } catch (error) {
-      console.error('Error toggling favorito:', error);
+    } catch (error: any) {
+      console.error('[TarjetaLocal] Error toggling favorito:', error);
+      setIsFavorite(previousState);
       Alert.alert('Error', 'No se pudo actualizar favoritos');
     } finally {
       setLoadingFavorite(false);
@@ -271,7 +338,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
           />
         ) : (
           <View style={[styles.image, styles.placeholderImage]}>
-            <IconSymbol name="photo" size={48} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="photo" android_material_icon_name="photo" size={48} color={colors.textSecondary} />
           </View>
         )}
 
@@ -281,7 +348,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
 
         {overlayIcon && (
           <View style={styles.overlayIconContainer}>
-            <IconSymbol name={overlayIcon} size={64} color={getOverlayIconColor()} />
+            <IconSymbol ios_icon_name={overlayIcon} android_material_icon_name={overlayIcon} size={64} color={getOverlayIconColor()} />
           </View>
         )}
 
@@ -289,7 +356,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
 
         {isDestacado && (
           <View style={styles.badgeDestacadoHeader}>
-            <IconSymbol name="star.fill" size={14} color="#92400E" />
+            <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={14} color="#92400E" />
             <Text style={styles.badgeDestacadoHeaderText}>Destacado</Text>
           </View>
         )}
@@ -304,7 +371,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
 
         {displayRating > 0 && (
           <View style={styles.ratingBadge}>
-            <IconSymbol name="star.fill" size={12} color="#FACC15" />
+            <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={12} color="#FACC15" />
             <Text style={styles.ratingBadgeText}>{displayRating.toFixed(1)}</Text>
           </View>
         )}
@@ -317,13 +384,15 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
           </View>
         )}
 
+        {/* ✅ FIXED: Favorite button with RED heart when saved */}
         <TouchableOpacity
           style={styles.favoritoButton}
           onPress={toggleFavorito}
           disabled={loadingFavorite}
         >
           <IconSymbol
-            name={isFavorite ? "heart.fill" : "heart"}
+            ios_icon_name={isFavorite ? "heart.fill" : "heart"}
+            android_material_icon_name={isFavorite ? "favorite" : "favorite_border"}
             size={20}
             color={isFavorite ? "#EF4444" : colors.headerText}
           />
@@ -342,7 +411,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
         </View>
 
         <View style={styles.infoRow}>
-          <IconSymbol name="mappin" size={14} color={colors.textSecondary} />
+          <IconSymbol ios_icon_name="mappin" android_material_icon_name="location_on" size={14} color={colors.textSecondary} />
           <Text style={styles.infoText} numberOfLines={1}>
             {local.direccion}
           </Text>
@@ -362,7 +431,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
         <View style={styles.actionButtonsContainer}>
           {!checkingSocialProfile && hasSocialProfile && (
             <TouchableOpacity style={styles.perfilSocialButton} onPress={handlePerfilSocial}>
-              <IconSymbol name="person.2.fill" size={16} color={colors.headerText} />
+              <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={16} color={colors.headerText} />
               <Text style={styles.perfilSocialText} numberOfLines={1}>Perfil Social</Text>
             </TouchableOpacity>
           )}
@@ -376,13 +445,13 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
           >
             <View style={styles.comoLlegarContent}>
               <View style={styles.comoLlegarLeft}>
-                <IconSymbol name="arrow.triangle.turn.up.right.diamond.fill" size={16} color={colors.headerText} />
+                <IconSymbol ios_icon_name="arrow.triangle.turn.up.right.diamond.fill" android_material_icon_name="directions" size={16} color={colors.headerText} />
                 <Text style={styles.comoLlegarText} numberOfLines={1}>Cómo llegar</Text>
               </View>
               
               {local.distancia !== null && local.distancia !== undefined && (
                 <View style={styles.distanciaInButton}>
-                  <IconSymbol name="location.fill" size={14} color={colors.headerText} />
+                  <IconSymbol ios_icon_name="location.fill" android_material_icon_name="my_location" size={14} color={colors.headerText} />
                   <Text style={styles.distanciaInButtonText} numberOfLines={1}>
                     {local.distancia.toFixed(1)} km
                   </Text>
