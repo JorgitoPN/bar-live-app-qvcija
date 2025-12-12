@@ -291,13 +291,13 @@ export default function SharePostModal({
           }
         }
 
-        // Send message
+        // ✅ FIXED: Send message with correct tipo_mensaje value
         const { error: messageError } = await supabase.from('mensajes').insert({
           chat_id: chatId,
           remitente_id: user.id,
           contenido: shareMessage,
           post_id: postId,
-          tipo_mensaje: 'post_share',
+          tipo_mensaje: 'post_compartido', // ✅ FIXED: Changed from 'post_share' to 'post_compartido'
         });
 
         if (messageError) {

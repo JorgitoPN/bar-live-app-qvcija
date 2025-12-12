@@ -495,7 +495,7 @@ export default function DetalleLocalScreen() {
     }
   }, [params.id, cargarLocal]);
 
-  // ✅ FIXED: Toggle favorite function with comprehensive session handling and refresh
+  // ✅ FIXED: Toggle favorite function with better session handling
   const toggleFavorito = async (e: any) => {
     e.stopPropagation();
     
@@ -511,32 +511,13 @@ export default function DetalleLocalScreen() {
     setIsFavorite(!isFavorite);
     
     try {
-      // ✅ FIXED: Refresh session first to ensure it's valid
-      console.log('[DetalleLocal] 🔄 Refreshing session...');
+      // ✅ FIXED: Get current session without forcing refresh
+      console.log('[DetalleLocal] 🔍 Getting current session...');
       
-      let session = null;
-      try {
-        const { data, error: refreshError } = await supabase.auth.refreshSession();
-        
-        if (refreshError) {
-          console.error('[DetalleLocal] Session refresh error:', refreshError);
-          throw new Error('SESSION_REFRESH_FAILED');
-        }
-        
-        session = data.session;
-      } catch (refreshErr: any) {
-        console.error('[DetalleLocal] Session refresh exception:', refreshErr);
-        setIsFavorite(previousState);
-        setLoadingFavorite(false);
-        Alert.alert(
-          'Error de sesión',
-          'No se pudo actualizar tu sesión. Por favor cierra sesión y vuelve a iniciar sesión.'
-        );
-        return;
-      }
-
-      if (!session) {
-        console.error('[DetalleLocal] No active session after refresh');
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !sessionData?.session) {
+        console.error('[DetalleLocal] Session error:', sessionError);
         setIsFavorite(previousState);
         setLoadingFavorite(false);
         Alert.alert(
@@ -546,7 +527,8 @@ export default function DetalleLocalScreen() {
         return;
       }
 
-      console.log('[DetalleLocal] ✅ Session refreshed successfully. User ID:', session.user.id);
+      const session = sessionData.session;
+      console.log('[DetalleLocal] ✅ Session valid. User ID:', session.user.id);
 
       // ✅ Verify user ID matches
       if (session.user.id !== user.id) {
@@ -654,7 +636,7 @@ export default function DetalleLocalScreen() {
       setIsFavorite(previousState);
       
       // Check for specific error types
-      if (error.message && (error.message.toLowerCase().includes('session') || error.message === 'SESSION_REFRESH_FAILED')) {
+      if (error.message && error.message.toLowerCase().includes('session')) {
         Alert.alert(
           'Sesión expirada',
           'Tu sesión ha expirado. Por favor cierra sesión y vuelve a iniciar sesión.'
