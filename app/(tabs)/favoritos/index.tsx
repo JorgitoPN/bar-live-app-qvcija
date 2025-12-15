@@ -74,7 +74,7 @@ export default function FavoritosScreen() {
 
       if (postsError) throw postsError;
 
-      const newSocialProfiles = new Map(socialProfiles);
+      const newSocialProfiles = new Map();
       const localsWithPosts = new Set(posts?.map(p => p.local_id) || []);
       
       localIds.forEach(localId => {
@@ -85,7 +85,7 @@ export default function FavoritosScreen() {
     } catch (error) {
       console.error('[Favoritos] Error checking social profiles:', error);
     }
-  }, [socialProfiles]);
+  }, []);
 
   const loadSavedLocales = useCallback(async () => {
     if (!user) {
@@ -219,7 +219,8 @@ export default function FavoritosScreen() {
       const firstPage = updatedLocales.slice(0, currentPage * ITEMS_PER_PAGE);
       setDisplayedLocales(firstPage);
     }
-  }, [userLocation, allSavedLocales, currentPage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userLocation, currentPage]);
 
   useEffect(() => {
     if (!searchQuery.trim()) {

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Linking, Platform, Alert, Dimensions, Share as RNShare, Modal, TextInput, KeyboardAvoidingView, Keyboard, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Linking, Platform, Alert, Dimensions, Share as RNShare, Modal, TextInput, KeyboardAvoidingView, Keyboard, Image as RNImage } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../integrations/supabase/client';
@@ -1200,7 +1200,7 @@ export default function DetalleLocalScreen() {
                       {/* ✅ NEW v19.0: Display user avatar */}
                       <View style={styles.reviewAvatar}>
                         {review.usuario?.avatar ? (
-                          <Image source={{ uri: review.usuario.avatar }} style={styles.avatar} />
+                          <RNImage source={{ uri: review.usuario.avatar }} style={styles.avatar} />
                         ) : (
                           <View style={[styles.avatar, styles.avatarPlaceholder]}>
                             <Text style={styles.avatarText}>
@@ -1251,7 +1251,9 @@ export default function DetalleLocalScreen() {
               style={styles.addReviewGradient}
             >
               <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={20} color="#fff" />
-              <Text style={styles.addReviewText}>Ver Reseñas</Text>
+              <Text style={styles.addReviewText}>
+                {reviews.some(r => r.usuario_id === user?.id) ? 'Editar Reseña' : 'Añadir Reseña'}
+              </Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
