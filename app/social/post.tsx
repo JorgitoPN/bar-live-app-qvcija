@@ -28,6 +28,7 @@ import { processCommentHashtags, processCommentMentions } from '@/utils/postHelp
 import { BlurView } from 'expo-blur';
 import MiniFoodPlateAvatar from '@/components/common/MiniFoodPlateAvatar';
 import { LinearGradient } from 'expo-linear-gradient';
+import { SOCIAL_ICONS } from '@/constants/SocialIcons';
 
 const { width, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -1473,8 +1474,8 @@ export default function PostDetailScreen() {
                 activeOpacity={0.7}
               >
                 <IconSymbol 
-                  ios_icon_name="message" 
-                  android_material_icon_name="chat_bubble_outline" 
+                  ios_icon_name={SOCIAL_ICONS.COMMENT.ios}
+                  android_material_icon_name={SOCIAL_ICONS.COMMENT.android}
                   size={26} 
                   color="#000" 
                 />
