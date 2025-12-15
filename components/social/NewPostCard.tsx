@@ -447,9 +447,12 @@ export default function NewPostCard({
 
       <PostViewerModal
         visible={showPostViewer}
-        post={post}
+        initialPostId={post.id}
+        allPostIds={[post.id]}
         onClose={() => setShowPostViewer(false)}
-        onUpdate={onUpdate}
+        onPostChange={() => {
+          console.log('[NewPostCard] Post changed in viewer');
+        }}
       />
 
       <CommentsModal
