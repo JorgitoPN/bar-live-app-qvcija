@@ -1,6 +1,7 @@
 
-// ✅ UNIFIED ICON SYSTEM for Social Features
+// ✅ UNIFIED ICON SYSTEM for Social Features v2.0
 // This ensures consistent icons across all social components
+// Updated to use the rounded chatbubble icon consistently
 
 export const SOCIAL_ICONS = {
   // Post Actions
@@ -11,8 +12,9 @@ export const SOCIAL_ICONS = {
     androidFilled: 'favorite',
   },
   COMMENT: {
-    ios: 'bubble.right',
-    iosFilled: 'bubble.right.fill',
+    // ✅ UPDATED: Using consistent rounded chatbubble icon
+    ios: 'message',
+    iosFilled: 'message.fill',
     android: 'chat_bubble_outline',
     androidFilled: 'chat_bubble',
   },

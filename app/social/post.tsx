@@ -1472,7 +1472,12 @@ export default function PostDetailScreen() {
                 onPress={handleCommentPress}
                 activeOpacity={0.7}
               >
-                <IconSymbol name="bubble.right" size={26} color="#000" />
+                <IconSymbol 
+                  ios_icon_name="message" 
+                  android_material_icon_name="chat_bubble_outline" 
+                  size={26} 
+                  color="#000" 
+                />
               </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.postActionButton} 
