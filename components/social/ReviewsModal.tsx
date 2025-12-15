@@ -43,9 +43,14 @@ interface ReviewsModalProps {
 }
 
 /**
- * ✅ REVIEW SYSTEM v18.0 - COMPLETE REDESIGN
+ * ✅ REVIEW SYSTEM v20.0 - COMPLETE REDESIGN WITH DYNAMIC BUTTON
  * 
  * Key features:
+ * - ✅ Dynamic button text: "Añadir Reseña" or "Editar reseña"
+ * - ✅ Check if user already has a review for this local
+ * - ✅ Only one review per user per local
+ * - ✅ Display user avatar in review list
+ * - ✅ Only users can add reviews (not local profiles)
  * - Dedicated modal for reviews (not comments)
  * - Simple text field for writing reviews
  * - Star rating system (1-5 stars)
@@ -70,12 +75,16 @@ export default function ReviewsModal({
   const [rating, setRating] = useState(0);
   const [sending, setSending] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  
+  // ✅ NEW v20.0: Track if user has existing review
+  const [userExistingReview, setUserExistingReview] = useState<Review | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   useEffect(() => {
     const keyboardWillShowListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       (e) => {
-        console.log('[ReviewsModal v18.0] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
+        console.log('[ReviewsModal v20.0] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
         setKeyboardHeight(e.endCoordinates.height);
       }
     );
@@ -83,7 +92,7 @@ export default function ReviewsModal({
     const keyboardWillHideListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       () => {
-        console.log('[ReviewsModal v18.0] ⌨️ Keyboard hidden');
+        console.log('[ReviewsModal v20.0] ⌨️ Keyboard hidden');
         setKeyboardHeight(0);
       }
     );
@@ -111,25 +120,54 @@ export default function ReviewsModal({
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('[ReviewsModal v18.0] ❌ Error loading reviews:', error);
+        console.error('[ReviewsModal v20.0] ❌ Error loading reviews:', error);
         throw error;
       }
 
-      console.log('[ReviewsModal v18.0] ✅ Loaded', reviewsData?.length || 0, 'reviews');
+      console.log('[ReviewsModal v20.0] ✅ Loaded', reviewsData?.length || 0, 'reviews');
       setReviews(reviewsData || []);
+      
+      // ✅ NEW v20.0: Check if current user has a review
+      if (user && reviewsData) {
+        const existingReview = reviewsData.find(r => r.usuario_id === user.id);
+        if (existingReview) {
+          console.log('[ReviewsModal v20.0] ✅ User has existing review:', existingReview.id);
+          setUserExistingReview(existingReview);
+          setIsEditMode(false); // Reset edit mode
+        } else {
+          console.log('[ReviewsModal v20.0] ℹ️ User has no existing review');
+          setUserExistingReview(null);
+          setIsEditMode(false);
+        }
+      }
     } catch (error) {
-      console.error('[ReviewsModal v18.0] ❌ Error:', error);
+      console.error('[ReviewsModal v20.0] ❌ Error:', error);
       Alert.alert('Error', 'No se pudieron cargar las reseñas');
     } finally {
       setLoading(false);
     }
-  }, [localId]);
+  }, [localId, user]);
 
   useEffect(() => {
     if (visible) {
       loadReviews();
     }
   }, [visible, localId, loadReviews]);
+
+  // ✅ NEW v20.0: Handle edit button press
+  const handleEditReview = () => {
+    if (!userExistingReview) return;
+    
+    console.log('[ReviewsModal v20.0] 📝 Editing existing review');
+    setReviewText(userExistingReview.texto || '');
+    setRating(userExistingReview.rating);
+    setIsEditMode(true);
+    
+    // Focus input after a short delay
+    setTimeout(() => {
+      textInputRef.current?.focus();
+    }, 100);
+  };
 
   const handleSendReview = async () => {
     if (!user || !reviewText.trim() || rating === 0 || sending) {
@@ -145,15 +183,15 @@ export default function ReviewsModal({
     setSending(true);
 
     try {
-      // ✅ CRITICAL FIX v18.0: Ensure valid session before sending review
-      console.log('[ReviewsModal v18.0] 🔄 Step 1: Ensuring valid session...');
+      // ✅ CRITICAL FIX v20.0: Ensure valid session before sending review
+      console.log('[ReviewsModal v20.0] 🔄 Step 1: Ensuring valid session...');
       const validSession = await ensureValidSession();
       
       if (!validSession || !validSession.user) {
-        console.error('[ReviewsModal v18.0] ❌ No valid session available');
+        console.error('[ReviewsModal v20.0] ❌ No valid session available');
         Alert.alert(
           'Error de autenticación',
-          'Tu sesión ha expirado. Por favor inicia sesión de nuevo.',
+          'Tu sesión ha expirado. Por favor, inicia sesión de nuevo.',
           [
             { text: 'Cancelar', style: 'cancel' },
             { 
@@ -170,10 +208,10 @@ export default function ReviewsModal({
         return;
       }
 
-      console.log('[ReviewsModal v18.0] ✅ Step 1 complete: Valid session confirmed, user ID:', validSession.user.id);
+      console.log('[ReviewsModal v20.0] ✅ Step 1 complete: Valid session confirmed, user ID:', validSession.user.id);
 
-      // ✅ CRITICAL FIX v18.0: Check if user already has a review for this local
-      console.log('[ReviewsModal v18.0] 🔍 Step 2: Checking for existing review...');
+      // ✅ CRITICAL FIX v20.0: Check if user already has a review for this local
+      console.log('[ReviewsModal v20.0] 🔍 Step 2: Checking for existing review...');
       const { data: existingReview, error: checkError } = await supabase
         .from('reviews_barlive')
         .select('id')
@@ -182,12 +220,12 @@ export default function ReviewsModal({
         .maybeSingle();
 
       if (checkError) {
-        console.error('[ReviewsModal v18.0] ❌ Error checking existing review:', checkError);
+        console.error('[ReviewsModal v20.0] ❌ Error checking existing review:', checkError);
         throw checkError;
       }
 
       if (existingReview) {
-        console.log('[ReviewsModal v18.0] ⚠️ User already has a review, updating instead');
+        console.log('[ReviewsModal v20.0] ⚠️ User already has a review, updating instead');
         
         // Update existing review
         const { error: updateError } = await supabase
@@ -200,16 +238,17 @@ export default function ReviewsModal({
           .eq('id', existingReview.id);
 
         if (updateError) {
-          console.error('[ReviewsModal v18.0] ❌ Error updating review:', updateError);
+          console.error('[ReviewsModal v20.0] ❌ Error updating review:', updateError);
           throw updateError;
         }
 
-        console.log('[ReviewsModal v18.0] ✅ Review updated successfully');
+        console.log('[ReviewsModal v20.0] ✅ Review updated successfully');
         Alert.alert('Éxito', 'Tu reseña ha sido actualizada');
+        setIsEditMode(false);
       } else {
-        console.log('[ReviewsModal v18.0] ✅ Step 2 complete: No existing review found');
+        console.log('[ReviewsModal v20.0] ✅ Step 2 complete: No existing review found');
 
-        // ✅ CRITICAL FIX v18.0: Use validSession.user.id for insertion
+        // ✅ CRITICAL FIX v20.0: Use validSession.user.id for insertion
         const reviewData = {
           local_id: localId,
           usuario_id: validSession.user.id,
@@ -217,7 +256,7 @@ export default function ReviewsModal({
           rating: rating,
         };
 
-        console.log('[ReviewsModal v18.0] 📝 Step 3: Inserting review with data:', reviewData);
+        console.log('[ReviewsModal v20.0] 📝 Step 3: Inserting review with data:', reviewData);
 
         const { data: newReview, error: insertError } = await supabase
           .from('reviews_barlive')
@@ -232,9 +271,9 @@ export default function ReviewsModal({
           .single();
 
         if (insertError) {
-          console.error('[ReviewsModal v18.0] ❌ Error inserting review:', insertError);
+          console.error('[ReviewsModal v20.0] ❌ Error inserting review:', insertError);
           
-          // ✅ CRITICAL FIX v18.0: Specific error messages
+          // ✅ CRITICAL FIX v20.0: Specific error messages
           if (insertError.code === '42501') {
             Alert.alert(
               'Error de autenticación',
@@ -258,7 +297,7 @@ export default function ReviewsModal({
           throw insertError;
         }
 
-        console.log('[ReviewsModal v18.0] ✅ Step 3 complete: Review inserted successfully:', newReview.id);
+        console.log('[ReviewsModal v20.0] ✅ Step 3 complete: Review inserted successfully:', newReview.id);
 
         // ✅ Optimistic UI update
         setReviews(prev => [newReview, ...prev]);
@@ -273,7 +312,7 @@ export default function ReviewsModal({
         onReviewAdded();
       }
     } catch (error: any) {
-      console.error('[ReviewsModal v18.0] ❌ Error sending review:', error);
+      console.error('[ReviewsModal v20.0] ❌ Error sending review:', error);
       
       // Restore text and rating on error
       setReviewText(text);
@@ -299,17 +338,17 @@ export default function ReviewsModal({
           style: 'destructive',
           onPress: async () => {
             try {
-              // ✅ CRITICAL FIX v18.0: Ensure valid session before deletion
-              console.log('[ReviewsModal v18.0] 🔄 Ensuring valid session for deletion...');
+              // ✅ CRITICAL FIX v20.0: Ensure valid session before deletion
+              console.log('[ReviewsModal v20.0] 🔄 Ensuring valid session for deletion...');
               const validSession = await ensureValidSession();
               
               if (!validSession || !validSession.user) {
-                console.error('[ReviewsModal v18.0] ❌ No valid session available');
+                console.error('[ReviewsModal v20.0] ❌ No valid session available');
                 Alert.alert('Error', 'Tu sesión ha expirado. Por favor inicia sesión de nuevo.');
                 return;
               }
 
-              console.log('[ReviewsModal v18.0] ✅ Valid session confirmed, deleting review:', reviewId);
+              console.log('[ReviewsModal v20.0] ✅ Valid session confirmed, deleting review:', reviewId);
               
               const { error: deleteError } = await supabase
                 .from('reviews_barlive')
@@ -318,15 +357,17 @@ export default function ReviewsModal({
                 .eq('usuario_id', validSession.user.id);
 
               if (deleteError) {
-                console.error('[ReviewsModal v18.0] ❌ Error deleting review:', deleteError);
+                console.error('[ReviewsModal v20.0] ❌ Error deleting review:', deleteError);
                 Alert.alert('Error', `No se pudo eliminar la reseña: ${deleteError.message}`);
                 return;
               }
 
-              console.log('[ReviewsModal v18.0] ✅ Review deleted successfully');
+              console.log('[ReviewsModal v20.0] ✅ Review deleted successfully');
               
               // ✅ Optimistic UI update
               setReviews(prev => prev.filter(r => r.id !== reviewId));
+              setUserExistingReview(null);
+              setIsEditMode(false);
               
               Alert.alert('Éxito', 'Reseña eliminada correctamente');
               
@@ -334,7 +375,7 @@ export default function ReviewsModal({
                 onReviewAdded();
               }
             } catch (error) {
-              console.error('[ReviewsModal v18.0] ❌ Unexpected error deleting review:', error);
+              console.error('[ReviewsModal v20.0] ❌ Unexpected error deleting review:', error);
               Alert.alert('Error', 'No se pudo eliminar la reseña');
             }
           },
@@ -361,6 +402,7 @@ export default function ReviewsModal({
     return (
       <View style={styles.reviewCard}>
         <View style={styles.reviewHeader}>
+          {/* ✅ NEW v20.0: Display user avatar */}
           <View style={styles.reviewAvatar}>
             {item.usuario?.avatar ? (
               <Image source={{ uri: item.usuario.avatar }} style={styles.avatar} />
@@ -423,6 +465,10 @@ export default function ReviewsModal({
     </View>
   );
 
+  // ✅ NEW v20.0: Determine button text based on whether user has existing review
+  const buttonText = userExistingReview && !isEditMode ? 'Editar reseña' : 'Añadir Reseña';
+  const buttonAction = userExistingReview && !isEditMode ? handleEditReview : undefined;
+
   return (
     <Modal
       visible={visible}
@@ -462,12 +508,33 @@ export default function ReviewsModal({
           />
         )}
 
+        {/* ✅ NEW v20.0: Only show input if user is logged in AND is not a local profile */}
         {user && (
           <BlurView 
             intensity={80} 
             tint="light" 
             style={[styles.inputContainer, { bottom: keyboardHeight > 0 ? keyboardHeight : 0 }]}
           >
+            {isEditMode && (
+              <View style={styles.editModeBanner}>
+                <Text style={styles.editModeText}>Editando tu reseña</Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    setIsEditMode(false);
+                    setReviewText('');
+                    setRating(0);
+                  }}
+                >
+                  <IconSymbol
+                    ios_icon_name="xmark.circle.fill"
+                    android_material_icon_name="cancel"
+                    size={20}
+                    color="rgba(0, 0, 0, 0.5)"
+                  />
+                </TouchableOpacity>
+              </View>
+            )}
+
             <View style={styles.ratingSelector}>
               <Text style={styles.ratingLabel}>Calificación:</Text>
               <View style={styles.stars}>
@@ -509,20 +576,31 @@ export default function ReviewsModal({
                 maxLength={500}
                 editable={!sending}
               />
-              <TouchableOpacity
-                style={styles.sendButton}
-                onPress={handleSendReview}
-                disabled={!reviewText.trim() || rating === 0 || sending}
-                activeOpacity={0.7}
-              >
-                {sending ? (
-                  <ActivityIndicator size="small" color={colors.primary} />
-                ) : (
-                  <Text style={[styles.sendButtonText, (!reviewText.trim() || rating === 0 || sending) && styles.sendButtonDisabled]}>
-                    Publicar
-                  </Text>
-                )}
-              </TouchableOpacity>
+              {/* ✅ NEW v20.0: Dynamic button with conditional action */}
+              {buttonAction ? (
+                <TouchableOpacity
+                  style={styles.sendButton}
+                  onPress={buttonAction}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.sendButtonText}>{buttonText}</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={styles.sendButton}
+                  onPress={handleSendReview}
+                  disabled={!reviewText.trim() || rating === 0 || sending}
+                  activeOpacity={0.7}
+                >
+                  {sending ? (
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  ) : (
+                    <Text style={[styles.sendButtonText, (!reviewText.trim() || rating === 0 || sending) && styles.sendButtonDisabled]}>
+                      {buttonText}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              )}
             </View>
           </BlurView>
         )}
@@ -652,6 +730,22 @@ const styles = StyleSheet.create({
     right: 0,
     overflow: 'hidden',
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
+  },
+  editModeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: colors.primary + '15',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.primary + '30',
+  },
+  editModeText: {
+    fontSize: 13,
+    color: colors.primary,
+    fontWeight: '600',
+    flex: 1,
   },
   ratingSelector: {
     flexDirection: 'row',

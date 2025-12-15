@@ -308,7 +308,7 @@ export default function DetalleLocalScreen() {
   // ✅ Get favorite status from FavoritesContext
   const localIsFavorite = params.id ? isFavorite(params.id as string) : false;
 
-  // ✅ REVIEW SYSTEM v18.0 - Use dedicated ReviewsModal
+  // ✅ REVIEW SYSTEM v19.0 - Use dedicated ReviewsModal
   const [showReviewsModal, setShowReviewsModal] = useState(false);
 
   useEffect(() => {
@@ -553,7 +553,7 @@ export default function DetalleLocalScreen() {
     }
   };
 
-  // ✅ REVIEW SYSTEM v18.0 - Open dedicated ReviewsModal
+  // ✅ REVIEW SYSTEM v19.0 - Open dedicated ReviewsModal
   const handleAddReview = () => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para añadir una reseña');
@@ -1175,7 +1175,7 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* ✅ REVIEW SYSTEM v18.0 - Enhanced Reviews Section */}
+        {/* ✅ REVIEW SYSTEM v19.0 - Enhanced Reviews Section */}
         <View style={styles.compactSection}>
           <View style={styles.compactSectionHeader}>
             <View style={[styles.compactIconCircle, { backgroundColor: '#FFD700' + '20' }]}>
@@ -1197,8 +1197,17 @@ export default function DetalleLocalScreen() {
                 return (
                   <View key={review.id} style={styles.reviewCard}>
                     <View style={styles.reviewHeader}>
+                      {/* ✅ NEW v19.0: Display user avatar */}
                       <View style={styles.reviewAvatar}>
-                        <Ionicons name="person" size={18} color={colors.textSecondary} />
+                        {review.usuario?.avatar ? (
+                          <Image source={{ uri: review.usuario.avatar }} style={styles.avatar} />
+                        ) : (
+                          <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                            <Text style={styles.avatarText}>
+                              {review.usuario?.nombre?.charAt(0).toUpperCase() || 'U'}
+                            </Text>
+                          </View>
+                        )}
                       </View>
                       <View style={styles.reviewInfo}>
                         <Text style={styles.reviewAuthor}>
@@ -1233,6 +1242,7 @@ export default function DetalleLocalScreen() {
             </View>
           )}
 
+          {/* ✅ NEW v19.0: Button text will be dynamic in ReviewsModal */}
           <TouchableOpacity style={styles.addReviewBtn} onPress={handleAddReview}>
             <LinearGradient
               colors={[colors.primary, colors.secondary]}
@@ -1241,7 +1251,7 @@ export default function DetalleLocalScreen() {
               style={styles.addReviewGradient}
             >
               <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={20} color="#fff" />
-              <Text style={styles.addReviewText}>Añadir Reseña</Text>
+              <Text style={styles.addReviewText}>Ver Reseñas</Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -1254,13 +1264,13 @@ export default function DetalleLocalScreen() {
         onClose={() => setGalleryVisible(false)}
       />
 
-      {/* ✅ REVIEW SYSTEM v18.0 - Use dedicated ReviewsModal */}
+      {/* ✅ REVIEW SYSTEM v19.0 - Use dedicated ReviewsModal with dynamic button */}
       <ReviewsModal
         visible={showReviewsModal}
         localId={params.id as string}
         onClose={() => setShowReviewsModal(false)}
         onReviewAdded={() => {
-          console.log('[DetalleLocal v18.0] ✅ Review added, reloading reviews');
+          console.log('[DetalleLocal v19.0] ✅ Review added, reloading reviews');
           cargarReviewsBarlive();
         }}
       />
@@ -1802,11 +1812,21 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: colors.background,
-    alignItems: 'center',
+  },
+  avatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  avatarPlaceholder: {
+    backgroundColor: colors.primary,
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: colors.primary,
+    alignItems: 'center',
+  },
+  avatarText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: colors.headerText,
   },
   reviewInfo: {
     flex: 1,
