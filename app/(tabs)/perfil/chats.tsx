@@ -42,7 +42,7 @@ interface Chat {
 export default function ChatsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { user } = useAuth();
+  const { user, ensureValidSession } = useAuth();
   const [busqueda, setBusqueda] = useState('');
   const [chats, setChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,7 +61,7 @@ export default function ChatsScreen() {
     }
 
     try {
-      console.log('[Chats v7] 🔍 Loading chats for user:', user.id);
+      console.log('[Chats v8] 🔍 Loading chats for user:', user.id);
 
       // Get all chats where user is participant
       const { data: chatsData, error: chatsError } = await supabase
@@ -79,11 +79,11 @@ export default function ChatsScreen() {
         .order('updated_at', { ascending: false });
 
       if (chatsError) {
-        console.error('[Chats v7] Error loading chats:', chatsError);
+        console.error('[Chats v8] Error loading chats:', chatsError);
         return;
       }
 
-      console.log('[Chats v7] ✅ Loaded', chatsData?.length || 0, 'chats');
+      console.log('[Chats v8] ✅ Loaded', chatsData?.length || 0, 'chats');
 
       // Get other user/local info and unread count for each chat
       const chatsWithInfo = await Promise.all(
@@ -93,7 +93,7 @@ export default function ChatsScreen() {
           // ✅ If this is a local-specific chat, get local info instead of user info
           let userData;
           if (chat.local_id) {
-            console.log('[Chats v7] 🏢 Chat', chat.id, 'is LOCAL-SPECIFIC, loading local info for:', chat.local_id);
+            console.log('[Chats v8] 🏢 Chat', chat.id, 'is LOCAL-SPECIFIC, loading local info for:', chat.local_id);
             
             // This is a local-specific chat - get local info
             const { data: localData } = await supabase
@@ -110,12 +110,12 @@ export default function ChatsScreen() {
                 avatar: localData.imagen_url,
                 activo: false, // Locals don't have "active" status
               };
-              console.log('[Chats v7] ✅ Loaded local info:', localData.nombre);
+              console.log('[Chats v8] ✅ Loaded local info:', localData.nombre);
             } else {
-              console.error('[Chats v7] ❌ Failed to load local info for:', chat.local_id);
+              console.error('[Chats v8] ❌ Failed to load local info for:', chat.local_id);
             }
           } else {
-            console.log('[Chats v7] 👤 Chat', chat.id, 'is USER-TO-USER, loading user info for:', otroUsuarioId);
+            console.log('[Chats v8] 👤 Chat', chat.id, 'is USER-TO-USER, loading user info for:', otroUsuarioId);
             
             // Regular user-to-user chat - ✅ CRITICAL: Fetch username field
             const { data: userDataResult } = await supabase
@@ -126,7 +126,7 @@ export default function ChatsScreen() {
 
             userData = userDataResult;
             if (userData) {
-              console.log('[Chats v7] ✅ Loaded user info:', userData.nombre, 'username:', userData.username);
+              console.log('[Chats v8] ✅ Loaded user info:', userData.nombre, 'username:', userData.username);
             }
           }
 
@@ -153,9 +153,9 @@ export default function ChatsScreen() {
       );
 
       setChats(chatsWithInfo);
-      console.log('[Chats v7] ✅ Processed all chats with info');
+      console.log('[Chats v8] ✅ Processed all chats with info');
     } catch (error) {
-      console.error('[Chats v7] Error:', error);
+      console.error('[Chats v8] Error:', error);
     } finally {
       setLoading(false);
     }
@@ -172,7 +172,7 @@ export default function ChatsScreen() {
       return;
     }
 
-    console.log('[Chats v7] 🔥 Opening chat:', { chatId, isLocalChat, localId });
+    console.log('[Chats v8] 🔥 Opening chat:', { chatId, isLocalChat, localId });
 
     // Mark messages as read when opening chat
     try {
@@ -183,15 +183,15 @@ export default function ChatsScreen() {
         .eq('leido', false)
         .neq('remitente_id', user.id);
     } catch (error) {
-      console.error('[Chats v7] Error marking messages as read:', error);
+      console.error('[Chats v8] Error marking messages as read:', error);
     }
 
     // ✅ Route to local-specific chat if this is a local chat
     if (isLocalChat && localId) {
-      console.log('[Chats v7] 🏢 Navigating to LOCAL-SPECIFIC chat');
+      console.log('[Chats v8] 🏢 Navigating to LOCAL-SPECIFIC chat');
       router.push(`/chat/conversacion?localId=${localId}&userId=${user.id}`);
     } else {
-      console.log('[Chats v7] 👤 Navigating to USER-TO-USER chat');
+      console.log('[Chats v8] 👤 Navigating to USER-TO-USER chat');
       router.push(`/chat/conversacion?chatId=${chatId}`);
     }
   }, [user, router]);
@@ -245,7 +245,7 @@ export default function ChatsScreen() {
     setSelectedChats(newSelected);
   };
 
-  // ✅ CRITICAL FIX v7: Enhanced deletion with proper cascade and database sync
+  // ✅ CRITICAL FIX v8: NEW APPROACH - Enhanced deletion with proper session validation and database sync
   const handleDeleteSelected = async () => {
     if (selectedChats.size === 0) {
       Alert.alert('Error', 'Selecciona al menos una conversación para eliminar');
@@ -263,25 +263,39 @@ export default function ChatsScreen() {
           onPress: async () => {
             const chatIdsToDelete = Array.from(selectedChats);
             
-            console.log('[Chats v7] 🗑️ Starting deletion of', chatIdsToDelete.length, 'conversations');
-            console.log('[Chats v7] 📋 Chat IDs to delete:', chatIdsToDelete);
+            console.log('[Chats v8] 🗑️ Starting deletion of', chatIdsToDelete.length, 'conversations');
+            console.log('[Chats v8] 📋 Chat IDs to delete:', chatIdsToDelete);
             
             setDeleting(true);
             
-            // ✅ CRITICAL FIX v7: Optimistic UI update - remove chats from local state immediately
-            console.log('[Chats v7] 🎯 Step 1: Optimistic UI update - removing chats from local state');
-            setChats(prevChats => prevChats.filter(chat => !chatIdsToDelete.includes(chat.id)));
-            console.log('[Chats v7] ✅ Step 1 complete: Chats removed from UI');
-            
             try {
-              // ✅ CRITICAL FIX v7: Delete messages first with proper error handling
-              console.log('[Chats v7] 🗑️ Step 2: Deleting messages for all chats...');
+              // ✅ CRITICAL FIX v8: Ensure valid session before deletion
+              console.log('[Chats v8] 🔄 Step 1: Ensuring valid session...');
+              const validSession = await ensureValidSession();
+              
+              if (!validSession || !validSession.user) {
+                console.error('[Chats v8] ❌ No valid session available');
+                Alert.alert('Error', 'Tu sesión ha expirado. Por favor inicia sesión de nuevo.');
+                setDeleting(false);
+                router.push('/auth/login');
+                return;
+              }
+              
+              console.log('[Chats v8] ✅ Step 1 complete: Valid session confirmed');
+              
+              // ✅ CRITICAL FIX v8: Optimistic UI update - remove chats from local state immediately
+              console.log('[Chats v8] 🎯 Step 2: Optimistic UI update - removing chats from local state');
+              setChats(prevChats => prevChats.filter(chat => !chatIdsToDelete.includes(chat.id)));
+              console.log('[Chats v8] ✅ Step 2 complete: Chats removed from UI');
+              
+              // ✅ CRITICAL FIX v8: Delete messages first with proper error handling
+              console.log('[Chats v8] 🗑️ Step 3: Deleting messages for all chats...');
               
               let totalMessagesDeleted = 0;
               let messagesErrorCount = 0;
               
               for (const chatId of chatIdsToDelete) {
-                console.log('[Chats v7] 🗑️ Deleting messages for chat:', chatId);
+                console.log('[Chats v8] 🗑️ Deleting messages for chat:', chatId);
                 
                 // First, count messages to delete
                 const { count: messageCount } = await supabase
@@ -289,7 +303,7 @@ export default function ChatsScreen() {
                   .select('id', { count: 'exact', head: true })
                   .eq('chat_id', chatId);
                 
-                console.log('[Chats v7] 📊 Found', messageCount || 0, 'messages to delete for chat:', chatId);
+                console.log('[Chats v8] 📊 Found', messageCount || 0, 'messages to delete for chat:', chatId);
                 
                 // Delete messages
                 const { error: messagesError, count: deletedCount } = await supabase
@@ -298,44 +312,45 @@ export default function ChatsScreen() {
                   .eq('chat_id', chatId);
                 
                 if (messagesError) {
-                  console.error('[Chats v7] ❌ Error deleting messages for chat', chatId, ':', messagesError);
+                  console.error('[Chats v8] ❌ Error deleting messages for chat', chatId, ':', messagesError);
                   messagesErrorCount++;
                 } else {
-                  console.log('[Chats v7] ✅ Deleted', deletedCount || 0, 'messages for chat:', chatId);
+                  console.log('[Chats v8] ✅ Deleted', deletedCount || 0, 'messages for chat:', chatId);
                   totalMessagesDeleted += (deletedCount || 0);
                 }
               }
 
-              console.log('[Chats v7] ✅ Step 2 complete: Deleted', totalMessagesDeleted, 'messages total');
+              console.log('[Chats v8] ✅ Step 3 complete: Deleted', totalMessagesDeleted, 'messages total');
               if (messagesErrorCount > 0) {
-                console.warn('[Chats v7] ⚠️ Failed to delete messages for', messagesErrorCount, 'chats');
+                console.warn('[Chats v8] ⚠️ Failed to delete messages for', messagesErrorCount, 'chats');
               }
 
-              console.log('[Chats v7] 🗑️ Step 3: Deleting chats from database...');
+              console.log('[Chats v8] 🗑️ Step 4: Deleting chats from database...');
 
-              // ✅ CRITICAL FIX v7: Delete chats in a single query with proper error handling
+              // ✅ CRITICAL FIX v8: Delete chats in a single query with proper error handling
               const { error: chatsError, count: chatsCount } = await supabase
                 .from('chats')
                 .delete({ count: 'exact' })
                 .in('id', chatIdsToDelete);
 
               if (chatsError) {
-                console.error('[Chats v7] ❌ Error deleting chats:', chatsError);
+                console.error('[Chats v8] ❌ Error deleting chats:', chatsError);
                 throw chatsError;
               }
 
-              console.log('[Chats v7] ✅ Step 3 complete: Deleted', chatsCount || 0, 'chats from database');
+              console.log('[Chats v8] ✅ Step 4 complete: Deleted', chatsCount || 0, 'chats from database');
 
-              // ✅ CRITICAL FIX v7: Verify deletion by reloading from database
-              console.log('[Chats v7] 🔄 Step 4: Verifying deletion by reloading chats...');
+              // ✅ CRITICAL FIX v8: Verify deletion by reloading from database
+              console.log('[Chats v8] 🔄 Step 5: Verifying deletion by reloading chats...');
               
               // Wait a moment for database to sync
-              await new Promise(resolve => setTimeout(resolve, 500));
+              await new Promise(resolve => setTimeout(resolve, 1000));
               
+              // Reload chats to ensure sync
               await loadChats();
-              console.log('[Chats v7] ✅ Step 4 complete: Chats reloaded from database');
+              console.log('[Chats v8] ✅ Step 5 complete: Chats reloaded from database');
               
-              console.log('[Chats v7] ✅ Successfully deleted', chatIdsToDelete.length, 'conversations');
+              console.log('[Chats v8] ✅ Successfully deleted', chatIdsToDelete.length, 'conversations');
               
               Alert.alert('Éxito', `${chatIdsToDelete.length} conversación(es) eliminada(s) correctamente`);
               
@@ -343,10 +358,10 @@ export default function ChatsScreen() {
               setSelectionMode(false);
               setSelectedChats(new Set());
             } catch (error) {
-              console.error('[Chats v7] ❌ Error deleting conversations:', error);
+              console.error('[Chats v8] ❌ Error deleting conversations:', error);
               Alert.alert('Error', 'No se pudieron eliminar algunas conversaciones. Recargando...');
               
-              // ✅ CRITICAL FIX v7: Always reload chats on error to sync with database
+              // ✅ CRITICAL FIX v8: Always reload chats on error to sync with database
               await loadChats();
             } finally {
               setDeleting(false);
