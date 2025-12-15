@@ -62,6 +62,31 @@ export default function FavoritosScreen() {
     })();
   }, []);
 
+  const checkSocialProfilesForLocales = useCallback(async (localIds: string[]) => {
+    if (localIds.length === 0) return;
+
+    try {
+      const { data: posts, error: postsError } = await supabase
+        .from('posts')
+        .select('local_id')
+        .eq('tipo', 'local')
+        .in('local_id', localIds);
+
+      if (postsError) throw postsError;
+
+      const newSocialProfiles = new Map(socialProfiles);
+      const localsWithPosts = new Set(posts?.map(p => p.local_id) || []);
+      
+      localIds.forEach(localId => {
+        newSocialProfiles.set(localId, localsWithPosts.has(localId));
+      });
+      
+      setSocialProfiles(newSocialProfiles);
+    } catch (error) {
+      console.error('[Favoritos] Error checking social profiles:', error);
+    }
+  }, [socialProfiles]);
+
   const loadSavedLocales = useCallback(async () => {
     if (!user) {
       setLoading(false);
@@ -144,32 +169,7 @@ export default function FavoritosScreen() {
     } finally {
       setLoading(false);
     }
-  }, [user, userLocation]);
-
-  const checkSocialProfilesForLocales = async (localIds: string[]) => {
-    if (localIds.length === 0) return;
-
-    try {
-      const { data: posts, error: postsError } = await supabase
-        .from('posts')
-        .select('local_id')
-        .eq('tipo', 'local')
-        .in('local_id', localIds);
-
-      if (postsError) throw postsError;
-
-      const newSocialProfiles = new Map(socialProfiles);
-      const localsWithPosts = new Set(posts?.map(p => p.local_id) || []);
-      
-      localIds.forEach(localId => {
-        newSocialProfiles.set(localId, localsWithPosts.has(localId));
-      });
-      
-      setSocialProfiles(newSocialProfiles);
-    } catch (error) {
-      console.error('[Favoritos] Error checking social profiles:', error);
-    }
-  };
+  }, [user, userLocation, checkSocialProfilesForLocales]);
 
   useEffect(() => {
     loadSavedLocales();
@@ -219,7 +219,7 @@ export default function FavoritosScreen() {
       const firstPage = updatedLocales.slice(0, currentPage * ITEMS_PER_PAGE);
       setDisplayedLocales(firstPage);
     }
-  }, [userLocation]);
+  }, [userLocation, allSavedLocales, currentPage]);
 
   useEffect(() => {
     if (!searchQuery.trim()) {

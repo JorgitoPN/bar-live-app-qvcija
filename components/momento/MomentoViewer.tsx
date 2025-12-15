@@ -79,6 +79,32 @@ export default function MomentoViewer({
   const momentoViewRef = useRef<View>(null);
   const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  const markAsViewed = useCallback(async (momentoId: string) => {
+    if (!user) return;
+
+    try {
+      await supabase.from('momento_views').insert({
+        momento_id: momentoId,
+        usuario_id: user.id,
+        tipo_viewer: 'usuario',
+      });
+
+      // Update view count
+      await supabase.rpc('increment_momento_views', { momento_id: momentoId });
+
+      // Update local state
+      setMomentos(prev =>
+        prev.map(m =>
+          m.id === momentoId
+            ? { ...m, user_has_viewed: true, vistas_count: m.vistas_count + 1 }
+            : m
+        )
+      );
+    } catch (error) {
+      console.error('[MomentoViewer] Error marking as viewed:', error);
+    }
+  }, [user]);
+
   const loadMomentos = useCallback(async () => {
     if (!user || !authorId) return;
 
@@ -201,33 +227,7 @@ export default function MomentoViewer({
     } finally {
       setLoading(false);
     }
-  }, [user, authorId, authorType, onClose, progressAnims]);
-
-  const markAsViewed = async (momentoId: string) => {
-    if (!user) return;
-
-    try {
-      await supabase.from('momento_views').insert({
-        momento_id: momentoId,
-        usuario_id: user.id,
-        tipo_viewer: 'usuario',
-      });
-
-      // Update view count
-      await supabase.rpc('increment_momento_views', { momento_id: momentoId });
-
-      // Update local state
-      setMomentos(prev =>
-        prev.map(m =>
-          m.id === momentoId
-            ? { ...m, user_has_viewed: true, vistas_count: m.vistas_count + 1 }
-            : m
-        )
-      );
-    } catch (error) {
-      console.error('[MomentoViewer] Error marking as viewed:', error);
-    }
-  };
+  }, [user, authorId, authorType, onClose, progressAnims, markAsViewed]);
 
   const handleLike = async () => {
     if (!user || momentos.length === 0) return;
@@ -508,7 +508,7 @@ export default function MomentoViewer({
     } else {
       onClose();
     }
-  }, [currentIndex, momentos, onClose, progressAnims]);
+  }, [currentIndex, momentos, onClose, progressAnims, markAsViewed]);
 
   const handlePrevious = () => {
     // Clear any existing timer
