@@ -826,7 +826,7 @@ export default function CrearPublicacionScreen() {
                   <IconSymbol name="photo" size={24} color={imagenes.length >= MAX_IMAGES ? colors.textSecondary : colors.primary} />
                 </View>
                 <Text style={[styles.actionButtonText, imagenes.length >= MAX_IMAGES && styles.actionButtonTextDisabled]}>
-                  Fotos/Videos
+                  Fotos
                 </Text>
               </TouchableOpacity>
 
