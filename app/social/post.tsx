@@ -17,9 +17,9 @@ import {
   Pressable,
   FlatList,
   Keyboard,
+  StatusBar,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
@@ -29,8 +29,10 @@ import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 import ParsedText from '@/components/social/ParsedText';
 import MentionAutocomplete, { MentionSuggestion } from '@/components/social/MentionAutocomplete';
 import { processCommentHashtags, processCommentMentions } from '@/utils/postHelpers';
+import { BlurView } from 'expo-blur';
+import MiniFoodPlateAvatar from '@/components/common/MiniFoodPlateAvatar';
 
-const { width } = Dimensions.get('window');
+const { width, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface Comentario {
   id: string;
@@ -60,20 +62,27 @@ interface ChatUser {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#000',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#000',
   },
   header: {
-    paddingTop: 50,
-    paddingBottom: 12,
-    paddingHorizontal: 16,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'ios' ? 60 : 48,
+    paddingBottom: 12,
+    zIndex: 10,
+    overflow: 'hidden',
   },
   backButton: {
     padding: 4,
@@ -81,16 +90,19 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: colors.headerText,
+    color: '#fff',
     flex: 1,
     textAlign: 'center',
   },
   deleteButton: {
     padding: 8,
   },
+  scrollContent: {
+    paddingTop: Platform.OS === 'ios' ? 100 : 88,
+    paddingBottom: 120,
+  },
   postCard: {
-    backgroundColor: colors.cardBackground,
-    marginBottom: 8,
+    backgroundColor: '#000',
   },
   postHeader: {
     flexDirection: 'row',
@@ -122,22 +134,25 @@ const styles = StyleSheet.create({
   postAutorNombre: {
     fontSize: 15,
     fontWeight: '700',
-    color: colors.text,
+    color: '#fff',
   },
   postAutorBold: {
     fontWeight: '600',
-    color: colors.text,
+    color: '#fff',
   },
   imageCarouselContainer: {
     position: 'relative',
+    width: width,
+    height: width,
   },
   imageCarousel: {
     width: width,
+    height: width,
   },
   postImagen: {
     width: width,
     height: width,
-    backgroundColor: colors.cardBorder,
+    backgroundColor: '#1a1a1a',
   },
   imageIndicatorContainer: {
     position: 'absolute',
@@ -173,7 +188,7 @@ const styles = StyleSheet.create({
   imageCountText: {
     fontSize: 12,
     fontWeight: '600',
-    color: colors.headerText,
+    color: '#fff',
   },
   postActions: {
     flexDirection: 'row',
@@ -198,7 +213,7 @@ const styles = StyleSheet.create({
   postLikesText: {
     fontSize: 14,
     fontWeight: '400',
-    color: colors.text,
+    color: '#fff',
   },
   postLikesBold: {
     fontWeight: '600',
@@ -210,7 +225,7 @@ const styles = StyleSheet.create({
   },
   postDescripcionText: {
     fontSize: 14,
-    color: colors.text,
+    color: '#fff',
     lineHeight: 18,
   },
   viewCommentsButton: {
@@ -220,7 +235,7 @@ const styles = StyleSheet.create({
   },
   viewCommentsText: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: 'rgba(255, 255, 255, 0.7)',
     fontWeight: '400',
   },
   postTimeContainer: {
@@ -230,31 +245,31 @@ const styles = StyleSheet.create({
   },
   postTimeText: {
     fontSize: 11,
-    color: colors.textSecondary,
+    color: 'rgba(255, 255, 255, 0.5)',
     textTransform: 'uppercase',
   },
   comentariosSection: {
     paddingTop: 8,
     paddingBottom: 100,
-    backgroundColor: colors.background,
+    backgroundColor: '#000',
   },
   comentariosSectionHeader: {
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-    backgroundColor: colors.cardBackground,
+    borderBottomColor: '#1a1a1a',
+    backgroundColor: '#000',
   },
   comentariosSectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: colors.text,
+    color: '#fff',
   },
   comentarioItem: {
     flexDirection: 'row',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: colors.cardBackground,
+    backgroundColor: '#000',
   },
   comentarioAvatar: {
     width: 32,
@@ -273,16 +288,16 @@ const styles = StyleSheet.create({
   comentarioAutor: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.text,
+    color: '#fff',
     marginRight: 8,
   },
   comentarioFecha: {
     fontSize: 12,
-    color: colors.textSecondary,
+    color: 'rgba(255, 255, 255, 0.5)',
   },
   comentarioTexto: {
     fontSize: 14,
-    color: colors.text,
+    color: '#fff',
     lineHeight: 20,
     marginBottom: 6,
   },
@@ -298,7 +313,7 @@ const styles = StyleSheet.create({
   },
   comentarioActionText: {
     fontSize: 13,
-    color: colors.textSecondary,
+    color: 'rgba(255, 255, 255, 0.7)',
     fontWeight: '600',
   },
   comentarioOptionsButton: {
@@ -308,17 +323,15 @@ const styles = StyleSheet.create({
   replyContainer: {
     marginLeft: 44,
     borderLeftWidth: 2,
-    borderLeftColor: colors.cardBorder,
+    borderLeftColor: '#1a1a1a',
     paddingLeft: 12,
-    backgroundColor: colors.cardBackground,
+    backgroundColor: '#000',
   },
   inputContainer: {
     position: 'absolute',
     left: 0,
     right: 0,
-    backgroundColor: colors.cardBackground,
-    borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
+    overflow: 'hidden',
   },
   autocompleteWrapper: {
     position: 'absolute',
@@ -332,14 +345,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: colors.background,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
     borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
+    borderBottomColor: '#1a1a1a',
   },
   replyingToText: {
     flex: 1,
     fontSize: 13,
-    color: colors.textSecondary,
+    color: 'rgba(255, 255, 255, 0.7)',
   },
   cancelReplyButton: {
     padding: 4,
@@ -350,6 +363,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     gap: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
   },
   inputAvatar: {
     width: 32,
@@ -360,7 +374,7 @@ const styles = StyleSheet.create({
   textInput: {
     flex: 1,
     fontSize: 14,
-    color: colors.text,
+    color: '#fff',
     maxHeight: 80,
     paddingVertical: 8,
   },
@@ -521,6 +535,7 @@ export default function PostDetailScreen() {
     const keyboardWillShowListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       (e) => {
+        console.log('[PostDetail] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
         setKeyboardHeight(e.endCoordinates.height);
       }
     );
@@ -528,6 +543,7 @@ export default function PostDetailScreen() {
     const keyboardWillHideListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       () => {
+        console.log('[PostDetail] ⌨️ Keyboard hidden');
         setKeyboardHeight(0);
       }
     );
@@ -1473,7 +1489,7 @@ export default function PostDetailScreen() {
                   }}
                   activeOpacity={0.7}
                 >
-                  <IconSymbol name="trash" size={16} color={colors.textSecondary} />
+                  <IconSymbol name="trash" size={16} color="rgba(255, 255, 255, 0.5)" />
                 </TouchableOpacity>
               )}
             </View>
@@ -1526,18 +1542,14 @@ export default function PostDetailScreen() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <LinearGradient
-          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.header}
-        >
+        <StatusBar barStyle="light-content" backgroundColor="#000" />
+        <BlurView intensity={30} tint="dark" style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+            <IconSymbol name="chevron.left" size={24} color="#fff" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Publicación</Text>
           <View style={{ width: 24 }} />
-        </LinearGradient>
+        </BlurView>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -1548,20 +1560,16 @@ export default function PostDetailScreen() {
   if (!post) {
     return (
       <View style={styles.container}>
-        <LinearGradient
-          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.header}
-        >
+        <StatusBar barStyle="light-content" backgroundColor="#000" />
+        <BlurView intensity={30} tint="dark" style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+            <IconSymbol name="chevron.left" size={24} color="#fff" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Publicación</Text>
           <View style={{ width: 24 }} />
-        </LinearGradient>
+        </BlurView>
         <View style={styles.loadingContainer}>
-          <Text style={{ color: colors.text }}>Publicación no encontrada</Text>
+          <Text style={{ color: '#fff' }}>Publicación no encontrada</Text>
         </View>
       </View>
     );
@@ -1571,14 +1579,10 @@ export default function PostDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.header}
-      >
+      <StatusBar barStyle="light-content" backgroundColor="#000" />
+      <BlurView intensity={30} tint="dark" style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <IconSymbol name="chevron.left" size={28} color={colors.headerText} />
+          <IconSymbol name="chevron.left" size={28} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Publicación</Text>
         {user && (
@@ -1603,19 +1607,19 @@ export default function PostDetailScreen() {
             }}
             activeOpacity={0.7}
           >
-            <IconSymbol name="trash" size={22} color={colors.headerText} />
+            <IconSymbol name="trash" size={22} color="#fff" />
           </TouchableOpacity>
         )}
         {!user || (
           (post.tipo !== 'usuario' || post.autor_id !== user.id) &&
           (post.tipo !== 'local' || interactionLocalId !== post.local_id)
         ) && <View style={{ width: 40 }} />}
-      </LinearGradient>
+      </BlurView>
 
       <ScrollView 
         ref={scrollViewRef} 
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingBottom: 60 }}
+        contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.postCard}>
           <View style={styles.postHeader}>
@@ -1691,7 +1695,7 @@ export default function PostDetailScreen() {
                 <IconSymbol
                   name={post.liked ? 'heart.fill' : 'heart'}
                   size={28}
-                  color={post.liked ? '#EF4444' : colors.text}
+                  color={post.liked ? '#EF4444' : '#fff'}
                 />
               </TouchableOpacity>
               <TouchableOpacity 
@@ -1699,14 +1703,14 @@ export default function PostDetailScreen() {
                 onPress={handleCommentPress}
                 activeOpacity={0.7}
               >
-                <IconSymbol name="message" size={28} color={colors.text} />
+                <IconSymbol name="message" size={28} color="#fff" />
               </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.postActionButton} 
                 onPress={handleShare}
                 activeOpacity={0.7}
               >
-                <IconSymbol name="paperplane" size={28} color={colors.text} />
+                <IconSymbol name="paperplane" size={28} color="#fff" />
               </TouchableOpacity>
             </View>
             <TouchableOpacity 
@@ -1717,7 +1721,7 @@ export default function PostDetailScreen() {
               <IconSymbol
                 name={post.saved ? 'bookmark.fill' : 'bookmark'}
                 size={28}
-                color={post.saved ? colors.primary : colors.text}
+                color={post.saved ? colors.primary : '#fff'}
               />
             </TouchableOpacity>
           </View>
@@ -1768,7 +1772,11 @@ export default function PostDetailScreen() {
         </View>
       </ScrollView>
 
-      <View style={[styles.inputContainer, { bottom: keyboardHeight > 0 ? keyboardHeight : 0 }]}>
+      <BlurView 
+        intensity={80} 
+        tint="dark" 
+        style={[styles.inputContainer, { bottom: keyboardHeight > 0 ? keyboardHeight : 0 }]}
+      >
         <View 
           style={[
             styles.autocompleteWrapper,
@@ -1794,7 +1802,7 @@ export default function PostDetailScreen() {
               style={styles.cancelReplyButton}
               onPress={() => setReplyingTo(null)}
             >
-              <IconSymbol name="xmark.circle.fill" size={20} color={colors.textSecondary} />
+              <IconSymbol name="xmark.circle.fill" size={20} color="rgba(255, 255, 255, 0.7)" />
             </TouchableOpacity>
           </View>
         )}
@@ -1813,7 +1821,7 @@ export default function PostDetailScreen() {
             ref={textInputRef}
             style={styles.textInput}
             placeholder={replyingTo ? `Responder a ${replyingTo.autor?.nombre}...` : 'Añade un comentario...'}
-            placeholderTextColor={colors.textSecondary}
+            placeholderTextColor="rgba(255, 255, 255, 0.5)"
             value={comentarioTexto}
             onChangeText={(text) => {
               console.log('[PostDetail] 📝 Text changed:', text);
@@ -1842,7 +1850,7 @@ export default function PostDetailScreen() {
             )}
           </TouchableOpacity>
         </View>
-      </View>
+      </BlurView>
 
       <Modal
         visible={showUserList}
@@ -1859,22 +1867,17 @@ export default function PostDetailScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
         >
-          <LinearGradient
-            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.header}
-          >
+          <BlurView intensity={30} tint="dark" style={styles.header}>
             <TouchableOpacity onPress={() => {
               setShowUserList(false);
               setSearchQuery('');
               setSearchResults([]);
             }} style={styles.backButton}>
-              <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+              <IconSymbol name="chevron.left" size={24} color="#fff" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Enviar a...</Text>
             <View style={{ width: 24 }} />
-          </LinearGradient>
+          </BlurView>
 
           <View style={styles.searchContainer}>
             <TextInput

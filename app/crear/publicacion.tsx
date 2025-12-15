@@ -657,7 +657,11 @@ export default function CrearPublicacionScreen() {
   };
 
   return (
-    <View style={commonStyles.container}>
+    <KeyboardAvoidingView 
+      style={commonStyles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={0}
+    >
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         start={{ x: 0, y: 0 }}
@@ -1023,7 +1027,7 @@ export default function CrearPublicacionScreen() {
         progress={uploadProgress}
         message={imagenes.length > 1 ? `Subiendo ${imagenes.length} imágenes...` : "Publicando contenido..."}
       />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
