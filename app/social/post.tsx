@@ -10,9 +10,7 @@ import {
   Dimensions,
   ActivityIndicator,
   Alert,
-  TextInput,
   Platform,
-  Keyboard,
   StatusBar,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -23,10 +21,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useInteractionContext } from '@/hooks/useInteractionContext';
 import LoginRequiredModal from '@/components/common/LoginRequiredModal';
 import ParsedText from '@/components/social/ParsedText';
-import MentionAutocomplete, { MentionSuggestion } from '@/components/social/MentionAutocomplete';
-import { processCommentHashtags, processCommentMentions } from '@/utils/postHelpers';
-import { BlurView } from 'expo-blur';
-import MiniFoodPlateAvatar from '@/components/common/MiniFoodPlateAvatar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SOCIAL_ICONS } from '@/constants/SocialIcons';
 import CommentsModal from '@/components/social/CommentsModal';
