@@ -8,13 +8,13 @@ import {
   TouchableOpacity,
   FlatList,
   TextInput,
-  KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
   Alert,
   ActionSheetIOS,
   Keyboard,
   Image,
+  Dimensions,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -27,6 +27,8 @@ import MiniFoodPlateAvatar from '@/components/common/MiniFoodPlateAvatar';
 import MentionAutocomplete, { MentionSuggestion } from '@/components/social/MentionAutocomplete';
 import { processCommentHashtags, processCommentMentions } from '@/utils/postHelpers';
 import ParsedText from '@/components/social/ParsedText';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface Comment {
   id: string;
@@ -60,6 +62,16 @@ interface CommentsModalProps {
   onClose: () => void;
   onCommentAdded?: () => void;
 }
+
+/**
+ * ✅ COMMENTS MODAL v2.0 - MODAL FORMAT WITH LIGHT BACKGROUND
+ * 
+ * Changes:
+ * - ✅ Opens as modal (not full screen) - presentationStyle="pageSheet"
+ * - ✅ Light background (#F9FAFB) instead of dark
+ * - ✅ Maintains Instagram-style design with light theme
+ * - ✅ Rounded corners at top for modal appearance
+ */
 
 export default function CommentsModal({
   visible,
@@ -230,29 +242,27 @@ export default function CommentsModal({
     setSending(true);
 
     try {
-      // ✅ CRITICAL FIX v17.0: Ensure valid session before sending comment
-      console.log('[CommentsModal v17.0] 🔄 Ensuring valid session before sending comment...');
+      console.log('[CommentsModal v2.0] 🔄 Ensuring valid session before sending comment...');
       const validSession = await ensureValidSession();
       
       if (!validSession || !validSession.user) {
-        console.error('[CommentsModal v17.0] ❌ No valid session available');
+        console.error('[CommentsModal v2.0] ❌ No valid session available');
         Alert.alert(
           'Error de autenticación',
           'Tu sesión ha expirado o no tienes permisos. Por favor inicia sesión de nuevo.',
           [
             { text: 'Cancelar', style: 'cancel' },
             { text: 'Iniciar sesión', onPress: () => {
-              // Navigate to login
               onClose();
             }}
           ]
         );
-        setCommentText(text); // Restore text
+        setCommentText(text);
         setSending(false);
         return;
       }
 
-      console.log('[CommentsModal v17.0] ✅ Valid session confirmed, user ID:', validSession.user.id);
+      console.log('[CommentsModal v2.0] ✅ Valid session confirmed, user ID:', validSession.user.id);
 
       if (editingComment) {
         const { error } = await supabase
@@ -265,10 +275,9 @@ export default function CommentsModal({
         setEditingComment(null);
         await loadComments();
       } else {
-        // ✅ CRITICAL FIX v17.0: Use validSession.user.id instead of user.id
         const commentData: any = {
           post_id: postId,
-          autor_id: validSession.user.id, // Use session user ID
+          autor_id: validSession.user.id,
           texto: text,
           parent_comment_id: replyingTo?.id || null,
         };
@@ -280,7 +289,7 @@ export default function CommentsModal({
           commentData.tipo = 'usuario';
         }
 
-        console.log('[CommentsModal v17.0] 📝 Inserting comment with data:', commentData);
+        console.log('[CommentsModal v2.0] 📝 Inserting comment with data:', commentData);
 
         const { data: newComment, error } = await supabase
           .from('comentarios')
@@ -298,19 +307,19 @@ export default function CommentsModal({
           .single();
 
         if (error) {
-          console.error('[CommentsModal v17.0] ❌ Error inserting comment:', error);
+          console.error('[CommentsModal v2.0] ❌ Error inserting comment:', error);
           throw error;
         }
 
-        console.log('[CommentsModal v17.0] ✅ Comment inserted successfully:', newComment.id);
+        console.log('[CommentsModal v2.0] ✅ Comment inserted successfully:', newComment.id);
 
         if (newComment && text) {
-          console.log('[CommentsModal v17.0] 🏷️ Processing hashtags and mentions in comment...');
+          console.log('[CommentsModal v2.0] 🏷️ Processing hashtags and mentions in comment...');
           await Promise.all([
             processCommentHashtags(newComment.id, text),
             processCommentMentions(newComment.id, text, postId),
           ]);
-          console.log('[CommentsModal v17.0] ✅ Comment hashtags and mentions processed');
+          console.log('[CommentsModal v2.0] ✅ Comment hashtags and mentions processed');
         }
 
         if (replyingTo) {
@@ -325,9 +334,8 @@ export default function CommentsModal({
         }
       }
     } catch (error: any) {
-      console.error('[CommentsModal v17.0] ❌ Error sending comment:', error);
+      console.error('[CommentsModal v2.0] ❌ Error sending comment:', error);
       
-      // ✅ CRITICAL FIX v17.0: Better error messages
       let errorMessage = 'No se pudo enviar el comentario';
       
       if (error?.code === '42501') {
@@ -690,23 +698,21 @@ export default function CommentsModal({
       visible={visible}
       transparent={false}
       animationType="slide"
+      presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
       <View style={styles.container}>
-        <LinearGradient
-          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.header}
-        >
+        <View style={styles.modalHandle} />
+        
+        <View style={styles.header}>
           <View style={styles.headerTop}>
-            <TouchableOpacity onPress={onClose} style={styles.backButton}>
-              <IconSymbol name="chevron.left" size={28} color={colors.headerText} />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Comentarios</Text>
             <View style={{ width: 40 }} />
+            <Text style={styles.headerTitle}>Comentarios</Text>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <IconSymbol name="xmark" size={24} color={colors.text} />
+            </TouchableOpacity>
           </View>
-        </LinearGradient>
+        </View>
 
         {loading ? (
           <View style={styles.loadingContainer}>
@@ -823,19 +829,31 @@ export default function CommentsModal({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#F9FAFB',
+  },
+  modalHandle: {
+    width: 40,
+    height: 5,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 3,
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 8,
   },
   header: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 48,
+    paddingTop: Platform.OS === 'ios' ? 8 : 16,
     paddingBottom: 16,
     paddingHorizontal: 16,
+    backgroundColor: '#F9FAFB',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
   },
   headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  backButton: {
+  closeButton: {
     width: 40,
     height: 40,
     alignItems: 'center',
@@ -844,7 +862,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: colors.headerText,
+    color: colors.text,
     flex: 1,
     textAlign: 'center',
   },
@@ -860,14 +878,19 @@ const styles = StyleSheet.create({
   },
   commentWrapper: {
     marginBottom: 16,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginHorizontal: 16,
+    padding: 12,
   },
   pinnedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 16,
-    paddingVertical: 4,
+    paddingBottom: 8,
     marginBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
   },
   pinnedText: {
     fontSize: 12,
@@ -876,8 +899,7 @@ const styles = StyleSheet.create({
   },
   commentItem: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 4,
   },
   commentAvatar: {
     width: 32,
@@ -948,7 +970,7 @@ const styles = StyleSheet.create({
     marginLeft: 44,
     marginTop: 12,
     borderLeftWidth: 2,
-    borderLeftColor: '#e0e0e0',
+    borderLeftColor: '#E5E7EB',
     paddingLeft: 12,
   },
   replyItem: {
@@ -978,6 +1000,8 @@ const styles = StyleSheet.create({
     right: 0,
     overflow: 'hidden',
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
   },
   autocompleteWrapper: {
     position: 'absolute',
@@ -992,9 +1016,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 8,
     paddingHorizontal: 16,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#F3F4F6',
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: '#E5E7EB',
   },
   replyingText: {
     fontSize: 13,
