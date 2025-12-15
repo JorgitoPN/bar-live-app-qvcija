@@ -8,7 +8,7 @@ import {
   Image,
   ActivityIndicator,
   Platform,
-  FlatList,
+  ScrollView,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -382,17 +382,50 @@ export default function MentionAutocomplete({
           <Text style={styles.loadingText}>Buscando...</Text>
         </View>
       ) : suggestions.length > 0 ? (
-        <FlatList
-          data={suggestions}
-          renderItem={renderItem}
-          keyExtractor={(item) => `${item.id}-${item.tipo}`}
-          style={styles.list}
-          contentContainerStyle={styles.listContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={true}
-          bounces={false}
-          nestedScrollEnabled={true}
-        />
+        <View style={styles.list}>
+          {suggestions.map((item) => (
+            <TouchableOpacity
+              key={`${item.id}-${item.tipo}`}
+              style={styles.suggestionItem}
+              onPress={() => handleSelectMention(item)}
+              activeOpacity={0.7}
+            >
+              {item.avatar ? (
+                <Image source={{ uri: item.avatar }} style={styles.avatar} />
+              ) : (
+                <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                  <IconSymbol
+                    ios_icon_name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
+                    android_material_icon_name={item.tipo === 'local' ? 'business' : 'person'}
+                    size={18}
+                    color={colors.textSecondary}
+                  />
+                </View>
+              )}
+              <View style={styles.suggestionInfo}>
+                <View style={styles.suggestionHeader}>
+                  <Text style={styles.suggestionUsername}>
+                    @{item.username}
+                  </Text>
+                  {item.tipo === 'local' && (
+                    <View style={styles.localBadge}>
+                      <IconSymbol 
+                        ios_icon_name="building.2.fill" 
+                        android_material_icon_name="business" 
+                        size={10} 
+                        color={colors.primary} 
+                      />
+                      <Text style={styles.localBadgeText}>Local</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.suggestionName} numberOfLines={1}>
+                  {item.nombre}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
       ) : currentMentionText.length > 0 ? (
         <View style={styles.emptyContainer}>
           <IconSymbol 
@@ -437,10 +470,7 @@ const styles = StyleSheet.create({
     overflow: 'visible',
   },
   list: {
-    flex: 1,
-  },
-  listContent: {
-    paddingVertical: 4,
+    maxHeight: 240,
   },
   suggestionItem: {
     flexDirection: 'row',

@@ -245,7 +245,7 @@ export default function ChatsScreen() {
     setSelectedChats(newSelected);
   };
 
-  // ✅ FIXED: Delete selected conversations with optimistic UI update
+  // ✅ FIXED v2: Delete selected conversations with proper UI update
   const handleDeleteSelected = async () => {
     if (selectedChats.size === 0) {
       Alert.alert('Error', 'Selecciona al menos una conversación para eliminar');
@@ -261,40 +261,53 @@ export default function ChatsScreen() {
           text: 'Eliminar',
           style: 'destructive',
           onPress: async () => {
-            setDeleting(true);
-            
-            // ✅ OPTIMISTIC UI UPDATE: Remove chats from UI immediately
             const chatIdsToDelete = Array.from(selectedChats);
             const previousChats = [...chats];
-            setChats(chats.filter(chat => !selectedChats.has(chat.id)));
-            setSelectionMode(false);
-            setSelectedChats(new Set());
+            
+            console.log('[Chats] 🗑️ Starting deletion of', chatIdsToDelete.length, 'conversations');
+            
+            setDeleting(true);
             
             try {
               // Delete all messages for selected chats
               for (const chatId of chatIdsToDelete) {
-                await supabase
+                const { error: messagesError } = await supabase
                   .from('mensajes')
                   .delete()
                   .eq('chat_id', chatId);
+                
+                if (messagesError) {
+                  console.error('[Chats] Error deleting messages for chat', chatId, ':', messagesError);
+                }
               }
 
               // Delete the chats
-              const { error } = await supabase
+              const { error: chatsError } = await supabase
                 .from('chats')
                 .delete()
                 .in('id', chatIdsToDelete);
 
-              if (error) throw error;
+              if (chatsError) {
+                console.error('[Chats] Error deleting chats:', chatsError);
+                throw chatsError;
+              }
 
-              console.log('[Chats] ✅ Successfully deleted', chatIdsToDelete.length, 'conversations');
+              console.log('[Chats] ✅ Successfully deleted', chatIdsToDelete.length, 'conversations from database');
+              
+              // ✅ CRITICAL FIX: Update UI after successful deletion
+              setChats(prevChats => prevChats.filter(chat => !chatIdsToDelete.includes(chat.id)));
+              setSelectionMode(false);
+              setSelectedChats(new Set());
+              
               Alert.alert('Éxito', `${chatIdsToDelete.length} conversación(es) eliminada(s) correctamente`);
             } catch (error) {
-              console.error('[Chats] Error deleting conversations:', error);
+              console.error('[Chats] ❌ Error deleting conversations:', error);
               Alert.alert('Error', 'No se pudieron eliminar algunas conversaciones');
               
               // ✅ Rollback on error
               setChats(previousChats);
+              setSelectionMode(false);
+              setSelectedChats(new Set());
             } finally {
               setDeleting(false);
             }
