@@ -10,12 +10,8 @@ import {
   Dimensions,
   ActivityIndicator,
   Alert,
-  Modal,
   TextInput,
-  KeyboardAvoidingView,
   Platform,
-  Pressable,
-  FlatList,
   Keyboard,
   StatusBar,
 } from 'react-native';
@@ -31,6 +27,7 @@ import MentionAutocomplete, { MentionSuggestion } from '@/components/social/Ment
 import { processCommentHashtags, processCommentMentions } from '@/utils/postHelpers';
 import { BlurView } from 'expo-blur';
 import MiniFoodPlateAvatar from '@/components/common/MiniFoodPlateAvatar';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { width, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -52,57 +49,51 @@ interface Comentario {
   replies?: Comentario[];
 }
 
-interface ChatUser {
-  id: string;
-  nombre: string;
-  username?: string;
-  avatar?: string;
-}
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#fff',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#000',
+    backgroundColor: '#fff',
   },
   header: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
+    paddingTop: Platform.OS === 'ios' ? 60 : 48,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+  },
+  headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'ios' ? 60 : 48,
-    paddingBottom: 12,
-    zIndex: 10,
-    overflow: 'hidden',
   },
   backButton: {
-    padding: 4,
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#fff',
+    color: colors.headerText,
     flex: 1,
     textAlign: 'center',
   },
   deleteButton: {
-    padding: 8,
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   scrollContent: {
-    paddingTop: Platform.OS === 'ios' ? 100 : 88,
     paddingBottom: 120,
   },
   postCard: {
-    backgroundColor: '#000',
+    backgroundColor: '#fff',
   },
   postHeader: {
     flexDirection: 'row',
@@ -134,11 +125,11 @@ const styles = StyleSheet.create({
   postAutorNombre: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#fff',
+    color: '#000',
   },
   postAutorBold: {
     fontWeight: '600',
-    color: '#fff',
+    color: '#000',
   },
   imageCarouselContainer: {
     position: 'relative',
@@ -152,7 +143,7 @@ const styles = StyleSheet.create({
   postImagen: {
     width: width,
     height: width,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#f0f0f0',
   },
   imageIndicatorContainer: {
     position: 'absolute',
@@ -168,27 +159,13 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   imageIndicatorDotActive: {
-    backgroundColor: 'rgba(255, 255, 255, 1)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     width: 8,
     height: 8,
     borderRadius: 4,
-  },
-  imageCountBadge: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  imageCountText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#fff',
   },
   postActions: {
     flexDirection: 'row',
@@ -213,7 +190,7 @@ const styles = StyleSheet.create({
   postLikesText: {
     fontSize: 14,
     fontWeight: '400',
-    color: '#fff',
+    color: '#000',
   },
   postLikesBold: {
     fontWeight: '600',
@@ -225,7 +202,7 @@ const styles = StyleSheet.create({
   },
   postDescripcionText: {
     fontSize: 14,
-    color: '#fff',
+    color: '#000',
     lineHeight: 18,
   },
   viewCommentsButton: {
@@ -235,7 +212,7 @@ const styles = StyleSheet.create({
   },
   viewCommentsText: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(0, 0, 0, 0.5)',
     fontWeight: '400',
   },
   postTimeContainer: {
@@ -245,31 +222,31 @@ const styles = StyleSheet.create({
   },
   postTimeText: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: 'rgba(0, 0, 0, 0.4)',
     textTransform: 'uppercase',
   },
   comentariosSection: {
     paddingTop: 8,
     paddingBottom: 100,
-    backgroundColor: '#000',
+    backgroundColor: '#fff',
   },
   comentariosSectionHeader: {
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#1a1a1a',
-    backgroundColor: '#000',
+    borderBottomColor: '#e0e0e0',
+    backgroundColor: '#fff',
   },
   comentariosSectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#fff',
+    color: '#000',
   },
   comentarioItem: {
     flexDirection: 'row',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#000',
+    backgroundColor: '#fff',
   },
   comentarioAvatar: {
     width: 32,
@@ -288,16 +265,16 @@ const styles = StyleSheet.create({
   comentarioAutor: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#fff',
+    color: '#000',
     marginRight: 8,
   },
   comentarioFecha: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: 'rgba(0, 0, 0, 0.5)',
   },
   comentarioTexto: {
     fontSize: 14,
-    color: '#fff',
+    color: '#000',
     lineHeight: 20,
     marginBottom: 6,
   },
@@ -313,7 +290,7 @@ const styles = StyleSheet.create({
   },
   comentarioActionText: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(0, 0, 0, 0.5)',
     fontWeight: '600',
   },
   comentarioOptionsButton: {
@@ -323,15 +300,16 @@ const styles = StyleSheet.create({
   replyContainer: {
     marginLeft: 44,
     borderLeftWidth: 2,
-    borderLeftColor: '#1a1a1a',
+    borderLeftColor: '#e0e0e0',
     paddingLeft: 12,
-    backgroundColor: '#000',
+    backgroundColor: '#fff',
   },
   inputContainer: {
     position: 'absolute',
     left: 0,
     right: 0,
     overflow: 'hidden',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
   },
   autocompleteWrapper: {
     position: 'absolute',
@@ -345,14 +323,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    backgroundColor: '#f5f5f5',
     borderBottomWidth: 1,
-    borderBottomColor: '#1a1a1a',
+    borderBottomColor: '#e0e0e0',
   },
   replyingToText: {
     flex: 1,
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(0, 0, 0, 0.6)',
   },
   cancelReplyButton: {
     padding: 4,
@@ -363,7 +341,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     gap: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    backgroundColor: '#fff',
   },
   inputAvatar: {
     width: 32,
@@ -374,7 +352,7 @@ const styles = StyleSheet.create({
   textInput: {
     flex: 1,
     fontSize: 14,
-    color: '#fff',
+    color: '#000',
     maxHeight: 80,
     paddingVertical: 8,
   },
@@ -390,106 +368,6 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: {
     opacity: 0.4,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  postOptionsModal: {
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
-    maxHeight: '80%',
-  },
-  postOptionsHeader: {
-    paddingTop: 20,
-    paddingBottom: 12,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  postOptionsTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.text,
-  },
-  postOptionsContent: {
-    padding: 16,
-  },
-  postOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    marginBottom: 8,
-    backgroundColor: colors.card,
-  },
-  postOptionText: {
-    fontSize: 16,
-    color: colors.text,
-    marginLeft: 16,
-  },
-  postOptionDanger: {
-    color: '#EF4444',
-  },
-  userListContainer: {
-    maxHeight: 400,
-  },
-  userItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 8,
-    backgroundColor: colors.card,
-  },
-  userAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    marginRight: 12,
-  },
-  userInfo: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  userUsername: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: 20,
-  },
-  searchContainer: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  searchInput: {
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: colors.text,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  searchResults: {
-    maxHeight: 300,
   },
 });
 
@@ -527,9 +405,6 @@ export default function PostDetailScreen() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginMessage, setLoginMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showUserList, setShowUserList] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<ChatUser[]>([]);
 
   useEffect(() => {
     const keyboardWillShowListener = Keyboard.addListener(
@@ -746,30 +621,12 @@ export default function PostDetailScreen() {
     }
   }, [params.id, user]);
 
-  const handleShare = useCallback(() => {
-    console.log('[PostDetail] Share button pressed - opening user search directly');
-    
-    if (!user) {
-      setLoginMessage('Para compartir por mensaje necesitas registrarte en BarLive');
-      setShowLoginModal(true);
-      return;
-    }
-
-    setShowUserList(true);
-  }, [user]);
-
   useEffect(() => {
     if (params.id) {
       loadPost();
       loadComentarios();
     }
-
-    if (params.share === 'true') {
-      setTimeout(() => {
-        handleShare();
-      }, 500);
-    }
-  }, [params.id, loadPost, loadComentarios, params.share, handleShare]);
+  }, [params.id, loadPost, loadComentarios]);
 
   const isLikingRef = useRef(false);
 
@@ -1102,115 +959,6 @@ export default function PostDetailScreen() {
     }, 100);
   };
 
-  const searchUsers = async (query: string) => {
-    if (!user || query.trim().length < 2) {
-      setSearchResults([]);
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('usuarios')
-        .select('id, nombre, username, avatar')
-        .or(`nombre.ilike.%${query}%,username.ilike.%${query}%`)
-        .neq('id', user.id)
-        .eq('activo', true)
-        .limit(20);
-
-      if (error) throw error;
-
-      setSearchResults(data || []);
-    } catch (error) {
-      console.error('[PostDetail] Error searching users:', error);
-    }
-  };
-
-  const handleSendToUser = async (recipientId: string) => {
-    if (!user || !post) return;
-
-    try {
-      if (post.autor?.perfil_privado) {
-        const { data: followData } = await supabase
-          .from('seguidores')
-          .select('id')
-          .eq('seguidor_id', recipientId)
-          .eq('seguido_id', post.autor_id)
-          .single();
-
-        if (!followData) {
-          Alert.alert(
-            'Perfil Privado',
-            'Esta publicación pertenece a un perfil privado. Solo los seguidores pueden verla.'
-          );
-          return;
-        }
-      }
-
-      const { data: existingChat } = await supabase
-        .from('chats')
-        .select('id')
-        .or(`and(usuario1_id.eq.${user.id},usuario2_id.eq.${recipientId}),and(usuario1_id.eq.${recipientId},usuario2_id.eq.${user.id})`)
-        .single();
-
-      let chatId = existingChat?.id;
-
-      if (!chatId) {
-        const { data: newChat, error: chatError } = await supabase
-          .from('chats')
-          .insert({
-            usuario1_id: user.id,
-            usuario2_id: recipientId,
-          })
-          .select('id')
-          .single();
-
-        if (chatError) throw chatError;
-        chatId = newChat.id;
-      }
-
-      const previewImage = post.images && post.images.length > 0 ? post.images[0] : null;
-
-      const { error: messageError } = await supabase
-        .from('mensajes')
-        .insert({
-          chat_id: chatId,
-          remitente_id: user.id,
-          contenido: `Compartió una publicación de ${post.autorNombre}`,
-          tipo_mensaje: 'post_compartido',
-          post_compartido_id: post.id,
-          post_imagen: previewImage,
-        });
-
-      if (messageError) throw messageError;
-
-      await supabase
-        .from('chats')
-        .update({
-          ultimo_mensaje: 'Publicación compartida',
-          ultimo_mensaje_fecha: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', chatId);
-
-      await supabase.from('notificaciones').insert({
-        usuario_id: recipientId,
-        tipo: 'mensaje_privado',
-        titulo: 'Nuevo mensaje',
-        mensaje: `${user.nombre} te compartió una publicación`,
-        usuario_origen_id: user.id,
-        post_id: post.id,
-      });
-
-      setShowUserList(false);
-      setSearchQuery('');
-      setSearchResults([]);
-      Alert.alert('Éxito', 'Publicación compartida correctamente');
-    } catch (error) {
-      console.error('[PostDetail] Error sending message:', error);
-      Alert.alert('Error', 'No se pudo compartir la publicación');
-    }
-  };
-
   const handleDeletePost = async () => {
     console.log('[PostDetail] Delete post');
     
@@ -1489,7 +1237,7 @@ export default function PostDetailScreen() {
                   }}
                   activeOpacity={0.7}
                 >
-                  <IconSymbol name="trash" size={16} color="rgba(255, 255, 255, 0.5)" />
+                  <IconSymbol name="trash" size={16} color="rgba(0, 0, 0, 0.5)" />
                 </TouchableOpacity>
               )}
             </View>
@@ -1542,14 +1290,21 @@ export default function PostDetailScreen() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor="#000" />
-        <BlurView intensity={30} tint="dark" style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <IconSymbol name="chevron.left" size={24} color="#fff" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Publicación</Text>
-          <View style={{ width: 24 }} />
-        </BlurView>
+        <StatusBar barStyle="light-content" backgroundColor={colors.headerGradientStart} />
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.header}
+        >
+          <View style={styles.headerTop}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Publicación</Text>
+            <View style={{ width: 40 }} />
+          </View>
+        </LinearGradient>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -1560,16 +1315,23 @@ export default function PostDetailScreen() {
   if (!post) {
     return (
       <View style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor="#000" />
-        <BlurView intensity={30} tint="dark" style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <IconSymbol name="chevron.left" size={24} color="#fff" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Publicación</Text>
-          <View style={{ width: 24 }} />
-        </BlurView>
+        <StatusBar barStyle="light-content" backgroundColor={colors.headerGradientStart} />
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.header}
+        >
+          <View style={styles.headerTop}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Publicación</Text>
+            <View style={{ width: 40 }} />
+          </View>
+        </LinearGradient>
         <View style={styles.loadingContainer}>
-          <Text style={{ color: '#fff' }}>Publicación no encontrada</Text>
+          <Text style={{ color: '#000' }}>Publicación no encontrada</Text>
         </View>
       </View>
     );
@@ -1579,42 +1341,49 @@ export default function PostDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#000" />
-      <BlurView intensity={30} tint="dark" style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <IconSymbol name="chevron.left" size={28} color="#fff" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Publicación</Text>
-        {user && (
-          (post.tipo === 'usuario' && post.autor_id === user.id) ||
-          (post.tipo === 'local' && interactionLocalId === post.local_id)
-        ) && (
-          <TouchableOpacity 
-            style={styles.deleteButton} 
-            onPress={() => {
-              Alert.alert(
-                'Eliminar publicación',
-                '¿Estás seguro de que quieres eliminar esta publicación?',
-                [
-                  { text: 'Cancelar', style: 'cancel' },
-                  {
-                    text: 'Eliminar',
-                    style: 'destructive',
-                    onPress: handleDeletePost,
-                  },
-                ]
-              );
-            }}
-            activeOpacity={0.7}
-          >
-            <IconSymbol name="trash" size={22} color="#fff" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.headerGradientStart} />
+      <LinearGradient
+        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.header}
+      >
+        <View style={styles.headerTop}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <IconSymbol name="chevron.left" size={28} color={colors.headerText} />
           </TouchableOpacity>
-        )}
-        {!user || (
-          (post.tipo !== 'usuario' || post.autor_id !== user.id) &&
-          (post.tipo !== 'local' || interactionLocalId !== post.local_id)
-        ) && <View style={{ width: 40 }} />}
-      </BlurView>
+          <Text style={styles.headerTitle}>Publicación</Text>
+          {user && (
+            (post.tipo === 'usuario' && post.autor_id === user.id) ||
+            (post.tipo === 'local' && interactionLocalId === post.local_id)
+          ) && (
+            <TouchableOpacity 
+              style={styles.deleteButton} 
+              onPress={() => {
+                Alert.alert(
+                  'Eliminar publicación',
+                  '¿Estás seguro de que quieres eliminar esta publicación?',
+                  [
+                    { text: 'Cancelar', style: 'cancel' },
+                    {
+                      text: 'Eliminar',
+                      style: 'destructive',
+                      onPress: handleDeletePost,
+                    },
+                  ]
+                );
+              }}
+              activeOpacity={0.7}
+            >
+              <IconSymbol name="trash" size={22} color={colors.headerText} />
+            </TouchableOpacity>
+          )}
+          {!user || (
+            (post.tipo !== 'usuario' || post.autor_id !== user.id) &&
+            (post.tipo !== 'local' || interactionLocalId !== post.local_id)
+          ) && <View style={{ width: 40 }} />}
+        </View>
+      </LinearGradient>
 
       <ScrollView 
         ref={scrollViewRef} 
@@ -1695,7 +1464,7 @@ export default function PostDetailScreen() {
                 <IconSymbol
                   name={post.liked ? 'heart.fill' : 'heart'}
                   size={28}
-                  color={post.liked ? '#EF4444' : '#fff'}
+                  color={post.liked ? '#EF4444' : '#000'}
                 />
               </TouchableOpacity>
               <TouchableOpacity 
@@ -1703,14 +1472,20 @@ export default function PostDetailScreen() {
                 onPress={handleCommentPress}
                 activeOpacity={0.7}
               >
-                <IconSymbol name="message" size={28} color="#fff" />
+                <IconSymbol name="bubble.left" size={28} color="#000" />
               </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.postActionButton} 
-                onPress={handleShare}
+                onPress={() => {
+                  if (!user) {
+                    setLoginMessage('Para compartir necesitas registrarte en BarLive');
+                    setShowLoginModal(true);
+                    return;
+                  }
+                }}
                 activeOpacity={0.7}
               >
-                <IconSymbol name="paperplane" size={28} color="#fff" />
+                <IconSymbol name="paperplane" size={28} color="#000" />
               </TouchableOpacity>
             </View>
             <TouchableOpacity 
@@ -1721,7 +1496,7 @@ export default function PostDetailScreen() {
               <IconSymbol
                 name={post.saved ? 'bookmark.fill' : 'bookmark'}
                 size={28}
-                color={post.saved ? colors.primary : '#fff'}
+                color={post.saved ? colors.primary : '#000'}
               />
             </TouchableOpacity>
           </View>
@@ -1774,7 +1549,7 @@ export default function PostDetailScreen() {
 
       <BlurView 
         intensity={80} 
-        tint="dark" 
+        tint="light" 
         style={[styles.inputContainer, { bottom: keyboardHeight > 0 ? keyboardHeight : 0 }]}
       >
         <View 
@@ -1802,7 +1577,7 @@ export default function PostDetailScreen() {
               style={styles.cancelReplyButton}
               onPress={() => setReplyingTo(null)}
             >
-              <IconSymbol name="xmark.circle.fill" size={20} color="rgba(255, 255, 255, 0.7)" />
+              <IconSymbol name="xmark.circle.fill" size={20} color="rgba(0, 0, 0, 0.5)" />
             </TouchableOpacity>
           </View>
         )}
@@ -1821,7 +1596,7 @@ export default function PostDetailScreen() {
             ref={textInputRef}
             style={styles.textInput}
             placeholder={replyingTo ? `Responder a ${replyingTo.autor?.nombre}...` : 'Añade un comentario...'}
-            placeholderTextColor="rgba(255, 255, 255, 0.5)"
+            placeholderTextColor="rgba(0, 0, 0, 0.4)"
             value={comentarioTexto}
             onChangeText={(text) => {
               console.log('[PostDetail] 📝 Text changed:', text);
@@ -1851,90 +1626,6 @@ export default function PostDetailScreen() {
           </TouchableOpacity>
         </View>
       </BlurView>
-
-      <Modal
-        visible={showUserList}
-        animationType="slide"
-        transparent={false}
-        onRequestClose={() => {
-          setShowUserList(false);
-          setSearchQuery('');
-          setSearchResults([]);
-        }}
-      >
-        <KeyboardAvoidingView
-          style={{ flex: 1, backgroundColor: colors.background }}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-        >
-          <BlurView intensity={30} tint="dark" style={styles.header}>
-            <TouchableOpacity onPress={() => {
-              setShowUserList(false);
-              setSearchQuery('');
-              setSearchResults([]);
-            }} style={styles.backButton}>
-              <IconSymbol name="chevron.left" size={24} color="#fff" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Enviar a...</Text>
-            <View style={{ width: 24 }} />
-          </BlurView>
-
-          <View style={styles.searchContainer}>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Buscar usuario..."
-              placeholderTextColor={colors.textSecondary}
-              value={searchQuery}
-              onChangeText={(text) => {
-                setSearchQuery(text);
-                searchUsers(text);
-              }}
-              autoFocus
-            />
-          </View>
-
-          <FlatList
-            data={searchResults}
-            keyExtractor={(item) => item.id}
-            style={{ flex: 1 }}
-            contentContainerStyle={{ padding: 16 }}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.userItem}
-                onPress={() => handleSendToUser(item.id)}
-                activeOpacity={0.7}
-              >
-                {item.avatar ? (
-                  <Image source={{ uri: item.avatar }} style={styles.userAvatar} />
-                ) : (
-                  <View style={[styles.userAvatar, styles.avatarPlaceholder]}>
-                    <Text style={styles.avatarText}>
-                      {item.nombre.charAt(0).toUpperCase()}
-                    </Text>
-                  </View>
-                )}
-                <View style={styles.userInfo}>
-                  <Text style={styles.userName}>{item.nombre}</Text>
-                  {item.username && (
-                    <Text style={styles.userUsername}>@{item.username}</Text>
-                  )}
-                </View>
-              </TouchableOpacity>
-            )}
-            ListEmptyComponent={
-              searchQuery.trim().length >= 2 ? (
-                <Text style={styles.emptyText}>
-                  No se encontraron usuarios
-                </Text>
-              ) : (
-                <Text style={styles.emptyText}>
-                  Escribe el nombre de un usuario para buscar
-                </Text>
-              )
-            }
-          />
-        </KeyboardAvoidingView>
-      </Modal>
 
       <LoginRequiredModal
         visible={showLoginModal}
