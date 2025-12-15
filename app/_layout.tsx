@@ -5,6 +5,7 @@ import { GlobalDataProvider } from '@/contexts/GlobalDataContext';
 import { ModeProvider } from '@/contexts/ModeContext';
 import { SelectedLocalProvider } from '@/contexts/SelectedLocalContext';
 import { WidgetProvider } from '@/contexts/WidgetContext';
+import { FavoritesProvider } from '@/contexts/FavoritesContext';
 
 /**
  * ============================================================================
@@ -16,33 +17,36 @@ import { WidgetProvider } from '@/contexts/WidgetContext';
  * 
  * Provider Order (outer to inner):
  * 1. AuthProvider - Authentication state
- * 2. GlobalDataProvider - Global app data
- * 3. ModeProvider - User/Local interaction mode
- * 4. SelectedLocalProvider - Selected local context
- * 5. WidgetProvider - Widget state
+ * 2. FavoritesProvider - Favorites management (depends on AuthProvider)
+ * 3. GlobalDataProvider - Global app data
+ * 4. ModeProvider - User/Local interaction mode
+ * 5. SelectedLocalProvider - Selected local context
+ * 6. WidgetProvider - Widget state
  */
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <GlobalDataProvider>
-        <ModeProvider>
-          <SelectedLocalProvider>
-            <WidgetProvider>
-              <Stack screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen name="index" options={{ headerShown: false }} />
-                <Stack.Screen 
-                  name="detalle" 
-                  options={{ 
-                    headerShown: false,
-                    presentation: 'modal'
-                  }} 
-                />
-              </Stack>
-            </WidgetProvider>
-          </SelectedLocalProvider>
-        </ModeProvider>
-      </GlobalDataProvider>
+      <FavoritesProvider>
+        <GlobalDataProvider>
+          <ModeProvider>
+            <SelectedLocalProvider>
+              <WidgetProvider>
+                <Stack screenOptions={{ headerShown: false }}>
+                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                  <Stack.Screen name="index" options={{ headerShown: false }} />
+                  <Stack.Screen 
+                    name="detalle" 
+                    options={{ 
+                      headerShown: false,
+                      presentation: 'modal'
+                    }} 
+                  />
+                </Stack>
+              </WidgetProvider>
+            </SelectedLocalProvider>
+          </ModeProvider>
+        </GlobalDataProvider>
+      </FavoritesProvider>
     </AuthProvider>
   );
 }

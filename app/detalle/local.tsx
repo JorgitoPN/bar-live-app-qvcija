@@ -14,6 +14,7 @@ import ImageGalleryModal from '../../components/detalle/ImageGalleryModal';
 import { CATEGORIAS_EXCLUIDAS } from '../../utils/constants';
 import { getEstadoLocal } from '../../utils/timeUtils';
 import { useAuth } from '../../contexts/AuthContext';
+import { useFavorites } from '../../contexts/FavoritesContext';
 import { calcularDistancia } from '../../utils/locationUtils';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -283,7 +284,8 @@ const formatOpeningHours = (hours: string[]): string => {
 export default function DetalleLocalScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
-  const { user, ensureValidSession } = useAuth();
+  const { user } = useAuth();
+  const { isFavorite, toggleFavorite, loading: loadingFavorite } = useFavorites();
   
   const [local, setLocal] = useState<Local | null>(null);
   const [loading, setLoading] = useState(true);
@@ -300,9 +302,8 @@ export default function DetalleLocalScreen() {
   const [loadingEventos, setLoadingEventos] = useState(false);
   const [expandedDescription, setExpandedDescription] = useState(false);
   
-  // ✅ Favorite state
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [loadingFavorite, setLoadingFavorite] = useState(false);
+  // ✅ Get favorite status from FavoritesContext
+  const localIsFavorite = params.id ? isFavorite(params.id as string) : false;
 
   useEffect(() => {
     (async () => {
@@ -412,40 +413,7 @@ export default function DetalleLocalScreen() {
     }
   }, [params.id]);
 
-  // ✅ FIXED: Check if local is favorite - using direct user ID from AuthContext
-  const checkIfFavorite = useCallback(async () => {
-    if (!user?.id) {
-      console.log('[DetalleLocal] ⚠️ No user ID available for favorite check');
-      setIsFavorite(false);
-      return false;
-    }
-    
-    try {
-      console.log('[DetalleLocal] 🔍 Checking favorite status for user:', user.id, 'local:', params.id);
-      
-      const { data, error } = await supabase
-        .from('locales_guardados')
-        .select('id')
-        .eq('usuario_id', user.id)
-        .eq('local_id', params.id)
-        .maybeSingle();
-
-      if (error) {
-        console.error('[DetalleLocal] Error checking favorite:', error);
-        setIsFavorite(false);
-        return false;
-      }
-
-      const favoriteStatus = !!data;
-      setIsFavorite(favoriteStatus);
-      console.log('[DetalleLocal] ✅ Favorite status checked:', favoriteStatus, 'Data:', data);
-      return favoriteStatus;
-    } catch (error) {
-      console.error('[DetalleLocal] Error checking favorite:', error);
-      setIsFavorite(false);
-      return false;
-    }
-  }, [user?.id, params.id]);
+  // ✅ Favorite status is now managed by FavoritesContext - no need for local check
 
   const cargarLocal = useCallback(async () => {
     try {
@@ -485,12 +453,11 @@ export default function DetalleLocalScreen() {
       setLoading(false);
       cargarReviewsBarlive();
       cargarEventos();
-      checkIfFavorite();
     } catch (error) {
       console.error('[DetalleLocal] Error:', error);
       setLoading(false);
     }
-  }, [params.id, cargarReviewsBarlive, cargarEventos, checkIfFavorite]);
+  }, [params.id, cargarReviewsBarlive, cargarEventos]);
 
   useEffect(() => {
     if (params.id) {
@@ -498,115 +465,11 @@ export default function DetalleLocalScreen() {
     }
   }, [params.id, cargarLocal]);
 
-  // ✅ FIXED: Toggle favorite function with session validation
-  const toggleFavorito = async (e: any) => {
+  // ✅ FIXED: Use FavoritesContext for synchronized favorite management
+  const handleToggleFavorito = async (e: any) => {
     e.stopPropagation();
-    
-    if (!user?.id) {
-      console.log('[DetalleLocal] ⚠️ No user logged in');
-      Alert.alert('Inicia sesión', 'Debes iniciar sesión para agregar favoritos');
-      return;
-    }
-
-    setLoadingFavorite(true);
-    
-    // ✅ Optimistic UI update
-    const previousState = isFavorite;
-    setIsFavorite(!isFavorite);
-    
-    try {
-      console.log('[DetalleLocal] 🔄 Toggling favorite. Current state:', previousState, '-> New state:', !previousState, 'User ID:', user.id);
-
-      // ✅ CRITICAL FIX: Ensure we have a valid session before attempting database operations
-      console.log('[DetalleLocal] 🔐 Ensuring valid session before database operation...');
-      const validSession = await ensureValidSession();
-      
-      if (!validSession) {
-        console.error('[DetalleLocal] ❌ No valid session available');
-        setIsFavorite(previousState);
-        setLoadingFavorite(false);
-        Alert.alert('Sesión expirada', 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
-        return;
-      }
-      
-      console.log('[DetalleLocal] ✅ Valid session confirmed. User ID from session:', validSession.user.id);
-
-      if (previousState) {
-        // Remove from favorites
-        console.log('[DetalleLocal] Removing from favorites...');
-        const { error } = await supabase
-          .from('locales_guardados')
-          .delete()
-          .eq('usuario_id', user.id)
-          .eq('local_id', params.id);
-
-        if (error) {
-          console.error('[DetalleLocal] Error removing favorite:', error);
-          setIsFavorite(previousState);
-          setLoadingFavorite(false);
-          Alert.alert('Error', 'No se pudo eliminar de favoritos. Por favor intenta de nuevo.');
-          return;
-        }
-        
-        console.log('[DetalleLocal] ✅ Removed from favorites');
-      } else {
-        // Add to favorites - use maybeSingle to check if already exists
-        console.log('[DetalleLocal] Checking if already in favorites...');
-        const { data: existing } = await supabase
-          .from('locales_guardados')
-          .select('id')
-          .eq('usuario_id', user.id)
-          .eq('local_id', params.id)
-          .maybeSingle();
-
-        if (existing) {
-          console.log('[DetalleLocal] Already in favorites');
-          setIsFavorite(true);
-          setLoadingFavorite(false);
-          return;
-        }
-
-        console.log('[DetalleLocal] Adding to favorites with user_id:', user.id, 'local_id:', params.id);
-        const { error } = await supabase
-          .from('locales_guardados')
-          .insert({
-            usuario_id: user.id,
-            local_id: params.id as string,
-          });
-
-        if (error) {
-          console.error('[DetalleLocal] Error adding favorite:', error);
-          console.error('[DetalleLocal] Error details:', {
-            code: error.code,
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
-          });
-          setIsFavorite(previousState);
-          setLoadingFavorite(false);
-          
-          // Check for duplicate key error
-          if (error.code === '23505') {
-            console.log('[DetalleLocal] Already in favorites (duplicate key)');
-            setIsFavorite(true);
-          } else if (error.code === '42501') {
-            // RLS policy violation
-            Alert.alert('Error de permisos', 'No tienes permisos para agregar favoritos. Por favor, cierra sesión y vuelve a iniciar sesión.');
-          } else {
-            Alert.alert('Error', 'No se pudo agregar a favoritos. Por favor intenta de nuevo.');
-          }
-          
-          return;
-        }
-        
-        console.log('[DetalleLocal] ✅ Added to favorites');
-      }
-    } catch (error: any) {
-      console.error('[DetalleLocal] Error toggling favorito:', error);
-      setIsFavorite(previousState);
-      Alert.alert('Error', 'No se pudo actualizar favoritos. Por favor intenta de nuevo.');
-    } finally {
-      setLoadingFavorite(false);
+    if (params.id) {
+      await toggleFavorite(params.id as string);
     }
   };
 
@@ -1118,7 +981,7 @@ export default function DetalleLocalScreen() {
           {/* ✅ FIXED: Favorite button with RED heart when saved */}
           <TouchableOpacity
             style={styles.favoritoButton}
-            onPress={toggleFavorito}
+            onPress={handleToggleFavorito}
             disabled={loadingFavorite}
           >
             <BlurView intensity={80} tint="dark" style={styles.favoritoBlur}>
@@ -1126,10 +989,10 @@ export default function DetalleLocalScreen() {
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
                 <IconSymbol
-                  ios_icon_name={isFavorite ? "heart.fill" : "heart"}
-                  android_material_icon_name={isFavorite ? "favorite" : "favorite_border"}
+                  ios_icon_name={localIsFavorite ? "heart.fill" : "heart"}
+                  android_material_icon_name={localIsFavorite ? "favorite" : "favorite_border"}
                   size={22}
-                  color={isFavorite ? "#EF4444" : "#FFFFFF"}
+                  color={localIsFavorite ? "#EF4444" : "#FFFFFF"}
                 />
               )}
             </BlurView>

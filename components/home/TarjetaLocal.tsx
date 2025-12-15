@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, Linking, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, Linking, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Local } from '@/types';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -8,6 +8,7 @@ import { colors } from '@/styles/commonStyles';
 import { getEstadoLocal } from '@/utils/timeUtils';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useFavorites } from '@/contexts/FavoritesContext';
 import { getCategoryIcon } from '@/utils/categoryIcons';
 import { localPreloader } from '@/utils/localPreloader';
 import { trackProfileView } from '@/utils/activityTracker';
@@ -26,9 +27,8 @@ interface TarjetaLocalProps {
 
 export default function TarjetaLocal({ local, destacado, userLocation, onVisible }: TarjetaLocalProps) {
   const router = useRouter();
-  const { user, ensureValidSession } = useAuth();
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [loadingFavorite, setLoadingFavorite] = useState(false);
+  const { user } = useAuth();
+  const { isFavorite, toggleFavorite, loading: loadingFavorite } = useFavorites();
   const [hasPreloaded, setHasPreloaded] = useState(false);
   const [hasSocialProfile, setHasSocialProfile] = useState(false);
   const [checkingSocialProfile, setCheckingSocialProfile] = useState(true);
@@ -38,6 +38,7 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
   const estado = getEstadoLocal(local);
   const imagenPrincipal = local.imagenes?.[0] || local.imagen_url;
   const isDestacado = destacado || local.destacado;
+  const localIsFavorite = isFavorite(local.id);
 
   useEffect(() => {
     if (!hasPreloaded && local.id) {
@@ -83,47 +84,6 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
     checkSocialProfile();
   }, [local.id]);
 
-  // ✅ FIXED: Check if local is favorite - using direct user ID from AuthContext
-  const checkIfFavorite = useCallback(async () => {
-    if (!user?.id) {
-      console.log('[TarjetaLocal] ⚠️ No user ID available for favorite check');
-      setIsFavorite(false);
-      return false;
-    }
-    
-    try {
-      console.log('[TarjetaLocal] 🔍 Checking favorite status for user:', user.id, 'local:', local.id);
-      
-      const { data, error } = await supabase
-        .from('locales_guardados')
-        .select('id')
-        .eq('usuario_id', user.id)
-        .eq('local_id', local.id)
-        .maybeSingle();
-
-      if (error) {
-        console.error('[TarjetaLocal] Error checking favorite:', error);
-        setIsFavorite(false);
-        return false;
-      }
-
-      const favoriteStatus = !!data;
-      setIsFavorite(favoriteStatus);
-      console.log('[TarjetaLocal] ✅ Favorite status checked:', favoriteStatus, 'Data:', data);
-      return favoriteStatus;
-    } catch (error) {
-      console.error('[TarjetaLocal] Error checking favorite:', error);
-      setIsFavorite(false);
-      return false;
-    }
-  }, [user?.id, local.id]);
-
-  useEffect(() => {
-    if (user?.id) {
-      checkIfFavorite();
-    }
-  }, [user?.id, checkIfFavorite]);
-
   const handlePress = () => {
     trackProfileView(local.id, user?.id, 'explore');
     router.push(`/detalle/local?id=${local.id}`);
@@ -142,116 +102,10 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
     Linking.openURL(url);
   };
 
-  // ✅ FIXED: Toggle favorite function with session validation
-  const toggleFavorito = async (e: any) => {
+  // ✅ FIXED: Use FavoritesContext for synchronized favorite management
+  const handleToggleFavorite = async (e: any) => {
     e.stopPropagation();
-    
-    if (!user?.id) {
-      console.log('[TarjetaLocal] ⚠️ No user logged in');
-      Alert.alert('Inicia sesión', 'Debes iniciar sesión para agregar favoritos');
-      return;
-    }
-
-    setLoadingFavorite(true);
-    
-    // ✅ Optimistic UI update
-    const previousState = isFavorite;
-    setIsFavorite(!isFavorite);
-    
-    try {
-      console.log('[TarjetaLocal] 🔄 Toggling favorite. Current state:', previousState, '-> New state:', !previousState, 'User ID:', user.id);
-
-      // ✅ CRITICAL FIX: Ensure we have a valid session before attempting database operations
-      console.log('[TarjetaLocal] 🔐 Ensuring valid session before database operation...');
-      const validSession = await ensureValidSession();
-      
-      if (!validSession) {
-        console.error('[TarjetaLocal] ❌ No valid session available');
-        setIsFavorite(previousState);
-        setLoadingFavorite(false);
-        Alert.alert('Sesión expirada', 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
-        return;
-      }
-      
-      console.log('[TarjetaLocal] ✅ Valid session confirmed. User ID from session:', validSession.user.id);
-
-      if (previousState) {
-        // Remove from favorites
-        console.log('[TarjetaLocal] Removing from favorites...');
-        const { error } = await supabase
-          .from('locales_guardados')
-          .delete()
-          .eq('usuario_id', user.id)
-          .eq('local_id', local.id);
-
-        if (error) {
-          console.error('[TarjetaLocal] Error removing favorite:', error);
-          setIsFavorite(previousState);
-          setLoadingFavorite(false);
-          Alert.alert('Error', 'No se pudo eliminar de favoritos');
-          return;
-        }
-        
-        console.log('[TarjetaLocal] ✅ Removed from favorites');
-      } else {
-        // Add to favorites - use maybeSingle to check if already exists
-        console.log('[TarjetaLocal] Checking if already in favorites...');
-        const { data: existing } = await supabase
-          .from('locales_guardados')
-          .select('id')
-          .eq('usuario_id', user.id)
-          .eq('local_id', local.id)
-          .maybeSingle();
-
-        if (existing) {
-          console.log('[TarjetaLocal] Already in favorites');
-          setIsFavorite(true);
-          setLoadingFavorite(false);
-          return;
-        }
-
-        console.log('[TarjetaLocal] Adding to favorites with user_id:', user.id, 'local_id:', local.id);
-        const { error } = await supabase
-          .from('locales_guardados')
-          .insert({
-            usuario_id: user.id,
-            local_id: local.id,
-          });
-
-        if (error) {
-          console.error('[TarjetaLocal] Error adding favorite:', error);
-          console.error('[TarjetaLocal] Error details:', {
-            code: error.code,
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
-          });
-          setIsFavorite(previousState);
-          setLoadingFavorite(false);
-          
-          // Check for duplicate key error
-          if (error.code === '23505') {
-            console.log('[TarjetaLocal] Already in favorites (duplicate key)');
-            setIsFavorite(true);
-          } else if (error.code === '42501') {
-            // RLS policy violation
-            Alert.alert('Error de permisos', 'No tienes permisos para agregar favoritos. Por favor, cierra sesión y vuelve a iniciar sesión.');
-          } else {
-            Alert.alert('Error', 'No se pudo agregar a favoritos');
-          }
-          
-          return;
-        }
-        
-        console.log('[TarjetaLocal] ✅ Added to favorites');
-      }
-    } catch (error: any) {
-      console.error('[TarjetaLocal] Error toggling favorito:', error);
-      setIsFavorite(previousState);
-      Alert.alert('Error', 'No se pudo actualizar favoritos');
-    } finally {
-      setLoadingFavorite(false);
-    }
+    await toggleFavorite(local.id);
   };
 
   const getBadgeColor = () => {
@@ -407,18 +261,22 @@ export default function TarjetaLocal({ local, destacado, userLocation, onVisible
           </View>
         )}
 
-        {/* ✅ FIXED: Favorite button with RED heart when saved */}
+        {/* ✅ FIXED: Favorite button with synchronized state from FavoritesContext */}
         <TouchableOpacity
           style={styles.favoritoButton}
-          onPress={toggleFavorito}
+          onPress={handleToggleFavorite}
           disabled={loadingFavorite}
         >
-          <IconSymbol
-            ios_icon_name={isFavorite ? "heart.fill" : "heart"}
-            android_material_icon_name={isFavorite ? "favorite" : "favorite_border"}
-            size={20}
-            color={isFavorite ? "#EF4444" : colors.headerText}
-          />
+          {loadingFavorite ? (
+            <ActivityIndicator size="small" color={colors.headerText} />
+          ) : (
+            <IconSymbol
+              ios_icon_name={localIsFavorite ? "heart.fill" : "heart"}
+              android_material_icon_name={localIsFavorite ? "favorite" : "favorite_border"}
+              size={20}
+              color={localIsFavorite ? "#EF4444" : colors.headerText}
+            />
+          )}
         </TouchableOpacity>
       </View>
 
