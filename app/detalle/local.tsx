@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Linking, Platform, Alert, Dimensions, Share as RNShare, Modal, TextInput, KeyboardAvoidingView, Keyboard } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,8 +16,10 @@ import { getEstadoLocal } from '../../utils/timeUtils';
 import { useAuth } from '../../contexts/AuthContext';
 import { useFavorites } from '../../contexts/FavoritesContext';
 import { calcularDistancia } from '../../utils/locationUtils';
+import MentionAutocomplete, { MentionSuggestion } from '../../components/social/MentionAutocomplete';
+import ParsedText from '../../components/social/ParsedText';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface Local {
   id: string;
@@ -286,6 +288,7 @@ export default function DetalleLocalScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { isFavorite, toggleFavorite, loading: loadingFavorite } = useFavorites();
+  const textInputRef = useRef<TextInput>(null);
   
   const [local, setLocal] = useState<Local | null>(null);
   const [loading, setLoading] = useState(true);
@@ -305,8 +308,17 @@ export default function DetalleLocalScreen() {
   // ✅ Get favorite status from FavoritesContext
   const localIsFavorite = params.id ? isFavorite(params.id as string) : false;
 
-  // ✅ FIXED: Add keyboard height state for proper modal positioning
+  // ✅ REVIEW SYSTEM v3.0 - Enhanced state management
+  const [showAddReviewModal, setShowAddReviewModal] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewText, setReviewText] = useState('');
+  const [cursorPosition, setCursorPosition] = useState(0);
+  const [submittingReview, setSubmittingReview] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
+  const [editReviewRating, setEditReviewRating] = useState(5);
+  const [editReviewText, setEditReviewText] = useState('');
+  const [showEditReviewModal, setShowEditReviewModal] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -328,12 +340,12 @@ export default function DetalleLocalScreen() {
     })();
   }, []);
 
-  // ✅ FIXED: Add keyboard listeners for modal
+  // ✅ REVIEW SYSTEM v3.0 - Keyboard listeners
   useEffect(() => {
     const keyboardWillShowListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       (e) => {
-        console.log('[DetalleLocal] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
+        console.log('[DetalleLocal v3.0] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
         setKeyboardHeight(e.endCoordinates.height);
       }
     );
@@ -341,7 +353,7 @@ export default function DetalleLocalScreen() {
     const keyboardWillHideListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       () => {
-        console.log('[DetalleLocal] ⌨️ Keyboard hidden');
+        console.log('[DetalleLocal v3.0] ⌨️ Keyboard hidden');
         setKeyboardHeight(0);
       }
     );
@@ -574,11 +586,6 @@ export default function DetalleLocalScreen() {
     }
   };
 
-  const [showAddReviewModal, setShowAddReviewModal] = useState(false);
-  const [reviewRating, setReviewRating] = useState(5);
-  const [reviewText, setReviewText] = useState('');
-  const [submittingReview, setSubmittingReview] = useState(false);
-
   const handleAddReview = () => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para añadir una reseña');
@@ -587,7 +594,32 @@ export default function DetalleLocalScreen() {
     setShowAddReviewModal(true);
   };
 
-  // ✅ FIXED: Ensure we use auth.uid() for RLS policy compliance
+  // ✅ REVIEW SYSTEM v3.0 - Mention selection handler
+  const handleSelectMention = (mention: MentionSuggestion, mentionText: string) => {
+    console.log('[DetalleLocal v3.0] ✅ Selected mention:', mention);
+    
+    const textBeforeCursor = reviewText.substring(0, cursorPosition);
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+    
+    if (lastAtIndex === -1) return;
+
+    const mentionUsername = mention.tipo === 'local' ? mention.nombre : mention.username;
+    const newText = 
+      reviewText.substring(0, lastAtIndex) + 
+      `@${mentionUsername} ` + 
+      reviewText.substring(cursorPosition);
+    
+    setReviewText(newText);
+    
+    const newCursorPosition = lastAtIndex + mentionUsername.length + 2;
+    setCursorPosition(newCursorPosition);
+    
+    setTimeout(() => {
+      textInputRef.current?.focus();
+    }, 100);
+  };
+
+  // ✅ REVIEW SYSTEM v3.0 - Submit review with proper auth
   const handleSubmitReview = async () => {
     if (!user || !params.id) {
       Alert.alert('Error', 'Debes iniciar sesión para añadir una reseña');
@@ -601,7 +633,7 @@ export default function DetalleLocalScreen() {
 
     setSubmittingReview(true);
     try {
-      console.log('[DetalleLocal] Submitting review:', {
+      console.log('[DetalleLocal v3.0] 📝 Submitting review:', {
         local_id: params.id,
         usuario_id: user.id,
         rating: reviewRating,
@@ -619,13 +651,13 @@ export default function DetalleLocalScreen() {
         });
 
       if (error) {
-        console.error('[DetalleLocal] Error submitting review:', error);
+        console.error('[DetalleLocal v3.0] ❌ Error submitting review:', error);
         Alert.alert('Error', 'No se pudo enviar la reseña. Por favor intenta de nuevo.');
         setSubmittingReview(false);
         return;
       }
 
-      console.log('[DetalleLocal] ✅ Review submitted successfully');
+      console.log('[DetalleLocal v3.0] ✅ Review submitted successfully');
       Alert.alert('¡Gracias!', 'Tu reseña ha sido publicada correctamente');
       
       // Reset form
@@ -638,7 +670,7 @@ export default function DetalleLocalScreen() {
       
       setSubmittingReview(false);
     } catch (error) {
-      console.error('[DetalleLocal] Error submitting review:', error);
+      console.error('[DetalleLocal v3.0] ❌ Error submitting review:', error);
       Alert.alert('Error', 'No se pudo enviar la reseña. Por favor intenta de nuevo.');
       setSubmittingReview(false);
     }
@@ -678,7 +710,7 @@ export default function DetalleLocalScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log('[DetalleLocal] Deleting review:', reviewId);
+              console.log('[DetalleLocal v3.0] 🗑️ Deleting review:', reviewId);
               
               const { error } = await supabase
                 .from('reviews_barlive')
@@ -687,18 +719,18 @@ export default function DetalleLocalScreen() {
                 .eq('usuario_id', user.id); // Ensure user owns the review
 
               if (error) {
-                console.error('[DetalleLocal] Error deleting review:', error);
+                console.error('[DetalleLocal v3.0] ❌ Error deleting review:', error);
                 Alert.alert('Error', 'No se pudo eliminar la reseña');
                 return;
               }
 
-              console.log('[DetalleLocal] ✅ Review deleted successfully');
+              console.log('[DetalleLocal v3.0] ✅ Review deleted successfully');
               Alert.alert('Éxito', 'Reseña eliminada correctamente');
               
               // Reload reviews
               cargarReviewsBarlive();
             } catch (error) {
-              console.error('[DetalleLocal] Error deleting review:', error);
+              console.error('[DetalleLocal v3.0] ❌ Error deleting review:', error);
               Alert.alert('Error', 'No se pudo eliminar la reseña');
             }
           },
@@ -708,11 +740,6 @@ export default function DetalleLocalScreen() {
   };
 
   // ✅ Handle edit review
-  const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
-  const [editReviewRating, setEditReviewRating] = useState(5);
-  const [editReviewText, setEditReviewText] = useState('');
-  const [showEditReviewModal, setShowEditReviewModal] = useState(false);
-
   const handleEditReview = (review: Review) => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para editar reseñas');
@@ -738,7 +765,7 @@ export default function DetalleLocalScreen() {
 
     setSubmittingReview(true);
     try {
-      console.log('[DetalleLocal] Updating review:', {
+      console.log('[DetalleLocal v3.0] 📝 Updating review:', {
         id: editingReviewId,
         rating: editReviewRating,
         texto: editReviewText
@@ -754,13 +781,13 @@ export default function DetalleLocalScreen() {
         .eq('usuario_id', user.id); // Ensure user owns the review
 
       if (error) {
-        console.error('[DetalleLocal] Error updating review:', error);
+        console.error('[DetalleLocal v3.0] ❌ Error updating review:', error);
         Alert.alert('Error', 'No se pudo actualizar la reseña. Por favor intenta de nuevo.');
         setSubmittingReview(false);
         return;
       }
 
-      console.log('[DetalleLocal] ✅ Review updated successfully');
+      console.log('[DetalleLocal v3.0] ✅ Review updated successfully');
       Alert.alert('¡Gracias!', 'Tu reseña ha sido actualizada correctamente');
       
       // Reset form
@@ -774,7 +801,7 @@ export default function DetalleLocalScreen() {
       
       setSubmittingReview(false);
     } catch (error) {
-      console.error('[DetalleLocal] Error updating review:', error);
+      console.error('[DetalleLocal v3.0] ❌ Error updating review:', error);
       Alert.alert('Error', 'No se pudo actualizar la reseña. Por favor intenta de nuevo.');
       setSubmittingReview(false);
     }
@@ -1388,7 +1415,7 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* Reviews */}
+        {/* ✅ REVIEW SYSTEM v3.0 - Enhanced Reviews Section */}
         <View style={styles.compactSection}>
           <View style={styles.compactSectionHeader}>
             <View style={[styles.compactIconCircle, { backgroundColor: '#FFD700' + '20' }]}>
@@ -1453,7 +1480,7 @@ export default function DetalleLocalScreen() {
                     </View>
                     {reviewText && (
                       <>
-                        <Text style={styles.reviewText}>{displayText}</Text>
+                        <ParsedText text={displayText} style={styles.reviewText} />
                         {needsExpansion && (
                           <TouchableOpacity onPress={() => toggleReviewExpansion(review.id)}>
                             <Text style={styles.expandButton}>
@@ -1495,83 +1522,114 @@ export default function DetalleLocalScreen() {
         onClose={() => setGalleryVisible(false)}
       />
 
-      {/* ✅ FIXED: Add Review Modal with KeyboardAvoidingView */}
+      {/* ✅ REVIEW SYSTEM v3.0 - Add Review Modal with Mention Support */}
       <Modal
         visible={showAddReviewModal}
         transparent={true}
         animationType="slide"
         onRequestClose={() => setShowAddReviewModal(false)}
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalOverlay}
-          keyboardVerticalOffset={0}
-        >
+        <View style={styles.modalOverlay}>
           <TouchableOpacity 
             style={styles.modalBackdrop} 
             activeOpacity={1} 
-            onPress={() => setShowAddReviewModal(false)}
+            onPress={() => {
+              Keyboard.dismiss();
+              setShowAddReviewModal(false);
+            }}
           />
-          <View style={[styles.modalContent, { marginBottom: keyboardHeight }]}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Añadir Reseña</Text>
-              <TouchableOpacity onPress={() => setShowAddReviewModal(false)}>
-                <Ionicons name="close" size={28} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView 
-              style={styles.modalBody}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
-              <Text style={styles.modalLabel}>Calificación</Text>
-              <View style={styles.starsContainer}>
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <TouchableOpacity
-                    key={star}
-                    onPress={() => setReviewRating(star)}
-                    style={styles.starButton}
-                  >
-                    <Ionicons
-                      name={star <= reviewRating ? 'star' : 'star-outline'}
-                      size={40}
-                      color={star <= reviewRating ? '#FFD700' : colors.textSecondary}
-                    />
-                  </TouchableOpacity>
-                ))}
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.modalKeyboardView}
+            keyboardVerticalOffset={0}
+          >
+            <View style={[styles.modalContent, { paddingBottom: Math.max(keyboardHeight, 20) }]}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Añadir Reseña</Text>
+                <TouchableOpacity onPress={() => {
+                  Keyboard.dismiss();
+                  setShowAddReviewModal(false);
+                }}>
+                  <Ionicons name="close" size={28} color={colors.text} />
+                </TouchableOpacity>
               </View>
 
-              <Text style={styles.modalLabel}>Comentario (opcional)</Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="Comparte tu experiencia..."
-                placeholderTextColor={colors.textSecondary}
-                value={reviewText}
-                onChangeText={setReviewText}
-                multiline
-                numberOfLines={4}
-                maxLength={500}
-              />
-              <Text style={styles.characterCount}>{reviewText.length}/500</Text>
-
-              <TouchableOpacity
-                style={[styles.submitButton, submittingReview && styles.submitButtonDisabled]}
-                onPress={handleSubmitReview}
-                disabled={submittingReview}
+              <ScrollView 
+                style={styles.modalBody}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
               >
-                {submittingReview ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={styles.submitButtonText}>Publicar Reseña</Text>
-                )}
-              </TouchableOpacity>
-            </ScrollView>
-          </View>
-        </KeyboardAvoidingView>
+                <Text style={styles.modalLabel}>Calificación</Text>
+                <View style={styles.starsContainer}>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <TouchableOpacity
+                      key={star}
+                      onPress={() => setReviewRating(star)}
+                      style={styles.starButton}
+                    >
+                      <Ionicons
+                        name={star <= reviewRating ? 'star' : 'star-outline'}
+                        size={40}
+                        color={star <= reviewRating ? '#FFD700' : colors.textSecondary}
+                      />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <Text style={styles.modalLabel}>Comentario (opcional)</Text>
+                <Text style={styles.modalHint}>Puedes mencionar usuarios con @ y hashtags con #</Text>
+                
+                <View style={styles.textInputContainer}>
+                  <TextInput
+                    ref={textInputRef}
+                    style={styles.textInput}
+                    placeholder="Comparte tu experiencia..."
+                    placeholderTextColor={colors.textSecondary}
+                    value={reviewText}
+                    onChangeText={(text) => {
+                      console.log('[DetalleLocal v3.0] 📝 Review text changed:', text);
+                      setReviewText(text);
+                    }}
+                    onSelectionChange={(event) => {
+                      const newPosition = event.nativeEvent.selection.start;
+                      console.log('[DetalleLocal v3.0] 📍 Cursor position:', newPosition);
+                      setCursorPosition(newPosition);
+                    }}
+                    multiline
+                    numberOfLines={4}
+                    maxLength={500}
+                  />
+                  
+                  {/* ✅ REVIEW SYSTEM v3.0 - Mention Autocomplete */}
+                  <View style={styles.mentionAutocompleteContainer} pointerEvents="box-none">
+                    <MentionAutocomplete
+                      text={reviewText}
+                      cursorPosition={cursorPosition}
+                      onSelectMention={handleSelectMention}
+                    />
+                  </View>
+                </View>
+                
+                <Text style={styles.characterCount}>{reviewText.length}/500</Text>
+
+                <TouchableOpacity
+                  style={[styles.submitButton, submittingReview && styles.submitButtonDisabled]}
+                  onPress={handleSubmitReview}
+                  disabled={submittingReview}
+                >
+                  {submittingReview ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.submitButtonText}>Publicar Reseña</Text>
+                  )}
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </KeyboardAvoidingView>
+        </View>
       </Modal>
 
-      {/* ✅ FIXED: Edit Review Modal with KeyboardAvoidingView */}
+      {/* ✅ REVIEW SYSTEM v3.0 - Edit Review Modal with Mention Support */}
       <Modal
         visible={showEditReviewModal}
         transparent={true}
@@ -1581,79 +1639,88 @@ export default function DetalleLocalScreen() {
           setEditingReviewId(null);
         }}
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalOverlay}
-          keyboardVerticalOffset={0}
-        >
+        <View style={styles.modalOverlay}>
           <TouchableOpacity 
             style={styles.modalBackdrop} 
             activeOpacity={1} 
             onPress={() => {
+              Keyboard.dismiss();
               setShowEditReviewModal(false);
               setEditingReviewId(null);
             }}
           />
-          <View style={[styles.modalContent, { marginBottom: keyboardHeight }]}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Editar Reseña</Text>
-              <TouchableOpacity onPress={() => {
-                setShowEditReviewModal(false);
-                setEditingReviewId(null);
-              }}>
-                <Ionicons name="close" size={28} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView 
-              style={styles.modalBody}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
-              <Text style={styles.modalLabel}>Calificación</Text>
-              <View style={styles.starsContainer}>
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <TouchableOpacity
-                    key={star}
-                    onPress={() => setEditReviewRating(star)}
-                    style={styles.starButton}
-                  >
-                    <Ionicons
-                      name={star <= editReviewRating ? 'star' : 'star-outline'}
-                      size={40}
-                      color={star <= editReviewRating ? '#FFD700' : colors.textSecondary}
-                    />
-                  </TouchableOpacity>
-                ))}
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.modalKeyboardView}
+            keyboardVerticalOffset={0}
+          >
+            <View style={[styles.modalContent, { paddingBottom: Math.max(keyboardHeight, 20) }]}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Editar Reseña</Text>
+                <TouchableOpacity onPress={() => {
+                  Keyboard.dismiss();
+                  setShowEditReviewModal(false);
+                  setEditingReviewId(null);
+                }}>
+                  <Ionicons name="close" size={28} color={colors.text} />
+                </TouchableOpacity>
               </View>
 
-              <Text style={styles.modalLabel}>Comentario (opcional)</Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="Comparte tu experiencia..."
-                placeholderTextColor={colors.textSecondary}
-                value={editReviewText}
-                onChangeText={setEditReviewText}
-                multiline
-                numberOfLines={4}
-                maxLength={500}
-              />
-              <Text style={styles.characterCount}>{editReviewText.length}/500</Text>
-
-              <TouchableOpacity
-                style={[styles.submitButton, submittingReview && styles.submitButtonDisabled]}
-                onPress={handleSubmitEditReview}
-                disabled={submittingReview}
+              <ScrollView 
+                style={styles.modalBody}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
               >
-                {submittingReview ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={styles.submitButtonText}>Actualizar Reseña</Text>
-                )}
-              </TouchableOpacity>
-            </ScrollView>
-          </View>
-        </KeyboardAvoidingView>
+                <Text style={styles.modalLabel}>Calificación</Text>
+                <View style={styles.starsContainer}>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <TouchableOpacity
+                      key={star}
+                      onPress={() => setEditReviewRating(star)}
+                      style={styles.starButton}
+                    >
+                      <Ionicons
+                        name={star <= editReviewRating ? 'star' : 'star-outline'}
+                        size={40}
+                        color={star <= editReviewRating ? '#FFD700' : colors.textSecondary}
+                      />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <Text style={styles.modalLabel}>Comentario (opcional)</Text>
+                <Text style={styles.modalHint}>Puedes mencionar usuarios con @ y hashtags con #</Text>
+                
+                <View style={styles.textInputContainer}>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Comparte tu experiencia..."
+                    placeholderTextColor={colors.textSecondary}
+                    value={editReviewText}
+                    onChangeText={setEditReviewText}
+                    multiline
+                    numberOfLines={4}
+                    maxLength={500}
+                  />
+                </View>
+                
+                <Text style={styles.characterCount}>{editReviewText.length}/500</Text>
+
+                <TouchableOpacity
+                  style={[styles.submitButton, submittingReview && styles.submitButtonDisabled]}
+                  onPress={handleSubmitEditReview}
+                  disabled={submittingReview}
+                >
+                  {submittingReview ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.submitButtonText}>Actualizar Reseña</Text>
+                  )}
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </KeyboardAvoidingView>
+        </View>
       </Modal>
     </ScrollView>
   );
@@ -2270,7 +2337,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#fff',
   },
-  // ✅ FIXED: Modal styles with proper keyboard handling
+  // ✅ REVIEW SYSTEM v3.0 - Enhanced Modal Styles
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -2279,11 +2346,19 @@ const styles = StyleSheet.create({
   modalBackdrop: {
     flex: 1,
   },
+  modalKeyboardView: {
+    maxHeight: SCREEN_HEIGHT * 0.9,
+  },
   modalContent: {
     backgroundColor: colors.background,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: '80%',
+    maxHeight: SCREEN_HEIGHT * 0.85,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 10,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -2300,13 +2375,19 @@ const styles = StyleSheet.create({
   },
   modalBody: {
     padding: 20,
-    maxHeight: 500,
+    maxHeight: SCREEN_HEIGHT * 0.6,
   },
   modalLabel: {
     fontSize: 16,
     fontWeight: '600',
     color: colors.text,
+    marginBottom: 8,
+  },
+  modalHint: {
+    fontSize: 13,
+    color: colors.textSecondary,
     marginBottom: 12,
+    fontStyle: 'italic',
   },
   starsContainer: {
     flexDirection: 'row',
@@ -2316,6 +2397,9 @@ const styles = StyleSheet.create({
   },
   starButton: {
     padding: 4,
+  },
+  textInputContainer: {
+    position: 'relative',
   },
   textInput: {
     backgroundColor: colors.cardBackground,
@@ -2327,6 +2411,14 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
     borderWidth: 1,
     borderColor: colors.cardBorder,
+  },
+  mentionAutocompleteContainer: {
+    position: 'absolute',
+    bottom: '100%',
+    left: 0,
+    right: 0,
+    zIndex: 9999,
+    elevation: 9999,
   },
   characterCount: {
     fontSize: 12,
