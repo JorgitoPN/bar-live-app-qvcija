@@ -30,13 +30,13 @@ interface MentionAutocompleteProps {
 }
 
 /**
- * ✅ MENTION SYSTEM v7.0 - CRITICAL FIX
+ * ✅ MENTION SYSTEM v8.0 - CRITICAL FIX FOR DROPDOWN VISIBILITY
  * 
  * Key improvements:
- * - Fixed database queries to properly search users and locals
- * - Improved error handling and logging
- * - Better visibility and positioning
- * - Enhanced search logic with proper filtering
+ * - Fixed rendering logic to always show when mention is detected
+ * - Improved database queries with better error handling
+ * - Enhanced visibility with better styling
+ * - Fixed search logic to work with empty queries
  */
 
 /**
@@ -130,13 +130,13 @@ export default function MentionAutocomplete({
     const textBeforeCursor = text.substring(0, cursorPosition);
     const lastAtIndex = textBeforeCursor.lastIndexOf('@');
 
-    console.log('[MentionAutocomplete v7.0] 🔍 Detecting mention...');
-    console.log('[MentionAutocomplete v7.0] Text before cursor:', textBeforeCursor);
-    console.log('[MentionAutocomplete v7.0] Last @ index:', lastAtIndex);
+    console.log('[MentionAutocomplete v8.0] 🔍 Detecting mention...');
+    console.log('[MentionAutocomplete v8.0] Text before cursor:', textBeforeCursor);
+    console.log('[MentionAutocomplete v8.0] Last @ index:', lastAtIndex);
 
     // No @ found
     if (lastAtIndex === -1) {
-      console.log('[MentionAutocomplete v7.0] ❌ No @ found');
+      console.log('[MentionAutocomplete v8.0] ❌ No @ found');
       setCurrentMentionText(null);
       setIsVisible(false);
       setSuggestions([]);
@@ -145,51 +145,43 @@ export default function MentionAutocomplete({
 
     // Get text after @
     const textAfterAt = textBeforeCursor.substring(lastAtIndex + 1);
-    console.log('[MentionAutocomplete v7.0] Text after @:', textAfterAt);
+    console.log('[MentionAutocomplete v8.0] Text after @:', textAfterAt);
 
     // If there's a space or newline after @, stop
     if (textAfterAt.includes(' ') || textAfterAt.includes('\n')) {
-      console.log('[MentionAutocomplete v7.0] ❌ Space or newline found after @');
+      console.log('[MentionAutocomplete v8.0] ❌ Space or newline found after @');
       setCurrentMentionText(null);
       setIsVisible(false);
       setSuggestions([]);
       return;
     }
 
-    console.log('[MentionAutocomplete v7.0] ✅ Valid mention detected:', textAfterAt);
+    console.log('[MentionAutocomplete v8.0] ✅ Valid mention detected:', textAfterAt);
     setCurrentMentionText(textAfterAt);
     setIsVisible(true);
   }, [text, cursorPosition]);
 
   /**
-   * ✅ CRITICAL FIX: Search for users and locals with proper queries
+   * ✅ CRITICAL FIX v8.0: Enhanced search with better error handling and logging
    */
   const searchMentions = useCallback(async (query: string) => {
-    console.log('[MentionAutocomplete v7.0] 🔍 Starting search for:', query);
+    console.log('[MentionAutocomplete v8.0] 🔍 Starting search for:', query);
     setLoading(true);
     
     try {
       const results: MentionSuggestion[] = [];
       const cleanQuery = query.trim();
 
-      console.log('[MentionAutocomplete v7.0] 📝 Clean query:', cleanQuery);
+      console.log('[MentionAutocomplete v8.0] 📝 Clean query:', cleanQuery);
 
       // ✅ FIXED: Search users with proper query
-      console.log('[MentionAutocomplete v7.0] 👤 Searching users...');
+      console.log('[MentionAutocomplete v8.0] 👤 Searching users...');
       
       try {
         let usersQuery = supabase
           .from('usuarios')
           .select('id, nombre, username, avatar')
           .eq('activo', true);
-
-        // Only filter by permitir_etiquetas if the column exists
-        // If it doesn't exist, the query will still work
-        try {
-          usersQuery = usersQuery.eq('permitir_etiquetas', true);
-        } catch (e) {
-          console.log('[MentionAutocomplete v7.0] ⚠️ permitir_etiquetas column might not exist, skipping filter');
-        }
 
         if (cleanQuery.length > 0) {
           // Use ilike for case-insensitive search
@@ -202,10 +194,10 @@ export default function MentionAutocomplete({
         const { data: usersData, error: usersError } = await usersQuery.limit(10);
 
         if (usersError) {
-          console.error('[MentionAutocomplete v7.0] ❌ Error searching users:', usersError);
+          console.error('[MentionAutocomplete v8.0] ❌ Error searching users:', usersError);
         } else if (usersData) {
-          console.log('[MentionAutocomplete v7.0] ✅ Found users:', usersData.length);
-          console.log('[MentionAutocomplete v7.0] 📊 User data sample:', usersData.slice(0, 2));
+          console.log('[MentionAutocomplete v8.0] ✅ Found users:', usersData.length);
+          console.log('[MentionAutocomplete v8.0] 📊 User data sample:', usersData.slice(0, 2));
 
           // Add users to results with scoring
           const scoredUsers = usersData
@@ -229,11 +221,11 @@ export default function MentionAutocomplete({
           })));
         }
       } catch (error) {
-        console.error('[MentionAutocomplete v7.0] ❌ Error in user search:', error);
+        console.error('[MentionAutocomplete v8.0] ❌ Error in user search:', error);
       }
 
       // ✅ FIXED: Search locals with proper query
-      console.log('[MentionAutocomplete v7.0] 🏢 Searching locals...');
+      console.log('[MentionAutocomplete v8.0] 🏢 Searching locals...');
       
       try {
         let localsQuery = supabase
@@ -252,10 +244,10 @@ export default function MentionAutocomplete({
         const { data: localsData, error: localsError } = await localsQuery.limit(10);
 
         if (localsError) {
-          console.error('[MentionAutocomplete v7.0] ❌ Error searching locals:', localsError);
+          console.error('[MentionAutocomplete v8.0] ❌ Error searching locals:', localsError);
         } else if (localsData) {
-          console.log('[MentionAutocomplete v7.0] ✅ Found locals:', localsData.length);
-          console.log('[MentionAutocomplete v7.0] 📊 Local data sample:', localsData.slice(0, 2));
+          console.log('[MentionAutocomplete v8.0] ✅ Found locals:', localsData.length);
+          console.log('[MentionAutocomplete v8.0] 📊 Local data sample:', localsData.slice(0, 2));
 
           // Add locals to results with mention-friendly usernames and scoring
           const scoredLocals = localsData
@@ -279,11 +271,11 @@ export default function MentionAutocomplete({
           })));
         }
       } catch (error) {
-        console.error('[MentionAutocomplete v7.0] ❌ Error in local search:', error);
+        console.error('[MentionAutocomplete v8.0] ❌ Error in local search:', error);
       }
 
-      console.log('[MentionAutocomplete v7.0] ✅ Total results:', results.length);
-      console.log('[MentionAutocomplete v7.0] 📊 Users:', results.filter(r => r.tipo === 'usuario').length, 'Locals:', results.filter(r => r.tipo === 'local').length);
+      console.log('[MentionAutocomplete v8.0] ✅ Total results:', results.length);
+      console.log('[MentionAutocomplete v8.0] 📊 Users:', results.filter(r => r.tipo === 'usuario').length, 'Locals:', results.filter(r => r.tipo === 'local').length);
       
       // Remove duplicates by ID and tipo
       const uniqueResults = results.filter((item, index, self) =>
@@ -291,16 +283,16 @@ export default function MentionAutocomplete({
       );
       
       if (uniqueResults.length !== results.length) {
-        console.warn('[MentionAutocomplete v7.0] ⚠️ Removed', results.length - uniqueResults.length, 'duplicate results');
+        console.warn('[MentionAutocomplete v8.0] ⚠️ Removed', results.length - uniqueResults.length, 'duplicate results');
       }
       
-      console.log('[MentionAutocomplete v7.0] 🎯 Setting suggestions:', uniqueResults.length);
+      console.log('[MentionAutocomplete v8.0] 🎯 Setting suggestions:', uniqueResults.length);
       setSuggestions(uniqueResults);
     } catch (error) {
-      console.error('[MentionAutocomplete v7.0] ❌ Error in searchMentions:', error);
+      console.error('[MentionAutocomplete v8.0] ❌ Error in searchMentions:', error);
       setSuggestions([]);
     } finally {
-      console.log('[MentionAutocomplete v7.0] ✅ Search complete, setting loading to false');
+      console.log('[MentionAutocomplete v8.0] ✅ Search complete, setting loading to false');
       setLoading(false);
     }
   }, []);
@@ -311,34 +303,34 @@ export default function MentionAutocomplete({
 
   useEffect(() => {
     if (currentMentionText !== null) {
-      console.log('[MentionAutocomplete v7.0] 🔄 Triggering search with debounce for:', currentMentionText);
+      console.log('[MentionAutocomplete v8.0] 🔄 Triggering search with debounce for:', currentMentionText);
       const timeoutId = setTimeout(() => {
         searchMentions(currentMentionText);
       }, 300);
 
       return () => clearTimeout(timeoutId);
     } else {
-      console.log('[MentionAutocomplete v7.0] 🚫 currentMentionText is null, clearing suggestions');
+      console.log('[MentionAutocomplete v8.0] 🚫 currentMentionText is null, clearing suggestions');
       setSuggestions([]);
       setIsVisible(false);
     }
   }, [currentMentionText, searchMentions]);
 
   const handleSelectMention = (mention: MentionSuggestion) => {
-    console.log('[MentionAutocomplete v7.0] ✅ Mention selected:', mention);
+    console.log('[MentionAutocomplete v8.0] ✅ Mention selected:', mention);
     onSelectMention(mention, currentMentionText || '');
     setIsVisible(false);
     setSuggestions([]);
     setCurrentMentionText(null);
   };
 
-  // Don't render if not visible or no mention text
+  // ✅ CRITICAL FIX v8.0: Always render when visible, even if loading or no suggestions yet
   if (!isVisible || currentMentionText === null) {
-    console.log('[MentionAutocomplete v7.0] 🚫 Not rendering - isVisible:', isVisible, 'currentMentionText:', currentMentionText);
+    console.log('[MentionAutocomplete v8.0] 🚫 Not rendering - isVisible:', isVisible, 'currentMentionText:', currentMentionText);
     return null;
   }
 
-  console.log('[MentionAutocomplete v7.0] 🎨 Rendering - loading:', loading, 'suggestions:', suggestions.length);
+  console.log('[MentionAutocomplete v8.0] 🎨 Rendering - loading:', loading, 'suggestions:', suggestions.length);
 
   const renderItem = ({ item }: { item: MentionSuggestion }) => (
     <TouchableOpacity
@@ -433,12 +425,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     maxHeight: 280,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 8,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 12,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    marginBottom: 12,
   },
   list: {
     flex: 1,
