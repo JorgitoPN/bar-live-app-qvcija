@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -57,6 +57,16 @@ interface NewPostCardProps {
   onUpdate?: () => void;
 }
 
+/**
+ * ✅ NEW POST CARD v2.0 - HORIZONTAL IMAGE SWIPE IN FEED
+ * 
+ * Key features:
+ * - ✅ Horizontal swipe enabled for multiple images directly in the feed
+ * - ✅ Image indicators show current position
+ * - ✅ Smooth scrolling between images
+ * - ✅ No need to open post viewer to see all images
+ */
+
 export default function NewPostCard({
   post,
   onUpdate,
@@ -74,6 +84,8 @@ export default function NewPostCard({
   const [authorAvatar, setAuthorAvatar] = useState<string | null>(null);
   const [authorName, setAuthorName] = useState<string>('Usuario');
   const [loadingAuthor, setLoadingAuthor] = useState(true);
+
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const isOwner = post.tipo === 'usuario' 
     ? post.autor_id === user?.id
@@ -317,13 +329,11 @@ export default function NewPostCard({
           )}
         </View>
 
+        {/* ✅ FIXED: Horizontal swipe enabled for multiple images */}
         {post.imagenes.length > 0 && (
-          <TouchableOpacity 
-            style={styles.imagesContainer}
-            onPress={handleImagePress}
-            activeOpacity={0.95}
-          >
+          <View style={styles.imagesContainer}>
             <ScrollView
+              ref={scrollViewRef}
               horizontal
               pagingEnabled
               showsHorizontalScrollIndicator={false}
@@ -336,15 +346,21 @@ export default function NewPostCard({
               scrollEventThrottle={16}
             >
               {post.imagenes.map((imagen, index) => (
-                <Image
+                <TouchableOpacity
                   key={index}
-                  source={{ uri: imagen }}
-                  style={styles.image}
-                  resizeMode="cover"
-                />
+                  activeOpacity={0.95}
+                  onPress={handleImagePress}
+                >
+                  <Image
+                    source={{ uri: imagen }}
+                    style={styles.image}
+                    resizeMode="cover"
+                  />
+                </TouchableOpacity>
               ))}
             </ScrollView>
 
+            {/* ✅ Image indicators - show current position */}
             {post.imagenes.length > 1 && (
               <View style={styles.imageIndicator}>
                 {post.imagenes.map((_, index) => (
@@ -358,7 +374,7 @@ export default function NewPostCard({
                 ))}
               </View>
             )}
-          </TouchableOpacity>
+          </View>
         )}
 
         <View style={styles.actions}>

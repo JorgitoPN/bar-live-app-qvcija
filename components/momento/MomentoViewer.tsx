@@ -56,6 +56,15 @@ interface MomentoViewerProps {
   onClose: () => void;
 }
 
+/**
+ * ✅ MOMENTO VIEWER v2.0 - FIXED PROGRESS BAR PAUSE
+ * 
+ * Key fixes:
+ * - ✅ Progress bar now pauses when holding down the screen
+ * - ✅ Removed pause icon overlay (no visual indicator when paused)
+ * - ✅ Progress bar resumes correctly when releasing
+ */
+
 export default function MomentoViewer({
   visible,
   authorId,
@@ -75,9 +84,9 @@ export default function MomentoViewer({
 
   const progressAnims = useRef<Animated.Value[]>([]).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const glowAnim = useRef(new Animated.Value(0)).current;
   const momentoViewRef = useRef<View>(null);
   const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const progressAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
 
   const markAsViewed = useCallback(async (momentoId: string) => {
     if (!user) return;
@@ -485,10 +494,14 @@ export default function MomentoViewer({
   };
 
   const handleNext = useCallback(() => {
-    // Clear any existing timer
+    // Clear any existing timer and animation
     if (progressTimerRef.current) {
       clearTimeout(progressTimerRef.current);
       progressTimerRef.current = null;
+    }
+    if (progressAnimationRef.current) {
+      progressAnimationRef.current.stop();
+      progressAnimationRef.current = null;
     }
 
     if (currentIndex < momentos.length - 1) {
@@ -511,10 +524,14 @@ export default function MomentoViewer({
   }, [currentIndex, momentos, onClose, progressAnims, markAsViewed]);
 
   const handlePrevious = () => {
-    // Clear any existing timer
+    // Clear any existing timer and animation
     if (progressTimerRef.current) {
       clearTimeout(progressTimerRef.current);
       progressTimerRef.current = null;
+    }
+    if (progressAnimationRef.current) {
+      progressAnimationRef.current.stop();
+      progressAnimationRef.current = null;
     }
 
     if (currentIndex > 0) {
@@ -527,10 +544,14 @@ export default function MomentoViewer({
   };
 
   const handleClose = () => {
-    // Clear any existing timer
+    // Clear any existing timer and animation
     if (progressTimerRef.current) {
       clearTimeout(progressTimerRef.current);
       progressTimerRef.current = null;
+    }
+    if (progressAnimationRef.current) {
+      progressAnimationRef.current.stop();
+      progressAnimationRef.current = null;
     }
 
     // Reset all state before closing
@@ -545,23 +566,28 @@ export default function MomentoViewer({
     onClose();
   };
 
+  // ✅ FIXED: Pause and resume progress bar animation
   const handleLongPressStart = () => {
     setPaused(true);
-    Animated.timing(glowAnim, {
-      toValue: 1,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
+    
+    // ✅ Stop the progress bar animation
+    if (progressAnimationRef.current) {
+      progressAnimationRef.current.stop();
+      progressAnimationRef.current = null;
+    }
+    
+    // ✅ Clear the timer
+    if (progressTimerRef.current) {
+      clearTimeout(progressTimerRef.current);
+      progressTimerRef.current = null;
+    }
+    
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
   const handleLongPressEnd = () => {
     setPaused(false);
-    Animated.timing(glowAnim, {
-      toValue: 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
+    // Progress bar will resume in the useEffect
   };
 
   // Pan responder for swipe gestures
@@ -605,30 +631,43 @@ export default function MomentoViewer({
     }
   }, [visible, authorId, authorType, fadeAnim, loadMomentos]);
 
-  // Auto-progress timer
+  // ✅ FIXED: Auto-progress timer with proper pause/resume
   useEffect(() => {
     if (!paused && momentos.length > 0 && !loading && visible) {
-      // Clear any existing timer
+      // Clear any existing timer and animation
       if (progressTimerRef.current) {
         clearTimeout(progressTimerRef.current);
       }
+      if (progressAnimationRef.current) {
+        progressAnimationRef.current.stop();
+      }
+
+      // Calculate remaining time based on current progress
+      const currentProgress = progressAnims[currentIndex]?.__getValue() || 0;
+      const remainingDuration = MOMENTO_DURATION * (1 - currentProgress);
 
       // Set new timer
       progressTimerRef.current = setTimeout(() => {
         handleNext();
-      }, MOMENTO_DURATION);
+      }, remainingDuration);
 
-      // Animate progress bar
-      Animated.timing(progressAnims[currentIndex], {
+      // Animate progress bar from current position to 100%
+      progressAnimationRef.current = Animated.timing(progressAnims[currentIndex], {
         toValue: 1,
-        duration: MOMENTO_DURATION,
+        duration: remainingDuration,
         useNativeDriver: false,
-      }).start();
+      });
+      
+      progressAnimationRef.current.start();
 
       return () => {
         if (progressTimerRef.current) {
           clearTimeout(progressTimerRef.current);
           progressTimerRef.current = null;
+        }
+        if (progressAnimationRef.current) {
+          progressAnimationRef.current.stop();
+          progressAnimationRef.current = null;
         }
       };
     }
@@ -679,21 +718,7 @@ export default function MomentoViewer({
             onLongPress={handleLongPressStart}
             onPressOut={handleLongPressEnd}
           >
-            <Animated.View
-              style={[
-                styles.imageWrapper,
-                {
-                  transform: [
-                    {
-                      scale: glowAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [1, 1.05],
-                      }),
-                    },
-                  ],
-                },
-              ]}
-            >
+            <View style={styles.imageWrapper}>
               {currentMomento.imagen_url ? (
                 <Image
                   source={{ uri: currentMomento.imagen_url }}
@@ -710,16 +735,11 @@ export default function MomentoViewer({
                   />
                 </View>
               )}
-              {paused && (
-                <View style={styles.pausedOverlay}>
-                  <View style={styles.glowEffect} />
-                </View>
-              )}
-            </Animated.View>
+            </View>
           </TouchableOpacity>
         </View>
 
-        {/* ✅ FIXED: Progress Bars - Positioned at the very top with highest z-index */}
+        {/* ✅ Progress Bars - Positioned at the very top with highest z-index */}
         <View style={styles.progressContainer}>
           {momentos.map((_, index) => (
             <View key={index} style={styles.progressBarBackground}>
@@ -742,7 +762,7 @@ export default function MomentoViewer({
           ))}
         </View>
 
-        {/* ✅ FIXED: Header - Positioned below progress bars with lower z-index */}
+        {/* ✅ Header - Positioned below progress bars with lower z-index */}
         <LinearGradient
           colors={['rgba(0,0,0,0.6)', 'transparent']}
           style={styles.header}
@@ -965,23 +985,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
-  pausedOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  glowEffect: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    shadowColor: '#fff',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  // ✅ FIXED: Progress bars positioned at the very top with highest z-index
+  // ✅ Progress bars positioned at the very top with highest z-index
   progressContainer: {
     position: 'absolute',
     top: 50,
@@ -1003,7 +1007,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: PROGRESS_BAR_HEIGHT / 2,
   },
-  // ✅ FIXED: Header positioned below progress bars with lower z-index
+  // ✅ Header positioned below progress bars with lower z-index
   header: {
     position: 'absolute',
     top: 0,
