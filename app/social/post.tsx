@@ -89,13 +89,14 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   postCard: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.cardBackground,
+    marginBottom: 8,
   },
   postHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   authorInfoRow: {
     flexDirection: 'row',
@@ -103,10 +104,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   postAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    marginRight: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
   },
   avatarPlaceholder: {
     backgroundColor: colors.primary,
@@ -119,8 +120,8 @@ const styles = StyleSheet.create({
     color: colors.headerText,
   },
   postAutorNombre: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
     color: colors.text,
   },
   postAutorBold: {
@@ -190,7 +191,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   postLikes: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     paddingTop: 4,
     paddingBottom: 4,
   },
@@ -203,7 +204,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   postDescripcion: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     paddingTop: 4,
     paddingBottom: 4,
   },
@@ -213,7 +214,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   viewCommentsButton: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     paddingTop: 4,
     paddingBottom: 4,
   },
@@ -223,7 +224,7 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
   postTimeContainer: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     paddingTop: 4,
     paddingBottom: 12,
   },
@@ -242,6 +243,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
+    backgroundColor: colors.cardBackground,
   },
   comentariosSectionTitle: {
     fontSize: 16,
@@ -252,7 +254,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: colors.background,
+    backgroundColor: colors.cardBackground,
   },
   comentarioAvatar: {
     width: 32,
@@ -308,12 +310,13 @@ const styles = StyleSheet.create({
     borderLeftWidth: 2,
     borderLeftColor: colors.cardBorder,
     paddingLeft: 12,
+    backgroundColor: colors.cardBackground,
   },
   inputContainer: {
     position: 'absolute',
     left: 0,
     right: 0,
-    backgroundColor: colors.background,
+    backgroundColor: colors.cardBackground,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
   },
@@ -329,7 +332,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: colors.card,
+    backgroundColor: colors.background,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
   },
@@ -617,7 +620,6 @@ export default function PostDetailScreen() {
     }
   }, [params.id, user, interactionUserId, interactionLocalId, isInteractingAsLocal]);
 
-  // ✅ NEW: Subscribe to real-time like updates
   useEffect(() => {
     if (!params.id) return;
 
@@ -663,7 +665,6 @@ export default function PostDetailScreen() {
 
       console.log('[PostDetail] Loaded comments for post:', params.id, 'Count:', data?.length || 0);
 
-      // ✅ CRITICAL FIX: Display username WITHOUT @ symbol in comments
       const mappedComments = (data || []).map(comment => ({
         ...comment,
         autor: comment.tipo === 'local' && comment.local 
@@ -675,7 +676,7 @@ export default function PostDetailScreen() {
           : comment.autor 
             ? {
                 nombre: comment.autor.username 
-                  ? comment.autor.username.replace(/^@/, '') // Remove @ if present
+                  ? comment.autor.username.replace(/^@/, '')
                   : comment.autor.nombre,
                 avatar: comment.autor.avatar,
                 username: comment.autor.username,
@@ -823,7 +824,6 @@ export default function PostDetailScreen() {
           console.error('[PostDetail] Error updating post likes:', updateError);
         }
 
-        // ✅ NEW: Broadcast like update
         await supabase.channel(`post-likes-${params.id}`).send({
           type: 'broadcast',
           event: 'like_update',
@@ -869,7 +869,6 @@ export default function PostDetailScreen() {
           console.error('[PostDetail] Error updating post likes:', updateError);
         }
 
-        // ✅ NEW: Broadcast like update
         await supabase.channel(`post-likes-${params.id}`).send({
           type: 'broadcast',
           event: 'like_update',
@@ -1082,7 +1081,6 @@ export default function PostDetailScreen() {
     const newCursorPosition = lastAtIndex + mentionUsername.length + 2;
     setCursorPosition(newCursorPosition);
     
-    // Refocus the input
     setTimeout(() => {
       textInputRef.current?.focus();
     }, 100);
@@ -1154,7 +1152,6 @@ export default function PostDetailScreen() {
         chatId = newChat.id;
       }
 
-      // Use first image for preview
       const previewImage = post.images && post.images.length > 0 ? post.images[0] : null;
 
       const { error: messageError } = await supabase
@@ -1299,7 +1296,6 @@ export default function PostDetailScreen() {
 
       console.log('[PostDetail] Comment inserted successfully');
       
-      // Process hashtags and mentions in the comment
       if (data && comentarioTexto) {
         console.log('[PostDetail] 🏷️ Processing hashtags and mentions in comment...');
         await Promise.all([
@@ -1309,7 +1305,6 @@ export default function PostDetailScreen() {
         console.log('[PostDetail] ✅ Comment hashtags and mentions processed');
       }
       
-      // ✅ CRITICAL FIX: Display username WITHOUT @ symbol in new comments
       const mappedComment = {
         ...data,
         autor: data.tipo === 'local' && data.local 
@@ -1321,7 +1316,7 @@ export default function PostDetailScreen() {
           : data.autor 
             ? {
                 nombre: data.autor.username 
-                  ? data.autor.username.replace(/^@/, '') // Remove @ if present
+                  ? data.autor.username.replace(/^@/, '')
                   : data.autor.nombre,
                 avatar: data.autor.avatar,
                 username: data.autor.username,
@@ -1531,7 +1526,6 @@ export default function PostDetailScreen() {
   if (loading) {
     return (
       <View style={styles.container}>
-        {/* ✅ FIXED: Header with BarLive gradient color */}
         <LinearGradient
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
           start={{ x: 0, y: 0 }}
@@ -1554,7 +1548,6 @@ export default function PostDetailScreen() {
   if (!post) {
     return (
       <View style={styles.container}>
-        {/* ✅ FIXED: Header with BarLive gradient color */}
         <LinearGradient
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
           start={{ x: 0, y: 0 }}
@@ -1578,7 +1571,6 @@ export default function PostDetailScreen() {
 
   return (
     <View style={styles.container}>
-      {/* ✅ FIXED: Header with BarLive gradient color */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         start={{ x: 0, y: 0 }}
@@ -1625,9 +1617,7 @@ export default function PostDetailScreen() {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: 60 }}
       >
-        {/* ✅ FIXED: Instagram-style post card */}
         <View style={styles.postCard}>
-          {/* Author header */}
           <View style={styles.postHeader}>
             <TouchableOpacity
               style={styles.authorInfoRow}
@@ -1655,7 +1645,6 @@ export default function PostDetailScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Images carousel */}
           {post.images && post.images.length > 0 && (
             <View style={styles.imageCarouselContainer}>
               <ScrollView
@@ -1676,7 +1665,6 @@ export default function PostDetailScreen() {
                 ))}
               </ScrollView>
               
-              {/* Image indicators */}
               {post.images.length > 1 && (
                 <View style={styles.imageIndicatorContainer}>
                   {post.images.map((_: string, index: number) => (
@@ -1693,7 +1681,6 @@ export default function PostDetailScreen() {
             </View>
           )}
 
-          {/* Action buttons */}
           <View style={styles.postActions}>
             <View style={styles.leftActions}>
               <TouchableOpacity 
@@ -1735,7 +1722,6 @@ export default function PostDetailScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Likes count */}
           {post.likes > 0 && (
             <View style={styles.postLikes}>
               <Text style={styles.postLikesText}>
@@ -1744,7 +1730,6 @@ export default function PostDetailScreen() {
             </View>
           )}
 
-          {/* Caption */}
           {post.contenido && (
             <View style={styles.postDescripcion}>
               <Text style={styles.postDescripcionText}>
@@ -1754,7 +1739,6 @@ export default function PostDetailScreen() {
             </View>
           )}
 
-          {/* View comments link */}
           {totalCommentCount > 0 && (
             <TouchableOpacity 
               style={styles.viewCommentsButton}
@@ -1767,13 +1751,11 @@ export default function PostDetailScreen() {
             </TouchableOpacity>
           )}
 
-          {/* Time ago */}
           <View style={styles.postTimeContainer}>
             <Text style={styles.postTimeText}>{formatearFecha(post.created_at)}</Text>
           </View>
         </View>
 
-        {/* Comments section */}
         <View style={styles.comentariosSection}>
           {totalCommentCount > 0 && (
             <View style={styles.comentariosSectionHeader}>
@@ -1877,7 +1859,6 @@ export default function PostDetailScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
         >
-          {/* ✅ FIXED: Header with BarLive gradient color */}
           <LinearGradient
             colors={[colors.headerGradientStart, colors.headerGradientEnd]}
             start={{ x: 0, y: 0 }}
