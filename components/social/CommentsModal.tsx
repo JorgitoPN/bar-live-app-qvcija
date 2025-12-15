@@ -64,11 +64,12 @@ interface CommentsModalProps {
 }
 
 /**
- * ✅ COMMENTS MODAL v2.0 - MODAL FORMAT WITH LIGHT BACKGROUND
+ * ✅ COMMENTS MODAL v3.0 - BARLIVE BLUE HEADER
  * 
  * Changes:
  * - ✅ Opens as modal (not full screen) - presentationStyle="pageSheet"
  * - ✅ Light background (#F9FAFB) instead of dark
+ * - ✅ BarLive blue gradient header
  * - ✅ Maintains Instagram-style design with light theme
  * - ✅ Rounded corners at top for modal appearance
  */
@@ -242,11 +243,11 @@ export default function CommentsModal({
     setSending(true);
 
     try {
-      console.log('[CommentsModal v2.0] 🔄 Ensuring valid session before sending comment...');
+      console.log('[CommentsModal v3.0] 🔄 Ensuring valid session before sending comment...');
       const validSession = await ensureValidSession();
       
       if (!validSession || !validSession.user) {
-        console.error('[CommentsModal v2.0] ❌ No valid session available');
+        console.error('[CommentsModal v3.0] ❌ No valid session available');
         Alert.alert(
           'Error de autenticación',
           'Tu sesión ha expirado o no tienes permisos. Por favor inicia sesión de nuevo.',
@@ -262,7 +263,7 @@ export default function CommentsModal({
         return;
       }
 
-      console.log('[CommentsModal v2.0] ✅ Valid session confirmed, user ID:', validSession.user.id);
+      console.log('[CommentsModal v3.0] ✅ Valid session confirmed, user ID:', validSession.user.id);
 
       if (editingComment) {
         const { error } = await supabase
@@ -289,7 +290,7 @@ export default function CommentsModal({
           commentData.tipo = 'usuario';
         }
 
-        console.log('[CommentsModal v2.0] 📝 Inserting comment with data:', commentData);
+        console.log('[CommentsModal v3.0] 📝 Inserting comment with data:', commentData);
 
         const { data: newComment, error } = await supabase
           .from('comentarios')
@@ -307,19 +308,19 @@ export default function CommentsModal({
           .single();
 
         if (error) {
-          console.error('[CommentsModal v2.0] ❌ Error inserting comment:', error);
+          console.error('[CommentsModal v3.0] ❌ Error inserting comment:', error);
           throw error;
         }
 
-        console.log('[CommentsModal v2.0] ✅ Comment inserted successfully:', newComment.id);
+        console.log('[CommentsModal v3.0] ✅ Comment inserted successfully:', newComment.id);
 
         if (newComment && text) {
-          console.log('[CommentsModal v2.0] 🏷️ Processing hashtags and mentions in comment...');
+          console.log('[CommentsModal v3.0] 🏷️ Processing hashtags and mentions in comment...');
           await Promise.all([
             processCommentHashtags(newComment.id, text),
             processCommentMentions(newComment.id, text, postId),
           ]);
-          console.log('[CommentsModal v2.0] ✅ Comment hashtags and mentions processed');
+          console.log('[CommentsModal v3.0] ✅ Comment hashtags and mentions processed');
         }
 
         if (replyingTo) {
@@ -334,7 +335,7 @@ export default function CommentsModal({
         }
       }
     } catch (error: any) {
-      console.error('[CommentsModal v2.0] ❌ Error sending comment:', error);
+      console.error('[CommentsModal v3.0] ❌ Error sending comment:', error);
       
       let errorMessage = 'No se pudo enviar el comentario';
       
@@ -704,15 +705,20 @@ export default function CommentsModal({
       <View style={styles.container}>
         <View style={styles.modalHandle} />
         
-        <View style={styles.header}>
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.header}
+        >
           <View style={styles.headerTop}>
             <View style={{ width: 40 }} />
             <Text style={styles.headerTitle}>Comentarios</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <IconSymbol name="xmark" size={24} color={colors.text} />
+              <IconSymbol name="xmark" size={24} color={colors.headerText} />
             </TouchableOpacity>
           </View>
-        </View>
+        </LinearGradient>
 
         {loading ? (
           <View style={styles.loadingContainer}>
@@ -844,9 +850,6 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 8 : 16,
     paddingBottom: 16,
     paddingHorizontal: 16,
-    backgroundColor: '#F9FAFB',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
   },
   headerTop: {
     flexDirection: 'row',
@@ -862,7 +865,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: colors.text,
+    color: colors.headerText,
     flex: 1,
     textAlign: 'center',
   },
