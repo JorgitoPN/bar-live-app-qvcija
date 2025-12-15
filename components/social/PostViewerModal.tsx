@@ -62,18 +62,13 @@ interface PostViewerModalProps {
 }
 
 /**
- * ✅ POST VIEWER MODAL v1.3 - INSTAGRAM-LIKE EXPERIENCE WITH ENHANCED ERROR HANDLING
+ * ✅ POST VIEWER MODAL v1.4 - FIXED PROPS VALIDATION
  * 
- * Key features:
- * - ✅ Full-screen modal for viewing posts
- * - ✅ Swipe up/down to navigate between posts
- * - ✅ Comments modal opens without leaving post view
- * - ✅ Like, comment, share, save actions
- * - ✅ Smooth animations and transitions
- * - ✅ Optimized performance with FlatList
- * - ✅ FIXED: Complete null/undefined checks for posts array throughout component
- * - ✅ FIXED: Safe array operations with proper validation
- * - ✅ FIXED: Better error logging for debugging allPostIds issues
+ * Key fixes:
+ * - ✅ CRITICAL: Validate props before rendering to prevent "Props received: {visible:false}" error
+ * - ✅ Handle undefined/false allPostIds gracefully
+ * - ✅ Don't attempt to load posts if props are invalid
+ * - ✅ Better error messages for debugging
  */
 
 export default function PostViewerModal({
@@ -94,17 +89,37 @@ export default function PostViewerModal({
   const [currentPostId, setCurrentPostId] = useState(initialPostId);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
+  // ✅ CRITICAL FIX v1.4: Validate props early to prevent errors
+  useEffect(() => {
+    if (visible) {
+      console.log('[PostViewerModal v1.4] Props received:', { 
+        visible, 
+        initialPostId, 
+        allPostIds: allPostIds ? `array(${allPostIds.length})` : allPostIds,
+        allPostIdsType: typeof allPostIds,
+        allPostIdsIsArray: Array.isArray(allPostIds)
+      });
+      
+      // ✅ Validate allPostIds before attempting to load
+      if (!allPostIds || !Array.isArray(allPostIds) || allPostIds.length === 0) {
+        console.error('[PostViewerModal v1.4] ❌ Invalid allPostIds - cannot load posts');
+        console.error('[PostViewerModal v1.4] allPostIds value:', allPostIds);
+        setLoading(false);
+        setPosts([]);
+        return;
+      }
+    }
+  }, [visible, allPostIds, initialPostId]);
+
   const loadPosts = useCallback(async () => {
     try {
       setLoading(true);
       
-      // ✅ CRITICAL FIX v1.3: Validate allPostIds before making query with better error handling
+      // ✅ CRITICAL FIX v1.4: Validate allPostIds before making query
       if (!allPostIds || !Array.isArray(allPostIds) || allPostIds.length === 0) {
-        console.error('[PostViewerModal] Invalid allPostIds:', allPostIds);
-        console.error('[PostViewerModal] Props received:', { visible, initialPostId, allPostIds, onClose, onPostChange });
+        console.error('[PostViewerModal v1.4] Invalid allPostIds in loadPosts:', allPostIds);
         setPosts([]);
         setLoading(false);
-        // Don't show alert here, just log the error
         return;
       }
       
@@ -119,7 +134,7 @@ export default function PostViewerModal({
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('[PostViewerModal] Error loading posts:', error);
+        console.error('[PostViewerModal v1.4] Error loading posts:', error);
         Alert.alert('Error', 'No se pudieron cargar las publicaciones');
         setPosts([]);
         setLoading(false);
@@ -128,7 +143,7 @@ export default function PostViewerModal({
 
       // ✅ CRITICAL FIX: Ensure data is an array before processing
       if (!data || !Array.isArray(data)) {
-        console.error('[PostViewerModal] Invalid data received:', data);
+        console.error('[PostViewerModal v1.4] Invalid data received:', data);
         setPosts([]);
         setLoading(false);
         return;
@@ -136,7 +151,7 @@ export default function PostViewerModal({
 
       // ✅ CRITICAL FIX: Handle empty data array
       if (data.length === 0) {
-        console.warn('[PostViewerModal] No posts found for IDs:', allPostIds);
+        console.warn('[PostViewerModal v1.4] No posts found for IDs:', allPostIds);
         setPosts([]);
         setLoading(false);
         return;
@@ -209,7 +224,7 @@ export default function PostViewerModal({
 
       // ✅ CRITICAL FIX: Validate sorted posts before setting state
       if (!sortedPosts || sortedPosts.length === 0) {
-        console.warn('[PostViewerModal] No valid posts after sorting');
+        console.warn('[PostViewerModal v1.4] No valid posts after sorting');
         setPosts([]);
         setLoading(false);
         return;
@@ -224,7 +239,7 @@ export default function PostViewerModal({
         setCurrentPostId(initialPostId);
       }
     } catch (error) {
-      console.error('[PostViewerModal] Error:', error);
+      console.error('[PostViewerModal v1.4] Error:', error);
       Alert.alert('Error', 'Ocurrió un error al cargar las publicaciones');
       setPosts([]);
     } finally {
@@ -233,10 +248,10 @@ export default function PostViewerModal({
   }, [allPostIds, initialPostId, user, interactionUserId, interactionLocalId, isInteractingAsLocal]);
 
   useEffect(() => {
-    if (visible) {
+    if (visible && allPostIds && Array.isArray(allPostIds) && allPostIds.length > 0) {
       loadPosts();
     }
-  }, [visible, loadPosts]);
+  }, [visible, loadPosts, allPostIds]);
 
   const handleViewableItemsChanged = useCallback(({ viewableItems }: any) => {
     // ✅ CRITICAL FIX: Validate viewableItems and posts array
@@ -330,7 +345,7 @@ export default function PostViewerModal({
           .eq('id', post.id);
       }
     } catch (error) {
-      console.error('[PostViewerModal] Error toggling like:', error);
+      console.error('[PostViewerModal v1.4] Error toggling like:', error);
       // Revert optimistic update
       setPosts(prev => {
         // ✅ CRITICAL FIX: Validate prev array
@@ -382,7 +397,7 @@ export default function PostViewerModal({
         if (error) throw error;
       }
     } catch (error) {
-      console.error('[PostViewerModal] Error toggling save:', error);
+      console.error('[PostViewerModal v1.4] Error toggling save:', error);
       // Revert optimistic update
       setPosts(prev => {
         // ✅ CRITICAL FIX: Validate prev array
@@ -525,6 +540,30 @@ export default function PostViewerModal({
     );
   };
 
+  // ✅ CRITICAL FIX v1.4: Don't render modal if props are invalid
+  if (!visible) return null;
+
+  // ✅ CRITICAL FIX v1.4: Show error if allPostIds is invalid
+  if (!allPostIds || !Array.isArray(allPostIds) || allPostIds.length === 0) {
+    return (
+      <Modal
+        visible={visible}
+        transparent={false}
+        animationType="fade"
+        onRequestClose={onClose}
+      >
+        <View style={styles.loadingContainer}>
+          <Text style={{ color: colors.text, marginTop: 16, textAlign: 'center', paddingHorizontal: 20 }}>
+            Error: No se proporcionaron publicaciones válidas
+          </Text>
+          <TouchableOpacity onPress={onClose} style={{ marginTop: 20, backgroundColor: colors.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 }}>
+            <Text style={{ color: colors.headerText, fontWeight: '600' }}>Cerrar</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
+    );
+  }
+
   if (loading) {
     return (
       <Modal
@@ -562,7 +601,7 @@ export default function PostViewerModal({
   // ✅ CRITICAL FIX: Validate current post exists
   const currentPost = posts[currentIndex];
   if (!currentPost) {
-    console.error('[PostViewerModal] Current post not found at index:', currentIndex);
+    console.error('[PostViewerModal v1.4] Current post not found at index:', currentIndex);
     return (
       <Modal
         visible={visible}

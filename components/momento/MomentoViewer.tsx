@@ -26,6 +26,7 @@ import { captureRef } from 'react-native-view-shot';
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const MOMENTO_DURATION = 6000; // 6 seconds per momento
 const PROGRESS_BAR_HEIGHT = 3;
+const LONG_PAUSE_THRESHOLD = 1000; // 1 second threshold for "long pause"
 
 interface Momento {
   id: string;
@@ -57,14 +58,14 @@ interface MomentoViewerProps {
 }
 
 /**
- * ✅ MOMENTO VIEWER v2.1 - INSTANT PAUSE WITH NO DELAY
+ * ✅ MOMENTO VIEWER v3.0 - LONG PAUSE AUTO-COMPLETE FEATURE
  * 
  * Key fixes:
- * - ✅ Progress bar now pauses INSTANTLY when touching the screen (no delay)
- * - ✅ Changed from onLongPress to onPressIn for immediate response
- * - ✅ Removed pause icon overlay (no visual indicator when paused)
- * - ✅ Progress bar resumes correctly when releasing
- * - ✅ Set delayLongPress={0} for instant touch detection
+ * - ✅ Progress bar pauses INSTANTLY when touching the screen
+ * - ✅ If paused for >1 second, releasing will auto-complete the momento
+ * - ✅ If paused for <1 second, releasing will resume normal playback
+ * - ✅ No pause icon overlay (clean UX)
+ * - ✅ Smooth transitions and animations
  */
 
 export default function MomentoViewer({
@@ -89,6 +90,9 @@ export default function MomentoViewer({
   const momentoViewRef = useRef<View>(null);
   const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const progressAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
+  
+  // ✅ NEW: Track pause start time to detect long pauses
+  const pauseStartTimeRef = useRef<number | null>(null);
 
   const markAsViewed = useCallback(async (momentoId: string) => {
     if (!user) return;
@@ -565,11 +569,15 @@ export default function MomentoViewer({
     setViewers([]);
     setLikers([]);
     progressAnims.forEach(anim => anim.setValue(0));
+    pauseStartTimeRef.current = null;
     onClose();
   };
 
-  // ✅ FIXED v2.1: INSTANT pause and resume - no delay
+  // ✅ NEW v3.0: INSTANT pause with long-pause detection
   const handlePressIn = () => {
+    // ✅ Record pause start time
+    pauseStartTimeRef.current = Date.now();
+    
     // ✅ INSTANT pause - stop immediately on touch
     setPaused(true);
     
@@ -589,10 +597,45 @@ export default function MomentoViewer({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
+  // ✅ NEW v3.0: Check pause duration and auto-complete if >1 second
   const handlePressOut = () => {
-    // ✅ INSTANT resume - restart immediately on release
-    setPaused(false);
-    // Progress bar will resume in the useEffect
+    // ✅ Calculate pause duration
+    const pauseDuration = pauseStartTimeRef.current 
+      ? Date.now() - pauseStartTimeRef.current 
+      : 0;
+    
+    console.log('[MomentoViewer v3.0] Pause duration:', pauseDuration, 'ms');
+    
+    // ✅ If paused for more than 1 second, auto-complete the momento
+    if (pauseDuration > LONG_PAUSE_THRESHOLD) {
+      console.log('[MomentoViewer v3.0] Long pause detected - auto-completing momento');
+      
+      // Set progress bar to 100% with smooth animation
+      if (progressAnims[currentIndex]) {
+        Animated.timing(progressAnims[currentIndex], {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: false,
+        }).start(() => {
+          // After animation completes, move to next momento
+          handleNext();
+        });
+      } else {
+        // Fallback if animation fails
+        handleNext();
+      }
+      
+      // Medium haptic feedback for auto-complete
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } else {
+      // ✅ Short pause - resume normal playback
+      console.log('[MomentoViewer v3.0] Short pause - resuming playback');
+      setPaused(false);
+      // Progress bar will resume in the useEffect
+    }
+    
+    // Reset pause start time
+    pauseStartTimeRef.current = null;
   };
 
   // Pan responder for swipe gestures
