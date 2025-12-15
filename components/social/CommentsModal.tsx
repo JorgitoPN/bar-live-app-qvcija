@@ -68,7 +68,7 @@ export default function CommentsModal({
   onClose,
   onCommentAdded,
 }: CommentsModalProps) {
-  const { user } = useAuth();
+  const { user, ensureValidSession } = useAuth();
   const { interactionUserId, interactionLocalId, isInteractingAsLocal } = useInteractionContext();
   const textInputRef = useRef<TextInput>(null);
   
@@ -230,6 +230,30 @@ export default function CommentsModal({
     setSending(true);
 
     try {
+      // ✅ CRITICAL FIX v17.0: Ensure valid session before sending comment
+      console.log('[CommentsModal v17.0] 🔄 Ensuring valid session before sending comment...');
+      const validSession = await ensureValidSession();
+      
+      if (!validSession || !validSession.user) {
+        console.error('[CommentsModal v17.0] ❌ No valid session available');
+        Alert.alert(
+          'Error de autenticación',
+          'Tu sesión ha expirado o no tienes permisos. Por favor inicia sesión de nuevo.',
+          [
+            { text: 'Cancelar', style: 'cancel' },
+            { text: 'Iniciar sesión', onPress: () => {
+              // Navigate to login
+              onClose();
+            }}
+          ]
+        );
+        setCommentText(text); // Restore text
+        setSending(false);
+        return;
+      }
+
+      console.log('[CommentsModal v17.0] ✅ Valid session confirmed, user ID:', validSession.user.id);
+
       if (editingComment) {
         const { error } = await supabase
           .from('comentarios')
@@ -241,9 +265,10 @@ export default function CommentsModal({
         setEditingComment(null);
         await loadComments();
       } else {
+        // ✅ CRITICAL FIX v17.0: Use validSession.user.id instead of user.id
         const commentData: any = {
           post_id: postId,
-          autor_id: user.id,
+          autor_id: validSession.user.id, // Use session user ID
           texto: text,
           parent_comment_id: replyingTo?.id || null,
         };
@@ -254,6 +279,8 @@ export default function CommentsModal({
         } else {
           commentData.tipo = 'usuario';
         }
+
+        console.log('[CommentsModal v17.0] 📝 Inserting comment with data:', commentData);
 
         const { data: newComment, error } = await supabase
           .from('comentarios')
@@ -270,15 +297,20 @@ export default function CommentsModal({
           `)
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('[CommentsModal v17.0] ❌ Error inserting comment:', error);
+          throw error;
+        }
+
+        console.log('[CommentsModal v17.0] ✅ Comment inserted successfully:', newComment.id);
 
         if (newComment && text) {
-          console.log('[CommentsModal] 🏷️ Processing hashtags and mentions in comment...');
+          console.log('[CommentsModal v17.0] 🏷️ Processing hashtags and mentions in comment...');
           await Promise.all([
             processCommentHashtags(newComment.id, text),
             processCommentMentions(newComment.id, text, postId),
           ]);
-          console.log('[CommentsModal] ✅ Comment hashtags and mentions processed');
+          console.log('[CommentsModal v17.0] ✅ Comment hashtags and mentions processed');
         }
 
         if (replyingTo) {
@@ -292,9 +324,19 @@ export default function CommentsModal({
           onCommentAdded();
         }
       }
-    } catch (error) {
-      console.error('[CommentsModal] Error sending comment:', error);
-      Alert.alert('Error', 'No se pudo enviar el comentario');
+    } catch (error: any) {
+      console.error('[CommentsModal v17.0] ❌ Error sending comment:', error);
+      
+      // ✅ CRITICAL FIX v17.0: Better error messages
+      let errorMessage = 'No se pudo enviar el comentario';
+      
+      if (error?.code === '42501') {
+        errorMessage = 'Error de autenticación. Tu sesión ha expirado o no tienes permisos. Por favor inicia sesión de nuevo.';
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      Alert.alert('Error', errorMessage);
       setCommentText(text);
     } finally {
       setSending(false);
