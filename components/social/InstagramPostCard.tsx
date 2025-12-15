@@ -13,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { colors } from '@/styles/commonStyles';
+import { IconSymbol } from '@/components/IconSymbol';
 import MiniAvatarWithMomento from '@/components/momento/MiniAvatarWithMomento';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -449,7 +450,7 @@ export default function InstagramPostCard({
               style={styles.actionButton}
               onPress={handleComment}
             >
-              <Ionicons name="chatbubble-outline" size={26} color={colors.text} />
+              <IconSymbol name="bubble.right" size={26} color={colors.text} />
             </TouchableOpacity>
 
             <TouchableOpacity

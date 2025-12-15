@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,14 +13,20 @@ import {
   ActivityIndicator,
   Alert,
   ActionSheetIOS,
+  Keyboard,
+  Image,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { useAuth } from '@/contexts/AuthContext';
+import { useInteractionContext } from '@/hooks/useInteractionContext';
 import { supabase } from '@/utils/supabase';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import MiniFoodPlateAvatar from '@/components/common/MiniFoodPlateAvatar';
+import MentionAutocomplete, { MentionSuggestion } from '@/components/social/MentionAutocomplete';
+import { processCommentHashtags, processCommentMentions } from '@/utils/postHelpers';
+import ParsedText from '@/components/social/ParsedText';
 
 interface Comment {
   id: string;
@@ -32,11 +38,17 @@ interface Comment {
   user_has_liked?: boolean;
   is_pinned?: boolean;
   parent_comment_id?: string;
-  usuario: {
+  tipo?: string;
+  local_id?: string;
+  usuario?: {
     id: string;
     nombre: string;
     username?: string;
     avatar?: string;
+  };
+  local?: {
+    nombre: string;
+    imagen_url?: string;
   };
   replies?: Comment[];
 }
@@ -57,12 +69,40 @@ export default function CommentsModal({
   onCommentAdded,
 }: CommentsModalProps) {
   const { user } = useAuth();
+  const { interactionUserId, interactionLocalId, isInteractingAsLocal } = useInteractionContext();
+  const textInputRef = useRef<TextInput>(null);
+  
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [commentText, setCommentText] = useState('');
+  const [cursorPosition, setCursorPosition] = useState(0);
   const [sending, setSending] = useState(false);
   const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
   const [editingComment, setEditingComment] = useState<Comment | null>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const keyboardWillShowListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        console.log('[CommentsModal] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
+        setKeyboardHeight(e.endCoordinates.height);
+      }
+    );
+
+    const keyboardWillHideListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        console.log('[CommentsModal] ⌨️ Keyboard hidden');
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      keyboardWillShowListener.remove();
+      keyboardWillHideListener.remove();
+    };
+  }, []);
 
   const loadComments = useCallback(async () => {
     try {
@@ -77,7 +117,8 @@ export default function CommentsModal({
             nombre,
             username,
             avatar
-          )
+          ),
+          local:locales(nombre, imagen_url)
         `)
         .eq('post_id', postId)
         .is('parent_comment_id', null)
@@ -108,7 +149,8 @@ export default function CommentsModal({
                 nombre,
                 username,
                 avatar
-              )
+              ),
+              local:locales(nombre, imagen_url)
             `)
             .in('parent_comment_id', commentIds)
             .order('created_at', { ascending: true }),
@@ -154,6 +196,30 @@ export default function CommentsModal({
     }
   }, [visible, postId, loadComments]);
 
+  const handleSelectMention = (mention: MentionSuggestion, mentionText: string) => {
+    console.log('[CommentsModal] ✅ Selected mention:', mention);
+    
+    const textBeforeCursor = commentText.substring(0, cursorPosition);
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+    
+    if (lastAtIndex === -1) return;
+
+    const mentionUsername = mention.tipo === 'local' ? mention.nombre : mention.username;
+    const newText = 
+      commentText.substring(0, lastAtIndex) + 
+      `@${mentionUsername} ` + 
+      commentText.substring(cursorPosition);
+    
+    setCommentText(newText);
+    
+    const newCursorPosition = lastAtIndex + mentionUsername.length + 2;
+    setCursorPosition(newCursorPosition);
+    
+    setTimeout(() => {
+      textInputRef.current?.focus();
+    }, 100);
+  };
+
   const handleSendComment = async () => {
     if (!user || !commentText.trim() || sending) {
       return;
@@ -175,15 +241,23 @@ export default function CommentsModal({
         setEditingComment(null);
         await loadComments();
       } else {
+        const commentData: any = {
+          post_id: postId,
+          autor_id: user.id,
+          texto: text,
+          parent_comment_id: replyingTo?.id || null,
+        };
+        
+        if (interactionLocalId) {
+          commentData.tipo = 'local';
+          commentData.local_id = interactionLocalId;
+        } else {
+          commentData.tipo = 'usuario';
+        }
+
         const { data: newComment, error } = await supabase
           .from('comentarios')
-          .insert({
-            post_id: postId,
-            autor_id: user.id,
-            tipo: 'usuario',
-            texto: text,
-            parent_comment_id: replyingTo?.id || null,
-          })
+          .insert(commentData)
           .select(`
             *,
             usuario:usuarios!comentarios_autor_id_fkey(
@@ -191,11 +265,21 @@ export default function CommentsModal({
               nombre,
               username,
               avatar
-            )
+            ),
+            local:locales(nombre, imagen_url)
           `)
           .single();
 
         if (error) throw error;
+
+        if (newComment && text) {
+          console.log('[CommentsModal] 🏷️ Processing hashtags and mentions in comment...');
+          await Promise.all([
+            processCommentHashtags(newComment.id, text),
+            processCommentMentions(newComment.id, text, postId),
+          ]);
+          console.log('[CommentsModal] ✅ Comment hashtags and mentions processed');
+        }
 
         if (replyingTo) {
           await loadComments();
@@ -406,94 +490,145 @@ export default function CommentsModal({
     return `${Math.floor(seconds / 604800)}sem`;
   };
 
-  const renderComment = ({ item }: { item: Comment }) => (
-    <View style={styles.commentWrapper}>
-      {item.is_pinned && (
-        <View style={styles.pinnedBadge}>
-          <IconSymbol
-            ios_icon_name="pin.fill"
-            android_material_icon_name="push_pin"
-            size={12}
-            color={colors.primary}
-          />
-          <Text style={styles.pinnedText}>Fijado</Text>
-        </View>
-      )}
-      <View style={styles.commentItem}>
-        <MiniFoodPlateAvatar
-          imageUrl={item.usuario.avatar}
-          size={36}
-          nombre={item.usuario.nombre}
-          userId={item.autor_id}
-        />
-        <View style={styles.commentContent}>
-          <View style={styles.commentBubble}>
-            <Text style={styles.commentUsername}>
-              {item.usuario.username || item.usuario.nombre}
-            </Text>
-            <Text style={styles.commentText}>{item.texto}</Text>
-          </View>
-          <View style={styles.commentActions}>
-            <Text style={styles.commentTime}>{formatTimeAgo(item.created_at)}</Text>
-            {(item.likes_count || 0) > 0 && (
-              <Text style={styles.commentLikes}>
-                {item.likes_count} {item.likes_count === 1 ? 'me gusta' : 'me gusta'}
-              </Text>
-            )}
-            <TouchableOpacity onPress={() => setReplyingTo(item)}>
-              <Text style={styles.commentAction}>Responder</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => showCommentOptions(item)}>
-              <Text style={styles.commentAction}>Más</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-        <View style={styles.commentRightActions}>
-          <TouchableOpacity
-            style={styles.likeButton}
-            onPress={() => handleLikeComment(item)}
-            activeOpacity={0.7}
-          >
-            <IconSymbol
-              ios_icon_name={item.user_has_liked ? 'heart.fill' : 'heart'}
-              android_material_icon_name={item.user_has_liked ? 'favorite' : 'favorite_border'}
-              size={16}
-              color={item.user_has_liked ? '#ff3b30' : colors.textSecondary}
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
+  const renderComment = ({ item }: { item: Comment }) => {
+    const displayName = item.tipo === 'local' && item.local 
+      ? item.local.nombre 
+      : item.usuario?.username 
+        ? item.usuario.username.replace(/^@/, '')
+        : item.usuario?.nombre || 'Usuario';
 
-      {item.replies && item.replies.length > 0 && (
-        <View style={styles.repliesContainer}>
-          {item.replies.map((reply) => (
-            <View key={reply.id} style={styles.replyItem}>
-              <MiniFoodPlateAvatar
-                imageUrl={reply.usuario.avatar}
-                size={28}
-                nombre={reply.usuario.nombre}
-                userId={reply.autor_id}
-              />
-              <View style={styles.commentContent}>
-                <View style={styles.commentBubble}>
-                  <Text style={styles.commentUsername}>
-                    {reply.usuario.username || reply.usuario.nombre}
-                  </Text>
-                  <Text style={styles.commentText}>{reply.texto}</Text>
-                </View>
-                <View style={styles.commentActions}>
-                  <Text style={styles.commentTime}>{formatTimeAgo(reply.created_at)}</Text>
-                  <TouchableOpacity onPress={() => showCommentOptions(reply)}>
-                    <Text style={styles.commentAction}>Más</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
+    const displayAvatar = item.tipo === 'local' && item.local 
+      ? item.local.imagen_url 
+      : item.usuario?.avatar || '';
+
+    const canDelete = user && (
+      (item.tipo === 'usuario' && item.autor_id === user.id) ||
+      (item.tipo === 'local' && interactionLocalId === item.local_id)
+    );
+
+    return (
+      <View style={styles.commentWrapper}>
+        {item.is_pinned && (
+          <View style={styles.pinnedBadge}>
+            <IconSymbol
+              ios_icon_name="pin.fill"
+              android_material_icon_name="push_pin"
+              size={12}
+              color={colors.primary}
+            />
+            <Text style={styles.pinnedText}>Fijado</Text>
+          </View>
+        )}
+        <View style={styles.commentItem}>
+          {displayAvatar ? (
+            <Image source={{ uri: displayAvatar }} style={styles.commentAvatar} />
+          ) : (
+            <View style={[styles.commentAvatar, styles.avatarPlaceholder]}>
+              <Text style={styles.avatarText}>
+                {displayName?.charAt(0).toUpperCase() || 'U'}
+              </Text>
             </View>
-          ))}
+          )}
+          <View style={styles.commentContent}>
+            <View style={styles.commentHeader}>
+              <Text style={styles.commentUsername}>{displayName}</Text>
+              <Text style={styles.commentTime}>{formatTimeAgo(item.created_at)}</Text>
+              {canDelete && (
+                <TouchableOpacity 
+                  style={styles.commentOptionsButton}
+                  onPress={() => handleDeleteComment(item)}
+                  activeOpacity={0.7}
+                >
+                  <IconSymbol name="trash" size={16} color="rgba(0, 0, 0, 0.5)" />
+                </TouchableOpacity>
+              )}
+            </View>
+            <ParsedText text={item.texto} style={styles.commentText} />
+            <View style={styles.commentActions}>
+              <TouchableOpacity 
+                style={styles.commentActionButton}
+                onPress={() => handleLikeComment(item)}
+                activeOpacity={0.7}
+              >
+                {item.likes_count && item.likes_count > 0 ? (
+                  <Text style={[styles.commentActionText, item.user_has_liked && { color: '#EF4444' }]}>
+                    {item.likes_count} me gusta
+                  </Text>
+                ) : (
+                  <Text style={styles.commentActionText}>Me gusta</Text>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.commentActionButton}
+                onPress={() => {
+                  if (!user) {
+                    Alert.alert('Inicia sesión', 'Para responder necesitas registrarte en BarLive');
+                    return;
+                  }
+                  setReplyingTo(item);
+                  textInputRef.current?.focus();
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.commentActionText}>Responder</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
-      )}
-    </View>
-  );
+
+        {item.replies && item.replies.length > 0 && (
+          <View style={styles.repliesContainer}>
+            {item.replies.map((reply) => {
+              const replyDisplayName = reply.tipo === 'local' && reply.local 
+                ? reply.local.nombre 
+                : reply.usuario?.username 
+                  ? reply.usuario.username.replace(/^@/, '')
+                  : reply.usuario?.nombre || 'Usuario';
+
+              const replyDisplayAvatar = reply.tipo === 'local' && reply.local 
+                ? reply.local.imagen_url 
+                : reply.usuario?.avatar || '';
+
+              const canDeleteReply = user && (
+                (reply.tipo === 'usuario' && reply.autor_id === user.id) ||
+                (reply.tipo === 'local' && interactionLocalId === reply.local_id)
+              );
+
+              return (
+                <View key={reply.id} style={styles.replyItem}>
+                  {replyDisplayAvatar ? (
+                    <Image source={{ uri: replyDisplayAvatar }} style={styles.replyAvatar} />
+                  ) : (
+                    <View style={[styles.replyAvatar, styles.avatarPlaceholder]}>
+                      <Text style={[styles.avatarText, { fontSize: 12 }]}>
+                        {replyDisplayName?.charAt(0).toUpperCase() || 'U'}
+                      </Text>
+                    </View>
+                  )}
+                  <View style={styles.commentContent}>
+                    <View style={styles.commentHeader}>
+                      <Text style={styles.commentUsername}>{replyDisplayName}</Text>
+                      <Text style={styles.commentTime}>{formatTimeAgo(reply.created_at)}</Text>
+                      {canDeleteReply && (
+                        <TouchableOpacity 
+                          style={styles.commentOptionsButton}
+                          onPress={() => handleDeleteComment(reply)}
+                          activeOpacity={0.7}
+                        >
+                          <IconSymbol name="trash" size={14} color="rgba(0, 0, 0, 0.5)" />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                    <ParsedText text={reply.texto} style={styles.commentText} />
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
+      </View>
+    );
+  };
 
   const renderEmpty = () => (
     <View style={styles.emptyState}>
@@ -515,26 +650,21 @@ export default function CommentsModal({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={0}
-      >
-        <BlurView intensity={80} tint="light" style={styles.header}>
-          <Text style={styles.headerTitle}>Comentarios</Text>
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={onClose}
-            activeOpacity={0.7}
-          >
-            <IconSymbol
-              ios_icon_name="xmark"
-              android_material_icon_name="close"
-              size={24}
-              color={colors.text}
-            />
-          </TouchableOpacity>
-        </BlurView>
+      <View style={styles.container}>
+        <LinearGradient
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.header}
+        >
+          <View style={styles.headerTop}>
+            <TouchableOpacity onPress={onClose} style={styles.backButton}>
+              <IconSymbol name="chevron.left" size={28} color={colors.headerText} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Comentarios</Text>
+            <View style={{ width: 40 }} />
+          </View>
+        </LinearGradient>
 
         {loading ? (
           <View style={styles.loadingContainer}>
@@ -548,17 +678,38 @@ export default function CommentsModal({
             contentContainerStyle={styles.listContent}
             ListEmptyComponent={renderEmpty}
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           />
         )}
 
         {user && (
-          <BlurView intensity={80} tint="light" style={styles.inputContainer}>
+          <BlurView 
+            intensity={80} 
+            tint="light" 
+            style={[styles.inputContainer, { bottom: keyboardHeight > 0 ? keyboardHeight : 0 }]}
+          >
+            <View 
+              style={[
+                styles.autocompleteWrapper,
+                { 
+                  bottom: 60,
+                }
+              ]}
+              pointerEvents="box-none"
+            >
+              <MentionAutocomplete
+                text={commentText}
+                cursorPosition={cursorPosition}
+                onSelectMention={handleSelectMention}
+              />
+            </View>
+
             {(replyingTo || editingComment) && (
               <View style={styles.replyingBanner}>
                 <Text style={styles.replyingText}>
                   {editingComment 
                     ? 'Editando comentario' 
-                    : `Respondiendo a ${replyingTo?.usuario.username || replyingTo?.usuario.nombre}`}
+                    : `Respondiendo a ${replyingTo?.usuario?.username || replyingTo?.usuario?.nombre}`}
                 </Text>
                 <TouchableOpacity
                   onPress={() => {
@@ -571,60 +722,58 @@ export default function CommentsModal({
                     ios_icon_name="xmark.circle.fill"
                     android_material_icon_name="cancel"
                     size={20}
-                    color={colors.textSecondary}
+                    color="rgba(0, 0, 0, 0.5)"
                   />
                 </TouchableOpacity>
               </View>
             )}
             <View style={styles.inputRow}>
-              <MiniFoodPlateAvatar
-                imageUrl={user.avatar}
-                size={36}
-                nombre={user.nombre}
-                userId={user.id}
+              {user.avatar ? (
+                <Image source={{ uri: user.avatar }} style={styles.inputAvatar} />
+              ) : (
+                <View style={[styles.inputAvatar, styles.avatarPlaceholder]}>
+                  <Text style={[styles.avatarText, { fontSize: 14 }]}>
+                    {user.nombre?.charAt(0).toUpperCase() || 'U'}
+                  </Text>
+                </View>
+              )}
+              <TextInput
+                ref={textInputRef}
+                style={styles.input}
+                placeholder={replyingTo ? 'Añade una respuesta...' : 'Añade un comentario...'}
+                placeholderTextColor="rgba(0, 0, 0, 0.4)"
+                value={commentText}
+                onChangeText={(text) => {
+                  console.log('[CommentsModal] 📝 Text changed:', text);
+                  setCommentText(text);
+                }}
+                onSelectionChange={(event) => {
+                  const newPosition = event.nativeEvent.selection.start;
+                  console.log('[CommentsModal] 📍 Cursor position changed to:', newPosition);
+                  setCursorPosition(newPosition);
+                }}
+                multiline
+                maxLength={500}
+                editable={!sending}
               />
-              <View style={styles.inputWrapper}>
-                <TextInput
-                  style={styles.input}
-                  placeholder={replyingTo ? 'Añade una respuesta...' : 'Añade un comentario...'}
-                  placeholderTextColor={colors.textSecondary}
-                  value={commentText}
-                  onChangeText={setCommentText}
-                  multiline
-                  maxLength={500}
-                  editable={!sending}
-                />
-                {commentText.trim().length > 0 && (
-                  <TouchableOpacity
-                    style={styles.sendButton}
-                    onPress={handleSendComment}
-                    activeOpacity={0.7}
-                    disabled={sending}
-                  >
-                    <LinearGradient
-                      colors={[colors.primary, colors.secondary]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={styles.sendButtonGradient}
-                    >
-                      {sending ? (
-                        <ActivityIndicator size="small" color="#fff" />
-                      ) : (
-                        <IconSymbol
-                          ios_icon_name="paperplane.fill"
-                          android_material_icon_name="send"
-                          size={18}
-                          color="#fff"
-                        />
-                      )}
-                    </LinearGradient>
-                  </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.sendButton}
+                onPress={handleSendComment}
+                disabled={!commentText.trim() || sending}
+                activeOpacity={0.7}
+              >
+                {sending ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
+                  <Text style={[styles.sendButtonText, (!commentText.trim() || sending) && styles.sendButtonDisabled]}>
+                    Publicar
+                  </Text>
                 )}
-              </View>
+              </TouchableOpacity>
             </View>
           </BlurView>
         )}
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }
@@ -632,26 +781,30 @@ export default function CommentsModal({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#fff',
   },
   header: {
+    paddingTop: Platform.OS === 'ios' ? 60 : 48,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+  },
+  headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'ios' ? 60 : 48,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    overflow: 'hidden',
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: colors.text,
-  },
-  closeButton: {
-    padding: 8,
+    color: colors.headerText,
+    flex: 1,
+    textAlign: 'center',
   },
   loadingContainer: {
     flex: 1,
@@ -661,6 +814,7 @@ const styles = StyleSheet.create({
   listContent: {
     flexGrow: 1,
     paddingVertical: 16,
+    paddingBottom: 120,
   },
   commentWrapper: {
     marginBottom: 16,
@@ -681,63 +835,83 @@ const styles = StyleSheet.create({
   commentItem: {
     flexDirection: 'row',
     paddingHorizontal: 16,
-    gap: 12,
+    paddingVertical: 8,
+  },
+  commentAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginRight: 12,
+  },
+  replyAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    marginRight: 10,
+  },
+  avatarPlaceholder: {
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: colors.headerText,
   },
   commentContent: {
     flex: 1,
   },
-  commentBubble: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    padding: 12,
+  commentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
   },
   commentUsername: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.text,
-    marginBottom: 4,
+    color: '#000',
+    marginRight: 8,
+  },
+  commentTime: {
+    fontSize: 12,
+    color: 'rgba(0, 0, 0, 0.5)',
+  },
+  commentOptionsButton: {
+    padding: 4,
+    marginLeft: 'auto',
   },
   commentText: {
     fontSize: 14,
-    color: colors.text,
-    lineHeight: 18,
+    color: '#000',
+    lineHeight: 20,
+    marginBottom: 6,
   },
   commentActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginTop: 4,
-    marginLeft: 12,
+    gap: 16,
   },
-  commentTime: {
-    fontSize: 11,
-    color: colors.textSecondary,
+  commentActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
-  commentLikes: {
-    fontSize: 11,
+  commentActionText: {
+    fontSize: 13,
+    color: 'rgba(0, 0, 0, 0.5)',
     fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  commentAction: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  commentRightActions: {
-    justifyContent: 'flex-start',
-    paddingTop: 12,
-  },
-  likeButton: {
-    padding: 4,
   },
   repliesContainer: {
-    marginLeft: 48,
+    marginLeft: 44,
     marginTop: 12,
-    gap: 12,
+    borderLeftWidth: 2,
+    borderLeftColor: '#e0e0e0',
+    paddingLeft: 12,
   },
   replyItem: {
     flexDirection: 'row',
-    gap: 8,
+    paddingVertical: 8,
   },
   emptyState: {
     flex: 1,
@@ -748,68 +922,75 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: colors.text,
+    color: '#000',
     marginTop: 16,
   },
   emptySubtext: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: 'rgba(0, 0, 0, 0.5)',
     marginTop: 8,
   },
   inputContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    paddingBottom: Platform.OS === 'ios' ? 34 : 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
+    position: 'absolute',
+    left: 0,
+    right: 0,
     overflow: 'hidden',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+  },
+  autocompleteWrapper: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    zIndex: 9999,
+    elevation: 9999,
   },
   replyingBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: colors.cardBackground,
-    borderRadius: 8,
-    marginBottom: 8,
+    paddingHorizontal: 16,
+    backgroundColor: '#f5f5f5',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
   },
   replyingText: {
-    fontSize: 12,
-    color: colors.textSecondary,
+    fontSize: 13,
+    color: 'rgba(0, 0, 0, 0.6)',
     flex: 1,
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: 12,
-  },
-  inputWrapper: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    backgroundColor: colors.cardBackground,
-    borderRadius: 24,
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    gap: 8,
+    paddingVertical: 8,
+    gap: 12,
+    backgroundColor: '#fff',
+  },
+  inputAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginBottom: 4,
   },
   input: {
     flex: 1,
     fontSize: 14,
-    color: colors.text,
-    maxHeight: 100,
+    color: '#000',
+    maxHeight: 80,
+    paddingVertical: 8,
   },
   sendButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    overflow: 'hidden',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    marginBottom: 4,
   },
-  sendButtonGradient: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
+  sendButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  sendButtonDisabled: {
+    opacity: 0.4,
   },
 });

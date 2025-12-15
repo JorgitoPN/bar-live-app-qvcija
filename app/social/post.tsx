@@ -1472,7 +1472,7 @@ export default function PostDetailScreen() {
                 onPress={handleCommentPress}
                 activeOpacity={0.7}
               >
-                <IconSymbol name="bubble.left" size={28} color="#000" />
+                <IconSymbol name="bubble.right" size={26} color="#000" />
               </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.postActionButton} 
