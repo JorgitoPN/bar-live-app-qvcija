@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Linking, Platform, Alert, Dimensions, Share as RNShare, Modal, TextInput } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Linking, Platform, Alert, Dimensions, Share as RNShare, Modal, TextInput, KeyboardAvoidingView, Keyboard } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../integrations/supabase/client';
@@ -305,6 +305,9 @@ export default function DetalleLocalScreen() {
   // ✅ Get favorite status from FavoritesContext
   const localIsFavorite = params.id ? isFavorite(params.id as string) : false;
 
+  // ✅ FIXED: Add keyboard height state for proper modal positioning
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
   useEffect(() => {
     (async () => {
       try {
@@ -323,6 +326,30 @@ export default function DetalleLocalScreen() {
         console.error('[DetalleLocal] Error getting location:', error);
       }
     })();
+  }, []);
+
+  // ✅ FIXED: Add keyboard listeners for modal
+  useEffect(() => {
+    const keyboardWillShowListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        console.log('[DetalleLocal] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
+        setKeyboardHeight(e.endCoordinates.height);
+      }
+    );
+
+    const keyboardWillHideListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        console.log('[DetalleLocal] ⌨️ Keyboard hidden');
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      keyboardWillShowListener.remove();
+      keyboardWillHideListener.remove();
+    };
   }, []);
 
   useEffect(() => {
@@ -412,8 +439,6 @@ export default function DetalleLocalScreen() {
       setLoadingEventos(false);
     }
   }, [params.id]);
-
-  // ✅ Favorite status is now managed by FavoritesContext - no need for local check
 
   const cargarLocal = useCallback(async () => {
     try {
@@ -562,6 +587,7 @@ export default function DetalleLocalScreen() {
     setShowAddReviewModal(true);
   };
 
+  // ✅ FIXED: Ensure we use auth.uid() for RLS policy compliance
   const handleSubmitReview = async () => {
     if (!user || !params.id) {
       Alert.alert('Error', 'Debes iniciar sesión para añadir una reseña');
@@ -582,6 +608,7 @@ export default function DetalleLocalScreen() {
         texto: reviewText
       });
 
+      // ✅ FIXED: Use user.id directly - RLS policy will check auth.uid() = usuario_id
       const { error } = await supabase
         .from('reviews_barlive')
         .insert({
@@ -1468,15 +1495,24 @@ export default function DetalleLocalScreen() {
         onClose={() => setGalleryVisible(false)}
       />
 
-      {/* Add Review Modal */}
+      {/* ✅ FIXED: Add Review Modal with KeyboardAvoidingView */}
       <Modal
         visible={showAddReviewModal}
         transparent={true}
         animationType="slide"
         onRequestClose={() => setShowAddReviewModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+          keyboardVerticalOffset={0}
+        >
+          <TouchableOpacity 
+            style={styles.modalBackdrop} 
+            activeOpacity={1} 
+            onPress={() => setShowAddReviewModal(false)}
+          />
+          <View style={[styles.modalContent, { marginBottom: keyboardHeight }]}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Añadir Reseña</Text>
               <TouchableOpacity onPress={() => setShowAddReviewModal(false)}>
@@ -1484,7 +1520,11 @@ export default function DetalleLocalScreen() {
               </TouchableOpacity>
             </View>
 
-            <View style={styles.modalBody}>
+            <ScrollView 
+              style={styles.modalBody}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
               <Text style={styles.modalLabel}>Calificación</Text>
               <View style={styles.starsContainer}>
                 {[1, 2, 3, 4, 5].map((star) => (
@@ -1526,12 +1566,12 @@ export default function DetalleLocalScreen() {
                   <Text style={styles.submitButtonText}>Publicar Reseña</Text>
                 )}
               </TouchableOpacity>
-            </View>
+            </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
-      {/* ✅ Edit Review Modal */}
+      {/* ✅ FIXED: Edit Review Modal with KeyboardAvoidingView */}
       <Modal
         visible={showEditReviewModal}
         transparent={true}
@@ -1541,8 +1581,20 @@ export default function DetalleLocalScreen() {
           setEditingReviewId(null);
         }}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+          keyboardVerticalOffset={0}
+        >
+          <TouchableOpacity 
+            style={styles.modalBackdrop} 
+            activeOpacity={1} 
+            onPress={() => {
+              setShowEditReviewModal(false);
+              setEditingReviewId(null);
+            }}
+          />
+          <View style={[styles.modalContent, { marginBottom: keyboardHeight }]}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Editar Reseña</Text>
               <TouchableOpacity onPress={() => {
@@ -1553,7 +1605,11 @@ export default function DetalleLocalScreen() {
               </TouchableOpacity>
             </View>
 
-            <View style={styles.modalBody}>
+            <ScrollView 
+              style={styles.modalBody}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
               <Text style={styles.modalLabel}>Calificación</Text>
               <View style={styles.starsContainer}>
                 {[1, 2, 3, 4, 5].map((star) => (
@@ -1595,9 +1651,9 @@ export default function DetalleLocalScreen() {
                   <Text style={styles.submitButtonText}>Actualizar Reseña</Text>
                 )}
               </TouchableOpacity>
-            </View>
+            </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </ScrollView>
   );
@@ -2214,10 +2270,14 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#fff',
   },
+  // ✅ FIXED: Modal styles with proper keyboard handling
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
+  },
+  modalBackdrop: {
+    flex: 1,
   },
   modalContent: {
     backgroundColor: colors.background,
@@ -2240,6 +2300,7 @@ const styles = StyleSheet.create({
   },
   modalBody: {
     padding: 20,
+    maxHeight: 500,
   },
   modalLabel: {
     fontSize: 16,
