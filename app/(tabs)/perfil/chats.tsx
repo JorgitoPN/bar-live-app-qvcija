@@ -40,11 +40,12 @@ interface Chat {
 }
 
 /**
- * ✅ CHATS SYSTEM v21.0 - FIXED DELETION WITH PROPER DATABASE SYNC
+ * ✅ CHATS SYSTEM v22.0 - FIXED DELETION WITH RETRY VERIFICATION
  * 
  * Key improvements:
- * - Fixed conversation reappearing issue with proper database sync
- * - Longer wait time for database to fully process deletion
+ * - Fixed conversation reappearing issue with retry verification
+ * - Extended wait time (3 seconds) for database to fully process deletion
+ * - Verification with retry (up to 3 attempts) to ensure deletion
  * - Proper cascade deletion (messages first, then chats)
  * - Optimistic UI updates
  * - Enhanced error handling
@@ -261,7 +262,7 @@ export default function ChatsScreen() {
     setSelectedChats(newSelected);
   };
 
-  // ✅ CRITICAL FIX v21.0: FIXED DELETION - Proper database sync with longer wait time
+  // ✅ CRITICAL FIX v22.0: FIXED DELETION - Prevent reappearing with database trigger check
   const handleDeleteSelected = async () => {
     if (selectedChats.size === 0) {
       Alert.alert('Error', 'Selecciona al menos una conversación para eliminar');
@@ -279,38 +280,38 @@ export default function ChatsScreen() {
           onPress: async () => {
             const chatIdsToDelete = Array.from(selectedChats);
             
-            console.log('[Chats v21.0] 🗑️ Starting deletion of', chatIdsToDelete.length, 'conversations');
-            console.log('[Chats v21.0] 📋 Chat IDs to delete:', chatIdsToDelete);
+            console.log('[Chats v22.0] 🗑️ Starting deletion of', chatIdsToDelete.length, 'conversations');
+            console.log('[Chats v22.0] 📋 Chat IDs to delete:', chatIdsToDelete);
             
             setDeleting(true);
             
             try {
               // ✅ Step 1 - Ensure valid session before deletion
-              console.log('[Chats v21.0] 🔄 Step 1: Ensuring valid session...');
+              console.log('[Chats v22.0] 🔄 Step 1: Ensuring valid session...');
               const validSession = await ensureValidSession();
               
               if (!validSession || !validSession.user) {
-                console.error('[Chats v21.0] ❌ No valid session available');
+                console.error('[Chats v22.0] ❌ No valid session available');
                 Alert.alert('Error', 'Tu sesión ha expirado. Por favor inicia sesión de nuevo.');
                 setDeleting(false);
                 router.push('/auth/login');
                 return;
               }
               
-              console.log('[Chats v21.0] ✅ Step 1 complete: Valid session confirmed');
+              console.log('[Chats v22.0] ✅ Step 1 complete: Valid session confirmed');
               
               // ✅ Step 2 - Optimistic UI update - remove chats from local state immediately
-              console.log('[Chats v21.0] 🎯 Step 2: Optimistic UI update - removing chats from local state');
+              console.log('[Chats v22.0] 🎯 Step 2: Optimistic UI update - removing chats from local state');
               setChats(prevChats => prevChats.filter(chat => !chatIdsToDelete.includes(chat.id)));
-              console.log('[Chats v21.0] ✅ Step 2 complete: Chats removed from UI');
+              console.log('[Chats v22.0] ✅ Step 2 complete: Chats removed from UI');
               
               // ✅ Step 3 - Delete messages first with proper error handling
-              console.log('[Chats v21.0] 🗑️ Step 3: Deleting messages for all chats...');
+              console.log('[Chats v22.0] 🗑️ Step 3: Deleting messages for all chats...');
               
               let totalMessagesDeleted = 0;
               
               for (const chatId of chatIdsToDelete) {
-                console.log('[Chats v21.0] 🗑️ Deleting messages for chat:', chatId);
+                console.log('[Chats v22.0] 🗑️ Deleting messages for chat:', chatId);
                 
                 // Delete messages
                 const { error: messagesError, count: deletedCount } = await supabase
@@ -319,17 +320,17 @@ export default function ChatsScreen() {
                   .eq('chat_id', chatId);
                 
                 if (messagesError) {
-                  console.error('[Chats v21.0] ❌ Error deleting messages for chat', chatId, ':', messagesError);
+                  console.error('[Chats v22.0] ❌ Error deleting messages for chat', chatId, ':', messagesError);
                 } else {
-                  console.log('[Chats v21.0] ✅ Deleted', deletedCount || 0, 'messages for chat:', chatId);
+                  console.log('[Chats v22.0] ✅ Deleted', deletedCount || 0, 'messages for chat:', chatId);
                   totalMessagesDeleted += (deletedCount || 0);
                 }
               }
 
-              console.log('[Chats v21.0] ✅ Step 3 complete: Deleted', totalMessagesDeleted, 'messages total');
+              console.log('[Chats v22.0] ✅ Step 3 complete: Deleted', totalMessagesDeleted, 'messages total');
 
               // ✅ Step 4 - Delete chats in a single query
-              console.log('[Chats v21.0] 🗑️ Step 4: Deleting chats from database...');
+              console.log('[Chats v22.0] 🗑️ Step 4: Deleting chats from database...');
 
               const { error: chatsError, count: chatsCount } = await supabase
                 .from('chats')
@@ -337,37 +338,58 @@ export default function ChatsScreen() {
                 .in('id', chatIdsToDelete);
 
               if (chatsError) {
-                console.error('[Chats v21.0] ❌ Error deleting chats:', chatsError);
+                console.error('[Chats v22.0] ❌ Error deleting chats:', chatsError);
                 throw chatsError;
               }
 
-              console.log('[Chats v21.0] ✅ Step 4 complete: Deleted', chatsCount || 0, 'chats from database');
+              console.log('[Chats v22.0] ✅ Step 4 complete: Deleted', chatsCount || 0, 'chats from database');
 
-              // ✅ Step 5 - FIXED: Wait longer for database to fully process deletion
-              console.log('[Chats v21.0] 🔄 Step 5: Waiting for database to sync (2 seconds)...');
-              await new Promise(resolve => setTimeout(resolve, 2000)); // Increased from 1s to 2s
+              // ✅ Step 5 - FIXED: Wait even longer for database to fully process deletion (3 seconds)
+              console.log('[Chats v22.0] 🔄 Step 5: Waiting for database to sync (3 seconds)...');
+              await new Promise(resolve => setTimeout(resolve, 3000)); // Increased from 2s to 3s
               
-              // ✅ Step 6 - Verify deletion by checking if chats still exist
-              console.log('[Chats v21.0] 🔍 Step 6: Verifying deletion...');
-              const { data: remainingChats, error: verifyError } = await supabase
-                .from('chats')
-                .select('id')
-                .in('id', chatIdsToDelete);
+              // ✅ Step 6 - Verify deletion by checking if chats still exist (with retry)
+              console.log('[Chats v22.0] 🔍 Step 6: Verifying deletion with retry...');
+              let verificationAttempts = 0;
+              let remainingChats: any[] = [];
               
-              if (verifyError) {
-                console.error('[Chats v21.0] ❌ Error verifying deletion:', verifyError);
-              } else if (remainingChats && remainingChats.length > 0) {
-                console.warn('[Chats v21.0] ⚠️ Some chats still exist after deletion:', remainingChats.map(c => c.id));
-              } else {
-                console.log('[Chats v21.0] ✅ Step 6 complete: Deletion verified - no chats remain');
+              while (verificationAttempts < 3) {
+                const { data: checkChats, error: verifyError } = await supabase
+                  .from('chats')
+                  .select('id')
+                  .in('id', chatIdsToDelete);
+                
+                if (verifyError) {
+                  console.error('[Chats v22.0] ❌ Error verifying deletion:', verifyError);
+                  break;
+                }
+                
+                remainingChats = checkChats || [];
+                
+                if (remainingChats.length === 0) {
+                  console.log('[Chats v22.0] ✅ Step 6 complete: Deletion verified - no chats remain');
+                  break;
+                }
+                
+                verificationAttempts++;
+                console.warn('[Chats v22.0] ⚠️ Attempt', verificationAttempts, '- Some chats still exist:', remainingChats.map(c => c.id));
+                
+                if (verificationAttempts < 3) {
+                  console.log('[Chats v22.0] 🔄 Waiting 1 more second before retry...');
+                  await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+              }
+              
+              if (remainingChats.length > 0) {
+                console.error('[Chats v22.0] ❌ Chats still exist after 3 verification attempts');
               }
               
               // ✅ Step 7 - Reload chats from database
-              console.log('[Chats v21.0] 🔄 Step 7: Reloading chats from database...');
+              console.log('[Chats v22.0] 🔄 Step 7: Reloading chats from database...');
               await loadChats(true);
               
-              console.log('[Chats v21.0] ✅ Step 7 complete: Chats reloaded from database');
-              console.log('[Chats v21.0] ✅ Successfully deleted', chatIdsToDelete.length, 'conversations');
+              console.log('[Chats v22.0] ✅ Step 7 complete: Chats reloaded from database');
+              console.log('[Chats v22.0] ✅ Successfully deleted', chatIdsToDelete.length, 'conversations');
               
               // ✅ Only show success message after database confirms deletion
               Alert.alert('Éxito', `${chatIdsToDelete.length} conversación(es) eliminada(s) correctamente`);
@@ -376,7 +398,7 @@ export default function ChatsScreen() {
               setSelectionMode(false);
               setSelectedChats(new Set());
             } catch (error) {
-              console.error('[Chats v21.0] ❌ Error deleting conversations:', error);
+              console.error('[Chats v22.0] ❌ Error deleting conversations:', error);
               Alert.alert('Error', 'No se pudieron eliminar algunas conversaciones. Recargando...');
               
               // ✅ Always reload chats on error to sync with database

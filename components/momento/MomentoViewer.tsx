@@ -57,12 +57,14 @@ interface MomentoViewerProps {
 }
 
 /**
- * ✅ MOMENTO VIEWER v2.0 - FIXED PROGRESS BAR PAUSE
+ * ✅ MOMENTO VIEWER v2.1 - INSTANT PAUSE WITH NO DELAY
  * 
  * Key fixes:
- * - ✅ Progress bar now pauses when holding down the screen
+ * - ✅ Progress bar now pauses INSTANTLY when touching the screen (no delay)
+ * - ✅ Changed from onLongPress to onPressIn for immediate response
  * - ✅ Removed pause icon overlay (no visual indicator when paused)
  * - ✅ Progress bar resumes correctly when releasing
+ * - ✅ Set delayLongPress={0} for instant touch detection
  */
 
 export default function MomentoViewer({
@@ -566,26 +568,29 @@ export default function MomentoViewer({
     onClose();
   };
 
-  // ✅ FIXED: Pause and resume progress bar animation
-  const handleLongPressStart = () => {
+  // ✅ FIXED v2.1: INSTANT pause and resume - no delay
+  const handlePressIn = () => {
+    // ✅ INSTANT pause - stop immediately on touch
     setPaused(true);
     
-    // ✅ Stop the progress bar animation
+    // ✅ Stop the progress bar animation immediately
     if (progressAnimationRef.current) {
       progressAnimationRef.current.stop();
       progressAnimationRef.current = null;
     }
     
-    // ✅ Clear the timer
+    // ✅ Clear the timer immediately
     if (progressTimerRef.current) {
       clearTimeout(progressTimerRef.current);
       progressTimerRef.current = null;
     }
     
+    // Light haptic feedback for instant response
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
-  const handleLongPressEnd = () => {
+  const handlePressOut = () => {
+    // ✅ INSTANT resume - restart immediately on release
     setPaused(false);
     // Progress bar will resume in the useEffect
   };
@@ -715,8 +720,9 @@ export default function MomentoViewer({
                 handleNext();
               }
             }}
-            onLongPress={handleLongPressStart}
-            onPressOut={handleLongPressEnd}
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
+            delayLongPress={0}
           >
             <View style={styles.imageWrapper}>
               {currentMomento.imagen_url ? (

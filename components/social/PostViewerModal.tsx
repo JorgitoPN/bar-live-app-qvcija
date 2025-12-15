@@ -62,7 +62,7 @@ interface PostViewerModalProps {
 }
 
 /**
- * ✅ POST VIEWER MODAL v1.2 - INSTAGRAM-LIKE EXPERIENCE WITH COMPLETE FIX
+ * ✅ POST VIEWER MODAL v1.3 - INSTAGRAM-LIKE EXPERIENCE WITH ENHANCED ERROR HANDLING
  * 
  * Key features:
  * - ✅ Full-screen modal for viewing posts
@@ -73,6 +73,7 @@ interface PostViewerModalProps {
  * - ✅ Optimized performance with FlatList
  * - ✅ FIXED: Complete null/undefined checks for posts array throughout component
  * - ✅ FIXED: Safe array operations with proper validation
+ * - ✅ FIXED: Better error logging for debugging allPostIds issues
  */
 
 export default function PostViewerModal({
@@ -97,11 +98,13 @@ export default function PostViewerModal({
     try {
       setLoading(true);
       
-      // ✅ CRITICAL FIX: Validate allPostIds before making query
+      // ✅ CRITICAL FIX v1.3: Validate allPostIds before making query with better error handling
       if (!allPostIds || !Array.isArray(allPostIds) || allPostIds.length === 0) {
         console.error('[PostViewerModal] Invalid allPostIds:', allPostIds);
+        console.error('[PostViewerModal] Props received:', { visible, initialPostId, allPostIds, onClose, onPostChange });
         setPosts([]);
         setLoading(false);
+        // Don't show alert here, just log the error
         return;
       }
       
