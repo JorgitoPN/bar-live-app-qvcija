@@ -62,7 +62,7 @@ interface PostViewerModalProps {
 }
 
 /**
- * ✅ POST VIEWER MODAL v1.1 - INSTAGRAM-LIKE EXPERIENCE WITH FIX
+ * ✅ POST VIEWER MODAL v1.2 - INSTAGRAM-LIKE EXPERIENCE WITH COMPLETE FIX
  * 
  * Key features:
  * - ✅ Full-screen modal for viewing posts
@@ -71,7 +71,8 @@ interface PostViewerModalProps {
  * - ✅ Like, comment, share, save actions
  * - ✅ Smooth animations and transitions
  * - ✅ Optimized performance with FlatList
- * - ✅ FIXED: Proper null/undefined checks for posts array
+ * - ✅ FIXED: Complete null/undefined checks for posts array throughout component
+ * - ✅ FIXED: Safe array operations with proper validation
  */
 
 export default function PostViewerModal({
@@ -96,6 +97,14 @@ export default function PostViewerModal({
     try {
       setLoading(true);
       
+      // ✅ CRITICAL FIX: Validate allPostIds before making query
+      if (!allPostIds || !Array.isArray(allPostIds) || allPostIds.length === 0) {
+        console.error('[PostViewerModal] Invalid allPostIds:', allPostIds);
+        setPosts([]);
+        setLoading(false);
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('posts')
         .select(`
@@ -109,6 +118,8 @@ export default function PostViewerModal({
       if (error) {
         console.error('[PostViewerModal] Error loading posts:', error);
         Alert.alert('Error', 'No se pudieron cargar las publicaciones');
+        setPosts([]);
+        setLoading(false);
         return;
       }
 
@@ -116,6 +127,15 @@ export default function PostViewerModal({
       if (!data || !Array.isArray(data)) {
         console.error('[PostViewerModal] Invalid data received:', data);
         setPosts([]);
+        setLoading(false);
+        return;
+      }
+
+      // ✅ CRITICAL FIX: Handle empty data array
+      if (data.length === 0) {
+        console.warn('[PostViewerModal] No posts found for IDs:', allPostIds);
+        setPosts([]);
+        setLoading(false);
         return;
       }
 
@@ -184,6 +204,14 @@ export default function PostViewerModal({
         .map(id => enrichedPosts.find(p => p.id === id))
         .filter(Boolean) as Post[];
 
+      // ✅ CRITICAL FIX: Validate sorted posts before setting state
+      if (!sortedPosts || sortedPosts.length === 0) {
+        console.warn('[PostViewerModal] No valid posts after sorting');
+        setPosts([]);
+        setLoading(false);
+        return;
+      }
+
       setPosts(sortedPosts);
       
       // Find initial index
@@ -195,6 +223,7 @@ export default function PostViewerModal({
     } catch (error) {
       console.error('[PostViewerModal] Error:', error);
       Alert.alert('Error', 'Ocurrió un error al cargar las publicaciones');
+      setPosts([]);
     } finally {
       setLoading(false);
     }
@@ -207,8 +236,13 @@ export default function PostViewerModal({
   }, [visible, loadPosts]);
 
   const handleViewableItemsChanged = useCallback(({ viewableItems }: any) => {
-    if (viewableItems.length > 0) {
-      const index = viewableItems[0].index;
+    // ✅ CRITICAL FIX: Validate viewableItems and posts array
+    if (!viewableItems || viewableItems.length === 0 || !posts || posts.length === 0) {
+      return;
+    }
+    
+    const index = viewableItems[0].index;
+    if (index >= 0 && index < posts.length) {
       setCurrentIndex(index);
       const post = posts[index];
       if (post) {
@@ -234,11 +268,15 @@ export default function PostViewerModal({
     const currentLikes = post.likes || 0;
 
     // Optimistic update
-    setPosts(prev => prev.map(p => 
-      p.id === post.id 
-        ? { ...p, liked: !isLiked, likes: isLiked ? currentLikes - 1 : currentLikes + 1 }
-        : p
-    ));
+    setPosts(prev => {
+      // ✅ CRITICAL FIX: Validate prev array
+      if (!prev || !Array.isArray(prev)) return [];
+      return prev.map(p => 
+        p.id === post.id 
+          ? { ...p, liked: !isLiked, likes: isLiked ? currentLikes - 1 : currentLikes + 1 }
+          : p
+      );
+    });
 
     try {
       if (isLiked) {
@@ -291,11 +329,15 @@ export default function PostViewerModal({
     } catch (error) {
       console.error('[PostViewerModal] Error toggling like:', error);
       // Revert optimistic update
-      setPosts(prev => prev.map(p => 
-        p.id === post.id 
-          ? { ...p, liked: isLiked, likes: currentLikes }
-          : p
-      ));
+      setPosts(prev => {
+        // ✅ CRITICAL FIX: Validate prev array
+        if (!prev || !Array.isArray(prev)) return [];
+        return prev.map(p => 
+          p.id === post.id 
+            ? { ...p, liked: isLiked, likes: currentLikes }
+            : p
+        );
+      });
       Alert.alert('Error', 'No se pudo actualizar el me gusta');
     }
   };
@@ -309,11 +351,15 @@ export default function PostViewerModal({
     const isSaved = post.saved;
 
     // Optimistic update
-    setPosts(prev => prev.map(p => 
-      p.id === post.id 
-        ? { ...p, saved: !isSaved }
-        : p
-    ));
+    setPosts(prev => {
+      // ✅ CRITICAL FIX: Validate prev array
+      if (!prev || !Array.isArray(prev)) return [];
+      return prev.map(p => 
+        p.id === post.id 
+          ? { ...p, saved: !isSaved }
+          : p
+      );
+    });
 
     try {
       if (isSaved) {
@@ -335,11 +381,15 @@ export default function PostViewerModal({
     } catch (error) {
       console.error('[PostViewerModal] Error toggling save:', error);
       // Revert optimistic update
-      setPosts(prev => prev.map(p => 
-        p.id === post.id 
-          ? { ...p, saved: isSaved }
-          : p
-      ));
+      setPosts(prev => {
+        // ✅ CRITICAL FIX: Validate prev array
+        if (!prev || !Array.isArray(prev)) return [];
+        return prev.map(p => 
+          p.id === post.id 
+            ? { ...p, saved: isSaved }
+            : p
+        );
+      });
       Alert.alert('Error', 'No se pudo guardar la publicación');
     }
   };
@@ -488,7 +538,7 @@ export default function PostViewerModal({
   }
 
   // ✅ CRITICAL FIX: Check if posts array is valid before rendering
-  if (!posts || posts.length === 0) {
+  if (!posts || !Array.isArray(posts) || posts.length === 0) {
     return (
       <Modal
         visible={visible}
@@ -498,6 +548,27 @@ export default function PostViewerModal({
       >
         <View style={styles.loadingContainer}>
           <Text style={{ color: colors.text, marginTop: 16 }}>No hay publicaciones disponibles</Text>
+          <TouchableOpacity onPress={onClose} style={{ marginTop: 20 }}>
+            <Text style={{ color: colors.primary }}>Cerrar</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
+    );
+  }
+
+  // ✅ CRITICAL FIX: Validate current post exists
+  const currentPost = posts[currentIndex];
+  if (!currentPost) {
+    console.error('[PostViewerModal] Current post not found at index:', currentIndex);
+    return (
+      <Modal
+        visible={visible}
+        transparent={false}
+        animationType="fade"
+        onRequestClose={onClose}
+      >
+        <View style={styles.loadingContainer}>
+          <Text style={{ color: colors.text, marginTop: 16 }}>Error al cargar la publicación</Text>
           <TouchableOpacity onPress={onClose} style={{ marginTop: 20 }}>
             <Text style={{ color: colors.primary }}>Cerrar</Text>
           </TouchableOpacity>
@@ -554,7 +625,7 @@ export default function PostViewerModal({
         <CommentsModal
           visible={commentsModalVisible}
           postId={currentPostId}
-          postAuthorId={posts[currentIndex]?.autor_id}
+          postAuthorId={currentPost.autor_id}
           onClose={() => setCommentsModalVisible(false)}
           onCommentAdded={() => {
             // Reload current post to update comment count
