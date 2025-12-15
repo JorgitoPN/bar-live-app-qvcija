@@ -16,9 +16,8 @@ import { getEstadoLocal } from '../../utils/timeUtils';
 import { useAuth } from '../../contexts/AuthContext';
 import { useFavorites } from '../../contexts/FavoritesContext';
 import { calcularDistancia } from '../../utils/locationUtils';
-import MentionAutocomplete, { MentionSuggestion } from '../../components/social/MentionAutocomplete';
 import ParsedText from '../../components/social/ParsedText';
-import CommentsModal from '../../components/social/CommentsModal';
+import ReviewsModal from '../../components/social/ReviewsModal';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -289,7 +288,6 @@ export default function DetalleLocalScreen() {
   const router = useRouter();
   const { user, ensureValidSession } = useAuth();
   const { isFavorite, toggleFavorite, loading: loadingFavorite } = useFavorites();
-  const textInputRef = useRef<TextInput>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   
   const [local, setLocal] = useState<Local | null>(null);
@@ -310,8 +308,8 @@ export default function DetalleLocalScreen() {
   // ✅ Get favorite status from FavoritesContext
   const localIsFavorite = params.id ? isFavorite(params.id as string) : false;
 
-  // ✅ REVIEW SYSTEM v16.0 - NEW APPROACH: Use CommentsModal for reviews
-  const [showCommentsModal, setShowCommentsModal] = useState(false);
+  // ✅ REVIEW SYSTEM v18.0 - Use dedicated ReviewsModal
+  const [showReviewsModal, setShowReviewsModal] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -555,72 +553,13 @@ export default function DetalleLocalScreen() {
     }
   };
 
-  // ✅ REVIEW SYSTEM v16.0 - NEW APPROACH: Open CommentsModal for reviews
+  // ✅ REVIEW SYSTEM v18.0 - Open dedicated ReviewsModal
   const handleAddReview = () => {
     if (!user) {
       Alert.alert('Error', 'Debes iniciar sesión para añadir una reseña');
       return;
     }
-    setShowCommentsModal(true);
-  };
-
-  // ✅ Handle delete review
-  const handleDeleteReview = async (reviewId: string) => {
-    console.log('[DetalleLocal v16.0] 🗑️ Starting review deletion...');
-
-    if (!user) {
-      console.error('[DetalleLocal v16.0] ❌ No user in context');
-      Alert.alert('Error', 'Debes iniciar sesión para eliminar reseñas');
-      return;
-    }
-
-    Alert.alert(
-      'Eliminar reseña',
-      '¿Estás seguro de que quieres eliminar esta reseña?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              // ✅ CRITICAL FIX: Use ensureValidSession from AuthContext
-              console.log('[DetalleLocal v16.0] 🔄 Ensuring valid session...');
-              const validSession = await ensureValidSession();
-              
-              if (!validSession || !validSession.user) {
-                console.error('[DetalleLocal v16.0] ❌ No valid session available');
-                Alert.alert('Error', 'Tu sesión ha expirado. Por favor inicia sesión de nuevo.');
-                router.push('/auth/login');
-                return;
-              }
-
-              console.log('[DetalleLocal v16.0] ✅ Valid session confirmed, deleting review:', reviewId);
-              
-              const { error: deleteError } = await supabase
-                .from('reviews_barlive')
-                .delete()
-                .eq('id', reviewId)
-                .eq('usuario_id', user.id);
-
-              if (deleteError) {
-                console.error('[DetalleLocal v16.0] ❌ Error deleting review:', deleteError);
-                Alert.alert('Error', `No se pudo eliminar la reseña: ${deleteError.message}`);
-                return;
-              }
-
-              console.log('[DetalleLocal v16.0] ✅ Review deleted successfully');
-              Alert.alert('Éxito', 'Reseña eliminada correctamente');
-              
-              await cargarReviewsBarlive();
-            } catch (error) {
-              console.error('[DetalleLocal v16.0] ❌ Unexpected error deleting review:', error);
-              Alert.alert('Error', 'No se pudo eliminar la reseña');
-            }
-          },
-        },
-      ]
-    );
+    setShowReviewsModal(true);
   };
 
   const handleOpenGallery = (index: number) => {
@@ -1236,7 +1175,7 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* ✅ REVIEW SYSTEM v16.0 - Enhanced Reviews Section */}
+        {/* ✅ REVIEW SYSTEM v18.0 - Enhanced Reviews Section */}
         <View style={styles.compactSection}>
           <View style={styles.compactSectionHeader}>
             <View style={[styles.compactIconCircle, { backgroundColor: '#FFD700' + '20' }]}>
@@ -1270,21 +1209,6 @@ export default function DetalleLocalScreen() {
                           <Text style={styles.reviewRatingText}>{review.rating}</Text>
                         </View>
                       </View>
-                      {isOwner && (
-                        <View style={styles.reviewActions}>
-                          <TouchableOpacity
-                            style={styles.reviewActionButton}
-                            onPress={() => handleDeleteReview(review.id)}
-                          >
-                            <IconSymbol 
-                              ios_icon_name="trash" 
-                              android_material_icon_name="delete" 
-                              size={18} 
-                              color="#EF4444" 
-                            />
-                          </TouchableOpacity>
-                        </View>
-                      )}
                     </View>
                     {reviewText && (
                       <>
@@ -1330,14 +1254,13 @@ export default function DetalleLocalScreen() {
         onClose={() => setGalleryVisible(false)}
       />
 
-      {/* ✅ REVIEW SYSTEM v16.0 - Use CommentsModal for reviews */}
-      <CommentsModal
-        visible={showCommentsModal}
-        postId={params.id as string}
-        postAuthorId={local?.id}
-        onClose={() => setShowCommentsModal(false)}
-        onCommentAdded={() => {
-          console.log('[DetalleLocal v16.0] ✅ Review added, reloading reviews');
+      {/* ✅ REVIEW SYSTEM v18.0 - Use dedicated ReviewsModal */}
+      <ReviewsModal
+        visible={showReviewsModal}
+        localId={params.id as string}
+        onClose={() => setShowReviewsModal(false)}
+        onReviewAdded={() => {
+          console.log('[DetalleLocal v18.0] ✅ Review added, reloading reviews');
           cargarReviewsBarlive();
         }}
       />
@@ -1909,16 +1832,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
     color: colors.text,
-  },
-  reviewActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  reviewActionButton: {
-    padding: 6,
-    borderRadius: 8,
-    backgroundColor: colors.background,
   },
   reviewText: {
     fontSize: 14,
