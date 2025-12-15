@@ -245,7 +245,7 @@ export default function ChatsScreen() {
     setSelectedChats(newSelected);
   };
 
-  // ✅ FIXED v4: Delete selected conversations with proper database cleanup
+  // ✅ FIXED v5: Enhanced deletion with proper error handling and database sync
   const handleDeleteSelected = async () => {
     if (selectedChats.size === 0) {
       Alert.alert('Error', 'Selecciona al menos una conversación para eliminar');
@@ -263,54 +263,72 @@ export default function ChatsScreen() {
           onPress: async () => {
             const chatIdsToDelete = Array.from(selectedChats);
             
-            console.log('[Chats v4] 🗑️ Starting deletion of', chatIdsToDelete.length, 'conversations');
+            console.log('[Chats v5] 🗑️ Starting deletion of', chatIdsToDelete.length, 'conversations');
+            console.log('[Chats v5] 📋 Chat IDs to delete:', chatIdsToDelete);
             
             setDeleting(true);
             
-            // ✅ CRITICAL FIX v4: Optimistic UI update - remove from state immediately
-            setChats(prevChats => prevChats.filter(chat => !chatIdsToDelete.includes(chat.id)));
-            setSelectionMode(false);
-            setSelectedChats(new Set());
-            
             try {
-              // ✅ CRITICAL FIX v4: Delete messages first, then chats
-              console.log('[Chats v4] 🗑️ Step 1: Deleting messages for all chats...');
+              // ✅ CRITICAL FIX v5: Delete messages first, then chats, with proper error handling
+              console.log('[Chats v5] 🗑️ Step 1: Deleting messages for all chats...');
+              
+              let messagesDeletedCount = 0;
+              let messagesErrorCount = 0;
               
               for (const chatId of chatIdsToDelete) {
-                const { error: messagesError } = await supabase
+                console.log('[Chats v5] 🗑️ Deleting messages for chat:', chatId);
+                
+                const { error: messagesError, count } = await supabase
                   .from('mensajes')
-                  .delete()
+                  .delete({ count: 'exact' })
                   .eq('chat_id', chatId);
                 
                 if (messagesError) {
-                  console.error('[Chats v4] ❌ Error deleting messages for chat', chatId, ':', messagesError);
-                  // Continue with other chats even if one fails
+                  console.error('[Chats v5] ❌ Error deleting messages for chat', chatId, ':', messagesError);
+                  messagesErrorCount++;
+                } else {
+                  console.log('[Chats v5] ✅ Deleted', count || 0, 'messages for chat:', chatId);
+                  messagesDeletedCount += (count || 0);
                 }
               }
 
-              console.log('[Chats v4] ✅ Step 1 complete: Messages deleted');
-              console.log('[Chats v4] 🗑️ Step 2: Deleting chats...');
+              console.log('[Chats v5] ✅ Step 1 complete: Deleted', messagesDeletedCount, 'messages total');
+              if (messagesErrorCount > 0) {
+                console.warn('[Chats v5] ⚠️ Failed to delete messages for', messagesErrorCount, 'chats');
+              }
 
-              // ✅ CRITICAL FIX v4: Delete chats in a single query
-              const { error: chatsError } = await supabase
+              console.log('[Chats v5] 🗑️ Step 2: Deleting chats...');
+
+              // ✅ CRITICAL FIX v5: Delete chats in a single query with proper error handling
+              const { error: chatsError, count: chatsCount } = await supabase
                 .from('chats')
-                .delete()
+                .delete({ count: 'exact' })
                 .in('id', chatIdsToDelete);
 
               if (chatsError) {
-                console.error('[Chats v4] ❌ Error deleting chats:', chatsError);
+                console.error('[Chats v5] ❌ Error deleting chats:', chatsError);
                 throw chatsError;
               }
 
-              console.log('[Chats v4] ✅ Step 2 complete: Chats deleted from database');
-              console.log('[Chats v4] ✅ Successfully deleted', chatIdsToDelete.length, 'conversations');
+              console.log('[Chats v5] ✅ Step 2 complete: Deleted', chatsCount || 0, 'chats from database');
+
+              // ✅ CRITICAL FIX v5: Verify deletion by reloading from database
+              console.log('[Chats v5] 🔄 Step 3: Verifying deletion by reloading chats...');
+              await loadChats();
+              console.log('[Chats v5] ✅ Step 3 complete: Chats reloaded from database');
+              
+              console.log('[Chats v5] ✅ Successfully deleted', chatIdsToDelete.length, 'conversations');
               
               Alert.alert('Éxito', `${chatIdsToDelete.length} conversación(es) eliminada(s) correctamente`);
+              
+              // Reset selection mode
+              setSelectionMode(false);
+              setSelectedChats(new Set());
             } catch (error) {
-              console.error('[Chats v4] ❌ Error deleting conversations:', error);
+              console.error('[Chats v5] ❌ Error deleting conversations:', error);
               Alert.alert('Error', 'No se pudieron eliminar algunas conversaciones. Recargando...');
               
-              // ✅ Reload chats on error to sync with database
+              // ✅ CRITICAL FIX v5: Always reload chats on error to sync with database
               await loadChats();
             } finally {
               setDeleting(false);
