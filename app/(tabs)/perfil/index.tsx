@@ -76,7 +76,6 @@ export default function PerfilScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [showCreateOptions, setShowCreateOptions] = useState(false);
   const [showProfileSwitcher, setShowProfileSwitcher] = useState(false);
   const [showMomentoUpload, setShowMomentoUpload] = useState(false);
   const [showMomentoViewer, setShowMomentoViewer] = useState(false);
@@ -641,6 +640,17 @@ export default function PerfilScreen() {
     setShowMomentoViewer(true);
   };
 
+  // ✅ CRITICAL FIX: Navigate directly to create post page instead of showing modal
+  const handleCrearPublicacion = () => {
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+    
+    console.log('[Perfil] ✅ Navigating directly to create post page');
+    router.push('/crear/publicacion');
+  };
+
   const renderGridPost = (post: Post) => {
     const firstImage = post.imagenes && post.imagenes.length > 0 
       ? post.imagenes[0] 
@@ -818,7 +828,7 @@ export default function PerfilScreen() {
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.actionButton, styles.createButton]} 
-            onPress={() => setShowCreateOptions(true)}
+            onPress={handleCrearPublicacion}
           >
             <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={18} color={colors.white} />
             <Text style={[styles.actionButtonText, { color: colors.white }]}>Crear</Text>
@@ -1117,7 +1127,7 @@ export default function PerfilScreen() {
                   {activeTab === 'posts' && (
                     <TouchableOpacity 
                       style={styles.emptyStateButton} 
-                      onPress={() => router.push('/crear/publicacion')}
+                      onPress={handleCrearPublicacion}
                     >
                       <Text style={styles.emptyStateButtonText}>Crear Publicación</Text>
                     </TouchableOpacity>
@@ -1128,47 +1138,6 @@ export default function PerfilScreen() {
           )}
         </View>
       </ScrollView>
-
-      <Modal
-        visible={showCreateOptions}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowCreateOptions(false)}
-      >
-        <Pressable 
-          style={styles.createOptionsModal}
-          onPress={() => setShowCreateOptions(false)}
-        >
-          <Pressable style={styles.createOptionsContent} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.createOptionsHeader}>
-              <Text style={styles.createOptionsTitle}>Crear</Text>
-              <TouchableOpacity onPress={() => setShowCreateOptions(false)} activeOpacity={0.8}>
-                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.createOptionsButtons}>
-              <TouchableOpacity
-                style={styles.createOptionButton}
-                onPress={() => {
-                  setShowCreateOptions(false);
-                  router.push('/crear/publicacion');
-                }}
-                activeOpacity={0.8}
-              >
-                <View style={styles.createOptionIcon}>
-                  <IconSymbol ios_icon_name="photo.fill" android_material_icon_name="photo" size={24} color={colors.headerText} />
-                </View>
-                <View style={styles.createOptionInfo}>
-                  <Text style={styles.createOptionTitle}>Publicación</Text>
-                  <Text style={styles.createOptionDescription}>
-                    Comparte una foto o video en tu perfil
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
 
       <MomentoUpload
         visible={showMomentoUpload}
@@ -1623,67 +1592,5 @@ const styles = StyleSheet.create({
   },
   perfilProfesionalButtonTextSecondary: {
     color: colors.primary,
-  },
-  createOptionsModal: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  createOptionsContent: {
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingBottom: 34,
-  },
-  createOptionsHeader: {
-    paddingTop: 24,
-    paddingBottom: 16,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  createOptionsTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: colors.text,
-  },
-  createOptionsButtons: {
-    padding: 20,
-    gap: 16,
-  },
-  createOptionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: colors.cardBackground,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  createOptionIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 20,
-  },
-  createOptionInfo: {
-    flex: 1,
-  },
-  createOptionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 6,
-  },
-  createOptionDescription: {
-    fontSize: 15,
-    color: colors.textSecondary,
-    lineHeight: 20,
   },
 });

@@ -62,7 +62,7 @@ interface PostViewerModalProps {
 }
 
 /**
- * ✅ POST VIEWER MODAL v1.0 - INSTAGRAM-LIKE EXPERIENCE
+ * ✅ POST VIEWER MODAL v1.1 - INSTAGRAM-LIKE EXPERIENCE WITH FIX
  * 
  * Key features:
  * - ✅ Full-screen modal for viewing posts
@@ -71,6 +71,7 @@ interface PostViewerModalProps {
  * - ✅ Like, comment, share, save actions
  * - ✅ Smooth animations and transitions
  * - ✅ Optimized performance with FlatList
+ * - ✅ FIXED: Proper null/undefined checks for posts array
  */
 
 export default function PostViewerModal({
@@ -111,9 +112,16 @@ export default function PostViewerModal({
         return;
       }
 
+      // ✅ CRITICAL FIX: Ensure data is an array before processing
+      if (!data || !Array.isArray(data)) {
+        console.error('[PostViewerModal] Invalid data received:', data);
+        setPosts([]);
+        return;
+      }
+
       // Load likes and saves for each post
       const enrichedPosts = await Promise.all(
-        (data || []).map(async (post) => {
+        data.map(async (post) => {
           let liked = false;
           if (interactionUserId) {
             let likeQuery = supabase
@@ -474,6 +482,25 @@ export default function PostViewerModal({
       >
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </Modal>
+    );
+  }
+
+  // ✅ CRITICAL FIX: Check if posts array is valid before rendering
+  if (!posts || posts.length === 0) {
+    return (
+      <Modal
+        visible={visible}
+        transparent={false}
+        animationType="fade"
+        onRequestClose={onClose}
+      >
+        <View style={styles.loadingContainer}>
+          <Text style={{ color: colors.text, marginTop: 16 }}>No hay publicaciones disponibles</Text>
+          <TouchableOpacity onPress={onClose} style={{ marginTop: 20 }}>
+            <Text style={{ color: colors.primary }}>Cerrar</Text>
+          </TouchableOpacity>
         </View>
       </Modal>
     );
