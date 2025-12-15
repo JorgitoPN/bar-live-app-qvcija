@@ -54,6 +54,26 @@ function deduplicateById(items: any[]): any[] {
   });
 }
 
+/**
+ * ✅ NEW: Generate a mention-friendly username for locals with multiple words
+ * Examples:
+ * - "Bar Central" -> "BarCentral"
+ * - "La Taberna del Puerto" -> "LaTabernaDelPuerto"
+ * - "Café de la Plaza" -> "CafeDeLaPlaza"
+ */
+function generateLocalMentionUsername(nombre: string): string {
+  // Remove special characters and split by spaces
+  const words = nombre
+    .replace(/[^\w\s]/g, '') // Remove special chars
+    .split(/\s+/) // Split by spaces
+    .filter(word => word.length > 0); // Remove empty strings
+  
+  // Capitalize first letter of each word and join
+  return words
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join('');
+}
+
 export default function MentionAutocomplete({
   text,
   cursorPosition,
@@ -205,7 +225,7 @@ export default function MentionAutocomplete({
         })));
       }
 
-      // Search locals - SIMPLIFIED: Don't filter by subscription for now
+      // Search locals - ✅ IMPROVED: Search by mention-friendly username
       console.log('[MentionAutocomplete] 🏢 Searching locals...');
       
       let localsData: any[] = [];
@@ -246,22 +266,23 @@ export default function MentionAutocomplete({
       localsData = deduplicateById(localsData);
       console.log('[MentionAutocomplete] 📊 Total unique locals found:', localsData.length);
 
-      // Add locals to results with scoring
+      // ✅ IMPROVED: Add locals to results with mention-friendly usernames and scoring
       if (localsData && localsData.length > 0) {
         const scoredLocals = localsData.map(l => {
           const nombre = normalizeText(l.nombre || '');
+          const mentionUsername = normalizeText(generateLocalMentionUsername(l.nombre || ''));
 
           let score = 0;
           // Exact match gets highest priority
-          if (nombre === normalizedQuery) score += 100;
+          if (nombre === normalizedQuery || mentionUsername === normalizedQuery) score += 100;
           // Starts with query gets second priority
-          else if (nombre.startsWith(normalizedQuery)) score += 50;
+          else if (nombre.startsWith(normalizedQuery) || mentionUsername.startsWith(normalizedQuery)) score += 50;
           // Contains query gets third priority
-          else if (nombre.includes(normalizedQuery)) score += 25;
+          else if (nombre.includes(normalizedQuery) || mentionUsername.includes(normalizedQuery)) score += 25;
           // Default score
           else score += 10;
 
-          return { ...l, score };
+          return { ...l, score, mentionUsername: generateLocalMentionUsername(l.nombre || '') };
         });
 
         scoredLocals.sort((a, b) => b.score - a.score);
@@ -269,7 +290,7 @@ export default function MentionAutocomplete({
         results.push(...scoredLocals.slice(0, 5).map(l => ({
           id: l.id,
           nombre: l.nombre,
-          username: l.nombre,
+          username: l.mentionUsername, // ✅ Use mention-friendly username
           avatar: l.imagen_url,
           tipo: 'local' as const,
         })));
@@ -367,7 +388,7 @@ export default function MentionAutocomplete({
               )}
               <View style={styles.suggestionInfo}>
                 <Text style={styles.suggestionUsername}>
-                  {item.username || item.nombre}
+                  {item.username}
                 </Text>
                 <Text style={styles.suggestionName} numberOfLines={1}>
                   {item.nombre}
