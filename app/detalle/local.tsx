@@ -310,7 +310,7 @@ export default function DetalleLocalScreen() {
   // ✅ Get favorite status from FavoritesContext
   const localIsFavorite = params.id ? isFavorite(params.id as string) : false;
 
-  // ✅ REVIEW SYSTEM v13.0 - Enhanced state management with keyboard handling
+  // ✅ REVIEW SYSTEM v14.0 - Enhanced state management with keyboard handling and mention support
   const [showAddReviewModal, setShowAddReviewModal] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewText, setReviewText] = useState('');
@@ -346,12 +346,12 @@ export default function DetalleLocalScreen() {
     })();
   }, []);
 
-  // ✅ REVIEW SYSTEM v13.0 - Fixed keyboard listeners
+  // ✅ REVIEW SYSTEM v14.0 - Fixed keyboard listeners
   useEffect(() => {
     const keyboardWillShowListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       (e) => {
-        console.log('[DetalleLocal v13.0] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
+        console.log('[DetalleLocal v14.0] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
         setKeyboardHeight(e.endCoordinates.height);
       }
     );
@@ -359,7 +359,7 @@ export default function DetalleLocalScreen() {
     const keyboardWillHideListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       () => {
-        console.log('[DetalleLocal v13.0] ⌨️ Keyboard hidden');
+        console.log('[DetalleLocal v14.0] ⌨️ Keyboard hidden');
         setKeyboardHeight(0);
       }
     );
@@ -603,9 +603,9 @@ export default function DetalleLocalScreen() {
     setShowAddReviewModal(true);
   };
 
-  // ✅ REVIEW SYSTEM v13.0 - Fixed mention selection handler
+  // ✅ REVIEW SYSTEM v14.0 - Fixed mention selection handler
   const handleSelectMention = (mention: MentionSuggestion, mentionText: string) => {
-    console.log('[DetalleLocal v13.0] ✅ Selected mention:', mention);
+    console.log('[DetalleLocal v14.0] ✅ Selected mention:', mention);
     
     const textBeforeCursor = reviewText.substring(0, cursorPosition);
     const lastAtIndex = textBeforeCursor.lastIndexOf('@');
@@ -628,15 +628,15 @@ export default function DetalleLocalScreen() {
     }, 100);
   };
 
-  // ✅ REVIEW SYSTEM v13.0 - CRITICAL FIX: Enhanced session validation with better error handling and user verification
+  // ✅ REVIEW SYSTEM v14.0 - CRITICAL FIX: Enhanced session validation with comprehensive error handling
   const handleSubmitReview = async () => {
-    console.log('[DetalleLocal v13.0] 📝 Starting review submission...');
-    console.log('[DetalleLocal v13.0] User from context:', user);
-    console.log('[DetalleLocal v13.0] Local ID:', params.id);
+    console.log('[DetalleLocal v14.0] 📝 Starting review submission...');
+    console.log('[DetalleLocal v14.0] User from context:', user);
+    console.log('[DetalleLocal v14.0] Local ID:', params.id);
 
     // ✅ CRITICAL FIX: Check user from context first
     if (!user) {
-      console.error('[DetalleLocal v13.0] ❌ No user in context');
+      console.error('[DetalleLocal v14.0] ❌ No user in context');
       Alert.alert('Error', 'Debes iniciar sesión para añadir una reseña');
       setShowAddReviewModal(false);
       router.push('/auth/login');
@@ -644,60 +644,77 @@ export default function DetalleLocalScreen() {
     }
 
     if (!params.id) {
-      console.error('[DetalleLocal v13.0] ❌ No local ID');
+      console.error('[DetalleLocal v14.0] ❌ No local ID');
       Alert.alert('Error', 'No se pudo identificar el local');
       return;
     }
 
     if (reviewRating < 1 || reviewRating > 5) {
-      console.error('[DetalleLocal v13.0] ❌ Invalid rating:', reviewRating);
+      console.error('[DetalleLocal v14.0] ❌ Invalid rating:', reviewRating);
       Alert.alert('Error', 'Por favor selecciona una calificación');
       return;
     }
 
     setSubmittingReview(true);
     try {
-      // ✅ CRITICAL FIX v13.0: Enhanced session validation with retry logic and detailed logging
-      console.log('[DetalleLocal v13.0] 🔄 Step 1: Ensuring valid session...');
-      let validSession = await ensureValidSession();
+      // ✅ CRITICAL FIX v14.0: Enhanced session validation with multiple retry attempts
+      console.log('[DetalleLocal v14.0] 🔄 Step 1: Ensuring valid session with retry logic...');
       
-      if (!validSession || !validSession.user) {
-        console.error('[DetalleLocal v13.0] ❌ First session check failed, retrying...');
+      let validSession = null;
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (retryCount < maxRetries && !validSession) {
+        console.log('[DetalleLocal v14.0] 🔄 Attempt', retryCount + 1, 'of', maxRetries);
         
-        // Wait a moment and try one more time
-        await new Promise(resolve => setTimeout(resolve, 1000));
         validSession = await ensureValidSession();
         
         if (!validSession || !validSession.user) {
-          console.error('[DetalleLocal v13.0] ❌ Session validation failed after retry');
-          Alert.alert(
-            'Sesión Expirada',
-            'Tu sesión ha expirado. Por favor inicia sesión de nuevo.',
-            [
-              {
-                text: 'Iniciar Sesión',
-                onPress: () => {
-                  setShowAddReviewModal(false);
-                  router.push('/auth/login');
-                }
-              }
-            ]
-          );
-          setSubmittingReview(false);
-          return;
+          console.error('[DetalleLocal v14.0] ❌ Session validation failed on attempt', retryCount + 1);
+          
+          if (retryCount < maxRetries - 1) {
+            // Wait before retrying (exponential backoff)
+            const waitTime = Math.pow(2, retryCount) * 500; // 500ms, 1s, 2s
+            console.log('[DetalleLocal v14.0] ⏳ Waiting', waitTime, 'ms before retry...');
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+          }
+          
+          retryCount++;
+        } else {
+          console.log('[DetalleLocal v14.0] ✅ Session validated successfully on attempt', retryCount + 1);
+          break;
         }
       }
+      
+      if (!validSession || !validSession.user) {
+        console.error('[DetalleLocal v14.0] ❌ Session validation failed after', maxRetries, 'attempts');
+        Alert.alert(
+          'Sesión Expirada',
+          'Tu sesión ha expirado. Por favor inicia sesión de nuevo.',
+          [
+            {
+              text: 'Iniciar Sesión',
+              onPress: () => {
+                setShowAddReviewModal(false);
+                router.push('/auth/login');
+              }
+            }
+          ]
+        );
+        setSubmittingReview(false);
+        return;
+      }
 
-      console.log('[DetalleLocal v13.0] ✅ Step 1 complete: Valid session confirmed');
-      console.log('[DetalleLocal v13.0] 📊 Session details:', {
+      console.log('[DetalleLocal v14.0] ✅ Step 1 complete: Valid session confirmed');
+      console.log('[DetalleLocal v14.0] 📊 Session details:', {
         userId: validSession.user.id,
         email: validSession.user.email,
         expiresAt: new Date(validSession.expires_at! * 1000).toLocaleString()
       });
 
-      // ✅ CRITICAL FIX v13.0: Verify user ID matches between context and session
+      // ✅ CRITICAL FIX v14.0: Verify user ID matches between context and session
       if (validSession.user.id !== user.id) {
-        console.error('[DetalleLocal v13.0] ❌ User ID mismatch!', {
+        console.error('[DetalleLocal v14.0] ❌ User ID mismatch!', {
           contextUserId: user.id,
           sessionUserId: validSession.user.id
         });
@@ -708,12 +725,12 @@ export default function DetalleLocalScreen() {
         return;
       }
 
-      // ✅ CRITICAL FIX v13.0: Verify auth.uid() is available by checking current session
-      console.log('[DetalleLocal v13.0] 🔍 Step 2: Verifying auth.uid() availability...');
+      // ✅ CRITICAL FIX v14.0: Double-check auth.uid() availability
+      console.log('[DetalleLocal v14.0] 🔍 Step 2: Verifying auth.uid() availability...');
       const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError || !currentSession) {
-        console.error('[DetalleLocal v13.0] ❌ Cannot verify auth.uid():', sessionError);
+        console.error('[DetalleLocal v14.0] ❌ Cannot verify auth.uid():', sessionError);
         Alert.alert('Error', 'Error de autenticación. Por favor inicia sesión de nuevo.');
         setSubmittingReview(false);
         setShowAddReviewModal(false);
@@ -721,26 +738,26 @@ export default function DetalleLocalScreen() {
         return;
       }
 
-      console.log('[DetalleLocal v13.0] ✅ Step 2 complete: auth.uid() verified');
+      console.log('[DetalleLocal v14.0] ✅ Step 2 complete: auth.uid() verified');
 
-      console.log('[DetalleLocal v13.0] 📝 Step 3: Preparing review data...');
+      console.log('[DetalleLocal v14.0] 📝 Step 3: Preparing review data...');
       const reviewData = {
         local_id: params.id as string,
         usuario_id: user.id,
         rating: reviewRating,
         texto: reviewText.trim() || null,
       };
-      console.log('[DetalleLocal v13.0] 📊 Review data:', reviewData);
+      console.log('[DetalleLocal v14.0] 📊 Review data:', reviewData);
 
-      console.log('[DetalleLocal v13.0] 💾 Step 4: Inserting review into database...');
+      console.log('[DetalleLocal v14.0] 💾 Step 4: Inserting review into database...');
       const { data: insertedData, error: insertError } = await supabase
         .from('reviews_barlive')
         .insert(reviewData)
         .select();
 
       if (insertError) {
-        console.error('[DetalleLocal v13.0] ❌ Error submitting review:', insertError);
-        console.error('[DetalleLocal v13.0] ❌ Error details:', {
+        console.error('[DetalleLocal v14.0] ❌ Error submitting review:', insertError);
+        console.error('[DetalleLocal v14.0] ❌ Error details:', {
           message: insertError.message,
           details: insertError.details,
           hint: insertError.hint,
@@ -772,7 +789,7 @@ export default function DetalleLocalScreen() {
         return;
       }
 
-      console.log('[DetalleLocal v13.0] ✅ Step 4 complete: Review submitted successfully:', insertedData);
+      console.log('[DetalleLocal v14.0] ✅ Step 4 complete: Review submitted successfully:', insertedData);
       Alert.alert('¡Gracias!', 'Tu reseña ha sido publicada correctamente');
       
       // Reset form
@@ -782,13 +799,13 @@ export default function DetalleLocalScreen() {
       setShowAddReviewModal(false);
       
       // Reload reviews
-      console.log('[DetalleLocal v13.0] 🔄 Step 5: Reloading reviews...');
+      console.log('[DetalleLocal v14.0] 🔄 Step 5: Reloading reviews...');
       await cargarReviewsBarlive();
-      console.log('[DetalleLocal v13.0] ✅ Step 5 complete: Reviews reloaded');
+      console.log('[DetalleLocal v14.0] ✅ Step 5 complete: Reviews reloaded');
       
       setSubmittingReview(false);
     } catch (error) {
-      console.error('[DetalleLocal v13.0] ❌ Unexpected error submitting review:', error);
+      console.error('[DetalleLocal v14.0] ❌ Unexpected error submitting review:', error);
       Alert.alert('Error', 'No se pudo enviar la reseña. Por favor intenta de nuevo.');
       setSubmittingReview(false);
     }
@@ -811,12 +828,12 @@ export default function DetalleLocalScreen() {
     });
   };
 
-  // ✅ REVIEW SYSTEM v13.0 - Handle delete review with ensureValidSession
+  // ✅ REVIEW SYSTEM v14.0 - Handle delete review with ensureValidSession
   const handleDeleteReview = async (reviewId: string) => {
-    console.log('[DetalleLocal v13.0] 🗑️ Starting review deletion...');
+    console.log('[DetalleLocal v14.0] 🗑️ Starting review deletion...');
 
     if (!user) {
-      console.error('[DetalleLocal v13.0] ❌ No user in context');
+      console.error('[DetalleLocal v14.0] ❌ No user in context');
       Alert.alert('Error', 'Debes iniciar sesión para eliminar reseñas');
       return;
     }
@@ -832,17 +849,17 @@ export default function DetalleLocalScreen() {
           onPress: async () => {
             try {
               // ✅ CRITICAL FIX: Use ensureValidSession from AuthContext
-              console.log('[DetalleLocal v13.0] 🔄 Ensuring valid session...');
+              console.log('[DetalleLocal v14.0] 🔄 Ensuring valid session...');
               const validSession = await ensureValidSession();
               
               if (!validSession || !validSession.user) {
-                console.error('[DetalleLocal v13.0] ❌ No valid session available');
+                console.error('[DetalleLocal v14.0] ❌ No valid session available');
                 Alert.alert('Error', 'Tu sesión ha expirado. Por favor inicia sesión de nuevo.');
                 router.push('/auth/login');
                 return;
               }
 
-              console.log('[DetalleLocal v13.0] ✅ Valid session confirmed, deleting review:', reviewId);
+              console.log('[DetalleLocal v14.0] ✅ Valid session confirmed, deleting review:', reviewId);
               
               const { error: deleteError } = await supabase
                 .from('reviews_barlive')
@@ -851,17 +868,17 @@ export default function DetalleLocalScreen() {
                 .eq('usuario_id', user.id);
 
               if (deleteError) {
-                console.error('[DetalleLocal v13.0] ❌ Error deleting review:', deleteError);
+                console.error('[DetalleLocal v14.0] ❌ Error deleting review:', deleteError);
                 Alert.alert('Error', `No se pudo eliminar la reseña: ${deleteError.message}`);
                 return;
               }
 
-              console.log('[DetalleLocal v13.0] ✅ Review deleted successfully');
+              console.log('[DetalleLocal v14.0] ✅ Review deleted successfully');
               Alert.alert('Éxito', 'Reseña eliminada correctamente');
               
               await cargarReviewsBarlive();
             } catch (error) {
-              console.error('[DetalleLocal v13.0] ❌ Unexpected error deleting review:', error);
+              console.error('[DetalleLocal v14.0] ❌ Unexpected error deleting review:', error);
               Alert.alert('Error', 'No se pudo eliminar la reseña');
             }
           },
@@ -884,10 +901,10 @@ export default function DetalleLocalScreen() {
   };
 
   const handleSubmitEditReview = async () => {
-    console.log('[DetalleLocal v13.0] 📝 Starting review edit...');
+    console.log('[DetalleLocal v14.0] 📝 Starting review edit...');
     
     if (!user) {
-      console.error('[DetalleLocal v13.0] ❌ No user in context');
+      console.error('[DetalleLocal v14.0] ❌ No user in context');
       Alert.alert('Error', 'Debes iniciar sesión para editar reseñas');
       setShowEditReviewModal(false);
       router.push('/auth/login');
@@ -895,13 +912,13 @@ export default function DetalleLocalScreen() {
     }
 
     if (!editingReviewId) {
-      console.error('[DetalleLocal v13.0] ❌ No review ID');
+      console.error('[DetalleLocal v14.0] ❌ No review ID');
       Alert.alert('Error', 'No se pudo identificar la reseña');
       return;
     }
 
     if (editReviewRating < 1 || editReviewRating > 5) {
-      console.error('[DetalleLocal v13.0] ❌ Invalid rating:', editReviewRating);
+      console.error('[DetalleLocal v14.0] ❌ Invalid rating:', editReviewRating);
       Alert.alert('Error', 'Por favor selecciona una calificación');
       return;
     }
@@ -909,11 +926,11 @@ export default function DetalleLocalScreen() {
     setSubmittingReview(true);
     try {
       // ✅ CRITICAL FIX: Use ensureValidSession from AuthContext
-      console.log('[DetalleLocal v13.0] 🔄 Ensuring valid session...');
+      console.log('[DetalleLocal v14.0] 🔄 Ensuring valid session...');
       const validSession = await ensureValidSession();
       
       if (!validSession || !validSession.user) {
-        console.error('[DetalleLocal v13.0] ❌ No valid session available');
+        console.error('[DetalleLocal v14.0] ❌ No valid session available');
         Alert.alert('Error', 'Tu sesión ha expirado. Por favor inicia sesión de nuevo.');
         setSubmittingReview(false);
         setShowEditReviewModal(false);
@@ -921,7 +938,7 @@ export default function DetalleLocalScreen() {
         return;
       }
 
-      console.log('[DetalleLocal v13.0] ✅ Valid session confirmed, updating review:', {
+      console.log('[DetalleLocal v14.0] ✅ Valid session confirmed, updating review:', {
         id: editingReviewId,
         rating: editReviewRating,
         texto: editReviewText.trim() || null
@@ -938,13 +955,13 @@ export default function DetalleLocalScreen() {
         .select();
 
       if (updateError) {
-        console.error('[DetalleLocal v13.0] ❌ Error updating review:', updateError);
+        console.error('[DetalleLocal v14.0] ❌ Error updating review:', updateError);
         Alert.alert('Error', `No se pudo actualizar la reseña: ${updateError.message}`);
         setSubmittingReview(false);
         return;
       }
 
-      console.log('[DetalleLocal v13.0] ✅ Review updated successfully:', updatedData);
+      console.log('[DetalleLocal v14.0] ✅ Review updated successfully:', updatedData);
       Alert.alert('¡Gracias!', 'Tu reseña ha sido actualizada correctamente');
       
       setEditingReviewId(null);
@@ -956,7 +973,7 @@ export default function DetalleLocalScreen() {
       
       setSubmittingReview(false);
     } catch (error) {
-      console.error('[DetalleLocal v13.0] ❌ Unexpected error updating review:', error);
+      console.error('[DetalleLocal v14.0] ❌ Unexpected error updating review:', error);
       Alert.alert('Error', 'No se pudo actualizar la reseña. Por favor intenta de nuevo.');
       setSubmittingReview(false);
     }
@@ -1558,7 +1575,7 @@ export default function DetalleLocalScreen() {
           </View>
         )}
 
-        {/* ✅ REVIEW SYSTEM v13.0 - Enhanced Reviews Section */}
+        {/* ✅ REVIEW SYSTEM v14.0 - Enhanced Reviews Section */}
         <View style={styles.compactSection}>
           <View style={styles.compactSectionHeader}>
             <View style={[styles.compactIconCircle, { backgroundColor: '#FFD700' + '20' }]}>
@@ -1663,7 +1680,7 @@ export default function DetalleLocalScreen() {
         onClose={() => setGalleryVisible(false)}
       />
 
-      {/* ✅ REVIEW SYSTEM v13.0 - Fixed Add Review Modal with Proper Keyboard Handling */}
+      {/* ✅ REVIEW SYSTEM v14.0 - Fixed Add Review Modal with Proper Keyboard Handling and Mention Support */}
       <Modal
         visible={showAddReviewModal}
         transparent={true}
@@ -1724,7 +1741,7 @@ export default function DetalleLocalScreen() {
               <Text style={styles.modalLabel}>Comentario (opcional)</Text>
               <Text style={styles.modalHint}>Puedes mencionar usuarios con @ y hashtags con #</Text>
               
-              {/* ✅ REVIEW SYSTEM v13.0 - Fixed Mention Autocomplete Positioning */}
+              {/* ✅ REVIEW SYSTEM v14.0 - Fixed Mention Autocomplete Positioning */}
               <MentionAutocomplete
                 text={reviewText}
                 cursorPosition={cursorPosition}
@@ -1739,12 +1756,12 @@ export default function DetalleLocalScreen() {
                 placeholderTextColor={colors.textSecondary}
                 value={reviewText}
                 onChangeText={(text) => {
-                  console.log('[DetalleLocal v13.0] 📝 Review text changed:', text);
+                  console.log('[DetalleLocal v14.0] 📝 Review text changed:', text);
                   setReviewText(text);
                 }}
                 onSelectionChange={(event) => {
                   const newPosition = event.nativeEvent.selection.start;
-                  console.log('[DetalleLocal v13.0] 📍 Cursor position:', newPosition);
+                  console.log('[DetalleLocal v14.0] 📍 Cursor position:', newPosition);
                   setCursorPosition(newPosition);
                 }}
                 onContentSizeChange={(event) => {
@@ -1773,7 +1790,7 @@ export default function DetalleLocalScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* ✅ REVIEW SYSTEM v13.0 - Fixed Edit Review Modal */}
+      {/* ✅ REVIEW SYSTEM v14.0 - Fixed Edit Review Modal */}
       <Modal
         visible={showEditReviewModal}
         transparent={true}
@@ -2478,7 +2495,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#fff',
   },
-  // ✅ REVIEW SYSTEM v13.0 - Fixed Modal Styles
+  // ✅ REVIEW SYSTEM v14.0 - Fixed Modal Styles
   modalContainer: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -2538,7 +2555,7 @@ const styles = StyleSheet.create({
   starButton: {
     padding: 4,
   },
-  // ✅ REVIEW SYSTEM v13.0 - Fixed Mention Autocomplete Positioning
+  // ✅ REVIEW SYSTEM v14.0 - Fixed Mention Autocomplete Positioning
   mentionAutocompleteAbove: {
     marginBottom: 8,
     zIndex: 9999,
