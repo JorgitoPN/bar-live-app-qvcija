@@ -884,22 +884,24 @@ export default function CrearPublicacionScreen() {
           style={[
             styles.autocompleteContainer, 
             { 
-              bottom: keyboardHeight > 0 ? keyboardHeight : 0,
+              bottom: keyboardHeight > 0 ? keyboardHeight + 10 : 10,
             }
           ]}
           pointerEvents="box-none"
         >
-          <MentionAutocomplete
-            text={contenido}
-            cursorPosition={cursorPosition}
-            onSelectMention={handleSelectInlineMention}
-          />
+          <View style={styles.autocompleteWrapper}>
+            <MentionAutocomplete
+              text={contenido}
+              cursorPosition={cursorPosition}
+              onSelectMention={handleSelectInlineMention}
+            />
 
-          <HashtagAutocomplete
-            text={contenido}
-            cursorPosition={cursorPosition}
-            onSelectHashtag={handleSelectInlineHashtag}
-          />
+            <HashtagAutocomplete
+              text={contenido}
+              cursorPosition={cursorPosition}
+              onSelectHashtag={handleSelectInlineHashtag}
+            />
+          </View>
         </View>
       </View>
 
@@ -1120,6 +1122,10 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 9999,
     elevation: 9999,
+    paddingHorizontal: 16,
+  },
+  autocompleteWrapper: {
+    backgroundColor: 'transparent',
   },
   imagesPreviewSection: {
     backgroundColor: colors.cardBackground,

@@ -624,55 +624,68 @@ export default function DetalleLocalScreen() {
     }, 100);
   };
 
-  // ✅ REVIEW SYSTEM v5.0 - CRITICAL FIX: Improved session handling
+  // ✅ REVIEW SYSTEM v6.0 - CRITICAL FIX: Improved session handling with user context fallback
   const handleSubmitReview = async () => {
-    console.log('[DetalleLocal v5.0] 📝 Starting review submission...');
-    console.log('[DetalleLocal v5.0] User from context:', user);
-    console.log('[DetalleLocal v5.0] Local ID:', params.id);
+    console.log('[DetalleLocal v6.0] 📝 Starting review submission...');
+    console.log('[DetalleLocal v6.0] User from context:', user);
+    console.log('[DetalleLocal v6.0] Local ID:', params.id);
+
+    // ✅ CRITICAL FIX: Check user from context first
+    if (!user) {
+      console.error('[DetalleLocal v6.0] ❌ No user in context');
+      Alert.alert('Error', 'Debes iniciar sesión para añadir una reseña');
+      setShowAddReviewModal(false);
+      router.push('/auth/login');
+      return;
+    }
 
     if (!params.id) {
-      console.error('[DetalleLocal v5.0] ❌ No local ID');
+      console.error('[DetalleLocal v6.0] ❌ No local ID');
       Alert.alert('Error', 'No se pudo identificar el local');
       return;
     }
 
     if (reviewRating < 1 || reviewRating > 5) {
-      console.error('[DetalleLocal v5.0] ❌ Invalid rating:', reviewRating);
+      console.error('[DetalleLocal v6.0] ❌ Invalid rating:', reviewRating);
       Alert.alert('Error', 'Por favor selecciona una calificación');
       return;
     }
 
     setSubmittingReview(true);
     try {
-      // ✅ CRITICAL FIX: Get session first, then check user
+      // ✅ CRITICAL FIX: Get fresh session to ensure authentication
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      console.log('[DetalleLocal v5.0] Session check:', {
+      console.log('[DetalleLocal v6.0] Session check:', {
         hasSession: !!session,
         sessionError: sessionError,
-        sessionUserId: session?.user?.id
+        sessionUserId: session?.user?.id,
+        contextUserId: user.id
       });
 
       if (sessionError) {
-        console.error('[DetalleLocal v5.0] ❌ Session error:', sessionError);
+        console.error('[DetalleLocal v6.0] ❌ Session error:', sessionError);
         Alert.alert('Error', 'Error al verificar la sesión. Por favor intenta de nuevo.');
         setSubmittingReview(false);
         return;
       }
 
       if (!session || !session.user) {
-        console.error('[DetalleLocal v5.0] ❌ No active session or user');
+        console.error('[DetalleLocal v6.0] ❌ No active session');
         Alert.alert('Error', 'Tu sesión ha expirado. Por favor inicia sesión de nuevo.');
         setSubmittingReview(false);
-        // Optionally redirect to login
-        // router.push('/auth/login');
+        setShowAddReviewModal(false);
+        router.push('/auth/login');
         return;
       }
 
-      console.log('[DetalleLocal v5.0] ✅ Session verified, user:', session.user.id);
-      console.log('[DetalleLocal v5.0] 📝 Submitting review:', {
+      // ✅ Use user ID from context (which matches session user)
+      const userId = user.id;
+
+      console.log('[DetalleLocal v6.0] ✅ Session verified, submitting review with user:', userId);
+      console.log('[DetalleLocal v6.0] 📝 Review data:', {
         local_id: params.id,
-        usuario_id: session.user.id,
+        usuario_id: userId,
         rating: reviewRating,
         texto: reviewText.trim() || null
       });
@@ -682,15 +695,15 @@ export default function DetalleLocalScreen() {
         .from('reviews_barlive')
         .insert({
           local_id: params.id as string,
-          usuario_id: session.user.id,
+          usuario_id: userId,
           rating: reviewRating,
           texto: reviewText.trim() || null,
         })
         .select();
 
       if (insertError) {
-        console.error('[DetalleLocal v5.0] ❌ Error submitting review:', insertError);
-        console.error('[DetalleLocal v5.0] ❌ Error details:', {
+        console.error('[DetalleLocal v6.0] ❌ Error submitting review:', insertError);
+        console.error('[DetalleLocal v6.0] ❌ Error details:', {
           message: insertError.message,
           details: insertError.details,
           hint: insertError.hint,
@@ -701,7 +714,7 @@ export default function DetalleLocalScreen() {
         return;
       }
 
-      console.log('[DetalleLocal v5.0] ✅ Review submitted successfully:', insertedData);
+      console.log('[DetalleLocal v6.0] ✅ Review submitted successfully:', insertedData);
       Alert.alert('¡Gracias!', 'Tu reseña ha sido publicada correctamente');
       
       // Reset form
@@ -715,7 +728,7 @@ export default function DetalleLocalScreen() {
       
       setSubmittingReview(false);
     } catch (error) {
-      console.error('[DetalleLocal v5.0] ❌ Unexpected error submitting review:', error);
+      console.error('[DetalleLocal v6.0] ❌ Unexpected error submitting review:', error);
       Alert.alert('Error', 'No se pudo enviar la reseña. Por favor intenta de nuevo.');
       setSubmittingReview(false);
     }
@@ -738,9 +751,15 @@ export default function DetalleLocalScreen() {
     });
   };
 
-  // ✅ REVIEW SYSTEM v5.0 - Handle delete review with proper session check
+  // ✅ REVIEW SYSTEM v6.0 - Handle delete review with proper session check
   const handleDeleteReview = async (reviewId: string) => {
-    console.log('[DetalleLocal v5.0] 🗑️ Starting review deletion...');
+    console.log('[DetalleLocal v6.0] 🗑️ Starting review deletion...');
+
+    if (!user) {
+      console.error('[DetalleLocal v6.0] ❌ No user in context');
+      Alert.alert('Error', 'Debes iniciar sesión para eliminar reseñas');
+      return;
+    }
 
     Alert.alert(
       'Eliminar reseña',
@@ -755,38 +774,40 @@ export default function DetalleLocalScreen() {
               // ✅ CRITICAL FIX: Get session first
               const { data: { session }, error: sessionError } = await supabase.auth.getSession();
               
-              console.log('[DetalleLocal v5.0] Session check for delete:', {
+              console.log('[DetalleLocal v6.0] Session check for delete:', {
                 hasSession: !!session,
                 sessionError: sessionError,
-                sessionUserId: session?.user?.id
+                sessionUserId: session?.user?.id,
+                contextUserId: user.id
               });
 
               if (sessionError || !session || !session.user) {
-                console.error('[DetalleLocal v5.0] ❌ No active session');
+                console.error('[DetalleLocal v6.0] ❌ No active session');
                 Alert.alert('Error', 'Tu sesión ha expirado. Por favor inicia sesión de nuevo.');
+                router.push('/auth/login');
                 return;
               }
 
-              console.log('[DetalleLocal v5.0] 🗑️ Deleting review:', reviewId);
+              console.log('[DetalleLocal v6.0] 🗑️ Deleting review:', reviewId);
               
               const { error: deleteError } = await supabase
                 .from('reviews_barlive')
                 .delete()
                 .eq('id', reviewId)
-                .eq('usuario_id', session.user.id);
+                .eq('usuario_id', user.id);
 
               if (deleteError) {
-                console.error('[DetalleLocal v5.0] ❌ Error deleting review:', deleteError);
+                console.error('[DetalleLocal v6.0] ❌ Error deleting review:', deleteError);
                 Alert.alert('Error', `No se pudo eliminar la reseña: ${deleteError.message}`);
                 return;
               }
 
-              console.log('[DetalleLocal v5.0] ✅ Review deleted successfully');
+              console.log('[DetalleLocal v6.0] ✅ Review deleted successfully');
               Alert.alert('Éxito', 'Reseña eliminada correctamente');
               
               await cargarReviewsBarlive();
             } catch (error) {
-              console.error('[DetalleLocal v5.0] ❌ Unexpected error deleting review:', error);
+              console.error('[DetalleLocal v6.0] ❌ Unexpected error deleting review:', error);
               Alert.alert('Error', 'No se pudo eliminar la reseña');
             }
           },
@@ -809,16 +830,24 @@ export default function DetalleLocalScreen() {
   };
 
   const handleSubmitEditReview = async () => {
-    console.log('[DetalleLocal v5.0] 📝 Starting review edit...');
+    console.log('[DetalleLocal v6.0] 📝 Starting review edit...');
     
+    if (!user) {
+      console.error('[DetalleLocal v6.0] ❌ No user in context');
+      Alert.alert('Error', 'Debes iniciar sesión para editar reseñas');
+      setShowEditReviewModal(false);
+      router.push('/auth/login');
+      return;
+    }
+
     if (!editingReviewId) {
-      console.error('[DetalleLocal v5.0] ❌ No review ID');
+      console.error('[DetalleLocal v6.0] ❌ No review ID');
       Alert.alert('Error', 'No se pudo identificar la reseña');
       return;
     }
 
     if (editReviewRating < 1 || editReviewRating > 5) {
-      console.error('[DetalleLocal v5.0] ❌ Invalid rating:', editReviewRating);
+      console.error('[DetalleLocal v6.0] ❌ Invalid rating:', editReviewRating);
       Alert.alert('Error', 'Por favor selecciona una calificación');
       return;
     }
@@ -828,20 +857,23 @@ export default function DetalleLocalScreen() {
       // ✅ CRITICAL FIX: Get session first
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      console.log('[DetalleLocal v5.0] Session check for edit:', {
+      console.log('[DetalleLocal v6.0] Session check for edit:', {
         hasSession: !!session,
         sessionError: sessionError,
-        sessionUserId: session?.user?.id
+        sessionUserId: session?.user?.id,
+        contextUserId: user.id
       });
 
       if (sessionError || !session || !session.user) {
-        console.error('[DetalleLocal v5.0] ❌ No active session');
+        console.error('[DetalleLocal v6.0] ❌ No active session');
         Alert.alert('Error', 'Tu sesión ha expirado. Por favor inicia sesión de nuevo.');
         setSubmittingReview(false);
+        setShowEditReviewModal(false);
+        router.push('/auth/login');
         return;
       }
 
-      console.log('[DetalleLocal v5.0] 📝 Updating review:', {
+      console.log('[DetalleLocal v6.0] 📝 Updating review:', {
         id: editingReviewId,
         rating: editReviewRating,
         texto: editReviewText.trim() || null
@@ -854,17 +886,17 @@ export default function DetalleLocalScreen() {
           texto: editReviewText.trim() || null,
         })
         .eq('id', editingReviewId)
-        .eq('usuario_id', session.user.id)
+        .eq('usuario_id', user.id)
         .select();
 
       if (updateError) {
-        console.error('[DetalleLocal v5.0] ❌ Error updating review:', updateError);
+        console.error('[DetalleLocal v6.0] ❌ Error updating review:', updateError);
         Alert.alert('Error', `No se pudo actualizar la reseña: ${updateError.message}`);
         setSubmittingReview(false);
         return;
       }
 
-      console.log('[DetalleLocal v5.0] ✅ Review updated successfully:', updatedData);
+      console.log('[DetalleLocal v6.0] ✅ Review updated successfully:', updatedData);
       Alert.alert('¡Gracias!', 'Tu reseña ha sido actualizada correctamente');
       
       setEditingReviewId(null);
@@ -876,7 +908,7 @@ export default function DetalleLocalScreen() {
       
       setSubmittingReview(false);
     } catch (error) {
-      console.error('[DetalleLocal v5.0] ❌ Unexpected error updating review:', error);
+      console.error('[DetalleLocal v6.0] ❌ Unexpected error updating review:', error);
       Alert.alert('Error', 'No se pudo actualizar la reseña. Por favor intenta de nuevo.');
       setSubmittingReview(false);
     }

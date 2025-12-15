@@ -375,7 +375,7 @@ export default function MentionAutocomplete({
   );
 
   return (
-    <View style={[styles.container, style]} pointerEvents="box-none">
+    <View style={[styles.container, style]} pointerEvents="auto">
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color={colors.primary} />
@@ -389,7 +389,7 @@ export default function MentionAutocomplete({
           style={styles.list}
           contentContainerStyle={styles.listContent}
           keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
+          showsVerticalScrollIndicator={true}
           bounces={false}
           nestedScrollEnabled={true}
         />
@@ -426,12 +426,15 @@ const styles = StyleSheet.create({
     maxHeight: 280,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 12,
-    borderWidth: 2,
+    elevation: 15,
+    borderWidth: 3,
     borderColor: colors.primary,
     marginBottom: 12,
+    // ✅ CRITICAL FIX v9.0: Force minimum height to ensure visibility
+    minHeight: 60,
+    overflow: 'visible',
   },
   list: {
     flex: 1,
