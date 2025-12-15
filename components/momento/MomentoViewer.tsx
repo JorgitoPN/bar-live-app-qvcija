@@ -58,10 +58,10 @@ interface MomentoViewerProps {
 }
 
 /**
- * ✅ MOMENTO VIEWER v3.0 - LONG PAUSE AUTO-COMPLETE FEATURE
+ * ✅ MOMENTO VIEWER v3.1 - INSTANT PAUSE & LONG PAUSE AUTO-COMPLETE
  * 
- * Key fixes:
- * - ✅ Progress bar pauses INSTANTLY when touching the screen
+ * Key features:
+ * - ✅ Progress bar pauses INSTANTLY when touching the screen (no delay)
  * - ✅ If paused for >1 second, releasing will auto-complete the momento
  * - ✅ If paused for <1 second, releasing will resume normal playback
  * - ✅ No pause icon overlay (clean UX)
@@ -91,7 +91,7 @@ export default function MomentoViewer({
   const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const progressAnimationRef = useRef<Animated.CompositeAnimation | null>(null);
   
-  // ✅ NEW: Track pause start time to detect long pauses
+  // ✅ Track pause start time to detect long pauses
   const pauseStartTimeRef = useRef<number | null>(null);
 
   const markAsViewed = useCallback(async (momentoId: string) => {
@@ -116,7 +116,7 @@ export default function MomentoViewer({
         )
       );
     } catch (error) {
-      console.error('[MomentoViewer] Error marking as viewed:', error);
+      console.error('[MomentoViewer v3.1] Error marking as viewed:', error);
     }
   }, [user]);
 
@@ -125,7 +125,7 @@ export default function MomentoViewer({
 
     try {
       setLoading(true);
-      console.log('[MomentoViewer] Loading momentos for:', { authorId, authorType });
+      console.log('[MomentoViewer v3.1] Loading momentos for:', { authorId, authorType });
 
       // Load author info
       if (authorType === 'usuario') {
@@ -227,16 +227,16 @@ export default function MomentoViewer({
       }
       
       setCurrentIndex(startIndex);
-      console.log('[MomentoViewer] Starting at index:', startIndex, 'of', momentosWithStatus.length);
+      console.log('[MomentoViewer v3.1] Starting at index:', startIndex, 'of', momentosWithStatus.length);
 
       // Mark first momento as viewed
       if (momentosWithStatus.length > 0 && !momentosWithStatus[startIndex].user_has_viewed) {
         markAsViewed(momentosWithStatus[startIndex].id);
       }
 
-      console.log('[MomentoViewer] ✅ Loaded momentos:', momentosWithStatus.length);
+      console.log('[MomentoViewer v3.1] ✅ Loaded momentos:', momentosWithStatus.length);
     } catch (error) {
-      console.error('[MomentoViewer] Error loading momentos:', error);
+      console.error('[MomentoViewer v3.1] Error loading momentos:', error);
       Alert.alert('Error', 'No se pudieron cargar los Momentos');
       onClose();
     } finally {
@@ -291,7 +291,7 @@ export default function MomentoViewer({
         );
       }
     } catch (error) {
-      console.error('[MomentoViewer] Error toggling like:', error);
+      console.error('[MomentoViewer v3.1] Error toggling like:', error);
     }
   };
 
@@ -299,7 +299,7 @@ export default function MomentoViewer({
     if (!momentoViewRef.current) return null;
 
     try {
-      console.log('[MomentoViewer] Capturing momento screenshot...');
+      console.log('[MomentoViewer v3.1] Capturing momento screenshot...');
       
       // Capture the momento view as an image
       const uri = await captureRef(momentoViewRef, {
@@ -307,10 +307,10 @@ export default function MomentoViewer({
         quality: 0.8,
       });
 
-      console.log('[MomentoViewer] Screenshot captured:', uri);
+      console.log('[MomentoViewer v3.1] Screenshot captured:', uri);
       return uri;
     } catch (error) {
-      console.error('[MomentoViewer] Error capturing screenshot:', error);
+      console.error('[MomentoViewer v3.1] Error capturing screenshot:', error);
       return null;
     }
   };
@@ -352,7 +352,7 @@ export default function MomentoViewer({
             .getPublicUrl(filePath);
           
           screenshotUrl = urlData.publicUrl;
-          console.log('[MomentoViewer] Screenshot uploaded:', screenshotUrl);
+          console.log('[MomentoViewer v3.1] Screenshot uploaded:', screenshotUrl);
         }
       }
 
@@ -399,7 +399,7 @@ export default function MomentoViewer({
         onClose();
       }
     } catch (error) {
-      console.error('[MomentoViewer] Error creating chat:', error);
+      console.error('[MomentoViewer v3.1] Error creating chat:', error);
       Alert.alert('Error', 'No se pudo crear la conversación');
     }
   };
@@ -445,7 +445,7 @@ export default function MomentoViewer({
       setLikers(likersResult.data || []);
       setShowStats(true);
     } catch (error) {
-      console.error('[MomentoViewer] Error loading stats:', error);
+      console.error('[MomentoViewer v3.1] Error loading stats:', error);
     }
   };
 
@@ -490,7 +490,7 @@ export default function MomentoViewer({
 
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             } catch (error) {
-              console.error('[MomentoViewer] Error deleting momento:', error);
+              console.error('[MomentoViewer v3.1] Error deleting momento:', error);
               Alert.alert('Error', 'No se pudo eliminar el Momento');
             }
           },
@@ -573,42 +573,46 @@ export default function MomentoViewer({
     onClose();
   };
 
-  // ✅ NEW v3.0: INSTANT pause with long-pause detection
+  // ✅ v3.1: INSTANT pause - no delay, immediate stop
   const handlePressIn = () => {
+    console.log('[MomentoViewer v3.1] 🛑 INSTANT PAUSE - Touch detected');
+    
     // ✅ Record pause start time
     pauseStartTimeRef.current = Date.now();
     
     // ✅ INSTANT pause - stop immediately on touch
     setPaused(true);
     
-    // ✅ Stop the progress bar animation immediately
+    // ✅ Stop the progress bar animation IMMEDIATELY
     if (progressAnimationRef.current) {
       progressAnimationRef.current.stop();
       progressAnimationRef.current = null;
+      console.log('[MomentoViewer v3.1] ✅ Progress animation stopped');
     }
     
-    // ✅ Clear the timer immediately
+    // ✅ Clear the timer IMMEDIATELY
     if (progressTimerRef.current) {
       clearTimeout(progressTimerRef.current);
       progressTimerRef.current = null;
+      console.log('[MomentoViewer v3.1] ✅ Progress timer cleared');
     }
     
     // Light haptic feedback for instant response
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
-  // ✅ NEW v3.0: Check pause duration and auto-complete if >1 second
+  // ✅ v3.1: Check pause duration and auto-complete if >1 second
   const handlePressOut = () => {
     // ✅ Calculate pause duration
     const pauseDuration = pauseStartTimeRef.current 
       ? Date.now() - pauseStartTimeRef.current 
       : 0;
     
-    console.log('[MomentoViewer v3.0] Pause duration:', pauseDuration, 'ms');
+    console.log('[MomentoViewer v3.1] 🔄 Release detected - Pause duration:', pauseDuration, 'ms');
     
     // ✅ If paused for more than 1 second, auto-complete the momento
     if (pauseDuration > LONG_PAUSE_THRESHOLD) {
-      console.log('[MomentoViewer v3.0] Long pause detected - auto-completing momento');
+      console.log('[MomentoViewer v3.1] ⏭️ LONG PAUSE - Auto-completing momento');
       
       // Set progress bar to 100% with smooth animation
       if (progressAnims[currentIndex]) {
@@ -629,7 +633,7 @@ export default function MomentoViewer({
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     } else {
       // ✅ Short pause - resume normal playback
-      console.log('[MomentoViewer v3.0] Short pause - resuming playback');
+      console.log('[MomentoViewer v3.1] ▶️ SHORT PAUSE - Resuming playback');
       setPaused(false);
       // Progress bar will resume in the useEffect
     }
@@ -662,7 +666,7 @@ export default function MomentoViewer({
 
   useEffect(() => {
     if (visible && authorId) {
-      console.log('[MomentoViewer] Opening viewer for:', { authorId, authorType });
+      console.log('[MomentoViewer v3.1] Opening viewer for:', { authorId, authorType });
       loadMomentos();
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -679,9 +683,11 @@ export default function MomentoViewer({
     }
   }, [visible, authorId, authorType, fadeAnim, loadMomentos]);
 
-  // ✅ FIXED: Auto-progress timer with proper pause/resume
+  // ✅ v3.1: Auto-progress timer with proper pause/resume
   useEffect(() => {
     if (!paused && momentos.length > 0 && !loading && visible) {
+      console.log('[MomentoViewer v3.1] ▶️ Starting/resuming progress for momento', currentIndex);
+      
       // Clear any existing timer and animation
       if (progressTimerRef.current) {
         clearTimeout(progressTimerRef.current);
@@ -694,8 +700,11 @@ export default function MomentoViewer({
       const currentProgress = progressAnims[currentIndex]?.__getValue() || 0;
       const remainingDuration = MOMENTO_DURATION * (1 - currentProgress);
 
+      console.log('[MomentoViewer v3.1] Progress:', currentProgress, '- Remaining:', remainingDuration, 'ms');
+
       // Set new timer
       progressTimerRef.current = setTimeout(() => {
+        console.log('[MomentoViewer v3.1] ⏱️ Timer completed - moving to next');
         handleNext();
       }, remainingDuration);
 
@@ -738,7 +747,7 @@ export default function MomentoViewer({
   
   // Safety check: if currentMomento is undefined, close the viewer
   if (!currentMomento) {
-    console.error('[MomentoViewer] Current momento is undefined');
+    console.error('[MomentoViewer v3.1] Current momento is undefined');
     handleClose();
     return null;
   }
