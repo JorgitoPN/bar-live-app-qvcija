@@ -203,9 +203,9 @@ export default function SocialIndexScreen() {
     router.push('/crear/publicacion');
   };
 
+  // ✅ ENABLED: Search functionality
   const handleSearch = () => {
-    // TODO: Implement search functionality
-    Alert.alert('Búsqueda', 'Función de búsqueda próximamente');
+    router.push('/social/hashtag');
   };
 
   const renderHeader = useCallback(() => (
@@ -274,7 +274,7 @@ export default function SocialIndexScreen() {
 
   return (
     <View style={styles.container}>
-      {/* ✅ FIXED: Header with transparent icon buttons (no blue background) + Search icon added */}
+      {/* ✅ Header with search icon enabled */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         style={styles.header}
@@ -287,15 +287,15 @@ export default function SocialIndexScreen() {
                 <IconSymbol ios_icon_name="person.crop.circle.badge.checkmark" android_material_icon_name="supervised_user_circle" size={20} color={colors.headerText} />
               </View>
             )}
-            {/* ✅ NEW: Search Icon */}
+            {/* ✅ ENABLED: Search Icon */}
             <TouchableOpacity style={styles.headerIconButton} onPress={handleSearch}>
               <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={24} color={colors.headerText} />
             </TouchableOpacity>
-            {/* ✅ Messages Icon - transparent background */}
+            {/* Messages Icon */}
             <TouchableOpacity style={styles.headerIconButton} onPress={handleMessages}>
               <IconSymbol ios_icon_name="message.fill" android_material_icon_name="message" size={24} color={colors.headerText} />
             </TouchableOpacity>
-            {/* ✅ Create Post Icon - transparent background */}
+            {/* Create Post Icon */}
             <TouchableOpacity style={styles.headerIconButton} onPress={handleCreatePost}>
               <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={24} color={colors.headerText} />
             </TouchableOpacity>
@@ -365,7 +365,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  // ✅ FIXED: Transparent icon button style (no blue background)
   headerIconButton: {
     width: 40,
     height: 40,
