@@ -79,6 +79,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
 
     try {
       console.log('[FavoritesContext] 🔄 Toggling favorite. Current state:', wasFavorite, '-> New state:', !wasFavorite);
+      console.log('[FavoritesContext] ⚠️ IMPORTANT: This action ONLY affects FAVORITES, NOT FOLLOWING');
 
       // Ensure we have a valid session
       console.log('[FavoritesContext] 🔐 Ensuring valid session...');
@@ -104,8 +105,11 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
       console.log('[FavoritesContext] ✅ Valid session confirmed');
 
       if (wasFavorite) {
-        // ✅ FIXED v2.0: Remove from favorites WITHOUT unfollowing
-        console.log('[FavoritesContext] ➖ Removing from favorites (keeping follow status)...');
+        // ✅ CRITICAL: Remove from favorites WITHOUT affecting following status
+        console.log('[FavoritesContext] ➖ Removing from favorites...');
+        console.log('[FavoritesContext] ⚠️ This will NOT unfollow the local profile');
+        console.log('[FavoritesContext] ⚠️ Following status is INDEPENDENT from favorites');
+        
         const { error } = await supabase
           .from('locales_guardados')
           .delete()
@@ -138,7 +142,8 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
           return false;
         }
         
-        console.log('[FavoritesContext] ✅ Removed from favorites (follow status unchanged)');
+        console.log('[FavoritesContext] ✅ Removed from favorites successfully');
+        console.log('[FavoritesContext] ✅ Following status remains UNCHANGED');
         setLoading(false);
         return true;
       } else {
@@ -157,8 +162,11 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
           return true;
         }
 
-        // ✅ FIXED v2.0: Add to favorites WITHOUT following
-        console.log('[FavoritesContext] ➕ Adding to favorites (NOT following)...');
+        // ✅ CRITICAL: Add to favorites WITHOUT following the local
+        console.log('[FavoritesContext] ➕ Adding to favorites...');
+        console.log('[FavoritesContext] ⚠️ This will NOT follow the local profile');
+        console.log('[FavoritesContext] ⚠️ Following is a SEPARATE action in the social network');
+        
         const { error } = await supabase
           .from('locales_guardados')
           .insert({
@@ -202,8 +210,9 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
           return false;
         }
         
-        console.log('[FavoritesContext] ✅ Added to favorites (follow status unchanged)');
-        console.log('[FavoritesContext] ℹ️ NOTE: Saving as favorite does NOT automatically follow the local');
+        console.log('[FavoritesContext] ✅ Added to favorites successfully');
+        console.log('[FavoritesContext] ✅ Following status remains UNCHANGED');
+        console.log('[FavoritesContext] ℹ️ To follow this local, use the "Seguir" button on their profile');
         setLoading(false);
         return true;
       }

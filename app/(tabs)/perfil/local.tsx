@@ -33,7 +33,7 @@ import OfertaTrabajoCard from '@/components/empleo/OfertaTrabajoCard';
 import EventBanner from '@/components/eventos/EventBanner';
 import { useLocalEvent } from '@/hooks/useLocalEvent';
 
-const SCREEN_VERSION = '7.0.0';
+const SCREEN_VERSION = '7.0.1';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -408,28 +408,46 @@ export default function LocalPerfilScreen() {
 
   const toggleFavorito = async () => {
     if (!user) {
-      Alert.alert('Error', 'Debes iniciar sesión para seguir locales');
+      Alert.alert('Error', 'Debes iniciar sesión para guardar locales favoritos');
       return;
     }
 
     try {
+      console.log('[LocalPerfil] ⚠️ IMPORTANT: Toggling FAVORITE status (NOT following)');
+      console.log('[LocalPerfil] ⚠️ Favorites and Following are INDEPENDENT');
+      
       if (isFavorito) {
+        console.log('[LocalPerfil] ➖ Removing from favorites...');
+        console.log('[LocalPerfil] ⚠️ This will NOT affect following status');
+        
         await supabase
           .from('locales_guardados')
           .delete()
           .eq('usuario_id', user.id)
           .eq('local_id', localId);
+        
         setIsFavorito(false);
         setSeguidoresCount(prev => Math.max(0, prev - 1));
+        
+        console.log('[LocalPerfil] ✅ Removed from favorites');
+        console.log('[LocalPerfil] ✅ Following status remains unchanged');
       } else {
+        console.log('[LocalPerfil] ➕ Adding to favorites...');
+        console.log('[LocalPerfil] ⚠️ This will NOT follow the local profile');
+        
         await supabase
           .from('locales_guardados')
           .insert({
             usuario_id: user.id,
             local_id: localId,
           });
+        
         setIsFavorito(true);
         setSeguidoresCount(prev => prev + 1);
+        
+        console.log('[LocalPerfil] ✅ Added to favorites');
+        console.log('[LocalPerfil] ✅ Following status remains unchanged');
+        console.log('[LocalPerfil] ℹ️ To follow this local in the social network, that would be a separate action');
       }
     } catch (error) {
       console.error('[LocalPerfil] Error toggling favorito:', error);
@@ -879,7 +897,7 @@ export default function LocalPerfilScreen() {
               <View style={styles.statDivider} />
               <TouchableOpacity style={styles.statItem} onPress={handleSeguidos}>
                 <Text style={styles.statNumber}>{seguidosCount}</Text>
-                <Text style={styles.statLabel}>Seguidos</Text>
+                <Text style={styles.statLabel}>Siguiendo</Text>
               </TouchableOpacity>
             </View>
 
@@ -933,7 +951,7 @@ export default function LocalPerfilScreen() {
                       color={isFavorito ? colors.headerText : colors.primary} 
                     />
                     <Text style={[styles.visitorRowButtonText, isFavorito && styles.visitorRowButtonTextFollowing]}>
-                      {isFavorito ? 'Siguiendo' : 'Seguir'}
+                      {isFavorito ? 'Guardado' : 'Guardar'}
                     </Text>
                   </TouchableOpacity>
                   
@@ -1428,6 +1446,7 @@ export default function LocalPerfilScreen() {
   );
 }
 
+// Styles remain exactly the same...
 const styles = StyleSheet.create({
   container: {
     flex: 1,

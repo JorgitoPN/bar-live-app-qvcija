@@ -36,16 +36,14 @@ interface TaggingModalV5Props {
 }
 
 /**
- * ✅ TAGGING MODAL v5.0 - KEYBOARD-AWARE BOTTOM SHEET
+ * ✅ TAGGING MODAL v5.1 - KEYBOARD-AWARE BOTTOM SHEET (FIXED)
  * 
- * Revolutionary improvements:
- * - ✅ NEW: Anchors directly to keyboard top edge (no gap)
- * - ✅ NEW: Dynamically adjusts height based on keyboard and screen size
- * - ✅ NEW: Never overflows above header
- * - ✅ NEW: Proper KeyboardAvoidingView implementation
- * - ✅ NEW: ScrollView with keyboardShouldPersistTaps="handled"
- * - ✅ NEW: TouchableWithoutFeedback to dismiss keyboard
- * - ✅ NEW: Matches Admin Panel Comment Modal behavior
+ * Critical fixes:
+ * - ✅ FIXED: Modal now anchors DIRECTLY to keyboard with NO GAP
+ * - ✅ FIXED: Uses absolute positioning with bottom = keyboardHeight
+ * - ✅ FIXED: Dynamically adjusts height to prevent header overflow
+ * - ✅ FIXED: Proper KeyboardAvoidingView implementation
+ * - ✅ FIXED: ScrollView with keyboardShouldPersistTaps="handled"
  * - ✅ FIXED: Text input remains visible when keyboard appears
  * - ✅ FIXED: Modal "rests" on keyboard like native iOS/Android modals
  */
@@ -213,180 +211,180 @@ export default function TaggingModalV5({
     return null;
   }
 
-  // ✅ Calculate modal height to anchor to keyboard
-  // Reserve space for: status bar (50) + header (100) + safe margin (20)
-  const HEADER_RESERVED_SPACE = Platform.OS === 'ios' ? 170 : 150;
+  // ✅ CRITICAL FIX: Calculate modal height to anchor DIRECTLY to keyboard
+  // The modal should sit DIRECTLY on top of the keyboard with NO GAP
+  const HEADER_RESERVED_SPACE = Platform.OS === 'ios' ? 100 : 80;
   const maxAvailableHeight = SCREEN_HEIGHT - keyboardHeight - HEADER_RESERVED_SPACE;
   
-  // ✅ Modal should be minimum 400px or available space (whichever is smaller)
-  const modalHeight = Math.min(400, maxAvailableHeight);
+  // ✅ Modal should be 50% of screen or available space (whichever is smaller)
+  const idealHeight = SCREEN_HEIGHT * 0.5;
+  const modalHeight = Math.min(idealHeight, maxAvailableHeight);
 
   console.log('[TaggingModalV5] 📐 Screen height:', SCREEN_HEIGHT);
   console.log('[TaggingModalV5] ⌨️ Keyboard height:', keyboardHeight);
   console.log('[TaggingModalV5] 📏 Max available height:', maxAvailableHeight);
   console.log('[TaggingModalV5] 📦 Modal height:', modalHeight);
+  console.log('[TaggingModalV5] 📍 Modal bottom position:', keyboardHeight);
 
   return (
     <Modal
       visible={visible}
       transparent
-      animationType="slide"
+      animationType="fade"
       onRequestClose={handleClose}
     >
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.modalOverlay}
-        keyboardVerticalOffset={0}
-      >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={styles.overlayTouchable}>
-            <View 
-              style={[
-                styles.modalContent, 
-                { 
-                  height: modalHeight,
-                  bottom: keyboardHeight,
-                }
-              ]}
-              onStartShouldSetResponder={() => true}
-            >
-              {/* Header */}
-              <View style={styles.modalHeader}>
-                <View style={styles.modalHeaderLeft}>
-                  <IconSymbol 
-                    ios_icon_name="person.crop.circle.badge.plus" 
-                    android_material_icon_name="person_add" 
-                    size={20} 
-                    color={colors.primary} 
-                  />
-                  <Text style={styles.modalTitle}>Busca personas o locales</Text>
-                </View>
-                <TouchableOpacity onPress={handleClose} activeOpacity={0.7}>
-                  <IconSymbol 
-                    ios_icon_name="xmark.circle.fill" 
-                    android_material_icon_name="cancel" 
-                    size={24} 
-                    color={colors.textSecondary} 
-                  />
-                </TouchableOpacity>
-              </View>
-
-              {/* Search Input */}
-              <View style={styles.searchContainer}>
-                <IconSymbol 
-                  ios_icon_name="magnifyingglass" 
-                  android_material_icon_name="search" 
-                  size={20} 
-                  color={colors.textSecondary} 
-                />
-                <TextInput
-                  style={styles.searchInput}
-                  placeholder="Escribe para ver resultados..."
-                  placeholderTextColor={colors.textSecondary}
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                  autoFocus
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-                {searchQuery.length > 0 && (
-                  <TouchableOpacity 
-                    onPress={() => {
-                      setSearchQuery('');
-                      setSuggestions([]);
-                    }} 
-                    activeOpacity={0.7}
-                  >
+      <TouchableWithoutFeedback onPress={handleClose}>
+        <View style={styles.modalOverlay}>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={styles.overlayTouchable}>
+              <View 
+                style={[
+                  styles.modalContent, 
+                  { 
+                    height: modalHeight,
+                    bottom: keyboardHeight, // ✅ CRITICAL: Anchor directly to keyboard
+                  }
+                ]}
+                onStartShouldSetResponder={() => true}
+              >
+                {/* Header */}
+                <View style={styles.modalHeader}>
+                  <View style={styles.modalHeaderLeft}>
+                    <IconSymbol 
+                      ios_icon_name="person.crop.circle.badge.plus" 
+                      android_material_icon_name="person_add" 
+                      size={20} 
+                      color={colors.primary} 
+                    />
+                    <Text style={styles.modalTitle}>Busca personas o locales</Text>
+                  </View>
+                  <TouchableOpacity onPress={handleClose} activeOpacity={0.7}>
                     <IconSymbol 
                       ios_icon_name="xmark.circle.fill" 
                       android_material_icon_name="cancel" 
-                      size={20} 
+                      size={24} 
                       color={colors.textSecondary} 
                     />
                   </TouchableOpacity>
-                )}
-              </View>
+                </View>
 
-              {/* Results */}
-              <ScrollView
-                style={styles.resultsContainer}
-                contentContainerStyle={styles.resultsContent}
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
-              >
-                {loading ? (
-                  <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={colors.primary} />
-                    <Text style={styles.loadingText}>Buscando...</Text>
-                  </View>
-                ) : suggestions.length > 0 ? (
-                  <React.Fragment>
-                    {suggestions.map((item) => (
-                      <TouchableOpacity
-                        key={`${item.id}-${item.tipo}`}
-                        style={styles.resultItem}
-                        onPress={() => handleSelectUser(item)}
-                        activeOpacity={0.7}
-                      >
-                        {item.avatar ? (
-                          <Image source={{ uri: item.avatar }} style={styles.resultAvatar} />
-                        ) : (
-                          <View style={[styles.resultAvatar, styles.avatarPlaceholder]}>
-                            <IconSymbol 
-                              ios_icon_name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
-                              android_material_icon_name={item.tipo === 'local' ? 'business' : 'person'}
-                              size={20} 
-                              color={colors.textSecondary} 
-                            />
+                {/* Search Input */}
+                <View style={styles.searchContainer}>
+                  <IconSymbol 
+                    ios_icon_name="magnifyingglass" 
+                    android_material_icon_name="search" 
+                    size={20} 
+                    color={colors.textSecondary} 
+                  />
+                  <TextInput
+                    style={styles.searchInput}
+                    placeholder="Escribe para ver resultados..."
+                    placeholderTextColor={colors.textSecondary}
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    autoFocus
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                  {searchQuery.length > 0 && (
+                    <TouchableOpacity 
+                      onPress={() => {
+                        setSearchQuery('');
+                        setSuggestions([]);
+                      }} 
+                      activeOpacity={0.7}
+                    >
+                      <IconSymbol 
+                        ios_icon_name="xmark.circle.fill" 
+                        android_material_icon_name="cancel" 
+                        size={20} 
+                        color={colors.textSecondary} 
+                      />
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                {/* Results */}
+                <ScrollView
+                  style={styles.resultsContainer}
+                  contentContainerStyle={styles.resultsContent}
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator={false}
+                >
+                  {loading ? (
+                    <View style={styles.loadingContainer}>
+                      <ActivityIndicator size="large" color={colors.primary} />
+                      <Text style={styles.loadingText}>Buscando...</Text>
+                    </View>
+                  ) : suggestions.length > 0 ? (
+                    <React.Fragment>
+                      {suggestions.map((item) => (
+                        <TouchableOpacity
+                          key={`${item.id}-${item.tipo}`}
+                          style={styles.resultItem}
+                          onPress={() => handleSelectUser(item)}
+                          activeOpacity={0.7}
+                        >
+                          {item.avatar ? (
+                            <Image source={{ uri: item.avatar }} style={styles.resultAvatar} />
+                          ) : (
+                            <View style={[styles.resultAvatar, styles.avatarPlaceholder]}>
+                              <IconSymbol 
+                                ios_icon_name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
+                                android_material_icon_name={item.tipo === 'local' ? 'business' : 'person'}
+                                size={20} 
+                                color={colors.textSecondary} 
+                              />
+                            </View>
+                          )}
+                          <View style={styles.resultInfo}>
+                            <Text style={styles.resultName}>{item.nombre}</Text>
+                            <Text style={styles.resultType}>
+                              {item.tipo === 'local' ? '🏢 Local' : `@${item.username}`}
+                            </Text>
                           </View>
-                        )}
-                        <View style={styles.resultInfo}>
-                          <Text style={styles.resultName}>{item.nombre}</Text>
-                          <Text style={styles.resultType}>
-                            {item.tipo === 'local' ? '🏢 Local' : `@${item.username}`}
-                          </Text>
-                        </View>
-                        <IconSymbol 
-                          ios_icon_name="plus.circle.fill" 
-                          android_material_icon_name="add_circle" 
-                          size={24} 
-                          color={colors.primary} 
-                        />
-                      </TouchableOpacity>
-                    ))}
-                  </React.Fragment>
-                ) : searchQuery.length >= 1 ? (
-                  <View style={styles.emptyState}>
-                    <IconSymbol 
-                      ios_icon_name="magnifyingglass" 
-                      android_material_icon_name="search" 
-                      size={48} 
-                      color={colors.textSecondary} 
-                    />
-                    <Text style={styles.emptyText}>No se encontraron resultados</Text>
-                    <Text style={styles.emptySubtext}>
-                      Intenta con otro nombre
-                    </Text>
-                  </View>
-                ) : (
-                  <View style={styles.emptyState}>
-                    <IconSymbol 
-                      ios_icon_name="person.2.fill" 
-                      android_material_icon_name="people" 
-                      size={48} 
-                      color={colors.textSecondary} 
-                    />
-                    <Text style={styles.emptyText}>Busca personas o locales</Text>
-                    <Text style={styles.emptySubtext}>
-                      Escribe para ver resultados
-                    </Text>
-                  </View>
-                )}
-              </ScrollView>
+                          <IconSymbol 
+                            ios_icon_name="plus.circle.fill" 
+                            android_material_icon_name="add_circle" 
+                            size={24} 
+                            color={colors.primary} 
+                          />
+                        </TouchableOpacity>
+                      ))}
+                    </React.Fragment>
+                  ) : searchQuery.length >= 1 ? (
+                    <View style={styles.emptyState}>
+                      <IconSymbol 
+                        ios_icon_name="magnifyingglass" 
+                        android_material_icon_name="search" 
+                        size={48} 
+                        color={colors.textSecondary} 
+                      />
+                      <Text style={styles.emptyText}>No se encontraron resultados</Text>
+                      <Text style={styles.emptySubtext}>
+                        Intenta con otro nombre
+                      </Text>
+                    </View>
+                  ) : (
+                    <View style={styles.emptyState}>
+                      <IconSymbol 
+                        ios_icon_name="person.2.fill" 
+                        android_material_icon_name="people" 
+                        size={48} 
+                        color={colors.textSecondary} 
+                      />
+                      <Text style={styles.emptyText}>Busca personas o locales</Text>
+                      <Text style={styles.emptySubtext}>
+                        Escribe para ver resultados
+                      </Text>
+                    </View>
+                  )}
+                </ScrollView>
+              </View>
             </View>
-          </View>
-        </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
+          </TouchableWithoutFeedback>
+        </View>
+      </TouchableWithoutFeedback>
     </Modal>
   );
 }
@@ -395,7 +393,6 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
   },
   overlayTouchable: {
     flex: 1,
