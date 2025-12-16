@@ -13,6 +13,7 @@ import {
   Modal,
   Pressable,
   ScrollView,
+  Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, commonStyles } from '@/styles/commonStyles';
@@ -20,6 +21,9 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { supabase } from '@/utils/supabase';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
+
+const { width } = Dimensions.get('window');
+const isTablet = width >= 768;
 
 interface Usuario {
   id: string;
@@ -38,14 +42,6 @@ interface Local {
   provincia: string;
   propietario_id?: string;
   imagen_url?: string;
-}
-
-interface MessageAccessRequest {
-  id: string;
-  status: 'pending' | 'approved' | 'denied' | 'revoked';
-  requested_at: string;
-  responded_at?: string;
-  expires_at?: string;
 }
 
 const USUARIOS_POR_PAGINA = 20;
@@ -186,7 +182,7 @@ export default function GestionarUsuariosScreen() {
 
   const cambiarRolUsuario = async (usuarioId: string, nuevoRol: string) => {
     try {
-      console.log('[GestionarUsuarios] Changing role for user:', usuarioId, 'to:', nuevoRol);
+      console.log('[GestionarUsuarios] Cambiando rol del usuario:', usuarioId, 'a:', nuevoRol);
       
       const { error: updateError } = await supabase
         .from('usuarios')
@@ -194,7 +190,7 @@ export default function GestionarUsuariosScreen() {
         .eq('id', usuarioId);
 
       if (updateError) {
-        console.error('[GestionarUsuarios] Error updating role:', updateError);
+        console.error('[GestionarUsuarios] Error actualizando rol:', updateError);
         throw updateError;
       }
 
@@ -205,14 +201,14 @@ export default function GestionarUsuariosScreen() {
         .single();
 
       if (verifyError) {
-        console.error('[GestionarUsuarios] Error verifying role:', verifyError);
+        console.error('[GestionarUsuarios] Error verificando rol:', verifyError);
         throw verifyError;
       }
 
-      console.log('[GestionarUsuarios] Role verified:', verifyData.rol_app);
+      console.log('[GestionarUsuarios] Rol verificado:', verifyData.rol_app);
 
       if (verifyData.rol_app !== nuevoRol) {
-        throw new Error('Role update verification failed');
+        throw new Error('La verificación del rol falló');
       }
 
       Alert.alert('Éxito', 'Rol actualizado correctamente');
@@ -221,7 +217,7 @@ export default function GestionarUsuariosScreen() {
       await cargarUsuarios();
       await cargarContadores();
     } catch (error) {
-      console.error('[GestionarUsuarios] Error changing role:', error);
+      console.error('[GestionarUsuarios] Error cambiando rol:', error);
       Alert.alert('Error', 'No se pudo cambiar el rol del usuario. Verifica los permisos de la base de datos.');
     }
   };
@@ -254,7 +250,7 @@ export default function GestionarUsuariosScreen() {
     }
 
     try {
-      console.log('[GestionarUsuarios] Assigning locale:', selectedLocal, 'to user:', selectedUsuarioForLocal);
+      console.log('[GestionarUsuarios] Asignando local:', selectedLocal, 'al usuario:', selectedUsuarioForLocal);
 
       const { error } = await supabase
         .from('locales')
@@ -290,7 +286,6 @@ export default function GestionarUsuariosScreen() {
         {
           text: 'Continuar',
           onPress: () => {
-            // Store the impersonation in local storage or context
             Alert.alert(
               'Función en Desarrollo',
               'La funcionalidad de impersonación se implementará próximamente. Por ahora, puedes:\n\n- Ver el perfil del usuario\n- Ver sus publicaciones\n- Ver su actividad pública\n\nPara acceder a mensajes privados, usa la opción "Solicitar Acceso a Mensajes".'
@@ -322,7 +317,6 @@ export default function GestionarUsuariosScreen() {
     setRequestingMessageAccess(true);
 
     try {
-      // Check if there's already a pending or approved request
       const { data: existingRequest, error: checkError } = await supabase
         .from('admin_message_access_requests')
         .select('*')
@@ -351,7 +345,6 @@ export default function GestionarUsuariosScreen() {
         return;
       }
 
-      // Create new request
       const { error: insertError } = await supabase
         .from('admin_message_access_requests')
         .insert({
@@ -362,8 +355,6 @@ export default function GestionarUsuariosScreen() {
         });
 
       if (insertError) throw insertError;
-
-      // TODO: Send notification to user about the access request
 
       Alert.alert(
         'Solicitud Enviada',
@@ -507,127 +498,156 @@ export default function GestionarUsuariosScreen() {
   });
 
   const renderUsuarioCard = ({ item }: { item: Usuario }) => (
-    <TouchableOpacity
-      style={[
-        styles.usuarioCard,
-        selectedUsuarios.has(item.id) && styles.usuarioCardSelected,
-      ]}
-      onPress={() => toggleSeleccionUsuario(item.id)}
-      activeOpacity={0.7}
-    >
-      <View style={styles.checkbox}>
-        {selectedUsuarios.has(item.id) && (
-          <View style={styles.checkboxSelected}>
-            <IconSymbol ios_icon_name="checkmark" android_material_icon_name="check" size={16} color={colors.headerText} />
-          </View>
-        )}
-      </View>
-
-      {item.avatar ? (
-        <Image source={{ uri: item.avatar }} style={styles.avatar} />
-      ) : (
-        <View style={[styles.avatar, styles.avatarPlaceholder]}>
-          <Text style={styles.avatarText}>
-            {item.nombre.charAt(0).toUpperCase()}
-          </Text>
+    <View style={[styles.usuarioCard, isTablet && styles.usuarioCardTablet]}>
+      <TouchableOpacity
+        style={styles.checkboxContainer}
+        onPress={() => toggleSeleccionUsuario(item.id)}
+        activeOpacity={0.7}
+      >
+        <View style={[
+          styles.checkbox,
+          selectedUsuarios.has(item.id) && styles.checkboxSelected
+        ]}>
+          {selectedUsuarios.has(item.id) && (
+            <IconSymbol ios_icon_name="checkmark" android_material_icon_name="check" size={16} color={colors.white} />
+          )}
         </View>
-      )}
+      </TouchableOpacity>
 
-      <View style={styles.usuarioInfo}>
-        <Text style={styles.usuarioNombre}>{item.nombre}</Text>
-        <Text style={styles.usuarioEmail}>{item.email}</Text>
-        <View style={styles.usuarioMeta}>
-          <View style={[styles.rolBadge, { backgroundColor: getRolColor(item.rol_app) }]}>
-            <Text style={styles.rolBadgeText}>{getRolLabel(item.rol_app)}</Text>
-          </View>
-          <View
-            style={[
-              styles.estadoBadge,
-              { backgroundColor: item.activo ? '#22C55E' : '#EF4444' },
-            ]}
-          >
-            <Text style={[styles.estadoBadgeText, { color: colors.headerText }]}>
-              {item.activo ? 'Activo' : 'Inactivo'}
-            </Text>
+      <View style={styles.usuarioMainContent}>
+        <View style={styles.usuarioHeader}>
+          {item.avatar ? (
+            <Image source={{ uri: item.avatar }} style={styles.avatar} />
+          ) : (
+            <View style={[styles.avatar, styles.avatarPlaceholder, { backgroundColor: getRolColor(item.rol_app) }]}>
+              <Text style={styles.avatarText}>
+                {item.nombre.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          )}
+
+          <View style={styles.usuarioInfo}>
+            <Text style={styles.usuarioNombre} numberOfLines={1}>{item.nombre}</Text>
+            <Text style={styles.usuarioEmail} numberOfLines={1}>{item.email}</Text>
+            <View style={styles.usuarioMeta}>
+              <View style={[styles.rolBadge, { backgroundColor: getRolColor(item.rol_app) }]}>
+                <Text style={styles.rolBadgeText}>{getRolLabel(item.rol_app)}</Text>
+              </View>
+              <View
+                style={[
+                  styles.estadoBadge,
+                  { backgroundColor: item.activo ? '#10B981' : '#EF4444' },
+                ]}
+              >
+                <Text style={styles.estadoBadgeText}>
+                  {item.activo ? 'Activo' : 'Inactivo'}
+                </Text>
+              </View>
+            </View>
           </View>
         </View>
-      </View>
 
-      <View style={styles.usuarioActions}>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => abrirModalImpersonar(item)}
-        >
-          <IconSymbol ios_icon_name="person.crop.circle.badge.checkmark" android_material_icon_name="supervised_user_circle" size={20} color={colors.primary} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => abrirModalAccesoMensajes(item)}
-        >
-          <IconSymbol ios_icon_name="envelope.badge.shield.half.filled" android_material_icon_name="mark_email_read" size={20} color="#F59E0B" />
-        </TouchableOpacity>
-        {item.rol_app === 'propietario' && (
+        <View style={styles.usuarioActions}>
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => abrirModalAsignarLocal(item.id)}
+            onPress={() => abrirModalImpersonar(item)}
           >
-            <IconSymbol ios_icon_name="building.2" android_material_icon_name="store" size={20} color={colors.text} />
+            <IconSymbol ios_icon_name="person.crop.circle.badge.checkmark" android_material_icon_name="supervised_user_circle" size={20} color={colors.primary} />
+            <Text style={styles.actionButtonText}>Ver como</Text>
           </TouchableOpacity>
-        )}
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => {
-            setSelectedUsuarioForRol(item.id);
-            setShowRolModal(true);
-          }}
-        >
-          <IconSymbol ios_icon_name="person.badge.key" android_material_icon_name="admin_panel_settings" size={20} color={colors.text} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => toggleEstadoUsuario(item.id, item.activo)}
-        >
-          <IconSymbol
-            ios_icon_name={item.activo ? 'pause.circle' : 'play.circle'}
-            android_material_icon_name={item.activo ? 'pause_circle' : 'play_circle'}
-            size={20}
-            color={colors.text}
-          />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => eliminarUsuario(item.id)}
-        >
-          <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={20} color="#EF4444" />
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => abrirModalAccesoMensajes(item)}
+          >
+            <IconSymbol ios_icon_name="envelope.badge.shield.half.filled" android_material_icon_name="mark_email_read" size={20} color="#F59E0B" />
+            <Text style={styles.actionButtonText}>Mensajes</Text>
+          </TouchableOpacity>
+          {item.rol_app === 'propietario' && (
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => abrirModalAsignarLocal(item.id)}
+            >
+              <IconSymbol ios_icon_name="building.2" android_material_icon_name="store" size={20} color="#10B981" />
+              <Text style={styles.actionButtonText}>Local</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => {
+              setSelectedUsuarioForRol(item.id);
+              setShowRolModal(true);
+            }}
+          >
+            <IconSymbol ios_icon_name="person.badge.key" android_material_icon_name="admin_panel_settings" size={20} color="#8B5CF6" />
+            <Text style={styles.actionButtonText}>Rol</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => toggleEstadoUsuario(item.id, item.activo)}
+          >
+            <IconSymbol
+              ios_icon_name={item.activo ? 'pause.circle' : 'play.circle'}
+              android_material_icon_name={item.activo ? 'pause_circle' : 'play_circle'}
+              size={20}
+              color={item.activo ? '#F59E0B' : '#10B981'}
+            />
+            <Text style={styles.actionButtonText}>{item.activo ? 'Pausar' : 'Activar'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => eliminarUsuario(item.id)}
+          >
+            <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={20} color="#EF4444" />
+            <Text style={styles.actionButtonText}>Eliminar</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </TouchableOpacity>
+    </View>
   );
 
   const renderHeader = () => (
     <>
       <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Buscar por nombre o email..."
-          placeholderTextColor={colors.textSecondary}
-          value={busqueda}
-          onChangeText={setBusqueda}
-        />
+        <View style={styles.searchInputContainer}>
+          <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Buscar por nombre o email..."
+            placeholderTextColor={colors.textSecondary}
+            value={busqueda}
+            onChangeText={setBusqueda}
+          />
+          {busqueda !== '' && (
+            <TouchableOpacity onPress={() => setBusqueda('')}>
+              <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
-      <View style={styles.filtersContainer}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.filtersContainer}
+        contentContainerStyle={styles.filtersContent}
+      >
         <TouchableOpacity
           style={[
-            styles.filterButton,
-            filtroRol === 'cliente' && styles.filterButtonActive,
+            styles.filterChip,
+            filtroRol === 'cliente' && styles.filterChipActive,
           ]}
           onPress={() => setFiltroRol(filtroRol === 'cliente' ? null : 'cliente')}
         >
+          <IconSymbol
+            ios_icon_name="person.fill"
+            android_material_icon_name="person"
+            size={16}
+            color={filtroRol === 'cliente' ? colors.white : colors.primary}
+          />
           <Text
             style={[
-              styles.filterButtonText,
-              filtroRol === 'cliente' && styles.filterButtonTextActive,
+              styles.filterChipText,
+              filtroRol === 'cliente' && styles.filterChipTextActive,
             ]}
           >
             Clientes ({contadores.clientes})
@@ -636,15 +656,21 @@ export default function GestionarUsuariosScreen() {
 
         <TouchableOpacity
           style={[
-            styles.filterButton,
-            filtroRol === 'propietario' && styles.filterButtonActive,
+            styles.filterChip,
+            filtroRol === 'propietario' && styles.filterChipActive,
           ]}
           onPress={() => setFiltroRol(filtroRol === 'propietario' ? null : 'propietario')}
         >
+          <IconSymbol
+            ios_icon_name="building.2.fill"
+            android_material_icon_name="store"
+            size={16}
+            color={filtroRol === 'propietario' ? colors.white : '#F59E0B'}
+          />
           <Text
             style={[
-              styles.filterButtonText,
-              filtroRol === 'propietario' && styles.filterButtonTextActive,
+              styles.filterChipText,
+              filtroRol === 'propietario' && styles.filterChipTextActive,
             ]}
           >
             Propietarios ({contadores.propietarios})
@@ -653,15 +679,21 @@ export default function GestionarUsuariosScreen() {
 
         <TouchableOpacity
           style={[
-            styles.filterButton,
-            filtroRol === 'admin' && styles.filterButtonActive,
+            styles.filterChip,
+            filtroRol === 'admin' && styles.filterChipActive,
           ]}
           onPress={() => setFiltroRol(filtroRol === 'admin' ? null : 'admin')}
         >
+          <IconSymbol
+            ios_icon_name="shield.fill"
+            android_material_icon_name="shield"
+            size={16}
+            color={filtroRol === 'admin' ? colors.white : '#EF4444'}
+          />
           <Text
             style={[
-              styles.filterButtonText,
-              filtroRol === 'admin' && styles.filterButtonTextActive,
+              styles.filterChipText,
+              filtroRol === 'admin' && styles.filterChipTextActive,
             ]}
           >
             Admins ({contadores.admins})
@@ -670,15 +702,21 @@ export default function GestionarUsuariosScreen() {
 
         <TouchableOpacity
           style={[
-            styles.filterButton,
-            filtroEstado === 'activo' && styles.filterButtonActive,
+            styles.filterChip,
+            filtroEstado === 'activo' && styles.filterChipActive,
           ]}
           onPress={() => setFiltroEstado(filtroEstado === 'activo' ? null : 'activo')}
         >
+          <IconSymbol
+            ios_icon_name="checkmark.circle.fill"
+            android_material_icon_name="check_circle"
+            size={16}
+            color={filtroEstado === 'activo' ? colors.white : '#10B981'}
+          />
           <Text
             style={[
-              styles.filterButtonText,
-              filtroEstado === 'activo' && styles.filterButtonTextActive,
+              styles.filterChipText,
+              filtroEstado === 'activo' && styles.filterChipTextActive,
             ]}
           >
             Activos ({contadores.activos})
@@ -687,15 +725,21 @@ export default function GestionarUsuariosScreen() {
 
         <TouchableOpacity
           style={[
-            styles.filterButton,
-            filtroEstado === 'inactivo' && styles.filterButtonActive,
+            styles.filterChip,
+            filtroEstado === 'inactivo' && styles.filterChipActive,
           ]}
           onPress={() => setFiltroEstado(filtroEstado === 'inactivo' ? null : 'inactivo')}
         >
+          <IconSymbol
+            ios_icon_name="xmark.circle.fill"
+            android_material_icon_name="cancel"
+            size={16}
+            color={filtroEstado === 'inactivo' ? colors.white : '#EF4444'}
+          />
           <Text
             style={[
-              styles.filterButtonText,
-              filtroEstado === 'inactivo' && styles.filterButtonTextActive,
+              styles.filterChipText,
+              filtroEstado === 'inactivo' && styles.filterChipTextActive,
             ]}
           >
             Inactivos ({contadores.inactivos})
@@ -703,36 +747,51 @@ export default function GestionarUsuariosScreen() {
         </TouchableOpacity>
 
         {hayFiltrosActivos() && (
-          <TouchableOpacity style={styles.filterButton} onPress={limpiarFiltros}>
-            <Text style={styles.filterButtonText}>Limpiar filtros</Text>
+          <TouchableOpacity style={styles.filterChipClear} onPress={limpiarFiltros}>
+            <IconSymbol ios_icon_name="arrow.counterclockwise" android_material_icon_name="refresh" size={16} color={colors.primary} />
+            <Text style={styles.filterChipClearText}>Limpiar</Text>
           </TouchableOpacity>
         )}
-      </View>
+      </ScrollView>
 
-      <View style={styles.statsContainer}>
+      <View style={[styles.statsContainer, isTablet && styles.statsContainerTablet]}>
         <View style={styles.statCard}>
+          <IconSymbol ios_icon_name="person.3.fill" android_material_icon_name="people" size={24} color={colors.primary} />
           <Text style={styles.statValue}>{contadores.total}</Text>
-          <Text style={styles.statLabel}>Total usuarios</Text>
+          <Text style={styles.statLabel}>Total</Text>
         </View>
         <View style={styles.statCard}>
+          <IconSymbol ios_icon_name="checkmark.seal.fill" android_material_icon_name="verified" size={24} color="#10B981" />
+          <Text style={styles.statValue}>{contadores.activos}</Text>
+          <Text style={styles.statLabel}>Activos</Text>
+        </View>
+        <View style={styles.statCard}>
+          <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color={colors.primary} />
           <Text style={styles.statValue}>{selectedUsuarios.size}</Text>
           <Text style={styles.statLabel}>Seleccionados</Text>
         </View>
       </View>
 
       {selectedUsuarios.size > 0 && (
-        <View style={styles.filtersContainer}>
-          <TouchableOpacity style={styles.filterButton} onPress={seleccionarTodos}>
-            <Text style={styles.filterButtonText}>
+        <View style={styles.bulkActionsContainer}>
+          <TouchableOpacity style={styles.bulkActionButton} onPress={seleccionarTodos}>
+            <IconSymbol
+              ios_icon_name={selectedUsuarios.size === usuarios.length ? "checkmark.square.fill" : "square"}
+              android_material_icon_name={selectedUsuarios.size === usuarios.length ? "check_box" : "check_box_outline_blank"}
+              size={20}
+              color={colors.primary}
+            />
+            <Text style={styles.bulkActionText}>
               {selectedUsuarios.size === usuarios.length ? 'Deseleccionar todos' : 'Seleccionar todos'}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.filterButton, { backgroundColor: '#EF4444', borderColor: '#EF4444' }]}
+            style={[styles.bulkActionButton, styles.bulkActionButtonDanger]}
             onPress={eliminarSeleccionados}
           >
-            <Text style={[styles.filterButtonText, { color: colors.headerText }]}>
-              Eliminar seleccionados
+            <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={20} color={colors.white} />
+            <Text style={[styles.bulkActionText, { color: colors.white }]}>
+              Eliminar ({selectedUsuarios.size})
             </Text>
           </TouchableOpacity>
         </View>
@@ -745,6 +804,7 @@ export default function GestionarUsuariosScreen() {
       return (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Cargando usuarios...</Text>
         </View>
       );
     }
@@ -755,12 +815,17 @@ export default function GestionarUsuariosScreen() {
     if (loading) return null;
     return (
       <View style={styles.emptyContainer}>
-        <IconSymbol ios_icon_name="person.2" android_material_icon_name="people" size={64} color={colors.textSecondary} />
+        <IconSymbol ios_icon_name="person.2.slash" android_material_icon_name="people_outline" size={64} color={colors.textSecondary} />
         <Text style={styles.emptyText}>
           {hayFiltrosActivos()
             ? 'No se encontraron usuarios con los filtros aplicados'
             : 'No hay usuarios registrados'}
         </Text>
+        {hayFiltrosActivos() && (
+          <TouchableOpacity style={styles.emptyButton} onPress={limpiarFiltros}>
+            <Text style={styles.emptyButtonText}>Limpiar filtros</Text>
+          </TouchableOpacity>
+        )}
       </View>
     );
   };
@@ -774,7 +839,13 @@ export default function GestionarUsuariosScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Gestionar Usuarios</Text>
+        <View style={styles.headerContent}>
+          <Text style={styles.headerTitle}>Gestionar Usuarios</Text>
+          <Text style={styles.headerSubtitle}>Administra roles, permisos y accesos</Text>
+        </View>
+        <TouchableOpacity style={styles.refreshButton} onPress={() => { cargarUsuarios(); cargarContadores(); }}>
+          <IconSymbol ios_icon_name="arrow.clockwise" android_material_icon_name="refresh" size={24} color={colors.headerText} />
+        </TouchableOpacity>
       </LinearGradient>
 
       <FlatList
@@ -784,7 +855,8 @@ export default function GestionarUsuariosScreen() {
         ListHeaderComponent={renderHeader}
         ListFooterComponent={renderFooter}
         ListEmptyComponent={renderEmpty}
-        contentContainerStyle={{ flexGrow: 1 }}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
       />
 
       {/* Role Change Modal */}
@@ -796,26 +868,57 @@ export default function GestionarUsuariosScreen() {
       >
         <Pressable style={styles.modalOverlay} onPress={() => setShowRolModal(false)}>
           <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
-            <Text style={styles.modalTitle}>Cambiar rol de usuario</Text>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Cambiar Rol de Usuario</Text>
+              <TouchableOpacity onPress={() => setShowRolModal(false)}>
+                <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={28} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.modalDescription}>Selecciona el nuevo rol para este usuario</Text>
+            
             <TouchableOpacity
               style={styles.modalOption}
               onPress={() => selectedUsuarioForRol && cambiarRolUsuario(selectedUsuarioForRol, 'cliente')}
             >
-              <Text style={styles.modalOptionText}>Cliente</Text>
+              <View style={[styles.modalOptionIcon, { backgroundColor: colors.primary + '20' }]}>
+                <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={24} color={colors.primary} />
+              </View>
+              <View style={styles.modalOptionContent}>
+                <Text style={styles.modalOptionTitle}>Cliente</Text>
+                <Text style={styles.modalOptionDescription}>Usuario estándar con acceso básico</Text>
+              </View>
+              <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
+
             <TouchableOpacity
               style={styles.modalOption}
               onPress={() => selectedUsuarioForRol && cambiarRolUsuario(selectedUsuarioForRol, 'propietario')}
             >
-              <Text style={styles.modalOptionText}>Propietario</Text>
+              <View style={[styles.modalOptionIcon, { backgroundColor: '#F59E0B20' }]}>
+                <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={24} color="#F59E0B" />
+              </View>
+              <View style={styles.modalOptionContent}>
+                <Text style={styles.modalOptionTitle}>Propietario</Text>
+                <Text style={styles.modalOptionDescription}>Puede gestionar locales y eventos</Text>
+              </View>
+              <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
+
             <TouchableOpacity
               style={styles.modalOption}
               onPress={() => selectedUsuarioForRol && cambiarRolUsuario(selectedUsuarioForRol, 'admin')}
             >
-              <Text style={styles.modalOptionText}>Admin</Text>
+              <View style={[styles.modalOptionIcon, { backgroundColor: '#EF444420' }]}>
+                <IconSymbol ios_icon_name="shield.fill" android_material_icon_name="shield" size={24} color="#EF4444" />
+              </View>
+              <View style={styles.modalOptionContent}>
+                <Text style={styles.modalOptionTitle}>Administrador</Text>
+                <Text style={styles.modalOptionDescription}>Acceso completo al panel de administración</Text>
+              </View>
+              <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.modalCancel} onPress={() => setShowRolModal(false)}>
+
+            <TouchableOpacity style={styles.modalCancelButton} onPress={() => setShowRolModal(false)}>
               <Text style={styles.modalCancelText}>Cancelar</Text>
             </TouchableOpacity>
           </Pressable>
@@ -831,15 +934,23 @@ export default function GestionarUsuariosScreen() {
       >
         <Pressable style={styles.modalOverlay} onPress={() => setShowLocalModal(false)}>
           <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
-            <Text style={styles.modalTitle}>Asignar Local a Propietario</Text>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Asignar Local</Text>
+              <TouchableOpacity onPress={() => setShowLocalModal(false)}>
+                <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={28} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
             
-            <TextInput
-              style={styles.localSearchInput}
-              placeholder="Buscar local..."
-              placeholderTextColor={colors.textSecondary}
-              value={localSearch}
-              onChangeText={setLocalSearch}
-            />
+            <View style={styles.searchInputContainer}>
+              <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Buscar local..."
+                placeholderTextColor={colors.textSecondary}
+                value={localSearch}
+                onChangeText={setLocalSearch}
+              />
+            </View>
 
             {loadingLocales ? (
               <View style={styles.loadingContainer}>
@@ -856,14 +967,19 @@ export default function GestionarUsuariosScreen() {
                     ]}
                     onPress={() => setSelectedLocal(local.id)}
                   >
-                    <Text style={styles.localNombre}>{local.nombre}</Text>
-                    <Text style={styles.localDireccion}>
-                      {local.direccion} - {local.provincia}
-                    </Text>
-                    {local.propietario_id && (
-                      <Text style={styles.localPropietarioInfo}>
-                        ⚠️ Ya tiene propietario asignado
+                    <View style={styles.localItemContent}>
+                      <Text style={styles.localNombre}>{local.nombre}</Text>
+                      <Text style={styles.localDireccion}>
+                        {local.direccion} - {local.provincia}
                       </Text>
+                      {local.propietario_id && (
+                        <Text style={styles.localPropietarioInfo}>
+                          ⚠️ Ya tiene propietario asignado
+                        </Text>
+                      )}
+                    </View>
+                    {selectedLocal === local.id && (
+                      <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color={colors.primary} />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -875,16 +991,17 @@ export default function GestionarUsuariosScreen() {
 
             <TouchableOpacity
               style={[
-                styles.assignButton,
-                !selectedLocal && styles.assignButtonDisabled,
+                styles.modalPrimaryButton,
+                !selectedLocal && styles.modalPrimaryButtonDisabled,
               ]}
               onPress={asignarLocalAUsuario}
               disabled={!selectedLocal}
             >
-              <Text style={styles.assignButtonText}>Asignar Local</Text>
+              <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color={colors.white} />
+              <Text style={styles.modalPrimaryButtonText}>Asignar Local</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.modalCancel} onPress={() => setShowLocalModal(false)}>
+            <TouchableOpacity style={styles.modalCancelButton} onPress={() => setShowLocalModal(false)}>
               <Text style={styles.modalCancelText}>Cancelar</Text>
             </TouchableOpacity>
           </Pressable>
@@ -900,24 +1017,33 @@ export default function GestionarUsuariosScreen() {
       >
         <Pressable style={styles.modalOverlay} onPress={() => setShowImpersonateModal(false)}>
           <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
-            <Text style={styles.modalTitle}>Ver como Usuario</Text>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Ver como Usuario</Text>
+              <TouchableOpacity onPress={() => setShowImpersonateModal(false)}>
+                <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={28} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
             {selectedUsuarioForImpersonate && (
               <>
                 <Text style={styles.modalDescription}>
                   Podrás ver la aplicación desde la perspectiva de {selectedUsuarioForImpersonate.nombre}.
                 </Text>
-                <Text style={styles.modalWarning}>
-                  ⚠️ No podrás acceder a sus mensajes privados sin su consentimiento explícito.
-                </Text>
+                <View style={styles.modalWarning}>
+                  <IconSymbol ios_icon_name="exclamationmark.triangle.fill" android_material_icon_name="warning" size={24} color="#F59E0B" />
+                  <Text style={styles.modalWarningText}>
+                    No podrás acceder a sus mensajes privados sin su consentimiento explícito.
+                  </Text>
+                </View>
                 <TouchableOpacity
                   style={styles.modalPrimaryButton}
                   onPress={impersonarUsuario}
                 >
+                  <IconSymbol ios_icon_name="person.crop.circle.badge.checkmark" android_material_icon_name="supervised_user_circle" size={20} color={colors.white} />
                   <Text style={styles.modalPrimaryButtonText}>Ver como {selectedUsuarioForImpersonate.nombre}</Text>
                 </TouchableOpacity>
               </>
             )}
-            <TouchableOpacity style={styles.modalCancel} onPress={() => setShowImpersonateModal(false)}>
+            <TouchableOpacity style={styles.modalCancelButton} onPress={() => setShowImpersonateModal(false)}>
               <Text style={styles.modalCancelText}>Cancelar</Text>
             </TouchableOpacity>
           </Pressable>
@@ -933,15 +1059,23 @@ export default function GestionarUsuariosScreen() {
       >
         <Pressable style={styles.modalOverlay} onPress={() => setShowMessageAccessModal(false)}>
           <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
-            <Text style={styles.modalTitle}>Solicitar Acceso a Mensajes</Text>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Solicitar Acceso a Mensajes</Text>
+              <TouchableOpacity onPress={() => setShowMessageAccessModal(false)}>
+                <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={28} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
             {selectedUsuarioForMessageAccess && (
               <>
                 <Text style={styles.modalDescription}>
                   Solicita acceso a los mensajes privados de {selectedUsuarioForMessageAccess.nombre}.
                 </Text>
-                <Text style={styles.modalWarning}>
-                  🔒 El usuario recibirá una notificación y deberá aprobar tu solicitud. Esto garantiza la protección de datos y privacidad.
-                </Text>
+                <View style={styles.modalWarning}>
+                  <IconSymbol ios_icon_name="lock.shield.fill" android_material_icon_name="security" size={24} color={colors.primary} />
+                  <Text style={styles.modalWarningText}>
+                    El usuario recibirá una notificación y deberá aprobar tu solicitud. Esto garantiza la protección de datos y privacidad.
+                  </Text>
+                </View>
                 <TextInput
                   style={styles.reasonInput}
                   placeholder="Razón de la solicitud (obligatorio)..."
@@ -963,12 +1097,15 @@ export default function GestionarUsuariosScreen() {
                   {requestingMessageAccess ? (
                     <ActivityIndicator size="small" color={colors.white} />
                   ) : (
-                    <Text style={styles.modalPrimaryButtonText}>Enviar Solicitud</Text>
+                    <>
+                      <IconSymbol ios_icon_name="paperplane.fill" android_material_icon_name="send" size={20} color={colors.white} />
+                      <Text style={styles.modalPrimaryButtonText}>Enviar Solicitud</Text>
+                    </>
                   )}
                 </TouchableOpacity>
               </>
             )}
-            <TouchableOpacity style={styles.modalCancel} onPress={() => setShowMessageAccessModal(false)}>
+            <TouchableOpacity style={styles.modalCancelButton} onPress={() => setShowMessageAccessModal(false)}>
               <Text style={styles.modalCancelText}>Cancelar</Text>
             </TouchableOpacity>
           </Pressable>
@@ -985,63 +1122,102 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingTop: 50,
-    paddingBottom: 16,
+    paddingBottom: 20,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
   },
   backButton: {
     padding: 8,
+    marginRight: 8,
+  },
+  headerContent: {
+    flex: 1,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: colors.headerText,
-    flex: 1,
-    marginLeft: 12,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: colors.headerText,
+    opacity: 0.9,
+    marginTop: 2,
+  },
+  refreshButton: {
+    padding: 8,
+    marginLeft: 8,
+  },
+  listContent: {
+    flexGrow: 1,
+    paddingBottom: 100,
   },
   searchContainer: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: colors.background,
   },
-  searchInput: {
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.cardBackground,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    fontSize: 16,
-    color: colors.text,
+    gap: 12,
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: colors.text,
+  },
   filtersContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    flexDirection: 'row',
-    gap: 8,
-    flexWrap: 'wrap',
+    marginBottom: 12,
   },
-  filterButton: {
+  filtersContent: {
+    gap: 8,
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: 20,
     backgroundColor: colors.cardBackground,
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
-  filterButtonActive: {
+  filterChipActive: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
-  filterButtonText: {
+  filterChipText: {
     fontSize: 14,
+    fontWeight: '600',
     color: colors.text,
-    fontWeight: '500',
   },
-  filterButtonTextActive: {
-    color: colors.headerText,
+  filterChipTextActive: {
+    color: colors.white,
+  },
+  filterChipClear: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: colors.primary + '15',
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  filterChipClearText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
   },
   statsContainer: {
     flexDirection: 'row',
@@ -1049,11 +1225,15 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 12,
   },
+  statsContainerTablet: {
+    paddingHorizontal: 32,
+  },
   statCard: {
     flex: 1,
     backgroundColor: colors.cardBackground,
-    padding: 12,
+    padding: 16,
     borderRadius: 12,
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.cardBorder,
   },
@@ -1061,11 +1241,39 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: colors.text,
+    marginTop: 8,
   },
   statLabel: {
     fontSize: 12,
     color: colors.textSecondary,
     marginTop: 4,
+  },
+  bulkActionsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
+  },
+  bulkActionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  bulkActionButtonDanger: {
+    backgroundColor: '#EF4444',
+    borderColor: '#EF4444',
+  },
+  bulkActionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
   },
   usuarioCard: {
     backgroundColor: colors.cardBackground,
@@ -1076,98 +1284,120 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.cardBorder,
     flexDirection: 'row',
-    alignItems: 'center',
+    ...commonStyles.shadow,
   },
-  usuarioCardSelected: {
-    borderColor: colors.primary,
-    borderWidth: 2,
+  usuarioCardTablet: {
+    marginHorizontal: 32,
+  },
+  checkboxContainer: {
+    marginRight: 12,
+    justifyContent: 'flex-start',
+    paddingTop: 4,
   },
   checkbox: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: 6,
     borderWidth: 2,
     borderColor: colors.cardBorder,
-    marginRight: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkboxSelected: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+  },
+  usuarioMainContent: {
+    flex: 1,
+  },
+  usuarioHeader: {
+    flexDirection: 'row',
+    marginBottom: 12,
   },
   avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     marginRight: 12,
   },
   avatarPlaceholder: {
-    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: colors.headerText,
+    color: colors.white,
   },
   usuarioInfo: {
     flex: 1,
+    justifyContent: 'center',
   },
   usuarioNombre: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     color: colors.text,
     marginBottom: 4,
   },
   usuarioEmail: {
     fontSize: 14,
     color: colors.textSecondary,
-    marginBottom: 4,
+    marginBottom: 6,
   },
   usuarioMeta: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    flexWrap: 'wrap',
   },
   rolBadge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 6,
   },
   rolBadgeText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: colors.headerText,
+    fontWeight: '700',
+    color: colors.white,
   },
   estadoBadge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 6,
   },
   estadoBadgeText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
+    color: colors.white,
   },
   usuarioActions: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
   },
   actionButton: {
-    padding: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: colors.cardBorder,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  actionButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.text,
   },
   loadingContainer: {
-    padding: 20,
+    padding: 40,
     alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 12,
   },
   emptyContainer: {
     padding: 40,
@@ -1178,95 +1408,120 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     marginTop: 16,
+    lineHeight: 24,
+  },
+  emptyButton: {
+    marginTop: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+  },
+  emptyButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.white,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 20,
   },
   modalContent: {
     backgroundColor: colors.background,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 24,
-    width: '85%',
-    maxWidth: 400,
+    width: '100%',
+    maxWidth: 500,
     maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
-    marginBottom: 16,
+    flex: 1,
   },
   modalDescription: {
     fontSize: 15,
-    color: colors.text,
-    marginBottom: 12,
+    color: colors.textSecondary,
+    marginBottom: 20,
     lineHeight: 22,
   },
   modalWarning: {
-    fontSize: 14,
-    color: '#F59E0B',
-    marginBottom: 16,
-    lineHeight: 20,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
     backgroundColor: '#FEF3C7',
-    padding: 12,
-    borderRadius: 8,
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 20,
+  },
+  modalWarningText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#92400E',
+    lineHeight: 20,
   },
   modalOption: {
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  modalOptionText: {
-    fontSize: 16,
-    color: colors.text,
-  },
-  modalPrimaryButton: {
-    backgroundColor: colors.primary,
-    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
     borderRadius: 12,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  modalPrimaryButtonDisabled: {
-    backgroundColor: colors.cardBorder,
-  },
-  modalPrimaryButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.headerText,
-  },
-  modalCancel: {
-    marginTop: 16,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  modalCancelText: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    fontWeight: '600',
-  },
-  localSearchInput: {
     backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: colors.text,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: colors.cardBorder,
-    marginBottom: 16,
+  },
+  modalOptionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  modalOptionContent: {
+    flex: 1,
+  },
+  modalOptionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 2,
+  },
+  modalOptionDescription: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  modalScrollView: {
+    maxHeight: 300,
+    marginBottom: 20,
   },
   localItem: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: colors.cardBackground,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
   localItemSelected: {
-    backgroundColor: colors.primary + '20',
+    borderColor: colors.primary,
+    borderWidth: 2,
+    backgroundColor: colors.primary + '10',
+  },
+  localItemContent: {
+    flex: 1,
   },
   localNombre: {
     fontSize: 16,
@@ -1275,31 +1530,13 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   localDireccion: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.textSecondary,
   },
   localPropietarioInfo: {
     fontSize: 12,
-    color: colors.primary,
-    marginTop: 2,
-  },
-  modalScrollView: {
-    maxHeight: 400,
-  },
-  assignButton: {
-    backgroundColor: colors.primary,
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  assignButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.headerText,
-  },
-  assignButtonDisabled: {
-    backgroundColor: colors.cardBorder,
+    color: '#F59E0B',
+    marginTop: 4,
   },
   reasonInput: {
     backgroundColor: colors.cardBackground,
@@ -1310,7 +1547,36 @@ const styles = StyleSheet.create({
     color: colors.text,
     borderWidth: 1,
     borderColor: colors.cardBorder,
-    marginBottom: 16,
+    marginBottom: 20,
     minHeight: 100,
+    textAlignVertical: 'top',
+  },
+  modalPrimaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.primary,
+    paddingVertical: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  modalPrimaryButtonDisabled: {
+    backgroundColor: colors.cardBorder,
+    opacity: 0.5,
+  },
+  modalPrimaryButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.white,
+  },
+  modalCancelButton: {
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  modalCancelText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.textSecondary,
   },
 });
