@@ -41,6 +41,13 @@ interface Local {
   longitud?: number;
 }
 
+interface Filtro {
+  id: string;
+  label: string;
+  icon?: string;
+  activo?: boolean;
+}
+
 export default function HomeScreen() {
   const router = useRouter();
   const { userId, user, isImpersonating } = useEffectiveUser();
@@ -56,6 +63,46 @@ export default function HomeScreen() {
     abierto: false,
     destacado: false,
   });
+
+  // ✅ FIXED: Create filtros array for BarraFiltrosInteractiva
+  const filtrosArray: Filtro[] = useMemo(() => [
+    {
+      id: 'todos',
+      label: 'Todos',
+      icon: 'building.2',
+      activo: filtros.tipo === 'todos',
+    },
+    {
+      id: 'bar',
+      label: 'Bares',
+      icon: 'wineglass',
+      activo: filtros.tipo === 'bar',
+    },
+    {
+      id: 'restaurante',
+      label: 'Restaurantes',
+      icon: 'fork.knife',
+      activo: filtros.tipo === 'restaurante',
+    },
+    {
+      id: 'discoteca',
+      label: 'Discotecas',
+      icon: 'music.note',
+      activo: filtros.tipo === 'discoteca',
+    },
+    {
+      id: 'abierto',
+      label: 'Abierto ahora',
+      icon: 'clock',
+      activo: filtros.abierto,
+    },
+    {
+      id: 'destacado',
+      label: 'Destacados',
+      icon: 'star.fill',
+      activo: filtros.destacado,
+    },
+  ], [filtros]);
 
   const obtenerUbicacion = useCallback(async () => {
     try {
@@ -181,8 +228,25 @@ export default function HomeScreen() {
     cargarLocales();
   }, [cargarLocales]);
 
-  const handleFiltrosChange = useCallback((nuevosFiltros: any) => {
-    setFiltros(nuevosFiltros);
+  // ✅ FIXED: Handle filter press
+  const handleFiltroPress = useCallback((filtroId: string) => {
+    console.log('[Home] Filtro presionado:', filtroId);
+    
+    if (filtroId === 'todos') {
+      setFiltros(prev => ({ ...prev, tipo: 'todos' }));
+    } else if (filtroId === 'bar' || filtroId === 'restaurante' || filtroId === 'discoteca') {
+      setFiltros(prev => ({ ...prev, tipo: filtroId }));
+    } else if (filtroId === 'abierto') {
+      setFiltros(prev => ({ ...prev, abierto: !prev.abierto }));
+    } else if (filtroId === 'destacado') {
+      setFiltros(prev => ({ ...prev, destacado: !prev.destacado }));
+    }
+  }, []);
+
+  // ✅ FIXED: Handle more filters press
+  const handleMasFiltrosPress = useCallback(() => {
+    console.log('[Home] Más filtros presionado');
+    // TODO: Open advanced filters modal
   }, []);
 
   if (loading) {
@@ -225,7 +289,11 @@ export default function HomeScreen() {
         </View>
       )}
 
-      <BarraFiltrosInteractiva onFiltrosChange={handleFiltrosChange} />
+      <BarraFiltrosInteractiva 
+        filtros={filtrosArray}
+        onFiltroPress={handleFiltroPress}
+        onMasFiltrosPress={handleMasFiltrosPress}
+      />
 
       <ScrollView
         style={styles.content}

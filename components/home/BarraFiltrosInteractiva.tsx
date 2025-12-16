@@ -22,6 +22,12 @@ export default function BarraFiltrosInteractiva({
   onFiltroPress,
   onMasFiltrosPress,
 }: BarraFiltrosInteractivaProps) {
+  // ✅ FIXED: Check if filtros is defined and is an array before mapping
+  if (!filtros || !Array.isArray(filtros)) {
+    console.error('[BarraFiltrosInteractiva] filtros is undefined or not an array:', filtros);
+    return null;
+  }
+
   return (
     <View style={styles.container}>
       <ScrollView
