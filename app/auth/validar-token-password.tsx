@@ -72,8 +72,8 @@ export default function ValidarTokenPasswordScreen() {
       console.log('[ValidarTokenPassword] 🔢 Token:', fullToken);
       console.log('[ValidarTokenPassword] 🔐 Google User:', isGoogleUser);
 
-      const { data: { project_url } } = await supabase.functions.getProjectUrl();
-      const functionsUrl = project_url || 'https://embntaqwlwmgazvrglaf.supabase.co';
+      // Get the Supabase project URL from environment variables
+      const functionsUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://embntaqwlwmgazvrglaf.supabase.co';
 
       const response = await fetch(`${functionsUrl}/functions/v1/validate-password-token`, {
         method: 'POST',
