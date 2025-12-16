@@ -1,5 +1,5 @@
 
-import { supabase, isSupabaseConfigured } from './supabase';
+import { supabase } from '@/app/integrations/supabase/client';
 import { Alert } from 'react-native';
 
 export interface AuthUser {
@@ -98,20 +98,6 @@ export const signUpWithBarLive = async (
 ): Promise<{ user: AuthUser | null; error: string | null }> => {
   try {
     console.log('[Auth] Iniciando registro con BarLive 3.0:', email);
-    
-    if (!isSupabaseConfigured()) {
-      console.log('[Auth] Supabase no configurado, usando modo simulado');
-      // Simulate successful signup
-      const mockUser: AuthUser = {
-        id: `mock-${Date.now()}`,
-        email,
-        nombre,
-        rol_app: 'cliente',
-        provider: 'barlive',
-        ha_visto_mensaje_propietario: false,
-      };
-      return { user: mockUser, error: null };
-    }
 
     // Sign up with Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -170,20 +156,6 @@ export const signInWithBarLive = async (
 ): Promise<{ user: AuthUser | null; error: string | null }> => {
   try {
     console.log('[Auth] Iniciando sesión con BarLive 3.0:', email);
-    
-    if (!isSupabaseConfigured()) {
-      console.log('[Auth] Supabase no configurado, usando modo simulado');
-      // Simulate successful login
-      const mockUser: AuthUser = {
-        id: `mock-${Date.now()}`,
-        email,
-        nombre: 'Usuario Demo',
-        rol_app: 'cliente',
-        provider: 'barlive',
-        ha_visto_mensaje_propietario: true,
-      };
-      return { user: mockUser, error: null };
-    }
 
     // Sign in with Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -236,11 +208,6 @@ export const signInWithBarLive = async (
 export const signOut = async (): Promise<{ error: string | null }> => {
   try {
     console.log('[Auth] Cerrando sesión');
-    
-    if (!isSupabaseConfigured()) {
-      console.log('[Auth] Supabase no configurado, cerrando sesión local');
-      return { error: null };
-    }
 
     // Sign out from Supabase
     const { error } = await supabase.auth.signOut();
@@ -261,11 +228,6 @@ export const signOut = async (): Promise<{ error: string | null }> => {
 // Get current user
 export const getCurrentUser = async (): Promise<{ user: AuthUser | null; error: string | null }> => {
   try {
-    if (!isSupabaseConfigured()) {
-      console.log('[Auth] Supabase no configurado');
-      return { user: null, error: null };
-    }
-
     const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
 
     if (authError) {
@@ -324,11 +286,6 @@ export const updateUserRole = async (
   newRole: 'cliente' | 'propietario' | 'admin'
 ): Promise<{ error: string | null }> => {
   try {
-    if (!isSupabaseConfigured()) {
-      console.log('[Auth] Supabase no configurado, actualizando rol localmente');
-      return { error: null };
-    }
-
     const { error } = await supabase
       .from('usuarios')
       .update({ rol_app: newRole })
@@ -349,11 +306,6 @@ export const updateUserRole = async (
 // Mark that user has seen the propietario message
 export const markPropietarioMessageSeen = async (userId: string): Promise<{ error: string | null }> => {
   try {
-    if (!isSupabaseConfigured()) {
-      console.log('[Auth] Supabase no configurado');
-      return { error: null };
-    }
-
     const { error } = await supabase
       .from('usuarios')
       .update({ ha_visto_mensaje_propietario: true })
@@ -375,12 +327,6 @@ export const markPropietarioMessageSeen = async (userId: string): Promise<{ erro
 export const resetPassword = async (email: string): Promise<{ error: string | null }> => {
   try {
     console.log('[Auth] Solicitando recuperación de contraseña para:', email);
-    
-    if (!isSupabaseConfigured()) {
-      console.log('[Auth] Supabase no configurado');
-      Alert.alert('Información', 'Por favor configura Supabase para usar recuperación de contraseña');
-      return { error: null };
-    }
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: 'https://natively.dev/auth/reset-password',

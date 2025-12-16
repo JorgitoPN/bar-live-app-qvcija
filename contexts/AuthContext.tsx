@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { supabase, isSupabaseConfigured } from '@/utils/supabase';
+import { supabase } from '@/app/integrations/supabase/client';
 import { AuthUser, getCurrentUser } from '@/utils/auth';
 import { registerForPushNotifications, savePushToken } from '@/utils/notifications';
 import { Session } from '@supabase/supabase-js';
@@ -22,11 +22,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [initializing, setInitializing] = useState(true);
+  const [sessionReady, setSessionReady] = useState(false);
 
   // Helper function to manually set session (for immediate updates after login)
   const setSessionManually = (newSession: Session | null) => {
     console.log('[AuthContext] 📝 Actualizando sesión manualmente');
     setSession(newSession);
+    setSessionReady(!!newSession);
   };
 
   // Helper function to ensure we have a valid session
@@ -78,6 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // If refresh failed but session is still valid, use current session
           console.log('[AuthContext] ⚠️ Usando sesión actual a pesar del error de refresh');
           setSession(currentSession);
+          setSessionReady(true);
           return currentSession;
         }
 
@@ -91,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         // Update the session in state
         setSession(refreshedSession);
+        setSessionReady(true);
         
         return refreshedSession;
       }
@@ -98,6 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('[AuthContext] ✅ Sesión válida, actualizando estado');
       // Update state with fresh session
       setSession(currentSession);
+      setSessionReady(true);
       return currentSession;
     } catch (error) {
       console.error('[AuthContext] ❌ Error inesperado en ensureValidSession:', error);
@@ -111,13 +116,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Initialize auth state
     const initializeAuth = async () => {
       try {
-        if (!isSupabaseConfigured()) {
-          console.log('[AuthContext] ⚠️ Supabase no configurado - modo sin autenticación');
-          setInitializing(false);
-          setLoading(false);
-          return;
-        }
-
         console.log('[AuthContext] 🔍 Obteniendo sesión actual...');
         
         // Get current session
@@ -136,6 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           // ✅ CRITICAL FIX: Set session IMMEDIATELY before loading user profile
           setSession(currentSession);
+          setSessionReady(true);
           
           // Load user profile
           console.log('[AuthContext] 📥 Cargando perfil de usuario...');
@@ -175,106 +174,111 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let subscription: { unsubscribe: () => void } | null = null;
     let refreshInterval: NodeJS.Timeout | null = null;
     
-    if (isSupabaseConfigured()) {
-      const { data } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
-        console.log('[AuthContext] 🔄 Auth state cambió:', event);
-        
-        // ✅ CRITICAL FIX: Always update session state IMMEDIATELY for all events
-        // This ensures the session is available before any navigation happens
-        if (currentSession) {
-          console.log('[AuthContext] 📝 Actualizando sesión inmediatamente');
-          setSession(currentSession);
-        } else {
-          console.log('[AuthContext] 📝 Limpiando sesión');
-          setSession(null);
-        }
-        
-        // Don't process user profile updates during initialization
-        if (initializing) {
-          console.log('[AuthContext] ⏳ Ignorando actualización de perfil durante inicialización');
-          return;
-        }
-        
-        if (event === 'SIGNED_IN' && currentSession) {
-          console.log('[AuthContext] ✅ Usuario inició sesión:', currentSession.user.email);
-          console.log('[AuthContext] 📅 Sesión expira en:', new Date(currentSession.expires_at! * 1000).toLocaleString());
-          setLoading(true);
-          
-          // Load user profile
-          const { user: userData, error: userError } = await getCurrentUser();
-          
-          if (userError) {
-            console.error('[AuthContext] ❌ Error cargando perfil después de login:', userError);
-          } else if (userData) {
-            console.log('[AuthContext] ✅ Perfil cargado:', userData.email);
-            setUser(userData);
-            
-            // Register push notifications (non-blocking)
-            registerForPushNotifications()
-              .then(pushToken => {
-                if (pushToken) {
-                  savePushToken(userData.id, pushToken).catch(() => {});
-                }
-              })
-              .catch(() => {});
-          } else {
-            console.log('[AuthContext] ⚠️ No se pudo cargar el perfil después de login');
-          }
-          
-          setLoading(false);
-        } else if (event === 'SIGNED_OUT') {
-          console.log('[AuthContext] 🚪 Usuario cerró sesión');
-          setUser(null);
-          setSession(null);
-        } else if (event === 'TOKEN_REFRESHED') {
-          console.log('[AuthContext] 🔄 Token refrescado exitosamente');
-          if (currentSession) {
-            console.log('[AuthContext] 📅 Nueva expiración:', new Date(currentSession.expires_at! * 1000).toLocaleString());
-          }
-          // Session is already updated, just log
-        } else if (event === 'USER_UPDATED') {
-          console.log('[AuthContext] 🔄 Usuario actualizado');
-          setLoading(true);
-          const { user: userData } = await getCurrentUser();
-          if (userData) {
-            setUser(userData);
-          }
-          setLoading(false);
-        }
-      });
+    const { data } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+      console.log('[AuthContext] 🔄 Auth state cambió:', event);
       
-      subscription = data.subscription;
-
-      // Set up automatic session refresh every 5 minutes
-      // This ensures the session stays fresh and prevents expiration during uploads
-      refreshInterval = setInterval(async () => {
-        try {
-          const { data: { session: currentSession } } = await supabase.auth.getSession();
+      // ✅ CRITICAL FIX: Always update session state IMMEDIATELY for all events
+      // This ensures the session is available before any navigation happens
+      if (currentSession) {
+        console.log('[AuthContext] 📝 Actualizando sesión inmediatamente');
+        setSession(currentSession);
+        setSessionReady(true);
+      } else {
+        console.log('[AuthContext] 📝 Limpiando sesión');
+        setSession(null);
+        setSessionReady(false);
+      }
+      
+      // Don't process user profile updates during initialization
+      if (initializing) {
+        console.log('[AuthContext] ⏳ Ignorando actualización de perfil durante inicialización');
+        return;
+      }
+      
+      if (event === 'SIGNED_IN' && currentSession) {
+        console.log('[AuthContext] ✅ Usuario inició sesión:', currentSession.user.email);
+        console.log('[AuthContext] 📅 Sesión expira en:', new Date(currentSession.expires_at! * 1000).toLocaleString());
+        setLoading(true);
+        
+        // ✅ CRITICAL FIX: Wait a bit to ensure session is fully persisted
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // Load user profile
+        const { user: userData, error: userError } = await getCurrentUser();
+        
+        if (userError) {
+          console.error('[AuthContext] ❌ Error cargando perfil después de login:', userError);
+        } else if (userData) {
+          console.log('[AuthContext] ✅ Perfil cargado:', userData.email);
+          setUser(userData);
           
-          if (currentSession) {
-            const expiresAt = currentSession.expires_at! * 1000;
-            const now = Date.now();
-            const timeUntilExpiry = expiresAt - now;
-            
-            // Refresh if less than 10 minutes until expiry
-            if (timeUntilExpiry < 10 * 60 * 1000) {
-              console.log('[AuthContext] ⏰ Sesión próxima a expirar, refrescando automáticamente...');
-              const { data: { session: refreshedSession }, error } = await supabase.auth.refreshSession();
-              
-              if (error) {
-                console.error('[AuthContext] ❌ Error refrescando sesión automáticamente:', error);
-              } else if (refreshedSession) {
-                console.log('[AuthContext] ✅ Sesión refrescada automáticamente');
-                console.log('[AuthContext] 📅 Nueva expiración:', new Date(refreshedSession.expires_at! * 1000).toLocaleString());
-                setSession(refreshedSession);
+          // Register push notifications (non-blocking)
+          registerForPushNotifications()
+            .then(pushToken => {
+              if (pushToken) {
+                savePushToken(userData.id, pushToken).catch(() => {});
               }
+            })
+            .catch(() => {});
+        } else {
+          console.log('[AuthContext] ⚠️ No se pudo cargar el perfil después de login');
+        }
+        
+        setLoading(false);
+      } else if (event === 'SIGNED_OUT') {
+        console.log('[AuthContext] 🚪 Usuario cerró sesión');
+        setUser(null);
+        setSession(null);
+        setSessionReady(false);
+      } else if (event === 'TOKEN_REFRESHED') {
+        console.log('[AuthContext] 🔄 Token refrescado exitosamente');
+        if (currentSession) {
+          console.log('[AuthContext] 📅 Nueva expiración:', new Date(currentSession.expires_at! * 1000).toLocaleString());
+        }
+        // Session is already updated, just log
+      } else if (event === 'USER_UPDATED') {
+        console.log('[AuthContext] 🔄 Usuario actualizado');
+        setLoading(true);
+        const { user: userData } = await getCurrentUser();
+        if (userData) {
+          setUser(userData);
+        }
+        setLoading(false);
+      }
+    });
+    
+    subscription = data.subscription;
+
+    // Set up automatic session refresh every 5 minutes
+    // This ensures the session stays fresh and prevents expiration during uploads
+    refreshInterval = setInterval(async () => {
+      try {
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        
+        if (currentSession) {
+          const expiresAt = currentSession.expires_at! * 1000;
+          const now = Date.now();
+          const timeUntilExpiry = expiresAt - now;
+          
+          // Refresh if less than 10 minutes until expiry
+          if (timeUntilExpiry < 10 * 60 * 1000) {
+            console.log('[AuthContext] ⏰ Sesión próxima a expirar, refrescando automáticamente...');
+            const { data: { session: refreshedSession }, error } = await supabase.auth.refreshSession();
+            
+            if (error) {
+              console.error('[AuthContext] ❌ Error refrescando sesión automáticamente:', error);
+            } else if (refreshedSession) {
+              console.log('[AuthContext] ✅ Sesión refrescada automáticamente');
+              console.log('[AuthContext] 📅 Nueva expiración:', new Date(refreshedSession.expires_at! * 1000).toLocaleString());
+              setSession(refreshedSession);
+              setSessionReady(true);
             }
           }
-        } catch (error) {
-          console.error('[AuthContext] ❌ Error en refresh automático:', error);
         }
-      }, 5 * 60 * 1000); // Check every 5 minutes
-    }
+      } catch (error) {
+        console.error('[AuthContext] ❌ Error en refresh automático:', error);
+      }
+    }, 5 * 60 * 1000); // Check every 5 minutes
 
     return () => {
       if (subscription) {
@@ -295,14 +299,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Clear local state immediately
       setUser(null);
       setSession(null);
+      setSessionReady(false);
       
-      if (isSupabaseConfigured()) {
-        const { error } = await supabase.auth.signOut();
-        if (error) {
-          console.error('[AuthContext] ❌ Error cerrando sesión:', error);
-        } else {
-          console.log('[AuthContext] ✅ Sesión cerrada exitosamente');
-        }
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('[AuthContext] ❌ Error cerrando sesión:', error);
+      } else {
+        console.log('[AuthContext] ✅ Sesión cerrada exitosamente');
       }
     } catch (error) {
       console.error('[AuthContext] ❌ Error en signOut:', error);

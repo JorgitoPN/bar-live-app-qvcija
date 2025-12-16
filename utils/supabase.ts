@@ -1,64 +1,46 @@
 
 import 'react-native-url-polyfill/auto';
 import { createClient } from '@supabase/supabase-js';
-import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-// Configuración de Supabase usando variables de entorno
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
-const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
+// ✅ CRITICAL FIX: Use the same credentials as app/integrations/supabase/client.ts
+// This ensures we have a single source of truth for the Supabase client
+const SUPABASE_URL = "https://embntaqwlwmgazvrglaf.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVtYm50YXF3bHdtZ2F6dnJnbGFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE5Mjk1NzMsImV4cCI6MjA3NzUwNTU3M30.mgqmCBX7FVpuejaN6pGuFHhMxKA033U-ALJwC-DCUEI";
 
-// ✅ FIXED: Custom storage implementation with better error handling
-const ExpoSecureStoreAdapter = {
+// ✅ FIXED: Use AsyncStorage for better compatibility and reliability
+// AsyncStorage is more reliable than SecureStore for session persistence
+const AsyncStorageAdapter = {
   getItem: async (key: string) => {
     try {
-      // ✅ FIXED: Add timeout and better error handling
-      const value = await Promise.race([
-        SecureStore.getItemAsync(key),
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), 1000))
-      ]);
+      const value = await AsyncStorage.getItem(key);
       return value;
-    } catch (error: any) {
-      // ✅ FIXED: Silently handle SecureStore errors (user interaction not allowed)
-      // This is expected on iOS when the app starts without user interaction
-      if (error?.message?.includes('User interaction is not allowed')) {
-        console.log('[SecureStore] User interaction required - will retry on next user action');
-        return null;
-      }
-      console.error('[SecureStore] Error getting item:', error);
+    } catch (error) {
+      console.error('[AsyncStorage] Error getting item:', error);
       return null;
     }
   },
   setItem: async (key: string, value: string) => {
     try {
-      await SecureStore.setItemAsync(key, value);
-    } catch (error: any) {
-      // ✅ FIXED: Silently handle SecureStore errors
-      if (error?.message?.includes('User interaction is not allowed')) {
-        console.log('[SecureStore] User interaction required for setItem');
-        return;
-      }
-      console.error('[SecureStore] Error setting item:', error);
+      await AsyncStorage.setItem(key, value);
+    } catch (error) {
+      console.error('[AsyncStorage] Error setting item:', error);
     }
   },
   removeItem: async (key: string) => {
     try {
-      await SecureStore.deleteItemAsync(key);
-    } catch (error: any) {
-      // ✅ FIXED: Silently handle SecureStore errors
-      if (error?.message?.includes('User interaction is not allowed')) {
-        console.log('[SecureStore] User interaction required for removeItem');
-        return;
-      }
-      console.error('[SecureStore] Error removing item:', error);
+      await AsyncStorage.removeItem(key);
+    } catch (error) {
+      console.error('[AsyncStorage] Error removing item:', error);
     }
   },
 };
 
-// Create Supabase client with custom storage
+// Create Supabase client with AsyncStorage for better session persistence
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
-    storage: Platform.OS !== 'web' ? ExpoSecureStoreAdapter : undefined,
+    storage: AsyncStorageAdapter,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
