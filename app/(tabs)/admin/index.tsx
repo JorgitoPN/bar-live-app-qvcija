@@ -1,228 +1,239 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
-  ScrollView,
   TouchableOpacity,
-  Platform,
+  ScrollView,
+  StyleSheet,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import { IconSymbol } from '@/components/IconSymbol';
-import { colors } from '@/styles/commonStyles';
-import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '../../integrations/supabase/client';
+import { colors } from '../../../styles/commonStyles';
+import { IconSymbol } from '../../../components/IconSymbol';
 
-export default function AdminScreen() {
+interface AdminOption {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  androidIcon: string;
+  route: string;
+  color: string;
+  badge?: string;
+}
+
+export default function AdminPanel() {
   const router = useRouter();
-  const { user } = useAuth();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [stripeConfigured, setStripeConfigured] = useState(false);
 
-  const adminSections = [
+  useEffect(() => {
+    checkAdminAccess();
+    checkStripeConfiguration();
+  }, []);
+
+  const checkAdminAccess = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        Alert.alert('Error', 'Debes iniciar sesión');
+        router.replace('/auth/login');
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from('usuarios')
+        .select('rol')
+        .eq('id', user.id)
+        .single();
+
+      if (profile?.rol !== 'admin') {
+        Alert.alert('Acceso Denegado', 'No tienes permisos de administrador');
+        router.back();
+        return;
+      }
+
+      setIsAdmin(true);
+    } catch (error) {
+      console.error('Error checking admin access:', error);
+      Alert.alert('Error', 'No se pudo verificar el acceso');
+      router.back();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const checkStripeConfiguration = async () => {
+    try {
+      const { data } = await supabase
+        .from('stripe_configuration')
+        .select('*')
+        .single();
+
+      setStripeConfigured(!!data?.publishable_key && !!data?.secret_key);
+    } catch (error) {
+      console.log('Stripe not configured yet');
+      setStripeConfigured(false);
+    }
+  };
+
+  const adminOptions: AdminOption[] = [
     {
-      title: 'Gestión de Contenido',
-      items: [
-        {
-          icon: 'building.2.fill',
-          androidIcon: 'store',
-          label: 'Gestionar Locales',
-          route: '/admin/gestionar-locales',
-          color: '#14B8A6',
-        },
-        {
-          icon: 'doc.text.fill',
-          androidIcon: 'description',
-          label: 'Solicitudes de Locales',
-          route: '/admin/gestionar-solicitudes',
-          color: '#F59E0B',
-        },
-        {
-          icon: 'calendar',
-          androidIcon: 'event',
-          label: 'Gestionar Eventos',
-          route: '/admin/gestionar-eventos',
-          color: '#8B5CF6',
-        },
-        {
-          icon: 'person.2.fill',
-          androidIcon: 'people',
-          label: 'Gestionar Usuarios',
-          route: '/admin/gestionar-usuarios',
-          color: '#F59E0B',
-        },
-        {
-          icon: 'creditcard.fill',
-          androidIcon: 'payment',
-          label: 'Gestionar Planes de Pago',
-          route: '/admin/gestionar-planes',
-          color: '#10B981',
-        },
-      ],
+      id: 'stripe_wizard',
+      title: 'Asistente de Stripe',
+      description: 'Configuración guiada paso a paso',
+      icon: 'wand.and.stars',
+      androidIcon: 'auto_fix_high',
+      route: '/admin/asistente-stripe',
+      color: colors.primary,
+      badge: stripeConfigured ? undefined : '¡Nuevo!',
     },
     {
-      title: 'Sistema de Pagos',
-      items: [
-        {
-          icon: 'dollarsign.circle.fill',
-          androidIcon: 'payments',
-          label: 'Gestión de Pagos Stripe',
-          route: '/admin/gestionar-pagos-stripe',
-          color: '#6366F1',
-          badge: 'NUEVO',
-        },
-      ],
+      id: 'stripe',
+      title: 'Gestionar Pagos Stripe',
+      description: 'Configuración avanzada de Stripe',
+      icon: 'creditcard.fill',
+      androidIcon: 'credit_card',
+      route: '/admin/gestionar-pagos-stripe',
+      color: '#635BFF',
     },
     {
-      title: 'Configuración del Sistema',
-      items: [
-        {
-          icon: 'envelope.fill',
-          androidIcon: 'email',
-          label: 'Gestión de Emails',
-          route: '/admin/gestion-emails',
-          color: '#EF4444',
-        },
-        {
-          icon: 'gear',
-          androidIcon: 'settings',
-          label: 'Configuración General',
-          route: '/admin/configuracion-general',
-          color: '#6B7280',
-        },
-      ],
+      id: 'planes',
+      title: 'Gestionar Planes',
+      description: 'Crear y editar planes de suscripción',
+      icon: 'star.fill',
+      androidIcon: 'star',
+      route: '/admin/gestionar-planes',
+      color: '#FFD700',
     },
     {
-      title: 'Herramientas',
-      items: [
-        {
-          icon: 'arrow.down.doc.fill',
-          androidIcon: 'download',
-          label: 'Importación Masiva',
-          route: '/admin/importacion-masiva',
-          color: '#3B82F6',
-        },
-        {
-          icon: 'map.fill',
-          androidIcon: 'map',
-          label: 'Importación OSM',
-          route: '/admin/importacion-osm',
-          color: '#06B6D4',
-        },
-        {
-          icon: 'photo.fill',
-          androidIcon: 'photo_library',
-          label: 'Migrar Fotos a Supabase',
-          route: '/admin/migrar-fotos-supabase',
-          color: '#EC4899',
-        },
-        {
-          icon: 'arrow.triangle.2.circlepath',
-          androidIcon: 'sync',
-          label: 'Sincronización',
-          route: '/admin/sincronizacion',
-          color: '#8B5CF6',
-        },
-      ],
+      id: 'usuarios',
+      title: 'Gestionar Usuarios',
+      description: 'Administrar usuarios y permisos',
+      icon: 'person.2.fill',
+      androidIcon: 'people',
+      route: '/admin/gestionar-usuarios',
+      color: '#4CAF50',
     },
     {
-      title: 'Análisis y Reportes',
-      items: [
-        {
-          icon: 'chart.bar.fill',
-          androidIcon: 'bar_chart',
-          label: 'Visión Finanzas',
-          route: '/admin/vision-finanzas',
-          color: '#10B981',
-        },
-        {
-          icon: 'dollarsign.circle.fill',
-          androidIcon: 'attach_money',
-          label: 'Control de Costes API',
-          route: '/admin/control-costes-api',
-          color: '#F59E0B',
-        },
-      ],
+      id: 'locales',
+      title: 'Gestionar Locales',
+      description: 'Administrar locales y establecimientos',
+      icon: 'building.2.fill',
+      androidIcon: 'store',
+      route: '/admin/gestionar-locales',
+      color: '#FF9800',
     },
     {
-      title: 'Otros',
-      items: [
-        {
-          icon: 'doc.text.fill',
-          androidIcon: 'description',
-          label: 'Contenido Legal',
-          route: '/admin/contenido-legal',
-          color: '#6B7280',
-        },
-        {
-          icon: 'tray.full.fill',
-          androidIcon: 'inventory',
-          label: 'Datos Maestros',
-          route: '/admin/datos-maestros',
-          color: '#8B5CF6',
-        },
-        {
-          icon: 'archivebox.fill',
-          androidIcon: 'archive',
-          label: 'Backups',
-          route: '/admin/backups',
-          color: '#EF4444',
-        },
-      ],
+      id: 'eventos',
+      title: 'Gestionar Eventos',
+      description: 'Crear y administrar eventos',
+      icon: 'calendar',
+      androidIcon: 'event',
+      route: '/admin/gestionar-eventos',
+      color: '#9C27B0',
+    },
+    {
+      id: 'solicitudes',
+      title: 'Solicitudes de Propietario',
+      description: 'Revisar solicitudes pendientes',
+      icon: 'envelope.fill',
+      androidIcon: 'mail',
+      route: '/admin/gestionar-solicitudes',
+      color: '#2196F3',
+    },
+    {
+      id: 'finanzas',
+      title: 'Visión Financiera',
+      description: 'Análisis de ingresos y métricas',
+      icon: 'chart.bar.fill',
+      androidIcon: 'bar_chart',
+      route: '/admin/vision-finanzas',
+      color: '#00BCD4',
+    },
+    {
+      id: 'configuracion',
+      title: 'Configuración General',
+      description: 'Ajustes generales de la aplicación',
+      icon: 'gearshape.fill',
+      androidIcon: 'settings',
+      route: '/admin/configuracion-general',
+      color: '#607D8B',
     },
   ];
 
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Cargando...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (!isAdmin) {
+    return null;
+  }
+
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-        style={styles.header}
-      >
+      <View style={styles.header}>
         <Text style={styles.headerTitle}>Panel de Administración</Text>
         <Text style={styles.headerSubtitle}>Gestiona tu aplicación</Text>
-      </LinearGradient>
+      </View>
 
       <ScrollView
-        style={styles.content}
+        style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {adminSections.map((section, sectionIndex) => (
-          <View key={sectionIndex} style={styles.section}>
-            <Text style={styles.sectionTitle}>{section.title}</Text>
-            <View style={styles.sectionContent}>
-              {section.items.map((item, itemIndex) => (
-                <TouchableOpacity
-                  key={itemIndex}
-                  style={styles.adminCard}
-                  onPress={() => router.push(item.route as any)}
-                >
-                  <View style={[styles.iconContainer, { backgroundColor: item.color + '20' }]}>
-                    <IconSymbol
-                      ios_icon_name={item.icon}
-                      android_material_icon_name={item.androidIcon}
-                      size={24}
-                      color={item.color}
-                    />
-                  </View>
-                  <View style={styles.cardContent}>
-                    <Text style={styles.cardLabel}>{item.label}</Text>
-                    {item.badge && (
-                      <View style={styles.badge}>
-                        <Text style={styles.badgeText}>{item.badge}</Text>
-                      </View>
-                    )}
-                  </View>
-                  <IconSymbol
-                    ios_icon_name="chevron.right"
-                    android_material_icon_name="chevron_right"
-                    size={20}
-                    color={colors.textSecondary}
-                  />
-                </TouchableOpacity>
-              ))}
+        {!stripeConfigured && (
+          <View style={styles.alertCard}>
+            <IconSymbol
+              ios_icon_name="exclamationmark.triangle.fill"
+              android_material_icon_name="warning"
+              size={32}
+              color={colors.warning}
+            />
+            <View style={styles.alertContent}>
+              <Text style={styles.alertTitle}>Stripe no configurado</Text>
+              <Text style={styles.alertText}>
+                Usa el Asistente de Stripe para configurar los pagos en minutos
+              </Text>
             </View>
           </View>
-        ))}
+        )}
+
+        <View style={styles.grid}>
+          {adminOptions.map((option) => (
+            <TouchableOpacity
+              key={option.id}
+              style={styles.card}
+              onPress={() => router.push(option.route as any)}
+              activeOpacity={0.7}
+            >
+              {option.badge && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{option.badge}</Text>
+                </View>
+              )}
+              <View style={[styles.iconContainer, { backgroundColor: option.color + '20' }]}>
+                <IconSymbol
+                  ios_icon_name={option.icon}
+                  android_material_icon_name={option.androidIcon}
+                  size={32}
+                  color={option.color}
+                />
+              </View>
+              <Text style={styles.cardTitle}>{option.title}</Text>
+              <Text style={styles.cardDescription}>{option.description}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </ScrollView>
     </View>
   );
@@ -233,77 +244,109 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: colors.textSecondary,
+  },
   header: {
-    paddingTop: Platform.OS === 'android' ? 48 : 60,
-    paddingBottom: 24,
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 20,
+    backgroundColor: colors.card,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: colors.headerText,
-    marginBottom: 8,
+    color: colors.text,
+    marginBottom: 4,
   },
   headerSubtitle: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: colors.textSecondary,
   },
-  content: {
+  scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: 24,
-    paddingBottom: 120,
-  },
-  section: {
-    marginBottom: 32,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 16,
-  },
-  sectionContent: {
-    gap: 12,
-  },
-  adminCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
     padding: 16,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
+    paddingBottom: 100,
   },
-  iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 16,
-  },
-  cardContent: {
-    flex: 1,
+  alertCard: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: colors.card,
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: colors.warning,
   },
-  cardLabel: {
+  alertContent: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  alertTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: colors.text,
+    marginBottom: 4,
+  },
+  alertText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+  card: {
+    width: '48%',
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    position: 'relative',
   },
   badge: {
-    backgroundColor: '#EF4444',
-    borderRadius: 4,
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: colors.primary,
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    marginLeft: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   badgeText: {
-    fontSize: 10,
-    fontWeight: 'bold',
     color: '#fff',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  iconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  cardDescription: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    lineHeight: 18,
   },
 });
