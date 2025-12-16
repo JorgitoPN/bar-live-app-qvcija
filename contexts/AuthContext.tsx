@@ -126,6 +126,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (currentSession) {
           console.log('[AuthContext] ✅ Sesión existente encontrada para:', currentSession.user.email);
           console.log('[AuthContext] 📅 Sesión expira en:', new Date(currentSession.expires_at! * 1000).toLocaleString());
+          
+          // ✅ CRITICAL FIX: Set session IMMEDIATELY before loading user profile
           setSession(currentSession);
           
           // Load user profile
@@ -170,14 +172,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
         console.log('[AuthContext] 🔄 Auth state cambió:', event);
         
-        // Don't process events during initialization
-        if (initializing) {
-          console.log('[AuthContext] ⏳ Ignorando evento durante inicialización');
-          return;
+        // ✅ CRITICAL FIX: Always update session state IMMEDIATELY for all events
+        // This ensures the session is available before any navigation happens
+        if (currentSession) {
+          console.log('[AuthContext] 📝 Actualizando sesión inmediatamente');
+          setSession(currentSession);
+        } else {
+          console.log('[AuthContext] 📝 Limpiando sesión');
+          setSession(null);
         }
         
-        // ✅ CRITICAL FIX: Always update session state immediately
-        setSession(currentSession);
+        // Don't process user profile updates during initialization
+        if (initializing) {
+          console.log('[AuthContext] ⏳ Ignorando actualización de perfil durante inicialización');
+          return;
+        }
         
         if (event === 'SIGNED_IN' && currentSession) {
           console.log('[AuthContext] ✅ Usuario inició sesión:', currentSession.user.email);
