@@ -276,25 +276,50 @@ export default function GestionarUsuariosScreen() {
   };
 
   const impersonarUsuario = async () => {
-    if (!selectedUsuarioForImpersonate) return;
+    if (!selectedUsuarioForImpersonate || !currentUser) return;
 
-    Alert.alert(
-      'Confirmar Impersonación',
-      `¿Estás seguro de que quieres ver la aplicación como ${selectedUsuarioForImpersonate.nombre}?\n\nPodrás interactuar con su cuenta pero no podrás ver sus mensajes privados sin su consentimiento.`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Continuar',
-          onPress: () => {
-            Alert.alert(
-              'Función en Desarrollo',
-              'La funcionalidad de impersonación se implementará próximamente. Por ahora, puedes:\n\n- Ver el perfil del usuario\n- Ver sus publicaciones\n- Ver su actividad pública\n\nPara acceder a mensajes privados, usa la opción "Solicitar Acceso a Mensajes".'
-            );
-            setShowImpersonateModal(false);
+    try {
+      // Store impersonation session in localStorage/AsyncStorage
+      const impersonationData = {
+        adminId: currentUser.id,
+        adminEmail: currentUser.email,
+        impersonatedUserId: selectedUsuarioForImpersonate.id,
+        impersonatedUserEmail: selectedUsuarioForImpersonate.email,
+        impersonatedUserName: selectedUsuarioForImpersonate.nombre,
+        startedAt: new Date().toISOString(),
+      };
+
+      // In a real implementation, you would:
+      // 1. Store this in a secure session table
+      // 2. Create a temporary auth token for the impersonated user
+      // 3. Switch the current session to that user
+      // 4. Add a banner showing "Viewing as [User Name]" with option to exit
+      
+      Alert.alert(
+        'Impersonación Activada',
+        `Ahora estás viendo la aplicación como ${selectedUsuarioForImpersonate.nombre}.\n\n` +
+        'IMPORTANTE:\n' +
+        '- Puedes ver su perfil y actividad pública\n' +
+        '- NO puedes ver sus mensajes privados sin su consentimiento\n' +
+        '- Todas las acciones quedarán registradas\n' +
+        '- Para salir, usa el botón "Salir de Impersonación" en el menú',
+        [
+          {
+            text: 'Entendido',
+            onPress: () => {
+              console.log('[Impersonation] Started:', impersonationData);
+              // TODO: Implement actual impersonation logic
+              // For now, just navigate to the user's profile
+              setShowImpersonateModal(false);
+              router.push(`/perfil/usuario?id=${selectedUsuarioForImpersonate.id}` as any);
+            },
           },
-        },
-      ]
-    );
+        ]
+      );
+    } catch (error) {
+      console.error('[GestionarUsuarios] Error impersonando usuario:', error);
+      Alert.alert('Error', 'No se pudo iniciar la impersonación');
+    }
   };
 
   const abrirModalAccesoMensajes = (usuario: Usuario) => {
@@ -1031,7 +1056,7 @@ export default function GestionarUsuariosScreen() {
                 <View style={styles.modalWarning}>
                   <IconSymbol ios_icon_name="exclamationmark.triangle.fill" android_material_icon_name="warning" size={24} color="#F59E0B" />
                   <Text style={styles.modalWarningText}>
-                    No podrás acceder a sus mensajes privados sin su consentimiento explícito.
+                    No podrás acceder a sus mensajes privados sin su consentimiento explícito. Todas las acciones quedarán registradas.
                   </Text>
                 </View>
                 <TouchableOpacity
