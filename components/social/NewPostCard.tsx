@@ -75,19 +75,12 @@ export default function NewPostCard({
 }: NewPostCardProps) {
   const { user } = useAuth();
   
-  // ✅ FIXED: Check for post existence BEFORE any hooks
-  if (!post) {
-    console.error('[NewPostCard] Post is undefined');
-    return null;
-  }
-  
-  // ✅ All hooks must come after the early return check is removed
-  // ✅ Safe access to post properties with fallback values
+  // ✅ FIXED: All hooks MUST be called before any conditional returns
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [isLiked, setIsLiked] = useState(post.user_has_liked ?? false);
-  const [isSaved, setIsSaved] = useState(post.user_has_saved ?? false);
-  const [likesCount, setLikesCount] = useState(post.likes_count ?? 0);
-  const [commentsCount, setCommentsCount] = useState(post.comentarios_count ?? 0);
+  const [isLiked, setIsLiked] = useState(post?.user_has_liked ?? false);
+  const [isSaved, setIsSaved] = useState(post?.user_has_saved ?? false);
+  const [likesCount, setLikesCount] = useState(post?.likes_count ?? 0);
+  const [commentsCount, setCommentsCount] = useState(post?.comentarios_count ?? 0);
   const [showPostViewer, setShowPostViewer] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -98,12 +91,14 @@ export default function NewPostCard({
 
   const scrollViewRef = useRef<ScrollView>(null);
 
-  const isOwner = post.tipo === 'usuario' 
-    ? post.autor_id === user?.id
+  const isOwner = post?.tipo === 'usuario' 
+    ? post?.autor_id === user?.id
     : false;
 
   useEffect(() => {
     const loadAuthorData = async () => {
+      if (!post) return;
+      
       try {
         if (post.tipo === 'local' && post.local_id) {
           const { data: localData, error } = await supabase
@@ -136,7 +131,13 @@ export default function NewPostCard({
     };
 
     loadAuthorData();
-  }, [post.tipo, post.local_id, post.autor_id]);
+  }, [post]);
+  
+  // ✅ Now check for post existence AFTER all hooks
+  if (!post) {
+    console.error('[NewPostCard] Post is undefined');
+    return null;
+  }
 
   const handleProfilePress = () => {
     if (post.tipo === 'local' && post.local_id) {

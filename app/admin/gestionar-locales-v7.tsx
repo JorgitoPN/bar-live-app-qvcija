@@ -201,7 +201,7 @@ export default function GestionarLocalesV7Screen() {
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [busqueda, filtroPropietario, filtroTipo, filtroEstado, filtroEnriquecido, filtroDestacado]);
+  }, [busqueda, filtroPropietario, filtroTipo, filtroEstado, filtroEnriquecido, filtroDestacado, initialLoading]);
 
   const toggleEstadoLocal = useCallback(async (localId: string, activo: boolean) => {
     try {

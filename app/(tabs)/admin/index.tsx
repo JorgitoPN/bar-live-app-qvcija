@@ -53,7 +53,7 @@ export default function AdminIndexScreen() {
     }
 
     cargarEstadisticas();
-  }, [user]);
+  }, [user, router]);
 
   const cargarEstadisticas = async () => {
     try {
