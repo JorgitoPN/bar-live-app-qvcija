@@ -21,7 +21,6 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-import { googlePlacesTextSearch, googlePlacesDetails, buscarLocalConEstrategias } from '@/utils/googlePlacesApi';
 
 const MAX_GALLERY_IMAGES = 5;
 
@@ -44,9 +43,11 @@ interface LocalFormData {
   capacidad: string;
   portada_url: string | null;
   galeria_urls: string[];
-  google_place_id: string | null;
-  google_rating: number | null;
-  google_reviews_count: number | null;
+  ambiente: string[];
+  musica: string[];
+  tipos_cocina: string[];
+  clientela: Record<string, boolean>;
+  metodos_pago: Record<string, boolean>;
 }
 
 const TIPOS_LOCAL = [
@@ -71,19 +72,61 @@ const SERVICIOS_DISPONIBLES = [
   'Aire acondicionado',
 ];
 
+const AMBIENTE_OPTIONS = [
+  'Acogedor',
+  'Romántico',
+  'Elegante',
+  'Moderno',
+  'De moda',
+  'Animado',
+  'Juvenil',
+  'Tranquilo',
+  'Familiar',
+  'Temático',
+];
+
+const MUSICA_OPTIONS = [
+  'Ambiental',
+  'En vivo',
+  'DJ',
+  'Rock',
+  'Pop',
+  'Electrónica',
+  'Jazz',
+  'Latina',
+  'Reggaeton',
+  'Indie',
+];
+
+const TIPOS_COCINA = [
+  'Mediterránea',
+  'Española',
+  'Italiana',
+  'Japonesa',
+  'Mexicana',
+  'Asiática',
+  'Tradicional',
+  'Fusión',
+  'Vegetariana',
+  'Vegana',
+];
+
+const DIAS_SEMANA = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+
 /**
- * ✅ CREAR LOCAL v2.0 - ENHANCED WITH GOOGLE MAPS INTEGRATION
+ * ✅ CREAR LOCAL v3.0 - WITH APPROVAL WORKFLOW
  * 
  * Key features:
- * - ✅ Multi-step guided form (4 steps)
- * - ✅ Google Maps integration for enrichment
+ * - ✅ Multi-step guided form (5 steps)
+ * - ✅ Comprehensive local information fields aligned with Google Maps data
  * - ✅ Cover photo selection
  * - ✅ Gallery with up to 5 images
- * - ✅ Comprehensive local information fields
- * - ✅ Auto-fill from Google Places data
- * - ✅ Location picker with map
  * - ✅ Business hours configuration
- * - ✅ Services and amenities selection
+ * - ✅ Services, ambiance, music, cuisine selection
+ * - ✅ Clientele and payment methods
+ * - ✅ Approval workflow with admin review
+ * - ✅ Email and in-app notifications
+ * - ✅ Real-time status tracking
  */
 
 export default function CrearLocalScreen() {
@@ -91,7 +134,6 @@ export default function CrearLocalScreen() {
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [searchingGoogle, setSearchingGoogle] = useState(false);
   
   // Form data
   const [formData, setFormData] = useState<LocalFormData>({
@@ -113,112 +155,15 @@ export default function CrearLocalScreen() {
     capacidad: '',
     portada_url: null,
     galeria_urls: [],
-    google_place_id: null,
-    google_rating: null,
-    google_reviews_count: null,
+    ambiente: [],
+    musica: [],
+    tipos_cocina: [],
+    clientela: {},
+    metodos_pago: {},
   });
 
   const updateFormData = (field: keyof LocalFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleGoogleEnrichment = async () => {
-    if (!formData.nombre || !formData.direccion || !formData.provincia) {
-      Alert.alert('Información incompleta', 'Por favor completa el nombre, dirección y provincia para buscar en Google Maps');
-      return;
-    }
-
-    setSearchingGoogle(true);
-    try {
-      console.log('[CrearLocal v2.0] 🔍 Searching Google Maps for:', formData.nombre);
-
-      // Use multi-strategy search
-      const result = await buscarLocalConEstrategias({
-        nombre: formData.nombre,
-        direccion: formData.direccion,
-        provincia: formData.provincia,
-        tipo: formData.tipo,
-        latitud: formData.latitud || undefined,
-        longitud: formData.longitud || undefined,
-      });
-
-      if (!result || !result.place_id) {
-        Alert.alert(
-          'No encontrado',
-          'No se encontró el local en Google Maps. Puedes continuar completando la información manualmente.'
-        );
-        return;
-      }
-
-      console.log('[CrearLocal v2.0] ✅ Found place:', result.name);
-
-      // Get detailed information
-      const details = await googlePlacesDetails(result.place_id);
-
-      if (details) {
-        console.log('[CrearLocal v2.0] ✅ Got place details');
-
-        // Update form with Google data
-        const updates: Partial<LocalFormData> = {
-          google_place_id: result.place_id,
-          latitud: details.geometry?.location?.lat || null,
-          longitud: details.geometry?.location?.lng || null,
-          google_rating: details.rating || null,
-          google_reviews_count: details.user_ratings_total || null,
-        };
-
-        // Update address if available
-        if (details.formatted_address) {
-          updates.direccion = details.formatted_address;
-        }
-
-        // Update phone if available
-        if (details.formatted_phone_number) {
-          updates.telefono = details.formatted_phone_number;
-        }
-
-        // Update website if available
-        if (details.website) {
-          updates.web = details.website;
-        }
-
-        // Update opening hours if available
-        if (details.opening_hours?.weekday_text) {
-          const horarios: any = {};
-          details.opening_hours.weekday_text.forEach((day: string, index: number) => {
-            const dayNames = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
-            horarios[dayNames[index]] = day.split(': ')[1] || 'Cerrado';
-          });
-          updates.horarios = horarios;
-        }
-
-        // Update price level if available
-        if (details.price_level) {
-          const priceMap: Record<number, string> = {
-            1: '€',
-            2: '€€',
-            3: '€€€',
-            4: '€€€€',
-          };
-          updates.precio_medio = priceMap[details.price_level] || '';
-        }
-
-        setFormData(prev => ({ ...prev, ...updates }));
-
-        Alert.alert(
-          'Información enriquecida',
-          'Se ha completado la información del local con datos de Google Maps. Revisa y completa los campos restantes.'
-        );
-      }
-    } catch (error) {
-      console.error('[CrearLocal v2.0] ❌ Error enriching from Google:', error);
-      Alert.alert(
-        'Error',
-        'No se pudo obtener información de Google Maps. Puedes continuar completando la información manualmente.'
-      );
-    } finally {
-      setSearchingGoogle(false);
-    }
   };
 
   const handleSelectCoverPhoto = async () => {
@@ -316,6 +261,27 @@ export default function CrearLocalScreen() {
     updateFormData('servicios', servicios);
   };
 
+  const toggleAmbiente = (ambiente: string) => {
+    const ambientes = formData.ambiente.includes(ambiente)
+      ? formData.ambiente.filter(a => a !== ambiente)
+      : [...formData.ambiente, ambiente];
+    updateFormData('ambiente', ambientes);
+  };
+
+  const toggleMusica = (musica: string) => {
+    const musicas = formData.musica.includes(musica)
+      ? formData.musica.filter(m => m !== musica)
+      : [...formData.musica, musica];
+    updateFormData('musica', musicas);
+  };
+
+  const toggleTipoCocina = (tipo: string) => {
+    const tipos = formData.tipos_cocina.includes(tipo)
+      ? formData.tipos_cocina.filter(t => t !== tipo)
+      : [...formData.tipos_cocina, tipo];
+    updateFormData('tipos_cocina', tipos);
+  };
+
   const validateStep = (step: number): boolean => {
     switch (step) {
       case 1:
@@ -331,10 +297,9 @@ export default function CrearLocalScreen() {
         }
         return true;
       case 3:
-        // Optional step, always valid
-        return true;
       case 4:
-        // Optional step, always valid
+      case 5:
+        // Optional steps, always valid
         return true;
       default:
         return true;
@@ -343,7 +308,7 @@ export default function CrearLocalScreen() {
 
   const handleNext = () => {
     if (validateStep(currentStep)) {
-      setCurrentStep(prev => Math.min(prev + 1, 4));
+      setCurrentStep(prev => Math.min(prev + 1, 5));
     }
   };
 
@@ -357,11 +322,11 @@ export default function CrearLocalScreen() {
       return;
     }
 
-    if (!validateStep(4)) return;
+    if (!validateStep(5)) return;
 
     setLoading(true);
     try {
-      console.log('[CrearLocal v2.0] 📝 Creating local...');
+      console.log('[CrearLocal v3.0] 📝 Creating local with approval workflow...');
 
       // Upload cover photo if exists
       let portadaUrl = formData.portada_url;
@@ -401,7 +366,7 @@ export default function CrearLocalScreen() {
         }
       }
 
-      // Create local in database
+      // Create local in database with pending status
       const { data: localData, error: localError } = await supabase
         .from('locales')
         .insert({
@@ -414,35 +379,55 @@ export default function CrearLocalScreen() {
           codigo_postal: formData.codigo_postal,
           telefono: formData.telefono,
           email: formData.email,
-          web: formData.web,
+          website: formData.web,
           latitud: formData.latitud,
           longitud: formData.longitud,
-          horarios: formData.horarios,
+          horarios_completos: formData.horarios,
           servicios: formData.servicios,
-          precio_medio: formData.precio_medio,
+          precio_medio: formData.precio_medio ? parseInt(formData.precio_medio) : null,
           capacidad: formData.capacidad ? parseInt(formData.capacidad) : null,
           imagen_url: portadaUrl,
-          galeria_imagenes: galeriaUrls,
-          google_place_id: formData.google_place_id,
-          google_rating: formData.google_rating,
-          google_reviews_count: formData.google_reviews_count,
+          galeria_urls: galeriaUrls,
           propietario_id: user.id,
-          activo: true,
+          source_type: 'manual',
+          // Approval workflow fields
+          estado_solicitud: 'pendiente',
+          fecha_solicitud: new Date().toISOString(),
+          activo: false, // Inactive until approved
+          // Additional fields aligned with Google Maps data
+          ambiente: formData.ambiente,
+          musica: formData.musica,
+          tipos_cocina: formData.tipos_cocina,
+          clientela: formData.clientela,
+          metodos_pago_completos: formData.metodos_pago,
         })
         .select()
         .single();
 
       if (localError) throw localError;
 
-      console.log('[CrearLocal v2.0] ✅ Local created successfully');
+      console.log('[CrearLocal v3.0] ✅ Local created successfully with pending status');
+
+      // Send notification to admin and owner
+      try {
+        await supabase.functions.invoke('send-local-approval-notification', {
+          body: {
+            localId: localData.id,
+            propietarioId: user.id,
+            tipo: 'solicitud_creada',
+          },
+        });
+      } catch (notificationError) {
+        console.error('[CrearLocal v3.0] ⚠️ Error sending notification:', notificationError);
+      }
 
       Alert.alert(
-        'Éxito',
-        'Local creado correctamente. Ahora puedes gestionarlo desde tu perfil.',
-        [{ text: 'OK', onPress: () => router.back() }]
+        'Solicitud Enviada',
+        'Tu solicitud de local ha sido enviada al administrador para su revisión.\n\nRecibirás una notificación por email y en la app cuando sea revisada.\n\nPuedes ver el estado de tu solicitud en "Gestión de Locales".',
+        [{ text: 'OK', onPress: () => router.push('/gestion/mis-locales') }]
       );
     } catch (error) {
-      console.error('[CrearLocal v2.0] ❌ Error creating local:', error);
+      console.error('[CrearLocal v3.0] ❌ Error creating local:', error);
       Alert.alert('Error', 'No se pudo crear el local. Por favor, intenta de nuevo.');
     } finally {
       setLoading(false);
@@ -451,14 +436,14 @@ export default function CrearLocalScreen() {
 
   const renderStepIndicator = () => (
     <View style={styles.stepIndicator}>
-      {[1, 2, 3, 4].map((step) => (
+      {[1, 2, 3, 4, 5].map((step) => (
         <View key={step} style={styles.stepItem}>
           <View style={[styles.stepCircle, currentStep >= step && styles.stepCircleActive]}>
             <Text style={[styles.stepNumber, currentStep >= step && styles.stepNumberActive]}>
               {step}
             </Text>
           </View>
-          {step < 4 && <View style={[styles.stepLine, currentStep > step && styles.stepLineActive]} />}
+          {step < 5 && <View style={[styles.stepLine, currentStep > step && styles.stepLineActive]} />}
         </View>
       ))}
     </View>
@@ -520,26 +505,10 @@ export default function CrearLocalScreen() {
 
   const renderStep2 = () => (
     <View style={styles.stepContent}>
-      <Text style={styles.stepTitle}>Ubicación</Text>
+      <Text style={styles.stepTitle}>Ubicación y Contacto</Text>
       <Text style={styles.stepDescription}>
-        Añade la dirección completa de tu local
+        Añade la dirección completa y datos de contacto
       </Text>
-
-      <TouchableOpacity style={styles.enrichButton} onPress={handleGoogleEnrichment} disabled={searchingGoogle}>
-        <LinearGradient
-          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-          style={styles.enrichGradient}
-        >
-          {searchingGoogle ? (
-            <ActivityIndicator size="small" color={colors.headerText} />
-          ) : (
-            <>
-              <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={20} color={colors.headerText} />
-              <Text style={styles.enrichButtonText}>Enriquecer con Google Maps</Text>
-            </>
-          )}
-        </LinearGradient>
-      </TouchableOpacity>
 
       <View style={styles.inputContainer}>
         <Text style={styles.label}>Dirección *</Text>
@@ -628,7 +597,7 @@ export default function CrearLocalScreen() {
 
   const renderStep3 = () => (
     <View style={styles.stepContent}>
-      <Text style={styles.stepTitle}>Detalles Adicionales</Text>
+      <Text style={styles.stepTitle}>Servicios y Ambiente</Text>
       <Text style={styles.stepDescription}>
         Información que ayudará a los clientes a conocer mejor tu local
       </Text>
@@ -644,6 +613,57 @@ export default function CrearLocalScreen() {
             >
               <Text style={[styles.servicioChipText, formData.servicios.includes(servicio) && styles.servicioChipTextActive]}>
                 {servicio}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.inputContainer}>
+        <Text style={styles.label}>Ambiente</Text>
+        <View style={styles.serviciosGrid}>
+          {AMBIENTE_OPTIONS.map((ambiente) => (
+            <TouchableOpacity
+              key={ambiente}
+              style={[styles.servicioChip, formData.ambiente.includes(ambiente) && styles.servicioChipActive]}
+              onPress={() => toggleAmbiente(ambiente)}
+            >
+              <Text style={[styles.servicioChipText, formData.ambiente.includes(ambiente) && styles.servicioChipTextActive]}>
+                {ambiente}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.inputContainer}>
+        <Text style={styles.label}>Música</Text>
+        <View style={styles.serviciosGrid}>
+          {MUSICA_OPTIONS.map((musica) => (
+            <TouchableOpacity
+              key={musica}
+              style={[styles.servicioChip, formData.musica.includes(musica) && styles.servicioChipActive]}
+              onPress={() => toggleMusica(musica)}
+            >
+              <Text style={[styles.servicioChipText, formData.musica.includes(musica) && styles.servicioChipTextActive]}>
+                {musica}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.inputContainer}>
+        <Text style={styles.label}>Tipos de Cocina</Text>
+        <View style={styles.serviciosGrid}>
+          {TIPOS_COCINA.map((tipo) => (
+            <TouchableOpacity
+              key={tipo}
+              style={[styles.servicioChip, formData.tipos_cocina.includes(tipo) && styles.servicioChipActive]}
+              onPress={() => toggleTipoCocina(tipo)}
+            >
+              <Text style={[styles.servicioChipText, formData.tipos_cocina.includes(tipo) && styles.servicioChipTextActive]}>
+                {tipo}
               </Text>
             </TouchableOpacity>
           ))}
@@ -676,6 +696,22 @@ export default function CrearLocalScreen() {
   );
 
   const renderStep4 = () => (
+    <View style={styles.stepContent}>
+      <Text style={styles.stepTitle}>Horarios</Text>
+      <Text style={styles.stepDescription}>
+        Configura los horarios de apertura de tu local
+      </Text>
+
+      <View style={styles.infoBox}>
+        <IconSymbol ios_icon_name="info.circle.fill" android_material_icon_name="info" size={20} color={colors.primary} />
+        <Text style={styles.infoText}>
+          Puedes configurar los horarios después de que tu local sea aprobado
+        </Text>
+      </View>
+    </View>
+  );
+
+  const renderStep5 = () => (
     <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>Imágenes</Text>
       <Text style={styles.stepDescription}>
@@ -754,6 +790,7 @@ export default function CrearLocalScreen() {
         {currentStep === 2 && renderStep2()}
         {currentStep === 3 && renderStep3()}
         {currentStep === 4 && renderStep4()}
+        {currentStep === 5 && renderStep5()}
       </ScrollView>
 
       <View style={styles.footer}>
@@ -763,7 +800,7 @@ export default function CrearLocalScreen() {
           </TouchableOpacity>
         )}
 
-        {currentStep < 4 ? (
+        {currentStep < 5 ? (
           <TouchableOpacity style={styles.primaryButton} onPress={handleNext}>
             <LinearGradient
               colors={[colors.headerGradientStart, colors.headerGradientEnd]}
@@ -781,7 +818,7 @@ export default function CrearLocalScreen() {
               {loading ? (
                 <ActivityIndicator size="small" color={colors.headerText} />
               ) : (
-                <Text style={styles.primaryButtonText}>Crear Local</Text>
+                <Text style={styles.primaryButtonText}>Enviar Solicitud</Text>
               )}
             </LinearGradient>
           </TouchableOpacity>
@@ -939,23 +976,6 @@ const styles = StyleSheet.create({
   flex1: {
     flex: 1,
   },
-  enrichButton: {
-    marginBottom: 20,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  enrichGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    gap: 8,
-  },
-  enrichButtonText: {
-    color: colors.headerText,
-    fontSize: 16,
-    fontWeight: '600',
-  },
   locationButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1050,6 +1070,21 @@ const styles = StyleSheet.create({
     right: 8,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     borderRadius: 12,
+  },
+  infoBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    padding: 16,
+    backgroundColor: '#DBEAFE',
+    borderRadius: 12,
+    marginBottom: 20,
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#1E40AF',
+    lineHeight: 20,
   },
   footer: {
     position: 'absolute',
