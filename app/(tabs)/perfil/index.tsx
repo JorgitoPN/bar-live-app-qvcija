@@ -436,51 +436,19 @@ export default function PerfilScreen() {
       await loadUnreadCounts();
       await checkUnviewedMomentos();
 
-      console.log('[Perfil] ✅ Loading user profile with updated functions');
+      console.log('[Perfil] ✅ Loading user profile with FIXED counting logic');
       
       const { data: seguidoresData, error: seguidoresError } = await supabase
         .rpc('get_total_seguidores_count', { p_usuario_id: user.id });
 
-      // ✅ FIXED: Get "Siguiendo" count only for locales with active Standard/Premium plans
-      const { data: savedLocalesData, error: savedLocalesError } = await supabase
-        .from('locales_guardados')
-        .select('local_id')
-        .eq('usuario_id', user.id);
-
-      let seguidosCount = 0;
-
-      if (!savedLocalesError && savedLocalesData && savedLocalesData.length > 0) {
-        const localIds = savedLocalesData.map(sl => sl.local_id);
-        
-        // Get active subscriptions for these locales
-        const { data: subscriptionsData, error: subscriptionsError } = await supabase
-          .from('suscripciones_locales')
-          .select(`
-            local_id,
-            estado,
-            plan_id,
-            planes_suscripcion!suscripciones_locales_plan_id_fkey(nombre)
-          `)
-          .in('local_id', localIds)
-          .eq('estado', 'activa');
-
-        if (!subscriptionsError && subscriptionsData) {
-          // Count only locales with Standard or Premium plans
-          seguidosCount = subscriptionsData.filter(sub => {
-            const planName = (sub.planes_suscripcion as any)?.nombre;
-            return planName === 'estandar' || planName === 'premium';
-          }).length;
-        }
-      }
-
-      // Get user follows count
+      // ✅ CRITICAL FIX: Get "Siguiendo" count from seguidores table ONLY
+      // This is the social network following, independent of favorites
       const { count: userFollowsCount } = await supabase
         .from('seguidores')
         .select('*', { count: 'exact', head: true })
         .eq('seguidor_id', user.id);
 
-      // Add user follows to total
-      seguidosCount += (userFollowsCount || 0);
+      const seguidosCount = userFollowsCount || 0;
 
       if (seguidoresError) {
         console.error('[Perfil] Error loading seguidores count:', seguidoresError);
@@ -488,9 +456,10 @@ export default function PerfilScreen() {
 
       const seguidoresCount = seguidoresData || 0;
 
-      console.log('[Perfil] ✅ Follower counts (corrected):', {
+      console.log('[Perfil] ✅ Follower counts (FIXED - no duplicates):', {
         seguidores: seguidoresCount,
         siguiendo: seguidosCount,
+        explanation: 'Siguiendo count is from seguidores table only, NOT including locales_guardados'
       });
 
       const { count: publicacionesCount } = await supabase
