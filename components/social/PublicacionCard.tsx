@@ -603,11 +603,12 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
       ? [post.imagen] 
       : [];
 
+  // ✅ FIXED: Remove @ symbol from username display
   const displayName = loadingAuthor 
     ? 'Cargando...' 
     : authorData?.username 
-      ? `@${authorData.username}` 
-      : authorData?.nombre || 'Usuario';
+      ? authorData.username.replace(/^@/, '')
+      : authorData?.nombre?.replace(/^@/, '') || 'Usuario';
   
   const avatarUrl = authorData?.avatar || null;
   const displayDate = post?.fecha ? formatearFecha(post.fecha) : post?.created_at ? formatearFecha(post.created_at) : 'Fecha desconocida';
@@ -628,6 +629,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
 
   return (
     <View style={styles.card}>
+      {/* ✅ FIXED: Header with mini avatar and username (no @) */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.headerTouchable}
@@ -734,12 +736,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
         </View>
       )}
 
-      {post?.contenido && (
-        <View style={styles.contenidoContainer}>
-          <ParsedText text={post.contenido} style={styles.contenido} />
-        </View>
-      )}
-
+      {/* ✅ FIXED: Image carousel BEFORE description */}
       {images.length > 0 && (
         <View style={styles.imageCarouselContainer}>
           <ScrollView
@@ -776,6 +773,13 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
         </View>
       )}
 
+      {/* ✅ FIXED: Description AFTER image */}
+      {post?.contenido && (
+        <View style={styles.contenidoContainer}>
+          <ParsedText text={post.contenido} style={styles.contenido} />
+        </View>
+      )}
+
       {post?.ubicacion && (
         <View style={styles.locationContainer}>
           <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={16} color={colors.primary} />
@@ -783,6 +787,7 @@ const PublicacionCard = memo(function PublicacionCard({ post, onLike, onComment,
         </View>
       )}
 
+      {/* ✅ Action buttons (like, comment, share) */}
       <View style={styles.acciones}>
         <TouchableOpacity style={styles.accionButton} onPress={handleLike} activeOpacity={0.7}>
           <IconSymbol
@@ -1007,15 +1012,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.primary,
   },
-  contenidoContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-  },
-  contenido: {
-    fontSize: 15,
-    color: colors.text,
-    lineHeight: 22,
-  },
   imageCarouselContainer: {
     position: 'relative',
     borderRadius: 0,
@@ -1049,6 +1045,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: colors.headerText,
+  },
+  contenidoContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+  contenido: {
+    fontSize: 15,
+    color: colors.text,
+    lineHeight: 22,
   },
   locationContainer: {
     flexDirection: 'row',

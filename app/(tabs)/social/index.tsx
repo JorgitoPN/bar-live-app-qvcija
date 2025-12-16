@@ -274,7 +274,7 @@ export default function SocialIndexScreen() {
 
   return (
     <View style={styles.container}>
-      {/* ✅ FIXED: Header with Messages and Create Post Icons (matching profile page style) */}
+      {/* ✅ FIXED: Header with transparent icon buttons (no blue background) + Search icon added */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         style={styles.header}
@@ -287,11 +287,15 @@ export default function SocialIndexScreen() {
                 <IconSymbol ios_icon_name="person.crop.circle.badge.checkmark" android_material_icon_name="supervised_user_circle" size={20} color={colors.headerText} />
               </View>
             )}
-            {/* ✅ Messages Icon - matching profile page style */}
+            {/* ✅ NEW: Search Icon */}
+            <TouchableOpacity style={styles.headerIconButton} onPress={handleSearch}>
+              <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={24} color={colors.headerText} />
+            </TouchableOpacity>
+            {/* ✅ Messages Icon - transparent background */}
             <TouchableOpacity style={styles.headerIconButton} onPress={handleMessages}>
               <IconSymbol ios_icon_name="message.fill" android_material_icon_name="message" size={24} color={colors.headerText} />
             </TouchableOpacity>
-            {/* ✅ Create Post Icon - matching profile page style */}
+            {/* ✅ Create Post Icon - transparent background */}
             <TouchableOpacity style={styles.headerIconButton} onPress={handleCreatePost}>
               <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={24} color={colors.headerText} />
             </TouchableOpacity>
@@ -361,12 +365,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  // ✅ FIXED: Icon button style matching profile page (no blue background)
+  // ✅ FIXED: Transparent icon button style (no blue background)
   headerIconButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
   },

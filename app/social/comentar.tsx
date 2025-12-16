@@ -12,8 +12,9 @@ import {
   Alert,
   ActivityIndicator,
   Keyboard,
+  KeyboardAvoidingView,
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors, commonStyles } from '@/styles/commonStyles';
@@ -208,7 +209,11 @@ export default function ComentarScreen() {
   }
 
   return (
-    <View style={commonStyles.container}>
+    <KeyboardAvoidingView 
+      style={commonStyles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={0}
+    >
       {/* ✅ FIXED: BarLive gradient header with proper colors */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
@@ -218,7 +223,7 @@ export default function ComentarScreen() {
       >
         <View style={styles.headerTop}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton} activeOpacity={0.7}>
-            <IconSymbol name="xmark" size={24} color={colors.headerText} />
+            <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.headerText} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>
             {parentComment ? 'Responder' : 'Comentar'}
@@ -243,7 +248,7 @@ export default function ComentarScreen() {
       <View style={{ flex: 1 }}>
         <ScrollView 
           style={styles.content} 
-          contentContainerStyle={[styles.contentContainer, { paddingBottom: 100 }]}
+          contentContainerStyle={[styles.contentContainer, { paddingBottom: keyboardHeight + 20 }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -254,7 +259,7 @@ export default function ComentarScreen() {
                   <Image source={{ uri: post.autor.avatar }} style={styles.postAvatar} />
                 ) : (
                   <View style={[styles.postAvatar, styles.avatarPlaceholder]}>
-                    <IconSymbol name="person.fill" size={20} color={colors.textSecondary} />
+                    <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={20} color={colors.textSecondary} />
                   </View>
                 )}
                 <View style={styles.postAutorInfo}>
@@ -278,7 +283,7 @@ export default function ComentarScreen() {
                   <Image source={{ uri: parentComment.autor.avatar }} style={styles.commentAvatar} />
                 ) : (
                   <View style={[styles.commentAvatar, styles.avatarPlaceholder]}>
-                    <IconSymbol name="person.fill" size={16} color={colors.textSecondary} />
+                    <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={16} color={colors.textSecondary} />
                   </View>
                 )}
                 <View style={styles.commentAutorInfo}>
@@ -316,7 +321,7 @@ export default function ComentarScreen() {
               <Text style={styles.charCount}>{comentario.length}/500</Text>
             </View>
             <View style={styles.helperContainer}>
-              <IconSymbol name="info.circle" size={14} color={colors.primary} />
+              <IconSymbol ios_icon_name="info.circle" android_material_icon_name="info" size={14} color={colors.primary} />
               <Text style={styles.helperText}>
                 Escribe @ para mencionar usuarios o locales
               </Text>
@@ -325,7 +330,7 @@ export default function ComentarScreen() {
 
           {isInteractingAsLocal && activeLocalProfileId && (
             <View style={styles.contextIndicator}>
-              <IconSymbol name="building.2.fill" size={16} color={colors.primary} />
+              <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={16} color={colors.primary} />
               <Text style={styles.contextText}>
                 Comentando como local
               </Text>
@@ -333,7 +338,7 @@ export default function ComentarScreen() {
           )}
         </ScrollView>
 
-        {/* Autocomplete Component - Fixed position above keyboard */}
+        {/* ✅ FIXED: Autocomplete Component - Fixed position ABOVE keyboard */}
         <View 
           style={[
             styles.autocompleteContainer, 
@@ -350,7 +355,7 @@ export default function ComentarScreen() {
           />
         </View>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -533,6 +538,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
+    // ✅ FIXED: Position above keyboard with proper z-index
     zIndex: 9999,
     elevation: 9999,
   },
