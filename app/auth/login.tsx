@@ -17,9 +17,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
 import { supabase } from '@/utils/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { setSessionManually } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -68,7 +70,7 @@ export default function LoginScreen() {
     try {
       const normalizedEmail = email.trim().toLowerCase();
 
-      console.log('[Login v7.0] 🔐 Intentando iniciar sesión:', normalizedEmail);
+      console.log('[Login v8.0] 🔐 Intentando iniciar sesión:', normalizedEmail);
 
       // Sign in with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -77,7 +79,7 @@ export default function LoginScreen() {
       });
 
       if (authError) {
-        console.error('[Login v7.0] ❌ Error signing in:', authError);
+        console.error('[Login v8.0] ❌ Error signing in:', authError);
         
         if (authError.message.includes('Email not confirmed')) {
           Alert.alert(
@@ -105,7 +107,7 @@ export default function LoginScreen() {
                       );
                     }
                   } catch (err) {
-                    console.error('[Login v7.0] Error resending email:', err);
+                    console.error('[Login v8.0] Error resending email:', err);
                     Alert.alert('Error', 'Ocurrió un error al reenviar el correo');
                   }
                 },
@@ -146,53 +148,67 @@ export default function LoginScreen() {
       }
 
       if (!authData.user || !authData.session) {
-        console.error('[Login v7.0] ❌ No user or session returned');
+        console.error('[Login v8.0] ❌ No user or session returned');
         Alert.alert('Error', 'No se pudo iniciar sesión. Por favor, intenta de nuevo.');
         setLoading(false);
         return;
       }
 
-      console.log('[Login v7.0] ✅ Login successful:', authData.user.id);
-      console.log('[Login v7.0] 📅 Session expires at:', new Date(authData.session.expires_at! * 1000).toLocaleString());
+      console.log('[Login v8.0] ✅ Login successful:', authData.user.id);
+      console.log('[Login v8.0] 📅 Session expires at:', new Date(authData.session.expires_at! * 1000).toLocaleString());
 
-      // ✅ CRITICAL FIX: Wait longer for the session to be fully persisted and processed
-      // This ensures the AuthContext has time to process the SIGNED_IN event and update state
-      console.log('[Login v7.0] ⏳ Esperando a que la sesión se procese completamente...');
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // ✅ CRITICAL FIX: Immediately update the session in AuthContext
+      // This ensures the session is available BEFORE navigation
+      console.log('[Login v8.0] 📝 Actualizando sesión en AuthContext inmediatamente...');
+      setSessionManually(authData.session);
+
+      // ✅ CRITICAL FIX: Wait for the session to be fully persisted
+      console.log('[Login v8.0] ⏳ Esperando a que la sesión se persista...');
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       // ✅ CRITICAL FIX: Verify session is actually persisted and accessible
-      console.log('[Login v7.0] 🔍 Verificando que la sesión esté disponible...');
+      console.log('[Login v8.0] 🔍 Verificando que la sesión esté disponible...');
       let verificationAttempts = 0;
       let verifiedSession = null;
       
-      while (verificationAttempts < 3 && !verifiedSession) {
+      while (verificationAttempts < 5 && !verifiedSession) {
         const { data: { session: currentSession }, error: verifyError } = await supabase.auth.getSession();
         
         if (verifyError) {
-          console.error('[Login v7.0] ❌ Error verificando sesión (intento', verificationAttempts + 1, '):', verifyError);
+          console.error('[Login v8.0] ❌ Error verificando sesión (intento', verificationAttempts + 1, '):', verifyError);
         } else if (currentSession) {
-          console.log('[Login v7.0] ✅ Sesión verificada exitosamente (intento', verificationAttempts + 1, ')');
+          console.log('[Login v8.0] ✅ Sesión verificada exitosamente (intento', verificationAttempts + 1, ')');
+          console.log('[Login v8.0] 📊 Sesión verificada:', {
+            userId: currentSession.user.id,
+            email: currentSession.user.email,
+            expiresAt: new Date(currentSession.expires_at! * 1000).toLocaleString(),
+          });
           verifiedSession = currentSession;
           break;
         } else {
-          console.log('[Login v7.0] ⚠️ Sesión no disponible aún (intento', verificationAttempts + 1, '), esperando...');
+          console.log('[Login v8.0] ⚠️ Sesión no disponible aún (intento', verificationAttempts + 1, '), esperando...');
         }
         
         verificationAttempts++;
-        if (verificationAttempts < 3) {
-          await new Promise(resolve => setTimeout(resolve, 500));
+        if (verificationAttempts < 5) {
+          await new Promise(resolve => setTimeout(resolve, 300));
         }
       }
       
       if (!verifiedSession) {
-        console.error('[Login v7.0] ❌ No se pudo verificar la sesión después de varios intentos');
+        console.error('[Login v8.0] ❌ No se pudo verificar la sesión después de varios intentos');
         Alert.alert('Error', 'Error al establecer la sesión. Por favor, intenta de nuevo.');
         setLoading(false);
         return;
       }
 
-      console.log('[Login v7.0] ✅ Sesión completamente verificada y lista');
-      console.log('[Login v7.0] 🚀 Navegando a la aplicación principal...');
+      console.log('[Login v8.0] ✅ Sesión completamente verificada y lista');
+      
+      // ✅ CRITICAL FIX: Wait a bit more to ensure AuthContext has processed the session
+      console.log('[Login v8.0] ⏳ Esperando a que AuthContext procese la sesión...');
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      console.log('[Login v8.0] 🚀 Navegando a la aplicación principal...');
       
       // ✅ CRITICAL FIX: Use replace to ensure clean navigation
       router.replace('/(tabs)/explorar');
@@ -200,7 +216,7 @@ export default function LoginScreen() {
       // Keep loading state true until navigation completes
       // The loading state will be cleared when the component unmounts
     } catch (error: any) {
-      console.error('[Login v7.0] ❌ Error in handleLogin:', error);
+      console.error('[Login v8.0] ❌ Error in handleLogin:', error);
       Alert.alert('Error', 'Ocurrió un error inesperado. Por favor, intenta de nuevo.');
       setLoading(false);
     }

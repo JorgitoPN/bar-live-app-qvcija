@@ -12,6 +12,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
   ensureValidSession: () => Promise<Session | null>;
+  setSessionManually: (session: Session | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,6 +22,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [initializing, setInitializing] = useState(true);
+
+  // Helper function to manually set session (for immediate updates after login)
+  const setSessionManually = (newSession: Session | null) => {
+    console.log('[AuthContext] 📝 Actualizando sesión manualmente');
+    setSession(newSession);
+  };
 
   // Helper function to ensure we have a valid session
   const ensureValidSession = async (): Promise<Session | null> => {
@@ -329,6 +336,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signOut: handleSignOut,
     refreshUser,
     ensureValidSession,
+    setSessionManually,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
