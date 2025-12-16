@@ -11,8 +11,6 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
-  Modal,
-  Pressable,
   KeyboardAvoidingView,
   Keyboard,
   useWindowDimensions,
@@ -31,14 +29,7 @@ import UploadProgressModal from '@/components/common/UploadProgressModal';
 import { processPostHashtags, processPostMentions } from '@/utils/postHelpers';
 import MentionAutocomplete, { MentionSuggestion } from '@/components/social/MentionAutocomplete';
 import HashtagAutocomplete from '@/components/social/HashtagAutocomplete';
-
-interface UserSuggestion {
-  id: string;
-  nombre: string;
-  username: string;
-  avatar?: string;
-  tipo?: 'usuario' | 'local';
-}
+import TaggingModalV5, { TaggableUser } from '@/components/social/TaggingModalV5';
 
 const convertImageToJPG = (uri: string): Promise<Blob> => {
   return new Promise((resolve, reject) => {
@@ -109,11 +100,8 @@ export default function CrearPublicacionScreen() {
   const [publishing, setPublishing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showUploadProgress, setShowUploadProgress] = useState(false);
-  const [usuariosEtiquetados, setUsuariosEtiquetados] = useState<UserSuggestion[]>([]);
+  const [usuariosEtiquetados, setUsuariosEtiquetados] = useState<TaggableUser[]>([]);
   const [showTagModal, setShowTagModal] = useState(false);
-  const [tagSearchQuery, setTagSearchQuery] = useState('');
-  const [tagSuggestions, setTagSuggestions] = useState<UserSuggestion[]>([]);
-  const [searchingTags, setSearchingTags] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
@@ -141,157 +129,6 @@ export default function CrearPublicacionScreen() {
       keyboardWillHideListener.remove();
     };
   }, []);
-
-  const buscarUsuariosYLocales = useCallback(async (texto: string) => {
-    const cleanTexto = texto.replace('@', '').trim();
-    
-    if (cleanTexto.length < 1) {
-      setTagSuggestions([]);
-      return;
-    }
-
-    setSearchingTags(true);
-    try {
-      console.log('[CrearPublicacion] 🔍 Searching for users and locals with query:', cleanTexto);
-      
-      const fuzzyPattern = cleanTexto.split('').join('%');
-      
-      const { data: usersData, error: usersError } = await supabase
-        .from('usuarios')
-        .select('id, nombre, username, avatar, perfil_privado, permitir_etiquetas')
-        .or(`username.ilike.%${cleanTexto}%,nombre.ilike.%${cleanTexto}%,nombre.ilike.%${fuzzyPattern}%,username.ilike.%${fuzzyPattern}%`)
-        .eq('activo', true)
-        .limit(10);
-
-      if (usersError) {
-        console.error('[CrearPublicacion] ❌ Error searching users:', usersError);
-      } else {
-        console.log('[CrearPublicacion] ✅ Found users:', usersData?.length || 0);
-      }
-
-      console.log('[CrearPublicacion] 🏢 Searching locals with active subscriptions...');
-      
-      const { data: localsData, error: localsError } = await supabase
-        .from('locales')
-        .select('id, nombre, imagen_url')
-        .or(`nombre.ilike.%${cleanTexto}%,nombre.ilike.%${fuzzyPattern}%`)
-        .eq('activo', true)
-        .limit(20);
-
-      if (localsError) {
-        console.error('[CrearPublicacion] ❌ Error searching locals:', localsError);
-      }
-
-      let filteredLocalsData: any[] = [];
-      if (localsData && localsData.length > 0) {
-        const localIds = localsData.map(l => l.id);
-        
-        const { data: subscriptionsData, error: subscriptionsError } = await supabase
-          .from('suscripciones_locales')
-          .select(`
-            local_id,
-            estado,
-            plan_id,
-            planes_suscripcion!suscripciones_locales_plan_id_fkey(nombre)
-          `)
-          .in('local_id', localIds)
-          .eq('estado', 'activa');
-
-        if (subscriptionsError) {
-          console.error('[CrearPublicacion] ❌ Error fetching subscriptions:', subscriptionsError);
-        } else if (subscriptionsData) {
-          const validLocalIds = subscriptionsData
-            .filter(sub => {
-              const planName = (sub.planes_suscripcion as any)?.nombre;
-              return planName === 'estandar' || planName === 'premium';
-            })
-            .map(sub => sub.local_id);
-
-          filteredLocalsData = localsData.filter(local => validLocalIds.includes(local.id));
-          
-          console.log('[CrearPublicacion] ✅ Found locals with valid subscriptions:', filteredLocalsData.length);
-        }
-      }
-
-      const suggestions: UserSuggestion[] = [];
-
-      if (!usersError && usersData) {
-        const filteredUsers = usersData.filter(
-          (u) => u.permitir_etiquetas && !usuariosEtiquetados.find((ue) => ue.id === u.id && ue.tipo === 'usuario')
-        );
-        
-        const scoredUsers = filteredUsers.map(u => {
-          const nombre = u.nombre.toLowerCase();
-          const username = (u.username || '').toLowerCase();
-          const search = cleanTexto.toLowerCase();
-          
-          let score = 0;
-          
-          if (nombre === search || username === search) score += 100;
-          else if (nombre.startsWith(search) || username.startsWith(search)) score += 50;
-          else if (nombre.includes(search) || username.includes(search)) score += 25;
-          else score += 10;
-          
-          return { ...u, score };
-        });
-        
-        scoredUsers.sort((a, b) => b.score - a.score);
-        
-        suggestions.push(...scoredUsers.slice(0, 5).map(u => ({
-          id: u.id,
-          nombre: u.nombre,
-          username: u.username || u.nombre,
-          avatar: u.avatar,
-          tipo: 'usuario' as const,
-        })));
-      }
-
-      if (filteredLocalsData.length > 0) {
-        const filteredLocals = filteredLocalsData.filter(
-          (l) => !usuariosEtiquetados.find((ue) => ue.id === l.id && ue.tipo === 'local')
-        );
-        
-        const scoredLocals = filteredLocals.map(l => {
-          const nombre = l.nombre.toLowerCase();
-          const search = cleanTexto.toLowerCase();
-          
-          let score = 0;
-          
-          if (nombre === search) score += 100;
-          else if (nombre.startsWith(search)) score += 50;
-          else if (nombre.includes(search)) score += 25;
-          else score += 10;
-          
-          return { ...l, score };
-        });
-        
-        scoredLocals.sort((a, b) => b.score - a.score);
-        
-        suggestions.push(...scoredLocals.slice(0, 5).map(l => ({
-          id: l.id,
-          nombre: l.nombre,
-          username: l.nombre,
-          avatar: l.imagen_url,
-          tipo: 'local' as const,
-        })));
-      }
-
-      console.log('[CrearPublicacion] 📊 Total suggestions:', suggestions.length, '(Users:', suggestions.filter(s => s.tipo === 'usuario').length, ', Locals:', suggestions.filter(s => s.tipo === 'local').length, ')');
-      setTagSuggestions(suggestions);
-    } catch (error) {
-      console.error('[CrearPublicacion] ❌ Error buscando usuarios y locales:', error);
-    } finally {
-      setSearchingTags(false);
-    }
-  }, [usuariosEtiquetados]);
-
-  useEffect(() => {
-    if (showTagModal && tagSearchQuery.length > 0) {
-      buscarUsuariosYLocales(tagSearchQuery);
-    } else {
-      setTagSuggestions([]);
-    }
-  }, [tagSearchQuery, showTagModal, buscarUsuariosYLocales]);
 
   const handleSelectInlineMention = (mention: MentionSuggestion, mentionText: string) => {
     console.log('[CrearPublicacion] ✅ Selected inline mention:', mention);
@@ -443,11 +280,9 @@ export default function CrearPublicacionScreen() {
     }
   };
 
-  const seleccionarEtiqueta = (item: UserSuggestion) => {
-    setUsuariosEtiquetados([...usuariosEtiquetados, item]);
-    setTagSearchQuery('');
-    setTagSuggestions([]);
-    setShowTagModal(false);
+  const handleSelectTag = (user: TaggableUser) => {
+    console.log('[CrearPublicacion] ✅ Selected tag:', user);
+    setUsuariosEtiquetados([...usuariosEtiquetados, user]);
   };
 
   const eliminarEtiqueta = (itemId: string, tipo: 'usuario' | 'local') => {
@@ -879,7 +714,7 @@ export default function CrearPublicacionScreen() {
           </View>
         </ScrollView>
 
-        {/* ✅ FIXED v19.0: Autocomplete Components with keyboardHeight prop */}
+        {/* ✅ FIXED v20.0: Autocomplete Components with keyboardHeight prop */}
         <MentionAutocomplete
           text={contenido}
           cursorPosition={cursorPosition}
@@ -895,125 +730,13 @@ export default function CrearPublicacionScreen() {
         />
       </View>
 
-      {/* Tag Modal */}
-      <Modal
+      {/* ✅ FIXED v20.0: New TaggingModalV5 with proper keyboard anchoring */}
+      <TaggingModalV5
         visible={showTagModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => {
-          setShowTagModal(false);
-          setTagSearchQuery('');
-          setTagSuggestions([]);
-        }}
-      >
-        <View style={styles.modalOverlay}>
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={styles.tagModalKeyboardView}
-          >
-            <View style={styles.tagModal}>
-              <View style={styles.tagModalHeader}>
-                <Text style={styles.tagModalTitle}>Etiquetar usuarios/locales</Text>
-                <TouchableOpacity 
-                  onPress={() => {
-                    setShowTagModal(false);
-                    setTagSearchQuery('');
-                    setTagSuggestions([]);
-                  }} 
-                  activeOpacity={0.7}
-                >
-                  <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.tagSearchContainer}>
-                <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
-                <TextInput
-                  style={styles.tagSearchInput}
-                  placeholder="Buscar..."
-                  placeholderTextColor={colors.textSecondary}
-                  value={tagSearchQuery}
-                  onChangeText={setTagSearchQuery}
-                  autoFocus
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-                {tagSearchQuery.length > 0 && (
-                  <TouchableOpacity 
-                    onPress={() => {
-                      setTagSearchQuery('');
-                      setTagSuggestions([]);
-                    }} 
-                    activeOpacity={0.7}
-                  >
-                    <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={20} color={colors.textSecondary} />
-                  </TouchableOpacity>
-                )}
-              </View>
-
-              <ScrollView 
-                style={styles.tagSuggestionsContainer}
-                keyboardShouldPersistTaps="handled"
-                contentContainerStyle={styles.tagSuggestionsContent}
-              >
-                {searchingTags ? (
-                  <View style={styles.tagLoadingContainer}>
-                    <ActivityIndicator size="large" color={colors.primary} />
-                    <Text style={styles.tagLoadingText}>Buscando...</Text>
-                  </View>
-                ) : tagSuggestions.length > 0 ? (
-                  <React.Fragment>
-                    {tagSuggestions.map((item) => (
-                      <TouchableOpacity
-                        key={`${item.id}-${item.tipo}`}
-                        style={styles.tagSuggestionItem}
-                        onPress={() => seleccionarEtiqueta(item)}
-                        activeOpacity={0.7}
-                      >
-                        {item.avatar ? (
-                          <Image source={{ uri: item.avatar }} style={styles.tagSuggestionAvatar} />
-                        ) : (
-                          <View style={[styles.tagSuggestionAvatar, styles.avatarPlaceholder]}>
-                            <IconSymbol 
-                              ios_icon_name={item.tipo === 'local' ? 'building.2.fill' : 'person.fill'}
-                              android_material_icon_name={item.tipo === 'local' ? 'business' : 'person'}
-                              size={20} 
-                              color={colors.textSecondary} 
-                            />
-                          </View>
-                        )}
-                        <View style={styles.tagSuggestionInfo}>
-                          <Text style={styles.tagSuggestionName}>{item.nombre}</Text>
-                          <Text style={styles.tagSuggestionType}>
-                            {item.tipo === 'local' ? '🏢 Local' : `@${item.username}`}
-                          </Text>
-                        </View>
-                        <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={24} color={colors.primary} />
-                      </TouchableOpacity>
-                    ))}
-                  </React.Fragment>
-                ) : tagSearchQuery.length >= 1 ? (
-                  <View style={styles.tagEmptyState}>
-                    <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={48} color={colors.textSecondary} />
-                    <Text style={styles.tagEmptyText}>No se encontraron resultados</Text>
-                    <Text style={styles.tagEmptySubtext}>
-                      Intenta con otro nombre
-                    </Text>
-                  </View>
-                ) : (
-                  <View style={styles.tagEmptyState}>
-                    <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={48} color={colors.textSecondary} />
-                    <Text style={styles.tagEmptyText}>Busca personas o locales</Text>
-                    <Text style={styles.tagEmptySubtext}>
-                      Escribe para ver resultados
-                    </Text>
-                  </View>
-                )}
-              </ScrollView>
-            </View>
-          </KeyboardAvoidingView>
-        </View>
-      </Modal>
+        onClose={() => setShowTagModal(false)}
+        onSelectUser={handleSelectTag}
+        alreadyTagged={usuariosEtiquetados}
+      />
 
       <UploadProgressModal
         visible={showUploadProgress}
@@ -1286,120 +1009,5 @@ const styles = StyleSheet.create({
   },
   actionButtonTextDisabled: {
     color: colors.textSecondary,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  tagModalKeyboardView: {
-    width: '100%',
-    justifyContent: 'flex-end',
-  },
-  tagModal: {
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '85%',
-    minHeight: '70%',
-  },
-  tagModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  tagModalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  tagSearchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    margin: 16,
-    gap: 12,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  tagSearchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: colors.text,
-  },
-  tagSuggestionsContainer: {
-    flex: 1,
-  },
-  tagSuggestionsContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 40,
-  },
-  tagLoadingContainer: {
-    paddingVertical: 60,
-    alignItems: 'center',
-    gap: 12,
-  },
-  tagLoadingText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  tagSuggestionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 8,
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  tagSuggestionAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    marginRight: 12,
-  },
-  avatarPlaceholder: {
-    backgroundColor: colors.background,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  tagSuggestionInfo: {
-    flex: 1,
-  },
-  tagSuggestionName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 2,
-  },
-  tagSuggestionType: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  tagEmptyState: {
-    paddingVertical: 60,
-    alignItems: 'center',
-    gap: 12,
-  },
-  tagEmptyText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    textAlign: 'center',
-  },
-  tagEmptySubtext: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    paddingHorizontal: 40,
   },
 });

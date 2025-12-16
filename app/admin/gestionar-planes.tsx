@@ -25,7 +25,6 @@ interface Plan {
   id: string;
   nombre: string;
   descripcion: string;
-  duracion_dias: number;
   activo: boolean;
   caracteristicas: string[];
 }
@@ -73,13 +72,16 @@ export default function GestionarPlanesScreen() {
 
   const cargarPlanes = useCallback(async () => {
     try {
-      // ✅ FIXED v2.0: Remove precio from query since it doesn't exist
+      // ✅ FIXED v3.0: Only select existing columns
       const { data, error } = await supabase
         .from('planes_suscripcion')
-        .select('*')
-        .order('duracion_dias', { ascending: true });
+        .select('id, nombre, descripcion, activo, caracteristicas')
+        .order('nombre', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('[GestionarPlanes] ❌ Error loading plans:', error);
+        throw error;
+      }
 
       console.log('[GestionarPlanes] ✅ Loaded plans:', data?.length || 0);
       setPlanes(data || []);
@@ -91,18 +93,26 @@ export default function GestionarPlanesScreen() {
 
   const cargarSuscripciones = useCallback(async () => {
     try {
-      // ✅ FIXED v2.0: Remove precio from query since it doesn't exist
+      // ✅ FIXED v3.0: Only select existing columns
       const { data, error } = await supabase
         .from('suscripciones_locales')
         .select(`
-          *,
+          id,
+          local_id,
+          plan_id,
+          estado,
+          fecha_inicio,
+          fecha_fin,
           locales (nombre, imagen_url),
           planes_suscripcion (nombre)
         `)
         .order('fecha_inicio', { ascending: false })
         .limit(50);
 
-      if (error) throw error;
+      if (error) {
+        console.error('[GestionarPlanes] ❌ Error loading subscriptions:', error);
+        throw error;
+      }
 
       console.log('[GestionarPlanes] ✅ Loaded subscriptions:', data?.length || 0);
       setSubscriptions(data || []);
@@ -215,9 +225,10 @@ export default function GestionarPlanesScreen() {
       const plan = planes.find(p => p.id === selectedPlan);
       if (!plan) throw new Error('Plan not found');
 
+      // ✅ FIXED v3.0: Set subscription duration to 30 days by default
       const fechaInicio = new Date();
       const fechaFin = new Date();
-      fechaFin.setDate(fechaFin.getDate() + plan.duracion_dias);
+      fechaFin.setDate(fechaFin.getDate() + 30); // Default 30 days
 
       const { error: subscriptionError } = await supabase
         .from('suscripciones_locales')
@@ -314,7 +325,7 @@ export default function GestionarPlanesScreen() {
           <View style={styles.planHeader}>
             <View style={styles.planHeaderLeft}>
               <Text style={styles.planName}>{plan.nombre}</Text>
-              <Text style={styles.planPrice}>{plan.duracion_dias} días</Text>
+              <Text style={styles.planPrice}>Plan de suscripción</Text>
             </View>
             <View style={[styles.planStatusBadge, plan.activo ? styles.planStatusActive : styles.planStatusInactive]}>
               <Text style={[styles.planStatusText, plan.activo ? styles.planStatusTextActive : styles.planStatusTextInactive]}>
@@ -603,7 +614,7 @@ export default function GestionarPlanesScreen() {
                         <View style={styles.planOptionInfo}>
                           <Text style={styles.planOptionName}>{plan.nombre}</Text>
                           <Text style={styles.planOptionPrice}>
-                            {plan.duracion_dias} días
+                            Plan de suscripción
                           </Text>
                         </View>
                         {selectedPlan === plan.id && (
