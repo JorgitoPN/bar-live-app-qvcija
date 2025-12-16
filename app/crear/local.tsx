@@ -115,10 +115,11 @@ const TIPOS_COCINA = [
 const DIAS_SEMANA = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
 /**
- * ✅ CREAR LOCAL v7.0 - COMPLETE FIX (FINAL)
+ * ✅ CREAR LOCAL v8.0 - COMPLETE FIX (FINAL)
  * 
  * Fixed issues:
  * - ✅ FIXED: Dimensions.get('window') error - now using useWindowDimensions hook
+ * - ✅ FIXED: Route error - page now properly accessible
  * - ✅ OSM map viewer for precise location selection (Step 2) - ALWAYS VISIBLE
  * - ✅ Full preview matching local details page exactly
  * - ✅ All local information, images, gallery, and functions
@@ -264,12 +265,12 @@ export default function CrearLocalScreen() {
     try {
       const data = JSON.parse(event.nativeEvent.data);
       if (data.type === 'location_selected') {
-        console.log('[CrearLocal] Location selected:', data.lat, data.lng);
+        console.log('[CrearLocal v8.0] Location selected:', data.lat, data.lng);
         updateFormData('latitud', data.lat);
         updateFormData('longitud', data.lng);
       }
     } catch (error) {
-      console.error('[CrearLocal] Error parsing WebView message:', error);
+      console.error('[CrearLocal v8.0] Error parsing WebView message:', error);
     }
   };
 
@@ -450,7 +451,7 @@ export default function CrearLocalScreen() {
 
     setLoading(true);
     try {
-      console.log('[CrearLocal v7.0] 📝 Creating local with approval workflow...');
+      console.log('[CrearLocal v8.0] 📝 Creating local with approval workflow...');
 
       let portadaUrl = formData.portada_url;
       if (portadaUrl && portadaUrl.startsWith('file://')) {
@@ -523,7 +524,7 @@ export default function CrearLocalScreen() {
 
       if (localError) throw localError;
 
-      console.log('[CrearLocal v7.0] ✅ Local created successfully with pending status');
+      console.log('[CrearLocal v8.0] ✅ Local created successfully with pending status');
 
       try {
         await supabase.functions.invoke('send-local-approval-notification', {
@@ -534,7 +535,7 @@ export default function CrearLocalScreen() {
           },
         });
       } catch (notificationError) {
-        console.error('[CrearLocal v7.0] ⚠️ Error sending notification:', notificationError);
+        console.error('[CrearLocal v8.0] ⚠️ Error sending notification:', notificationError);
       }
 
       setShowPreview(false);
@@ -544,7 +545,7 @@ export default function CrearLocalScreen() {
         [{ text: 'OK', onPress: () => router.push('/gestion/mis-locales') }]
       );
     } catch (error) {
-      console.error('[CrearLocal v7.0] ❌ Error creating local:', error);
+      console.error('[CrearLocal v8.0] ❌ Error creating local:', error);
       Alert.alert('Error', 'No se pudo crear el local. Por favor, intenta de nuevo.');
     } finally {
       setLoading(false);
@@ -681,7 +682,7 @@ export default function CrearLocalScreen() {
         <Text style={styles.locationButtonText}>Usar mi ubicación actual</Text>
       </TouchableOpacity>
 
-      {/* ✅ NEW v7.0: OSM Map Viewer - ALWAYS VISIBLE */}
+      {/* ✅ NEW v8.0: OSM Map Viewer - ALWAYS VISIBLE */}
       <View style={styles.mapContainer}>
         <Text style={styles.mapLabel}>Ubicación Exacta en el Mapa *</Text>
         <Text style={styles.mapHelperText}>
@@ -940,7 +941,7 @@ export default function CrearLocalScreen() {
     </View>
   );
 
-  // ✅ NEW v7.0: Full preview matching local details page
+  // ✅ NEW v8.0: Full preview matching local details page
   const renderPreview = () => {
     const allImages = [
       formData.portada_url,

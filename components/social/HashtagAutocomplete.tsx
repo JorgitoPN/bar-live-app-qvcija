@@ -27,7 +27,7 @@ interface HashtagAutocompleteProps {
 }
 
 /**
- * ✅ HASHTAG AUTOCOMPLETE v2.0 - KEYBOARD-ALIGNED MODAL (FINAL FIX)
+ * ✅ HASHTAG AUTOCOMPLETE v3.0 - KEYBOARD-ALIGNED MODAL (COMPLETE REBUILD)
  * 
  * Key improvements:
  * - ✅ FIXED: Modal now sticks DIRECTLY to keyboard with ZERO gap
@@ -192,6 +192,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 15,
+    marginBottom: 0,
+    paddingBottom: 0,
   },
   list: {
     flex: 1,
