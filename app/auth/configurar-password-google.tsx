@@ -43,28 +43,20 @@ export default function ConfigurarPasswordGoogleScreen() {
     try {
       console.log('[ConfigurarPasswordGoogle] 📧 Enviando token de configuración:', email);
 
-      // Get the project URL
-      const { data: { project_url } } = await supabase.functions.getProjectUrl();
-      const functionsUrl = project_url || 'https://embntaqwlwmgazvrglaf.supabase.co';
+      // Get the current session
+      const { data: { session } } = await supabase.auth.getSession();
 
       // Call the Edge Function to request password token
-      const response = await fetch(`${functionsUrl}/functions/v1/request-password-token`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || ''}`,
-        },
-        body: JSON.stringify({ 
+      const { data, error } = await supabase.functions.invoke('request-password-token', {
+        body: { 
           email: email.trim().toLowerCase(),
           isGoogleUser: true // Flag to indicate this is a Google user setting up password
-        }),
+        },
       });
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        console.error('[ConfigurarPasswordGoogle] ❌ Error:', result);
-        throw new Error(result.error || 'Error al enviar el código');
+      if (error) {
+        console.error('[ConfigurarPasswordGoogle] ❌ Error:', error);
+        throw error;
       }
 
       console.log('[ConfigurarPasswordGoogle] ✅ Token enviado exitosamente');
