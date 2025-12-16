@@ -132,6 +132,12 @@ export default function AdminPanel() {
           route: '/admin/gestionar-planes',
         },
         {
+          id: 'facturacion',
+          title: 'Facturación',
+          description: 'Sistema de facturación automática',
+          route: '/admin/facturacion',
+        },
+        {
           id: 'finanzas',
           title: 'Visión Financiera',
           description: 'Análisis de ingresos y métricas',

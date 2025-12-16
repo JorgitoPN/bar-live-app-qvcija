@@ -80,7 +80,7 @@ export default function GestionarPlanesScreen() {
   const [assigning, setAssigning] = useState(false);
   const [searching, setSearching] = useState(false);
 
-  // Plan detail modal state
+  // Plan detail modal state (v5.0)
   const [showPlanDetailModal, setShowPlanDetailModal] = useState(false);
   const [selectedPlanDetail, setSelectedPlanDetail] = useState<Plan | null>(null);
 
@@ -355,6 +355,11 @@ export default function GestionarPlanesScreen() {
     setShowEditPlanModal(true);
   };
 
+  const handleViewPlanDetail = (plan: Plan) => {
+    setSelectedPlanDetail(plan);
+    setShowPlanDetailModal(true);
+  };
+
   const handleSavePlan = async () => {
     if (!editingPlan) return;
 
@@ -507,11 +512,6 @@ export default function GestionarPlanesScreen() {
     );
   };
 
-  const handleViewPlanDetail = (plan: Plan) => {
-    setSelectedPlanDetail(plan);
-    setShowPlanDetailModal(true);
-  };
-
   const getEstadoBadge = (estado: string) => {
     const badges: Record<string, { color: string; text: string }> = {
       activa: { color: '#10B981', text: 'Activa' },
@@ -547,7 +547,7 @@ export default function GestionarPlanesScreen() {
         <TouchableOpacity
           key={plan.id}
           style={styles.planCard}
-          onPress={() => handleEditPlan(plan)}
+          onPress={() => handleViewPlanDetail(plan)}
           activeOpacity={0.7}
         >
           <View style={styles.planHeader}>
@@ -604,6 +604,16 @@ export default function GestionarPlanesScreen() {
               </View>
             )}
           </View>
+          <TouchableOpacity
+            style={styles.viewDetailsButton}
+            onPress={(e) => {
+              e.stopPropagation();
+              handleViewPlanDetail(plan);
+            }}
+          >
+            <Text style={styles.viewDetailsButtonText}>Ver Detalles Completos</Text>
+            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={16} color={colors.primary} />
+          </TouchableOpacity>
         </TouchableOpacity>
       ))}
     </ScrollView>
@@ -778,7 +788,233 @@ export default function GestionarPlanesScreen() {
       {activeTab === 'subscriptions' && renderSubscriptionsTab()}
       {activeTab === 'assign' && renderAssignTab()}
 
-      {/* Assign Plan Modal */}
+      {/* Plan Detail Modal v5.0 - NEW COMPREHENSIVE VERSION */}
+      <Modal
+        visible={showPlanDetailModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowPlanDetailModal(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowPlanDetailModal(false)}>
+          <Pressable style={styles.modalContentLarge} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalHeaderLeft}>
+                <Text style={styles.modalTitle}>Detalles del Plan</Text>
+                <Text style={styles.modalSubtitle}>Información completa y servicios</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowPlanDetailModal(false)}>
+                <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={28} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            {selectedPlanDetail && (
+              <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
+                {/* Plan Header */}
+                <View style={styles.detailPlanHeader}>
+                  <View style={styles.detailPlanHeaderTop}>
+                    <Text style={styles.detailPlanName}>{selectedPlanDetail.nombre}</Text>
+                    <View style={[styles.planStatusBadge, selectedPlanDetail.activo ? styles.planStatusActive : styles.planStatusInactive]}>
+                      <Text style={[styles.planStatusText, selectedPlanDetail.activo ? styles.planStatusTextActive : styles.planStatusTextInactive]}>
+                        {selectedPlanDetail.activo ? 'Activo' : 'Inactivo'}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={styles.detailPlanPrice}>
+                    {selectedPlanDetail.precio_mensual === 0 ? 'Plan Gratuito' : `${selectedPlanDetail.precio_mensual}€/mes`}
+                  </Text>
+                  {selectedPlanDetail.descripcion && (
+                    <Text style={styles.detailPlanDescription}>{selectedPlanDetail.descripcion}</Text>
+                  )}
+                </View>
+
+                {/* Services Section */}
+                <View style={styles.detailSection}>
+                  <View style={styles.detailSectionHeader}>
+                    <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={20} color={colors.primary} />
+                    <Text style={styles.detailSectionTitle}>Servicios Incluidos</Text>
+                  </View>
+                  
+                  <View style={styles.servicesList}>
+                    {selectedPlanDetail.eventos_mes > 0 && (
+                      <View style={styles.serviceItem}>
+                        <View style={styles.serviceIconContainer}>
+                          <IconSymbol ios_icon_name="calendar.badge.plus" android_material_icon_name="event" size={24} color={colors.primary} />
+                        </View>
+                        <View style={styles.serviceInfo}>
+                          <Text style={styles.serviceTitle}>Eventos Mensuales</Text>
+                          <Text style={styles.serviceDescription}>
+                            Publica hasta {selectedPlanDetail.eventos_mes} eventos cada mes para promocionar tu local
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+
+                    {selectedPlanDetail.promos_destacadas > 0 && (
+                      <View style={styles.serviceItem}>
+                        <View style={styles.serviceIconContainer}>
+                          <IconSymbol ios_icon_name="megaphone.fill" android_material_icon_name="campaign" size={24} color={colors.badgeDestacado} />
+                        </View>
+                        <View style={styles.serviceInfo}>
+                          <Text style={styles.serviceTitle}>Promociones Destacadas</Text>
+                          <Text style={styles.serviceDescription}>
+                            {selectedPlanDetail.promos_destacadas} publicaciones destacadas al mes con mayor visibilidad
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+
+                    {selectedPlanDetail.perfil_social && (
+                      <View style={styles.serviceItem}>
+                        <View style={styles.serviceIconContainer}>
+                          <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={24} color="#10B981" />
+                        </View>
+                        <View style={styles.serviceInfo}>
+                          <Text style={styles.serviceTitle}>Perfil Social Completo</Text>
+                          <Text style={styles.serviceDescription}>
+                            Acceso completo a la red social: publicaciones, historias, mensajes y más
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+
+                    {selectedPlanDetail.panel_analisis && (
+                      <View style={styles.serviceItem}>
+                        <View style={styles.serviceIconContainer}>
+                          <IconSymbol ios_icon_name="chart.bar.fill" android_material_icon_name="bar_chart" size={24} color="#3B82F6" />
+                        </View>
+                        <View style={styles.serviceInfo}>
+                          <Text style={styles.serviceTitle}>Panel de Análisis</Text>
+                          <Text style={styles.serviceDescription}>
+                            Estadísticas detalladas de visitas, interacciones y rendimiento de tu local
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+
+                    {selectedPlanDetail.soporte_prioritario && (
+                      <View style={styles.serviceItem}>
+                        <View style={styles.serviceIconContainer}>
+                          <IconSymbol ios_icon_name="headphones" android_material_icon_name="support_agent" size={24} color="#8B5CF6" />
+                        </View>
+                        <View style={styles.serviceInfo}>
+                          <Text style={styles.serviceTitle}>Soporte Prioritario</Text>
+                          <Text style={styles.serviceDescription}>
+                            Atención preferente y respuesta rápida a tus consultas
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+
+                    {selectedPlanDetail.visibilidad_extra && (
+                      <View style={styles.serviceItem}>
+                        <View style={styles.serviceIconContainer}>
+                          <IconSymbol ios_icon_name="eye.fill" android_material_icon_name="visibility" size={24} color="#F59E0B" />
+                        </View>
+                        <View style={styles.serviceInfo}>
+                          <Text style={styles.serviceTitle}>Visibilidad Extra</Text>
+                          <Text style={styles.serviceDescription}>
+                            Tu local aparece en posiciones destacadas en búsquedas y listados
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+
+                    {selectedPlanDetail.visibilidad_maxima && (
+                      <View style={styles.serviceItem}>
+                        <View style={styles.serviceIconContainer}>
+                          <IconSymbol ios_icon_name="sparkles" android_material_icon_name="auto_awesome" size={24} color="#EC4899" />
+                        </View>
+                        <View style={styles.serviceInfo}>
+                          <Text style={styles.serviceTitle}>Visibilidad Máxima</Text>
+                          <Text style={styles.serviceDescription}>
+                            Máxima exposición: aparece en la portada y en todas las secciones destacadas
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                </View>
+
+                {/* Additional Features */}
+                <View style={styles.detailSection}>
+                  <View style={styles.detailSectionHeader}>
+                    <IconSymbol ios_icon_name="checkmark.seal.fill" android_material_icon_name="verified" size={20} color="#10B981" />
+                    <Text style={styles.detailSectionTitle}>Características Adicionales</Text>
+                  </View>
+                  
+                  <View style={styles.featuresList}>
+                    <View style={styles.featureItem}>
+                      <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color="#10B981" />
+                      <Text style={styles.featureText}>Perfil verificado con insignia</Text>
+                    </View>
+                    <View style={styles.featureItem}>
+                      <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color="#10B981" />
+                      <Text style={styles.featureText}>Galería de fotos ilimitada</Text>
+                    </View>
+                    <View style={styles.featureItem}>
+                      <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color="#10B981" />
+                      <Text style={styles.featureText}>Horarios y ubicación destacados</Text>
+                    </View>
+                    <View style={styles.featureItem}>
+                      <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color="#10B981" />
+                      <Text style={styles.featureText}>Respuestas a reseñas</Text>
+                    </View>
+                    <View style={styles.featureItem}>
+                      <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color="#10B981" />
+                      <Text style={styles.featureText}>Notificaciones en tiempo real</Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Pricing Summary */}
+                <View style={styles.pricingSummary}>
+                  <View style={styles.pricingRow}>
+                    <Text style={styles.pricingLabel}>Precio Mensual:</Text>
+                    <Text style={styles.pricingValue}>
+                      {selectedPlanDetail.precio_mensual === 0 ? 'Gratis' : `${selectedPlanDetail.precio_mensual}€`}
+                    </Text>
+                  </View>
+                  <View style={styles.pricingRow}>
+                    <Text style={styles.pricingLabel}>IVA (21%):</Text>
+                    <Text style={styles.pricingValue}>
+                      {selectedPlanDetail.precio_mensual === 0 ? '0€' : `${(selectedPlanDetail.precio_mensual * 0.21).toFixed(2)}€`}
+                    </Text>
+                  </View>
+                  <View style={[styles.pricingRow, styles.pricingTotal]}>
+                    <Text style={styles.pricingTotalLabel}>Total:</Text>
+                    <Text style={styles.pricingTotalValue}>
+                      {selectedPlanDetail.precio_mensual === 0 ? 'Gratis' : `${(selectedPlanDetail.precio_mensual * 1.21).toFixed(2)}€/mes`}
+                    </Text>
+                  </View>
+                </View>
+              </ScrollView>
+            )}
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalEditButton}
+                onPress={() => {
+                  if (selectedPlanDetail) {
+                    setShowPlanDetailModal(false);
+                    handleEditPlan(selectedPlanDetail);
+                  }
+                }}
+              >
+                <IconSymbol ios_icon_name="pencil.circle.fill" android_material_icon_name="edit" size={20} color={colors.white} />
+                <Text style={styles.modalEditButtonText}>Editar Plan</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => setShowPlanDetailModal(false)}
+              >
+                <Text style={styles.modalCloseButtonText}>Cerrar</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Assign Plan Modal v5.0 - NEW COMPREHENSIVE VERSION */}
       <Modal
         visible={showAssignModal}
         transparent
@@ -790,102 +1026,229 @@ export default function GestionarPlanesScreen() {
           style={styles.modalOverlay}
         >
           <Pressable style={styles.modalOverlay} onPress={() => setShowAssignModal(false)}>
-            <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+            <Pressable style={styles.modalContentLarge} onPress={(e) => e.stopPropagation()}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Asignar Plan a Local</Text>
+                <View style={styles.modalHeaderLeft}>
+                  <Text style={styles.modalTitle}>Asignar Plan a Local</Text>
+                  <Text style={styles.modalSubtitle}>Selecciona un local y un plan</Text>
+                </View>
                 <TouchableOpacity onPress={() => setShowAssignModal(false)}>
                   <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={28} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.searchInputContainer}>
-                <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
-                <TextInput
-                  style={styles.searchInput}
-                  placeholder="Buscar local..."
-                  placeholderTextColor={colors.textSecondary}
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                />
-                {searching && <ActivityIndicator size="small" color={colors.primary} />}
-              </View>
+              <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
+                {/* Step 1: Search Local */}
+                <View style={styles.assignStep}>
+                  <View style={styles.assignStepHeader}>
+                    <View style={styles.assignStepNumber}>
+                      <Text style={styles.assignStepNumberText}>1</Text>
+                    </View>
+                    <Text style={styles.assignStepTitle}>Buscar Local</Text>
+                  </View>
+                  
+                  <View style={styles.searchInputContainer}>
+                    <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
+                    <TextInput
+                      style={styles.searchInput}
+                      placeholder="Buscar local por nombre..."
+                      placeholderTextColor={colors.textSecondary}
+                      value={searchQuery}
+                      onChangeText={setSearchQuery}
+                    />
+                    {searching && <ActivityIndicator size="small" color={colors.primary} />}
+                  </View>
 
-              {selectedLocal && (
-                <View style={styles.selectedLocalCard}>
-                  <Text style={styles.selectedLocalLabel}>Local seleccionado:</Text>
-                  <Text style={styles.selectedLocalName}>{selectedLocal.nombre}</Text>
-                  <Text style={styles.selectedLocalInfo}>{selectedLocal.provincia} - {selectedLocal.tipo}</Text>
-                </View>
-              )}
-
-              {searchResults.length > 0 && !selectedLocal && (
-                <ScrollView style={styles.searchResultsContainer}>
-                  {searchResults.map((local) => (
-                    <TouchableOpacity
-                      key={local.id}
-                      style={styles.searchResultItem}
-                      onPress={() => {
-                        setSelectedLocal(local);
-                        setSearchQuery('');
-                        setSearchResults([]);
-                      }}
-                    >
-                      <Text style={styles.searchResultName}>{local.nombre}</Text>
-                      <Text style={styles.searchResultInfo}>{local.provincia} - {local.tipo}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              )}
-
-              {selectedLocal && (
-                <>
-                  <Text style={styles.selectPlanLabel}>Selecciona un plan:</Text>
-                  <ScrollView style={styles.plansListContainer}>
-                    {planes.filter(p => p.activo).map((plan) => (
+                  {selectedLocal ? (
+                    <View style={styles.selectedLocalCard}>
+                      <View style={styles.selectedLocalHeader}>
+                        <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color="#10B981" />
+                        <Text style={styles.selectedLocalLabel}>Local Seleccionado</Text>
+                      </View>
+                      <Text style={styles.selectedLocalName}>{selectedLocal.nombre}</Text>
+                      <Text style={styles.selectedLocalInfo}>
+                        {selectedLocal.tipo} • {selectedLocal.provincia}
+                      </Text>
                       <TouchableOpacity
-                        key={plan.id}
-                        style={[
-                          styles.planSelectItem,
-                          selectedPlan === plan.id && styles.planSelectItemActive
-                        ]}
-                        onPress={() => setSelectedPlan(plan.id)}
+                        style={styles.changeLocalButton}
+                        onPress={() => {
+                          setSelectedLocal(null);
+                          setSearchQuery('');
+                        }}
                       >
-                        <View style={styles.planSelectInfo}>
-                          <Text style={styles.planSelectName}>{plan.nombre}</Text>
-                          <Text style={styles.planSelectPrice}>
-                            {plan.precio_mensual === 0 ? 'Gratis' : `${plan.precio_mensual}€/mes`}
-                          </Text>
-                        </View>
-                        {selectedPlan === plan.id && (
-                          <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color={colors.primary} />
-                        )}
+                        <Text style={styles.changeLocalButtonText}>Cambiar Local</Text>
                       </TouchableOpacity>
-                    ))}
-                  </ScrollView>
+                    </View>
+                  ) : searchResults.length > 0 ? (
+                    <View style={styles.searchResultsContainer}>
+                      <Text style={styles.searchResultsTitle}>Resultados ({searchResults.length})</Text>
+                      {searchResults.map((local) => (
+                        <TouchableOpacity
+                          key={local.id}
+                          style={styles.searchResultItem}
+                          onPress={() => {
+                            setSelectedLocal(local);
+                            setSearchQuery('');
+                            setSearchResults([]);
+                          }}
+                        >
+                          <View style={styles.searchResultIcon}>
+                            <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={24} color={colors.primary} />
+                          </View>
+                          <View style={styles.searchResultInfo}>
+                            <Text style={styles.searchResultName}>{local.nombre}</Text>
+                            <Text style={styles.searchResultDetails}>{local.tipo} • {local.provincia}</Text>
+                          </View>
+                          <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  ) : searchQuery.length >= 2 && !searching ? (
+                    <View style={styles.noResultsContainer}>
+                      <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search_off" size={32} color={colors.textSecondary} />
+                      <Text style={styles.noResultsText}>No se encontraron locales</Text>
+                    </View>
+                  ) : null}
+                </View>
 
-                  <TouchableOpacity
-                    style={[
-                      styles.modalPrimaryButton,
-                      (!selectedLocal || !selectedPlan || assigning) && styles.modalPrimaryButtonDisabled
-                    ]}
-                    onPress={asignarPlan}
-                    disabled={!selectedLocal || !selectedPlan || assigning}
-                  >
-                    {assigning ? (
-                      <ActivityIndicator size="small" color={colors.white} />
-                    ) : (
-                      <>
-                        <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color={colors.white} />
-                        <Text style={styles.modalPrimaryButtonText}>Asignar Plan</Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                </>
-              )}
+                {/* Step 2: Select Plan */}
+                {selectedLocal && (
+                  <View style={styles.assignStep}>
+                    <View style={styles.assignStepHeader}>
+                      <View style={styles.assignStepNumber}>
+                        <Text style={styles.assignStepNumberText}>2</Text>
+                      </View>
+                      <Text style={styles.assignStepTitle}>Seleccionar Plan</Text>
+                    </View>
 
-              <TouchableOpacity style={styles.modalCancelButton} onPress={() => setShowAssignModal(false)}>
-                <Text style={styles.modalCancelText}>Cancelar</Text>
-              </TouchableOpacity>
+                    <View style={styles.plansListContainer}>
+                      {planes.filter(p => p.activo).map((plan) => (
+                        <TouchableOpacity
+                          key={plan.id}
+                          style={[
+                            styles.planSelectCard,
+                            selectedPlan === plan.id && styles.planSelectCardActive
+                          ]}
+                          onPress={() => setSelectedPlan(plan.id)}
+                        >
+                          <View style={styles.planSelectHeader}>
+                            <View style={styles.planSelectInfo}>
+                              <Text style={styles.planSelectName}>{plan.nombre}</Text>
+                              <Text style={styles.planSelectPrice}>
+                                {plan.precio_mensual === 0 ? 'Gratis' : `${plan.precio_mensual}€/mes`}
+                              </Text>
+                            </View>
+                            {selectedPlan === plan.id ? (
+                              <View style={styles.planSelectCheckmark}>
+                                <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={28} color={colors.primary} />
+                              </View>
+                            ) : (
+                              <View style={styles.planSelectCircle} />
+                            )}
+                          </View>
+                          
+                          {plan.descripcion && (
+                            <Text style={styles.planSelectDescription}>{plan.descripcion}</Text>
+                          )}
+
+                          <View style={styles.planSelectFeatures}>
+                            {plan.eventos_mes > 0 && (
+                              <View style={styles.planSelectFeature}>
+                                <IconSymbol ios_icon_name="checkmark" android_material_icon_name="check" size={14} color="#10B981" />
+                                <Text style={styles.planSelectFeatureText}>{plan.eventos_mes} eventos/mes</Text>
+                              </View>
+                            )}
+                            {plan.promos_destacadas > 0 && (
+                              <View style={styles.planSelectFeature}>
+                                <IconSymbol ios_icon_name="checkmark" android_material_icon_name="check" size={14} color="#10B981" />
+                                <Text style={styles.planSelectFeatureText}>{plan.promos_destacadas} promos destacadas</Text>
+                              </View>
+                            )}
+                            {plan.perfil_social && (
+                              <View style={styles.planSelectFeature}>
+                                <IconSymbol ios_icon_name="checkmark" android_material_icon_name="check" size={14} color="#10B981" />
+                                <Text style={styles.planSelectFeatureText}>Perfil social</Text>
+                              </View>
+                            )}
+                            {plan.panel_analisis && (
+                              <View style={styles.planSelectFeature}>
+                                <IconSymbol ios_icon_name="checkmark" android_material_icon_name="check" size={14} color="#10B981" />
+                                <Text style={styles.planSelectFeatureText}>Panel de análisis</Text>
+                              </View>
+                            )}
+                          </View>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                )}
+
+                {/* Step 3: Confirmation */}
+                {selectedLocal && selectedPlan && (
+                  <View style={styles.assignStep}>
+                    <View style={styles.assignStepHeader}>
+                      <View style={styles.assignStepNumber}>
+                        <Text style={styles.assignStepNumberText}>3</Text>
+                      </View>
+                      <Text style={styles.assignStepTitle}>Confirmar Asignación</Text>
+                    </View>
+
+                    <View style={styles.confirmationCard}>
+                      <View style={styles.confirmationRow}>
+                        <Text style={styles.confirmationLabel}>Local:</Text>
+                        <Text style={styles.confirmationValue}>{selectedLocal.nombre}</Text>
+                      </View>
+                      <View style={styles.confirmationRow}>
+                        <Text style={styles.confirmationLabel}>Plan:</Text>
+                        <Text style={styles.confirmationValue}>
+                          {planes.find(p => p.id === selectedPlan)?.nombre}
+                        </Text>
+                      </View>
+                      <View style={styles.confirmationRow}>
+                        <Text style={styles.confirmationLabel}>Precio:</Text>
+                        <Text style={styles.confirmationValue}>
+                          {planes.find(p => p.id === selectedPlan)?.precio_mensual === 0 
+                            ? 'Gratis' 
+                            : `${planes.find(p => p.id === selectedPlan)?.precio_mensual}€/mes`}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.confirmationNote}>
+                      <IconSymbol ios_icon_name="info.circle.fill" android_material_icon_name="info" size={20} color={colors.primary} />
+                      <Text style={styles.confirmationNoteText}>
+                        El perfil del local se activará automáticamente al asignar el plan.
+                      </Text>
+                    </View>
+                  </View>
+                )}
+              </ScrollView>
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[
+                    styles.modalPrimaryButton,
+                    (!selectedLocal || !selectedPlan || assigning) && styles.modalPrimaryButtonDisabled
+                  ]}
+                  onPress={asignarPlan}
+                  disabled={!selectedLocal || !selectedPlan || assigning}
+                >
+                  {assigning ? (
+                    <ActivityIndicator size="small" color={colors.white} />
+                  ) : (
+                    <>
+                      <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color={colors.white} />
+                      <Text style={styles.modalPrimaryButtonText}>Asignar Plan</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.modalCancelButton}
+                  onPress={() => setShowAssignModal(false)}
+                >
+                  <Text style={styles.modalCancelText}>Cancelar</Text>
+                </TouchableOpacity>
+              </View>
             </Pressable>
           </Pressable>
         </KeyboardAvoidingView>
@@ -1426,6 +1789,7 @@ const styles = StyleSheet.create({
   },
   planFeatures: {
     gap: 8,
+    marginBottom: 12,
   },
   planFeatureItem: {
     flexDirection: 'row',
@@ -1436,6 +1800,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.text,
     flex: 1,
+  },
+  viewDetailsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+    marginTop: 8,
+  },
+  viewDetailsButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
   },
   subscriptionCard: {
     backgroundColor: colors.cardBackground,
@@ -1555,17 +1934,200 @@ const styles = StyleSheet.create({
     maxWidth: 500,
     maxHeight: '90%',
   },
+  modalContentLarge: {
+    backgroundColor: colors.background,
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    maxWidth: 600,
+    maxHeight: '90%',
+  },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 20,
+  },
+  modalHeaderLeft: {
+    flex: 1,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 4,
+  },
+  modalScrollView: {
+    maxHeight: 500,
+    marginBottom: 16,
+  },
+  // Plan Detail Modal v5.0 Styles
+  detailPlanHeader: {
+    backgroundColor: colors.primary + '10',
+    padding: 20,
+    borderRadius: 12,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
+  },
+  detailPlanHeaderTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  detailPlanName: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.text,
     flex: 1,
+  },
+  detailPlanPrice: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: colors.primary,
+    marginBottom: 8,
+  },
+  detailPlanDescription: {
+    fontSize: 15,
+    color: colors.text,
+    lineHeight: 22,
+  },
+  detailSection: {
+    marginBottom: 24,
+  },
+  detailSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 2,
+    borderBottomColor: colors.cardBorder,
+  },
+  detailSectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  servicesList: {
+    gap: 16,
+  },
+  serviceItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: colors.cardBackground,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  serviceIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.primary + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  serviceInfo: {
+    flex: 1,
+  },
+  serviceTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  serviceDescription: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
+  },
+  featuresList: {
+    gap: 12,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  featureText: {
+    fontSize: 15,
+    color: colors.text,
+    flex: 1,
+  },
+  pricingSummary: {
+    backgroundColor: colors.cardBackground,
+    padding: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    marginTop: 8,
+  },
+  pricingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  pricingLabel: {
+    fontSize: 15,
+    color: colors.textSecondary,
+  },
+  pricingValue: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  pricingTotal: {
+    borderTopWidth: 2,
+    borderTopColor: colors.cardBorder,
+    marginTop: 8,
+    paddingTop: 16,
+  },
+  pricingTotalLabel: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  pricingTotalValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.primary,
+  },
+  // Assign Modal v5.0 Styles
+  assignStep: {
+    marginBottom: 24,
+  },
+  assignStepHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+  },
+  assignStepNumber: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  assignStepNumberText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.white,
+  },
+  assignStepTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
   },
   searchInputContainer: {
     flexDirection: 'row',
@@ -1577,7 +2139,6 @@ const styles = StyleSheet.create({
     gap: 12,
     borderWidth: 1,
     borderColor: colors.cardBorder,
-    marginBottom: 16,
   },
   searchInput: {
     flex: 1,
@@ -1585,87 +2146,202 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   selectedLocalCard: {
-    backgroundColor: colors.primary + '10',
+    backgroundColor: '#D1FAE5',
     padding: 16,
     borderRadius: 12,
-    marginBottom: 16,
+    marginTop: 16,
     borderWidth: 1,
-    borderColor: colors.primary + '30',
+    borderColor: '#10B981',
+  },
+  selectedLocalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
   },
   selectedLocalLabel: {
     fontSize: 12,
-    color: colors.textSecondary,
-    marginBottom: 4,
+    fontWeight: '600',
+    color: '#059669',
+    textTransform: 'uppercase',
   },
   selectedLocalName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#065F46',
     marginBottom: 4,
   },
   selectedLocalInfo: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: '#059669',
+    marginBottom: 12,
+  },
+  changeLocalButton: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: colors.white,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#10B981',
+  },
+  changeLocalButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#059669',
   },
   searchResultsContainer: {
-    maxHeight: 200,
-    marginBottom: 16,
+    marginTop: 16,
+  },
+  searchResultsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginBottom: 12,
   },
   searchResultItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     padding: 12,
     backgroundColor: colors.cardBackground,
     borderRadius: 8,
     marginBottom: 8,
     borderWidth: 1,
     borderColor: colors.cardBorder,
+  },
+  searchResultIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.primary + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  searchResultInfo: {
+    flex: 1,
   },
   searchResultName: {
     fontSize: 16,
     fontWeight: '600',
     color: colors.text,
-    marginBottom: 4,
+    marginBottom: 2,
   },
-  searchResultInfo: {
+  searchResultDetails: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  noResultsContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
+    gap: 12,
+  },
+  noResultsText: {
     fontSize: 14,
     color: colors.textSecondary,
   },
-  selectPlanLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 12,
-  },
   plansListContainer: {
-    maxHeight: 200,
-    marginBottom: 16,
+    gap: 12,
   },
-  planSelectItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 12,
+  planSelectCard: {
     backgroundColor: colors.cardBackground,
-    borderRadius: 8,
-    marginBottom: 8,
+    borderRadius: 12,
+    padding: 16,
     borderWidth: 2,
     borderColor: colors.cardBorder,
   },
-  planSelectItemActive: {
+  planSelectCardActive: {
     borderColor: colors.primary,
-    backgroundColor: colors.primary + '10',
+    backgroundColor: colors.primary + '08',
+  },
+  planSelectHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   planSelectInfo: {
     flex: 1,
   },
   planSelectName: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: 'bold',
     color: colors.text,
     marginBottom: 4,
   },
   planSelectPrice: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  planSelectCheckmark: {
+    marginLeft: 12,
+  },
+  planSelectCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: colors.cardBorder,
+    marginLeft: 12,
+  },
+  planSelectDescription: {
     fontSize: 14,
     color: colors.textSecondary,
+    marginBottom: 12,
+    lineHeight: 20,
+  },
+  planSelectFeatures: {
+    gap: 8,
+  },
+  planSelectFeature: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  planSelectFeatureText: {
+    fontSize: 13,
+    color: colors.text,
+  },
+  confirmationCard: {
+    backgroundColor: colors.cardBackground,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    marginBottom: 16,
+  },
+  confirmationRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  confirmationLabel: {
+    fontSize: 15,
+    color: colors.textSecondary,
+  },
+  confirmationValue: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  confirmationNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: colors.primary + '10',
+    padding: 12,
+    borderRadius: 8,
+  },
+  confirmationNoteText: {
+    flex: 1,
+    fontSize: 13,
+    color: colors.text,
+    lineHeight: 18,
+  },
+  modalActions: {
+    gap: 12,
   },
   modalPrimaryButton: {
     flexDirection: 'row',
@@ -1675,7 +2351,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     paddingVertical: 16,
     borderRadius: 12,
-    marginBottom: 12,
   },
   modalPrimaryButtonDisabled: {
     backgroundColor: colors.cardBorder,
@@ -1686,6 +2361,29 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.white,
   },
+  modalEditButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.primary,
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  modalEditButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.white,
+  },
+  modalCloseButton: {
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  modalCloseButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
   modalCancelButton: {
     paddingVertical: 12,
     alignItems: 'center',
@@ -1694,10 +2392,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: colors.textSecondary,
-  },
-  modalScrollView: {
-    maxHeight: 400,
-    marginBottom: 16,
   },
   formGroup: {
     marginBottom: 16,
