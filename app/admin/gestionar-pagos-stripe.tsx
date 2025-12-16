@@ -13,6 +13,7 @@ import {
   Platform,
   KeyboardAvoidingView,
   Keyboard,
+  Switch,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors, commonStyles } from '@/styles/commonStyles';
@@ -63,6 +64,14 @@ interface CompanyFiscalData {
   accounting_email: string | null;
 }
 
+interface StripeConfig {
+  id: string;
+  publishable_key: string | null;
+  secret_key: string | null;
+  webhook_secret: string | null;
+  test_mode: boolean;
+}
+
 export default function GestionarPagosStripeScreen() {
   const router = useRouter();
   const { user } = useAuth();
@@ -70,12 +79,18 @@ export default function GestionarPagosStripeScreen() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [companyData, setCompanyData] = useState<CompanyFiscalData | null>(null);
-  const [activeTab, setActiveTab] = useState<'transactions' | 'invoices' | 'settings'>('transactions');
+  const [stripeConfig, setStripeConfig] = useState<StripeConfig | null>(null);
+  const [activeTab, setActiveTab] = useState<'transactions' | 'invoices' | 'settings' | 'stripe'>('transactions');
   
   // Company settings modal
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [editingCompanyData, setEditingCompanyData] = useState<CompanyFiscalData | null>(null);
   const [savingSettings, setSavingSettings] = useState(false);
+
+  // Stripe settings modal
+  const [showStripeModal, setShowStripeModal] = useState(false);
+  const [editingStripeConfig, setEditingStripeConfig] = useState<StripeConfig | null>(null);
+  const [savingStripe, setSavingStripe] = useState(false);
 
   // Statistics
   const [totalRevenue, setTotalRevenue] = useState(0);
@@ -89,6 +104,7 @@ export default function GestionarPagosStripeScreen() {
         loadTransactions(),
         loadInvoices(),
         loadCompanyData(),
+        loadStripeConfig(),
         loadStatistics(),
       ]);
     } catch (error) {
@@ -146,6 +162,20 @@ export default function GestionarPagosStripeScreen() {
       setCompanyData(data);
     } catch (error) {
       console.error('[GestionarPagosStripe] Error loading company data:', error);
+    }
+  };
+
+  const loadStripeConfig = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('stripe_configuration')
+        .select('*')
+        .single();
+
+      if (error) throw error;
+      setStripeConfig(data);
+    } catch (error) {
+      console.error('[GestionarPagosStripe] Error loading Stripe config:', error);
     }
   };
 
@@ -235,6 +265,41 @@ export default function GestionarPagosStripeScreen() {
     }
   };
 
+  const handleEditStripeConfig = () => {
+    if (stripeConfig) {
+      setEditingStripeConfig({ ...stripeConfig });
+      setShowStripeModal(true);
+    }
+  };
+
+  const handleSaveStripeConfig = async () => {
+    if (!editingStripeConfig) return;
+
+    setSavingStripe(true);
+    try {
+      const { error } = await supabase
+        .from('stripe_configuration')
+        .update({
+          publishable_key: editingStripeConfig.publishable_key,
+          secret_key: editingStripeConfig.secret_key,
+          webhook_secret: editingStripeConfig.webhook_secret,
+          test_mode: editingStripeConfig.test_mode,
+        })
+        .eq('id', editingStripeConfig.id);
+
+      if (error) throw error;
+
+      Alert.alert('Éxito', 'Configuración de Stripe actualizada correctamente');
+      setShowStripeModal(false);
+      await loadStripeConfig();
+    } catch (error) {
+      console.error('[GestionarPagosStripe] Error saving Stripe config:', error);
+      Alert.alert('Error', 'No se pudo guardar la configuración de Stripe');
+    } finally {
+      setSavingStripe(false);
+    }
+  };
+
   const handleDownloadInvoice = async (invoiceId: string) => {
     Alert.alert('Descargar Factura', 'La funcionalidad de descarga de facturas estará disponible próximamente.');
   };
@@ -254,7 +319,7 @@ export default function GestionarPagosStripeScreen() {
           text: 'Enviar',
           onPress: async () => {
             try {
-              // TODO: Implement email sending logic
+              // TODO: Implement email sending logic via Edge Function
               Alert.alert('Éxito', 'Factura enviada correctamente a la gestoría');
             } catch (error) {
               console.error('[GestionarPagosStripe] Error sending invoice:', error);
@@ -474,6 +539,63 @@ export default function GestionarPagosStripeScreen() {
     </ScrollView>
   );
 
+  const renderStripeTab = () => (
+    <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
+      <Text style={styles.sectionTitle}>Configuración de Stripe</Text>
+      
+      {stripeConfig && (
+        <View style={styles.companyDataCard}>
+          <View style={styles.companyDataRow}>
+            <Text style={styles.companyDataLabel}>Modo de Prueba</Text>
+            <Text style={styles.companyDataValue}>
+              {stripeConfig.test_mode ? 'Activado' : 'Desactivado'}
+            </Text>
+          </View>
+          <View style={styles.companyDataRow}>
+            <Text style={styles.companyDataLabel}>Publishable Key</Text>
+            <Text style={styles.companyDataValue} numberOfLines={1}>
+              {stripeConfig.publishable_key ? '••••••••' + stripeConfig.publishable_key.slice(-8) : 'No configurado'}
+            </Text>
+          </View>
+          <View style={styles.companyDataRow}>
+            <Text style={styles.companyDataLabel}>Secret Key</Text>
+            <Text style={styles.companyDataValue} numberOfLines={1}>
+              {stripeConfig.secret_key ? '••••••••' + stripeConfig.secret_key.slice(-8) : 'No configurado'}
+            </Text>
+          </View>
+          <View style={styles.companyDataRow}>
+            <Text style={styles.companyDataLabel}>Webhook Secret</Text>
+            <Text style={styles.companyDataValue} numberOfLines={1}>
+              {stripeConfig.webhook_secret ? '••••••••' + stripeConfig.webhook_secret.slice(-8) : 'No configurado'}
+            </Text>
+          </View>
+          
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={handleEditStripeConfig}
+          >
+            <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={20} color={colors.white} />
+            <Text style={styles.editButtonText}>Editar Configuración</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      <View style={styles.infoBox}>
+        <IconSymbol ios_icon_name="info.circle.fill" android_material_icon_name="info" size={20} color={colors.primary} />
+        <Text style={styles.infoText}>
+          Para obtener tus claves de Stripe, visita el Dashboard de Stripe en stripe.com. Asegúrate de usar las claves correctas según el modo (prueba o producción).
+        </Text>
+      </View>
+
+      <View style={[styles.infoBox, { backgroundColor: colors.badgeDestacado + '15', borderColor: colors.badgeDestacado + '30' }]}>
+        <IconSymbol ios_icon_name="exclamationmark.triangle.fill" android_material_icon_name="warning" size={20} color={colors.badgeDestacado} />
+        <Text style={styles.infoText}>
+          <Text style={{ fontWeight: 'bold' }}>Importante:</Text> Nunca compartas tus claves secretas de Stripe. Mantenlas seguras y cámbialas regularmente.
+        </Text>
+      </View>
+    </ScrollView>
+  );
+
   if (loading) {
     return (
       <View style={styles.container}>
@@ -537,6 +659,21 @@ export default function GestionarPagosStripeScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
+          style={[styles.tab, activeTab === 'stripe' && styles.tabActive]}
+          onPress={() => setActiveTab('stripe')}
+        >
+          <IconSymbol
+            ios_icon_name="creditcard"
+            android_material_icon_name="credit_card"
+            size={20}
+            color={activeTab === 'stripe' ? colors.primary : colors.textSecondary}
+          />
+          <Text style={[styles.tabText, activeTab === 'stripe' && styles.tabTextActive]}>
+            Stripe
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
           style={[styles.tab, activeTab === 'settings' && styles.tabActive]}
           onPress={() => setActiveTab('settings')}
         >
@@ -554,6 +691,7 @@ export default function GestionarPagosStripeScreen() {
 
       {activeTab === 'transactions' && renderTransactionsTab()}
       {activeTab === 'invoices' && renderInvoicesTab()}
+      {activeTab === 'stripe' && renderStripeTab()}
       {activeTab === 'settings' && renderSettingsTab()}
 
       {/* Company Settings Modal */}
@@ -695,20 +833,20 @@ export default function GestionarPagosStripeScreen() {
 
                     <View style={styles.inputContainer}>
                       <Text style={styles.inputLabel}>Envío Automático de Facturas</Text>
-                      <TouchableOpacity
-                        style={styles.switchContainer}
-                        onPress={() => setEditingCompanyData({
-                          ...editingCompanyData,
-                          send_invoices_automatically: !editingCompanyData.send_invoices_automatically
-                        })}
-                      >
+                      <View style={styles.switchRow}>
                         <Text style={styles.switchLabel}>
                           {editingCompanyData.send_invoices_automatically ? 'Activado' : 'Desactivado'}
                         </Text>
-                        <View style={[styles.switch, editingCompanyData.send_invoices_automatically && styles.switchActive]}>
-                          <View style={[styles.switchThumb, editingCompanyData.send_invoices_automatically && styles.switchThumbActive]} />
-                        </View>
-                      </TouchableOpacity>
+                        <Switch
+                          value={editingCompanyData.send_invoices_automatically}
+                          onValueChange={(value) => setEditingCompanyData({
+                            ...editingCompanyData,
+                            send_invoices_automatically: value
+                          })}
+                          trackColor={{ false: colors.border, true: colors.primary }}
+                          thumbColor={colors.white}
+                        />
+                      </View>
                     </View>
 
                     <TouchableOpacity
@@ -722,6 +860,126 @@ export default function GestionarPagosStripeScreen() {
                         <React.Fragment>
                           <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color="white" />
                           <Text style={styles.confirmButtonText}>Guardar Cambios</Text>
+                        </React.Fragment>
+                      )}
+                    </TouchableOpacity>
+                  </React.Fragment>
+                )}
+              </ScrollView>
+            </View>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Stripe Configuration Modal */}
+      <Modal
+        visible={showStripeModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowStripeModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+          keyboardVerticalOffset={0}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlayTouchable}
+            activeOpacity={1}
+            onPress={() => Keyboard.dismiss()}
+          >
+            <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Configurar Stripe</Text>
+                <TouchableOpacity onPress={() => setShowStripeModal(false)}>
+                  <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView
+                style={styles.modalBody}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={styles.modalBodyContent}
+              >
+                {editingStripeConfig && (
+                  <React.Fragment>
+                    <View style={styles.inputContainer}>
+                      <Text style={styles.inputLabel}>Modo de Prueba</Text>
+                      <View style={styles.switchRow}>
+                        <Text style={styles.switchLabel}>
+                          {editingStripeConfig.test_mode ? 'Activado' : 'Desactivado'}
+                        </Text>
+                        <Switch
+                          value={editingStripeConfig.test_mode}
+                          onValueChange={(value) => setEditingStripeConfig({
+                            ...editingStripeConfig,
+                            test_mode: value
+                          })}
+                          trackColor={{ false: colors.border, true: colors.primary }}
+                          thumbColor={colors.white}
+                        />
+                      </View>
+                    </View>
+
+                    <View style={styles.inputContainer}>
+                      <Text style={styles.inputLabel}>Publishable Key *</Text>
+                      <TextInput
+                        style={styles.textInput}
+                        placeholder="pk_test_..."
+                        placeholderTextColor={colors.textSecondary}
+                        value={editingStripeConfig.publishable_key || ''}
+                        onChangeText={(text) => setEditingStripeConfig({ ...editingStripeConfig, publishable_key: text })}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                      />
+                    </View>
+
+                    <View style={styles.inputContainer}>
+                      <Text style={styles.inputLabel}>Secret Key *</Text>
+                      <TextInput
+                        style={styles.textInput}
+                        placeholder="sk_test_..."
+                        placeholderTextColor={colors.textSecondary}
+                        value={editingStripeConfig.secret_key || ''}
+                        onChangeText={(text) => setEditingStripeConfig({ ...editingStripeConfig, secret_key: text })}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        secureTextEntry
+                      />
+                    </View>
+
+                    <View style={styles.inputContainer}>
+                      <Text style={styles.inputLabel}>Webhook Secret</Text>
+                      <TextInput
+                        style={styles.textInput}
+                        placeholder="whsec_..."
+                        placeholderTextColor={colors.textSecondary}
+                        value={editingStripeConfig.webhook_secret || ''}
+                        onChangeText={(text) => setEditingStripeConfig({ ...editingStripeConfig, webhook_secret: text })}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        secureTextEntry
+                      />
+                    </View>
+
+                    <View style={[styles.infoBox, { marginTop: 16 }]}>
+                      <IconSymbol ios_icon_name="info.circle.fill" android_material_icon_name="info" size={20} color={colors.primary} />
+                      <Text style={styles.infoText}>
+                        Obtén tus claves desde el Dashboard de Stripe. Usa claves de prueba (test) para desarrollo y claves de producción (live) para producción.
+                      </Text>
+                    </View>
+
+                    <TouchableOpacity
+                      style={styles.confirmButton}
+                      onPress={handleSaveStripeConfig}
+                      disabled={savingStripe}
+                    >
+                      {savingStripe ? (
+                        <ActivityIndicator size="small" color="white" />
+                      ) : (
+                        <React.Fragment>
+                          <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color="white" />
+                          <Text style={styles.confirmButtonText}>Guardar Configuración</Text>
                         </React.Fragment>
                       )}
                     </TouchableOpacity>
@@ -776,7 +1034,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.primary,
   },
   tabText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
     color: colors.textSecondary,
   },
@@ -992,6 +1250,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary + '10',
     padding: 16,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.primary + '20',
   },
   infoText: {
     flex: 1,
@@ -1063,7 +1323,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.text,
   },
-  switchContainer: {
+  switchRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -1078,26 +1338,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.text,
     fontWeight: '600',
-  },
-  switch: {
-    width: 50,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.border,
-    padding: 2,
-    justifyContent: 'center',
-  },
-  switchActive: {
-    backgroundColor: colors.primary,
-  },
-  switchThumb: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'white',
-  },
-  switchThumbActive: {
-    alignSelf: 'flex-end',
   },
   confirmButton: {
     flexDirection: 'row',
