@@ -33,7 +33,7 @@ import OfertaTrabajoCard from '@/components/empleo/OfertaTrabajoCard';
 import EventBanner from '@/components/eventos/EventBanner';
 import { useLocalEvent } from '@/hooks/useLocalEvent';
 
-const SCREEN_VERSION = '7.0.1';
+const SCREEN_VERSION = '8.0.0';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
@@ -109,7 +109,7 @@ export default function LocalPerfilScreen() {
   const [local, setLocal] = useState<any>(null);
   const [posts, setPosts] = useState<LocalPost[]>([]);
   const [events, setEvents] = useState<LocalEvent[]>([]);
-  const [isFavorito, setIsFavorito] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
   const [activeTab, setActiveTab] = useState<'posts' | 'eventos' | 'empleo' | 'info'>('posts');
 
@@ -130,6 +130,7 @@ export default function LocalPerfilScreen() {
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
+  const isTogglingFollow = useRef(false);
 
   const localId = params.localId as string;
 
@@ -164,13 +165,15 @@ export default function LocalPerfilScreen() {
     
     setLoadingSeguidores(true);
     try {
-      console.log('[LocalPerfil] Loading followers for local:', localId);
+      console.log('[LocalPerfil] 📊 Loading followers for local:', localId);
+      console.log('[LocalPerfil] ⚠️ Followers = users who FOLLOW this local in the social network');
 
+      // Get followers from seguidores table where seguido_id is the local's propietario_id
       const { data, error } = await supabase
-        .from('locales_guardados')
+        .from('seguidores')
         .select(`
-          usuario_id,
-          usuarios!locales_guardados_usuario_id_fkey(
+          seguidor_id,
+          usuarios!seguidores_seguidor_id_fkey(
             id,
             nombre,
             username,
@@ -178,7 +181,7 @@ export default function LocalPerfilScreen() {
             bio
           )
         `)
-        .eq('local_id', localId);
+        .eq('seguido_id', local?.propietario_id);
 
       if (error) {
         console.error('[LocalPerfil] Error loading followers:', error);
@@ -205,14 +208,15 @@ export default function LocalPerfilScreen() {
     } finally {
       setLoadingSeguidores(false);
     }
-  }, [localId]);
+  }, [localId, local?.propietario_id]);
 
   const loadSeguidosLocal = useCallback(async () => {
     if (!localId || !local?.propietario_id) return;
     
     setLoadingSeguidos(true);
     try {
-      console.log('[LocalPerfil] Loading following for local:', localId);
+      console.log('[LocalPerfil] 📊 Loading following for local:', localId);
+      console.log('[LocalPerfil] ⚠️ Following = users/locals that this local FOLLOWS');
 
       const { data, error } = await supabase
         .from('seguidores')
@@ -291,13 +295,17 @@ export default function LocalPerfilScreen() {
         console.log('[LocalPerfil] ✅ User is NOT owner of this local');
       }
 
+      // Count followers (users who follow this local in the social network)
+      console.log('[LocalPerfil] 📊 Counting followers from seguidores table...');
       const { count: followersCount } = await supabase
-        .from('locales_guardados')
+        .from('seguidores')
         .select('*', { count: 'exact', head: true })
-        .eq('local_id', localId);
+        .eq('seguido_id', localData.propietario_id);
 
       setSeguidoresCount(followersCount || 0);
+      console.log('[LocalPerfil] ✅ Followers count:', followersCount || 0);
 
+      // Count following (users/locals that this local follows)
       if (localData.propietario_id) {
         const { count: followingCount } = await supabase
           .from('seguidores')
@@ -305,9 +313,10 @@ export default function LocalPerfilScreen() {
           .eq('seguidor_id', localData.propietario_id);
 
         setSeguidosCount(followingCount || 0);
+        console.log('[LocalPerfil] ✅ Following count:', followingCount || 0);
       }
 
-      const [postsResult, eventsResult, favResult] = await Promise.all([
+      const [postsResult, eventsResult, followResult] = await Promise.all([
         supabase
           .from('posts')
           .select('*')
@@ -325,10 +334,10 @@ export default function LocalPerfilScreen() {
           .limit(6),
         
         user ? supabase
-          .from('locales_guardados')
+          .from('seguidores')
           .select('id')
-          .eq('usuario_id', user.id)
-          .eq('local_id', localId)
+          .eq('seguidor_id', user.id)
+          .eq('seguido_id', localData.propietario_id)
           .single() : Promise.resolve({ data: null })
       ]);
 
@@ -343,7 +352,9 @@ export default function LocalPerfilScreen() {
         setContentLoaded(prev => ({ ...prev, eventos: true }));
       }
 
-      setIsFavorito(!!favResult.data);
+      // Check if current user is following this local
+      setIsFollowing(!!followResult.data);
+      console.log('[LocalPerfil] ✅ Is following:', !!followResult.data);
       setContentLoaded(prev => ({ ...prev, info: true }));
 
       console.log('[LocalPerfil] ✅ Local data loaded successfully');
@@ -406,52 +417,110 @@ export default function LocalPerfilScreen() {
     setRefreshing(false);
   };
 
-  const toggleFavorito = async () => {
+  const handleFollow = async () => {
     if (!user) {
-      Alert.alert('Error', 'Debes iniciar sesión para guardar locales favoritos');
+      Alert.alert('Error', 'Debes iniciar sesión para seguir locales');
       return;
     }
 
+    if (!local?.propietario_id) {
+      Alert.alert('Error', 'No se puede seguir este local');
+      return;
+    }
+
+    if (isTogglingFollow.current) {
+      console.log('[LocalPerfil] Already toggling follow, skipping...');
+      return;
+    }
+
+    isTogglingFollow.current = true;
+
+    const wasFollowing = isFollowing;
+    const previousSeguidores = seguidoresCount;
+
     try {
-      console.log('[LocalPerfil] ⚠️ IMPORTANT: Toggling FAVORITE status (NOT following)');
-      console.log('[LocalPerfil] ⚠️ Favorites and Following are INDEPENDENT');
-      
-      if (isFavorito) {
-        console.log('[LocalPerfil] ➖ Removing from favorites...');
-        console.log('[LocalPerfil] ⚠️ This will NOT affect following status');
+      console.log('[LocalPerfil] 🔄 Toggling FOLLOW status (social network)');
+      console.log('[LocalPerfil] ⚠️ IMPORTANT: This is INDEPENDENT from favorites');
+      console.log('[LocalPerfil] ⚠️ Following affects ONLY the social network, NOT favorites');
+
+      // Optimistic update
+      setIsFollowing(!wasFollowing);
+      setSeguidoresCount(wasFollowing ? Math.max(0, previousSeguidores - 1) : previousSeguidores + 1);
+
+      if (wasFollowing) {
+        console.log('[LocalPerfil] ➖ Unfollowing local in social network...');
+        console.log('[LocalPerfil] ⚠️ This will NOT remove from favorites');
         
-        await supabase
-          .from('locales_guardados')
+        const { error: deleteError } = await supabase
+          .from('seguidores')
           .delete()
-          .eq('usuario_id', user.id)
-          .eq('local_id', localId);
-        
-        setIsFavorito(false);
-        setSeguidoresCount(prev => Math.max(0, prev - 1));
-        
-        console.log('[LocalPerfil] ✅ Removed from favorites');
-        console.log('[LocalPerfil] ✅ Following status remains unchanged');
+          .eq('seguidor_id', user.id)
+          .eq('seguido_id', local.propietario_id);
+
+        if (deleteError) throw deleteError;
+
+        console.log('[LocalPerfil] ✅ Unfollow successful');
+        console.log('[LocalPerfil] ✅ Favorites remain UNCHANGED');
       } else {
-        console.log('[LocalPerfil] ➕ Adding to favorites...');
-        console.log('[LocalPerfil] ⚠️ This will NOT follow the local profile');
-        
-        await supabase
-          .from('locales_guardados')
+        console.log('[LocalPerfil] ➕ Following local in social network...');
+        console.log('[LocalPerfil] ⚠️ This will NOT add to favorites');
+
+        // Check if already following
+        const { data: existingFollow } = await supabase
+          .from('seguidores')
+          .select('id')
+          .eq('seguidor_id', user.id)
+          .eq('seguido_id', local.propietario_id)
+          .single();
+
+        if (existingFollow) {
+          console.log('[LocalPerfil] Already following, skipping insert');
+          isTogglingFollow.current = false;
+          return;
+        }
+
+        const { error: insertError } = await supabase
+          .from('seguidores')
           .insert({
-            usuario_id: user.id,
-            local_id: localId,
+            seguidor_id: user.id,
+            seguido_id: local.propietario_id,
           });
-        
-        setIsFavorito(true);
-        setSeguidoresCount(prev => prev + 1);
-        
-        console.log('[LocalPerfil] ✅ Added to favorites');
-        console.log('[LocalPerfil] ✅ Following status remains unchanged');
-        console.log('[LocalPerfil] ℹ️ To follow this local in the social network, that would be a separate action');
+
+        if (insertError) throw insertError;
+
+        // Send notification to local owner
+        await supabase
+          .from('notificaciones')
+          .insert({
+            usuario_id: local.propietario_id,
+            tipo: 'seguidor',
+            titulo: 'Nuevo seguidor',
+            mensaje: `${user.nombre} ha comenzado a seguir tu local ${local.nombre}`,
+            usuario_origen_id: user.id,
+          });
+
+        console.log('[LocalPerfil] ✅ Follow successful');
+        console.log('[LocalPerfil] ✅ Favorites remain UNCHANGED');
+        console.log('[LocalPerfil] ℹ️ To save this local to favorites, go to the Locales Favoritos page');
       }
+
+      // Reload counts to ensure accuracy
+      const { count: updatedFollowersCount } = await supabase
+        .from('seguidores')
+        .select('*', { count: 'exact', head: true })
+        .eq('seguido_id', local.propietario_id);
+
+      setSeguidoresCount(updatedFollowersCount || 0);
     } catch (error) {
-      console.error('[LocalPerfil] Error toggling favorito:', error);
-      Alert.alert('Error', 'No se pudo completar la acción');
+      console.error('[LocalPerfil] Error toggling follow:', error);
+      
+      // Revert optimistic update
+      setIsFollowing(wasFollowing);
+      setSeguidoresCount(previousSeguidores);
+      
+      Alert.alert('Error', 'No se pudo completar la acción. Por favor, intenta de nuevo.');
+    } finally {
+      isTogglingFollow.current = false;
     }
   };
 
@@ -940,18 +1009,19 @@ export default function LocalPerfilScreen() {
               ) : (
                 <View style={styles.visitorButtonsRow}>
                   <TouchableOpacity 
-                    style={[styles.visitorRowButton, isFavorito && styles.visitorRowButtonFollowing]} 
-                    onPress={toggleFavorito}
+                    style={[styles.visitorRowButton, isFollowing && styles.visitorRowButtonFollowing]} 
+                    onPress={handleFollow}
                     activeOpacity={0.7}
+                    disabled={isTogglingFollow.current}
                   >
                     <IconSymbol 
-                      ios_icon_name={isFavorito ? 'heart.fill' : 'heart'} 
-                      android_material_icon_name={isFavorito ? 'favorite' : 'favorite_border'}
+                      ios_icon_name={isFollowing ? 'person.fill.checkmark' : 'person.badge.plus'} 
+                      android_material_icon_name={isFollowing ? 'person_add_disabled' : 'person_add'}
                       size={18} 
-                      color={isFavorito ? colors.headerText : colors.primary} 
+                      color={isFollowing ? colors.headerText : colors.primary} 
                     />
-                    <Text style={[styles.visitorRowButtonText, isFavorito && styles.visitorRowButtonTextFollowing]}>
-                      {isFavorito ? 'Guardado' : 'Guardar'}
+                    <Text style={[styles.visitorRowButtonText, isFollowing && styles.visitorRowButtonTextFollowing]}>
+                      {isFollowing ? 'Siguiendo' : 'Seguir'}
                     </Text>
                   </TouchableOpacity>
                   
@@ -1446,7 +1516,6 @@ export default function LocalPerfilScreen() {
   );
 }
 
-// Styles remain exactly the same...
 const styles = StyleSheet.create({
   container: {
     flex: 1,
