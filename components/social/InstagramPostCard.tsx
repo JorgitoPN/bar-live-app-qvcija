@@ -468,7 +468,7 @@ export default function InstagramPostCard({
             <Ionicons
               name={isSaved ? 'bookmark' : 'bookmark-outline'}
               size={26}
-              color={colors.text}
+              color={isSaved ? colors.primary : colors.text}
             />
           </TouchableOpacity>
         </View>
