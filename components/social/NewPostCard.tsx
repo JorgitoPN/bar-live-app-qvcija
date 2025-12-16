@@ -58,13 +58,15 @@ interface NewPostCardProps {
 }
 
 /**
- * ✅ NEW POST CARD v2.0 - HORIZONTAL IMAGE SWIPE IN FEED
+ * ✅ NEW POST CARD v2.1 - HORIZONTAL IMAGE SWIPE IN FEED
  * 
  * Key features:
  * - ✅ Horizontal swipe enabled for multiple images directly in the feed
  * - ✅ Image indicators show current position
  * - ✅ Smooth scrolling between images
  * - ✅ No need to open post viewer to see all images
+ * - ✅ Safe property access with fallback values
+ * - ✅ Fixed React Hooks rules violation
  */
 
 export default function NewPostCard({
@@ -72,11 +74,20 @@ export default function NewPostCard({
   onUpdate,
 }: NewPostCardProps) {
   const { user } = useAuth();
+  
+  // ✅ FIXED: Check for post existence BEFORE any hooks
+  if (!post) {
+    console.error('[NewPostCard] Post is undefined');
+    return null;
+  }
+  
+  // ✅ All hooks must come after the early return check is removed
+  // ✅ Safe access to post properties with fallback values
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [isLiked, setIsLiked] = useState(post.user_has_liked);
-  const [isSaved, setIsSaved] = useState(post.user_has_saved);
-  const [likesCount, setLikesCount] = useState(post.likes_count);
-  const [commentsCount, setCommentsCount] = useState(post.comentarios_count);
+  const [isLiked, setIsLiked] = useState(post.user_has_liked ?? false);
+  const [isSaved, setIsSaved] = useState(post.user_has_saved ?? false);
+  const [likesCount, setLikesCount] = useState(post.likes_count ?? 0);
+  const [commentsCount, setCommentsCount] = useState(post.comentarios_count ?? 0);
   const [showPostViewer, setShowPostViewer] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -298,7 +309,7 @@ export default function NewPostCard({
 
   const displayUsername = post.tipo === 'local'
     ? post.local?.nombre
-    : (post.autor.username || post.autor.nombre);
+    : (post.autor?.username || post.autor?.nombre);
 
   const displayAvatar = authorAvatar || DEFAULT_AVATAR_URL;
 
@@ -330,7 +341,7 @@ export default function NewPostCard({
         </View>
 
         {/* ✅ FIXED: Horizontal swipe enabled for multiple images */}
-        {post.imagenes.length > 0 && (
+        {post.imagenes && post.imagenes.length > 0 && (
           <View style={styles.imagesContainer}>
             <ScrollView
               ref={scrollViewRef}
