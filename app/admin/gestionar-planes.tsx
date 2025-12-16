@@ -25,8 +25,16 @@ interface Plan {
   id: string;
   nombre: string;
   descripcion: string;
+  precio_mensual: number;
   activo: boolean;
   caracteristicas: string[];
+  eventos_mes: number;
+  promos_destacadas: number;
+  perfil_social: boolean;
+  panel_analisis: boolean;
+  soporte_prioritario: boolean;
+  visibilidad_extra: boolean;
+  visibilidad_maxima: boolean;
   permisos?: Record<string, boolean>;
 }
 
@@ -79,22 +87,30 @@ export default function GestionarPlanesScreen() {
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
   const [editPlanNombre, setEditPlanNombre] = useState('');
   const [editPlanDescripcion, setEditPlanDescripcion] = useState('');
+  const [editPlanPrecio, setEditPlanPrecio] = useState('');
+  const [editPlanEventos, setEditPlanEventos] = useState('');
+  const [editPlanPromos, setEditPlanPromos] = useState('');
   const [editPlanActivo, setEditPlanActivo] = useState(true);
-  const [editPlanPermisos, setEditPlanPermisos] = useState<Record<string, boolean>>({});
+  const [editPlanPerfilSocial, setEditPlanPerfilSocial] = useState(false);
+  const [editPlanPanelAnalisis, setEditPlanPanelAnalisis] = useState(false);
+  const [editPlanSoportePrioritario, setEditPlanSoportePrioritario] = useState(false);
+  const [editPlanVisibilidadExtra, setEditPlanVisibilidadExtra] = useState(false);
+  const [editPlanVisibilidadMaxima, setEditPlanVisibilidadMaxima] = useState(false);
   const [savingPlan, setSavingPlan] = useState(false);
 
   // Create plan modal state
   const [showCreatePlanModal, setShowCreatePlanModal] = useState(false);
   const [createPlanNombre, setCreatePlanNombre] = useState('');
   const [createPlanDescripcion, setCreatePlanDescripcion] = useState('');
+  const [createPlanPrecio, setCreatePlanPrecio] = useState('');
+  const [createPlanEventos, setCreatePlanEventos] = useState('');
+  const [createPlanPromos, setCreatePlanPromos] = useState('');
   const [createPlanActivo, setCreatePlanActivo] = useState(true);
-  const [createPlanPermisos, setCreatePlanPermisos] = useState<Record<string, boolean>>({
-    publicar_posts: true,
-    publicar_momentos: true,
-    responder_mensajes: true,
-    ver_estadisticas: false,
-    destacar_publicaciones: false,
-  });
+  const [createPlanPerfilSocial, setCreatePlanPerfilSocial] = useState(false);
+  const [createPlanPanelAnalisis, setCreatePlanPanelAnalisis] = useState(false);
+  const [createPlanSoportePrioritario, setCreatePlanSoportePrioritario] = useState(false);
+  const [createPlanVisibilidadExtra, setCreatePlanVisibilidadExtra] = useState(false);
+  const [createPlanVisibilidadMaxima, setCreatePlanVisibilidadMaxima] = useState(false);
   const [creatingPlan, setCreatingPlan] = useState(false);
 
   const cargarPlanes = useCallback(async () => {
@@ -102,8 +118,8 @@ export default function GestionarPlanesScreen() {
       console.log('[GestionarPlanes] ✅ Loading plans...');
       const { data, error } = await supabase
         .from('planes_suscripcion')
-        .select('id, nombre, descripcion, activo, caracteristicas, permisos')
-        .order('nombre', { ascending: true });
+        .select('*')
+        .order('precio_mensual', { ascending: true });
 
       if (error) {
         console.error('[GestionarPlanes] ❌ Error loading plans:', error);
@@ -122,7 +138,6 @@ export default function GestionarPlanesScreen() {
     try {
       console.log('[GestionarPlanes] ✅ Loading subscriptions...');
       
-      // ✅ FIXED: Specify which relationship to use with plan!inner()
       const { data, error } = await supabase
         .from('suscripciones_locales')
         .select(`
@@ -326,8 +341,15 @@ export default function GestionarPlanesScreen() {
     setEditingPlan(plan);
     setEditPlanNombre(plan.nombre);
     setEditPlanDescripcion(plan.descripcion || '');
+    setEditPlanPrecio(plan.precio_mensual?.toString() || '0');
+    setEditPlanEventos(plan.eventos_mes?.toString() || '0');
+    setEditPlanPromos(plan.promos_destacadas?.toString() || '0');
     setEditPlanActivo(plan.activo);
-    setEditPlanPermisos(plan.permisos || {});
+    setEditPlanPerfilSocial(plan.perfil_social || false);
+    setEditPlanPanelAnalisis(plan.panel_analisis || false);
+    setEditPlanSoportePrioritario(plan.soporte_prioritario || false);
+    setEditPlanVisibilidadExtra(plan.visibilidad_extra || false);
+    setEditPlanVisibilidadMaxima(plan.visibilidad_maxima || false);
     setShowEditPlanModal(true);
   };
 
@@ -339,6 +361,15 @@ export default function GestionarPlanesScreen() {
       return;
     }
 
+    const precio = parseFloat(editPlanPrecio) || 0;
+    const eventos = parseInt(editPlanEventos) || 0;
+    const promos = parseInt(editPlanPromos) || 0;
+
+    if (precio < 0) {
+      Alert.alert('Error', 'El precio no puede ser negativo');
+      return;
+    }
+
     setSavingPlan(true);
     try {
       const { error } = await supabase
@@ -346,8 +377,15 @@ export default function GestionarPlanesScreen() {
         .update({
           nombre: editPlanNombre.trim(),
           descripcion: editPlanDescripcion.trim(),
+          precio_mensual: precio,
+          eventos_mes: eventos,
+          promos_destacadas: promos,
           activo: editPlanActivo,
-          permisos: editPlanPermisos,
+          perfil_social: editPlanPerfilSocial,
+          panel_analisis: editPlanPanelAnalisis,
+          soporte_prioritario: editPlanSoportePrioritario,
+          visibilidad_extra: editPlanVisibilidadExtra,
+          visibilidad_maxima: editPlanVisibilidadMaxima,
         })
         .eq('id', editingPlan.id);
 
@@ -371,6 +409,15 @@ export default function GestionarPlanesScreen() {
       return;
     }
 
+    const precio = parseFloat(createPlanPrecio) || 0;
+    const eventos = parseInt(createPlanEventos) || 0;
+    const promos = parseInt(createPlanPromos) || 0;
+
+    if (precio < 0) {
+      Alert.alert('Error', 'El precio no puede ser negativo');
+      return;
+    }
+
     setCreatingPlan(true);
     try {
       const { error } = await supabase
@@ -378,8 +425,15 @@ export default function GestionarPlanesScreen() {
         .insert({
           nombre: createPlanNombre.trim(),
           descripcion: createPlanDescripcion.trim(),
+          precio_mensual: precio,
+          eventos_mes: eventos,
+          promos_destacadas: promos,
           activo: createPlanActivo,
-          permisos: createPlanPermisos,
+          perfil_social: createPlanPerfilSocial,
+          panel_analisis: createPlanPanelAnalisis,
+          soporte_prioritario: createPlanSoportePrioritario,
+          visibilidad_extra: createPlanVisibilidadExtra,
+          visibilidad_maxima: createPlanVisibilidadMaxima,
           caracteristicas: [],
         });
 
@@ -389,14 +443,15 @@ export default function GestionarPlanesScreen() {
       setShowCreatePlanModal(false);
       setCreatePlanNombre('');
       setCreatePlanDescripcion('');
+      setCreatePlanPrecio('');
+      setCreatePlanEventos('');
+      setCreatePlanPromos('');
       setCreatePlanActivo(true);
-      setCreatePlanPermisos({
-        publicar_posts: true,
-        publicar_momentos: true,
-        responder_mensajes: true,
-        ver_estadisticas: false,
-        destacar_publicaciones: false,
-      });
+      setCreatePlanPerfilSocial(false);
+      setCreatePlanPanelAnalisis(false);
+      setCreatePlanSoportePrioritario(false);
+      setCreatePlanVisibilidadExtra(false);
+      setCreatePlanVisibilidadMaxima(false);
       await cargarPlanes();
     } catch (error) {
       console.error('[GestionarPlanes] Error creating plan:', error);
@@ -417,7 +472,6 @@ export default function GestionarPlanesScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              // Check if plan has active subscriptions
               const { count } = await supabase
                 .from('suscripciones_locales')
                 .select('*', { count: 'exact', head: true })
@@ -454,20 +508,6 @@ export default function GestionarPlanesScreen() {
   const handleViewPlanDetail = (plan: Plan) => {
     setSelectedPlanDetail(plan);
     setShowPlanDetailModal(true);
-  };
-
-  const togglePermiso = (permiso: string, isEdit: boolean = false) => {
-    if (isEdit) {
-      setEditPlanPermisos(prev => ({
-        ...prev,
-        [permiso]: !prev[permiso],
-      }));
-    } else {
-      setCreatePlanPermisos(prev => ({
-        ...prev,
-        [permiso]: !prev[permiso],
-      }));
-    }
   };
 
   const getEstadoBadge = (estado: string) => {
@@ -508,6 +548,9 @@ export default function GestionarPlanesScreen() {
           <View style={styles.planHeader}>
             <View style={styles.planHeaderLeft}>
               <Text style={styles.planName}>{plan.nombre}</Text>
+              <Text style={styles.planPrice}>
+                {plan.precio_mensual === 0 ? 'Gratis' : `${plan.precio_mensual}€/mes`}
+              </Text>
             </View>
             <View style={styles.planHeaderRight}>
               <View style={[styles.planStatusBadge, plan.activo ? styles.planStatusActive : styles.planStatusInactive]}>
@@ -530,21 +573,32 @@ export default function GestionarPlanesScreen() {
           {plan.descripcion && (
             <Text style={styles.planDescription} numberOfLines={2}>{plan.descripcion}</Text>
           )}
-          {plan.caracteristicas && plan.caracteristicas.length > 0 && (
-            <View style={styles.planFeatures}>
-              {plan.caracteristicas.slice(0, 3).map((feature, index) => (
-                <View key={index} style={styles.planFeatureItem}>
-                  <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={16} color="#10B981" />
-                  <Text style={styles.planFeatureText} numberOfLines={1}>{feature}</Text>
-                </View>
-              ))}
-              {plan.caracteristicas.length > 3 && (
-                <Text style={styles.planFeatureMore}>
-                  +{plan.caracteristicas.length - 3} más
-                </Text>
-              )}
-            </View>
-          )}
+          <View style={styles.planFeatures}>
+            {plan.eventos_mes > 0 && (
+              <View style={styles.planFeatureItem}>
+                <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={16} color={colors.primary} />
+                <Text style={styles.planFeatureText}>{plan.eventos_mes} eventos/mes</Text>
+              </View>
+            )}
+            {plan.promos_destacadas > 0 && (
+              <View style={styles.planFeatureItem}>
+                <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={16} color={colors.badgeDestacado} />
+                <Text style={styles.planFeatureText}>{plan.promos_destacadas} promos destacadas</Text>
+              </View>
+            )}
+            {plan.perfil_social && (
+              <View style={styles.planFeatureItem}>
+                <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={16} color="#10B981" />
+                <Text style={styles.planFeatureText}>Perfil social</Text>
+              </View>
+            )}
+            {plan.panel_analisis && (
+              <View style={styles.planFeatureItem}>
+                <IconSymbol ios_icon_name="chart.bar.fill" android_material_icon_name="bar_chart" size={16} color="#10B981" />
+                <Text style={styles.planFeatureText}>Panel de análisis</Text>
+              </View>
+            )}
+          </View>
         </TouchableOpacity>
       ))}
     </ScrollView>
@@ -807,6 +861,9 @@ export default function GestionarPlanesScreen() {
                       >
                         <View style={styles.planOptionInfo}>
                           <Text style={styles.planOptionName}>{plan.nombre}</Text>
+                          <Text style={styles.planOptionPrice}>
+                            {plan.precio_mensual === 0 ? 'Gratis' : `${plan.precio_mensual}€/mes`}
+                          </Text>
                         </View>
                         {selectedPlan === plan.id && (
                           <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color={colors.primary} />
@@ -860,6 +917,9 @@ export default function GestionarPlanesScreen() {
                   <View style={styles.planDetailHeader}>
                     <View>
                       <Text style={styles.planDetailName}>{selectedPlanDetail.nombre}</Text>
+                      <Text style={styles.planDetailPrice}>
+                        {selectedPlanDetail.precio_mensual === 0 ? 'Gratis' : `${selectedPlanDetail.precio_mensual}€/mes`}
+                      </Text>
                     </View>
                     <View style={[
                       styles.planStatusBadge,
@@ -881,36 +941,66 @@ export default function GestionarPlanesScreen() {
                     </View>
                   )}
 
-                  {selectedPlanDetail.permisos && Object.keys(selectedPlanDetail.permisos).length > 0 && (
-                    <View style={styles.planDetailSection}>
-                      <Text style={styles.planDetailSectionTitle}>Permisos y Accesos</Text>
-                      {Object.entries(selectedPlanDetail.permisos).map(([key, value]) => (
-                        <View key={key} style={styles.planDetailFeature}>
-                          <IconSymbol 
-                            ios_icon_name={value ? "checkmark.circle.fill" : "xmark.circle.fill"} 
-                            android_material_icon_name={value ? "check_circle" : "cancel"} 
-                            size={20} 
-                            color={value ? "#10B981" : "#EF4444"} 
-                          />
-                          <Text style={styles.planDetailFeatureText}>
-                            {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                          </Text>
-                        </View>
-                      ))}
+                  <View style={styles.planDetailSection}>
+                    <Text style={styles.planDetailSectionTitle}>Características</Text>
+                    <View style={styles.planDetailFeature}>
+                      <IconSymbol 
+                        ios_icon_name={selectedPlanDetail.eventos_mes > 0 ? "checkmark.circle.fill" : "xmark.circle.fill"} 
+                        android_material_icon_name={selectedPlanDetail.eventos_mes > 0 ? "check_circle" : "cancel"} 
+                        size={20} 
+                        color={selectedPlanDetail.eventos_mes > 0 ? "#10B981" : "#EF4444"} 
+                      />
+                      <Text style={styles.planDetailFeatureText}>
+                        {selectedPlanDetail.eventos_mes > 0 ? `${selectedPlanDetail.eventos_mes} eventos/mes` : 'Sin eventos'}
+                      </Text>
                     </View>
-                  )}
-
-                  {selectedPlanDetail.caracteristicas && selectedPlanDetail.caracteristicas.length > 0 && (
-                    <View style={styles.planDetailSection}>
-                      <Text style={styles.planDetailSectionTitle}>Características</Text>
-                      {selectedPlanDetail.caracteristicas.map((feature, index) => (
-                        <View key={index} style={styles.planDetailFeature}>
-                          <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color="#10B981" />
-                          <Text style={styles.planDetailFeatureText}>{feature}</Text>
-                        </View>
-                      ))}
+                    <View style={styles.planDetailFeature}>
+                      <IconSymbol 
+                        ios_icon_name={selectedPlanDetail.promos_destacadas > 0 ? "checkmark.circle.fill" : "xmark.circle.fill"} 
+                        android_material_icon_name={selectedPlanDetail.promos_destacadas > 0 ? "check_circle" : "cancel"} 
+                        size={20} 
+                        color={selectedPlanDetail.promos_destacadas > 0 ? "#10B981" : "#EF4444"} 
+                      />
+                      <Text style={styles.planDetailFeatureText}>
+                        {selectedPlanDetail.promos_destacadas > 0 ? `${selectedPlanDetail.promos_destacadas} promos destacadas` : 'Sin promos'}
+                      </Text>
                     </View>
-                  )}
+                    <View style={styles.planDetailFeature}>
+                      <IconSymbol 
+                        ios_icon_name={selectedPlanDetail.perfil_social ? "checkmark.circle.fill" : "xmark.circle.fill"} 
+                        android_material_icon_name={selectedPlanDetail.perfil_social ? "check_circle" : "cancel"} 
+                        size={20} 
+                        color={selectedPlanDetail.perfil_social ? "#10B981" : "#EF4444"} 
+                      />
+                      <Text style={styles.planDetailFeatureText}>Perfil social</Text>
+                    </View>
+                    <View style={styles.planDetailFeature}>
+                      <IconSymbol 
+                        ios_icon_name={selectedPlanDetail.panel_analisis ? "checkmark.circle.fill" : "xmark.circle.fill"} 
+                        android_material_icon_name={selectedPlanDetail.panel_analisis ? "check_circle" : "cancel"} 
+                        size={20} 
+                        color={selectedPlanDetail.panel_analisis ? "#10B981" : "#EF4444"} 
+                      />
+                      <Text style={styles.planDetailFeatureText}>Panel de análisis</Text>
+                    </View>
+                    <View style={styles.planDetailFeature}>
+                      <IconSymbol 
+                        ios_icon_name={selectedPlanDetail.soporte_prioritario ? "checkmark.circle.fill" : "xmark.circle.fill"} 
+                        android_material_icon_name={selectedPlanDetail.soporte_prioritario ? "check_circle" : "cancel"} 
+                        size={20} 
+                        color={selectedPlanDetail.soporte_prioritario ? "#10B981" : "#EF4444"} 
+                      />
+                      <Text style={styles.planDetailFeatureText}>Soporte prioritario</Text>
+                    </View>
+                    {selectedPlanDetail.visibilidad_maxima && (
+                      <View style={styles.planDetailFeature}>
+                        <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={20} color={colors.badgeDestacado} />
+                        <Text style={[styles.planDetailFeatureText, { fontWeight: '700' }]}>
+                          Visibilidad máxima
+                        </Text>
+                      </View>
+                    )}
+                  </View>
 
                   <View style={styles.planDetailActions}>
                     <TouchableOpacity
@@ -996,25 +1086,88 @@ export default function GestionarPlanesScreen() {
                 </View>
 
                 <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Permisos y Accesos</Text>
-                  {[
-                    { key: 'publicar_posts', label: 'Publicar Posts' },
-                    { key: 'publicar_momentos', label: 'Publicar Momentos' },
-                    { key: 'responder_mensajes', label: 'Responder Mensajes' },
-                    { key: 'ver_estadisticas', label: 'Ver Estadísticas' },
-                    { key: 'destacar_publicaciones', label: 'Destacar Publicaciones' },
-                  ].map(({ key, label }) => (
-                    <TouchableOpacity
-                      key={key}
-                      style={styles.permissionItem}
-                      onPress={() => togglePermiso(key, true)}
-                    >
-                      <Text style={styles.permissionLabel}>{label}</Text>
-                      <View style={[styles.switch, editPlanPermisos[key] && styles.switchActive]}>
-                        <View style={[styles.switchThumb, editPlanPermisos[key] && styles.switchThumbActive]} />
-                      </View>
-                    </TouchableOpacity>
-                  ))}
+                  <Text style={styles.inputLabel}>Precio Mensual (€) *</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="0"
+                    placeholderTextColor={colors.textSecondary}
+                    value={editPlanPrecio}
+                    onChangeText={setEditPlanPrecio}
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Eventos por Mes</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="0"
+                    placeholderTextColor={colors.textSecondary}
+                    value={editPlanEventos}
+                    onChangeText={setEditPlanEventos}
+                    keyboardType="number-pad"
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Promos Destacadas</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="0"
+                    placeholderTextColor={colors.textSecondary}
+                    value={editPlanPromos}
+                    onChangeText={setEditPlanPromos}
+                    keyboardType="number-pad"
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Características</Text>
+                  <TouchableOpacity
+                    style={styles.featureToggle}
+                    onPress={() => setEditPlanPerfilSocial(!editPlanPerfilSocial)}
+                  >
+                    <Text style={styles.featureToggleLabel}>Perfil Social</Text>
+                    <View style={[styles.switch, editPlanPerfilSocial && styles.switchActive]}>
+                      <View style={[styles.switchThumb, editPlanPerfilSocial && styles.switchThumbActive]} />
+                    </View>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.featureToggle}
+                    onPress={() => setEditPlanPanelAnalisis(!editPlanPanelAnalisis)}
+                  >
+                    <Text style={styles.featureToggleLabel}>Panel de Análisis</Text>
+                    <View style={[styles.switch, editPlanPanelAnalisis && styles.switchActive]}>
+                      <View style={[styles.switchThumb, editPlanPanelAnalisis && styles.switchThumbActive]} />
+                    </View>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.featureToggle}
+                    onPress={() => setEditPlanSoportePrioritario(!editPlanSoportePrioritario)}
+                  >
+                    <Text style={styles.featureToggleLabel}>Soporte Prioritario</Text>
+                    <View style={[styles.switch, editPlanSoportePrioritario && styles.switchActive]}>
+                      <View style={[styles.switchThumb, editPlanSoportePrioritario && styles.switchThumbActive]} />
+                    </View>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.featureToggle}
+                    onPress={() => setEditPlanVisibilidadExtra(!editPlanVisibilidadExtra)}
+                  >
+                    <Text style={styles.featureToggleLabel}>Visibilidad Extra</Text>
+                    <View style={[styles.switch, editPlanVisibilidadExtra && styles.switchActive]}>
+                      <View style={[styles.switchThumb, editPlanVisibilidadExtra && styles.switchThumbActive]} />
+                    </View>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.featureToggle}
+                    onPress={() => setEditPlanVisibilidadMaxima(!editPlanVisibilidadMaxima)}
+                  >
+                    <Text style={styles.featureToggleLabel}>Visibilidad Máxima</Text>
+                    <View style={[styles.switch, editPlanVisibilidadMaxima && styles.switchActive]}>
+                      <View style={[styles.switchThumb, editPlanVisibilidadMaxima && styles.switchThumbActive]} />
+                    </View>
+                  </TouchableOpacity>
                 </View>
 
                 <View style={styles.inputContainer}>
@@ -1107,25 +1260,88 @@ export default function GestionarPlanesScreen() {
                 </View>
 
                 <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Permisos y Accesos</Text>
-                  {[
-                    { key: 'publicar_posts', label: 'Publicar Posts' },
-                    { key: 'publicar_momentos', label: 'Publicar Momentos' },
-                    { key: 'responder_mensajes', label: 'Responder Mensajes' },
-                    { key: 'ver_estadisticas', label: 'Ver Estadísticas' },
-                    { key: 'destacar_publicaciones', label: 'Destacar Publicaciones' },
-                  ].map(({ key, label }) => (
-                    <TouchableOpacity
-                      key={key}
-                      style={styles.permissionItem}
-                      onPress={() => togglePermiso(key, false)}
-                    >
-                      <Text style={styles.permissionLabel}>{label}</Text>
-                      <View style={[styles.switch, createPlanPermisos[key] && styles.switchActive]}>
-                        <View style={[styles.switchThumb, createPlanPermisos[key] && styles.switchThumbActive]} />
-                      </View>
-                    </TouchableOpacity>
-                  ))}
+                  <Text style={styles.inputLabel}>Precio Mensual (€) *</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="0"
+                    placeholderTextColor={colors.textSecondary}
+                    value={createPlanPrecio}
+                    onChangeText={setCreatePlanPrecio}
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Eventos por Mes</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="0"
+                    placeholderTextColor={colors.textSecondary}
+                    value={createPlanEventos}
+                    onChangeText={setCreatePlanEventos}
+                    keyboardType="number-pad"
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Promos Destacadas</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="0"
+                    placeholderTextColor={colors.textSecondary}
+                    value={createPlanPromos}
+                    onChangeText={setCreatePlanPromos}
+                    keyboardType="number-pad"
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Características</Text>
+                  <TouchableOpacity
+                    style={styles.featureToggle}
+                    onPress={() => setCreatePlanPerfilSocial(!createPlanPerfilSocial)}
+                  >
+                    <Text style={styles.featureToggleLabel}>Perfil Social</Text>
+                    <View style={[styles.switch, createPlanPerfilSocial && styles.switchActive]}>
+                      <View style={[styles.switchThumb, createPlanPerfilSocial && styles.switchThumbActive]} />
+                    </View>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.featureToggle}
+                    onPress={() => setCreatePlanPanelAnalisis(!createPlanPanelAnalisis)}
+                  >
+                    <Text style={styles.featureToggleLabel}>Panel de Análisis</Text>
+                    <View style={[styles.switch, createPlanPanelAnalisis && styles.switchActive]}>
+                      <View style={[styles.switchThumb, createPlanPanelAnalisis && styles.switchThumbActive]} />
+                    </View>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.featureToggle}
+                    onPress={() => setCreatePlanSoportePrioritario(!createPlanSoportePrioritario)}
+                  >
+                    <Text style={styles.featureToggleLabel}>Soporte Prioritario</Text>
+                    <View style={[styles.switch, createPlanSoportePrioritario && styles.switchActive]}>
+                      <View style={[styles.switchThumb, createPlanSoportePrioritario && styles.switchThumbActive]} />
+                    </View>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.featureToggle}
+                    onPress={() => setCreatePlanVisibilidadExtra(!createPlanVisibilidadExtra)}
+                  >
+                    <Text style={styles.featureToggleLabel}>Visibilidad Extra</Text>
+                    <View style={[styles.switch, createPlanVisibilidadExtra && styles.switchActive]}>
+                      <View style={[styles.switchThumb, createPlanVisibilidadExtra && styles.switchThumbActive]} />
+                    </View>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.featureToggle}
+                    onPress={() => setCreatePlanVisibilidadMaxima(!createPlanVisibilidadMaxima)}
+                  >
+                    <Text style={styles.featureToggleLabel}>Visibilidad Máxima</Text>
+                    <View style={[styles.switch, createPlanVisibilidadMaxima && styles.switchActive]}>
+                      <View style={[styles.switchThumb, createPlanVisibilidadMaxima && styles.switchThumbActive]} />
+                    </View>
+                  </TouchableOpacity>
                 </View>
 
                 <View style={styles.inputContainer}>
@@ -1288,6 +1504,11 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 4,
   },
+  planPrice: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.primary,
+  },
   planStatusBadge: {
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -1332,12 +1553,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.text,
     flex: 1,
-  },
-  planFeatureMore: {
-    fontSize: 13,
-    color: colors.primary,
-    fontWeight: '600',
-    marginTop: 4,
   },
   subscriptionCard: {
     backgroundColor: 'white',
@@ -1546,7 +1761,7 @@ const styles = StyleSheet.create({
   switchThumbActive: {
     alignSelf: 'flex-end',
   },
-  permissionItem: {
+  featureToggle: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -1558,7 +1773,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginBottom: 8,
   },
-  permissionLabel: {
+  featureToggleLabel: {
     fontSize: 14,
     color: colors.text,
     fontWeight: '600',
@@ -1647,6 +1862,11 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 4,
   },
+  planOptionPrice: {
+    fontSize: 14,
+    color: colors.primary,
+    fontWeight: '600',
+  },
   confirmButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1673,6 +1893,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 4,
+  },
+  planDetailPrice: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: colors.primary,
   },
   planDetailSection: {
     marginBottom: 24,

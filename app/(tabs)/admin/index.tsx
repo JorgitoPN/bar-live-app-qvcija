@@ -12,15 +12,22 @@ import { useRouter } from 'expo-router';
 import { supabase } from '../../integrations/supabase/client';
 import { colors } from '../../../styles/commonStyles';
 import { IconSymbol } from '../../../components/IconSymbol';
+import { LinearGradient } from 'expo-linear-gradient';
+
+interface AdminSection {
+  id: string;
+  title: string;
+  icon: string;
+  androidIcon: string;
+  color: string;
+  options: AdminOption[];
+}
 
 interface AdminOption {
   id: string;
   title: string;
   description: string;
-  icon: string;
-  androidIcon: string;
   route: string;
-  color: string;
   badge?: string;
 }
 
@@ -97,245 +104,211 @@ export default function AdminPanel() {
     }
   };
 
-  const adminOptions: AdminOption[] = [
-    // PAGOS Y SUSCRIPCIONES
+  const adminSections: AdminSection[] = [
     {
-      id: 'stripe_wizard',
-      title: 'Asistente de Stripe',
-      description: 'Configuración guiada paso a paso',
-      icon: 'wand.and.stars',
-      androidIcon: 'auto_fix_high',
-      route: '/admin/asistente-stripe',
-      color: colors.primary,
-      badge: stripeConfigured ? undefined : '¡Nuevo!',
-    },
-    {
-      id: 'stripe',
-      title: 'Gestionar Pagos Stripe',
-      description: 'Configuración avanzada de Stripe',
+      id: 'payments',
+      title: 'Pagos y Suscripciones',
       icon: 'creditcard.fill',
       androidIcon: 'credit_card',
-      route: '/admin/gestionar-pagos-stripe',
       color: '#635BFF',
+      options: [
+        {
+          id: 'stripe_wizard',
+          title: 'Asistente de Stripe',
+          description: 'Configuración guiada paso a paso',
+          route: '/admin/asistente-stripe',
+          badge: stripeConfigured ? undefined : '¡Nuevo!',
+        },
+        {
+          id: 'stripe',
+          title: 'Gestionar Pagos Stripe',
+          description: 'Configuración avanzada de Stripe',
+          route: '/admin/gestionar-pagos-stripe',
+        },
+        {
+          id: 'planes',
+          title: 'Gestionar Planes',
+          description: 'Crear y editar planes de suscripción',
+          route: '/admin/gestionar-planes',
+        },
+        {
+          id: 'finanzas',
+          title: 'Visión Financiera',
+          description: 'Análisis de ingresos y métricas',
+          route: '/admin/vision-finanzas',
+        },
+      ],
     },
     {
-      id: 'planes',
-      title: 'Gestionar Planes',
-      description: 'Crear y editar planes de suscripción',
-      icon: 'star.fill',
-      androidIcon: 'star',
-      route: '/admin/gestionar-planes',
-      color: '#FFD700',
-    },
-    {
-      id: 'finanzas',
-      title: 'Visión Financiera',
-      description: 'Análisis de ingresos y métricas',
-      icon: 'chart.bar.fill',
-      androidIcon: 'bar_chart',
-      route: '/admin/vision-finanzas',
-      color: '#00BCD4',
-    },
-    
-    // GESTIÓN DE CONTENIDO
-    {
-      id: 'usuarios',
-      title: 'Gestionar Usuarios',
-      description: 'Administrar usuarios y permisos',
-      icon: 'person.2.fill',
-      androidIcon: 'people',
-      route: '/admin/gestionar-usuarios',
+      id: 'content',
+      title: 'Gestión de Contenido',
+      icon: 'folder.fill',
+      androidIcon: 'folder',
       color: '#4CAF50',
+      options: [
+        {
+          id: 'usuarios',
+          title: 'Gestionar Usuarios',
+          description: 'Administrar usuarios y permisos',
+          route: '/admin/gestionar-usuarios',
+        },
+        {
+          id: 'locales',
+          title: 'Gestionar Locales',
+          description: 'Administrar locales y establecimientos',
+          route: '/admin/gestionar-locales',
+        },
+        {
+          id: 'eventos',
+          title: 'Gestionar Eventos',
+          description: 'Crear y administrar eventos',
+          route: '/admin/gestionar-eventos',
+        },
+        {
+          id: 'solicitudes',
+          title: 'Solicitudes de Propietario',
+          description: 'Revisar solicitudes pendientes',
+          route: '/admin/gestionar-solicitudes',
+        },
+      ],
     },
     {
-      id: 'locales',
-      title: 'Gestionar Locales',
-      description: 'Administrar locales y establecimientos',
-      icon: 'building.2.fill',
-      androidIcon: 'store',
-      route: '/admin/gestionar-locales',
-      color: '#FF9800',
-    },
-    {
-      id: 'eventos',
-      title: 'Gestionar Eventos',
-      description: 'Crear y administrar eventos',
-      icon: 'calendar',
-      androidIcon: 'event',
-      route: '/admin/gestionar-eventos',
-      color: '#9C27B0',
-    },
-    {
-      id: 'solicitudes',
-      title: 'Solicitudes de Propietario',
-      description: 'Revisar solicitudes pendientes',
-      icon: 'envelope.fill',
-      androidIcon: 'mail',
-      route: '/admin/gestionar-solicitudes',
-      color: '#2196F3',
-    },
-    
-    // IMPORTACIÓN Y ENRIQUECIMIENTO
-    {
-      id: 'importacion_masiva',
-      title: 'Importación Masiva',
-      description: 'Importar locales desde múltiples fuentes',
+      id: 'import',
+      title: 'Importación y Enriquecimiento',
       icon: 'arrow.down.doc.fill',
       androidIcon: 'download',
-      route: '/admin/importacion-masiva',
       color: '#00BCD4',
+      options: [
+        {
+          id: 'importacion_masiva',
+          title: 'Importación Masiva',
+          description: 'Importar locales desde múltiples fuentes',
+          route: '/admin/importacion-masiva',
+        },
+        {
+          id: 'importacion_osm',
+          title: 'Importación OSM',
+          description: 'Importar desde OpenStreetMap',
+          route: '/admin/importacion-osm',
+        },
+        {
+          id: 'enriquecimiento',
+          title: 'Enriquecimiento Google',
+          description: 'Enriquecer con datos de Google Places',
+          route: '/admin/enriquecimiento-google',
+        },
+        {
+          id: 'recategorizar',
+          title: 'Recategorizar Locales',
+          description: 'Actualizar categorías de locales',
+          route: '/admin/recategorizar-locales',
+        },
+        {
+          id: 'sincronizacion',
+          title: 'Sincronización',
+          description: 'Sincronizar datos con fuentes externas',
+          route: '/admin/sincronizacion',
+        },
+        {
+          id: 'migrar_fotos',
+          title: 'Migrar Fotos a Supabase',
+          description: 'Migrar fotos a Supabase Storage',
+          route: '/admin/migrar-fotos-supabase',
+        },
+      ],
     },
     {
-      id: 'importacion_osm',
-      title: 'Importación OSM',
-      description: 'Importar desde OpenStreetMap',
-      icon: 'map.fill',
-      androidIcon: 'map',
-      route: '/admin/importacion-osm',
-      color: '#4CAF50',
-    },
-    {
-      id: 'enriquecimiento',
-      title: 'Enriquecimiento Google',
-      description: 'Enriquecer con datos de Google Places',
-      icon: 'sparkles',
-      androidIcon: 'auto_awesome',
-      route: '/admin/enriquecimiento-google',
-      color: '#FF9800',
-    },
-    {
-      id: 'recategorizar',
-      title: 'Recategorizar Locales',
-      description: 'Actualizar categorías de locales',
-      icon: 'tag.fill',
-      androidIcon: 'label',
-      route: '/admin/recategorizar-locales',
-      color: '#9C27B0',
-    },
-    {
-      id: 'sincronizacion',
-      title: 'Sincronización',
-      description: 'Sincronizar datos con fuentes externas',
-      icon: 'arrow.triangle.2.circlepath',
-      androidIcon: 'sync',
-      route: '/admin/sincronizacion',
-      color: '#2196F3',
-    },
-    {
-      id: 'migrar_fotos',
-      title: 'Migrar Fotos a Supabase',
-      description: 'Migrar fotos a Supabase Storage',
-      icon: 'photo.fill',
-      androidIcon: 'photo_library',
-      route: '/admin/migrar-fotos-supabase',
-      color: '#E91E63',
-    },
-    
-    // CONFIGURACIÓN Y HERRAMIENTAS
-    {
-      id: 'configuracion',
-      title: 'Configuración General',
-      description: 'Ajustes generales de la aplicación',
+      id: 'config',
+      title: 'Configuración y Herramientas',
       icon: 'gearshape.fill',
       androidIcon: 'settings',
-      route: '/admin/configuracion-general',
       color: '#607D8B',
+      options: [
+        {
+          id: 'configuracion',
+          title: 'Configuración General',
+          description: 'Ajustes generales de la aplicación',
+          route: '/admin/configuracion-general',
+        },
+        {
+          id: 'configuracion_supabase',
+          title: 'Configuración Supabase',
+          description: 'Configurar conexión con Supabase',
+          route: '/admin/configuracion-supabase',
+        },
+        {
+          id: 'datos_maestros',
+          title: 'Datos Maestros',
+          description: 'Gestionar categorías y datos base',
+          route: '/admin/datos-maestros',
+        },
+        {
+          id: 'backups',
+          title: 'Backups',
+          description: 'Gestionar copias de seguridad',
+          route: '/admin/backups',
+        },
+        {
+          id: 'control_costes',
+          title: 'Control de Costes API',
+          description: 'Monitorear uso y costes de APIs',
+          route: '/admin/control-costes-api',
+        },
+      ],
     },
     {
-      id: 'configuracion_supabase',
-      title: 'Configuración Supabase',
-      description: 'Configurar conexión con Supabase',
-      icon: 'server.rack',
-      androidIcon: 'dns',
-      route: '/admin/configuracion-supabase',
-      color: '#3ECF8E',
-    },
-    {
-      id: 'datos_maestros',
-      title: 'Datos Maestros',
-      description: 'Gestionar categorías y datos base',
-      icon: 'list.bullet.rectangle',
-      androidIcon: 'list',
-      route: '/admin/datos-maestros',
-      color: '#795548',
-    },
-    {
-      id: 'backups',
-      title: 'Backups',
-      description: 'Gestionar copias de seguridad',
-      icon: 'externaldrive.fill',
-      androidIcon: 'backup',
-      route: '/admin/backups',
-      color: '#607D8B',
-    },
-    {
-      id: 'control_costes',
-      title: 'Control de Costes API',
-      description: 'Monitorear uso y costes de APIs',
-      icon: 'dollarsign.circle.fill',
-      androidIcon: 'attach_money',
-      route: '/admin/control-costes-api',
-      color: '#4CAF50',
-    },
-    
-    // EMAILS Y COMUNICACIÓN
-    {
-      id: 'gestion_emails',
-      title: 'Gestión de Emails',
-      description: 'Configurar plantillas de email',
-      icon: 'envelope.badge.fill',
+      id: 'communication',
+      title: 'Emails y Comunicación',
+      icon: 'envelope.fill',
       androidIcon: 'email',
-      route: '/admin/gestion-emails',
       color: '#2196F3',
+      options: [
+        {
+          id: 'gestion_emails',
+          title: 'Gestión de Emails',
+          description: 'Configurar plantillas de email',
+          route: '/admin/gestion-emails',
+        },
+        {
+          id: 'diagnostico_emails',
+          title: 'Diagnóstico de Emails',
+          description: 'Diagnosticar problemas de envío',
+          route: '/admin/diagnostico-emails',
+        },
+        {
+          id: 'probar_emails',
+          title: 'Probar Emails',
+          description: 'Enviar emails de prueba',
+          route: '/admin/probar-emails',
+        },
+      ],
     },
     {
-      id: 'diagnostico_emails',
-      title: 'Diagnóstico de Emails',
-      description: 'Diagnosticar problemas de envío',
-      icon: 'stethoscope',
-      androidIcon: 'bug_report',
-      route: '/admin/diagnostico-emails',
-      color: '#F44336',
-    },
-    {
-      id: 'probar_emails',
-      title: 'Probar Emails',
-      description: 'Enviar emails de prueba',
-      icon: 'paperplane.fill',
-      androidIcon: 'send',
-      route: '/admin/probar-emails',
-      color: '#00BCD4',
-    },
-    
-    // CONTENIDO LEGAL
-    {
-      id: 'contenido_legal',
-      title: 'Contenido Legal',
-      description: 'Gestionar términos y privacidad',
+      id: 'legal',
+      title: 'Contenido Legal y Navegación',
       icon: 'doc.text.fill',
       androidIcon: 'description',
-      route: '/admin/contenido-legal',
       color: '#9E9E9E',
-    },
-    
-    // NAVEGACIÓN Y PÁGINAS
-    {
-      id: 'navegacion',
-      title: 'Navegación de Páginas',
-      description: 'Ver todas las páginas de la app',
-      icon: 'map',
-      androidIcon: 'explore',
-      route: '/admin/navegacion-paginas',
-      color: '#673AB7',
-    },
-    {
-      id: 'ver_ficha',
-      title: 'Ver Ficha Local',
-      description: 'Vista previa de fichas de locales',
-      icon: 'eye.fill',
-      androidIcon: 'visibility',
-      route: '/admin/ver-ficha',
-      color: '#FF5722',
+      options: [
+        {
+          id: 'contenido_legal',
+          title: 'Contenido Legal',
+          description: 'Gestionar términos y privacidad',
+          route: '/admin/contenido-legal',
+        },
+        {
+          id: 'navegacion',
+          title: 'Navegación de Páginas',
+          description: 'Ver todas las páginas de la app',
+          route: '/admin/navegacion-paginas',
+        },
+        {
+          id: 'ver_ficha',
+          title: 'Ver Ficha Local',
+          description: 'Vista previa de fichas de locales',
+          route: '/admin/ver-ficha',
+        },
+      ],
     },
   ];
 
@@ -355,10 +328,13 @@ export default function AdminPanel() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <LinearGradient
+        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+        style={styles.header}
+      >
         <Text style={styles.headerTitle}>Panel de Administración</Text>
-        <Text style={styles.headerSubtitle}>Gestiona tu aplicación</Text>
-      </View>
+        <Text style={styles.headerSubtitle}>Gestiona tu aplicación de forma organizada</Text>
+      </LinearGradient>
 
       <ScrollView
         style={styles.scrollView}
@@ -371,7 +347,7 @@ export default function AdminPanel() {
               ios_icon_name="exclamationmark.triangle.fill"
               android_material_icon_name="warning"
               size={32}
-              color={colors.warning}
+              color="#F59E0B"
             />
             <View style={styles.alertContent}>
               <Text style={styles.alertTitle}>Stripe no configurado</Text>
@@ -382,32 +358,48 @@ export default function AdminPanel() {
           </View>
         )}
 
-        <View style={styles.grid}>
-          {adminOptions.map((option) => (
-            <TouchableOpacity
-              key={option.id}
-              style={styles.card}
-              onPress={() => router.push(option.route as any)}
-              activeOpacity={0.7}
-            >
-              {option.badge && (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{option.badge}</Text>
-                </View>
-              )}
-              <View style={[styles.iconContainer, { backgroundColor: option.color + '20' }]}>
+        {adminSections.map((section) => (
+          <View key={section.id} style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={[styles.sectionIconContainer, { backgroundColor: section.color + '20' }]}>
                 <IconSymbol
-                  ios_icon_name={option.icon}
-                  android_material_icon_name={option.androidIcon}
-                  size={32}
-                  color={option.color}
+                  ios_icon_name={section.icon}
+                  android_material_icon_name={section.androidIcon}
+                  size={24}
+                  color={section.color}
                 />
               </View>
-              <Text style={styles.cardTitle}>{option.title}</Text>
-              <Text style={styles.cardDescription}>{option.description}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+              <Text style={styles.sectionTitle}>{section.title}</Text>
+            </View>
+
+            <View style={styles.optionsGrid}>
+              {section.options.map((option) => (
+                <TouchableOpacity
+                  key={option.id}
+                  style={styles.optionCard}
+                  onPress={() => router.push(option.route as any)}
+                  activeOpacity={0.7}
+                >
+                  {option.badge && (
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>{option.badge}</Text>
+                    </View>
+                  )}
+                  <Text style={styles.optionTitle}>{option.title}</Text>
+                  <Text style={styles.optionDescription}>{option.description}</Text>
+                  <View style={styles.optionArrow}>
+                    <IconSymbol
+                      ios_icon_name="chevron.right"
+                      android_material_icon_name="chevron_right"
+                      size={16}
+                      color={colors.textSecondary}
+                    />
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        ))}
       </ScrollView>
     </View>
   );
@@ -430,20 +422,18 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingTop: 60,
-    paddingBottom: 20,
-    backgroundColor: colors.card,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    paddingBottom: 24,
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 4,
+    color: colors.headerText,
+    marginBottom: 6,
   },
   headerSubtitle: {
     fontSize: 16,
-    color: colors.textSecondary,
+    color: colors.headerText,
+    opacity: 0.9,
   },
   scrollView: {
     flex: 1,
@@ -455,12 +445,12 @@ const styles = StyleSheet.create({
   alertCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.card,
+    backgroundColor: colors.cardBackground,
     padding: 16,
     borderRadius: 12,
-    marginBottom: 20,
+    marginBottom: 24,
     borderWidth: 2,
-    borderColor: colors.warning,
+    borderColor: '#F59E0B',
   },
   alertContent: {
     flex: 1,
@@ -476,51 +466,69 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
   },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
+  section: {
+    marginBottom: 32,
   },
-  card: {
-    width: '48%',
-    backgroundColor: colors.card,
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+    flex: 1,
+  },
+  optionsGrid: {
+    gap: 12,
+  },
+  optionCard: {
+    backgroundColor: colors.cardBackground,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.cardBorder,
     position: 'relative',
   },
   badge: {
     position: 'absolute',
-    top: 8,
-    right: 8,
+    top: 12,
+    right: 12,
     backgroundColor: colors.primary,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
   },
   badgeText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 10,
     fontWeight: '600',
   },
-  iconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  cardTitle: {
+  optionTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: colors.text,
     marginBottom: 4,
+    paddingRight: 80,
   },
-  cardDescription: {
-    fontSize: 12,
+  optionDescription: {
+    fontSize: 13,
     color: colors.textSecondary,
     lineHeight: 18,
+  },
+  optionArrow: {
+    position: 'absolute',
+    right: 16,
+    top: '50%',
+    marginTop: -8,
   },
 });

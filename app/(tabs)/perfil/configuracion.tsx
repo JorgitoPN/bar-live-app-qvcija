@@ -440,6 +440,19 @@ export default function ConfiguracionScreen() {
             <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
 
+          <TouchableOpacity 
+            style={styles.settingRow} 
+            onPress={() => router.push('/perfil/solicitudes-acceso-mensajes')}
+          >
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>Solicitudes de acceso a mensajes</Text>
+              <Text style={styles.settingDescription}>
+                Gestiona el acceso de administradores a tus mensajes
+              </Text>
+            </View>
+            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+
           <TouchableOpacity style={styles.settingRow} onPress={handleCambiarContrasena}>
             <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>Cambiar contraseña</Text>

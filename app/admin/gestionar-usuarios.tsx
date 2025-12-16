@@ -19,6 +19,7 @@ import { colors, commonStyles } from '@/styles/commonStyles';
 import { IconSymbol } from '@/components/IconSymbol';
 import { supabase } from '@/utils/supabase';
 import { useRouter } from 'expo-router';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Usuario {
   id: string;
@@ -39,303 +40,19 @@ interface Local {
   imagen_url?: string;
 }
 
-const USUARIOS_POR_PAGINA = 20;
+interface MessageAccessRequest {
+  id: string;
+  status: 'pending' | 'approved' | 'denied' | 'revoked';
+  requested_at: string;
+  responded_at?: string;
+  expires_at?: string;
+}
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    paddingTop: 50,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.headerText,
-    flex: 1,
-    marginLeft: 12,
-  },
-  searchContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: colors.background,
-  },
-  searchInput: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: colors.text,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  filtersContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    flexDirection: 'row',
-    gap: 8,
-    flexWrap: 'wrap',
-  },
-  filterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: colors.cardBackground,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  filterButtonActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  filterButtonText: {
-    fontSize: 14,
-    color: colors.text,
-    fontWeight: '500',
-  },
-  filterButtonTextActive: {
-    color: colors.headerText,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 12,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: colors.cardBackground,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.text,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 4,
-  },
-  listContainer: {
-    flex: 1,
-  },
-  usuarioCard: {
-    backgroundColor: colors.cardBackground,
-    marginHorizontal: 16,
-    marginVertical: 6,
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  usuarioCardSelected: {
-    borderColor: colors.primary,
-    borderWidth: 2,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: colors.cardBorder,
-    marginRight: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkboxSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 12,
-  },
-  avatarPlaceholder: {
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.headerText,
-  },
-  usuarioInfo: {
-    flex: 1,
-  },
-  usuarioNombre: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  usuarioEmail: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginBottom: 4,
-  },
-  usuarioMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flexWrap: 'wrap',
-  },
-  rolBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  rolBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.headerText,
-  },
-  estadoBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  estadoBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  usuarioActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  actionButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: colors.cardBorder,
-  },
-  loadingContainer: {
-    padding: 20,
-    alignItems: 'center',
-  },
-  emptyContainer: {
-    padding: 40,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: 16,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: colors.background,
-    borderRadius: 16,
-    padding: 24,
-    width: '85%',
-    maxWidth: 400,
-    maxHeight: '80%',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 16,
-  },
-  modalOption: {
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  modalOptionText: {
-    fontSize: 16,
-    color: colors.text,
-  },
-  modalCancel: {
-    marginTop: 16,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  modalCancelText: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    fontWeight: '600',
-  },
-  localSearchInput: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: colors.text,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-    marginBottom: 16,
-  },
-  localItem: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  localItemSelected: {
-    backgroundColor: colors.primary + '20',
-  },
-  localNombre: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  localDireccion: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  localPropietarioInfo: {
-    fontSize: 12,
-    color: colors.primary,
-    marginTop: 2,
-  },
-  modalScrollView: {
-    maxHeight: 400,
-  },
-  assignButton: {
-    backgroundColor: colors.primary,
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  assignButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.headerText,
-  },
-  assignButtonDisabled: {
-    backgroundColor: colors.cardBorder,
-  },
-});
+const USUARIOS_POR_PAGINA = 20;
 
 export default function GestionarUsuariosScreen() {
   const router = useRouter();
+  const { user: currentUser } = useAuth();
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState('');
@@ -344,8 +61,14 @@ export default function GestionarUsuariosScreen() {
   const [selectedUsuarios, setSelectedUsuarios] = useState<Set<string>>(new Set());
   const [showRolModal, setShowRolModal] = useState(false);
   const [showLocalModal, setShowLocalModal] = useState(false);
+  const [showImpersonateModal, setShowImpersonateModal] = useState(false);
+  const [showMessageAccessModal, setShowMessageAccessModal] = useState(false);
   const [selectedUsuarioForRol, setSelectedUsuarioForRol] = useState<string | null>(null);
   const [selectedUsuarioForLocal, setSelectedUsuarioForLocal] = useState<string | null>(null);
+  const [selectedUsuarioForImpersonate, setSelectedUsuarioForImpersonate] = useState<Usuario | null>(null);
+  const [selectedUsuarioForMessageAccess, setSelectedUsuarioForMessageAccess] = useState<Usuario | null>(null);
+  const [messageAccessReason, setMessageAccessReason] = useState('');
+  const [requestingMessageAccess, setRequestingMessageAccess] = useState(false);
   const [locales, setLocales] = useState<Local[]>([]);
   const [localSearch, setLocalSearch] = useState('');
   const [selectedLocal, setSelectedLocal] = useState<string | null>(null);
@@ -551,6 +274,113 @@ export default function GestionarUsuariosScreen() {
     }
   };
 
+  const abrirModalImpersonar = (usuario: Usuario) => {
+    setSelectedUsuarioForImpersonate(usuario);
+    setShowImpersonateModal(true);
+  };
+
+  const impersonarUsuario = async () => {
+    if (!selectedUsuarioForImpersonate) return;
+
+    Alert.alert(
+      'Confirmar Impersonación',
+      `¿Estás seguro de que quieres ver la aplicación como ${selectedUsuarioForImpersonate.nombre}?\n\nPodrás interactuar con su cuenta pero no podrás ver sus mensajes privados sin su consentimiento.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Continuar',
+          onPress: () => {
+            // Store the impersonation in local storage or context
+            Alert.alert(
+              'Función en Desarrollo',
+              'La funcionalidad de impersonación se implementará próximamente. Por ahora, puedes:\n\n- Ver el perfil del usuario\n- Ver sus publicaciones\n- Ver su actividad pública\n\nPara acceder a mensajes privados, usa la opción "Solicitar Acceso a Mensajes".'
+            );
+            setShowImpersonateModal(false);
+          },
+        },
+      ]
+    );
+  };
+
+  const abrirModalAccesoMensajes = (usuario: Usuario) => {
+    setSelectedUsuarioForMessageAccess(usuario);
+    setMessageAccessReason('');
+    setShowMessageAccessModal(true);
+  };
+
+  const solicitarAccesoMensajes = async () => {
+    if (!selectedUsuarioForMessageAccess || !currentUser) {
+      Alert.alert('Error', 'Información de usuario no disponible');
+      return;
+    }
+
+    if (!messageAccessReason.trim()) {
+      Alert.alert('Error', 'Debes proporcionar una razón para solicitar acceso');
+      return;
+    }
+
+    setRequestingMessageAccess(true);
+
+    try {
+      // Check if there's already a pending or approved request
+      const { data: existingRequest, error: checkError } = await supabase
+        .from('admin_message_access_requests')
+        .select('*')
+        .eq('admin_id', currentUser.id)
+        .eq('user_id', selectedUsuarioForMessageAccess.id)
+        .in('status', ['pending', 'approved'])
+        .maybeSingle();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        throw checkError;
+      }
+
+      if (existingRequest) {
+        if (existingRequest.status === 'approved') {
+          Alert.alert(
+            'Acceso Ya Concedido',
+            'Ya tienes acceso aprobado a los mensajes de este usuario.'
+          );
+        } else {
+          Alert.alert(
+            'Solicitud Pendiente',
+            'Ya existe una solicitud pendiente para este usuario. Espera su respuesta.'
+          );
+        }
+        setShowMessageAccessModal(false);
+        return;
+      }
+
+      // Create new request
+      const { error: insertError } = await supabase
+        .from('admin_message_access_requests')
+        .insert({
+          admin_id: currentUser.id,
+          user_id: selectedUsuarioForMessageAccess.id,
+          reason: messageAccessReason.trim(),
+          status: 'pending',
+        });
+
+      if (insertError) throw insertError;
+
+      // TODO: Send notification to user about the access request
+
+      Alert.alert(
+        'Solicitud Enviada',
+        `Se ha enviado una solicitud de acceso a ${selectedUsuarioForMessageAccess.nombre}. El usuario recibirá una notificación y podrá aprobar o denegar tu solicitud.`
+      );
+
+      setShowMessageAccessModal(false);
+      setSelectedUsuarioForMessageAccess(null);
+      setMessageAccessReason('');
+    } catch (error) {
+      console.error('[GestionarUsuarios] Error solicitando acceso:', error);
+      Alert.alert('Error', 'No se pudo enviar la solicitud de acceso');
+    } finally {
+      setRequestingMessageAccess(false);
+    }
+  };
+
   const eliminarUsuario = async (usuarioId: string) => {
     Alert.alert(
       'Confirmar eliminación',
@@ -688,7 +518,7 @@ export default function GestionarUsuariosScreen() {
       <View style={styles.checkbox}>
         {selectedUsuarios.has(item.id) && (
           <View style={styles.checkboxSelected}>
-            <IconSymbol name="checkmark" size={16} color={colors.headerText} />
+            <IconSymbol ios_icon_name="checkmark" android_material_icon_name="check" size={16} color={colors.headerText} />
           </View>
         )}
       </View>
@@ -724,12 +554,24 @@ export default function GestionarUsuariosScreen() {
       </View>
 
       <View style={styles.usuarioActions}>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => abrirModalImpersonar(item)}
+        >
+          <IconSymbol ios_icon_name="person.crop.circle.badge.checkmark" android_material_icon_name="supervised_user_circle" size={20} color={colors.primary} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => abrirModalAccesoMensajes(item)}
+        >
+          <IconSymbol ios_icon_name="envelope.badge.shield.half.filled" android_material_icon_name="mark_email_read" size={20} color="#F59E0B" />
+        </TouchableOpacity>
         {item.rol_app === 'propietario' && (
           <TouchableOpacity
             style={styles.actionButton}
             onPress={() => abrirModalAsignarLocal(item.id)}
           >
-            <IconSymbol name="building.2" size={20} color={colors.text} />
+            <IconSymbol ios_icon_name="building.2" android_material_icon_name="store" size={20} color={colors.text} />
           </TouchableOpacity>
         )}
         <TouchableOpacity
@@ -739,14 +581,15 @@ export default function GestionarUsuariosScreen() {
             setShowRolModal(true);
           }}
         >
-          <IconSymbol name="person.badge.key" size={20} color={colors.text} />
+          <IconSymbol ios_icon_name="person.badge.key" android_material_icon_name="admin_panel_settings" size={20} color={colors.text} />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.actionButton}
           onPress={() => toggleEstadoUsuario(item.id, item.activo)}
         >
           <IconSymbol
-            name={item.activo ? 'pause.circle' : 'play.circle'}
+            ios_icon_name={item.activo ? 'pause.circle' : 'play.circle'}
+            android_material_icon_name={item.activo ? 'pause_circle' : 'play_circle'}
             size={20}
             color={colors.text}
           />
@@ -755,7 +598,7 @@ export default function GestionarUsuariosScreen() {
           style={styles.actionButton}
           onPress={() => eliminarUsuario(item.id)}
         >
-          <IconSymbol name="trash" size={20} color="#EF4444" />
+          <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={20} color="#EF4444" />
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
@@ -912,7 +755,7 @@ export default function GestionarUsuariosScreen() {
     if (loading) return null;
     return (
       <View style={styles.emptyContainer}>
-        <IconSymbol name="person.2" size={64} color={colors.textSecondary} />
+        <IconSymbol ios_icon_name="person.2" android_material_icon_name="people" size={64} color={colors.textSecondary} />
         <Text style={styles.emptyText}>
           {hayFiltrosActivos()
             ? 'No se encontraron usuarios con los filtros aplicados'
@@ -929,7 +772,7 @@ export default function GestionarUsuariosScreen() {
         style={styles.header}
       >
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Gestionar Usuarios</Text>
       </LinearGradient>
@@ -944,6 +787,7 @@ export default function GestionarUsuariosScreen() {
         contentContainerStyle={{ flexGrow: 1 }}
       />
 
+      {/* Role Change Modal */}
       <Modal
         visible={showRolModal}
         transparent
@@ -978,6 +822,7 @@ export default function GestionarUsuariosScreen() {
         </Pressable>
       </Modal>
 
+      {/* Assign Local Modal */}
       <Modal
         visible={showLocalModal}
         transparent
@@ -1045,6 +890,427 @@ export default function GestionarUsuariosScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {/* Impersonate User Modal */}
+      <Modal
+        visible={showImpersonateModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowImpersonateModal(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowImpersonateModal(false)}>
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+            <Text style={styles.modalTitle}>Ver como Usuario</Text>
+            {selectedUsuarioForImpersonate && (
+              <>
+                <Text style={styles.modalDescription}>
+                  Podrás ver la aplicación desde la perspectiva de {selectedUsuarioForImpersonate.nombre}.
+                </Text>
+                <Text style={styles.modalWarning}>
+                  ⚠️ No podrás acceder a sus mensajes privados sin su consentimiento explícito.
+                </Text>
+                <TouchableOpacity
+                  style={styles.modalPrimaryButton}
+                  onPress={impersonarUsuario}
+                >
+                  <Text style={styles.modalPrimaryButtonText}>Ver como {selectedUsuarioForImpersonate.nombre}</Text>
+                </TouchableOpacity>
+              </>
+            )}
+            <TouchableOpacity style={styles.modalCancel} onPress={() => setShowImpersonateModal(false)}>
+              <Text style={styles.modalCancelText}>Cancelar</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Message Access Request Modal */}
+      <Modal
+        visible={showMessageAccessModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowMessageAccessModal(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowMessageAccessModal(false)}>
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+            <Text style={styles.modalTitle}>Solicitar Acceso a Mensajes</Text>
+            {selectedUsuarioForMessageAccess && (
+              <>
+                <Text style={styles.modalDescription}>
+                  Solicita acceso a los mensajes privados de {selectedUsuarioForMessageAccess.nombre}.
+                </Text>
+                <Text style={styles.modalWarning}>
+                  🔒 El usuario recibirá una notificación y deberá aprobar tu solicitud. Esto garantiza la protección de datos y privacidad.
+                </Text>
+                <TextInput
+                  style={styles.reasonInput}
+                  placeholder="Razón de la solicitud (obligatorio)..."
+                  placeholderTextColor={colors.textSecondary}
+                  value={messageAccessReason}
+                  onChangeText={setMessageAccessReason}
+                  multiline
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                />
+                <TouchableOpacity
+                  style={[
+                    styles.modalPrimaryButton,
+                    (!messageAccessReason.trim() || requestingMessageAccess) && styles.modalPrimaryButtonDisabled,
+                  ]}
+                  onPress={solicitarAccesoMensajes}
+                  disabled={!messageAccessReason.trim() || requestingMessageAccess}
+                >
+                  {requestingMessageAccess ? (
+                    <ActivityIndicator size="small" color={colors.white} />
+                  ) : (
+                    <Text style={styles.modalPrimaryButtonText}>Enviar Solicitud</Text>
+                  )}
+                </TouchableOpacity>
+              </>
+            )}
+            <TouchableOpacity style={styles.modalCancel} onPress={() => setShowMessageAccessModal(false)}>
+              <Text style={styles.modalCancelText}>Cancelar</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  header: {
+    paddingTop: 50,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  backButton: {
+    padding: 8,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.headerText,
+    flex: 1,
+    marginLeft: 12,
+  },
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: colors.background,
+  },
+  searchInput: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  filtersContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  filterButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: colors.cardBackground,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  filterButtonActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  filterButtonText: {
+    fontSize: 14,
+    color: colors.text,
+    fontWeight: '500',
+  },
+  filterButtonTextActive: {
+    color: colors.headerText,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: colors.cardBackground,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 4,
+  },
+  usuarioCard: {
+    backgroundColor: colors.cardBackground,
+    marginHorizontal: 16,
+    marginVertical: 6,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  usuarioCardSelected: {
+    borderColor: colors.primary,
+    borderWidth: 2,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.cardBorder,
+    marginRight: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 12,
+  },
+  avatarPlaceholder: {
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.headerText,
+  },
+  usuarioInfo: {
+    flex: 1,
+  },
+  usuarioNombre: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  usuarioEmail: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: 4,
+  },
+  usuarioMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  rolBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  rolBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.headerText,
+  },
+  estadoBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  estadoBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  usuarioActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  actionButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: colors.cardBorder,
+  },
+  loadingContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  emptyContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: colors.background,
+    borderRadius: 16,
+    padding: 24,
+    width: '85%',
+    maxWidth: 400,
+    maxHeight: '80%',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 16,
+  },
+  modalDescription: {
+    fontSize: 15,
+    color: colors.text,
+    marginBottom: 12,
+    lineHeight: 22,
+  },
+  modalWarning: {
+    fontSize: 14,
+    color: '#F59E0B',
+    marginBottom: 16,
+    lineHeight: 20,
+    backgroundColor: '#FEF3C7',
+    padding: 12,
+    borderRadius: 8,
+  },
+  modalOption: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  modalOptionText: {
+    fontSize: 16,
+    color: colors.text,
+  },
+  modalPrimaryButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  modalPrimaryButtonDisabled: {
+    backgroundColor: colors.cardBorder,
+  },
+  modalPrimaryButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.headerText,
+  },
+  modalCancel: {
+    marginTop: 16,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  modalCancelText: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
+  localSearchInput: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    marginBottom: 16,
+  },
+  localItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  localItemSelected: {
+    backgroundColor: colors.primary + '20',
+  },
+  localNombre: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  localDireccion: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  localPropietarioInfo: {
+    fontSize: 12,
+    color: colors.primary,
+    marginTop: 2,
+  },
+  modalScrollView: {
+    maxHeight: 400,
+  },
+  assignButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  assignButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.headerText,
+  },
+  assignButtonDisabled: {
+    backgroundColor: colors.cardBorder,
+  },
+  reasonInput: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    marginBottom: 16,
+    minHeight: 100,
+  },
+});
