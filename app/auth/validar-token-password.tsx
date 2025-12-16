@@ -22,6 +22,7 @@ export default function ValidarTokenPasswordScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const email = params.email as string || '';
+  const isGoogleUser = params.isGoogleUser === 'true';
   
   const [token, setToken] = useState<string[]>(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
@@ -69,6 +70,7 @@ export default function ValidarTokenPasswordScreen() {
       console.log('═══════════════════════════════════════════════════════');
       console.log('[ValidarTokenPassword] 📧 Email:', email);
       console.log('[ValidarTokenPassword] 🔢 Token:', fullToken);
+      console.log('[ValidarTokenPassword] 🔐 Google User:', isGoogleUser);
 
       const { data: { project_url } } = await supabase.functions.getProjectUrl();
       const functionsUrl = project_url || 'https://embntaqwlwmgazvrglaf.supabase.co';
@@ -110,7 +112,11 @@ export default function ValidarTokenPasswordScreen() {
 
       router.push({
         pathname: '/auth/nueva-password-token',
-        params: { email, token: fullToken },
+        params: { 
+          email, 
+          token: fullToken,
+          isGoogleUser: isGoogleUser ? 'true' : 'false'
+        },
       });
     } catch (error: any) {
       console.error('[ValidarTokenPassword] ❌ Error:', error);
@@ -150,7 +156,9 @@ export default function ValidarTokenPasswordScreen() {
           />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Introduce el código</Text>
-        <Text style={styles.headerSubtitle}>Revisa tu correo electrónico</Text>
+        <Text style={styles.headerSubtitle}>
+          {isGoogleUser ? 'Configuración de contraseña' : 'Revisa tu correo electrónico'}
+        </Text>
       </LinearGradient>
 
       <ScrollView
@@ -232,7 +240,7 @@ export default function ValidarTokenPasswordScreen() {
               • Asegúrate de haber ingresado el correo correcto
             </Text>
             <Text style={styles.helpText}>
-              • El código expira en 15 minutos
+              • El código expira en 1 hora
             </Text>
           </View>
 

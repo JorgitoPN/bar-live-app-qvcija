@@ -4,7 +4,6 @@ import {
   View,
   Text,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
@@ -23,14 +22,9 @@ export default function ConfigurarPasswordGoogleScreen() {
   const params = useLocalSearchParams();
   const email = params.email as string;
   
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [tokenSent, setTokenSent] = useState(false);
 
-  // ✅ Fixed: Added router to dependencies
   useEffect(() => {
     if (!email) {
       Alert.alert('Error', 'No se proporcionó un correo electrónico');
@@ -38,11 +32,7 @@ export default function ConfigurarPasswordGoogleScreen() {
     }
   }, [email, router]);
 
-  const validatePassword = (password: string): boolean => {
-    return password.length >= 8;
-  };
-
-  const handleSendResetEmail = async () => {
+  const handleSendToken = async () => {
     if (!email) {
       Alert.alert('Error', 'No se proporcionó un correo electrónico');
       return;
@@ -51,31 +41,75 @@ export default function ConfigurarPasswordGoogleScreen() {
     setLoading(true);
 
     try {
-      console.log('[ConfigurarPasswordGoogle] 📧 Enviando correo de restablecimiento:', email);
+      console.log('[ConfigurarPasswordGoogle] 📧 Enviando token de configuración:', email);
 
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'https://natively.dev/email-confirmed',
+      // Get the project URL
+      const { data: { project_url } } = await supabase.functions.getProjectUrl();
+      const functionsUrl = project_url || 'https://embntaqwlwmgazvrglaf.supabase.co';
+
+      // Call the Edge Function to request password token
+      const response = await fetch(`${functionsUrl}/functions/v1/request-password-token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || ''}`,
+        },
+        body: JSON.stringify({ 
+          email: email.trim().toLowerCase(),
+          isGoogleUser: true // Flag to indicate this is a Google user setting up password
+        }),
       });
 
-      if (error) {
-        console.error('[ConfigurarPasswordGoogle] ❌ Error sending reset email:', error);
-        Alert.alert('Error', 'No se pudo enviar el correo de restablecimiento. Por favor, intenta nuevamente.');
-      } else {
-        console.log('[ConfigurarPasswordGoogle] ✅ Reset email sent successfully');
-        setResetEmailSent(true);
-        Alert.alert(
-          'Correo enviado',
-          'Te hemos enviado un correo con un enlace para configurar tu contraseña. Por favor, revisa tu bandeja de entrada (y la carpeta de spam).',
-          [
-            {
-              text: 'Entendido',
-            },
-          ]
-        );
+      const result = await response.json();
+
+      if (!response.ok) {
+        console.error('[ConfigurarPasswordGoogle] ❌ Error:', result);
+        throw new Error(result.error || 'Error al enviar el código');
       }
+
+      console.log('[ConfigurarPasswordGoogle] ✅ Token enviado exitosamente');
+      setTokenSent(true);
+
+      Alert.alert(
+        '✅ Código enviado',
+        'Te hemos enviado un código de verificación de 6 dígitos a tu correo electrónico. Por favor, revisa tu bandeja de entrada (y la carpeta de spam).',
+        [
+          {
+            text: 'Continuar',
+            onPress: () => {
+              router.push({
+                pathname: '/auth/validar-token-password',
+                params: { 
+                  email: email.trim().toLowerCase(),
+                  isGoogleUser: 'true' // Pass flag to next screen
+                },
+              });
+            },
+          },
+        ]
+      );
     } catch (error: any) {
-      console.error('[ConfigurarPasswordGoogle] ❌ Error in handleSendResetEmail:', error);
-      Alert.alert('Error', 'Ocurrió un error al enviar el correo');
+      console.error('[ConfigurarPasswordGoogle] ❌ Error:', error);
+      // Always show success to avoid revealing email existence
+      setTokenSent(true);
+      Alert.alert(
+        '✅ Código enviado',
+        'Si existe una cuenta asociada a este correo, recibirás un código de verificación. Por favor, revisa tu bandeja de entrada.',
+        [
+          {
+            text: 'Continuar',
+            onPress: () => {
+              router.push({
+                pathname: '/auth/validar-token-password',
+                params: { 
+                  email: email.trim().toLowerCase(),
+                  isGoogleUser: 'true'
+                },
+              });
+            },
+          },
+        ]
+      );
     } finally {
       setLoading(false);
     }
@@ -131,24 +165,45 @@ export default function ConfigurarPasswordGoogleScreen() {
 
           <View style={styles.instructionsBox}>
             <Text style={styles.instructionsTitle}>📋 ¿Cómo funciona?</Text>
-            <Text style={styles.instructionItem}>
-              1. Haz clic en "Enviar correo de configuración"
-            </Text>
-            <Text style={styles.instructionItem}>
-              2. Recibirás un correo con un enlace seguro
-            </Text>
-            <Text style={styles.instructionItem}>
-              3. Haz clic en el enlace del correo
-            </Text>
-            <Text style={styles.instructionItem}>
-              4. Configura tu nueva contraseña
-            </Text>
-            <Text style={styles.instructionItem}>
-              5. ¡Listo! Ya puedes iniciar sesión con tu contraseña
-            </Text>
+            <View style={styles.stepItem}>
+              <View style={styles.stepNumber}>
+                <Text style={styles.stepNumberText}>1</Text>
+              </View>
+              <View style={styles.stepContent}>
+                <Text style={styles.stepTitle}>Solicitar código</Text>
+                <Text style={styles.stepText}>Haz clic en "Enviar código de verificación"</Text>
+              </View>
+            </View>
+            <View style={styles.stepItem}>
+              <View style={styles.stepNumber}>
+                <Text style={styles.stepNumberText}>2</Text>
+              </View>
+              <View style={styles.stepContent}>
+                <Text style={styles.stepTitle}>Revisar correo</Text>
+                <Text style={styles.stepText}>Recibirás un código de 6 dígitos en tu email</Text>
+              </View>
+            </View>
+            <View style={styles.stepItem}>
+              <View style={styles.stepNumber}>
+                <Text style={styles.stepNumberText}>3</Text>
+              </View>
+              <View style={styles.stepContent}>
+                <Text style={styles.stepTitle}>Introducir código</Text>
+                <Text style={styles.stepText}>Ingresa el código en la siguiente pantalla</Text>
+              </View>
+            </View>
+            <View style={styles.stepItem}>
+              <View style={styles.stepNumber}>
+                <Text style={styles.stepNumberText}>4</Text>
+              </View>
+              <View style={styles.stepContent}>
+                <Text style={styles.stepTitle}>Crear contraseña</Text>
+                <Text style={styles.stepText}>Configura tu nueva contraseña segura</Text>
+              </View>
+            </View>
           </View>
 
-          {resetEmailSent && (
+          {tokenSent && (
             <View style={styles.successBox}>
               <IconSymbol
                 ios_icon_name="checkmark.circle.fill"
@@ -157,7 +212,7 @@ export default function ConfigurarPasswordGoogleScreen() {
                 color="#10b981"
               />
               <Text style={styles.successText}>
-                Correo enviado exitosamente. Por favor, revisa tu bandeja de entrada.
+                Código enviado exitosamente. Por favor, revisa tu bandeja de entrada.
               </Text>
             </View>
           )}
@@ -165,13 +220,13 @@ export default function ConfigurarPasswordGoogleScreen() {
           <View style={styles.tipsBox}>
             <Text style={styles.tipsTitle}>💡 Importante:</Text>
             <Text style={styles.tipItem}>
-              • El enlace expira en 24 horas
+              • El código expira en 1 hora
             </Text>
             <Text style={styles.tipItem}>
               • Revisa tu carpeta de spam si no lo ves
             </Text>
             <Text style={styles.tipItem}>
-              • Puedes solicitar un nuevo correo si es necesario
+              • Puedes solicitar un nuevo código si es necesario
             </Text>
             <Text style={styles.tipItem}>
               • Una vez configurada, podrás usar tu contraseña para iniciar sesión
@@ -180,15 +235,24 @@ export default function ConfigurarPasswordGoogleScreen() {
 
           <TouchableOpacity
             style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleSendResetEmail}
+            onPress={handleSendToken}
             disabled={loading}
           >
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.buttonText}>
-                {resetEmailSent ? 'Reenviar correo' : 'Enviar correo de configuración'}
-              </Text>
+              <>
+                <IconSymbol
+                  ios_icon_name="paperplane.fill"
+                  android_material_icon_name="send"
+                  size={20}
+                  color="#fff"
+                  style={styles.buttonIcon}
+                />
+                <Text style={styles.buttonText}>
+                  {tokenSent ? 'Reenviar código' : 'Enviar código de verificación'}
+                </Text>
+              </>
             )}
           </TouchableOpacity>
 
@@ -277,13 +341,39 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: colors.text,
-    marginBottom: 12,
+    marginBottom: 16,
   },
-  instructionItem: {
+  stepItem: {
+    flexDirection: 'row',
+    marginBottom: 16,
+  },
+  stepNumber: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  stepNumberText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  stepContent: {
+    flex: 1,
+  },
+  stepTitle: {
     fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  stepText: {
+    fontSize: 13,
     color: colors.textSecondary,
-    marginBottom: 8,
-    lineHeight: 20,
+    lineHeight: 18,
   },
   successBox: {
     flexDirection: 'row',
@@ -322,11 +412,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderRadius: 12,
     padding: 16,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 16,
   },
   buttonDisabled: {
     opacity: 0.6,
+  },
+  buttonIcon: {
+    marginRight: 8,
   },
   buttonText: {
     color: '#fff',

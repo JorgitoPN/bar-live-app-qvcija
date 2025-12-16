@@ -23,6 +23,7 @@ export default function NuevaPasswordTokenScreen() {
   const params = useLocalSearchParams();
   const email = params.email as string || '';
   const token = params.token as string || '';
+  const isGoogleUser = params.isGoogleUser === 'true';
   
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -79,6 +80,7 @@ export default function NuevaPasswordTokenScreen() {
       console.log('[NuevaPasswordToken] 🔄 ACTUALIZACIÓN DE CONTRASEÑA');
       console.log('═══════════════════════════════════════════════════════');
       console.log('[NuevaPasswordToken] 📧 Email:', email);
+      console.log('[NuevaPasswordToken] 🔐 Google User:', isGoogleUser);
 
       // Get the project URL
       const { data: { project_url } } = await supabase.functions.getProjectUrl();
@@ -94,7 +96,8 @@ export default function NuevaPasswordTokenScreen() {
         body: JSON.stringify({ 
           email: email.trim().toLowerCase(), 
           token: token.trim(),
-          newPassword 
+          newPassword,
+          isGoogleUser // Pass flag to update provider
         }),
       });
 
@@ -111,9 +114,13 @@ export default function NuevaPasswordTokenScreen() {
 
       console.log('[NuevaPasswordToken] ✅ Contraseña actualizada exitosamente');
 
+      const successMessage = isGoogleUser
+        ? '¡Contraseña configurada! Tu contraseña ha sido configurada exitosamente. Ahora puedes iniciar sesión con tu email y contraseña, además de seguir usando Google.'
+        : '¡Contraseña actualizada! Tu contraseña ha sido actualizada exitosamente. Ahora puedes iniciar sesión con tu nueva contraseña.';
+
       Alert.alert(
-        '¡Contraseña actualizada!',
-        'Tu contraseña ha sido actualizada exitosamente. Ahora puedes iniciar sesión con tu nueva contraseña.',
+        isGoogleUser ? '✅ ¡Configuración completa!' : '✅ ¡Contraseña actualizada!',
+        successMessage,
         [
           {
             text: 'Ir a iniciar sesión',
@@ -156,7 +163,9 @@ export default function NuevaPasswordTokenScreen() {
             color="#fff"
           />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Nueva contraseña</Text>
+        <Text style={styles.headerTitle}>
+          {isGoogleUser ? 'Configurar contraseña' : 'Nueva contraseña'}
+        </Text>
         <Text style={styles.headerSubtitle}>Crea una contraseña segura</Text>
       </LinearGradient>
 
@@ -175,7 +184,9 @@ export default function NuevaPasswordTokenScreen() {
             />
             <Text style={styles.infoTitle}>Casi listo</Text>
             <Text style={styles.infoText}>
-              Por favor, ingresa tu nueva contraseña. Asegúrate de que sea segura y fácil de recordar.
+              {isGoogleUser
+                ? 'Por favor, configura tu contraseña. Podrás usar tanto Google como email/contraseña para iniciar sesión.'
+                : 'Por favor, ingresa tu nueva contraseña. Asegúrate de que sea segura y fácil de recordar.'}
             </Text>
           </View>
 
@@ -279,6 +290,20 @@ export default function NuevaPasswordTokenScreen() {
             </View>
           </View>
 
+          {isGoogleUser && (
+            <View style={styles.googleInfoBox}>
+              <IconSymbol
+                ios_icon_name="info.circle.fill"
+                android_material_icon_name="info"
+                size={24}
+                color={colors.primary}
+              />
+              <Text style={styles.googleInfoText}>
+                Una vez configurada tu contraseña, podrás iniciar sesión usando Google o tu email y contraseña.
+              </Text>
+            </View>
+          )}
+
           <TouchableOpacity
             style={[styles.button, loading && styles.buttonDisabled]}
             onPress={handleUpdatePassword}
@@ -295,7 +320,9 @@ export default function NuevaPasswordTokenScreen() {
                   color="#fff"
                   style={styles.buttonIcon}
                 />
-                <Text style={styles.buttonText}>Actualizar contraseña</Text>
+                <Text style={styles.buttonText}>
+                  {isGoogleUser ? 'Configurar contraseña' : 'Actualizar contraseña'}
+                </Text>
               </>
             )}
           </TouchableOpacity>
@@ -410,7 +437,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBackground,
     borderRadius: 12,
     padding: 16,
-    marginBottom: 24,
+    marginBottom: 16,
   },
   requirementsTitle: {
     fontSize: 14,
@@ -430,6 +457,21 @@ const styles = StyleSheet.create({
   },
   requirementTextValid: {
     color: '#10b981',
+  },
+  googleInfoBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: `${colors.primary}15`,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+  },
+  googleInfoText: {
+    flex: 1,
+    fontSize: 13,
+    color: colors.text,
+    marginLeft: 12,
+    lineHeight: 18,
   },
   button: {
     backgroundColor: colors.primary,

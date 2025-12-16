@@ -30,7 +30,7 @@ export default function LoginScreen() {
     return emailRegex.test(email);
   };
 
-  const checkIfGoogleUser = async (email: string): Promise<boolean> => {
+  const checkIfGoogleUserWithoutPassword = async (email: string): Promise<boolean> => {
     try {
       // Check if user exists in usuarios table with Google provider
       const { data, error } = await supabase
@@ -44,9 +44,10 @@ export default function LoginScreen() {
         return false;
       }
 
+      // Only return true if provider is still 'google' (hasn't been updated to 'email')
       return data?.provider === 'google';
     } catch (error) {
-      console.error('[Login] Error in checkIfGoogleUser:', error);
+      console.error('[Login] Error in checkIfGoogleUserWithoutPassword:', error);
       return false;
     }
   };
@@ -67,33 +68,7 @@ export default function LoginScreen() {
     try {
       const normalizedEmail = email.trim().toLowerCase();
 
-      console.log('[Login v4.0] 🔐 Intentando iniciar sesión:', normalizedEmail);
-
-      // Check if this is a Google user
-      const isGoogleUser = await checkIfGoogleUser(normalizedEmail);
-
-      if (isGoogleUser) {
-        console.log('[Login v4.0] 🔍 Usuario de Google detectado');
-        setLoading(false);
-        
-        Alert.alert(
-          'Usuario de Google',
-          'Anteriormente iniciaste sesión con Google. Para continuar, necesitas configurar una contraseña para tu cuenta. Te enviaremos un correo con instrucciones.',
-          [
-            {
-              text: 'Configurar contraseña',
-              onPress: () => {
-                router.push({
-                  pathname: '/auth/configurar-password-google',
-                  params: { email: normalizedEmail },
-                });
-              },
-            },
-            { text: 'Cancelar', style: 'cancel' },
-          ]
-        );
-        return;
-      }
+      console.log('[Login v5.0] 🔐 Intentando iniciar sesión:', normalizedEmail);
 
       // Sign in with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -102,7 +77,7 @@ export default function LoginScreen() {
       });
 
       if (authError) {
-        console.error('[Login v4.0] ❌ Error signing in:', authError);
+        console.error('[Login v5.0] ❌ Error signing in:', authError);
         
         if (authError.message.includes('Email not confirmed')) {
           Alert.alert(
@@ -130,7 +105,7 @@ export default function LoginScreen() {
                       );
                     }
                   } catch (err) {
-                    console.error('[Login v4.0] Error resending email:', err);
+                    console.error('[Login v5.0] Error resending email:', err);
                     Alert.alert('Error', 'Ocurrió un error al reenviar el correo');
                   }
                 },
@@ -139,12 +114,13 @@ export default function LoginScreen() {
             ]
           );
         } else if (authError.message.includes('Invalid login credentials')) {
-          // Check again if this might be a Google user who hasn't set a password
-          const isGoogleUserRetry = await checkIfGoogleUser(normalizedEmail);
-          if (isGoogleUserRetry) {
+          // Check if this is a Google user who hasn't set a password yet
+          const isGoogleUserWithoutPassword = await checkIfGoogleUserWithoutPassword(normalizedEmail);
+          
+          if (isGoogleUserWithoutPassword) {
             Alert.alert(
-              'Usuario de Google',
-              'Parece que tu cuenta fue creada con Google. Necesitas configurar una contraseña primero.',
+              'Cuenta de Google',
+              'Esta cuenta fue creada con Google. ¿Deseas configurar una contraseña para poder iniciar sesión con email?',
               [
                 {
                   text: 'Configurar contraseña',
@@ -175,12 +151,12 @@ export default function LoginScreen() {
         return;
       }
 
-      console.log('[Login v4.0] ✅ Login successful:', authData.user.id);
+      console.log('[Login v5.0] ✅ Login successful:', authData.user.id);
       
       // Navigate to main app
       router.replace('/(tabs)/explorar');
     } catch (error: any) {
-      console.error('[Login v4.0] ❌ Error in handleLogin:', error);
+      console.error('[Login v5.0] ❌ Error in handleLogin:', error);
       Alert.alert('Error', 'Ocurrió un error inesperado');
     } finally {
       setLoading(false);
@@ -201,12 +177,12 @@ export default function LoginScreen() {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    // Check if this is a Google user
-    const isGoogleUser = await checkIfGoogleUser(normalizedEmail);
+    // Check if this is a Google user without password
+    const isGoogleUserWithoutPassword = await checkIfGoogleUserWithoutPassword(normalizedEmail);
 
-    if (isGoogleUser) {
+    if (isGoogleUserWithoutPassword) {
       Alert.alert(
-        'Usuario de Google',
+        'Cuenta de Google',
         'Tu cuenta fue creada con Google. Para poder iniciar sesión con contraseña, primero necesitas configurar una.',
         [
           {
