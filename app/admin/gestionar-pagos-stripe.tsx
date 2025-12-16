@@ -632,7 +632,7 @@ export default function GestionarPagosStripeScreen() {
         <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color="#10B981" />
         <Text style={styles.infoText}>
           <Text style={{ fontWeight: 'bold' }}>Webhook URL:</Text>{'\n'}
-          https://{Deno.env.get('SUPABASE_URL')?.replace('https://', '')}/functions/v1/stripe-webhook
+          Configura el webhook en Stripe Dashboard apuntando a tu función Edge de Supabase: /functions/v1/stripe-webhook
         </Text>
       </View>
     </ScrollView>

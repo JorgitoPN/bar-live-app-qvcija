@@ -40,7 +40,7 @@ interface LocalSubscription {
     nombre: string;
     imagen_url: string | null;
   };
-  planes_suscripcion: {
+  plan: {
     nombre: string;
   };
 }
@@ -100,7 +100,6 @@ export default function GestionarPlanesScreen() {
   const cargarPlanes = useCallback(async () => {
     try {
       console.log('[GestionarPlanes] ✅ Loading plans...');
-      // ✅ FIXED: Removed precio from select
       const { data, error } = await supabase
         .from('planes_suscripcion')
         .select('id, nombre, descripcion, activo, caracteristicas, permisos')
@@ -123,6 +122,7 @@ export default function GestionarPlanesScreen() {
     try {
       console.log('[GestionarPlanes] ✅ Loading subscriptions...');
       
+      // ✅ FIXED: Specify which relationship to use with plan!inner()
       const { data, error } = await supabase
         .from('suscripciones_locales')
         .select(`
@@ -132,7 +132,7 @@ export default function GestionarPlanesScreen() {
           estado,
           fecha_inicio,
           locales (nombre, imagen_url),
-          planes_suscripcion (nombre)
+          plan:planes_suscripcion!suscripciones_locales_plan_id_fkey (nombre)
         `)
         .order('fecha_inicio', { ascending: false })
         .limit(50);
@@ -341,7 +341,6 @@ export default function GestionarPlanesScreen() {
 
     setSavingPlan(true);
     try {
-      // ✅ FIXED: Removed precio from update
       const { error } = await supabase
         .from('planes_suscripcion')
         .update({
@@ -374,7 +373,6 @@ export default function GestionarPlanesScreen() {
 
     setCreatingPlan(true);
     try {
-      // ✅ FIXED: Removed precio from insert
       const { error } = await supabase
         .from('planes_suscripcion')
         .insert({
@@ -568,7 +566,7 @@ export default function GestionarPlanesScreen() {
                 <View style={styles.subscriptionHeaderLeft}>
                   <Text style={styles.subscriptionLocalName}>{subscription.locales.nombre}</Text>
                   <Text style={styles.subscriptionPlanName}>
-                    Plan: {subscription.planes_suscripcion.nombre}
+                    Plan: {subscription.plan.nombre}
                   </Text>
                 </View>
                 {getEstadoBadge(subscription.estado)}
