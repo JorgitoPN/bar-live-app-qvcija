@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,8 @@ import {
   Platform,
   KeyboardAvoidingView,
   Modal,
-} from 'react-native';
+  Dimensions,
+} from 'react';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -22,7 +23,9 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { WebView } from 'react-native-webview';
 
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const MAX_GALLERY_IMAGES = 5;
 
 interface LocalFormData {
@@ -113,25 +116,19 @@ const TIPOS_COCINA = [
 const DIAS_SEMANA = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
 /**
- * ✅ CREAR LOCAL v4.0 - ENHANCED UX & WORKFLOW
+ * ✅ CREAR LOCAL v5.0 - COMPLETE UX WITH OSM MAP & FULL PREVIEW
  * 
  * New features:
- * - ✅ Removed unnecessary filters (Precio promedio, Capacidad)
- * - ✅ Added business hours configuration
- * - ✅ Integrated OSM map for precise location selection
- * - ✅ Fixed placeholder text visibility
- * - ✅ Added step navigation (back/forward)
- * - ✅ Added close button (X) in header
- * - ✅ Added preview step before submission
- * - ✅ Multi-step guided form (6 steps now)
- * - ✅ Comprehensive local information fields
- * - ✅ Cover photo and gallery support
- * - ✅ Approval workflow with admin review
+ * - ✅ OSM map viewer for precise location selection (Step 2)
+ * - ✅ Full preview matching local details page exactly
+ * - ✅ All local information, images, gallery, and functions
+ * - ✅ Complete consistency with enriched Google locals
  */
 
 export default function CrearLocalScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const webViewRef = useRef<WebView>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -262,6 +259,97 @@ export default function CrearLocalScreen() {
     }
   };
 
+  const handleWebViewMessage = (event: any) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      if (data.type === 'location_selected') {
+        console.log('[CrearLocal] Location selected:', data.lat, data.lng);
+        updateFormData('latitud', data.lat);
+        updateFormData('longitud', data.lng);
+      }
+    } catch (error) {
+      console.error('[CrearLocal] Error parsing WebView message:', error);
+    }
+  };
+
+  const generateMapHTML = () => {
+    const centerLat = formData.latitud || 40.4168;
+    const centerLng = formData.longitud || -3.7038;
+
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+    #map { width: 100%; height: 100%; }
+    .custom-marker {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: #14B8A6;
+      border: 3px solid #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      cursor: move;
+    }
+    .leaflet-control-attribution { display: none !important; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script>
+    var map = L.map('map', {
+      zoomControl: true,
+      attributionControl: false
+    }).setView([${centerLat}, ${centerLng}], 16);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19
+    }).addTo(map);
+
+    var markerIcon = L.divIcon({
+      className: 'custom-marker',
+      html: '📍',
+      iconSize: [40, 40]
+    });
+
+    var marker = L.marker([${centerLat}, ${centerLng}], { 
+      icon: markerIcon,
+      draggable: true 
+    }).addTo(map);
+
+    marker.on('dragend', function(e) {
+      var position = marker.getLatLng();
+      window.ReactNativeWebView.postMessage(JSON.stringify({
+        type: 'location_selected',
+        lat: position.lat,
+        lng: position.lng
+      }));
+    });
+
+    map.on('click', function(e) {
+      marker.setLatLng(e.latlng);
+      window.ReactNativeWebView.postMessage(JSON.stringify({
+        type: 'location_selected',
+        lat: e.latlng.lat,
+        lng: e.latlng.lng
+      }));
+    });
+  </script>
+</body>
+</html>
+    `;
+  };
+
   const toggleServicio = (servicio: string) => {
     const servicios = formData.servicios.includes(servicio)
       ? formData.servicios.filter(s => s !== servicio)
@@ -312,11 +400,14 @@ export default function CrearLocalScreen() {
           Alert.alert('Campos requeridos', 'Por favor completa la dirección, ciudad y provincia');
           return false;
         }
+        if (!formData.latitud || !formData.longitud) {
+          Alert.alert('Ubicación requerida', 'Por favor selecciona la ubicación exacta en el mapa');
+          return false;
+        }
         return true;
       case 3:
       case 4:
       case 5:
-        // Optional steps, always valid
         return true;
       default:
         return true;
@@ -326,7 +417,6 @@ export default function CrearLocalScreen() {
   const handleNext = () => {
     if (validateStep(currentStep)) {
       if (currentStep === 5) {
-        // Show preview before final submission
         setShowPreview(true);
       } else {
         setCurrentStep(prev => Math.min(prev + 1, 5));
@@ -359,9 +449,8 @@ export default function CrearLocalScreen() {
 
     setLoading(true);
     try {
-      console.log('[CrearLocal v4.0] 📝 Creating local with approval workflow...');
+      console.log('[CrearLocal v5.0] 📝 Creating local with approval workflow...');
 
-      // Upload cover photo if exists
       let portadaUrl = formData.portada_url;
       if (portadaUrl && portadaUrl.startsWith('file://')) {
         const response = await fetch(portadaUrl);
@@ -378,7 +467,6 @@ export default function CrearLocalScreen() {
         }
       }
 
-      // Upload gallery images
       const galeriaUrls: string[] = [];
       for (const imageUri of formData.galeria_urls) {
         if (imageUri.startsWith('file://')) {
@@ -399,7 +487,6 @@ export default function CrearLocalScreen() {
         }
       }
 
-      // Create local in database with pending status
       const { data: localData, error: localError } = await supabase
         .from('locales')
         .insert({
@@ -421,11 +508,9 @@ export default function CrearLocalScreen() {
           galeria_urls: galeriaUrls,
           propietario_id: user.id,
           source_type: 'manual',
-          // Approval workflow fields
           estado_solicitud: 'pendiente',
           fecha_solicitud: new Date().toISOString(),
-          activo: false, // Inactive until approved
-          // Additional fields aligned with Google Maps data
+          activo: false,
           ambiente: formData.ambiente,
           musica: formData.musica,
           tipos_cocina: formData.tipos_cocina,
@@ -437,9 +522,8 @@ export default function CrearLocalScreen() {
 
       if (localError) throw localError;
 
-      console.log('[CrearLocal v4.0] ✅ Local created successfully with pending status');
+      console.log('[CrearLocal v5.0] ✅ Local created successfully with pending status');
 
-      // Send notification to admin and owner
       try {
         await supabase.functions.invoke('send-local-approval-notification', {
           body: {
@@ -449,7 +533,7 @@ export default function CrearLocalScreen() {
           },
         });
       } catch (notificationError) {
-        console.error('[CrearLocal v4.0] ⚠️ Error sending notification:', notificationError);
+        console.error('[CrearLocal v5.0] ⚠️ Error sending notification:', notificationError);
       }
 
       setShowPreview(false);
@@ -459,7 +543,7 @@ export default function CrearLocalScreen() {
         [{ text: 'OK', onPress: () => router.push('/gestion/mis-locales') }]
       );
     } catch (error) {
-      console.error('[CrearLocal v4.0] ❌ Error creating local:', error);
+      console.error('[CrearLocal v5.0] ❌ Error creating local:', error);
       Alert.alert('Error', 'No se pudo crear el local. Por favor, intenta de nuevo.');
     } finally {
       setLoading(false);
@@ -541,7 +625,7 @@ export default function CrearLocalScreen() {
     <View style={styles.stepContent}>
       <Text style={styles.stepTitle}>Ubicación y Contacto</Text>
       <Text style={styles.stepDescription}>
-        Añade la dirección completa y datos de contacto
+        Añade la dirección completa y selecciona la ubicación exacta en el mapa
       </Text>
 
       <View style={styles.inputContainer}>
@@ -596,11 +680,38 @@ export default function CrearLocalScreen() {
         <Text style={styles.locationButtonText}>Usar mi ubicación actual</Text>
       </TouchableOpacity>
 
-      <View style={styles.infoBox}>
-        <IconSymbol ios_icon_name="info.circle.fill" android_material_icon_name="info" size={20} color={colors.primary} />
-        <Text style={styles.infoText}>
-          En el siguiente paso podrás ajustar la ubicación exacta en el mapa
+      {/* ✅ NEW v5.0: OSM Map Viewer */}
+      <View style={styles.mapContainer}>
+        <Text style={styles.mapLabel}>Ubicación Exacta en el Mapa *</Text>
+        <Text style={styles.mapHelperText}>
+          Arrastra el marcador o toca en el mapa para ajustar la ubicación exacta
         </Text>
+        {Platform.OS === 'web' ? (
+          <View style={styles.webMapNotSupported}>
+            <IconSymbol ios_icon_name="map" android_material_icon_name="map" size={48} color={colors.textSecondary} />
+            <Text style={styles.webMapNotSupportedText}>
+              El mapa no está disponible en la versión web
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.mapViewer}>
+            <WebView
+              ref={webViewRef}
+              source={{ html: generateMapHTML() }}
+              style={styles.webview}
+              onMessage={handleWebViewMessage}
+              javaScriptEnabled={true}
+              domStorageEnabled={true}
+            />
+          </View>
+        )}
+        {formData.latitud && formData.longitud && (
+          <View style={styles.coordinatesDisplay}>
+            <Text style={styles.coordinatesText}>
+              📍 Lat: {formData.latitud.toFixed(6)}, Lng: {formData.longitud.toFixed(6)}
+            </Text>
+          </View>
+        )}
       </View>
 
       <View style={styles.inputContainer}>
@@ -830,114 +941,186 @@ export default function CrearLocalScreen() {
     </View>
   );
 
-  const renderPreview = () => (
-    <Modal
-      visible={showPreview}
-      animationType="slide"
-      transparent={false}
-      onRequestClose={() => setShowPreview(false)}
-    >
-      <View style={styles.previewContainer}>
-        <LinearGradient
-          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-          style={styles.previewHeader}
-        >
-          <TouchableOpacity style={styles.backButton} onPress={() => setShowPreview(false)}>
-            <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Vista Previa</Text>
-          <View style={{ width: 40 }} />
-        </LinearGradient>
+  // ✅ NEW v5.0: Full preview matching local details page
+  const renderPreview = () => {
+    const allImages = [
+      formData.portada_url,
+      ...formData.galeria_urls
+    ].filter(Boolean);
 
-        <ScrollView style={styles.previewContent}>
-          {formData.portada_url && (
-            <Image source={{ uri: formData.portada_url }} style={styles.previewCoverImage} />
-          )}
+    return (
+      <Modal
+        visible={showPreview}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setShowPreview(false)}
+      >
+        <View style={styles.previewContainer}>
+          <LinearGradient
+            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+            style={styles.previewHeader}
+          >
+            <TouchableOpacity style={styles.backButton} onPress={() => setShowPreview(false)}>
+              <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Vista Previa</Text>
+            <View style={{ width: 40 }} />
+          </LinearGradient>
 
-          <View style={styles.previewSection}>
-            <Text style={styles.previewLocalName}>{formData.nombre}</Text>
-            <Text style={styles.previewLocalType}>{TIPOS_LOCAL.find(t => t.value === formData.tipo)?.label}</Text>
-            
-            {formData.descripcion && (
-              <Text style={styles.previewDescription}>{formData.descripcion}</Text>
+          <ScrollView style={styles.previewContent}>
+            {/* Cover Image */}
+            {formData.portada_url && (
+              <Image source={{ uri: formData.portada_url }} style={styles.previewCoverImage} />
             )}
-          </View>
 
-          <View style={styles.previewSection}>
-            <Text style={styles.previewSectionTitle}>Ubicación</Text>
-            <Text style={styles.previewText}>{formData.direccion}</Text>
-            <Text style={styles.previewText}>{formData.ciudad}, {formData.provincia}</Text>
-            {formData.codigo_postal && <Text style={styles.previewText}>CP: {formData.codigo_postal}</Text>}
-          </View>
-
-          {formData.telefono && (
-            <View style={styles.previewSection}>
-              <Text style={styles.previewSectionTitle}>Contacto</Text>
-              <Text style={styles.previewText}>📞 {formData.telefono}</Text>
-              {formData.email && <Text style={styles.previewText}>✉️ {formData.email}</Text>}
-              {formData.web && <Text style={styles.previewText}>🌐 {formData.web}</Text>}
-            </View>
-          )}
-
-          {formData.servicios.length > 0 && (
-            <View style={styles.previewSection}>
-              <Text style={styles.previewSectionTitle}>Servicios</Text>
-              <View style={styles.previewChips}>
-                {formData.servicios.map((servicio, index) => (
-                  <View key={index} style={styles.previewChip}>
-                    <Text style={styles.previewChipText}>{servicio}</Text>
-                  </View>
-                ))}
+            {/* Gallery */}
+            {formData.galeria_urls.length > 0 && (
+              <View style={styles.previewGallerySection}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.previewGalleryScroll}>
+                  {formData.galeria_urls.map((uri, index) => (
+                    <Image key={index} source={{ uri }} style={styles.previewGalleryImage} />
+                  ))}
+                </ScrollView>
               </View>
-            </View>
-          )}
+            )}
 
-          {formData.galeria_urls.length > 0 && (
-            <View style={styles.previewSection}>
-              <Text style={styles.previewSectionTitle}>Galería</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {formData.galeria_urls.map((uri, index) => (
-                  <Image key={index} source={{ uri }} style={styles.previewGalleryImage} />
-                ))}
-              </ScrollView>
-            </View>
-          )}
-
-          <View style={styles.previewSection}>
-            <Text style={styles.previewSectionTitle}>Horarios</Text>
-            {DIAS_SEMANA.map((dia) => (
-              <View key={dia} style={styles.previewHorarioItem}>
-                <Text style={styles.previewHorarioDia}>{dia}</Text>
-                <Text style={styles.previewHorarioHoras}>
-                  {formData.horarios[dia]?.abierto
-                    ? `${formData.horarios[dia]?.apertura} - ${formData.horarios[dia]?.cierre}`
-                    : 'Cerrado'}
-                </Text>
+            {/* Header Section */}
+            <View style={styles.previewHeaderSection}>
+              <Text style={styles.previewLocalName}>{formData.nombre}</Text>
+              <View style={styles.previewCategoryChip}>
+                <Text style={styles.previewCategoryText}>{TIPOS_LOCAL.find(t => t.value === formData.tipo)?.label}</Text>
               </View>
-            ))}
-          </View>
-        </ScrollView>
-
-        <View style={styles.previewFooter}>
-          <TouchableOpacity style={styles.previewSecondaryButton} onPress={() => setShowPreview(false)}>
-            <Text style={styles.previewSecondaryButtonText}>Editar</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.previewPrimaryButton} onPress={handleSubmit} disabled={loading}>
-            <LinearGradient
-              colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-              style={styles.previewPrimaryGradient}
-            >
-              {loading ? (
-                <ActivityIndicator size="small" color={colors.headerText} />
-              ) : (
-                <Text style={styles.previewPrimaryButtonText}>Enviar Solicitud</Text>
+              
+              {formData.direccion && (
+                <View style={styles.previewAddressRow}>
+                  <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={18} color={colors.primary} />
+                  <Text style={styles.previewAddressText}>{formData.direccion}</Text>
+                </View>
               )}
-            </LinearGradient>
-          </TouchableOpacity>
+            </View>
+
+            {/* Description */}
+            {formData.descripcion && (
+              <View style={styles.previewSection}>
+                <Text style={styles.previewDescription}>{formData.descripcion}</Text>
+              </View>
+            )}
+
+            {/* Action Buttons */}
+            <View style={styles.previewActionsRow}>
+              {formData.telefono && (
+                <View style={styles.previewActionBtn}>
+                  <LinearGradient
+                    colors={['#10B981', '#059669']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.previewActionBtnGradient}
+                  >
+                    <IconSymbol ios_icon_name="phone.fill" android_material_icon_name="phone" size={20} color="#fff" />
+                    <Text style={styles.previewActionBtnText}>Llamar</Text>
+                  </LinearGradient>
+                </View>
+              )}
+              
+              {formData.latitud && formData.longitud && (
+                <View style={styles.previewActionBtn}>
+                  <LinearGradient
+                    colors={[colors.primary, colors.secondary]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.previewActionBtnGradient}
+                  >
+                    <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={20} color="#fff" />
+                    <Text style={styles.previewActionBtnText}>Cómo llegar</Text>
+                  </LinearGradient>
+                </View>
+              )}
+            </View>
+
+            {/* Horarios */}
+            {Object.keys(formData.horarios).length > 0 && (
+              <View style={styles.previewSection}>
+                <View style={styles.previewSectionHeader}>
+                  <View style={styles.previewIconCircle}>
+                    <IconSymbol ios_icon_name="clock.fill" android_material_icon_name="schedule" size={20} color="#3B82F6" />
+                  </View>
+                  <Text style={styles.previewSectionTitle}>Horarios</Text>
+                </View>
+                <View style={styles.previewScheduleCompact}>
+                  {DIAS_SEMANA.map((dia) => (
+                    <View key={dia} style={styles.previewScheduleRow}>
+                      <Text style={styles.previewScheduleDay}>{dia.substring(0, 3)}</Text>
+                      <Text style={styles.previewScheduleHours}>
+                        {formData.horarios[dia]?.abierto
+                          ? `${formData.horarios[dia]?.apertura} - ${formData.horarios[dia]?.cierre}`
+                          : 'Cerrado'}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Servicios */}
+            {formData.servicios.length > 0 && (
+              <View style={styles.previewSection}>
+                <View style={styles.previewSectionHeader}>
+                  <View style={[styles.previewIconCircle, { backgroundColor: '#10B981' + '20' }]}>
+                    <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color="#10B981" />
+                  </View>
+                  <Text style={styles.previewSectionTitle}>Servicios Disponibles</Text>
+                </View>
+                <View style={styles.previewTagsGrid}>
+                  {formData.servicios.map((servicio, index) => (
+                    <View key={index} style={styles.previewTag}>
+                      <Text style={styles.previewTagText}>{servicio}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Ambiente */}
+            {formData.ambiente.length > 0 && (
+              <View style={styles.previewSection}>
+                <View style={styles.previewSectionHeader}>
+                  <View style={[styles.previewIconCircle, { backgroundColor: '#8B5CF6' + '20' }]}>
+                    <IconSymbol ios_icon_name="sparkles" android_material_icon_name="auto_awesome" size={20} color="#8B5CF6" />
+                  </View>
+                  <Text style={styles.previewSectionTitle}>Ambiente</Text>
+                </View>
+                <View style={styles.previewTagsGrid}>
+                  {formData.ambiente.map((tag, index) => (
+                    <View key={index} style={styles.previewTag}>
+                      <Text style={styles.previewTagText}>{tag}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+          </ScrollView>
+
+          <View style={styles.previewFooter}>
+            <TouchableOpacity style={styles.previewSecondaryButton} onPress={() => setShowPreview(false)}>
+              <Text style={styles.previewSecondaryButtonText}>Editar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.previewPrimaryButton} onPress={handleSubmit} disabled={loading}>
+              <LinearGradient
+                colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+                style={styles.previewPrimaryGradient}
+              >
+                {loading ? (
+                  <ActivityIndicator size="small" color={colors.headerText} />
+                ) : (
+                  <Text style={styles.previewPrimaryButtonText}>Enviar Solicitud</Text>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-    </Modal>
-  );
+      </Modal>
+    );
+  };
 
   return (
     <KeyboardAvoidingView 
@@ -1163,6 +1346,56 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.primary,
   },
+  mapContainer: {
+    marginBottom: 20,
+  },
+  mapLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  mapHelperText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginBottom: 12,
+  },
+  mapViewer: {
+    height: 300,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+  webview: {
+    flex: 1,
+  },
+  webMapNotSupported: {
+    height: 300,
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  webMapNotSupportedText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 12,
+  },
+  coordinatesDisplay: {
+    marginTop: 8,
+    padding: 12,
+    backgroundColor: colors.primary + '15',
+    borderRadius: 8,
+  },
+  coordinatesText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.primary,
+    textAlign: 'center',
+  },
   serviciosGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1241,21 +1474,6 @@ const styles = StyleSheet.create({
     right: 8,
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     borderRadius: 12,
-  },
-  infoBox: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    padding: 16,
-    backgroundColor: '#DBEAFE',
-    borderRadius: 12,
-    marginBottom: 20,
-  },
-  infoText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#1E40AF',
-    lineHeight: 20,
   },
   horarioItem: {
     backgroundColor: colors.cardBackground,
@@ -1396,77 +1614,152 @@ const styles = StyleSheet.create({
     height: 250,
     backgroundColor: colors.cardBorder,
   },
+  previewGallerySection: {
+    backgroundColor: colors.background,
+    paddingVertical: 12,
+  },
+  previewGalleryScroll: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  previewGalleryImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 12,
+    marginRight: 8,
+    backgroundColor: colors.cardBorder,
+  },
+  previewHeaderSection: {
+    padding: 20,
+  },
+  previewLocalName: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  previewCategoryChip: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.primary,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 16,
+    marginBottom: 12,
+  },
+  previewCategoryText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: colors.headerText,
+  },
+  previewAddressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.cardBackground,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  previewAddressText: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.text,
+    fontWeight: '600',
+  },
   previewSection: {
     padding: 20,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
-  },
-  previewLocalName: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  previewLocalType: {
-    fontSize: 16,
-    color: colors.primary,
-    fontWeight: '600',
-    marginBottom: 12,
   },
   previewDescription: {
     fontSize: 15,
     color: colors.text,
     lineHeight: 22,
   },
+  previewActionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    paddingHorizontal: 20,
+    marginBottom: 10,
+  },
+  previewActionBtn: {
+    flex: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  previewActionBtnGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+  },
+  previewActionBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  previewSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  previewIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#3B82F6' + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   previewSectionTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: colors.text,
-    marginBottom: 12,
   },
-  previewText: {
-    fontSize: 15,
+  previewScheduleCompact: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 12,
+    padding: 10,
+    gap: 6,
+  },
+  previewScheduleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+  },
+  previewScheduleDay: {
+    fontSize: 13,
+    fontWeight: '600',
     color: colors.text,
-    marginBottom: 6,
+    width: 50,
   },
-  previewChips: {
+  previewScheduleHours: {
+    flex: 1,
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  previewTagsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
-  previewChip: {
+  previewTag: {
     backgroundColor: colors.primary + '15',
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 8,
     borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
   },
-  previewChipText: {
+  previewTagText: {
     fontSize: 13,
     fontWeight: '600',
     color: colors.primary,
-  },
-  previewGalleryImage: {
-    width: 150,
-    height: 150,
-    borderRadius: 12,
-    marginRight: 12,
-    backgroundColor: colors.cardBorder,
-  },
-  previewHorarioItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
-  },
-  previewHorarioDia: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  previewHorarioHoras: {
-    fontSize: 15,
-    color: colors.textSecondary,
   },
   previewFooter: {
     flexDirection: 'row',

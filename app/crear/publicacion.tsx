@@ -923,7 +923,7 @@ export default function CrearPublicacionScreen() {
           >
             <View style={styles.tagModal}>
               <View style={styles.tagModalHeader}>
-                <Text style={styles.tagModalTitle}>Etiquetar personas</Text>
+                <Text style={styles.tagModalTitle}>Etiquetar usuarios/locales</Text>
                 <TouchableOpacity 
                   onPress={() => {
                     setShowTagModal(false);
@@ -1315,6 +1315,7 @@ const styles = StyleSheet.create({
   },
   tagModalKeyboardView: {
     width: '100%',
+    justifyContent: 'flex-end',
   },
   tagModal: {
     backgroundColor: colors.background,
