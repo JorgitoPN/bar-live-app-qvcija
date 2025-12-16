@@ -68,7 +68,7 @@ export default function LoginScreen() {
     try {
       const normalizedEmail = email.trim().toLowerCase();
 
-      console.log('[Login v5.0] 🔐 Intentando iniciar sesión:', normalizedEmail);
+      console.log('[Login v6.0] 🔐 Intentando iniciar sesión:', normalizedEmail);
 
       // Sign in with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -77,7 +77,7 @@ export default function LoginScreen() {
       });
 
       if (authError) {
-        console.error('[Login v5.0] ❌ Error signing in:', authError);
+        console.error('[Login v6.0] ❌ Error signing in:', authError);
         
         if (authError.message.includes('Email not confirmed')) {
           Alert.alert(
@@ -105,7 +105,7 @@ export default function LoginScreen() {
                       );
                     }
                   } catch (err) {
-                    console.error('[Login v5.0] Error resending email:', err);
+                    console.error('[Login v6.0] Error resending email:', err);
                     Alert.alert('Error', 'Ocurrió un error al reenviar el correo');
                   }
                 },
@@ -145,19 +145,38 @@ export default function LoginScreen() {
         return;
       }
 
-      if (!authData.user) {
-        Alert.alert('Error', 'No se pudo iniciar sesión');
+      if (!authData.user || !authData.session) {
+        console.error('[Login v6.0] ❌ No user or session returned');
+        Alert.alert('Error', 'No se pudo iniciar sesión. Por favor, intenta de nuevo.');
         setLoading(false);
         return;
       }
 
-      console.log('[Login v5.0] ✅ Login successful:', authData.user.id);
+      console.log('[Login v6.0] ✅ Login successful:', authData.user.id);
+      console.log('[Login v6.0] 📅 Session expires at:', new Date(authData.session.expires_at! * 1000).toLocaleString());
+
+      // ✅ CRITICAL FIX: Wait a moment for the session to be fully persisted
+      // This ensures the AuthContext has time to process the SIGNED_IN event
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // ✅ CRITICAL FIX: Verify session is actually persisted before navigating
+      const { data: { session: verifiedSession }, error: verifyError } = await supabase.auth.getSession();
+      
+      if (verifyError || !verifiedSession) {
+        console.error('[Login v6.0] ❌ Session verification failed:', verifyError);
+        Alert.alert('Error', 'Error al establecer la sesión. Por favor, intenta de nuevo.');
+        setLoading(false);
+        return;
+      }
+
+      console.log('[Login v6.0] ✅ Session verified successfully');
+      console.log('[Login v6.0] 🚀 Navigating to main app...');
       
       // Navigate to main app
       router.replace('/(tabs)/explorar');
     } catch (error: any) {
-      console.error('[Login v5.0] ❌ Error in handleLogin:', error);
-      Alert.alert('Error', 'Ocurrió un error inesperado');
+      console.error('[Login v6.0] ❌ Error in handleLogin:', error);
+      Alert.alert('Error', 'Ocurrió un error inesperado. Por favor, intenta de nuevo.');
     } finally {
       setLoading(false);
     }

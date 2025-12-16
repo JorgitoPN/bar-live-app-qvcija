@@ -114,7 +114,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log('[AuthContext] 🔍 Obteniendo sesión actual...');
         
         // Get current session
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('[AuthContext] ❌ Error obteniendo sesión:', sessionError);
+          setInitializing(false);
+          setLoading(false);
+          return;
+        }
         
         if (currentSession) {
           console.log('[AuthContext] ✅ Sesión existente encontrada para:', currentSession.user.email);
@@ -123,8 +130,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           // Load user profile
           console.log('[AuthContext] 📥 Cargando perfil de usuario...');
-          const { user: userData } = await getCurrentUser();
-          if (userData) {
+          const { user: userData, error: userError } = await getCurrentUser();
+          
+          if (userError) {
+            console.error('[AuthContext] ❌ Error cargando perfil:', userError);
+          } else if (userData) {
             console.log('[AuthContext] ✅ Usuario cargado:', userData.email);
             setUser(userData);
             
@@ -166,6 +176,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
         
+        // ✅ CRITICAL FIX: Always update session state immediately
         setSession(currentSession);
         
         if (event === 'SIGNED_IN' && currentSession) {
@@ -174,8 +185,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setLoading(true);
           
           // Load user profile
-          const { user: userData } = await getCurrentUser();
-          if (userData) {
+          const { user: userData, error: userError } = await getCurrentUser();
+          
+          if (userError) {
+            console.error('[AuthContext] ❌ Error cargando perfil después de login:', userError);
+          } else if (userData) {
             console.log('[AuthContext] ✅ Perfil cargado:', userData.email);
             setUser(userData);
             
@@ -187,6 +201,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 }
               })
               .catch(() => {});
+          } else {
+            console.log('[AuthContext] ⚠️ No se pudo cargar el perfil después de login');
           }
           
           setLoading(false);
