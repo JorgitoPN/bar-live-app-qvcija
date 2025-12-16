@@ -8,10 +8,10 @@ import { Platform } from 'react-native';
  * ============================================================================
  * 
  * This layout configures all detail pages to open as modals with:
+ * - ✅ Modal presentation (not full screen)
  * - ✅ Drag-to-dismiss gesture enabled (swipe down to close)
- * - ✅ Rounded top corners (formSheet presentation)
- * - ✅ Sheet behavior on mobile
- * - ✅ Proper modal presentation on all platforms
+ * - ✅ Transparent background overlay
+ * - ✅ Smooth animations
  * 
  * IMPORTANT: The modal can be closed by:
  * 1. Dragging down from the top
@@ -23,19 +23,48 @@ export default function DetalleLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
-        presentation: Platform.OS === 'ios' ? 'formSheet' : 'modal',
+        // ✅ CRITICAL: Use 'modal' presentation, not 'formSheet' or full screen
+        presentation: 'modal',
         // ✅ Enable drag-to-dismiss gesture
         gestureEnabled: true,
         gestureDirection: 'vertical',
-        // ✅ iOS-specific sheet configuration
-        ...(Platform.OS === 'ios' && {
-          sheetAllowedDetents: [0.95],
-          sheetCornerRadius: 20,
-          sheetGrabberVisible: true,
-        }),
+        // ✅ Card overlay for modal effect
+        cardOverlayEnabled: true,
+        // ✅ Transparent background
+        cardStyle: { backgroundColor: 'transparent' },
         // ✅ Animation configuration
         animation: 'slide_from_bottom',
         animationDuration: 300,
+        // ✅ Custom transition for modal effect
+        transitionSpec: {
+          open: {
+            animation: 'timing',
+            config: {
+              duration: 300,
+            },
+          },
+          close: {
+            animation: 'timing',
+            config: {
+              duration: 300,
+            },
+          },
+        },
+        // ✅ Card style interpolator for fade effect
+        cardStyleInterpolator: ({ current: { progress } }) => ({
+          cardStyle: {
+            opacity: progress.interpolate({
+              inputRange: [0, 0.5, 0.9, 1],
+              outputRange: [0, 0.25, 0.7, 1],
+            }),
+          },
+          overlayStyle: {
+            opacity: progress.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, 0.5],
+            }),
+          },
+        }),
       }}
     />
   );

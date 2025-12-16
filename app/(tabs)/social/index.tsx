@@ -195,6 +195,14 @@ export default function SocialIndexScreen() {
     router.push('/perfil/notificaciones');
   };
 
+  const handleMessages = () => {
+    router.push('/(tabs)/perfil/chats');
+  };
+
+  const handleCreatePost = () => {
+    router.push('/crear/publicacion');
+  };
+
   const handleSearch = () => {
     // TODO: Implement search functionality
     Alert.alert('Búsqueda', 'Función de búsqueda próximamente');
@@ -223,9 +231,8 @@ export default function SocialIndexScreen() {
       )}
 
       <MomentoCarousel />
-      <NewPostCard onPostCreated={handlePostCreated} />
     </React.Fragment>
-  ), [isImpersonating, impersonationSession, handlePostCreated]);
+  ), [isImpersonating, impersonationSession]);
 
   const renderPost = useCallback(({ item }: { item: Post }) => (
     <PublicacionCard post={item} onUpdate={handleRefresh} />
@@ -267,7 +274,7 @@ export default function SocialIndexScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header with Icons */}
+      {/* ✅ FIXED: Header with Messages and Create Post Icons (matching profile page style) */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         style={styles.header}
@@ -280,9 +287,15 @@ export default function SocialIndexScreen() {
                 <IconSymbol ios_icon_name="person.crop.circle.badge.checkmark" android_material_icon_name="supervised_user_circle" size={20} color={colors.headerText} />
               </View>
             )}
-            <TouchableOpacity style={styles.headerIconButton} onPress={handleSearch}>
-              <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={24} color={colors.headerText} />
+            {/* ✅ Messages Icon - matching profile page style */}
+            <TouchableOpacity style={styles.headerIconButton} onPress={handleMessages}>
+              <IconSymbol ios_icon_name="message.fill" android_material_icon_name="message" size={24} color={colors.headerText} />
             </TouchableOpacity>
+            {/* ✅ Create Post Icon - matching profile page style */}
+            <TouchableOpacity style={styles.headerIconButton} onPress={handleCreatePost}>
+              <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={24} color={colors.headerText} />
+            </TouchableOpacity>
+            {/* Notifications Icon */}
             <TouchableOpacity style={styles.headerIconButton} onPress={handleNotifications}>
               <IconSymbol ios_icon_name="bell.fill" android_material_icon_name="notifications" size={24} color={colors.headerText} />
             </TouchableOpacity>
@@ -348,6 +361,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
+  // ✅ FIXED: Icon button style matching profile page (no blue background)
   headerIconButton: {
     width: 40,
     height: 40,

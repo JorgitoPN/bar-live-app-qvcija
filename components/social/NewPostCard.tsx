@@ -58,7 +58,7 @@ interface NewPostCardProps {
 }
 
 /**
- * ✅ NEW POST CARD v2.2 - FIXED HOOKS RULES VIOLATION
+ * ✅ NEW POST CARD v2.3 - FIXED HOOKS RULES VIOLATION
  * 
  * Key fixes:
  * - ✅ All hooks declared at the top before any conditional returns
