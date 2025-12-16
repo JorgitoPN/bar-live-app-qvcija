@@ -49,7 +49,6 @@ export default function AdminPanel() {
 
       console.log('[AdminPanel] 👤 Usuario autenticado:', user.email);
 
-      // ✅ FIX: Check rol_app instead of rol
       const { data: profile, error } = await supabase
         .from('usuarios')
         .select('rol_app')
@@ -99,6 +98,7 @@ export default function AdminPanel() {
   };
 
   const adminOptions: AdminOption[] = [
+    // PAGOS Y SUSCRIPCIONES
     {
       id: 'stripe_wizard',
       title: 'Asistente de Stripe',
@@ -127,6 +127,17 @@ export default function AdminPanel() {
       route: '/admin/gestionar-planes',
       color: '#FFD700',
     },
+    {
+      id: 'finanzas',
+      title: 'Visión Financiera',
+      description: 'Análisis de ingresos y métricas',
+      icon: 'chart.bar.fill',
+      androidIcon: 'bar_chart',
+      route: '/admin/vision-finanzas',
+      color: '#00BCD4',
+    },
+    
+    // GESTIÓN DE CONTENIDO
     {
       id: 'usuarios',
       title: 'Gestionar Usuarios',
@@ -163,15 +174,64 @@ export default function AdminPanel() {
       route: '/admin/gestionar-solicitudes',
       color: '#2196F3',
     },
+    
+    // IMPORTACIÓN Y ENRIQUECIMIENTO
     {
-      id: 'finanzas',
-      title: 'Visión Financiera',
-      description: 'Análisis de ingresos y métricas',
-      icon: 'chart.bar.fill',
-      androidIcon: 'bar_chart',
-      route: '/admin/vision-finanzas',
+      id: 'importacion_masiva',
+      title: 'Importación Masiva',
+      description: 'Importar locales desde múltiples fuentes',
+      icon: 'arrow.down.doc.fill',
+      androidIcon: 'download',
+      route: '/admin/importacion-masiva',
       color: '#00BCD4',
     },
+    {
+      id: 'importacion_osm',
+      title: 'Importación OSM',
+      description: 'Importar desde OpenStreetMap',
+      icon: 'map.fill',
+      androidIcon: 'map',
+      route: '/admin/importacion-osm',
+      color: '#4CAF50',
+    },
+    {
+      id: 'enriquecimiento',
+      title: 'Enriquecimiento Google',
+      description: 'Enriquecer con datos de Google Places',
+      icon: 'sparkles',
+      androidIcon: 'auto_awesome',
+      route: '/admin/enriquecimiento-google',
+      color: '#FF9800',
+    },
+    {
+      id: 'recategorizar',
+      title: 'Recategorizar Locales',
+      description: 'Actualizar categorías de locales',
+      icon: 'tag.fill',
+      androidIcon: 'label',
+      route: '/admin/recategorizar-locales',
+      color: '#9C27B0',
+    },
+    {
+      id: 'sincronizacion',
+      title: 'Sincronización',
+      description: 'Sincronizar datos con fuentes externas',
+      icon: 'arrow.triangle.2.circlepath',
+      androidIcon: 'sync',
+      route: '/admin/sincronizacion',
+      color: '#2196F3',
+    },
+    {
+      id: 'migrar_fotos',
+      title: 'Migrar Fotos a Supabase',
+      description: 'Migrar fotos a Supabase Storage',
+      icon: 'photo.fill',
+      androidIcon: 'photo_library',
+      route: '/admin/migrar-fotos-supabase',
+      color: '#E91E63',
+    },
+    
+    // CONFIGURACIÓN Y HERRAMIENTAS
     {
       id: 'configuracion',
       title: 'Configuración General',
@@ -180,6 +240,102 @@ export default function AdminPanel() {
       androidIcon: 'settings',
       route: '/admin/configuracion-general',
       color: '#607D8B',
+    },
+    {
+      id: 'configuracion_supabase',
+      title: 'Configuración Supabase',
+      description: 'Configurar conexión con Supabase',
+      icon: 'server.rack',
+      androidIcon: 'dns',
+      route: '/admin/configuracion-supabase',
+      color: '#3ECF8E',
+    },
+    {
+      id: 'datos_maestros',
+      title: 'Datos Maestros',
+      description: 'Gestionar categorías y datos base',
+      icon: 'list.bullet.rectangle',
+      androidIcon: 'list',
+      route: '/admin/datos-maestros',
+      color: '#795548',
+    },
+    {
+      id: 'backups',
+      title: 'Backups',
+      description: 'Gestionar copias de seguridad',
+      icon: 'externaldrive.fill',
+      androidIcon: 'backup',
+      route: '/admin/backups',
+      color: '#607D8B',
+    },
+    {
+      id: 'control_costes',
+      title: 'Control de Costes API',
+      description: 'Monitorear uso y costes de APIs',
+      icon: 'dollarsign.circle.fill',
+      androidIcon: 'attach_money',
+      route: '/admin/control-costes-api',
+      color: '#4CAF50',
+    },
+    
+    // EMAILS Y COMUNICACIÓN
+    {
+      id: 'gestion_emails',
+      title: 'Gestión de Emails',
+      description: 'Configurar plantillas de email',
+      icon: 'envelope.badge.fill',
+      androidIcon: 'email',
+      route: '/admin/gestion-emails',
+      color: '#2196F3',
+    },
+    {
+      id: 'diagnostico_emails',
+      title: 'Diagnóstico de Emails',
+      description: 'Diagnosticar problemas de envío',
+      icon: 'stethoscope',
+      androidIcon: 'bug_report',
+      route: '/admin/diagnostico-emails',
+      color: '#F44336',
+    },
+    {
+      id: 'probar_emails',
+      title: 'Probar Emails',
+      description: 'Enviar emails de prueba',
+      icon: 'paperplane.fill',
+      androidIcon: 'send',
+      route: '/admin/probar-emails',
+      color: '#00BCD4',
+    },
+    
+    // CONTENIDO LEGAL
+    {
+      id: 'contenido_legal',
+      title: 'Contenido Legal',
+      description: 'Gestionar términos y privacidad',
+      icon: 'doc.text.fill',
+      androidIcon: 'description',
+      route: '/admin/contenido-legal',
+      color: '#9E9E9E',
+    },
+    
+    // NAVEGACIÓN Y PÁGINAS
+    {
+      id: 'navegacion',
+      title: 'Navegación de Páginas',
+      description: 'Ver todas las páginas de la app',
+      icon: 'map',
+      androidIcon: 'explore',
+      route: '/admin/navegacion-paginas',
+      color: '#673AB7',
+    },
+    {
+      id: 'ver_ficha',
+      title: 'Ver Ficha Local',
+      description: 'Vista previa de fichas de locales',
+      icon: 'eye.fill',
+      androidIcon: 'visibility',
+      route: '/admin/ver-ficha',
+      color: '#FF5722',
     },
   ];
 
