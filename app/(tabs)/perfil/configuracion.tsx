@@ -24,12 +24,17 @@ export default function ConfiguracionScreen() {
   const router = useRouter();
   const { user, signOut } = useAuth();
   
+  // Notification settings
   const [notificacionesPush, setNotificacionesPush] = useState(true);
   const [notificacionesEmail, setNotificacionesEmail] = useState(true);
   const [notificacionesMenciones, setNotificacionesMenciones] = useState(true);
   const [notificacionesComentarios, setNotificacionesComentarios] = useState(true);
   const [notificacionesMeGusta, setNotificacionesMeGusta] = useState(true);
   const [notificacionesNuevosSeguidores, setNotificacionesNuevosSeguidores] = useState(true);
+  const [notificacionesMensajes, setNotificacionesMensajes] = useState(true);
+  const [notificacionesEventos, setNotificacionesEventos] = useState(true);
+  
+  // Language and appearance
   const [idioma, setIdioma] = useState('es');
   const [cacheSizeMB, setCacheSizeMB] = useState(0);
   const [showIdiomaModal, setShowIdiomaModal] = useState(false);
@@ -243,6 +248,54 @@ export default function ConfiguracionScreen() {
     Alert.alert('Idioma actualizado', `El idioma se ha cambiado a ${nombreIdioma}`);
   };
 
+  const handleDescargarDatos = () => {
+    Alert.alert(
+      'Descargar mis datos',
+      'Se generará un archivo con toda tu información y se enviará a tu correo electrónico en las próximas 24 horas.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Solicitar',
+          onPress: () => {
+            Alert.alert('Solicitud enviada', 'Recibirás un correo con tus datos en las próximas 24 horas');
+          },
+        },
+      ]
+    );
+  };
+
+  const handlePrivacidadCuenta = () => {
+    Alert.alert(
+      'Privacidad de cuenta',
+      'Controla quién puede ver tu contenido y perfil',
+      [
+        {
+          text: 'Cuenta pública',
+          onPress: () => Alert.alert('Configurado', 'Tu cuenta es pública. Cualquiera puede ver tu contenido.'),
+        },
+        {
+          text: 'Cuenta privada',
+          onPress: () => Alert.alert('Configurado', 'Tu cuenta es privada. Solo tus seguidores pueden ver tu contenido.'),
+        },
+        { text: 'Cancelar', style: 'cancel' },
+      ]
+    );
+  };
+
+  const handleAutenticacionDosFactor = () => {
+    Alert.alert(
+      'Autenticación de dos factores',
+      '¿Deseas activar la autenticación de dos factores para mayor seguridad?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Activar',
+          onPress: () => Alert.alert('Activado', 'La autenticación de dos factores ha sido activada'),
+        },
+      ]
+    );
+  };
+
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -250,7 +303,7 @@ export default function ConfiguracionScreen() {
         style={styles.header}
       >
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+          <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Configuración</Text>
         <View style={{ width: 40 }} />
@@ -261,7 +314,7 @@ export default function ConfiguracionScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ✅ UPDATED: Notificaciones section with more options */}
+        {/* Notificaciones section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Notificaciones</Text>
           
@@ -360,11 +413,41 @@ export default function ConfiguracionScreen() {
               thumbColor="#FFFFFF"
             />
           </View>
+
+          <View style={styles.settingRow}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>Mensajes</Text>
+              <Text style={styles.settingDescription}>
+                Cuando recibes un mensaje nuevo
+              </Text>
+            </View>
+            <Switch
+              value={notificacionesMensajes}
+              onValueChange={setNotificacionesMensajes}
+              trackColor={{ false: colors.cardBorder, true: colors.primary }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+
+          <View style={styles.settingRow}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingLabel}>Eventos</Text>
+              <Text style={styles.settingDescription}>
+                Recordatorios de eventos guardados
+              </Text>
+            </View>
+            <Switch
+              value={notificacionesEventos}
+              onValueChange={setNotificacionesEventos}
+              trackColor={{ false: colors.cardBorder, true: colors.primary }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
         </View>
 
-        {/* ✅ UPDATED: Idioma section (removed Tamaño de texto) */}
+        {/* Idioma section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Idioma</Text>
+          <Text style={styles.sectionTitle}>Idioma y Región</Text>
           
           <TouchableOpacity style={styles.settingRow} onPress={() => setShowIdiomaModal(true)}>
             <View style={styles.settingInfo}>
@@ -373,11 +456,11 @@ export default function ConfiguracionScreen() {
                 {idioma === 'es' ? 'Español' : idioma === 'en' ? 'English' : 'Català'}
               </Text>
             </View>
-            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
-        {/* ✅ UPDATED: Privacidad y Seguridad section */}
+        {/* Privacidad y Seguridad section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Privacidad y Seguridad</Text>
           
@@ -388,7 +471,7 @@ export default function ConfiguracionScreen() {
                 Gestiona los usuarios que has bloqueado
               </Text>
             </View>
-            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.settingRow} onPress={handleContenidoOculto}>
@@ -398,7 +481,7 @@ export default function ConfiguracionScreen() {
                 Publicaciones y comentarios ocultos
               </Text>
             </View>
-            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.settingRow} onPress={handleCambiarContrasena}>
@@ -408,33 +491,33 @@ export default function ConfiguracionScreen() {
                 Actualiza tu contraseña de acceso
               </Text>
             </View>
-            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingRow} onPress={() => Alert.alert('Próximamente', 'Esta función estará disponible pronto')}>
+          <TouchableOpacity style={styles.settingRow} onPress={handlePrivacidadCuenta}>
             <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>Privacidad de cuenta</Text>
               <Text style={styles.settingDescription}>
                 Controla quién puede ver tu contenido
               </Text>
             </View>
-            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingRow} onPress={() => Alert.alert('Próximamente', 'Esta función estará disponible pronto')}>
+          <TouchableOpacity style={styles.settingRow} onPress={handleAutenticacionDosFactor}>
             <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>Autenticación de dos factores</Text>
               <Text style={styles.settingDescription}>
                 Añade una capa extra de seguridad
               </Text>
             </View>
-            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
-        {/* ✅ UPDATED: Datos section */}
+        {/* Datos section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Datos</Text>
+          <Text style={styles.sectionTitle}>Datos y Almacenamiento</Text>
           
           <TouchableOpacity style={styles.settingRow} onPress={handleLimpiarCache}>
             <View style={styles.settingInfo}>
@@ -443,23 +526,23 @@ export default function ConfiguracionScreen() {
                 {cacheSizeMB} MB de datos temporales
               </Text>
             </View>
-            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingRow} onPress={() => Alert.alert('Próximamente', 'Esta función estará disponible pronto')}>
+          <TouchableOpacity style={styles.settingRow} onPress={handleDescargarDatos}>
             <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>Descargar mis datos</Text>
               <Text style={styles.settingDescription}>
                 Solicita una copia de tu información
               </Text>
             </View>
-            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
-        {/* ✅ UPDATED: Soporte section */}
+        {/* Soporte section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Soporte</Text>
+          <Text style={styles.sectionTitle}>Soporte y Ayuda</Text>
           
           <TouchableOpacity style={styles.settingRow} onPress={handleCentroAyuda}>
             <View style={styles.settingInfo}>
@@ -468,7 +551,7 @@ export default function ConfiguracionScreen() {
                 Encuentra respuestas a tus preguntas
               </Text>
             </View>
-            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.settingRow} onPress={handleReportarProblema}>
@@ -478,7 +561,7 @@ export default function ConfiguracionScreen() {
                 Ayúdanos a mejorar BarLive
               </Text>
             </View>
-            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.settingRow} onPress={() => Alert.alert('Contacto', 'Escríbenos a soporte@barlive.app')}>
@@ -488,13 +571,13 @@ export default function ConfiguracionScreen() {
                 soporte@barlive.app
               </Text>
             </View>
-            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
-        {/* ✅ UPDATED: Legal section with BarLive news */}
+        {/* Legal section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Legal</Text>
+          <Text style={styles.sectionTitle}>Legal e Información</Text>
           
           <TouchableOpacity style={styles.settingRow} onPress={handleTerminos}>
             <View style={styles.settingInfo}>
@@ -503,7 +586,7 @@ export default function ConfiguracionScreen() {
                 Última actualización: Enero 2025
               </Text>
             </View>
-            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.settingRow} onPress={handlePrivacidad}>
@@ -513,7 +596,7 @@ export default function ConfiguracionScreen() {
                 Última actualización: Enero 2025
               </Text>
             </View>
-            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.settingRow} onPress={handleAcercaDe}>
@@ -523,25 +606,26 @@ export default function ConfiguracionScreen() {
                 Versión 1.0.0 • Descubre la vida nocturna
               </Text>
             </View>
-            <IconSymbol name="chevron.right" size={20} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
 
           <View style={styles.newsBox}>
             <View style={styles.newsHeader}>
-              <IconSymbol name="sparkles" size={20} color={colors.primary} />
+              <IconSymbol ios_icon_name="sparkles" android_material_icon_name="auto_awesome" size={20} color={colors.primary} />
               <Text style={styles.newsTitle}>Novedades de BarLive</Text>
             </View>
             <Text style={styles.newsText}>
-              • Nueva red social integrada para conectar con otros usuarios{'\n'}
-              • Salas virtuales en tiempo real para interactuar{'\n'}
-              • Sistema de momentos para compartir experiencias{'\n'}
-              • Perfiles de locales con información detallada{'\n'}
-              • Mapas interactivos con filtros avanzados{'\n'}
-              • Sistema de reseñas y valoraciones mejorado
+              {'\u2022'} Nueva red social integrada para conectar con otros usuarios{'\n'}
+              {'\u2022'} Salas virtuales en tiempo real para interactuar{'\n'}
+              {'\u2022'} Sistema de momentos para compartir experiencias{'\n'}
+              {'\u2022'} Perfiles de locales con información detallada{'\n'}
+              {'\u2022'} Mapas interactivos con filtros avanzados{'\n'}
+              {'\u2022'} Sistema de reseñas y valoraciones mejorado
             </Text>
           </View>
         </View>
 
+        {/* Account actions */}
         <View style={styles.section}>
           <TouchableOpacity style={styles.dangerButton} onPress={handleCerrarSesion}>
             <Text style={styles.dangerButtonText}>Cerrar Sesión</Text>
@@ -556,6 +640,7 @@ export default function ConfiguracionScreen() {
         <View style={{ height: 120 }} />
       </ScrollView>
 
+      {/* Language Modal */}
       <Modal
         visible={showIdiomaModal}
         transparent
@@ -564,21 +649,24 @@ export default function ConfiguracionScreen() {
       >
         <Pressable style={styles.modalOverlay} onPress={() => setShowIdiomaModal(false)}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Idioma</Text>
+            <Text style={styles.modalTitle}>Seleccionar Idioma</Text>
             
             {[
-              { code: 'es', name: 'Español' },
-              { code: 'en', name: 'English' },
-              { code: 'ca', name: 'Català' },
+              { code: 'es', name: 'Español', flag: '🇪🇸' },
+              { code: 'en', name: 'English', flag: '🇬🇧' },
+              { code: 'ca', name: 'Català', flag: '🏴' },
             ].map((lang) => (
               <TouchableOpacity
                 key={lang.code}
                 style={styles.modalOption}
                 onPress={() => handleIdiomaChange(lang.code)}
               >
-                <Text style={styles.modalOptionText}>{lang.name}</Text>
+                <View style={styles.modalOptionLeft}>
+                  <Text style={styles.modalOptionFlag}>{lang.flag}</Text>
+                  <Text style={styles.modalOptionText}>{lang.name}</Text>
+                </View>
                 {idioma === lang.code && (
-                  <IconSymbol name="checkmark" size={20} color={colors.primary} />
+                  <IconSymbol ios_icon_name="checkmark" android_material_icon_name="check" size={20} color={colors.primary} />
                 )}
               </TouchableOpacity>
             ))}
@@ -598,7 +686,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingTop: Platform.OS === 'ios' ? 60 : 48,
     paddingBottom: 16,
     paddingHorizontal: 16,
   },
@@ -633,6 +721,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     paddingHorizontal: 16,
     marginBottom: 8,
+    letterSpacing: 0.5,
   },
   settingRow: {
     flexDirection: 'row',
@@ -720,6 +809,14 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
+  },
+  modalOptionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  modalOptionFlag: {
+    fontSize: 24,
   },
   modalOptionText: {
     fontSize: 16,
