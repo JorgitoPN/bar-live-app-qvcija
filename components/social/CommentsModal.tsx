@@ -15,6 +15,7 @@ import {
   Keyboard,
   Image,
   Dimensions,
+  StatusBar,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -64,14 +65,17 @@ interface CommentsModalProps {
 }
 
 /**
- * ✅ COMMENTS MODAL v3.0 - BARLIVE BLUE HEADER
+ * ✅ COMMENTS MODAL v4.0 - FIXED HEADER WHITE GAP
  * 
  * Changes:
+ * - ✅ CRITICAL FIX: Removed white gap at top of modal
+ * - ✅ StatusBar set to light-content to match header
+ * - ✅ Header gradient now covers entire top area including status bar
+ * - ✅ Modal handle removed (was causing white gap)
  * - ✅ Opens as modal (not full screen) - presentationStyle="pageSheet"
  * - ✅ Light background (#F9FAFB) instead of dark
  * - ✅ BarLive blue gradient header
  * - ✅ Maintains Instagram-style design with light theme
- * - ✅ Rounded corners at top for modal appearance
  */
 
 export default function CommentsModal({
@@ -243,11 +247,11 @@ export default function CommentsModal({
     setSending(true);
 
     try {
-      console.log('[CommentsModal v3.0] 🔄 Ensuring valid session before sending comment...');
+      console.log('[CommentsModal v4.0] 🔄 Ensuring valid session before sending comment...');
       const validSession = await ensureValidSession();
       
       if (!validSession || !validSession.user) {
-        console.error('[CommentsModal v3.0] ❌ No valid session available');
+        console.error('[CommentsModal v4.0] ❌ No valid session available');
         Alert.alert(
           'Error de autenticación',
           'Tu sesión ha expirado o no tienes permisos. Por favor inicia sesión de nuevo.',
@@ -263,7 +267,7 @@ export default function CommentsModal({
         return;
       }
 
-      console.log('[CommentsModal v3.0] ✅ Valid session confirmed, user ID:', validSession.user.id);
+      console.log('[CommentsModal v4.0] ✅ Valid session confirmed, user ID:', validSession.user.id);
 
       if (editingComment) {
         const { error } = await supabase
@@ -290,7 +294,7 @@ export default function CommentsModal({
           commentData.tipo = 'usuario';
         }
 
-        console.log('[CommentsModal v3.0] 📝 Inserting comment with data:', commentData);
+        console.log('[CommentsModal v4.0] 📝 Inserting comment with data:', commentData);
 
         const { data: newComment, error } = await supabase
           .from('comentarios')
@@ -308,19 +312,19 @@ export default function CommentsModal({
           .single();
 
         if (error) {
-          console.error('[CommentsModal v3.0] ❌ Error inserting comment:', error);
+          console.error('[CommentsModal v4.0] ❌ Error inserting comment:', error);
           throw error;
         }
 
-        console.log('[CommentsModal v3.0] ✅ Comment inserted successfully:', newComment.id);
+        console.log('[CommentsModal v4.0] ✅ Comment inserted successfully:', newComment.id);
 
         if (newComment && text) {
-          console.log('[CommentsModal v3.0] 🏷️ Processing hashtags and mentions in comment...');
+          console.log('[CommentsModal v4.0] 🏷️ Processing hashtags and mentions in comment...');
           await Promise.all([
             processCommentHashtags(newComment.id, text),
             processCommentMentions(newComment.id, text, postId),
           ]);
-          console.log('[CommentsModal v3.0] ✅ Comment hashtags and mentions processed');
+          console.log('[CommentsModal v4.0] ✅ Comment hashtags and mentions processed');
         }
 
         if (replyingTo) {
@@ -335,7 +339,7 @@ export default function CommentsModal({
         }
       }
     } catch (error: any) {
-      console.error('[CommentsModal v3.0] ❌ Error sending comment:', error);
+      console.error('[CommentsModal v4.0] ❌ Error sending comment:', error);
       
       let errorMessage = 'No se pudo enviar el comentario';
       
@@ -702,9 +706,8 @@ export default function CommentsModal({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
+      <StatusBar barStyle="light-content" backgroundColor={colors.headerGradientStart} />
       <View style={styles.container}>
-        <View style={styles.modalHandle} />
-        
         <LinearGradient
           colors={[colors.headerGradientStart, colors.headerGradientEnd]}
           start={{ x: 0, y: 0 }}
@@ -837,17 +840,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F9FAFB',
   },
-  modalHandle: {
-    width: 40,
-    height: 5,
-    backgroundColor: '#E5E7EB',
-    borderRadius: 3,
-    alignSelf: 'center',
-    marginTop: 12,
-    marginBottom: 8,
-  },
   header: {
-    paddingTop: Platform.OS === 'ios' ? 8 : 16,
+    paddingTop: Platform.OS === 'ios' ? 60 : 48,
     paddingBottom: 16,
     paddingHorizontal: 16,
   },
