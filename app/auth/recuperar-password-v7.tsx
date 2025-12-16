@@ -88,6 +88,7 @@ export default function RecuperarPasswordV7Screen() {
             'El servicio de correo electrónico no está configurado correctamente. Por favor, contacta con soporte.',
             [{ text: 'OK' }]
           );
+          setSendingCode(false);
           return;
         }
         
@@ -96,19 +97,20 @@ export default function RecuperarPasswordV7Screen() {
         console.log('[RecuperarPasswordV7] ✅ Código enviado');
       }
       
-    } catch (error: any) {
-      console.error('[RecuperarPasswordV7] ❌ Exception:', error);
-      
-      Alert.alert(
-        'Aviso',
-        'Hubo un problema al enviar el código. Si tu correo está registrado, recibirás el código en breve. Si no lo recibes, por favor contacta con soporte.',
-        [{ text: 'Continuar', onPress: () => {} }]
-      );
-    } finally {
-      setSendingCode(false);
+      // Always move to token step for security (don't reveal if email exists)
       console.log('[RecuperarPasswordV7] 🔄 Cambiando a paso de token...');
       setCurrentStep('token');
       console.log('[RecuperarPasswordV7] ✅ Paso cambiado a token');
+      
+    } catch (error: any) {
+      console.error('[RecuperarPasswordV7] ❌ Exception:', error);
+      
+      // Still move to token step for security
+      console.log('[RecuperarPasswordV7] 🔄 Cambiando a paso de token (después de error)...');
+      setCurrentStep('token');
+      console.log('[RecuperarPasswordV7] ✅ Paso cambiado a token');
+    } finally {
+      setSendingCode(false);
       console.log('[RecuperarPasswordV7] 🏁 Proceso finalizado');
       console.log('═══════════════════════════════════════════════════════');
     }
@@ -281,14 +283,14 @@ export default function RecuperarPasswordV7Screen() {
 
                 if (signInError) {
                   console.error('[RecuperarPasswordV7] ❌ Error al iniciar sesión:', signInError);
-                  router.replace('/auth/login-v6');
+                  router.replace('/auth/login');
                 } else {
                   console.log('[RecuperarPasswordV7] ✅ Sesión iniciada');
                   router.replace('/(tabs)/explorar');
                 }
               } catch (loginError) {
                 console.error('[RecuperarPasswordV7] ❌ Exception al iniciar sesión:', loginError);
-                router.replace('/auth/login-v6');
+                router.replace('/auth/login');
               }
             },
           },
@@ -313,7 +315,13 @@ export default function RecuperarPasswordV7Screen() {
       setCurrentStep('email');
       setToken(['', '', '', '', '', '']);
     } else {
-      router.back();
+      // Check if we can go back in the navigation stack
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        // If there's no previous screen, navigate to login
+        router.replace('/auth/login');
+      }
     }
   };
 
@@ -806,7 +814,7 @@ export default function RecuperarPasswordV7Screen() {
 
           <TouchableOpacity
             style={styles.backToLoginButton}
-            onPress={() => router.replace('/auth/login-v6')}
+            onPress={() => router.replace('/auth/login')}
           >
             <IconSymbol
               ios_icon_name="arrow.left"

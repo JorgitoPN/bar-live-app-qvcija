@@ -230,6 +230,16 @@ export default function LoginScreen() {
     });
   };
 
+  const handleGoBack = () => {
+    // Check if we can go back in the navigation stack
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      // If there's no previous screen, navigate to the auth index
+      router.replace('/auth');
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -241,7 +251,7 @@ export default function LoginScreen() {
       >
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={handleGoBack}
         >
           <IconSymbol
             ios_icon_name="chevron.left"
@@ -344,7 +354,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   header: {
-    paddingTop: 60,
+    paddingTop: Platform.OS === 'android' ? 60 : 80,
     paddingBottom: 24,
     paddingHorizontal: 24,
   },
