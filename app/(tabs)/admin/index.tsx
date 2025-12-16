@@ -37,28 +37,46 @@ export default function AdminPanel() {
 
   const checkAdminAccess = async () => {
     try {
+      console.log('[AdminPanel] 🔍 Verificando acceso de administrador...');
+      
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
+        console.log('[AdminPanel] ❌ No hay usuario autenticado');
         Alert.alert('Error', 'Debes iniciar sesión');
         router.replace('/auth/login');
         return;
       }
 
-      const { data: profile } = await supabase
+      console.log('[AdminPanel] 👤 Usuario autenticado:', user.email);
+
+      // ✅ FIX: Check rol_app instead of rol
+      const { data: profile, error } = await supabase
         .from('usuarios')
-        .select('rol')
+        .select('rol_app')
         .eq('id', user.id)
         .single();
 
-      if (profile?.rol !== 'admin') {
+      if (error) {
+        console.error('[AdminPanel] ❌ Error obteniendo perfil:', error);
+        Alert.alert('Error', 'No se pudo verificar el acceso');
+        router.back();
+        return;
+      }
+
+      console.log('[AdminPanel] 📊 Perfil obtenido:', profile);
+      console.log('[AdminPanel] 🔑 Rol del usuario:', profile?.rol_app);
+
+      if (profile?.rol_app !== 'admin') {
+        console.log('[AdminPanel] ❌ Usuario no es administrador');
         Alert.alert('Acceso Denegado', 'No tienes permisos de administrador');
         router.back();
         return;
       }
 
+      console.log('[AdminPanel] ✅ Usuario es administrador, acceso concedido');
       setIsAdmin(true);
     } catch (error) {
-      console.error('Error checking admin access:', error);
+      console.error('[AdminPanel] ❌ Error inesperado verificando acceso:', error);
       Alert.alert('Error', 'No se pudo verificar el acceso');
       router.back();
     } finally {
