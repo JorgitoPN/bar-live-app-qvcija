@@ -27,9 +27,12 @@ import { calcularDistancia } from '@/utils/locationUtils';
 
 const ITEMS_PER_PAGE = 20;
 
+type TabType = 'siguiendo' | 'favoritos';
+
 export default function FavoritosScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState<TabType>('siguiendo');
   const [allSavedLocales, setAllSavedLocales] = useState<any[]>([]);
   const [displayedLocales, setDisplayedLocales] = useState<any[]>([]);
   const [filteredLocales, setFilteredLocales] = useState<any[]>([]);
@@ -95,7 +98,6 @@ export default function FavoritosScreen() {
 
     try {
       console.log('[Favoritos] Cargando locales guardados...');
-      // ✅ FIXED: Removed valoracion_google from select query
       const { data: savedLocalesData, error: localesError } = await supabase
         .from('locales_guardados')
         .select(`
@@ -152,15 +154,52 @@ export default function FavoritosScreen() {
             };
           });
         
-        setAllSavedLocales(formattedLocales);
-        setFilteredLocales(formattedLocales);
+        // ✅ NEW: Check which locales have active Standard/Premium subscriptions
+        const localIds = formattedLocales.map(l => l.id);
+        const { data: subscriptionsData } = await supabase
+          .from('suscripciones_locales')
+          .select(`
+            local_id,
+            estado,
+            plan_id,
+            planes_suscripcion!suscripciones_locales_plan_id_fkey(nombre)
+          `)
+          .in('local_id', localIds)
+          .eq('estado', 'activa');
+
+        const localesWithActivePlan = new Set<string>();
+        if (subscriptionsData) {
+          subscriptionsData.forEach(sub => {
+            const planName = (sub.planes_suscripcion as any)?.nombre;
+            if (planName === 'estandar' || planName === 'premium') {
+              localesWithActivePlan.add(sub.local_id);
+            }
+          });
+        }
+
+        // ✅ NEW: Add hasActivePlan property to each local
+        const localesWithPlanInfo = formattedLocales.map(local => ({
+          ...local,
+          hasActivePlan: localesWithActivePlan.has(local.id),
+        }));
         
-        const firstPage = formattedLocales.slice(0, ITEMS_PER_PAGE);
+        setAllSavedLocales(localesWithPlanInfo);
+        
+        // ✅ NEW: Filter based on active tab
+        const filtered = activeTab === 'siguiendo'
+          ? localesWithPlanInfo.filter(l => l.hasActivePlan)
+          : localesWithPlanInfo;
+        
+        setFilteredLocales(filtered);
+        
+        const firstPage = filtered.slice(0, ITEMS_PER_PAGE);
         setDisplayedLocales(firstPage);
         setCurrentPage(1);
-        setHasMore(formattedLocales.length > ITEMS_PER_PAGE);
+        setHasMore(filtered.length > ITEMS_PER_PAGE);
         
         console.log('[Favoritos] Locales guardados cargados:', formattedLocales.length);
+        console.log('[Favoritos] Locales con plan activo:', localesWithActivePlan.size);
+        console.log('[Favoritos] Mostrando en tab', activeTab, ':', filtered.length);
         
         checkSocialProfilesForLocales(formattedLocales.map(l => l.id));
       }
@@ -169,7 +208,7 @@ export default function FavoritosScreen() {
     } finally {
       setLoading(false);
     }
-  }, [user, userLocation, checkSocialProfilesForLocales]);
+  }, [user, userLocation, checkSocialProfilesForLocales, activeTab]);
 
   useEffect(() => {
     loadSavedLocales();
@@ -198,6 +237,23 @@ export default function FavoritosScreen() {
     }
   }, [user, loadSavedLocales]);
 
+  // ✅ NEW: Re-filter when tab changes
+  useEffect(() => {
+    if (allSavedLocales.length > 0) {
+      const filtered = activeTab === 'siguiendo'
+        ? allSavedLocales.filter(l => l.hasActivePlan)
+        : allSavedLocales;
+      
+      setFilteredLocales(filtered);
+      const firstPage = filtered.slice(0, ITEMS_PER_PAGE);
+      setDisplayedLocales(firstPage);
+      setCurrentPage(1);
+      setHasMore(filtered.length > ITEMS_PER_PAGE);
+      
+      console.log('[Favoritos] Tab changed to', activeTab, '- showing', filtered.length, 'locales');
+    }
+  }, [activeTab, allSavedLocales]);
+
   useEffect(() => {
     if (userLocation && allSavedLocales.length > 0) {
       console.log('[Favoritos] Recalculating distances with new user location');
@@ -214,9 +270,14 @@ export default function FavoritosScreen() {
         };
       });
       setAllSavedLocales(updatedLocales);
-      setFilteredLocales(updatedLocales);
       
-      const firstPage = updatedLocales.slice(0, currentPage * ITEMS_PER_PAGE);
+      const filtered = activeTab === 'siguiendo'
+        ? updatedLocales.filter(l => l.hasActivePlan)
+        : updatedLocales;
+      
+      setFilteredLocales(filtered);
+      
+      const firstPage = filtered.slice(0, currentPage * ITEMS_PER_PAGE);
       setDisplayedLocales(firstPage);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -224,16 +285,25 @@ export default function FavoritosScreen() {
 
   useEffect(() => {
     if (!searchQuery.trim()) {
-      setFilteredLocales(allSavedLocales);
-      const firstPage = allSavedLocales.slice(0, ITEMS_PER_PAGE);
+      const filtered = activeTab === 'siguiendo'
+        ? allSavedLocales.filter(l => l.hasActivePlan)
+        : allSavedLocales;
+      
+      setFilteredLocales(filtered);
+      const firstPage = filtered.slice(0, ITEMS_PER_PAGE);
       setDisplayedLocales(firstPage);
       setCurrentPage(1);
-      setHasMore(allSavedLocales.length > ITEMS_PER_PAGE);
+      setHasMore(filtered.length > ITEMS_PER_PAGE);
       return;
     }
 
     const query = searchQuery.toLowerCase().trim();
-    const filtered = allSavedLocales.filter(local => {
+    
+    const baseFiltered = activeTab === 'siguiendo'
+      ? allSavedLocales.filter(l => l.hasActivePlan)
+      : allSavedLocales;
+    
+    const filtered = baseFiltered.filter(local => {
       const nombre = local.nombre?.toLowerCase() || '';
       const direccion = local.direccion?.toLowerCase() || '';
       const provincia = local.provincia?.toLowerCase() || '';
@@ -252,7 +322,7 @@ export default function FavoritosScreen() {
     setHasMore(filtered.length > ITEMS_PER_PAGE);
     
     console.log('[Favoritos] Búsqueda:', query, 'Resultados:', filtered.length);
-  }, [searchQuery, allSavedLocales]);
+  }, [searchQuery, allSavedLocales, activeTab]);
 
   const loadMoreLocales = useCallback(() => {
     if (loadingMore || !hasMore) return;
@@ -580,6 +650,23 @@ export default function FavoritosScreen() {
       );
     }
     
+    if (activeTab === 'siguiendo') {
+      return (
+        <View style={styles.emptyState}>
+          <IconSymbol
+            ios_icon_name="person.2"
+            android_material_icon_name="people_outline"
+            size={64}
+            color={colors.textSecondary}
+          />
+          <Text style={styles.emptyText}>No sigues ningún local</Text>
+          <Text style={styles.emptySubtext}>
+            Los locales con planes Estándar o Premium que guardes aparecerán aquí
+          </Text>
+        </View>
+      );
+    }
+    
     return (
       <View style={styles.emptyState}>
         <IconSymbol
@@ -658,6 +745,41 @@ export default function FavoritosScreen() {
       >
         <Text style={styles.headerTitle}>Locales Favoritos</Text>
         
+        {/* ✅ NEW: Tab selector */}
+        <View style={styles.tabContainer}>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'siguiendo' && styles.tabActive]}
+            onPress={() => setActiveTab('siguiendo')}
+            activeOpacity={0.7}
+          >
+            <IconSymbol
+              ios_icon_name="person.2.fill"
+              android_material_icon_name="people"
+              size={18}
+              color={activeTab === 'siguiendo' ? colors.headerText : 'rgba(255, 255, 255, 0.6)'}
+            />
+            <Text style={[styles.tabText, activeTab === 'siguiendo' && styles.tabTextActive]}>
+              Siguiendo
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'favoritos' && styles.tabActive]}
+            onPress={() => setActiveTab('favoritos')}
+            activeOpacity={0.7}
+          >
+            <IconSymbol
+              ios_icon_name="heart.fill"
+              android_material_icon_name="favorite"
+              size={18}
+              color={activeTab === 'favoritos' ? colors.headerText : 'rgba(255, 255, 255, 0.6)'}
+            />
+            <Text style={[styles.tabText, activeTab === 'favoritos' && styles.tabTextActive]}>
+              Locales favoritos
+            </Text>
+          </TouchableOpacity>
+        </View>
+        
         <View style={styles.searchContainer}>
           <IconSymbol 
             ios_icon_name="magnifyingglass" 
@@ -693,8 +815,8 @@ export default function FavoritosScreen() {
         {allSavedLocales.length > 0 && (
           <Text style={styles.resultsCount}>
             {searchQuery.trim() 
-              ? `${filteredLocales.length} de ${allSavedLocales.length} locales`
-              : `${allSavedLocales.length} locales guardados`
+              ? `${filteredLocales.length} de ${activeTab === 'siguiendo' ? allSavedLocales.filter(l => l.hasActivePlan).length : allSavedLocales.length} locales`
+              : `${filteredLocales.length} locales ${activeTab === 'siguiendo' ? 'siguiendo' : 'guardados'}`
             }
           </Text>
         )}
@@ -744,6 +866,34 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.headerText,
     marginBottom: 16,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 16,
+  },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    gap: 6,
+  },
+  tabActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.6)',
+  },
+  tabTextActive: {
+    color: colors.primary,
   },
   searchContainer: {
     flexDirection: 'row',
