@@ -104,8 +104,8 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
       console.log('[FavoritesContext] ✅ Valid session confirmed');
 
       if (wasFavorite) {
-        // Remove from favorites
-        console.log('[FavoritesContext] ➖ Removing from favorites...');
+        // ✅ FIXED v2.0: Remove from favorites WITHOUT unfollowing
+        console.log('[FavoritesContext] ➖ Removing from favorites (keeping follow status)...');
         const { error } = await supabase
           .from('locales_guardados')
           .delete()
@@ -138,7 +138,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
           return false;
         }
         
-        console.log('[FavoritesContext] ✅ Removed from favorites');
+        console.log('[FavoritesContext] ✅ Removed from favorites (follow status unchanged)');
         setLoading(false);
         return true;
       } else {
@@ -157,8 +157,8 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
           return true;
         }
 
-        // Add to favorites
-        console.log('[FavoritesContext] ➕ Adding to favorites...');
+        // ✅ FIXED v2.0: Add to favorites WITHOUT following
+        console.log('[FavoritesContext] ➕ Adding to favorites (NOT following)...');
         const { error } = await supabase
           .from('locales_guardados')
           .insert({
@@ -202,7 +202,8 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
           return false;
         }
         
-        console.log('[FavoritesContext] ✅ Added to favorites');
+        console.log('[FavoritesContext] ✅ Added to favorites (follow status unchanged)');
+        console.log('[FavoritesContext] ℹ️ NOTE: Saving as favorite does NOT automatically follow the local');
         setLoading(false);
         return true;
       }

@@ -25,7 +25,6 @@ interface Plan {
   id: string;
   nombre: string;
   descripcion: string;
-  precio: number;
   duracion_dias: number;
   activo: boolean;
   caracteristicas: string[];
@@ -44,7 +43,6 @@ interface LocalSubscription {
   };
   planes_suscripcion: {
     nombre: string;
-    precio: number;
   };
 }
 
@@ -75,10 +73,11 @@ export default function GestionarPlanesScreen() {
 
   const cargarPlanes = useCallback(async () => {
     try {
+      // ✅ FIXED v2.0: Remove precio from query since it doesn't exist
       const { data, error } = await supabase
         .from('planes_suscripcion')
         .select('*')
-        .order('precio', { ascending: true });
+        .order('duracion_dias', { ascending: true });
 
       if (error) throw error;
 
@@ -92,12 +91,13 @@ export default function GestionarPlanesScreen() {
 
   const cargarSuscripciones = useCallback(async () => {
     try {
+      // ✅ FIXED v2.0: Remove precio from query since it doesn't exist
       const { data, error } = await supabase
         .from('suscripciones_locales')
         .select(`
           *,
           locales (nombre, imagen_url),
-          planes_suscripcion (nombre, precio)
+          planes_suscripcion (nombre)
         `)
         .order('fecha_inicio', { ascending: false })
         .limit(50);
@@ -314,7 +314,7 @@ export default function GestionarPlanesScreen() {
           <View style={styles.planHeader}>
             <View style={styles.planHeaderLeft}>
               <Text style={styles.planName}>{plan.nombre}</Text>
-              <Text style={styles.planPrice}>€{plan.precio.toFixed(2)}/{plan.duracion_dias} días</Text>
+              <Text style={styles.planPrice}>{plan.duracion_dias} días</Text>
             </View>
             <View style={[styles.planStatusBadge, plan.activo ? styles.planStatusActive : styles.planStatusInactive]}>
               <Text style={[styles.planStatusText, plan.activo ? styles.planStatusTextActive : styles.planStatusTextInactive]}>
@@ -356,7 +356,7 @@ export default function GestionarPlanesScreen() {
                 <View style={styles.subscriptionHeaderLeft}>
                   <Text style={styles.subscriptionLocalName}>{subscription.locales.nombre}</Text>
                   <Text style={styles.subscriptionPlanName}>
-                    Plan: {subscription.planes_suscripcion.nombre} (€{subscription.planes_suscripcion.precio})
+                    Plan: {subscription.planes_suscripcion.nombre}
                   </Text>
                 </View>
                 {getEstadoBadge(subscription.estado)}
@@ -603,7 +603,7 @@ export default function GestionarPlanesScreen() {
                         <View style={styles.planOptionInfo}>
                           <Text style={styles.planOptionName}>{plan.nombre}</Text>
                           <Text style={styles.planOptionPrice}>
-                            €{plan.precio.toFixed(2)} / {plan.duracion_dias} días
+                            {plan.duracion_dias} días
                           </Text>
                         </View>
                         {selectedPlan === plan.id && (
