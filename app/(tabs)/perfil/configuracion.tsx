@@ -216,10 +216,6 @@ export default function ConfiguracionScreen() {
     router.push('/perfil/usuarios-bloqueados');
   };
 
-  const handleContenidoOculto = () => {
-    router.push('/perfil/contenido-oculto');
-  };
-
   const handleCentroAyuda = () => {
     router.push('/soporte/centro-ayuda');
   };
@@ -248,22 +244,6 @@ export default function ConfiguracionScreen() {
     Alert.alert('Idioma actualizado', `El idioma se ha cambiado a ${nombreIdioma}`);
   };
 
-  const handleDescargarDatos = () => {
-    Alert.alert(
-      'Descargar mis datos',
-      'Se generará un archivo con toda tu información y se enviará a tu correo electrónico en las próximas 24 horas.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Solicitar',
-          onPress: () => {
-            Alert.alert('Solicitud enviada', 'Recibirás un correo con tus datos en las próximas 24 horas');
-          },
-        },
-      ]
-    );
-  };
-
   const handlePrivacidadCuenta = () => {
     Alert.alert(
       'Privacidad de cuenta',
@@ -278,20 +258,6 @@ export default function ConfiguracionScreen() {
           onPress: () => Alert.alert('Configurado', 'Tu cuenta es privada. Solo tus seguidores pueden ver tu contenido.'),
         },
         { text: 'Cancelar', style: 'cancel' },
-      ]
-    );
-  };
-
-  const handleAutenticacionDosFactor = () => {
-    Alert.alert(
-      'Autenticación de dos factores',
-      '¿Deseas activar la autenticación de dos factores para mayor seguridad?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Activar',
-          onPress: () => Alert.alert('Activado', 'La autenticación de dos factores ha sido activada'),
-        },
       ]
     );
   };
@@ -474,16 +440,6 @@ export default function ConfiguracionScreen() {
             <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingRow} onPress={handleContenidoOculto}>
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Contenido oculto</Text>
-              <Text style={styles.settingDescription}>
-                Publicaciones y comentarios ocultos
-              </Text>
-            </View>
-            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
-          </TouchableOpacity>
-
           <TouchableOpacity style={styles.settingRow} onPress={handleCambiarContrasena}>
             <View style={styles.settingInfo}>
               <Text style={styles.settingLabel}>Cambiar contraseña</Text>
@@ -503,16 +459,6 @@ export default function ConfiguracionScreen() {
             </View>
             <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
-
-          <TouchableOpacity style={styles.settingRow} onPress={handleAutenticacionDosFactor}>
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Autenticación de dos factores</Text>
-              <Text style={styles.settingDescription}>
-                Añade una capa extra de seguridad
-              </Text>
-            </View>
-            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
-          </TouchableOpacity>
         </View>
 
         {/* Datos section */}
@@ -524,16 +470,6 @@ export default function ConfiguracionScreen() {
               <Text style={styles.settingLabel}>Limpiar caché</Text>
               <Text style={styles.settingDescription}>
                 {cacheSizeMB} MB de datos temporales
-              </Text>
-            </View>
-            <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.settingRow} onPress={handleDescargarDatos}>
-            <View style={styles.settingInfo}>
-              <Text style={styles.settingLabel}>Descargar mis datos</Text>
-              <Text style={styles.settingDescription}>
-                Solicita una copia de tu información
               </Text>
             </View>
             <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={20} color={colors.textSecondary} />

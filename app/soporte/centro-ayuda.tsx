@@ -23,12 +23,12 @@ const FAQ_DATA: FAQItem[] = [
   {
     category: 'Cuenta',
     question: '¿Cómo creo una cuenta en BarLive?',
-    answer: 'Puedes crear una cuenta desde la pantalla de bienvenida. Solo necesitas proporcionar tu correo electrónico y crear una contraseña. También puedes registrarte usando tu cuenta de Google o Apple.',
+    answer: 'Puedes crear una cuenta desde la pantalla de bienvenida proporcionando tu correo electrónico y creando una contraseña segura.',
   },
   {
     category: 'Cuenta',
     question: '¿Cómo cambio mi contraseña?',
-    answer: 'Ve a Configuración > Cuenta > Cambiar Contraseña. Recibirás un enlace de restablecimiento en tu correo electrónico.',
+    answer: 'Ve a Configuración > Privacidad y Seguridad > Cambiar Contraseña. Recibirás un enlace de restablecimiento en tu correo electrónico.',
   },
   {
     category: 'Cuenta',
@@ -63,7 +63,7 @@ const FAQ_DATA: FAQItem[] = [
   {
     category: 'Social',
     question: '¿Puedo hacer mi perfil privado?',
-    answer: 'Sí, ve a Configuración > Privacidad y Seguridad y desactiva "Perfil Público".',
+    answer: 'Sí, ve a Configuración > Privacidad y Seguridad > Privacidad de cuenta y selecciona "Cuenta privada".',
   },
   {
     category: 'Eventos',
@@ -122,7 +122,7 @@ export default function CentroAyudaScreen() {
       >
         <View style={styles.headerTop}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <IconSymbol name="chevron.left" size={24} color={colors.headerText} />
+            <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={24} color={colors.headerText} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Centro de Ayuda</Text>
           <View style={styles.placeholder} />
@@ -172,7 +172,8 @@ export default function CentroAyudaScreen() {
                   <Text style={styles.questionText}>{item.question}</Text>
                 </View>
                 <IconSymbol
-                  name={expandedIndex === index ? 'chevron.up' : 'chevron.down'}
+                  ios_icon_name={expandedIndex === index ? 'chevron.up' : 'chevron.down'}
+                  android_material_icon_name={expandedIndex === index ? 'expand_less' : 'expand_more'}
                   size={20}
                   color={colors.textSecondary}
                 />
@@ -197,7 +198,7 @@ export default function CentroAyudaScreen() {
             style={styles.contactButton}
             onPress={() => router.push('/soporte/reportar-problema' as any)}
           >
-            <IconSymbol name="envelope.fill" size={20} color={colors.headerText} />
+            <IconSymbol ios_icon_name="envelope.fill" android_material_icon_name="email" size={20} color={colors.headerText} />
             <Text style={styles.contactButtonText}>Contactar Soporte</Text>
           </TouchableOpacity>
         </View>

@@ -56,6 +56,18 @@ export default function AdminScreen() {
           label: 'Gestionar Planes de Pago',
           route: '/admin/gestionar-planes',
           color: '#10B981',
+        },
+      ],
+    },
+    {
+      title: 'Sistema de Pagos',
+      items: [
+        {
+          icon: 'dollarsign.circle.fill',
+          androidIcon: 'payments',
+          label: 'Gestión de Pagos Stripe',
+          route: '/admin/gestionar-pagos-stripe',
+          color: '#6366F1',
           badge: 'NUEVO',
         },
       ],
