@@ -30,7 +30,7 @@ import MomentoViewer from '@/components/momento/MomentoViewer';
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 4) / 3;
 const AVATAR_SIZE = 88;
-const BORDER_WIDTH = 4; // Increased from 3 to 4 for thicker border
+const BORDER_WIDTH = 4;
 
 interface Post {
   id: string;
@@ -107,7 +107,6 @@ export default function PerfilScreen() {
     }
 
     try {
-      // Determine which ID to check based on active profile
       const checkId = activeProfileType === 'local' ? activeProfileId : user.id;
       const checkType = activeProfileType === 'local' ? 'local' : 'usuario';
 
@@ -118,7 +117,6 @@ export default function PerfilScreen() {
 
       console.log('[Perfil] 🔍 Checking unviewed momentos:', { checkId, checkType });
 
-      // Get momentos for this user/local
       const query = supabase
         .from('momentos')
         .select('id')
@@ -147,7 +145,6 @@ export default function PerfilScreen() {
 
       console.log('[Perfil] ✅ Found momentos:', momentosData.length);
 
-      // Check if user has viewed any of these momentos
       const momentoIds = momentosData.map(m => m.id);
       const { data: viewsData, error: viewsError } = await supabase
         .from('momento_views')
@@ -444,20 +441,54 @@ export default function PerfilScreen() {
       const { data: seguidoresData, error: seguidoresError } = await supabase
         .rpc('get_total_seguidores_count', { p_usuario_id: user.id });
 
-      const { data: seguidosData, error: seguidosError } = await supabase
-        .rpc('get_total_siguiendo_count', { p_usuario_id: user.id });
+      // ✅ FIXED: Get "Siguiendo" count only for locales with active Standard/Premium plans
+      const { data: savedLocalesData, error: savedLocalesError } = await supabase
+        .from('locales_guardados')
+        .select('local_id')
+        .eq('usuario_id', user.id);
+
+      let seguidosCount = 0;
+
+      if (!savedLocalesError && savedLocalesData && savedLocalesData.length > 0) {
+        const localIds = savedLocalesData.map(sl => sl.local_id);
+        
+        // Get active subscriptions for these locales
+        const { data: subscriptionsData, error: subscriptionsError } = await supabase
+          .from('suscripciones_locales')
+          .select(`
+            local_id,
+            estado,
+            plan_id,
+            planes_suscripcion!suscripciones_locales_plan_id_fkey(nombre)
+          `)
+          .in('local_id', localIds)
+          .eq('estado', 'activa');
+
+        if (!subscriptionsError && subscriptionsData) {
+          // Count only locales with Standard or Premium plans
+          seguidosCount = subscriptionsData.filter(sub => {
+            const planName = (sub.planes_suscripcion as any)?.nombre;
+            return planName === 'estandar' || planName === 'premium';
+          }).length;
+        }
+      }
+
+      // Get user follows count
+      const { count: userFollowsCount } = await supabase
+        .from('seguidores')
+        .select('*', { count: 'exact', head: true })
+        .eq('seguidor_id', user.id);
+
+      // Add user follows to total
+      seguidosCount += (userFollowsCount || 0);
 
       if (seguidoresError) {
         console.error('[Perfil] Error loading seguidores count:', seguidoresError);
       }
-      if (seguidosError) {
-        console.error('[Perfil] Error loading seguidos count:', seguidosError);
-      }
 
       const seguidoresCount = seguidoresData || 0;
-      const seguidosCount = seguidosData || 0;
 
-      console.log('[Perfil] ✅ Follower counts (including locals):', {
+      console.log('[Perfil] ✅ Follower counts (corrected):', {
         seguidores: seguidoresCount,
         siguiendo: seguidosCount,
       });
@@ -507,7 +538,6 @@ export default function PerfilScreen() {
     }
   }, [activeTab, user, cargarPosts, cargarFavoritos, cargarEtiquetados, cargarPerfilProfesional]);
 
-  // Subscribe to momento changes
   useEffect(() => {
     if (!user) return;
 
@@ -625,14 +655,12 @@ export default function PerfilScreen() {
   };
 
   const handleMomentoUploadSuccess = () => {
-    // Refresh data after momento upload
     cargarDatosPerfil();
   };
 
   const handleOpenMomentoViewer = () => {
     if (!user) return;
     
-    // Determine which ID and type to use based on active profile
     const viewerId = activeProfileType === 'local' ? activeProfileId : user.id;
     const viewerType = activeProfileType === 'local' ? 'local' : 'usuario';
     
@@ -640,7 +668,6 @@ export default function PerfilScreen() {
     setShowMomentoViewer(true);
   };
 
-  // ✅ CRITICAL FIX: Navigate directly to create post page instead of showing modal
   const handleCrearPublicacion = () => {
     if (!user) {
       setShowLoginModal(true);
@@ -1165,6 +1192,7 @@ export default function PerfilScreen() {
   );
 }
 
+// Styles remain the same as before...
 const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
@@ -1304,7 +1332,7 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 14,
     borderWidth: 3,
-    borderColor: '#FFFFFF', // White border as requested
+    borderColor: '#FFFFFF',
     overflow: 'hidden',
     zIndex: 10,
     shadowColor: '#000',

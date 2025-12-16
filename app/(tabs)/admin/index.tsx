@@ -35,7 +35,6 @@ export default function AdminScreen() {
           label: 'Solicitudes de Locales',
           route: '/admin/gestionar-solicitudes',
           color: '#F59E0B',
-          badge: 'NUEVO',
         },
         {
           icon: 'calendar',
@@ -50,6 +49,14 @@ export default function AdminScreen() {
           label: 'Gestionar Usuarios',
           route: '/admin/gestionar-usuarios',
           color: '#F59E0B',
+        },
+        {
+          icon: 'creditcard.fill',
+          androidIcon: 'payment',
+          label: 'Gestionar Planes de Pago',
+          route: '/admin/gestionar-planes',
+          color: '#10B981',
+          badge: 'NUEVO',
         },
       ],
     },
