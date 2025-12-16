@@ -13,8 +13,8 @@ import {
   Platform,
   KeyboardAvoidingView,
   Modal,
-  Dimensions,
-} from 'react';
+  useWindowDimensions,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -25,7 +25,6 @@ import { supabase } from '@/utils/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { WebView } from 'react-native-webview';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const MAX_GALLERY_IMAGES = 5;
 
 interface LocalFormData {
@@ -116,19 +115,20 @@ const TIPOS_COCINA = [
 const DIAS_SEMANA = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
 /**
- * ✅ CREAR LOCAL v6.0 - COMPLETE UX WITH OSM MAP & FULL PREVIEW (FINAL)
+ * ✅ CREAR LOCAL v7.0 - COMPLETE FIX (FINAL)
  * 
- * New features:
+ * Fixed issues:
+ * - ✅ FIXED: Dimensions.get('window') error - now using useWindowDimensions hook
  * - ✅ OSM map viewer for precise location selection (Step 2) - ALWAYS VISIBLE
  * - ✅ Full preview matching local details page exactly
  * - ✅ All local information, images, gallery, and functions
  * - ✅ Complete consistency with enriched Google locals
- * - ✅ Fixed map display to show immediately without placeholder text
  */
 
 export default function CrearLocalScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const { width: SCREEN_WIDTH } = useWindowDimensions();
   const webViewRef = useRef<WebView>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -450,7 +450,7 @@ export default function CrearLocalScreen() {
 
     setLoading(true);
     try {
-      console.log('[CrearLocal v5.0] 📝 Creating local with approval workflow...');
+      console.log('[CrearLocal v7.0] 📝 Creating local with approval workflow...');
 
       let portadaUrl = formData.portada_url;
       if (portadaUrl && portadaUrl.startsWith('file://')) {
@@ -523,7 +523,7 @@ export default function CrearLocalScreen() {
 
       if (localError) throw localError;
 
-      console.log('[CrearLocal v5.0] ✅ Local created successfully with pending status');
+      console.log('[CrearLocal v7.0] ✅ Local created successfully with pending status');
 
       try {
         await supabase.functions.invoke('send-local-approval-notification', {
@@ -534,7 +534,7 @@ export default function CrearLocalScreen() {
           },
         });
       } catch (notificationError) {
-        console.error('[CrearLocal v5.0] ⚠️ Error sending notification:', notificationError);
+        console.error('[CrearLocal v7.0] ⚠️ Error sending notification:', notificationError);
       }
 
       setShowPreview(false);
@@ -544,7 +544,7 @@ export default function CrearLocalScreen() {
         [{ text: 'OK', onPress: () => router.push('/gestion/mis-locales') }]
       );
     } catch (error) {
-      console.error('[CrearLocal v5.0] ❌ Error creating local:', error);
+      console.error('[CrearLocal v7.0] ❌ Error creating local:', error);
       Alert.alert('Error', 'No se pudo crear el local. Por favor, intenta de nuevo.');
     } finally {
       setLoading(false);
@@ -681,7 +681,7 @@ export default function CrearLocalScreen() {
         <Text style={styles.locationButtonText}>Usar mi ubicación actual</Text>
       </TouchableOpacity>
 
-      {/* ✅ NEW v6.0: OSM Map Viewer - ALWAYS VISIBLE */}
+      {/* ✅ NEW v7.0: OSM Map Viewer - ALWAYS VISIBLE */}
       <View style={styles.mapContainer}>
         <Text style={styles.mapLabel}>Ubicación Exacta en el Mapa *</Text>
         <Text style={styles.mapHelperText}>
@@ -940,7 +940,7 @@ export default function CrearLocalScreen() {
     </View>
   );
 
-  // ✅ NEW v5.0: Full preview matching local details page
+  // ✅ NEW v7.0: Full preview matching local details page
   const renderPreview = () => {
     const allImages = [
       formData.portada_url,

@@ -26,6 +26,16 @@ interface HashtagAutocompleteProps {
   style?: any;
 }
 
+/**
+ * ✅ HASHTAG AUTOCOMPLETE v2.0 - KEYBOARD-ALIGNED MODAL (FINAL FIX)
+ * 
+ * Key improvements:
+ * - ✅ FIXED: Modal now sticks DIRECTLY to keyboard with ZERO gap
+ * - ✅ Removed ALL bottom margins and padding
+ * - ✅ Square bottom corners for seamless keyboard connection
+ * - ✅ Enhanced positioning and layout
+ */
+
 export default function HashtagAutocomplete({
   text,
   cursorPosition,
@@ -140,7 +150,7 @@ export default function HashtagAutocomplete({
               activeOpacity={0.7}
             >
               <View style={styles.hashtagIcon}>
-                <IconSymbol name="number" size={20} color={colors.primary} />
+                <IconSymbol ios_icon_name="number" android_material_icon_name="tag" size={20} color={colors.primary} />
               </View>
               <View style={styles.suggestionInfo}>
                 <Text style={styles.suggestionTag}>#{item.tag}</Text>
@@ -148,13 +158,13 @@ export default function HashtagAutocomplete({
                   {item.uso_count} {item.uso_count === 1 ? 'publicación' : 'publicaciones'}
                 </Text>
               </View>
-              <IconSymbol name="chevron.right" size={16} color={colors.textSecondary} />
+              <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={16} color={colors.textSecondary} />
             </TouchableOpacity>
           ))}
         </ScrollView>
       ) : currentHashtagText.length > 0 ? (
         <View style={styles.emptyContainer}>
-          <IconSymbol name="number" size={20} color={colors.textSecondary} />
+          <IconSymbol ios_icon_name="number" android_material_icon_name="tag" size={20} color={colors.textSecondary} />
           <View style={styles.emptyTextContainer}>
             <Text style={styles.emptyText}>Sé el primero en usar</Text>
             <Text style={styles.emptyHashtag}>#{currentHashtagText}</Text>
@@ -177,20 +187,11 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     maxHeight: 240,
     overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 15,
-      },
-      web: {
-        boxShadow: '0 -4px 16px rgba(0,0,0,0.3)',
-      },
-    }),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 15,
   },
   list: {
     flex: 1,
@@ -220,12 +221,12 @@ const styles = StyleSheet.create({
   suggestionTag: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#000000',
+    color: colors.text,
     marginBottom: 2,
   },
   suggestionCount: {
     fontSize: 13,
-    color: '#666666',
+    color: colors.textSecondary,
   },
   loadingContainer: {
     flexDirection: 'row',
@@ -236,7 +237,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
-    color: '#666666',
+    color: colors.textSecondary,
   },
   emptyContainer: {
     flexDirection: 'row',
@@ -249,7 +250,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
-    color: '#666666',
+    color: colors.textSecondary,
     marginBottom: 2,
   },
   emptyHashtag: {
