@@ -22,18 +22,24 @@ export default function ConfiguracionGeneralScreen() {
   const [mantenimiento, setMantenimiento] = useState(false);
   const [registroAbierto, setRegistroAbierto] = useState(true);
   const [verificacionEmail, setVerificacionEmail] = useState(true);
+  const [modoDesarrollo, setModoDesarrollo] = useState(false);
   
   // Configuración de contenido
   const [moderacionAutomatica, setModeracionAutomatica] = useState(true);
   const [comentariosActivos, setComentariosActivos] = useState(true);
+  const [publicacionesActivas, setPublicacionesActivas] = useState(true);
+  const [historiasActivas, setHistoriasActivas] = useState(true);
   
   // Configuración de notificaciones
   const [notificacionesEmail, setNotificacionesEmail] = useState(true);
   const [notificacionesPush, setNotificacionesPush] = useState(true);
+  const [notificacionesInApp, setNotificacionesInApp] = useState(true);
   
-  // Límites y restricciones
-  const [maxFotosPorLocal, setMaxFotosPorLocal] = useState('10');
-  const [maxEventosPorMes, setMaxEventosPorMes] = useState('5');
+  // Configuración de funcionalidades
+  const [chatActivo, setChatActivo] = useState(true);
+  const [salaVirtualActiva, setSalaVirtualActiva] = useState(true);
+  const [eventosActivos, setEventosActivos] = useState(true);
+  const [empleoActivo, setEmpleoActivo] = useState(true);
 
   const guardarConfiguracion = () => {
     Alert.alert(
@@ -119,6 +125,23 @@ export default function ConfiguracionGeneralScreen() {
               />
             </View>
           </View>
+
+          <View style={styles.card}>
+            <View style={styles.settingRow}>
+              <View style={styles.settingInfo}>
+                <Text style={styles.settingTitle}>Modo Desarrollo</Text>
+                <Text style={styles.settingDescription}>
+                  Activar funciones de desarrollo y debugging
+                </Text>
+              </View>
+              <Switch
+                value={modoDesarrollo}
+                onValueChange={setModoDesarrollo}
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor="white"
+              />
+            </View>
+          </View>
         </View>
 
         {/* Contenido */}
@@ -153,6 +176,40 @@ export default function ConfiguracionGeneralScreen() {
               <Switch
                 value={comentariosActivos}
                 onValueChange={setComentariosActivos}
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor="white"
+              />
+            </View>
+          </View>
+
+          <View style={styles.card}>
+            <View style={styles.settingRow}>
+              <View style={styles.settingInfo}>
+                <Text style={styles.settingTitle}>Publicaciones Activas</Text>
+                <Text style={styles.settingDescription}>
+                  Permitir crear nuevas publicaciones
+                </Text>
+              </View>
+              <Switch
+                value={publicacionesActivas}
+                onValueChange={setPublicacionesActivas}
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor="white"
+              />
+            </View>
+          </View>
+
+          <View style={styles.card}>
+            <View style={styles.settingRow}>
+              <View style={styles.settingInfo}>
+                <Text style={styles.settingTitle}>Historias Activas</Text>
+                <Text style={styles.settingDescription}>
+                  Permitir crear y ver historias
+                </Text>
+              </View>
+              <Switch
+                value={historiasActivas}
+                onValueChange={setHistoriasActivas}
                 trackColor={{ false: colors.border, true: colors.primary }}
                 thumbColor="white"
               />
@@ -197,40 +254,99 @@ export default function ConfiguracionGeneralScreen() {
               />
             </View>
           </View>
+
+          <View style={styles.card}>
+            <View style={styles.settingRow}>
+              <View style={styles.settingInfo}>
+                <Text style={styles.settingTitle}>Notificaciones In-App</Text>
+                <Text style={styles.settingDescription}>
+                  Mostrar notificaciones dentro de la aplicación
+                </Text>
+              </View>
+              <Switch
+                value={notificacionesInApp}
+                onValueChange={setNotificacionesInApp}
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor="white"
+              />
+            </View>
+          </View>
         </View>
 
-        {/* Límites */}
+        {/* Funcionalidades */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📊 Límites y Restricciones</Text>
+          <Text style={styles.sectionTitle}>🎯 Funcionalidades</Text>
           
           <View style={styles.card}>
-            <Text style={styles.label}>Máximo de Fotos por Local</Text>
-            <TextInput
-              style={styles.input}
-              value={maxFotosPorLocal}
-              onChangeText={setMaxFotosPorLocal}
-              keyboardType="number-pad"
-              placeholder="10"
-            />
-            <Text style={styles.helperText}>
-              Número máximo de fotos que puede subir un propietario
-            </Text>
+            <View style={styles.settingRow}>
+              <View style={styles.settingInfo}>
+                <Text style={styles.settingTitle}>Chat Activo</Text>
+                <Text style={styles.settingDescription}>
+                  Permitir mensajería entre usuarios
+                </Text>
+              </View>
+              <Switch
+                value={chatActivo}
+                onValueChange={setChatActivo}
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor="white"
+              />
+            </View>
           </View>
 
           <View style={styles.card}>
-            <Text style={styles.label}>Máximo de Eventos por Mes</Text>
-            <TextInput
-              style={styles.input}
-              value={maxEventosPorMes}
-              onChangeText={setMaxEventosPorMes}
-              keyboardType="number-pad"
-              placeholder="5"
-            />
-            <Text style={styles.helperText}>
-              Número máximo de eventos que puede crear un local al mes
-            </Text>
+            <View style={styles.settingRow}>
+              <View style={styles.settingInfo}>
+                <Text style={styles.settingTitle}>Sala Virtual Activa</Text>
+                <Text style={styles.settingDescription}>
+                  Permitir acceso a salas virtuales de locales
+                </Text>
+              </View>
+              <Switch
+                value={salaVirtualActiva}
+                onValueChange={setSalaVirtualActiva}
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor="white"
+              />
+            </View>
+          </View>
+
+          <View style={styles.card}>
+            <View style={styles.settingRow}>
+              <View style={styles.settingInfo}>
+                <Text style={styles.settingTitle}>Eventos Activos</Text>
+                <Text style={styles.settingDescription}>
+                  Permitir crear y gestionar eventos
+                </Text>
+              </View>
+              <Switch
+                value={eventosActivos}
+                onValueChange={setEventosActivos}
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor="white"
+              />
+            </View>
+          </View>
+
+          <View style={styles.card}>
+            <View style={styles.settingRow}>
+              <View style={styles.settingInfo}>
+                <Text style={styles.settingTitle}>Empleo Activo</Text>
+                <Text style={styles.settingDescription}>
+                  Permitir publicar y buscar ofertas de empleo
+                </Text>
+              </View>
+              <Switch
+                value={empleoActivo}
+                onValueChange={setEmpleoActivo}
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor="white"
+              />
+            </View>
           </View>
         </View>
+
+
 
         <TouchableOpacity
           style={styles.saveButton}

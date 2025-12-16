@@ -7,6 +7,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors, commonStyles } from '@/styles/commonStyles';
@@ -15,35 +16,64 @@ import { IconSymbol } from '@/components/IconSymbol';
 
 export default function GestionEmailsScreen() {
   const router = useRouter();
+  const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
+  const [templateContent, setTemplateContent] = useState<string>('');
+  const [showPreview, setShowPreview] = useState(false);
 
   const plantillas = [
     {
-      id: 'bienvenida',
-      nombre: 'Email de Bienvenida',
-      descripcion: 'Enviado al registrarse un nuevo usuario',
-      asunto: '¡Bienvenido a BarLive!',
-      contenido: 'Hola {{nombre}}, bienvenido a BarLive...',
+      id: 'confirm_signup',
+      nombre: 'Confirmación de Registro',
+      descripcion: 'Enviado al registrarse para verificar el email',
+      asunto: 'Confirma tu cuenta en BarLive',
+      tipo: 'Supabase Auth',
+      contenido: 'Email de confirmación de registro con enlace de verificación',
+      editable: true,
     },
     {
-      id: 'verificacion',
-      nombre: 'Verificación de Email',
-      descripcion: 'Enviado para verificar el correo electrónico',
-      asunto: 'Verifica tu email en BarLive',
-      contenido: 'Hola {{nombre}}, verifica tu email haciendo clic aquí...',
-    },
-    {
-      id: 'recuperacion',
+      id: 'reset_password',
       nombre: 'Recuperación de Contraseña',
-      descripcion: 'Enviado al solicitar recuperar contraseña',
-      asunto: 'Recupera tu contraseña de BarLive',
-      contenido: 'Hola {{nombre}}, haz clic aquí para recuperar tu contraseña...',
+      descripcion: 'Enviado al solicitar restablecer contraseña',
+      asunto: 'Restablece tu contraseña en BarLive',
+      tipo: 'Supabase Auth',
+      contenido: 'Email con enlace para restablecer contraseña',
+      editable: true,
     },
     {
-      id: 'evento',
-      nombre: 'Notificación de Evento',
-      descripcion: 'Enviado cuando hay un nuevo evento',
-      asunto: 'Nuevo evento en {{local}}',
-      contenido: 'Hola {{nombre}}, hay un nuevo evento en {{local}}...',
+      id: 'magic_link',
+      nombre: 'Magic Link',
+      descripcion: 'Enviado para login sin contraseña',
+      asunto: 'Tu enlace de acceso a BarLive',
+      tipo: 'Supabase Auth',
+      contenido: 'Email con enlace mágico para acceso directo',
+      editable: true,
+    },
+    {
+      id: 'email_change',
+      nombre: 'Cambio de Email',
+      descripcion: 'Enviado al cambiar dirección de correo',
+      asunto: 'Confirma tu nuevo email en BarLive',
+      tipo: 'Supabase Auth',
+      contenido: 'Email de confirmación de cambio de dirección',
+      editable: true,
+    },
+    {
+      id: 'local_approval',
+      nombre: 'Aprobación de Local',
+      descripcion: 'Enviado cuando se aprueba/deniega un local',
+      asunto: 'Estado de tu solicitud de local',
+      tipo: 'Edge Function',
+      contenido: 'Notificación sobre el estado de la solicitud de local',
+      editable: false,
+    },
+    {
+      id: 'password_change_confirmation',
+      nombre: 'Confirmación de Cambio de Contraseña',
+      descripcion: 'Enviado tras cambiar la contraseña exitosamente',
+      asunto: 'Tu contraseña ha sido cambiada',
+      tipo: 'Edge Function',
+      contenido: 'Confirmación de cambio de contraseña',
+      editable: false,
     },
   ];
 
@@ -63,10 +93,13 @@ export default function GestionEmailsScreen() {
         {plantillas.map((plantilla) => (
           <View key={plantilla.id} style={styles.card}>
             <View style={styles.cardHeader}>
-              <IconSymbol name="envelope.fill" size={24} color={colors.primary} />
+              <IconSymbol ios_icon_name="envelope.fill" android_material_icon_name="email" size={24} color={colors.primary} />
               <View style={styles.cardInfo}>
                 <Text style={styles.cardTitle}>{plantilla.nombre}</Text>
                 <Text style={styles.cardDescription}>{plantilla.descripcion}</Text>
+              </View>
+              <View style={[styles.typeBadge, { backgroundColor: plantilla.tipo === 'Supabase Auth' ? '#3B82F6' : '#8B5CF6' }]}>
+                <Text style={styles.typeBadgeText}>{plantilla.tipo}</Text>
               </View>
             </View>
 
@@ -75,33 +108,100 @@ export default function GestionEmailsScreen() {
               <Text style={styles.detailValue}>{plantilla.asunto}</Text>
             </View>
 
-            <TouchableOpacity
-              style={styles.editButton}
-              onPress={() => {
-                Alert.alert('Editar Plantilla', `Editando: ${plantilla.nombre}`);
-              }}
-            >
-              <IconSymbol name="pencil" size={16} color="white" />
-              <Text style={styles.editButtonText}>Editar Plantilla</Text>
-            </TouchableOpacity>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Contenido:</Text>
+              <Text style={styles.detailValue}>{plantilla.contenido}</Text>
+            </View>
+
+            <View style={styles.buttonRow}>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.previewButton]}
+                onPress={() => {
+                  setTemplateContent(plantilla.contenido);
+                  setShowPreview(true);
+                }}
+              >
+                <IconSymbol ios_icon_name="eye.fill" android_material_icon_name="visibility" size={16} color="#3B82F6" />
+                <Text style={[styles.actionButtonText, { color: '#3B82F6' }]}>Vista Previa</Text>
+              </TouchableOpacity>
+
+              {plantilla.editable && (
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.editButton]}
+                  onPress={() => {
+                    Alert.alert(
+                      'Editar Plantilla',
+                      `Para editar esta plantilla, ve a:\n\nSupabase Dashboard → Authentication → Email Templates\n\nhttps://supabase.com/dashboard/project/embntaqwlwmgazvrglaf/auth/templates`,
+                      [
+                        { text: 'Entendido', style: 'default' }
+                      ]
+                    );
+                  }}
+                >
+                  <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={16} color={colors.primary} />
+                  <Text style={[styles.actionButtonText, { color: colors.primary }]}>Editar en Supabase</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         ))}
 
         <View style={styles.infoCard}>
-          <IconSymbol name="info.circle" size={24} color={colors.primary} />
+          <IconSymbol ios_icon_name="info.circle" android_material_icon_name="info" size={24} color={colors.primary} />
           <View style={styles.infoContent}>
-            <Text style={styles.infoTitle}>Variables Disponibles</Text>
+            <Text style={styles.infoTitle}>Información Importante</Text>
             <Text style={styles.infoText}>
-              - nombre - Nombre del usuario{'\n'}
-              - email - Email del usuario{'\n'}
-              - local - Nombre del local{'\n'}
-              - fecha - Fecha actual
+              • Los emails de Supabase Auth se editan desde el Dashboard de Supabase{'\n'}
+              • Los emails de Edge Functions se gestionan en el código{'\n'}
+              • Todos los emails se envían a través de Resend{'\n'}
+              • Dominio configurado: noreply@barliveapp.es
             </Text>
+          </View>
+        </View>
+
+        <View style={styles.infoCard}>
+          <IconSymbol ios_icon_name="link" android_material_icon_name="link" size={24} color={colors.secondary} />
+          <View style={styles.infoContent}>
+            <Text style={styles.infoTitle}>Enlaces Rápidos</Text>
+            <TouchableOpacity
+              style={styles.linkButton}
+              onPress={() => Alert.alert('Supabase Email Templates', 'Abre: https://supabase.com/dashboard/project/embntaqwlwmgazvrglaf/auth/templates')}
+            >
+              <Text style={styles.linkText}>→ Editar plantillas en Supabase</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.linkButton}
+              onPress={() => Alert.alert('Resend Dashboard', 'Abre: https://resend.com/emails')}
+            >
+              <Text style={styles.linkText}>→ Ver emails enviados en Resend</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* Preview Modal */}
+      <Modal
+        visible={showPreview}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowPreview(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Vista Previa del Email</Text>
+              <TouchableOpacity onPress={() => setShowPreview(false)}>
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalBody}>
+              <Text style={styles.previewText}>{templateContent}</Text>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -170,19 +270,39 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.text,
   },
-  editButton: {
-    backgroundColor: colors.primary,
+  typeBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  typeBadgeText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  actionButton: {
+    flex: 1,
     borderRadius: 8,
     padding: 12,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 6,
   },
-  editButtonText: {
-    color: 'white',
-    fontSize: 14,
+  previewButton: {
+    backgroundColor: '#DBEAFE',
+  },
+  editButton: {
+    backgroundColor: colors.primary + '20',
+  },
+  actionButtonText: {
+    fontSize: 13,
     fontWeight: 'bold',
-    marginLeft: 6,
   },
   infoCard: {
     backgroundColor: '#EFF6FF',
@@ -205,5 +325,45 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#1E40AF',
     lineHeight: 20,
+  },
+  linkButton: {
+    paddingVertical: 6,
+  },
+  linkText: {
+    fontSize: 13,
+    color: '#1E40AF',
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  modalBody: {
+    padding: 20,
+  },
+  previewText: {
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 22,
   },
 });

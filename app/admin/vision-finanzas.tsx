@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -47,21 +48,77 @@ export default function VisionFinanzasScreen() {
     try {
       setLoading(true);
       
-      // Simulación de datos - En producción, estos vendrían de Supabase
-      // TODO: Implementar consultas reales a la base de datos
+      // Calculate date range based on period
+      const now = new Date();
+      let startDate = new Date();
       
-      const mockData: FinancialData = {
-        ingresosMensuales: 13020,
-        gastosAPIs: 2340,
-        suscripcionesActivas: 87,
-        ingresosSuscripciones: 8700,
-        ingresosPublicidad: 4320,
-        beneficioNeto: 10680,
+      if (periodo === 'mes') {
+        startDate.setMonth(now.getMonth() - 1);
+      } else if (periodo === 'trimestre') {
+        startDate.setMonth(now.getMonth() - 3);
+      } else if (periodo === 'año') {
+        startDate.setFullYear(now.getFullYear() - 1);
+      }
+
+      // Get active subscriptions
+      const { data: suscripciones, error: subsError } = await supabase
+        .from('suscripciones_locales')
+        .select(`
+          *,
+          planes_suscripcion!suscripciones_locales_plan_id_fkey(nombre, precio_mensual)
+        `)
+        .eq('estado', 'activa')
+        .gte('fecha_inicio', startDate.toISOString());
+
+      if (subsError) {
+        console.error('Error loading subscriptions:', subsError);
+      }
+
+      // Calculate subscription revenue
+      const ingresosSuscripciones = suscripciones?.reduce((total, sub: any) => {
+        const precio = sub.planes_suscripcion?.precio_mensual || 0;
+        return total + precio;
+      }, 0) || 0;
+
+      // Get API costs from configuration
+      const { data: apiConfig } = await supabase
+        .from('configuracion_apis')
+        .select('contador_llamadas_mes')
+        .single();
+
+      // Estimate API costs (assuming $0.01 per call average)
+      const gastosAPIs = (apiConfig?.contador_llamadas_mes || 0) * 0.01;
+
+      // Get destacado posts (advertising revenue)
+      const { data: destacados, error: destacadosError } = await supabase
+        .from('posts')
+        .select('id')
+        .eq('destacado', true)
+        .gte('created_at', startDate.toISOString());
+
+      if (destacadosError) {
+        console.error('Error loading destacados:', destacadosError);
+      }
+
+      // Estimate advertising revenue (€50 per destacado post)
+      const ingresosPublicidad = (destacados?.length || 0) * 50;
+
+      const ingresosMensuales = ingresosSuscripciones + ingresosPublicidad;
+      const beneficioNeto = ingresosMensuales - gastosAPIs;
+
+      const data: FinancialData = {
+        ingresosMensuales,
+        gastosAPIs,
+        suscripcionesActivas: suscripciones?.length || 0,
+        ingresosSuscripciones,
+        ingresosPublicidad,
+        beneficioNeto,
       };
 
-      setFinancialData(mockData);
+      setFinancialData(data);
     } catch (error) {
       console.error('Error cargando datos financieros:', error);
+      Alert.alert('Error', 'No se pudieron cargar los datos financieros');
     } finally {
       setLoading(false);
     }

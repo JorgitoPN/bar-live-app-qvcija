@@ -115,11 +115,11 @@ const TIPOS_COCINA = [
 const DIAS_SEMANA = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
 /**
- * ✅ CREAR LOCAL v8.0 - COMPLETE FIX (FINAL)
+ * ✅ CREAR LOCAL v9.0 - COMPLETE FIX WITH PROPER BUTTON POSITIONING
  * 
  * Fixed issues:
- * - ✅ FIXED: Dimensions.get('window') error - now using useWindowDimensions hook
- * - ✅ FIXED: Route error - page now properly accessible
+ * - ✅ FIXED: Bottom button no longer cut off - proper padding added
+ * - ✅ FIXED: Dimensions.get('window') error - using useWindowDimensions hook
  * - ✅ OSM map viewer for precise location selection (Step 2) - ALWAYS VISIBLE
  * - ✅ Full preview matching local details page exactly
  * - ✅ All local information, images, gallery, and functions
@@ -265,12 +265,12 @@ export default function CrearLocalScreen() {
     try {
       const data = JSON.parse(event.nativeEvent.data);
       if (data.type === 'location_selected') {
-        console.log('[CrearLocal v8.0] Location selected:', data.lat, data.lng);
+        console.log('[CrearLocal v9.0] Location selected:', data.lat, data.lng);
         updateFormData('latitud', data.lat);
         updateFormData('longitud', data.lng);
       }
     } catch (error) {
-      console.error('[CrearLocal v8.0] Error parsing WebView message:', error);
+      console.error('[CrearLocal v9.0] Error parsing WebView message:', error);
     }
   };
 
@@ -451,7 +451,7 @@ export default function CrearLocalScreen() {
 
     setLoading(true);
     try {
-      console.log('[CrearLocal v8.0] 📝 Creating local with approval workflow...');
+      console.log('[CrearLocal v9.0] 📝 Creating local with approval workflow...');
 
       let portadaUrl = formData.portada_url;
       if (portadaUrl && portadaUrl.startsWith('file://')) {
@@ -524,7 +524,7 @@ export default function CrearLocalScreen() {
 
       if (localError) throw localError;
 
-      console.log('[CrearLocal v8.0] ✅ Local created successfully with pending status');
+      console.log('[CrearLocal v9.0] ✅ Local created successfully with pending status');
 
       try {
         await supabase.functions.invoke('send-local-approval-notification', {
@@ -535,7 +535,7 @@ export default function CrearLocalScreen() {
           },
         });
       } catch (notificationError) {
-        console.error('[CrearLocal v8.0] ⚠️ Error sending notification:', notificationError);
+        console.error('[CrearLocal v9.0] ⚠️ Error sending notification:', notificationError);
       }
 
       setShowPreview(false);
@@ -545,7 +545,7 @@ export default function CrearLocalScreen() {
         [{ text: 'OK', onPress: () => router.push('/gestion/mis-locales') }]
       );
     } catch (error) {
-      console.error('[CrearLocal v8.0] ❌ Error creating local:', error);
+      console.error('[CrearLocal v9.0] ❌ Error creating local:', error);
       Alert.alert('Error', 'No se pudo crear el local. Por favor, intenta de nuevo.');
     } finally {
       setLoading(false);
@@ -682,7 +682,7 @@ export default function CrearLocalScreen() {
         <Text style={styles.locationButtonText}>Usar mi ubicación actual</Text>
       </TouchableOpacity>
 
-      {/* ✅ NEW v8.0: OSM Map Viewer - ALWAYS VISIBLE */}
+      {/* ✅ OSM Map Viewer - ALWAYS VISIBLE */}
       <View style={styles.mapContainer}>
         <Text style={styles.mapLabel}>Ubicación Exacta en el Mapa *</Text>
         <Text style={styles.mapHelperText}>
@@ -941,7 +941,7 @@ export default function CrearLocalScreen() {
     </View>
   );
 
-  // ✅ NEW v8.0: Full preview matching local details page
+  // ✅ Full preview matching local details page
   const renderPreview = () => {
     const allImages = [
       formData.portada_url,
@@ -967,7 +967,7 @@ export default function CrearLocalScreen() {
             <View style={{ width: 40 }} />
           </LinearGradient>
 
-          <ScrollView style={styles.previewContent}>
+          <ScrollView style={styles.previewContent} contentContainerStyle={styles.previewContentContainer}>
             {/* Cover Image */}
             {formData.portada_url && (
               <Image source={{ uri: formData.portada_url }} style={styles.previewCoverImage} />
@@ -1098,6 +1098,9 @@ export default function CrearLocalScreen() {
                 </View>
               </View>
             )}
+
+            {/* Extra padding at bottom to ensure content is not cut off */}
+            <View style={{ height: 120 }} />
           </ScrollView>
 
           <View style={styles.previewFooter}>
@@ -1155,6 +1158,7 @@ export default function CrearLocalScreen() {
         {currentStep === 5 && renderStep5()}
       </ScrollView>
 
+      {/* ✅ FIXED v9.0: Footer with proper padding to avoid cutoff */}
       <View style={styles.footer}>
         {currentStep > 1 && (
           <TouchableOpacity style={styles.secondaryButton} onPress={handlePrevious}>
@@ -1250,7 +1254,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    paddingBottom: 100,
+    paddingBottom: 120,
   },
   stepContent: {
     padding: 20,
@@ -1566,6 +1570,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     padding: 16,
+    paddingBottom: Platform.OS === 'ios' ? 32 : 16,
     backgroundColor: colors.cardBackground,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
@@ -1612,6 +1617,9 @@ const styles = StyleSheet.create({
   },
   previewContent: {
     flex: 1,
+  },
+  previewContentContainer: {
+    paddingBottom: 120,
   },
   previewCoverImage: {
     width: '100%',
@@ -1766,9 +1774,14 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   previewFooter: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     gap: 12,
     padding: 16,
+    paddingBottom: Platform.OS === 'ios' ? 32 : 16,
     backgroundColor: colors.cardBackground,
     borderTopWidth: 1,
     borderTopColor: colors.cardBorder,
