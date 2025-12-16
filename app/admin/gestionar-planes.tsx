@@ -25,7 +25,6 @@ interface Plan {
   id: string;
   nombre: string;
   descripcion: string;
-  precio: number;
   activo: boolean;
   caracteristicas: string[];
   permisos?: Record<string, boolean>;
@@ -80,7 +79,6 @@ export default function GestionarPlanesScreen() {
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
   const [editPlanNombre, setEditPlanNombre] = useState('');
   const [editPlanDescripcion, setEditPlanDescripcion] = useState('');
-  const [editPlanPrecio, setEditPlanPrecio] = useState('');
   const [editPlanActivo, setEditPlanActivo] = useState(true);
   const [editPlanPermisos, setEditPlanPermisos] = useState<Record<string, boolean>>({});
   const [savingPlan, setSavingPlan] = useState(false);
@@ -89,7 +87,6 @@ export default function GestionarPlanesScreen() {
   const [showCreatePlanModal, setShowCreatePlanModal] = useState(false);
   const [createPlanNombre, setCreatePlanNombre] = useState('');
   const [createPlanDescripcion, setCreatePlanDescripcion] = useState('');
-  const [createPlanPrecio, setCreatePlanPrecio] = useState('');
   const [createPlanActivo, setCreatePlanActivo] = useState(true);
   const [createPlanPermisos, setCreatePlanPermisos] = useState<Record<string, boolean>>({
     publicar_posts: true,
@@ -103,10 +100,11 @@ export default function GestionarPlanesScreen() {
   const cargarPlanes = useCallback(async () => {
     try {
       console.log('[GestionarPlanes] ✅ Loading plans...');
+      // ✅ FIXED: Removed precio from select
       const { data, error } = await supabase
         .from('planes_suscripcion')
-        .select('id, nombre, descripcion, precio, activo, caracteristicas, permisos')
-        .order('precio', { ascending: true });
+        .select('id, nombre, descripcion, activo, caracteristicas, permisos')
+        .order('nombre', { ascending: true });
 
       if (error) {
         console.error('[GestionarPlanes] ❌ Error loading plans:', error);
@@ -328,7 +326,6 @@ export default function GestionarPlanesScreen() {
     setEditingPlan(plan);
     setEditPlanNombre(plan.nombre);
     setEditPlanDescripcion(plan.descripcion || '');
-    setEditPlanPrecio(plan.precio?.toString() || '0');
     setEditPlanActivo(plan.activo);
     setEditPlanPermisos(plan.permisos || {});
     setShowEditPlanModal(true);
@@ -342,20 +339,14 @@ export default function GestionarPlanesScreen() {
       return;
     }
 
-    const precio = parseFloat(editPlanPrecio);
-    if (isNaN(precio) || precio < 0) {
-      Alert.alert('Error', 'El precio debe ser un número válido');
-      return;
-    }
-
     setSavingPlan(true);
     try {
+      // ✅ FIXED: Removed precio from update
       const { error } = await supabase
         .from('planes_suscripcion')
         .update({
           nombre: editPlanNombre.trim(),
           descripcion: editPlanDescripcion.trim(),
-          precio: precio,
           activo: editPlanActivo,
           permisos: editPlanPermisos,
         })
@@ -381,20 +372,14 @@ export default function GestionarPlanesScreen() {
       return;
     }
 
-    const precio = parseFloat(createPlanPrecio);
-    if (isNaN(precio) || precio < 0) {
-      Alert.alert('Error', 'El precio debe ser un número válido');
-      return;
-    }
-
     setCreatingPlan(true);
     try {
+      // ✅ FIXED: Removed precio from insert
       const { error } = await supabase
         .from('planes_suscripcion')
         .insert({
           nombre: createPlanNombre.trim(),
           descripcion: createPlanDescripcion.trim(),
-          precio: precio,
           activo: createPlanActivo,
           permisos: createPlanPermisos,
           caracteristicas: [],
@@ -406,7 +391,6 @@ export default function GestionarPlanesScreen() {
       setShowCreatePlanModal(false);
       setCreatePlanNombre('');
       setCreatePlanDescripcion('');
-      setCreatePlanPrecio('');
       setCreatePlanActivo(true);
       setCreatePlanPermisos({
         publicar_posts: true,
@@ -526,7 +510,6 @@ export default function GestionarPlanesScreen() {
           <View style={styles.planHeader}>
             <View style={styles.planHeaderLeft}>
               <Text style={styles.planName}>{plan.nombre}</Text>
-              <Text style={styles.planPrice}>€{plan.precio?.toFixed(2) || '0.00'}/mes</Text>
             </View>
             <View style={styles.planHeaderRight}>
               <View style={[styles.planStatusBadge, plan.activo ? styles.planStatusActive : styles.planStatusInactive]}>
@@ -826,9 +809,6 @@ export default function GestionarPlanesScreen() {
                       >
                         <View style={styles.planOptionInfo}>
                           <Text style={styles.planOptionName}>{plan.nombre}</Text>
-                          <Text style={styles.planOptionPrice}>
-                            €{plan.precio?.toFixed(2) || '0.00'}/mes
-                          </Text>
                         </View>
                         {selectedPlan === plan.id && (
                           <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color={colors.primary} />
@@ -882,7 +862,6 @@ export default function GestionarPlanesScreen() {
                   <View style={styles.planDetailHeader}>
                     <View>
                       <Text style={styles.planDetailName}>{selectedPlanDetail.nombre}</Text>
-                      <Text style={styles.planDetailPrice}>€{selectedPlanDetail.precio?.toFixed(2) || '0.00'}/mes</Text>
                     </View>
                     <View style={[
                       styles.planStatusBadge,
@@ -1006,18 +985,6 @@ export default function GestionarPlanesScreen() {
                 </View>
 
                 <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Precio (€/mes) *</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="Ej: 29.99"
-                    placeholderTextColor={colors.textSecondary}
-                    value={editPlanPrecio}
-                    onChangeText={setEditPlanPrecio}
-                    keyboardType="decimal-pad"
-                  />
-                </View>
-
-                <View style={styles.inputContainer}>
                   <Text style={styles.inputLabel}>Descripción</Text>
                   <TextInput
                     style={[styles.textInput, styles.textInputMultiline]}
@@ -1125,18 +1092,6 @@ export default function GestionarPlanesScreen() {
                     placeholderTextColor={colors.textSecondary}
                     value={createPlanNombre}
                     onChangeText={setCreatePlanNombre}
-                  />
-                </View>
-
-                <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Precio (€/mes) *</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="Ej: 29.99"
-                    placeholderTextColor={colors.textSecondary}
-                    value={createPlanPrecio}
-                    onChangeText={setCreatePlanPrecio}
-                    keyboardType="decimal-pad"
                   />
                 </View>
 
@@ -1334,11 +1289,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 4,
-  },
-  planPrice: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.primary,
   },
   planStatusBadge: {
     paddingHorizontal: 12,
@@ -1699,10 +1649,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 4,
   },
-  planOptionPrice: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
   confirmButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1729,11 +1675,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 4,
-  },
-  planDetailPrice: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.primary,
   },
   planDetailSection: {
     marginBottom: 24,

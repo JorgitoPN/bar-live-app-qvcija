@@ -25,6 +25,7 @@ interface Seguido {
   bio?: string;
   tipo: 'usuario' | 'local';
   localId?: string;
+  hasPaymentPlan?: boolean;
 }
 
 export default function SeguidosScreen() {
@@ -43,11 +44,24 @@ export default function SeguidosScreen() {
     if (!userId) return;
 
     try {
-      console.log('[Seguidos] 📥 Loading seguidos for user:', userId);
+      console.log('[Seguidos] 📥 Loading ONLY FOLLOWED profiles (social network) for user:', userId);
+      console.log('[Seguidos] ⚠️ EXCLUDING saved locals from "Locales favoritos"');
 
-      // ✅ Use the database function for better performance
+      // ✅ CRITICAL FIX: Only get data from seguidores table (social network following)
+      // ❌ DO NOT include locales_guardados (favorites) - they are separate!
       const { data, error } = await supabase
-        .rpc('get_user_seguidos', { p_usuario_id: userId });
+        .from('seguidores')
+        .select(`
+          seguido_id,
+          usuarios!seguidores_seguido_id_fkey(
+            id,
+            nombre,
+            username,
+            avatar,
+            bio
+          )
+        `)
+        .eq('seguidor_id', userId);
 
       if (error) {
         console.error('[Seguidos] ❌ Error loading seguidos:', error);
@@ -56,43 +70,77 @@ export default function SeguidosScreen() {
         return;
       }
 
-      console.log('[Seguidos] Raw data from function:', data);
+      console.log('[Seguidos] Raw data from seguidores table:', data);
 
-      // ✅ Format the data - handle both user and local follows
-      const formattedSeguidos: Seguido[] = (data || []).map((item: any) => {
-        if (item.tipo === 'local') {
-          // Local profile follow
-          return {
-            id: item.local_id,
-            nombre: item.nombre || item.local_nombre,
-            username: undefined,
-            avatar: item.avatar || item.local_imagen,
-            bio: item.bio,
-            tipo: 'local' as const,
-            localId: item.local_id,
-          };
-        } else {
-          // User follow
-          return {
-            id: item.seguido_id,
-            nombre: item.nombre,
-            username: item.username,
-            avatar: item.avatar,
-            bio: item.bio,
-            tipo: 'usuario' as const,
-            localId: undefined,
-          };
+      // ✅ Format the data - only users followed in the social network
+      const formattedSeguidos: Seguido[] = [];
+
+      if (data) {
+        for (const item of data) {
+          if (item.usuarios) {
+            // Check if this user is a local owner with an active payment plan
+            const { data: ownedLocals } = await supabase
+              .from('locales')
+              .select('id, nombre, imagen_url')
+              .eq('propietario_id', item.usuarios.id)
+              .limit(1);
+
+            let hasPaymentPlan = false;
+            let localData = null;
+
+            if (ownedLocals && ownedLocals.length > 0) {
+              const localId = ownedLocals[0].id;
+              localData = ownedLocals[0];
+
+              // Check if local has active payment plan
+              const { data: subscription } = await supabase
+                .from('suscripciones_locales')
+                .select('id')
+                .eq('local_id', localId)
+                .eq('estado', 'activa')
+                .single();
+
+              hasPaymentPlan = !!subscription;
+            }
+
+            // If user owns a local with payment plan, show as local profile
+            if (hasPaymentPlan && localData) {
+              formattedSeguidos.push({
+                id: localData.id,
+                nombre: localData.nombre,
+                username: undefined,
+                avatar: localData.imagen_url,
+                bio: undefined,
+                tipo: 'local' as const,
+                localId: localData.id,
+                hasPaymentPlan: true,
+              });
+            } else {
+              // Regular user profile
+              formattedSeguidos.push({
+                id: item.usuarios.id,
+                nombre: item.usuarios.nombre,
+                username: item.usuarios.username,
+                avatar: item.usuarios.avatar,
+                bio: item.usuarios.bio,
+                tipo: 'usuario' as const,
+                localId: undefined,
+                hasPaymentPlan: false,
+              });
+            }
+          }
         }
-      });
+      }
 
       setSeguidos(formattedSeguidos);
       
       const localCount = formattedSeguidos.filter(s => s.tipo === 'local').length;
       const userCount = formattedSeguidos.filter(s => s.tipo === 'usuario').length;
       
-      console.log('[Seguidos] ✅ Loaded', formattedSeguidos.length, 'seguidos');
+      console.log('[Seguidos] ✅ Loaded', formattedSeguidos.length, 'seguidos from SOCIAL NETWORK ONLY');
       console.log('[Seguidos] 🏪 Local profiles:', localCount);
       console.log('[Seguidos] 👤 User profiles:', userCount);
+      console.log('[Seguidos] ✅ Favorites (locales_guardados) are NOT included here');
     } catch (error) {
       console.error('[Seguidos] ❌ Error:', error);
     } finally {
@@ -128,7 +176,6 @@ export default function SeguidosScreen() {
       }
     } catch (error) {
       console.error('[Seguidos] ❌ Error navigating to profile:', error);
-      // Show a user-friendly error message
       alert('No se pudo abrir el perfil. Por favor, intenta de nuevo.');
     }
   };
@@ -163,6 +210,17 @@ export default function SeguidosScreen() {
       <View style={styles.userInfo}>
         <View style={styles.userNameRow}>
           <Text style={styles.userName}>{item.nombre}</Text>
+          {/* ✅ NEW: Show verified badge for local profiles with payment plan */}
+          {item.tipo === 'local' && item.hasPaymentPlan && (
+            <View style={styles.verifiedBadge}>
+              <IconSymbol 
+                ios_icon_name="checkmark.seal.fill" 
+                android_material_icon_name="verified" 
+                size={18} 
+                color={colors.primary} 
+              />
+            </View>
+          )}
           {item.tipo === 'local' && (
             <View style={styles.localBadge}>
               <IconSymbol ios_icon_name="building.2" android_material_icon_name="store" size={12} color={colors.primary} />
@@ -294,13 +352,16 @@ const styles = StyleSheet.create({
   userNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
     marginBottom: 2,
   },
   userName: {
     fontSize: 16,
     fontWeight: '600',
     color: colors.text,
+  },
+  verifiedBadge: {
+    marginLeft: 2,
   },
   localBadge: {
     flexDirection: 'row',
