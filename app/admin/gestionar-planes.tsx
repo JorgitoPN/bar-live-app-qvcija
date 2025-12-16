@@ -35,7 +35,6 @@ interface LocalSubscription {
   plan_id: string;
   estado: 'activa' | 'cancelada' | 'expirada';
   fecha_inicio: string;
-  fecha_fin: string;
   locales: {
     nombre: string;
     imagen_url: string | null;
@@ -70,9 +69,21 @@ export default function GestionarPlanesScreen() {
   const [assigning, setAssigning] = useState(false);
   const [searching, setSearching] = useState(false);
 
+  // Plan detail modal state
+  const [showPlanDetailModal, setShowPlanDetailModal] = useState(false);
+  const [selectedPlanDetail, setSelectedPlanDetail] = useState<Plan | null>(null);
+
+  // Edit plan modal state
+  const [showEditPlanModal, setShowEditPlanModal] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
+  const [editPlanNombre, setEditPlanNombre] = useState('');
+  const [editPlanDescripcion, setEditPlanDescripcion] = useState('');
+  const [editPlanActivo, setEditPlanActivo] = useState(true);
+  const [savingPlan, setSavingPlan] = useState(false);
+
   const cargarPlanes = useCallback(async () => {
     try {
-      // ✅ FIXED v3.0: Only select existing columns
+      console.log('[GestionarPlanes] ✅ Loading plans...');
       const { data, error } = await supabase
         .from('planes_suscripcion')
         .select('id, nombre, descripcion, activo, caracteristicas')
@@ -93,7 +104,9 @@ export default function GestionarPlanesScreen() {
 
   const cargarSuscripciones = useCallback(async () => {
     try {
-      // ✅ FIXED v3.0: Only select existing columns
+      console.log('[GestionarPlanes] ✅ Loading subscriptions...');
+      
+      // ✅ FIXED: Only select existing columns (removed fecha_fin)
       const { data, error } = await supabase
         .from('suscripciones_locales')
         .select(`
@@ -102,7 +115,6 @@ export default function GestionarPlanesScreen() {
           plan_id,
           estado,
           fecha_inicio,
-          fecha_fin,
           locales (nombre, imagen_url),
           planes_suscripcion (nombre)
         `)
@@ -225,11 +237,9 @@ export default function GestionarPlanesScreen() {
       const plan = planes.find(p => p.id === selectedPlan);
       if (!plan) throw new Error('Plan not found');
 
-      // ✅ FIXED v3.0: Set subscription duration to 30 days by default
       const fechaInicio = new Date();
-      const fechaFin = new Date();
-      fechaFin.setDate(fechaFin.getDate() + 30); // Default 30 days
 
+      // ✅ FIXED: Only insert fecha_inicio (removed fecha_fin)
       const { error: subscriptionError } = await supabase
         .from('suscripciones_locales')
         .insert({
@@ -237,7 +247,6 @@ export default function GestionarPlanesScreen() {
           plan_id: selectedPlan,
           estado: 'activa',
           fecha_inicio: fechaInicio.toISOString(),
-          fecha_fin: fechaFin.toISOString(),
         });
 
       if (subscriptionError) throw subscriptionError;
@@ -301,6 +310,52 @@ export default function GestionarPlanesScreen() {
     );
   };
 
+  const handleEditPlan = (plan: Plan) => {
+    setEditingPlan(plan);
+    setEditPlanNombre(plan.nombre);
+    setEditPlanDescripcion(plan.descripcion || '');
+    setEditPlanActivo(plan.activo);
+    setShowEditPlanModal(true);
+  };
+
+  const handleSavePlan = async () => {
+    if (!editingPlan) return;
+
+    if (!editPlanNombre.trim()) {
+      Alert.alert('Error', 'El nombre del plan es obligatorio');
+      return;
+    }
+
+    setSavingPlan(true);
+    try {
+      const { error } = await supabase
+        .from('planes_suscripcion')
+        .update({
+          nombre: editPlanNombre.trim(),
+          descripcion: editPlanDescripcion.trim(),
+          activo: editPlanActivo,
+        })
+        .eq('id', editingPlan.id);
+
+      if (error) throw error;
+
+      Alert.alert('Éxito', 'Plan actualizado correctamente');
+      setShowEditPlanModal(false);
+      setEditingPlan(null);
+      await cargarPlanes();
+    } catch (error) {
+      console.error('[GestionarPlanes] Error saving plan:', error);
+      Alert.alert('Error', 'No se pudo guardar el plan');
+    } finally {
+      setSavingPlan(false);
+    }
+  };
+
+  const handleViewPlanDetail = (plan: Plan) => {
+    setSelectedPlanDetail(plan);
+    setShowPlanDetailModal(true);
+  };
+
   const getEstadoBadge = (estado: string) => {
     const badges: Record<string, { color: string; text: string }> = {
       activa: { color: '#10B981', text: 'Activa' },
@@ -321,32 +376,54 @@ export default function GestionarPlanesScreen() {
     <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
       <Text style={styles.sectionTitle}>Planes Disponibles</Text>
       {planes.map((plan) => (
-        <View key={plan.id} style={styles.planCard}>
+        <TouchableOpacity
+          key={plan.id}
+          style={styles.planCard}
+          onPress={() => handleViewPlanDetail(plan)}
+          activeOpacity={0.7}
+        >
           <View style={styles.planHeader}>
             <View style={styles.planHeaderLeft}>
               <Text style={styles.planName}>{plan.nombre}</Text>
               <Text style={styles.planPrice}>Plan de suscripción</Text>
             </View>
-            <View style={[styles.planStatusBadge, plan.activo ? styles.planStatusActive : styles.planStatusInactive]}>
-              <Text style={[styles.planStatusText, plan.activo ? styles.planStatusTextActive : styles.planStatusTextInactive]}>
-                {plan.activo ? 'Activo' : 'Inactivo'}
-              </Text>
+            <View style={styles.planHeaderRight}>
+              <View style={[styles.planStatusBadge, plan.activo ? styles.planStatusActive : styles.planStatusInactive]}>
+                <Text style={[styles.planStatusText, plan.activo ? styles.planStatusTextActive : styles.planStatusTextInactive]}>
+                  {plan.activo ? 'Activo' : 'Inactivo'}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={styles.editPlanButton}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  handleEditPlan(plan);
+                }}
+                activeOpacity={0.7}
+              >
+                <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={18} color={colors.primary} />
+              </TouchableOpacity>
             </View>
           </View>
           {plan.descripcion && (
-            <Text style={styles.planDescription}>{plan.descripcion}</Text>
+            <Text style={styles.planDescription} numberOfLines={2}>{plan.descripcion}</Text>
           )}
           {plan.caracteristicas && plan.caracteristicas.length > 0 && (
             <View style={styles.planFeatures}>
-              {plan.caracteristicas.map((feature, index) => (
+              {plan.caracteristicas.slice(0, 3).map((feature, index) => (
                 <View key={index} style={styles.planFeatureItem}>
                   <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={16} color="#10B981" />
-                  <Text style={styles.planFeatureText}>{feature}</Text>
+                  <Text style={styles.planFeatureText} numberOfLines={1}>{feature}</Text>
                 </View>
               ))}
+              {plan.caracteristicas.length > 3 && (
+                <Text style={styles.planFeatureMore}>
+                  +{plan.caracteristicas.length - 3} más
+                </Text>
+              )}
             </View>
           )}
-        </View>
+        </TouchableOpacity>
       ))}
     </ScrollView>
   );
@@ -375,9 +452,6 @@ export default function GestionarPlanesScreen() {
               <View style={styles.subscriptionDates}>
                 <Text style={styles.subscriptionDate}>
                   Inicio: {new Date(subscription.fecha_inicio).toLocaleDateString()}
-                </Text>
-                <Text style={styles.subscriptionDate}>
-                  Fin: {new Date(subscription.fecha_fin).toLocaleDateString()}
                 </Text>
               </View>
               {subscription.estado === 'activa' && (
@@ -646,6 +720,165 @@ export default function GestionarPlanesScreen() {
           </TouchableOpacity>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* Plan Detail Modal */}
+      <Modal
+        visible={showPlanDetailModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowPlanDetailModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Detalle del Plan</Text>
+              <TouchableOpacity onPress={() => setShowPlanDetailModal(false)}>
+                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody} contentContainerStyle={styles.modalBodyContent}>
+              {selectedPlanDetail && (
+                <React.Fragment>
+                  <View style={styles.planDetailHeader}>
+                    <Text style={styles.planDetailName}>{selectedPlanDetail.nombre}</Text>
+                    <View style={[
+                      styles.planStatusBadge,
+                      selectedPlanDetail.activo ? styles.planStatusActive : styles.planStatusInactive
+                    ]}>
+                      <Text style={[
+                        styles.planStatusText,
+                        selectedPlanDetail.activo ? styles.planStatusTextActive : styles.planStatusTextInactive
+                      ]}>
+                        {selectedPlanDetail.activo ? 'Activo' : 'Inactivo'}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {selectedPlanDetail.descripcion && (
+                    <View style={styles.planDetailSection}>
+                      <Text style={styles.planDetailSectionTitle}>Descripción</Text>
+                      <Text style={styles.planDetailText}>{selectedPlanDetail.descripcion}</Text>
+                    </View>
+                  )}
+
+                  {selectedPlanDetail.caracteristicas && selectedPlanDetail.caracteristicas.length > 0 && (
+                    <View style={styles.planDetailSection}>
+                      <Text style={styles.planDetailSectionTitle}>Características</Text>
+                      {selectedPlanDetail.caracteristicas.map((feature, index) => (
+                        <View key={index} style={styles.planDetailFeature}>
+                          <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color="#10B981" />
+                          <Text style={styles.planDetailFeatureText}>{feature}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
+                  <TouchableOpacity
+                    style={styles.editPlanButtonLarge}
+                    onPress={() => {
+                      setShowPlanDetailModal(false);
+                      handleEditPlan(selectedPlanDetail);
+                    }}
+                  >
+                    <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={20} color={colors.white} />
+                    <Text style={styles.editPlanButtonText}>Editar Plan</Text>
+                  </TouchableOpacity>
+                </React.Fragment>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Edit Plan Modal */}
+      <Modal
+        visible={showEditPlanModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowEditPlanModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+          keyboardVerticalOffset={0}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlayTouchable}
+            activeOpacity={1}
+            onPress={() => Keyboard.dismiss()}
+          >
+            <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Editar Plan</Text>
+                <TouchableOpacity onPress={() => setShowEditPlanModal(false)}>
+                  <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView
+                style={styles.modalBody}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={styles.modalBodyContent}
+              >
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Nombre del Plan *</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Ej: Premium"
+                    placeholderTextColor={colors.textSecondary}
+                    value={editPlanNombre}
+                    onChangeText={setEditPlanNombre}
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Descripción</Text>
+                  <TextInput
+                    style={[styles.textInput, styles.textInputMultiline]}
+                    placeholder="Descripción del plan..."
+                    placeholderTextColor={colors.textSecondary}
+                    value={editPlanDescripcion}
+                    onChangeText={setEditPlanDescripcion}
+                    multiline
+                    numberOfLines={4}
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Estado</Text>
+                  <TouchableOpacity
+                    style={styles.switchContainer}
+                    onPress={() => setEditPlanActivo(!editPlanActivo)}
+                  >
+                    <Text style={styles.switchLabel}>
+                      {editPlanActivo ? 'Activo' : 'Inactivo'}
+                    </Text>
+                    <View style={[styles.switch, editPlanActivo && styles.switchActive]}>
+                      <View style={[styles.switchThumb, editPlanActivo && styles.switchThumbActive]} />
+                    </View>
+                  </TouchableOpacity>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.confirmButton}
+                  onPress={handleSavePlan}
+                  disabled={savingPlan}
+                >
+                  {savingPlan ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <React.Fragment>
+                      <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color="white" />
+                      <Text style={styles.confirmButtonText}>Guardar Cambios</Text>
+                    </React.Fragment>
+                  )}
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -742,6 +975,11 @@ const styles = StyleSheet.create({
   planHeaderLeft: {
     flex: 1,
   },
+  planHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
   planName: {
     fontSize: 18,
     fontWeight: 'bold',
@@ -774,6 +1012,11 @@ const styles = StyleSheet.create({
   planStatusTextInactive: {
     color: '#EF4444',
   },
+  editPlanButton: {
+    padding: 8,
+    backgroundColor: colors.primary + '15',
+    borderRadius: 8,
+  },
   planDescription: {
     fontSize: 14,
     color: colors.textSecondary,
@@ -792,6 +1035,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.text,
     flex: 1,
+  },
+  planFeatureMore: {
+    fontSize: 13,
+    color: colors.primary,
+    fontWeight: '600',
+    marginTop: 4,
   },
   subscriptionCard: {
     backgroundColor: 'white',
@@ -950,6 +1199,56 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.text,
   },
+  textInput: {
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: colors.text,
+  },
+  textInputMultiline: {
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
+  switchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  switchLabel: {
+    fontSize: 14,
+    color: colors.text,
+    fontWeight: '600',
+  },
+  switch: {
+    width: 50,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.border,
+    padding: 2,
+    justifyContent: 'center',
+  },
+  switchActive: {
+    backgroundColor: colors.primary,
+  },
+  switchThumb: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'white',
+  },
+  switchThumbActive: {
+    alignSelf: 'flex-end',
+  },
   searchingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1049,6 +1348,58 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   confirmButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.white,
+  },
+  planDetailHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  planDetailName: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.text,
+    flex: 1,
+  },
+  planDetailSection: {
+    marginBottom: 24,
+  },
+  planDetailSectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  planDetailText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
+  },
+  planDetailFeature: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 12,
+  },
+  planDetailFeatureText: {
+    fontSize: 14,
+    color: colors.text,
+    flex: 1,
+    lineHeight: 20,
+  },
+  editPlanButtonLarge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    backgroundColor: colors.primary,
+    paddingVertical: 16,
+    borderRadius: 12,
+  },
+  editPlanButtonText: {
     fontSize: 16,
     fontWeight: '600',
     color: colors.white,
