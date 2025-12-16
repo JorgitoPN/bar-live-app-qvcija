@@ -77,10 +77,10 @@ export default function NewPostCard({
   
   // ✅ FIXED: All hooks MUST be called before any conditional returns
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [isLiked, setIsLiked] = useState(post?.user_has_liked ?? false);
-  const [isSaved, setIsSaved] = useState(post?.user_has_saved ?? false);
-  const [likesCount, setLikesCount] = useState(post?.likes_count ?? 0);
-  const [commentsCount, setCommentsCount] = useState(post?.comentarios_count ?? 0);
+  const [isLiked, setIsLiked] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [likesCount, setLikesCount] = useState(0);
+  const [commentsCount, setCommentsCount] = useState(0);
   const [showPostViewer, setShowPostViewer] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -90,6 +90,16 @@ export default function NewPostCard({
   const [loadingAuthor, setLoadingAuthor] = useState(true);
 
   const scrollViewRef = useRef<ScrollView>(null);
+
+  // ✅ Initialize state from post data after hooks are declared
+  useEffect(() => {
+    if (post) {
+      setIsLiked(post.user_has_liked ?? false);
+      setIsSaved(post.user_has_saved ?? false);
+      setLikesCount(post.likes_count ?? 0);
+      setCommentsCount(post.comentarios_count ?? 0);
+    }
+  }, [post]);
 
   const isOwner = post?.tipo === 'usuario' 
     ? post?.autor_id === user?.id

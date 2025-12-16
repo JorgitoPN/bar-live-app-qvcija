@@ -257,6 +257,21 @@ export default function SocialIndexScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Header */}
+      <LinearGradient
+        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+        style={styles.header}
+      >
+        <View style={styles.headerContent}>
+          <Text style={styles.headerTitle}>Red Social</Text>
+          {isImpersonating && impersonationSession && (
+            <View style={styles.impersonationIndicator}>
+              <IconSymbol ios_icon_name="person.crop.circle.badge.checkmark" android_material_icon_name="supervised_user_circle" size={20} color={colors.headerText} />
+            </View>
+          )}
+        </View>
+      </LinearGradient>
+
       <FlatList
         ref={flatListRef}
         data={posts}
@@ -292,6 +307,29 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  header: {
+    paddingTop: 50,
+    paddingBottom: 16,
+    paddingHorizontal: 20,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: colors.headerText,
+  },
+  impersonationIndicator: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },

@@ -191,7 +191,7 @@ export default function GestionarLocalesV7Screen() {
     console.log('[GestionarLocalesV7] Initial load');
     cargarContadores();
     cargarLocales(true, 1);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!initialLoading) {
@@ -201,7 +201,7 @@ export default function GestionarLocalesV7Screen() {
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [busqueda, filtroPropietario, filtroTipo, filtroEstado, filtroEnriquecido, filtroDestacado, initialLoading]);
+  }, [busqueda, filtroPropietario, filtroTipo, filtroEstado, filtroEnriquecido, filtroDestacado]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleEstadoLocal = useCallback(async (localId: string, activo: boolean) => {
     try {
@@ -367,7 +367,7 @@ export default function GestionarLocalesV7Screen() {
     setShowLocalDetailModal(true);
   };
 
-  const LocalCard = useCallback(({ local }: { local: Local }) => {
+  const LocalCard = React.memo(({ local }: { local: Local }) => {
     return (
       <TouchableOpacity
         style={styles.localCardV7}
@@ -520,11 +520,14 @@ export default function GestionarLocalesV7Screen() {
         )}
       </TouchableOpacity>
     );
-  }, [modoSeleccion, localesSeleccionados, toggleSeleccionLocal, router, toggleEstadoLocal, eliminarLocal]);
+  });
 
   const renderLocalCard = useCallback(({ item }: { item: Local }) => (
-    <LocalCard local={item} />
-  ), [LocalCard]);
+    <LocalCard 
+      key={item.id}
+      local={item} 
+    />
+  ), []);
 
   const renderHeader = useMemo(() => (
     <React.Fragment>
