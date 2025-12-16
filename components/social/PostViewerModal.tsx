@@ -13,6 +13,7 @@ import {
   Platform,
   StatusBar,
   FlatList,
+  ScrollView,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -62,13 +63,14 @@ interface PostViewerModalProps {
 }
 
 /**
- * ✅ POST VIEWER MODAL v1.4 - FIXED PROPS VALIDATION
+ * ✅ POST VIEWER MODAL v2.0 - UNIFIED WHITE BACKGROUND DESIGN
  * 
- * Key fixes:
- * - ✅ CRITICAL: Validate props before rendering to prevent "Props received: {visible:false}" error
- * - ✅ Handle undefined/false allPostIds gracefully
- * - ✅ Don't attempt to load posts if props are invalid
- * - ✅ Better error messages for debugging
+ * Key changes:
+ * - ✅ WHITE background (#fff) to match post detail page
+ * - ✅ BarLive blue gradient header
+ * - ✅ Same design as profile grid post detail
+ * - ✅ Consistent styling across all post detail pages
+ * - ✅ Proper validation and error handling
  */
 
 export default function PostViewerModal({
@@ -89,10 +91,9 @@ export default function PostViewerModal({
   const [currentPostId, setCurrentPostId] = useState(initialPostId);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  // ✅ CRITICAL FIX v1.4: Validate props early to prevent errors
   useEffect(() => {
     if (visible) {
-      console.log('[PostViewerModal v1.4] Props received:', { 
+      console.log('[PostViewerModal v2.0] Props received:', { 
         visible, 
         initialPostId, 
         allPostIds: allPostIds ? `array(${allPostIds.length})` : allPostIds,
@@ -100,10 +101,9 @@ export default function PostViewerModal({
         allPostIdsIsArray: Array.isArray(allPostIds)
       });
       
-      // ✅ Validate allPostIds before attempting to load
       if (!allPostIds || !Array.isArray(allPostIds) || allPostIds.length === 0) {
-        console.error('[PostViewerModal v1.4] ❌ Invalid allPostIds - cannot load posts');
-        console.error('[PostViewerModal v1.4] allPostIds value:', allPostIds);
+        console.error('[PostViewerModal v2.0] ❌ Invalid allPostIds - cannot load posts');
+        console.error('[PostViewerModal v2.0] allPostIds value:', allPostIds);
         setLoading(false);
         setPosts([]);
         return;
@@ -115,9 +115,8 @@ export default function PostViewerModal({
     try {
       setLoading(true);
       
-      // ✅ CRITICAL FIX v1.4: Validate allPostIds before making query
       if (!allPostIds || !Array.isArray(allPostIds) || allPostIds.length === 0) {
-        console.error('[PostViewerModal v1.4] Invalid allPostIds in loadPosts:', allPostIds);
+        console.error('[PostViewerModal v2.0] Invalid allPostIds in loadPosts:', allPostIds);
         setPosts([]);
         setLoading(false);
         return;
@@ -134,30 +133,27 @@ export default function PostViewerModal({
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('[PostViewerModal v1.4] Error loading posts:', error);
+        console.error('[PostViewerModal v2.0] Error loading posts:', error);
         Alert.alert('Error', 'No se pudieron cargar las publicaciones');
         setPosts([]);
         setLoading(false);
         return;
       }
 
-      // ✅ CRITICAL FIX: Ensure data is an array before processing
       if (!data || !Array.isArray(data)) {
-        console.error('[PostViewerModal v1.4] Invalid data received:', data);
+        console.error('[PostViewerModal v2.0] Invalid data received:', data);
         setPosts([]);
         setLoading(false);
         return;
       }
 
-      // ✅ CRITICAL FIX: Handle empty data array
       if (data.length === 0) {
-        console.warn('[PostViewerModal v1.4] No posts found for IDs:', allPostIds);
+        console.warn('[PostViewerModal v2.0] No posts found for IDs:', allPostIds);
         setPosts([]);
         setLoading(false);
         return;
       }
 
-      // Load likes and saves for each post
       const enrichedPosts = await Promise.all(
         data.map(async (post) => {
           let liked = false;
@@ -217,14 +213,12 @@ export default function PostViewerModal({
         })
       );
 
-      // Sort posts to match allPostIds order
       const sortedPosts = allPostIds
         .map(id => enrichedPosts.find(p => p.id === id))
         .filter(Boolean) as Post[];
 
-      // ✅ CRITICAL FIX: Validate sorted posts before setting state
       if (!sortedPosts || sortedPosts.length === 0) {
-        console.warn('[PostViewerModal v1.4] No valid posts after sorting');
+        console.warn('[PostViewerModal v2.0] No valid posts after sorting');
         setPosts([]);
         setLoading(false);
         return;
@@ -232,14 +226,13 @@ export default function PostViewerModal({
 
       setPosts(sortedPosts);
       
-      // Find initial index
       const initialIdx = sortedPosts.findIndex(p => p.id === initialPostId);
       if (initialIdx !== -1) {
         setCurrentIndex(initialIdx);
         setCurrentPostId(initialPostId);
       }
     } catch (error) {
-      console.error('[PostViewerModal v1.4] Error:', error);
+      console.error('[PostViewerModal v2.0] Error:', error);
       Alert.alert('Error', 'Ocurrió un error al cargar las publicaciones');
       setPosts([]);
     } finally {
@@ -254,7 +247,6 @@ export default function PostViewerModal({
   }, [visible, loadPosts, allPostIds]);
 
   const handleViewableItemsChanged = useCallback(({ viewableItems }: any) => {
-    // ✅ CRITICAL FIX: Validate viewableItems and posts array
     if (!viewableItems || viewableItems.length === 0 || !posts || posts.length === 0) {
       return;
     }
@@ -285,9 +277,7 @@ export default function PostViewerModal({
     const isLiked = post.liked;
     const currentLikes = post.likes || 0;
 
-    // Optimistic update
     setPosts(prev => {
-      // ✅ CRITICAL FIX: Validate prev array
       if (!prev || !Array.isArray(prev)) return [];
       return prev.map(p => 
         p.id === post.id 
@@ -345,10 +335,8 @@ export default function PostViewerModal({
           .eq('id', post.id);
       }
     } catch (error) {
-      console.error('[PostViewerModal v1.4] Error toggling like:', error);
-      // Revert optimistic update
+      console.error('[PostViewerModal v2.0] Error toggling like:', error);
       setPosts(prev => {
-        // ✅ CRITICAL FIX: Validate prev array
         if (!prev || !Array.isArray(prev)) return [];
         return prev.map(p => 
           p.id === post.id 
@@ -368,9 +356,7 @@ export default function PostViewerModal({
 
     const isSaved = post.saved;
 
-    // Optimistic update
     setPosts(prev => {
-      // ✅ CRITICAL FIX: Validate prev array
       if (!prev || !Array.isArray(prev)) return [];
       return prev.map(p => 
         p.id === post.id 
@@ -397,10 +383,8 @@ export default function PostViewerModal({
         if (error) throw error;
       }
     } catch (error) {
-      console.error('[PostViewerModal v1.4] Error toggling save:', error);
-      // Revert optimistic update
+      console.error('[PostViewerModal v2.0] Error toggling save:', error);
       setPosts(prev => {
-        // ✅ CRITICAL FIX: Validate prev array
         if (!prev || !Array.isArray(prev)) return [];
         return prev.map(p => 
           p.id === post.id 
@@ -426,124 +410,159 @@ export default function PostViewerModal({
 
   const renderPost = ({ item: post }: { item: Post }) => {
     return (
-      <View style={styles.postContainer}>
-        {/* Header */}
-        <View style={styles.postHeader}>
-          <View style={styles.authorInfoRow}>
-            {post.autorAvatar ? (
-              <Image source={{ uri: post.autorAvatar }} style={styles.postAvatar} />
-            ) : (
-              <View style={[styles.postAvatar, styles.avatarPlaceholder]}>
-                <Text style={styles.avatarText}>
-                  {post.autorNombre?.charAt(0).toUpperCase() || 'U'}
-                </Text>
-              </View>
-            )}
-            <Text style={styles.postAutorNombre}>{post.autorNombre}</Text>
+      <ScrollView 
+        style={styles.postScrollView}
+        contentContainerStyle={styles.postScrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.postContainer}>
+          {/* Header */}
+          <View style={styles.postHeader}>
+            <View style={styles.authorInfoRow}>
+              {post.autorAvatar ? (
+                <Image source={{ uri: post.autorAvatar }} style={styles.postAvatar} />
+              ) : (
+                <View style={[styles.postAvatar, styles.avatarPlaceholder]}>
+                  <Text style={styles.avatarText}>
+                    {post.autorNombre?.charAt(0).toUpperCase() || 'U'}
+                  </Text>
+                </View>
+              )}
+              <Text style={styles.postAutorNombre}>{post.autorNombre}</Text>
+            </View>
           </View>
-        </View>
 
-        {/* Image */}
-        {post.images && post.images.length > 0 && (
-          <View style={styles.imageContainer}>
-            <Image 
-              source={{ uri: post.images[0] }} 
-              style={styles.postImage} 
-              resizeMode="cover" 
-            />
-          </View>
-        )}
+          {/* Image Carousel */}
+          {post.images && post.images.length > 0 && (
+            <View style={styles.imageCarouselContainer}>
+              <ScrollView
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onScroll={(event) => {
+                  const index = Math.round(
+                    event.nativeEvent.contentOffset.x / width
+                  );
+                  setCurrentImageIndex(index);
+                }}
+                scrollEventThrottle={16}
+                style={styles.imageCarousel}
+              >
+                {post.images.map((imageUrl: string, index: number) => (
+                  <Image 
+                    key={index} 
+                    source={{ uri: imageUrl }} 
+                    style={styles.postImage} 
+                    resizeMode="cover" 
+                  />
+                ))}
+              </ScrollView>
+              
+              {post.images.length > 1 && (
+                <View style={styles.imageIndicatorContainer}>
+                  {post.images.map((_: string, index: number) => (
+                    <View
+                      key={index}
+                      style={[
+                        styles.imageIndicatorDot,
+                        currentImageIndex === index && styles.imageIndicatorDotActive,
+                      ]}
+                    />
+                  ))}
+                </View>
+              )}
+            </View>
+          )}
 
-        {/* Actions */}
-        <View style={styles.postActions}>
-          <View style={styles.leftActions}>
+          {/* Actions */}
+          <View style={styles.postActions}>
+            <View style={styles.leftActions}>
+              <TouchableOpacity 
+                style={styles.postActionButton} 
+                onPress={() => toggleLike(post)}
+                activeOpacity={0.7}
+              >
+                <IconSymbol
+                  name={post.liked ? 'heart.fill' : 'heart'}
+                  size={28}
+                  color={post.liked ? '#EF4444' : '#000'}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.postActionButton}
+                onPress={() => setCommentsModalVisible(true)}
+                activeOpacity={0.7}
+              >
+                <IconSymbol 
+                  ios_icon_name={SOCIAL_ICONS.COMMENT.ios}
+                  android_material_icon_name={SOCIAL_ICONS.COMMENT.android}
+                  size={26} 
+                  color="#000" 
+                />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.postActionButton} 
+                activeOpacity={0.7}
+              >
+                <IconSymbol name="paperplane" size={28} color="#000" />
+              </TouchableOpacity>
+            </View>
             <TouchableOpacity 
               style={styles.postActionButton} 
-              onPress={() => toggleLike(post)}
+              onPress={() => toggleSave(post)}
               activeOpacity={0.7}
             >
               <IconSymbol
-                name={post.liked ? 'heart.fill' : 'heart'}
+                name={post.saved ? 'bookmark.fill' : 'bookmark'}
                 size={28}
-                color={post.liked ? '#EF4444' : '#fff'}
+                color={post.saved ? colors.primary : '#000'}
               />
             </TouchableOpacity>
+          </View>
+
+          {/* Likes */}
+          {post.likes > 0 && (
+            <View style={styles.postLikes}>
+              <Text style={styles.postLikesText}>
+                <Text style={styles.postLikesBold}>{post.likes}</Text> Me gusta
+              </Text>
+            </View>
+          )}
+
+          {/* Caption */}
+          {post.contenido && (
+            <View style={styles.postDescripcion}>
+              <Text style={styles.postDescripcionText}>
+                <Text style={styles.postAutorBold}>{post.autorNombre}</Text>{' '}
+                <ParsedText text={post.contenido} style={styles.postDescripcionText} />
+              </Text>
+            </View>
+          )}
+
+          {/* Comments count */}
+          {post.comentarios > 0 && (
             <TouchableOpacity 
-              style={styles.postActionButton}
+              style={styles.viewCommentsButton}
               onPress={() => setCommentsModalVisible(true)}
               activeOpacity={0.7}
             >
-              <IconSymbol 
-                ios_icon_name={SOCIAL_ICONS.COMMENT.ios}
-                android_material_icon_name={SOCIAL_ICONS.COMMENT.android}
-                size={26} 
-                color="#fff" 
-              />
+              <Text style={styles.viewCommentsText}>
+                Ver {post.comentarios === 1 ? 'el comentario' : `los ${post.comentarios} comentarios`}
+              </Text>
             </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.postActionButton} 
-              activeOpacity={0.7}
-            >
-              <IconSymbol name="paperplane" size={28} color="#fff" />
-            </TouchableOpacity>
+          )}
+
+          {/* Time */}
+          <View style={styles.postTimeContainer}>
+            <Text style={styles.postTimeText}>{formatTimeAgo(post.created_at)}</Text>
           </View>
-          <TouchableOpacity 
-            style={styles.postActionButton} 
-            onPress={() => toggleSave(post)}
-            activeOpacity={0.7}
-          >
-            <IconSymbol
-              name={post.saved ? 'bookmark.fill' : 'bookmark'}
-              size={28}
-              color={post.saved ? colors.primary : '#fff'}
-            />
-          </TouchableOpacity>
         </View>
-
-        {/* Likes */}
-        {post.likes > 0 && (
-          <View style={styles.postLikes}>
-            <Text style={styles.postLikesText}>
-              <Text style={styles.postLikesBold}>{post.likes}</Text> Me gusta
-            </Text>
-          </View>
-        )}
-
-        {/* Caption */}
-        {post.contenido && (
-          <View style={styles.postDescripcion}>
-            <Text style={styles.postDescripcionText}>
-              <Text style={styles.postAutorBold}>{post.autorNombre}</Text>{' '}
-              <ParsedText text={post.contenido} style={styles.postDescripcionText} />
-            </Text>
-          </View>
-        )}
-
-        {/* Comments count */}
-        {post.comentarios > 0 && (
-          <TouchableOpacity 
-            style={styles.viewCommentsButton}
-            onPress={() => setCommentsModalVisible(true)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.viewCommentsText}>
-              Ver {post.comentarios === 1 ? 'el comentario' : `los ${post.comentarios} comentarios`}
-            </Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Time */}
-        <View style={styles.postTimeContainer}>
-          <Text style={styles.postTimeText}>{formatTimeAgo(post.created_at)}</Text>
-        </View>
-      </View>
+      </ScrollView>
     );
   };
 
-  // ✅ CRITICAL FIX v1.4: Don't render modal if props are invalid
   if (!visible) return null;
 
-  // ✅ CRITICAL FIX v1.4: Show error if allPostIds is invalid
   if (!allPostIds || !Array.isArray(allPostIds) || allPostIds.length === 0) {
     return (
       <Modal
@@ -552,13 +571,28 @@ export default function PostViewerModal({
         animationType="fade"
         onRequestClose={onClose}
       >
-        <View style={styles.loadingContainer}>
-          <Text style={{ color: colors.text, marginTop: 16, textAlign: 'center', paddingHorizontal: 20 }}>
-            Error: No se proporcionaron publicaciones válidas
-          </Text>
-          <TouchableOpacity onPress={onClose} style={{ marginTop: 20, backgroundColor: colors.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 }}>
-            <Text style={{ color: colors.headerText, fontWeight: '600' }}>Cerrar</Text>
-          </TouchableOpacity>
+        <View style={styles.container}>
+          <StatusBar barStyle="light-content" backgroundColor={colors.headerGradientStart} />
+          <LinearGradient
+            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.header}
+          >
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <IconSymbol name="chevron.left" size={28} color={colors.headerText} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Publicación</Text>
+            <View style={{ width: 40 }} />
+          </LinearGradient>
+          <View style={styles.loadingContainer}>
+            <Text style={{ color: colors.text, marginTop: 16, textAlign: 'center', paddingHorizontal: 20 }}>
+              Error: No se proporcionaron publicaciones válidas
+            </Text>
+            <TouchableOpacity onPress={onClose} style={{ marginTop: 20, backgroundColor: colors.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 }}>
+              <Text style={{ color: colors.headerText, fontWeight: '600' }}>Cerrar</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </Modal>
     );
@@ -572,14 +606,28 @@ export default function PostViewerModal({
         animationType="fade"
         onRequestClose={onClose}
       >
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
+        <View style={styles.container}>
+          <StatusBar barStyle="light-content" backgroundColor={colors.headerGradientStart} />
+          <LinearGradient
+            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.header}
+          >
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <IconSymbol name="chevron.left" size={28} color={colors.headerText} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Publicación</Text>
+            <View style={{ width: 40 }} />
+          </LinearGradient>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
         </View>
       </Modal>
     );
   }
 
-  // ✅ CRITICAL FIX: Check if posts array is valid before rendering
   if (!posts || !Array.isArray(posts) || posts.length === 0) {
     return (
       <Modal
@@ -588,20 +636,34 @@ export default function PostViewerModal({
         animationType="fade"
         onRequestClose={onClose}
       >
-        <View style={styles.loadingContainer}>
-          <Text style={{ color: colors.text, marginTop: 16 }}>No hay publicaciones disponibles</Text>
-          <TouchableOpacity onPress={onClose} style={{ marginTop: 20 }}>
-            <Text style={{ color: colors.primary }}>Cerrar</Text>
-          </TouchableOpacity>
+        <View style={styles.container}>
+          <StatusBar barStyle="light-content" backgroundColor={colors.headerGradientStart} />
+          <LinearGradient
+            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.header}
+          >
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <IconSymbol name="chevron.left" size={28} color={colors.headerText} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Publicación</Text>
+            <View style={{ width: 40 }} />
+          </LinearGradient>
+          <View style={styles.loadingContainer}>
+            <Text style={{ color: colors.text, marginTop: 16 }}>No hay publicaciones disponibles</Text>
+            <TouchableOpacity onPress={onClose} style={{ marginTop: 20 }}>
+              <Text style={{ color: colors.primary }}>Cerrar</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </Modal>
     );
   }
 
-  // ✅ CRITICAL FIX: Validate current post exists
   const currentPost = posts[currentIndex];
   if (!currentPost) {
-    console.error('[PostViewerModal v1.4] Current post not found at index:', currentIndex);
+    console.error('[PostViewerModal v2.0] Current post not found at index:', currentIndex);
     return (
       <Modal
         visible={visible}
@@ -609,11 +671,26 @@ export default function PostViewerModal({
         animationType="fade"
         onRequestClose={onClose}
       >
-        <View style={styles.loadingContainer}>
-          <Text style={{ color: colors.text, marginTop: 16 }}>Error al cargar la publicación</Text>
-          <TouchableOpacity onPress={onClose} style={{ marginTop: 20 }}>
-            <Text style={{ color: colors.primary }}>Cerrar</Text>
-          </TouchableOpacity>
+        <View style={styles.container}>
+          <StatusBar barStyle="light-content" backgroundColor={colors.headerGradientStart} />
+          <LinearGradient
+            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.header}
+          >
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <IconSymbol name="chevron.left" size={28} color={colors.headerText} />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Publicación</Text>
+            <View style={{ width: 40 }} />
+          </LinearGradient>
+          <View style={styles.loadingContainer}>
+            <Text style={{ color: colors.text, marginTop: 16 }}>Error al cargar la publicación</Text>
+            <TouchableOpacity onPress={onClose} style={{ marginTop: 20 }}>
+              <Text style={{ color: colors.primary }}>Cerrar</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </Modal>
     );
@@ -626,22 +703,19 @@ export default function PostViewerModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <StatusBar barStyle="light-content" backgroundColor="#000" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.headerGradientStart} />
       <View style={styles.container}>
-        {/* Header */}
+        {/* ✅ BarLive Blue Gradient Header */}
         <LinearGradient
-          colors={['rgba(0,0,0,0.8)', 'transparent']}
+          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
           style={styles.header}
         >
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <IconSymbol 
-              ios_icon_name="xmark" 
-              android_material_icon_name="close" 
-              size={28} 
-              color="#fff" 
-            />
+            <IconSymbol name="chevron.left" size={28} color={colors.headerText} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Publicaciones</Text>
+          <Text style={styles.headerTitle}>Publicación</Text>
           <View style={{ width: 40 }} />
         </LinearGradient>
 
@@ -670,7 +744,6 @@ export default function PostViewerModal({
           postAuthorId={currentPost.autor_id}
           onClose={() => setCommentsModalVisible(false)}
           onCommentAdded={() => {
-            // Reload current post to update comment count
             loadPosts();
           }}
         />
@@ -682,26 +755,21 @@ export default function PostViewerModal({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#fff',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#000',
+    backgroundColor: '#fff',
   },
   header: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingTop: Platform.OS === 'ios' ? 60 : 48,
     paddingBottom: 16,
     paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   closeButton: {
     width: 40,
@@ -712,22 +780,22 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#fff',
+    color: colors.headerText,
     flex: 1,
     textAlign: 'center',
   },
+  postScrollView: {
+    flex: 1,
+  },
+  postScrollContent: {
+    paddingBottom: 100,
+  },
   postContainer: {
     width: width,
-    height: SCREEN_HEIGHT,
-    backgroundColor: '#000',
-    justifyContent: 'center',
+    minHeight: SCREEN_HEIGHT - 100,
+    backgroundColor: '#fff',
   },
   postHeader: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 110 : 98,
-    left: 0,
-    right: 0,
-    zIndex: 5,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
@@ -743,8 +811,6 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     marginRight: 12,
-    borderWidth: 2,
-    borderColor: '#fff',
   },
   avatarPlaceholder: {
     backgroundColor: colors.primary,
@@ -759,24 +825,50 @@ const styles = StyleSheet.create({
   postAutorNombre: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#fff',
+    color: '#000',
   },
-  imageContainer: {
+  imageCarouselContainer: {
+    position: 'relative',
     width: width,
     height: width,
-    alignSelf: 'center',
+  },
+  imageCarousel: {
+    width: width,
+    height: width,
   },
   postImage: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#1a1a1a',
+    width: width,
+    height: width,
+    backgroundColor: '#f0f0f0',
+  },
+  imageIndicatorContainer: {
+    position: 'absolute',
+    bottom: 12,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+  },
+  imageIndicatorDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  },
+  imageIndicatorDotActive: {
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   postActions: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 8,
-    paddingTop: 8,
+    paddingTop: 4,
     paddingBottom: 4,
   },
   leftActions: {
@@ -794,7 +886,7 @@ const styles = StyleSheet.create({
   postLikesText: {
     fontSize: 14,
     fontWeight: '400',
-    color: '#fff',
+    color: '#000',
   },
   postLikesBold: {
     fontWeight: '600',
@@ -806,12 +898,12 @@ const styles = StyleSheet.create({
   },
   postDescripcionText: {
     fontSize: 14,
-    color: '#fff',
+    color: '#000',
     lineHeight: 18,
   },
   postAutorBold: {
     fontWeight: '600',
-    color: '#fff',
+    color: '#000',
   },
   viewCommentsButton: {
     paddingHorizontal: 16,
@@ -820,7 +912,7 @@ const styles = StyleSheet.create({
   },
   viewCommentsText: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: 'rgba(0, 0, 0, 0.5)',
     fontWeight: '400',
   },
   postTimeContainer: {
@@ -830,7 +922,7 @@ const styles = StyleSheet.create({
   },
   postTimeText: {
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: 'rgba(0, 0, 0, 0.4)',
     textTransform: 'uppercase',
   },
 });

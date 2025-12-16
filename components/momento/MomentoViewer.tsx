@@ -57,7 +57,7 @@ interface MomentoViewerProps {
 }
 
 /**
- * ✅ MOMENTO VIEWER v3.2 - FIXED PAUSE/RESUME BEHAVIOR
+ * ✅ MOMENTO VIEWER v3.3 - FIXED PAUSE/RESUME WITHOUT CLOSING
  * 
  * Key fixes:
  * - ✅ FIXED: Viewer no longer closes after releasing from pause
@@ -65,6 +65,7 @@ interface MomentoViewerProps {
  * - ✅ FIXED: Smooth pause/resume without viewer closing
  * - ✅ Instant pause response on touch
  * - ✅ Clean UX without pause icons
+ * - ✅ Progress continues smoothly after release
  */
 
 export default function MomentoViewer({
@@ -100,10 +101,8 @@ export default function MomentoViewer({
         tipo_viewer: 'usuario',
       });
 
-      // Update view count
       await supabase.rpc('increment_momento_views', { momento_id: momentoId });
 
-      // Update local state
       setMomentos(prev =>
         prev.map(m =>
           m.id === momentoId
@@ -112,7 +111,7 @@ export default function MomentoViewer({
         )
       );
     } catch (error) {
-      console.error('[MomentoViewer v3.2] Error marking as viewed:', error);
+      console.error('[MomentoViewer v3.3] Error marking as viewed:', error);
     }
   }, [user]);
 
@@ -121,9 +120,8 @@ export default function MomentoViewer({
 
     try {
       setLoading(true);
-      console.log('[MomentoViewer v3.2] Loading momentos for:', { authorId, authorType });
+      console.log('[MomentoViewer v3.3] Loading momentos for:', { authorId, authorType });
 
-      // Load author info
       if (authorType === 'usuario') {
         const { data: userData } = await supabase
           .from('usuarios')
@@ -156,7 +154,6 @@ export default function MomentoViewer({
         }
       }
 
-      // Load momentos
       const query = supabase
         .from('momentos')
         .select('*')
@@ -180,7 +177,6 @@ export default function MomentoViewer({
         return;
       }
 
-      // Check which momentos user has liked/viewed
       const momentoIds = momentosData.map(m => m.id);
       
       const [likesResult, viewsResult] = await Promise.all([
@@ -207,32 +203,28 @@ export default function MomentoViewer({
 
       setMomentos(momentosWithStatus);
 
-      // Initialize progress animations - set all previous momentos to 100%
       progressAnims.length = 0;
       momentosWithStatus.forEach(() => {
         progressAnims.push(new Animated.Value(0));
       });
 
-      // Find first unviewed momento or start at beginning
       const firstUnviewedIndex = momentosWithStatus.findIndex(m => !m.user_has_viewed);
       const startIndex = firstUnviewedIndex >= 0 ? firstUnviewedIndex : 0;
       
-      // Set all previous progress bars to 100%
       for (let i = 0; i < startIndex; i++) {
         progressAnims[i].setValue(1);
       }
       
       setCurrentIndex(startIndex);
-      console.log('[MomentoViewer v3.2] Starting at index:', startIndex, 'of', momentosWithStatus.length);
+      console.log('[MomentoViewer v3.3] Starting at index:', startIndex, 'of', momentosWithStatus.length);
 
-      // Mark first momento as viewed
       if (momentosWithStatus.length > 0 && !momentosWithStatus[startIndex].user_has_viewed) {
         markAsViewed(momentosWithStatus[startIndex].id);
       }
 
-      console.log('[MomentoViewer v3.2] ✅ Loaded momentos:', momentosWithStatus.length);
+      console.log('[MomentoViewer v3.3] ✅ Loaded momentos:', momentosWithStatus.length);
     } catch (error) {
-      console.error('[MomentoViewer v3.2] Error loading momentos:', error);
+      console.error('[MomentoViewer v3.3] Error loading momentos:', error);
       Alert.alert('Error', 'No se pudieron cargar los Momentos');
       onClose();
     } finally {
@@ -252,7 +244,6 @@ export default function MomentoViewer({
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
       if (hasLiked) {
-        // Unlike
         await supabase
           .from('momento_likes')
           .delete()
@@ -269,7 +260,6 @@ export default function MomentoViewer({
           )
         );
       } else {
-        // Like
         await supabase.from('momento_likes').insert({
           momento_id: currentMomento.id,
           usuario_id: user.id,
@@ -287,7 +277,7 @@ export default function MomentoViewer({
         );
       }
     } catch (error) {
-      console.error('[MomentoViewer v3.2] Error toggling like:', error);
+      console.error('[MomentoViewer v3.3] Error toggling like:', error);
     }
   };
 
@@ -295,18 +285,17 @@ export default function MomentoViewer({
     if (!momentoViewRef.current) return null;
 
     try {
-      console.log('[MomentoViewer v3.2] Capturing momento screenshot...');
+      console.log('[MomentoViewer v3.3] Capturing momento screenshot...');
       
-      // Capture the momento view as an image
       const uri = await captureRef(momentoViewRef, {
         format: 'jpg',
         quality: 0.8,
       });
 
-      console.log('[MomentoViewer v3.2] Screenshot captured:', uri);
+      console.log('[MomentoViewer v3.3] Screenshot captured:', uri);
       return uri;
     } catch (error) {
-      console.error('[MomentoViewer v3.2] Error capturing screenshot:', error);
+      console.error('[MomentoViewer v3.3] Error capturing screenshot:', error);
       return null;
     }
   };
@@ -318,13 +307,11 @@ export default function MomentoViewer({
     if (!currentMomento) return;
 
     try {
-      // Capture screenshot of the momento
       const screenshotUri = await captureMomentoScreenshot();
       
       let screenshotUrl: string | null = null;
       
       if (screenshotUri) {
-        // Upload screenshot to storage
         const fileName = `momento-screenshot-${Date.now()}.jpg`;
         const filePath = `${user.id}/momento-screenshots/${fileName}`;
         
@@ -348,11 +335,10 @@ export default function MomentoViewer({
             .getPublicUrl(filePath);
           
           screenshotUrl = urlData.publicUrl;
-          console.log('[MomentoViewer v3.2] Screenshot uploaded:', screenshotUrl);
+          console.log('[MomentoViewer v3.3] Screenshot uploaded:', screenshotUrl);
         }
       }
 
-      // Create or get existing chat
       const { data: existingChat } = await supabase
         .from('chats')
         .select('id')
@@ -375,7 +361,6 @@ export default function MomentoViewer({
       }
 
       if (chatId) {
-        // Store momento message with screenshot
         await supabase.from('momento_messages').insert({
           momento_id: currentMomento.id,
           chat_id: chatId,
@@ -384,7 +369,6 @@ export default function MomentoViewer({
           momento_screenshot_url: screenshotUrl,
         });
 
-        // Navigate to chat
         router.push({
           pathname: '/chat/conversacion',
           params: {
@@ -395,7 +379,7 @@ export default function MomentoViewer({
         onClose();
       }
     } catch (error) {
-      console.error('[MomentoViewer v3.2] Error creating chat:', error);
+      console.error('[MomentoViewer v3.3] Error creating chat:', error);
       Alert.alert('Error', 'No se pudo crear la conversación');
     }
   };
@@ -407,7 +391,6 @@ export default function MomentoViewer({
     if (!currentMomento) return;
 
     try {
-      // Load viewers and likers
       const [viewersResult, likersResult] = await Promise.all([
         supabase
           .from('momento_views')
@@ -441,7 +424,7 @@ export default function MomentoViewer({
       setLikers(likersResult.data || []);
       setShowStats(true);
     } catch (error) {
-      console.error('[MomentoViewer v3.2] Error loading stats:', error);
+      console.error('[MomentoViewer v3.3] Error loading stats:', error);
     }
   };
 
@@ -451,7 +434,6 @@ export default function MomentoViewer({
     const currentMomento = momentos[currentIndex];
     if (!currentMomento) return;
 
-    // Check if user is the author
     if (currentMomento.autor_id !== user.id) {
       Alert.alert('Error', 'Solo el autor puede eliminar este Momento');
       return;
@@ -472,7 +454,6 @@ export default function MomentoViewer({
                 .delete()
                 .eq('id', currentMomento.id);
 
-              // Remove from local state
               const newMomentos = momentos.filter(m => m.id !== currentMomento.id);
               
               if (newMomentos.length === 0) {
@@ -486,7 +467,7 @@ export default function MomentoViewer({
 
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             } catch (error) {
-              console.error('[MomentoViewer v3.2] Error deleting momento:', error);
+              console.error('[MomentoViewer v3.3] Error deleting momento:', error);
               Alert.alert('Error', 'No se pudo eliminar el Momento');
             }
           },
@@ -496,7 +477,6 @@ export default function MomentoViewer({
   };
 
   const handleNext = useCallback(() => {
-    // Clear any existing timer and animation
     if (progressTimerRef.current) {
       clearTimeout(progressTimerRef.current);
       progressTimerRef.current = null;
@@ -507,7 +487,6 @@ export default function MomentoViewer({
     }
 
     if (currentIndex < momentos.length - 1) {
-      // Set current progress bar to 100% (keep it full)
       if (progressAnims[currentIndex]) {
         Animated.timing(progressAnims[currentIndex], {
           toValue: 1,
@@ -526,7 +505,6 @@ export default function MomentoViewer({
   }, [currentIndex, momentos, onClose, progressAnims, markAsViewed]);
 
   const handlePrevious = () => {
-    // Clear any existing timer and animation
     if (progressTimerRef.current) {
       clearTimeout(progressTimerRef.current);
       progressTimerRef.current = null;
@@ -537,7 +515,6 @@ export default function MomentoViewer({
     }
 
     if (currentIndex > 0) {
-      // Reset current progress bar
       if (progressAnims[currentIndex]) {
         progressAnims[currentIndex].setValue(0);
       }
@@ -546,7 +523,6 @@ export default function MomentoViewer({
   };
 
   const handleClose = () => {
-    // Clear any existing timer and animation
     if (progressTimerRef.current) {
       clearTimeout(progressTimerRef.current);
       progressTimerRef.current = null;
@@ -556,7 +532,6 @@ export default function MomentoViewer({
       progressAnimationRef.current = null;
     }
 
-    // Reset all state before closing
     setCurrentIndex(0);
     setMomentos([]);
     setAuthor(null);
@@ -568,44 +543,36 @@ export default function MomentoViewer({
     onClose();
   };
 
-  // ✅ v3.2: FIXED - Instant pause without closing viewer
+  // ✅ v3.3: FIXED - Instant pause without closing viewer
   const handlePressIn = () => {
-    console.log('[MomentoViewer v3.2] 🛑 PAUSE - Touch detected');
+    console.log('[MomentoViewer v3.3] 🛑 PAUSE - Touch detected');
     
-    // ✅ INSTANT pause - stop immediately on touch
     setPaused(true);
     
-    // ✅ Stop the progress bar animation IMMEDIATELY
     if (progressAnimationRef.current) {
       progressAnimationRef.current.stop();
       progressAnimationRef.current = null;
-      console.log('[MomentoViewer v3.2] ✅ Progress animation stopped');
+      console.log('[MomentoViewer v3.3] ✅ Progress animation stopped');
     }
     
-    // ✅ Clear the timer IMMEDIATELY
     if (progressTimerRef.current) {
       clearTimeout(progressTimerRef.current);
       progressTimerRef.current = null;
-      console.log('[MomentoViewer v3.2] ✅ Progress timer cleared');
+      console.log('[MomentoViewer v3.3] ✅ Progress timer cleared');
     }
     
-    // Light haptic feedback for instant response
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
-  // ✅ v3.2: FIXED - Resume playback without closing viewer
+  // ✅ v3.3: FIXED - Resume playback without closing viewer
   const handlePressOut = () => {
-    console.log('[MomentoViewer v3.2] ▶️ RESUME - Touch released, resuming playback');
+    console.log('[MomentoViewer v3.3] ▶️ RESUME - Touch released, resuming playback');
     
-    // ✅ CRITICAL FIX: Simply resume playback, don't close viewer
     setPaused(false);
     
-    // Progress bar will resume in the useEffect
-    // Light haptic feedback for resume
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
-  // Pan responder for swipe gestures
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -613,11 +580,9 @@ export default function MomentoViewer({
         return Math.abs(gestureState.dx) > 10 || Math.abs(gestureState.dy) > 10;
       },
       onPanResponderRelease: (_, gestureState) => {
-        // Swipe down to close
         if (gestureState.dy > 100) {
           handleClose();
         }
-        // Swipe left/right for next/previous momento
         else if (gestureState.dx > 50) {
           handlePrevious();
         } else if (gestureState.dx < -50) {
@@ -629,7 +594,7 @@ export default function MomentoViewer({
 
   useEffect(() => {
     if (visible && authorId) {
-      console.log('[MomentoViewer v3.2] Opening viewer for:', { authorId, authorType });
+      console.log('[MomentoViewer v3.3] Opening viewer for:', { authorId, authorType });
       loadMomentos();
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -637,7 +602,6 @@ export default function MomentoViewer({
         useNativeDriver: true,
       }).start();
     } else if (!visible) {
-      // Reset fade animation when closing
       Animated.timing(fadeAnim, {
         toValue: 0,
         duration: 200,
@@ -646,12 +610,11 @@ export default function MomentoViewer({
     }
   }, [visible, authorId, authorType, fadeAnim, loadMomentos]);
 
-  // ✅ v3.2: Auto-progress timer with proper pause/resume
+  // ✅ v3.3: Auto-progress timer with proper pause/resume
   useEffect(() => {
     if (!paused && momentos.length > 0 && !loading && visible) {
-      console.log('[MomentoViewer v3.2] ▶️ Starting/resuming progress for momento', currentIndex);
+      console.log('[MomentoViewer v3.3] ▶️ Starting/resuming progress for momento', currentIndex);
       
-      // Clear any existing timer and animation
       if (progressTimerRef.current) {
         clearTimeout(progressTimerRef.current);
       }
@@ -659,19 +622,16 @@ export default function MomentoViewer({
         progressAnimationRef.current.stop();
       }
 
-      // Calculate remaining time based on current progress
       const currentProgress = progressAnims[currentIndex]?.__getValue() || 0;
       const remainingDuration = MOMENTO_DURATION * (1 - currentProgress);
 
-      console.log('[MomentoViewer v3.2] Progress:', currentProgress, '- Remaining:', remainingDuration, 'ms');
+      console.log('[MomentoViewer v3.3] Progress:', currentProgress, '- Remaining:', remainingDuration, 'ms');
 
-      // Set new timer
       progressTimerRef.current = setTimeout(() => {
-        console.log('[MomentoViewer v3.2] ⏱️ Timer completed - moving to next');
+        console.log('[MomentoViewer v3.3] ⏱️ Timer completed - moving to next');
         handleNext();
       }, remainingDuration);
 
-      // Animate progress bar from current position to 100%
       progressAnimationRef.current = Animated.timing(progressAnims[currentIndex], {
         toValue: 1,
         duration: remainingDuration,
@@ -708,9 +668,8 @@ export default function MomentoViewer({
 
   const currentMomento = momentos[currentIndex];
   
-  // Safety check: if currentMomento is undefined, close the viewer
   if (!currentMomento) {
-    console.error('[MomentoViewer v3.2] Current momento is undefined');
+    console.error('[MomentoViewer v3.3] Current momento is undefined');
     handleClose();
     return null;
   }
@@ -722,7 +681,6 @@ export default function MomentoViewer({
       <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
         <View style={styles.backgroundOverlay} />
         
-        {/* Momento Image */}
         <View style={styles.imageContainer} {...panResponder.panHandlers} ref={momentoViewRef} collapsable={false}>
           <TouchableOpacity
             style={styles.imageTouchable}
@@ -760,7 +718,6 @@ export default function MomentoViewer({
           </TouchableOpacity>
         </View>
 
-        {/* ✅ Progress Bars - Positioned at the very top with highest z-index */}
         <View style={styles.progressContainer}>
           {momentos.map((_, index) => (
             <View key={index} style={styles.progressBarBackground}>
@@ -783,7 +740,6 @@ export default function MomentoViewer({
           ))}
         </View>
 
-        {/* ✅ Header - Positioned below progress bars with lower z-index */}
         <LinearGradient
           colors={['rgba(0,0,0,0.6)', 'transparent']}
           style={styles.header}
@@ -816,7 +772,6 @@ export default function MomentoViewer({
           </TouchableOpacity>
         </LinearGradient>
 
-        {/* Actions with more subtle icons (smaller size, reduced opacity) and WHITE delete icon */}
         <LinearGradient
           colors={['transparent', 'rgba(0,0,0,0.6)']}
           style={styles.actions}
@@ -868,7 +823,6 @@ export default function MomentoViewer({
           )}
         </LinearGradient>
 
-        {/* Stats Modal */}
         {showStats && (
           <View style={styles.statsModal}>
             <View style={styles.statsContent}>
@@ -1006,7 +960,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
-  // ✅ Progress bars positioned at the very top with highest z-index
   progressContainer: {
     position: 'absolute',
     top: 50,
@@ -1028,7 +981,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: PROGRESS_BAR_HEIGHT / 2,
   },
-  // ✅ Header positioned below progress bars with lower z-index
   header: {
     position: 'absolute',
     top: 0,
