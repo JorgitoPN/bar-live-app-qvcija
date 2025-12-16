@@ -25,8 +25,10 @@ interface Plan {
   id: string;
   nombre: string;
   descripcion: string;
+  precio: number;
   activo: boolean;
   caracteristicas: string[];
+  permisos?: Record<string, boolean>;
 }
 
 interface LocalSubscription {
@@ -78,16 +80,33 @@ export default function GestionarPlanesScreen() {
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
   const [editPlanNombre, setEditPlanNombre] = useState('');
   const [editPlanDescripcion, setEditPlanDescripcion] = useState('');
+  const [editPlanPrecio, setEditPlanPrecio] = useState('');
   const [editPlanActivo, setEditPlanActivo] = useState(true);
+  const [editPlanPermisos, setEditPlanPermisos] = useState<Record<string, boolean>>({});
   const [savingPlan, setSavingPlan] = useState(false);
+
+  // Create plan modal state
+  const [showCreatePlanModal, setShowCreatePlanModal] = useState(false);
+  const [createPlanNombre, setCreatePlanNombre] = useState('');
+  const [createPlanDescripcion, setCreatePlanDescripcion] = useState('');
+  const [createPlanPrecio, setCreatePlanPrecio] = useState('');
+  const [createPlanActivo, setCreatePlanActivo] = useState(true);
+  const [createPlanPermisos, setCreatePlanPermisos] = useState<Record<string, boolean>>({
+    publicar_posts: true,
+    publicar_momentos: true,
+    responder_mensajes: true,
+    ver_estadisticas: false,
+    destacar_publicaciones: false,
+  });
+  const [creatingPlan, setCreatingPlan] = useState(false);
 
   const cargarPlanes = useCallback(async () => {
     try {
       console.log('[GestionarPlanes] ✅ Loading plans...');
       const { data, error } = await supabase
         .from('planes_suscripcion')
-        .select('id, nombre, descripcion, activo, caracteristicas')
-        .order('nombre', { ascending: true });
+        .select('id, nombre, descripcion, precio, activo, caracteristicas, permisos')
+        .order('precio', { ascending: true });
 
       if (error) {
         console.error('[GestionarPlanes] ❌ Error loading plans:', error);
@@ -106,7 +125,6 @@ export default function GestionarPlanesScreen() {
     try {
       console.log('[GestionarPlanes] ✅ Loading subscriptions...');
       
-      // ✅ FIXED: Only select existing columns (removed fecha_fin)
       const { data, error } = await supabase
         .from('suscripciones_locales')
         .select(`
@@ -190,7 +208,6 @@ export default function GestionarPlanesScreen() {
 
     setAssigning(true);
     try {
-      // Check if local already has an active subscription
       const { data: existingSubscription } = await supabase
         .from('suscripciones_locales')
         .select('id, estado')
@@ -207,7 +224,6 @@ export default function GestionarPlanesScreen() {
             {
               text: 'Continuar',
               onPress: async () => {
-                // Cancel existing subscription
                 await supabase
                   .from('suscripciones_locales')
                   .update({ estado: 'cancelada' })
@@ -239,7 +255,6 @@ export default function GestionarPlanesScreen() {
 
       const fechaInicio = new Date();
 
-      // ✅ FIXED: Only insert fecha_inicio (removed fecha_fin)
       const { error: subscriptionError } = await supabase
         .from('suscripciones_locales')
         .insert({
@@ -251,7 +266,6 @@ export default function GestionarPlanesScreen() {
 
       if (subscriptionError) throw subscriptionError;
 
-      // ✅ Enable local profile automatically
       const { error: localError } = await supabase
         .from('locales')
         .update({ activo: true })
@@ -314,7 +328,9 @@ export default function GestionarPlanesScreen() {
     setEditingPlan(plan);
     setEditPlanNombre(plan.nombre);
     setEditPlanDescripcion(plan.descripcion || '');
+    setEditPlanPrecio(plan.precio?.toString() || '0');
     setEditPlanActivo(plan.activo);
+    setEditPlanPermisos(plan.permisos || {});
     setShowEditPlanModal(true);
   };
 
@@ -326,6 +342,12 @@ export default function GestionarPlanesScreen() {
       return;
     }
 
+    const precio = parseFloat(editPlanPrecio);
+    if (isNaN(precio) || precio < 0) {
+      Alert.alert('Error', 'El precio debe ser un número válido');
+      return;
+    }
+
     setSavingPlan(true);
     try {
       const { error } = await supabase
@@ -333,7 +355,9 @@ export default function GestionarPlanesScreen() {
         .update({
           nombre: editPlanNombre.trim(),
           descripcion: editPlanDescripcion.trim(),
+          precio: precio,
           activo: editPlanActivo,
+          permisos: editPlanPermisos,
         })
         .eq('id', editingPlan.id);
 
@@ -351,9 +375,117 @@ export default function GestionarPlanesScreen() {
     }
   };
 
+  const handleCreatePlan = async () => {
+    if (!createPlanNombre.trim()) {
+      Alert.alert('Error', 'El nombre del plan es obligatorio');
+      return;
+    }
+
+    const precio = parseFloat(createPlanPrecio);
+    if (isNaN(precio) || precio < 0) {
+      Alert.alert('Error', 'El precio debe ser un número válido');
+      return;
+    }
+
+    setCreatingPlan(true);
+    try {
+      const { error } = await supabase
+        .from('planes_suscripcion')
+        .insert({
+          nombre: createPlanNombre.trim(),
+          descripcion: createPlanDescripcion.trim(),
+          precio: precio,
+          activo: createPlanActivo,
+          permisos: createPlanPermisos,
+          caracteristicas: [],
+        });
+
+      if (error) throw error;
+
+      Alert.alert('Éxito', 'Plan creado correctamente');
+      setShowCreatePlanModal(false);
+      setCreatePlanNombre('');
+      setCreatePlanDescripcion('');
+      setCreatePlanPrecio('');
+      setCreatePlanActivo(true);
+      setCreatePlanPermisos({
+        publicar_posts: true,
+        publicar_momentos: true,
+        responder_mensajes: true,
+        ver_estadisticas: false,
+        destacar_publicaciones: false,
+      });
+      await cargarPlanes();
+    } catch (error) {
+      console.error('[GestionarPlanes] Error creating plan:', error);
+      Alert.alert('Error', 'No se pudo crear el plan');
+    } finally {
+      setCreatingPlan(false);
+    }
+  };
+
+  const handleDeletePlan = async (planId: string, planName: string) => {
+    Alert.alert(
+      'Eliminar Plan',
+      `¿Estás seguro de que quieres eliminar el plan "${planName}"? Esta acción no se puede deshacer.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Check if plan has active subscriptions
+              const { count } = await supabase
+                .from('suscripciones_locales')
+                .select('*', { count: 'exact', head: true })
+                .eq('plan_id', planId)
+                .eq('estado', 'activa');
+
+              if (count && count > 0) {
+                Alert.alert(
+                  'No se puede eliminar',
+                  `Este plan tiene ${count} suscripción(es) activa(s). Cancela las suscripciones antes de eliminar el plan.`
+                );
+                return;
+              }
+
+              const { error } = await supabase
+                .from('planes_suscripcion')
+                .delete()
+                .eq('id', planId);
+
+              if (error) throw error;
+
+              Alert.alert('Éxito', 'Plan eliminado correctamente');
+              await cargarPlanes();
+            } catch (error) {
+              console.error('[GestionarPlanes] Error deleting plan:', error);
+              Alert.alert('Error', 'No se pudo eliminar el plan');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleViewPlanDetail = (plan: Plan) => {
     setSelectedPlanDetail(plan);
     setShowPlanDetailModal(true);
+  };
+
+  const togglePermiso = (permiso: string, isEdit: boolean = false) => {
+    if (isEdit) {
+      setEditPlanPermisos(prev => ({
+        ...prev,
+        [permiso]: !prev[permiso],
+      }));
+    } else {
+      setCreatePlanPermisos(prev => ({
+        ...prev,
+        [permiso]: !prev[permiso],
+      }));
+    }
   };
 
   const getEstadoBadge = (estado: string) => {
@@ -374,7 +506,16 @@ export default function GestionarPlanesScreen() {
 
   const renderPlanesTab = () => (
     <ScrollView style={styles.tabContent} contentContainerStyle={styles.tabContentContainer}>
-      <Text style={styles.sectionTitle}>Planes Disponibles</Text>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Planes Disponibles</Text>
+        <TouchableOpacity
+          style={styles.createButton}
+          onPress={() => setShowCreatePlanModal(true)}
+        >
+          <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={20} color={colors.white} />
+          <Text style={styles.createButtonText}>Crear Plan</Text>
+        </TouchableOpacity>
+      </View>
       {planes.map((plan) => (
         <TouchableOpacity
           key={plan.id}
@@ -385,7 +526,7 @@ export default function GestionarPlanesScreen() {
           <View style={styles.planHeader}>
             <View style={styles.planHeaderLeft}>
               <Text style={styles.planName}>{plan.nombre}</Text>
-              <Text style={styles.planPrice}>Plan de suscripción</Text>
+              <Text style={styles.planPrice}>€{plan.precio?.toFixed(2) || '0.00'}/mes</Text>
             </View>
             <View style={styles.planHeaderRight}>
               <View style={[styles.planStatusBadge, plan.activo ? styles.planStatusActive : styles.planStatusInactive]}>
@@ -610,7 +751,6 @@ export default function GestionarPlanesScreen() {
                 keyboardShouldPersistTaps="handled"
                 contentContainerStyle={styles.modalBodyContent}
               >
-                {/* Search Local */}
                 <View style={styles.inputContainer}>
                   <Text style={styles.inputLabel}>Buscar Local</Text>
                   <View style={styles.searchContainer}>
@@ -672,7 +812,6 @@ export default function GestionarPlanesScreen() {
                   </View>
                 )}
 
-                {/* Select Plan */}
                 {selectedLocal && (
                   <View style={styles.inputContainer}>
                     <Text style={styles.inputLabel}>Seleccionar Plan</Text>
@@ -688,7 +827,7 @@ export default function GestionarPlanesScreen() {
                         <View style={styles.planOptionInfo}>
                           <Text style={styles.planOptionName}>{plan.nombre}</Text>
                           <Text style={styles.planOptionPrice}>
-                            Plan de suscripción
+                            €{plan.precio?.toFixed(2) || '0.00'}/mes
                           </Text>
                         </View>
                         {selectedPlan === plan.id && (
@@ -741,7 +880,10 @@ export default function GestionarPlanesScreen() {
               {selectedPlanDetail && (
                 <React.Fragment>
                   <View style={styles.planDetailHeader}>
-                    <Text style={styles.planDetailName}>{selectedPlanDetail.nombre}</Text>
+                    <View>
+                      <Text style={styles.planDetailName}>{selectedPlanDetail.nombre}</Text>
+                      <Text style={styles.planDetailPrice}>€{selectedPlanDetail.precio?.toFixed(2) || '0.00'}/mes</Text>
+                    </View>
                     <View style={[
                       styles.planStatusBadge,
                       selectedPlanDetail.activo ? styles.planStatusActive : styles.planStatusInactive
@@ -762,6 +904,25 @@ export default function GestionarPlanesScreen() {
                     </View>
                   )}
 
+                  {selectedPlanDetail.permisos && Object.keys(selectedPlanDetail.permisos).length > 0 && (
+                    <View style={styles.planDetailSection}>
+                      <Text style={styles.planDetailSectionTitle}>Permisos y Accesos</Text>
+                      {Object.entries(selectedPlanDetail.permisos).map(([key, value]) => (
+                        <View key={key} style={styles.planDetailFeature}>
+                          <IconSymbol 
+                            ios_icon_name={value ? "checkmark.circle.fill" : "xmark.circle.fill"} 
+                            android_material_icon_name={value ? "check_circle" : "cancel"} 
+                            size={20} 
+                            color={value ? "#10B981" : "#EF4444"} 
+                          />
+                          <Text style={styles.planDetailFeatureText}>
+                            {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
                   {selectedPlanDetail.caracteristicas && selectedPlanDetail.caracteristicas.length > 0 && (
                     <View style={styles.planDetailSection}>
                       <Text style={styles.planDetailSectionTitle}>Características</Text>
@@ -774,16 +935,28 @@ export default function GestionarPlanesScreen() {
                     </View>
                   )}
 
-                  <TouchableOpacity
-                    style={styles.editPlanButtonLarge}
-                    onPress={() => {
-                      setShowPlanDetailModal(false);
-                      handleEditPlan(selectedPlanDetail);
-                    }}
-                  >
-                    <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={20} color={colors.white} />
-                    <Text style={styles.editPlanButtonText}>Editar Plan</Text>
-                  </TouchableOpacity>
+                  <View style={styles.planDetailActions}>
+                    <TouchableOpacity
+                      style={styles.editPlanButtonLarge}
+                      onPress={() => {
+                        setShowPlanDetailModal(false);
+                        handleEditPlan(selectedPlanDetail);
+                      }}
+                    >
+                      <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={20} color={colors.white} />
+                      <Text style={styles.editPlanButtonText}>Editar Plan</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.deletePlanButton}
+                      onPress={() => {
+                        setShowPlanDetailModal(false);
+                        handleDeletePlan(selectedPlanDetail.id, selectedPlanDetail.nombre);
+                      }}
+                    >
+                      <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={20} color="#EF4444" />
+                      <Text style={styles.deletePlanButtonText}>Eliminar Plan</Text>
+                    </TouchableOpacity>
+                  </View>
                 </React.Fragment>
               )}
             </ScrollView>
@@ -833,6 +1006,18 @@ export default function GestionarPlanesScreen() {
                 </View>
 
                 <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Precio (€/mes) *</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Ej: 29.99"
+                    placeholderTextColor={colors.textSecondary}
+                    value={editPlanPrecio}
+                    onChangeText={setEditPlanPrecio}
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
                   <Text style={styles.inputLabel}>Descripción</Text>
                   <TextInput
                     style={[styles.textInput, styles.textInputMultiline]}
@@ -843,6 +1028,28 @@ export default function GestionarPlanesScreen() {
                     multiline
                     numberOfLines={4}
                   />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Permisos y Accesos</Text>
+                  {[
+                    { key: 'publicar_posts', label: 'Publicar Posts' },
+                    { key: 'publicar_momentos', label: 'Publicar Momentos' },
+                    { key: 'responder_mensajes', label: 'Responder Mensajes' },
+                    { key: 'ver_estadisticas', label: 'Ver Estadísticas' },
+                    { key: 'destacar_publicaciones', label: 'Destacar Publicaciones' },
+                  ].map(({ key, label }) => (
+                    <TouchableOpacity
+                      key={key}
+                      style={styles.permissionItem}
+                      onPress={() => togglePermiso(key, true)}
+                    >
+                      <Text style={styles.permissionLabel}>{label}</Text>
+                      <View style={[styles.switch, editPlanPermisos[key] && styles.switchActive]}>
+                        <View style={[styles.switchThumb, editPlanPermisos[key] && styles.switchThumbActive]} />
+                      </View>
+                    </TouchableOpacity>
+                  ))}
                 </View>
 
                 <View style={styles.inputContainer}>
@@ -871,6 +1078,129 @@ export default function GestionarPlanesScreen() {
                     <React.Fragment>
                       <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color="white" />
                       <Text style={styles.confirmButtonText}>Guardar Cambios</Text>
+                    </React.Fragment>
+                  )}
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Create Plan Modal */}
+      <Modal
+        visible={showCreatePlanModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowCreatePlanModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+          keyboardVerticalOffset={0}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlayTouchable}
+            activeOpacity={1}
+            onPress={() => Keyboard.dismiss()}
+          >
+            <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Crear Nuevo Plan</Text>
+                <TouchableOpacity onPress={() => setShowCreatePlanModal(false)}>
+                  <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView
+                style={styles.modalBody}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={styles.modalBodyContent}
+              >
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Nombre del Plan *</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Ej: Premium"
+                    placeholderTextColor={colors.textSecondary}
+                    value={createPlanNombre}
+                    onChangeText={setCreatePlanNombre}
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Precio (€/mes) *</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Ej: 29.99"
+                    placeholderTextColor={colors.textSecondary}
+                    value={createPlanPrecio}
+                    onChangeText={setCreatePlanPrecio}
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Descripción</Text>
+                  <TextInput
+                    style={[styles.textInput, styles.textInputMultiline]}
+                    placeholder="Descripción del plan..."
+                    placeholderTextColor={colors.textSecondary}
+                    value={createPlanDescripcion}
+                    onChangeText={setCreatePlanDescripcion}
+                    multiline
+                    numberOfLines={4}
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Permisos y Accesos</Text>
+                  {[
+                    { key: 'publicar_posts', label: 'Publicar Posts' },
+                    { key: 'publicar_momentos', label: 'Publicar Momentos' },
+                    { key: 'responder_mensajes', label: 'Responder Mensajes' },
+                    { key: 'ver_estadisticas', label: 'Ver Estadísticas' },
+                    { key: 'destacar_publicaciones', label: 'Destacar Publicaciones' },
+                  ].map(({ key, label }) => (
+                    <TouchableOpacity
+                      key={key}
+                      style={styles.permissionItem}
+                      onPress={() => togglePermiso(key, false)}
+                    >
+                      <Text style={styles.permissionLabel}>{label}</Text>
+                      <View style={[styles.switch, createPlanPermisos[key] && styles.switchActive]}>
+                        <View style={[styles.switchThumb, createPlanPermisos[key] && styles.switchThumbActive]} />
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Estado</Text>
+                  <TouchableOpacity
+                    style={styles.switchContainer}
+                    onPress={() => setCreatePlanActivo(!createPlanActivo)}
+                  >
+                    <Text style={styles.switchLabel}>
+                      {createPlanActivo ? 'Activo' : 'Inactivo'}
+                    </Text>
+                    <View style={[styles.switch, createPlanActivo && styles.switchActive]}>
+                      <View style={[styles.switchThumb, createPlanActivo && styles.switchThumbActive]} />
+                    </View>
+                  </TouchableOpacity>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.confirmButton}
+                  onPress={handleCreatePlan}
+                  disabled={creatingPlan}
+                >
+                  {creatingPlan ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <React.Fragment>
+                      <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color="white" />
+                      <Text style={styles.confirmButtonText}>Crear Plan</Text>
                     </React.Fragment>
                   )}
                 </TouchableOpacity>
@@ -947,17 +1277,36 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.textSecondary,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
-    marginBottom: 16,
   },
   sectionDescription: {
     fontSize: 14,
     color: colors.textSecondary,
     marginBottom: 20,
     lineHeight: 20,
+  },
+  createButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  createButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.white,
   },
   planCard: {
     backgroundColor: 'white',
@@ -1249,6 +1598,23 @@ const styles = StyleSheet.create({
   switchThumbActive: {
     alignSelf: 'flex-end',
   },
+  permissionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 8,
+  },
+  permissionLabel: {
+    fontSize: 14,
+    color: colors.text,
+    fontWeight: '600',
+  },
   searchingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1355,14 +1721,19 @@ const styles = StyleSheet.create({
   planDetailHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 24,
   },
   planDetailName: {
     fontSize: 24,
     fontWeight: 'bold',
     color: colors.text,
-    flex: 1,
+    marginBottom: 4,
+  },
+  planDetailPrice: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.primary,
   },
   planDetailSection: {
     marginBottom: 24,
@@ -1390,6 +1761,9 @@ const styles = StyleSheet.create({
     flex: 1,
     lineHeight: 20,
   },
+  planDetailActions: {
+    gap: 12,
+  },
   editPlanButtonLarge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1403,5 +1777,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: colors.white,
+  },
+  deletePlanButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    backgroundColor: '#FEE2E2',
+    paddingVertical: 16,
+    borderRadius: 12,
+  },
+  deletePlanButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#EF4444',
   },
 });
