@@ -57,12 +57,14 @@ export default function GestionarSolicitudesScreen() {
   const cargarSolicitudes = useCallback(async () => {
     setLoading(true);
     try {
+      // ✅ FIXED: Only show locales created by owners (propietario_id is not null)
       let query = supabase
         .from('locales')
         .select(`
           *,
           propietario:usuarios!propietario_id(nombre, email)
         `)
+        .not('propietario_id', 'is', null)
         .order('fecha_solicitud', { ascending: false });
 
       if (filtroEstado !== 'todos') {
@@ -77,6 +79,7 @@ export default function GestionarSolicitudesScreen() {
         return;
       }
 
+      console.log('[GestionarSolicitudes] ✅ Loaded locales created by owners:', data?.length || 0);
       setSolicitudes(data || []);
     } catch (error) {
       console.error('Error:', error);

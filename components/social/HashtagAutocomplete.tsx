@@ -6,7 +6,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  Platform,
   ScrollView,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
@@ -23,24 +22,25 @@ interface HashtagAutocompleteProps {
   text: string;
   cursorPosition: number;
   onSelectHashtag: (hashtag: string, hashtagText: string) => void;
-  style?: any;
+  keyboardHeight: number;
 }
 
 /**
- * ✅ HASHTAG AUTOCOMPLETE v3.0 - KEYBOARD-ALIGNED MODAL (COMPLETE REBUILD)
+ * ✅ HASHTAG AUTOCOMPLETE v4.0 - COMPLETE REDESIGN WITH PERFECT KEYBOARD ALIGNMENT
  * 
- * Key improvements:
- * - ✅ FIXED: Modal now sticks DIRECTLY to keyboard with ZERO gap
- * - ✅ Removed ALL bottom margins and padding
- * - ✅ Square bottom corners for seamless keyboard connection
- * - ✅ Enhanced positioning and layout
+ * Revolutionary improvements:
+ * - ✅ NEW: Uses keyboardHeight prop for perfect positioning
+ * - ✅ NEW: Compact design matching MentionAutocomplete v4.0
+ * - ✅ NEW: Better visual hierarchy
+ * - ✅ FIXED: Modal sticks PERFECTLY to keyboard with ZERO gap
+ * - ✅ FIXED: No overflow above header
  */
 
 export default function HashtagAutocomplete({
   text,
   cursorPosition,
   onSelectHashtag,
-  style,
+  keyboardHeight,
 }: HashtagAutocompleteProps) {
   const [suggestions, setSuggestions] = useState<HashtagSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
@@ -84,10 +84,6 @@ export default function HashtagAutocomplete({
 
     setLoading(true);
     try {
-      console.log('[HashtagAutocomplete] 🔍 Searching for hashtags:', query);
-
-      // Search hashtags from publications only (not comments)
-      // Order by usage count for most popular first
       const { data, error } = await supabase
         .from('hashtags')
         .select('id, tag, uso_count')
@@ -96,15 +92,14 @@ export default function HashtagAutocomplete({
         .limit(10);
 
       if (error) {
-        console.error('[HashtagAutocomplete] ❌ Error searching hashtags:', error);
+        console.error('[HashtagAutocomplete v4.0] Error searching hashtags:', error);
         setSuggestions([]);
         return;
       }
 
-      console.log('[HashtagAutocomplete] ✅ Found hashtags:', data?.length || 0);
       setSuggestions(data || []);
     } catch (error) {
-      console.error('[HashtagAutocomplete] ❌ Error:', error);
+      console.error('[HashtagAutocomplete v4.0] Error:', error);
       setSuggestions([]);
     } finally {
       setLoading(false);
@@ -121,7 +116,7 @@ export default function HashtagAutocomplete({
     }
   }, [currentHashtagText, searchHashtags]);
 
-  if (currentHashtagText === null) {
+  if (currentHashtagText === null || keyboardHeight === 0) {
     return null;
   }
 
@@ -130,47 +125,59 @@ export default function HashtagAutocomplete({
   };
 
   return (
-    <View style={[styles.container, style]}>
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color={colors.primary} />
-          <Text style={styles.loadingText}>Buscando hashtags...</Text>
+    <View style={[styles.container, { bottom: keyboardHeight }]} pointerEvents="box-none">
+      <View style={styles.content} pointerEvents="auto">
+        <View style={styles.header}>
+          <IconSymbol 
+            ios_icon_name="number" 
+            android_material_icon_name="tag" 
+            size={16} 
+            color={colors.primary} 
+          />
+          <Text style={styles.headerText}>Hashtags</Text>
         </View>
-      ) : suggestions.length > 0 ? (
-        <ScrollView 
-          style={styles.list}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          {suggestions.map((item, index) => (
-            <TouchableOpacity
-              key={`${item.id}-${index}`}
-              style={[styles.suggestionItem, index === suggestions.length - 1 && styles.suggestionItemLast]}
-              onPress={() => handleSelectHashtag(item)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.hashtagIcon}>
-                <IconSymbol ios_icon_name="number" android_material_icon_name="tag" size={20} color={colors.primary} />
-              </View>
-              <View style={styles.suggestionInfo}>
-                <Text style={styles.suggestionTag}>#{item.tag}</Text>
-                <Text style={styles.suggestionCount}>
-                  {item.uso_count} {item.uso_count === 1 ? 'publicación' : 'publicaciones'}
-                </Text>
-              </View>
-              <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={16} color={colors.textSecondary} />
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      ) : currentHashtagText.length > 0 ? (
-        <View style={styles.emptyContainer}>
-          <IconSymbol ios_icon_name="number" android_material_icon_name="tag" size={20} color={colors.textSecondary} />
-          <View style={styles.emptyTextContainer}>
-            <Text style={styles.emptyText}>Sé el primero en usar</Text>
-            <Text style={styles.emptyHashtag}>#{currentHashtagText}</Text>
+
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={styles.loadingText}>Buscando hashtags...</Text>
           </View>
-        </View>
-      ) : null}
+        ) : suggestions.length > 0 ? (
+          <ScrollView 
+            style={styles.list}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {suggestions.map((item, index) => (
+              <TouchableOpacity
+                key={`${item.id}-${index}`}
+                style={styles.suggestionItem}
+                onPress={() => handleSelectHashtag(item)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.hashtagIcon}>
+                  <IconSymbol ios_icon_name="number" android_material_icon_name="tag" size={18} color={colors.primary} />
+                </View>
+                <View style={styles.suggestionInfo}>
+                  <Text style={styles.suggestionTag}>#{item.tag}</Text>
+                  <Text style={styles.suggestionCount}>
+                    {item.uso_count} {item.uso_count === 1 ? 'publicación' : 'publicaciones'}
+                  </Text>
+                </View>
+                <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={14} color={colors.textSecondary} />
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        ) : currentHashtagText.length > 0 ? (
+          <View style={styles.emptyContainer}>
+            <IconSymbol ios_icon_name="number" android_material_icon_name="tag" size={18} color={colors.textSecondary} />
+            <View style={styles.emptyTextContainer}>
+              <Text style={styles.emptyText}>Sé el primero en usar</Text>
+              <Text style={styles.emptyHashtag}>#{currentHashtagText}</Text>
+            </View>
+          </View>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -178,90 +185,102 @@ export default function HashtagAutocomplete({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 0,
     left: 0,
     right: 0,
+    zIndex: 1000,
+    elevation: 1000,
+  },
+  content: {
     backgroundColor: colors.cardBackground,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-    borderWidth: 3,
-    borderBottomWidth: 0,
-    borderColor: colors.primary,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
     maxHeight: 240,
-    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.15,
     shadowRadius: 8,
-    elevation: 15,
-    marginBottom: 0,
-    paddingBottom: 0,
+    elevation: 10,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: colors.primary + '40',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.background,
+    gap: 8,
+  },
+  headerText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.text,
   },
   list: {
-    flex: 1,
+    maxHeight: 190,
   },
   suggestionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
   },
-  suggestionItemLast: {
-    borderBottomWidth: 0,
-  },
   hashtagIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: colors.primary + '15',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 10,
   },
   suggestionInfo: {
     flex: 1,
   },
   suggestionTag: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '700',
     color: colors.text,
     marginBottom: 2,
   },
   suggestionCount: {
-    fontSize: 13,
+    fontSize: 12,
     color: colors.textSecondary,
   },
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 16,
-    gap: 8,
+    paddingVertical: 20,
+    gap: 10,
   },
   loadingText: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.textSecondary,
+    fontWeight: '500',
   },
   emptyContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    gap: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    gap: 10,
   },
   emptyTextContainer: {
     flex: 1,
   },
   emptyText: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.textSecondary,
     marginBottom: 2,
   },
   emptyHashtag: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '700',
     color: colors.primary,
   },
 });
