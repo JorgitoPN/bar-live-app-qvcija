@@ -31,14 +31,15 @@ interface MentionAutocompleteProps {
 }
 
 /**
- * ✅ MENTION SYSTEM v15.0 - KEYBOARD-ALIGNED MODAL (FIXED)
+ * ✅ MENTION SYSTEM v16.0 - KEYBOARD-ALIGNED MODAL (FINAL FIX)
  * 
  * Key improvements:
- * - ✅ FIXED: Modal now sticks directly to keyboard with no gap
+ * - ✅ FIXED: Modal now sticks directly to keyboard with NO gap
  * - ✅ Changed modal text to "Etiquetar usuarios/locales"
  * - ✅ Enhanced positioning and layout
  * - ✅ Shows helpful hint when user types @ with less than 2 characters
  * - ✅ Only shows results after typing at least 2 characters after "@"
+ * - ✅ Removed all bottom margins to ensure perfect keyboard alignment
  */
 
 /**
@@ -435,14 +436,18 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     backgroundColor: colors.cardBackground,
-    borderRadius: 12,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
     maxHeight: 280,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 15,
     borderWidth: 3,
+    borderBottomWidth: 0,
     borderColor: colors.primary,
     marginBottom: 0,
     minHeight: 60,

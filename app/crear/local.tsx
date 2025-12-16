@@ -116,13 +116,14 @@ const TIPOS_COCINA = [
 const DIAS_SEMANA = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
 /**
- * ✅ CREAR LOCAL v5.0 - COMPLETE UX WITH OSM MAP & FULL PREVIEW
+ * ✅ CREAR LOCAL v6.0 - COMPLETE UX WITH OSM MAP & FULL PREVIEW (FINAL)
  * 
  * New features:
- * - ✅ OSM map viewer for precise location selection (Step 2)
+ * - ✅ OSM map viewer for precise location selection (Step 2) - ALWAYS VISIBLE
  * - ✅ Full preview matching local details page exactly
  * - ✅ All local information, images, gallery, and functions
  * - ✅ Complete consistency with enriched Google locals
+ * - ✅ Fixed map display to show immediately without placeholder text
  */
 
 export default function CrearLocalScreen() {
@@ -680,31 +681,29 @@ export default function CrearLocalScreen() {
         <Text style={styles.locationButtonText}>Usar mi ubicación actual</Text>
       </TouchableOpacity>
 
-      {/* ✅ NEW v5.0: OSM Map Viewer */}
+      {/* ✅ NEW v6.0: OSM Map Viewer - ALWAYS VISIBLE */}
       <View style={styles.mapContainer}>
         <Text style={styles.mapLabel}>Ubicación Exacta en el Mapa *</Text>
         <Text style={styles.mapHelperText}>
           Arrastra el marcador o toca en el mapa para ajustar la ubicación exacta
         </Text>
-        {Platform.OS === 'web' ? (
-          <View style={styles.webMapNotSupported}>
-            <IconSymbol ios_icon_name="map" android_material_icon_name="map" size={48} color={colors.textSecondary} />
-            <Text style={styles.webMapNotSupportedText}>
-              El mapa no está disponible en la versión web
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.mapViewer}>
-            <WebView
-              ref={webViewRef}
-              source={{ html: generateMapHTML() }}
-              style={styles.webview}
-              onMessage={handleWebViewMessage}
-              javaScriptEnabled={true}
-              domStorageEnabled={true}
-            />
-          </View>
-        )}
+        <View style={styles.mapViewer}>
+          <WebView
+            ref={webViewRef}
+            source={{ html: generateMapHTML() }}
+            style={styles.webview}
+            onMessage={handleWebViewMessage}
+            javaScriptEnabled={true}
+            domStorageEnabled={true}
+            startInLoadingState={true}
+            renderLoading={() => (
+              <View style={styles.mapLoadingContainer}>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={styles.mapLoadingText}>Cargando mapa...</Text>
+              </View>
+            )}
+          />
+        </View>
         {formData.latitud && formData.longitud && (
           <View style={styles.coordinatesDisplay}>
             <Text style={styles.coordinatesText}>
@@ -1366,23 +1365,27 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 2,
     borderColor: colors.primary,
+    backgroundColor: colors.cardBackground,
   },
   webview: {
     flex: 1,
+    backgroundColor: 'transparent',
   },
-  webMapNotSupported: {
-    height: 300,
+  mapLoadingContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: colors.cardBackground,
-    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
+    gap: 12,
   },
-  webMapNotSupportedText: {
+  mapLoadingText: {
     fontSize: 14,
     color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: 12,
+    fontWeight: '600',
   },
   coordinatesDisplay: {
     marginTop: 8,

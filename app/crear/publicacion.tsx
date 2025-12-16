@@ -125,7 +125,8 @@ export default function CrearPublicacionScreen() {
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       (e) => {
         console.log('[CrearPublicacion] ⌨️ Keyboard shown, height:', e.endCoordinates.height);
-        setKeyboardHeight(e.endCoordinates.height);
+        // Add small padding (5px) to ensure modal is directly above keyboard
+        setKeyboardHeight(e.endCoordinates.height + 5);
       }
     );
 
@@ -879,12 +880,12 @@ export default function CrearPublicacionScreen() {
           </View>
         </ScrollView>
 
-        {/* Autocomplete Components - Fixed position above keyboard */}
+        {/* Autocomplete Components - Fixed position directly above keyboard */}
         <View 
           style={[
             styles.autocompleteContainer, 
             { 
-              bottom: keyboardHeight > 0 ? keyboardHeight + 10 : 10,
+              bottom: keyboardHeight > 0 ? keyboardHeight : 0,
             }
           ]}
           pointerEvents="box-none"
@@ -932,7 +933,7 @@ export default function CrearPublicacionScreen() {
                   }} 
                   activeOpacity={0.7}
                 >
-                  <IconSymbol name="xmark" size={24} color={colors.text} />
+                  <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
                 </TouchableOpacity>
               </View>
 

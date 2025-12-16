@@ -167,24 +167,28 @@ export default function HashtagAutocomplete({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
+    backgroundColor: colors.cardBackground,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    borderWidth: 3,
+    borderBottomWidth: 0,
+    borderColor: colors.primary,
     maxHeight: 240,
     overflow: 'hidden',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 12,
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
       },
       android: {
-        elevation: 8,
+        elevation: 15,
       },
       web: {
-        boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+        boxShadow: '0 -4px 16px rgba(0,0,0,0.3)',
       },
     }),
   },
