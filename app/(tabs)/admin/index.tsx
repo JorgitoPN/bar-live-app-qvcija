@@ -276,12 +276,6 @@ export default function AdminPanel() {
           route: '/admin/gestion-emails',
         },
         {
-          id: 'diagnostico_emails',
-          title: 'Diagnóstico de Emails',
-          description: 'Diagnosticar problemas de envío',
-          route: '/admin/diagnostico-emails',
-        },
-        {
           id: 'probar_emails',
           title: 'Probar Emails',
           description: 'Enviar emails de prueba',
@@ -307,12 +301,6 @@ export default function AdminPanel() {
           title: 'Navegación de Páginas',
           description: 'Ver todas las páginas de la app',
           route: '/admin/navegacion-paginas',
-        },
-        {
-          id: 'ver_ficha',
-          title: 'Ver Ficha Local',
-          description: 'Vista previa de fichas de locales',
-          route: '/admin/ver-ficha',
         },
       ],
     },
