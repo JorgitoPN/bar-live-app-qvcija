@@ -91,6 +91,7 @@ export default function GestionarPagosStripeScreen() {
   const [showStripeModal, setShowStripeModal] = useState(false);
   const [editingStripeConfig, setEditingStripeConfig] = useState<StripeConfig | null>(null);
   const [savingStripe, setSavingStripe] = useState(false);
+  const [testingConnection, setTestingConnection] = useState(false);
 
   // Statistics
   const [totalRevenue, setTotalRevenue] = useState(0);
@@ -272,6 +273,35 @@ export default function GestionarPagosStripeScreen() {
     }
   };
 
+  const handleTestStripeConnection = async () => {
+    if (!editingStripeConfig?.secret_key) {
+      Alert.alert('Error', 'Por favor, introduce la Secret Key de Stripe');
+      return;
+    }
+
+    setTestingConnection(true);
+    try {
+      // Test the Stripe connection by making a simple API call
+      const response = await fetch('https://api.stripe.com/v1/balance', {
+        headers: {
+          'Authorization': `Bearer ${editingStripeConfig.secret_key}`,
+        },
+      });
+
+      if (response.ok) {
+        Alert.alert('Éxito', 'Conexión con Stripe establecida correctamente ✓');
+      } else {
+        const error = await response.json();
+        Alert.alert('Error', `No se pudo conectar con Stripe: ${error.error?.message || 'Error desconocido'}`);
+      }
+    } catch (error) {
+      console.error('[GestionarPagosStripe] Error testing Stripe connection:', error);
+      Alert.alert('Error', 'No se pudo probar la conexión con Stripe');
+    } finally {
+      setTestingConnection(false);
+    }
+  };
+
   const handleSaveStripeConfig = async () => {
     if (!editingStripeConfig) return;
 
@@ -319,7 +349,11 @@ export default function GestionarPagosStripeScreen() {
           text: 'Enviar',
           onPress: async () => {
             try {
-              // TODO: Implement email sending logic via Edge Function
+              const { error } = await supabase.functions.invoke('send-invoice-email', {
+                body: { invoiceId, recipientEmail: companyData.accounting_email },
+              });
+
+              if (error) throw error;
               Alert.alert('Éxito', 'Factura enviada correctamente a la gestoría');
             } catch (error) {
               console.error('[GestionarPagosStripe] Error sending invoice:', error);
@@ -591,6 +625,14 @@ export default function GestionarPagosStripeScreen() {
         <IconSymbol ios_icon_name="exclamationmark.triangle.fill" android_material_icon_name="warning" size={20} color={colors.badgeDestacado} />
         <Text style={styles.infoText}>
           <Text style={{ fontWeight: 'bold' }}>Importante:</Text> Nunca compartas tus claves secretas de Stripe. Mantenlas seguras y cámbialas regularmente.
+        </Text>
+      </View>
+
+      <View style={[styles.infoBox, { backgroundColor: '#10B981' + '15', borderColor: '#10B981' + '30' }]}>
+        <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={20} color="#10B981" />
+        <Text style={styles.infoText}>
+          <Text style={{ fontWeight: 'bold' }}>Webhook URL:</Text>{'\n'}
+          https://{Deno.env.get('SUPABASE_URL')?.replace('https://', '')}/functions/v1/stripe-webhook
         </Text>
       </View>
     </ScrollView>
@@ -961,6 +1003,21 @@ export default function GestionarPagosStripeScreen() {
                         secureTextEntry
                       />
                     </View>
+
+                    <TouchableOpacity
+                      style={[styles.confirmButton, { backgroundColor: '#10B981', marginTop: 16 }]}
+                      onPress={handleTestStripeConnection}
+                      disabled={testingConnection}
+                    >
+                      {testingConnection ? (
+                        <ActivityIndicator size="small" color="white" />
+                      ) : (
+                        <React.Fragment>
+                          <IconSymbol ios_icon_name="checkmark.shield.fill" android_material_icon_name="verified" size={20} color="white" />
+                          <Text style={styles.confirmButtonText}>Probar Conexión</Text>
+                        </React.Fragment>
+                      )}
+                    </TouchableOpacity>
 
                     <View style={[styles.infoBox, { marginTop: 16 }]}>
                       <IconSymbol ios_icon_name="info.circle.fill" android_material_icon_name="info" size={20} color={colors.primary} />
