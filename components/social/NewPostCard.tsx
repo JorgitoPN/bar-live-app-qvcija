@@ -53,29 +53,28 @@ interface Post {
 }
 
 interface NewPostCardProps {
-  post: Post;
+  post?: Post;
   onUpdate?: () => void;
 }
 
 /**
- * ✅ NEW POST CARD v2.1 - HORIZONTAL IMAGE SWIPE IN FEED
+ * ✅ NEW POST CARD v2.2 - FIXED HOOKS RULES VIOLATION
  * 
- * Key features:
+ * Key fixes:
+ * - ✅ All hooks declared at the top before any conditional returns
+ * - ✅ Safe property access with optional chaining and fallback values
  * - ✅ Horizontal swipe enabled for multiple images directly in the feed
  * - ✅ Image indicators show current position
  * - ✅ Smooth scrolling between images
- * - ✅ No need to open post viewer to see all images
- * - ✅ Safe property access with fallback values
- * - ✅ Fixed React Hooks rules violation
  */
 
 export default function NewPostCard({
   post,
   onUpdate,
 }: NewPostCardProps) {
+  // ✅ CRITICAL: All hooks MUST be called before any conditional returns
   const { user } = useAuth();
   
-  // ✅ FIXED: All hooks MUST be called before any conditional returns
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -100,10 +99,6 @@ export default function NewPostCard({
       setCommentsCount(post.comentarios_count ?? 0);
     }
   }, [post]);
-
-  const isOwner = post?.tipo === 'usuario' 
-    ? post?.autor_id === user?.id
-    : false;
 
   useEffect(() => {
     const loadAuthorData = async () => {
@@ -148,6 +143,10 @@ export default function NewPostCard({
     console.error('[NewPostCard] Post is undefined');
     return null;
   }
+
+  const isOwner = post.tipo === 'usuario' 
+    ? post.autor_id === user?.id
+    : false;
 
   const handleProfilePress = () => {
     if (post.tipo === 'local' && post.local_id) {

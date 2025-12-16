@@ -174,6 +174,7 @@ export default function SocialIndexScreen() {
     if (userId) {
       cargarPosts(1, false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
   const handleRefresh = useCallback(() => {
@@ -189,6 +190,15 @@ export default function SocialIndexScreen() {
   const handlePostCreated = useCallback(() => {
     cargarPosts(1, true);
   }, [cargarPosts]);
+
+  const handleNotifications = () => {
+    router.push('/perfil/notificaciones');
+  };
+
+  const handleSearch = () => {
+    // TODO: Implement search functionality
+    Alert.alert('Búsqueda', 'Función de búsqueda próximamente');
+  };
 
   const renderHeader = useCallback(() => (
     <React.Fragment>
@@ -257,18 +267,26 @@ export default function SocialIndexScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
+      {/* Header with Icons */}
       <LinearGradient
         colors={[colors.headerGradientStart, colors.headerGradientEnd]}
         style={styles.header}
       >
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>Red Social</Text>
-          {isImpersonating && impersonationSession && (
-            <View style={styles.impersonationIndicator}>
-              <IconSymbol ios_icon_name="person.crop.circle.badge.checkmark" android_material_icon_name="supervised_user_circle" size={20} color={colors.headerText} />
-            </View>
-          )}
+          <View style={styles.headerIcons}>
+            {isImpersonating && impersonationSession && (
+              <View style={styles.impersonationIndicator}>
+                <IconSymbol ios_icon_name="person.crop.circle.badge.checkmark" android_material_icon_name="supervised_user_circle" size={20} color={colors.headerText} />
+              </View>
+            )}
+            <TouchableOpacity style={styles.headerIconButton} onPress={handleSearch}>
+              <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={24} color={colors.headerText} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.headerIconButton} onPress={handleNotifications}>
+              <IconSymbol ios_icon_name="bell.fill" android_material_icon_name="notifications" size={24} color={colors.headerText} />
+            </TouchableOpacity>
+          </View>
         </View>
       </LinearGradient>
 
@@ -324,6 +342,19 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: 'bold',
     color: colors.headerText,
+  },
+  headerIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   impersonationIndicator: {
     width: 36,
