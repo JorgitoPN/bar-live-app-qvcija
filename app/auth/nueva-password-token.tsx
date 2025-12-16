@@ -82,16 +82,20 @@ export default function NuevaPasswordTokenScreen() {
       console.log('[NuevaPasswordToken] 📧 Email:', email);
       console.log('[NuevaPasswordToken] 🔐 Google User:', isGoogleUser);
 
-      // Get the project URL
-      const { data: { project_url } } = await supabase.functions.getProjectUrl();
-      const functionsUrl = project_url || 'https://embntaqwlwmgazvrglaf.supabase.co';
+      // Get the Supabase project URL from environment variables
+      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://embntaqwlwmgazvrglaf.supabase.co';
+      console.log('[NuevaPasswordToken] 🌐 Using Supabase URL:', supabaseUrl);
+
+      // Get the current session for authorization
+      const { data: { session } } = await supabase.auth.getSession();
+      const accessToken = session?.access_token || '';
 
       // Call the Edge Function to update password
-      const response = await fetch(`${functionsUrl}/functions/v1/update-password-with-token`, {
+      const response = await fetch(`${supabaseUrl}/functions/v1/update-password-with-token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || ''}`,
+          'Authorization': `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ 
           email: email.trim().toLowerCase(), 
