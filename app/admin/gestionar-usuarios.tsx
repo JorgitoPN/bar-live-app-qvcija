@@ -21,6 +21,7 @@ import { IconSymbol } from '@/components/IconSymbol';
 import { supabase } from '@/utils/supabase';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 const isTablet = width >= 768;
@@ -44,7 +45,17 @@ interface Local {
   imagen_url?: string;
 }
 
+interface ImpersonationSession {
+  id: string;
+  admin_id: string;
+  impersonated_user_id: string;
+  impersonated_user_name: string;
+  started_at: string;
+  is_active: boolean;
+}
+
 const USUARIOS_POR_PAGINA = 20;
+const IMPERSONATION_KEY = '@barlive_impersonation_session';
 
 export default function GestionarUsuariosScreen() {
   const router = useRouter();
@@ -69,6 +80,7 @@ export default function GestionarUsuariosScreen() {
   const [localSearch, setLocalSearch] = useState('');
   const [selectedLocal, setSelectedLocal] = useState<string | null>(null);
   const [loadingLocales, setLoadingLocales] = useState(false);
+  const [activeImpersonation, setActiveImpersonation] = useState<ImpersonationSession | null>(null);
   const [contadores, setContadores] = useState({
     total: 0,
     clientes: 0,
@@ -77,6 +89,43 @@ export default function GestionarUsuariosScreen() {
     activos: 0,
     inactivos: 0,
   });
+
+  // Check for active impersonation session on mount
+  useEffect(() => {
+    checkActiveImpersonation();
+  }, []);
+
+  const checkActiveImpersonation = async () => {
+    try {
+      // Check AsyncStorage first
+      const storedSession = await AsyncStorage.getItem(IMPERSONATION_KEY);
+      if (storedSession) {
+        const session = JSON.parse(storedSession);
+        setActiveImpersonation(session);
+      }
+
+      // Also check database for active sessions
+      if (currentUser) {
+        const { data, error } = await supabase
+          .from('admin_impersonation_sessions')
+          .select('*')
+          .eq('admin_id', currentUser.id)
+          .eq('is_active', true)
+          .order('started_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (data) {
+          setActiveImpersonation(data);
+          await AsyncStorage.setItem(IMPERSONATION_KEY, JSON.stringify(data));
+        }
+      }
+    } catch (error) {
+      console.error('[GestionarUsuarios] Error checking impersonation:', error);
+    }
+  };
 
   const cargarContadores = useCallback(async () => {
     try {
@@ -279,38 +328,42 @@ export default function GestionarUsuariosScreen() {
     if (!selectedUsuarioForImpersonate || !currentUser) return;
 
     try {
-      // Store impersonation session in localStorage/AsyncStorage
-      const impersonationData = {
-        adminId: currentUser.id,
-        adminEmail: currentUser.email,
-        impersonatedUserId: selectedUsuarioForImpersonate.id,
-        impersonatedUserEmail: selectedUsuarioForImpersonate.email,
-        impersonatedUserName: selectedUsuarioForImpersonate.nombre,
-        startedAt: new Date().toISOString(),
-      };
+      // Create impersonation session in database
+      const { data: sessionData, error: sessionError } = await supabase
+        .from('admin_impersonation_sessions')
+        .insert({
+          admin_id: currentUser.id,
+          impersonated_user_id: selectedUsuarioForImpersonate.id,
+          admin_email: currentUser.email || '',
+          impersonated_user_email: selectedUsuarioForImpersonate.email,
+          impersonated_user_name: selectedUsuarioForImpersonate.nombre,
+          is_active: true,
+          reason: 'Admin impersonation for support/debugging',
+        })
+        .select()
+        .single();
 
-      // In a real implementation, you would:
-      // 1. Store this in a secure session table
-      // 2. Create a temporary auth token for the impersonated user
-      // 3. Switch the current session to that user
-      // 4. Add a banner showing "Viewing as [User Name]" with option to exit
-      
+      if (sessionError) throw sessionError;
+
+      // Store in AsyncStorage for persistence
+      await AsyncStorage.setItem(IMPERSONATION_KEY, JSON.stringify(sessionData));
+      setActiveImpersonation(sessionData);
+
       Alert.alert(
         'Impersonación Activada',
         `Ahora estás viendo la aplicación como ${selectedUsuarioForImpersonate.nombre}.\n\n` +
         'IMPORTANTE:\n' +
-        '- Puedes ver su perfil y actividad pública\n' +
-        '- NO puedes ver sus mensajes privados sin su consentimiento\n' +
+        '- Toda la aplicación (BarLive y red social) se mostrará como este usuario\n' +
+        '- La impersonación permanecerá activa hasta que la finalices\n' +
         '- Todas las acciones quedarán registradas\n' +
-        '- Para salir, usa el botón "Salir de Impersonación" en el menú',
+        '- Para salir, usa el botón "Finalizar Impersonación" en el panel de administración',
         [
           {
             text: 'Entendido',
             onPress: () => {
-              console.log('[Impersonation] Started:', impersonationData);
-              // TODO: Implement actual impersonation logic
-              // For now, just navigate to the user's profile
+              console.log('[Impersonation] Started:', sessionData);
               setShowImpersonateModal(false);
+              // Navigate to user's profile to start viewing as them
               router.push(`/perfil/usuario?id=${selectedUsuarioForImpersonate.id}` as any);
             },
           },
@@ -320,6 +373,48 @@ export default function GestionarUsuariosScreen() {
       console.error('[GestionarUsuarios] Error impersonando usuario:', error);
       Alert.alert('Error', 'No se pudo iniciar la impersonación');
     }
+  };
+
+  const finalizarImpersonacion = async () => {
+    if (!activeImpersonation) return;
+
+    Alert.alert(
+      'Finalizar Impersonación',
+      '¿Estás seguro de que quieres finalizar la impersonación y volver a tu cuenta de administrador?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Finalizar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Update session in database
+              const { error } = await supabase
+                .from('admin_impersonation_sessions')
+                .update({
+                  is_active: false,
+                  ended_at: new Date().toISOString(),
+                })
+                .eq('id', activeImpersonation.id);
+
+              if (error) throw error;
+
+              // Clear AsyncStorage
+              await AsyncStorage.removeItem(IMPERSONATION_KEY);
+              setActiveImpersonation(null);
+
+              Alert.alert('Éxito', 'Impersonación finalizada. Has vuelto a tu cuenta de administrador.');
+              
+              // Refresh the page to reset the view
+              router.replace('/admin/gestionar-usuarios' as any);
+            } catch (error) {
+              console.error('[GestionarUsuarios] Error finalizando impersonación:', error);
+              Alert.alert('Error', 'No se pudo finalizar la impersonación');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const abrirModalAccesoMensajes = (usuario: Usuario) => {
@@ -632,6 +727,29 @@ export default function GestionarUsuariosScreen() {
 
   const renderHeader = () => (
     <>
+      {/* Active Impersonation Banner */}
+      {activeImpersonation && (
+        <View style={styles.impersonationBanner}>
+          <View style={styles.impersonationBannerContent}>
+            <IconSymbol ios_icon_name="person.crop.circle.badge.checkmark" android_material_icon_name="supervised_user_circle" size={24} color={colors.white} />
+            <View style={styles.impersonationBannerText}>
+              <Text style={styles.impersonationBannerTitle}>
+                Impersonando a {activeImpersonation.impersonated_user_name}
+              </Text>
+              <Text style={styles.impersonationBannerSubtitle}>
+                Toda la app se muestra como este usuario
+              </Text>
+            </View>
+          </View>
+          <TouchableOpacity
+            style={styles.impersonationBannerButton}
+            onPress={finalizarImpersonacion}
+          >
+            <Text style={styles.impersonationBannerButtonText}>Finalizar</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       <View style={styles.searchContainer}>
         <View style={styles.searchInputContainer}>
           <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
@@ -1051,12 +1169,12 @@ export default function GestionarUsuariosScreen() {
             {selectedUsuarioForImpersonate && (
               <>
                 <Text style={styles.modalDescription}>
-                  Podrás ver la aplicación desde la perspectiva de {selectedUsuarioForImpersonate.nombre}.
+                  Podrás ver toda la aplicación (BarLive y red social) desde la perspectiva de {selectedUsuarioForImpersonate.nombre}.
                 </Text>
                 <View style={styles.modalWarning}>
                   <IconSymbol ios_icon_name="exclamationmark.triangle.fill" android_material_icon_name="warning" size={24} color="#F59E0B" />
                   <Text style={styles.modalWarningText}>
-                    No podrás acceder a sus mensajes privados sin su consentimiento explícito. Todas las acciones quedarán registradas.
+                    La impersonación permanecerá activa hasta que la finalices manualmente. No podrás acceder a sus mensajes privados sin su consentimiento explícito. Todas las acciones quedarán registradas.
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -1064,7 +1182,7 @@ export default function GestionarUsuariosScreen() {
                   onPress={impersonarUsuario}
                 >
                   <IconSymbol ios_icon_name="person.crop.circle.badge.checkmark" android_material_icon_name="supervised_user_circle" size={20} color={colors.white} />
-                  <Text style={styles.modalPrimaryButtonText}>Ver como {selectedUsuarioForImpersonate.nombre}</Text>
+                  <Text style={styles.modalPrimaryButtonText}>Iniciar Impersonación</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -1177,6 +1295,49 @@ const styles = StyleSheet.create({
   listContent: {
     flexGrow: 1,
     paddingBottom: 100,
+  },
+  impersonationBanner: {
+    backgroundColor: '#8B5CF6',
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 8,
+    padding: 16,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    ...commonStyles.shadow,
+  },
+  impersonationBannerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 12,
+  },
+  impersonationBannerText: {
+    flex: 1,
+  },
+  impersonationBannerTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.white,
+    marginBottom: 2,
+  },
+  impersonationBannerSubtitle: {
+    fontSize: 13,
+    color: colors.white,
+    opacity: 0.9,
+  },
+  impersonationBannerButton: {
+    backgroundColor: colors.white,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  impersonationBannerButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#8B5CF6',
   },
   searchContainer: {
     paddingHorizontal: 16,
