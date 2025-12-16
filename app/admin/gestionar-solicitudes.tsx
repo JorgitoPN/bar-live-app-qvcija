@@ -11,6 +11,9 @@ import {
   TextInput,
   Modal,
   Image,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors, commonStyles } from '@/styles/commonStyles';
@@ -415,95 +418,115 @@ export default function GestionarSolicitudesScreen() {
         </View>
       </Modal>
 
-      {/* Action Modal */}
+      {/* ✅ FIXED v2.0: Action Modal with KeyboardAvoidingView */}
       <Modal
         visible={showActionModal}
         transparent
         animationType="slide"
         onRequestClose={() => setShowActionModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {actionType === 'aprobar' && 'Aprobar Local'}
-                {actionType === 'denegar' && 'Denegar Local'}
-                {actionType === 'revision' && 'Marcar en Revisión'}
-                {actionType === 'eliminar' && 'Eliminar Local'}
-              </Text>
-              <TouchableOpacity onPress={() => setShowActionModal(false)}>
-                <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+          keyboardVerticalOffset={0}
+        >
+          <TouchableOpacity 
+            style={styles.modalOverlayTouchable}
+            activeOpacity={1}
+            onPress={() => {
+              Keyboard.dismiss();
+            }}
+          >
+            <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>
+                  {actionType === 'aprobar' && 'Aprobar Local'}
+                  {actionType === 'denegar' && 'Denegar Local'}
+                  {actionType === 'revision' && 'Marcar en Revisión'}
+                  {actionType === 'eliminar' && 'Eliminar Local'}
+                </Text>
+                <TouchableOpacity onPress={() => setShowActionModal(false)}>
+                  <IconSymbol ios_icon_name="xmark" android_material_icon_name="close" size={24} color={colors.text} />
+                </TouchableOpacity>
+              </View>
 
-            <ScrollView style={styles.modalBody}>
-              {selectedSolicitud && (
-                <View style={styles.actionModalContent}>
-                  <Text style={styles.actionModalText}>
-                    {actionType === 'aprobar' && `¿Estás seguro de que quieres aprobar el local "${selectedSolicitud.nombre}"? El local será publicado y visible para todos los usuarios.`}
-                    {actionType === 'denegar' && `¿Estás seguro de que quieres denegar el local "${selectedSolicitud.nombre}"? El propietario recibirá una notificación con el motivo.`}
-                    {actionType === 'revision' && `¿Estás seguro de que quieres marcar el local "${selectedSolicitud.nombre}" como en revisión? El propietario recibirá una notificación.`}
-                    {actionType === 'eliminar' && `¿Estás seguro de que quieres eliminar permanentemente el local "${selectedSolicitud.nombre}"? Esta acción no se puede deshacer.`}
-                  </Text>
+              <ScrollView 
+                style={styles.modalBody}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={styles.modalBodyContent}
+              >
+                {selectedSolicitud && (
+                  <View style={styles.actionModalContent}>
+                    <Text style={styles.actionModalText}>
+                      {actionType === 'aprobar' && `¿Estás seguro de que quieres aprobar el local "${selectedSolicitud.nombre}"? El local será publicado y visible para todos los usuarios.`}
+                      {actionType === 'denegar' && `¿Estás seguro de que quieres denegar el local "${selectedSolicitud.nombre}"? El propietario recibirá una notificación con el motivo.`}
+                      {actionType === 'revision' && `¿Estás seguro de que quieres marcar el local "${selectedSolicitud.nombre}" como en revisión? El propietario recibirá una notificación.`}
+                      {actionType === 'eliminar' && `¿Estás seguro de que quieres eliminar permanentemente el local "${selectedSolicitud.nombre}"? Esta acción no se puede deshacer.`}
+                    </Text>
 
-                  {actionType === 'denegar' && (
-                    <View style={styles.inputContainer}>
-                      <Text style={styles.inputLabel}>Motivo de la Denegación *</Text>
-                      <TextInput
-                        style={[styles.input, styles.textArea]}
-                        placeholder="Explica por qué se deniega el local..."
-                        value={motivoDenegacion}
-                        onChangeText={setMotivoDenegacion}
-                        multiline
-                        numberOfLines={4}
-                      />
+                    {actionType === 'denegar' && (
+                      <View style={styles.inputContainer}>
+                        <Text style={styles.inputLabel}>Motivo de la Denegación *</Text>
+                        <TextInput
+                          style={[styles.input, styles.textArea]}
+                          placeholder="Explica por qué se deniega el local..."
+                          placeholderTextColor={colors.textSecondary}
+                          value={motivoDenegacion}
+                          onChangeText={setMotivoDenegacion}
+                          multiline
+                          numberOfLines={4}
+                          textAlignVertical="top"
+                        />
+                      </View>
+                    )}
+
+                    {(actionType === 'aprobar' || actionType === 'denegar' || actionType === 'revision') && (
+                      <View style={styles.inputContainer}>
+                        <Text style={styles.inputLabel}>Comentarios Adicionales (opcional)</Text>
+                        <TextInput
+                          style={[styles.input, styles.textArea]}
+                          placeholder="Añade comentarios adicionales..."
+                          placeholderTextColor={colors.textSecondary}
+                          value={comentarios}
+                          onChangeText={setComentarios}
+                          multiline
+                          numberOfLines={3}
+                          textAlignVertical="top"
+                        />
+                      </View>
+                    )}
+
+                    <View style={styles.actionModalButtons}>
+                      <TouchableOpacity
+                        style={[styles.modalButton, styles.cancelButton]}
+                        onPress={() => setShowActionModal(false)}
+                      >
+                        <Text style={styles.cancelButtonText}>Cancelar</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[styles.modalButton, styles.confirmButton]}
+                        onPress={executeAction}
+                        disabled={processing}
+                      >
+                        {processing ? (
+                          <ActivityIndicator size="small" color="white" />
+                        ) : (
+                          <Text style={styles.confirmButtonText}>
+                            {actionType === 'aprobar' && 'Aprobar'}
+                            {actionType === 'denegar' && 'Denegar'}
+                            {actionType === 'revision' && 'Marcar'}
+                            {actionType === 'eliminar' && 'Eliminar'}
+                          </Text>
+                        )}
+                      </TouchableOpacity>
                     </View>
-                  )}
-
-                  {(actionType === 'aprobar' || actionType === 'denegar' || actionType === 'revision') && (
-                    <View style={styles.inputContainer}>
-                      <Text style={styles.inputLabel}>Comentarios Adicionales (opcional)</Text>
-                      <TextInput
-                        style={[styles.input, styles.textArea]}
-                        placeholder="Añade comentarios adicionales..."
-                        value={comentarios}
-                        onChangeText={setComentarios}
-                        multiline
-                        numberOfLines={3}
-                      />
-                    </View>
-                  )}
-
-                  <View style={styles.actionModalButtons}>
-                    <TouchableOpacity
-                      style={[styles.modalButton, styles.cancelButton]}
-                      onPress={() => setShowActionModal(false)}
-                    >
-                      <Text style={styles.cancelButtonText}>Cancelar</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[styles.modalButton, styles.confirmButton]}
-                      onPress={executeAction}
-                      disabled={processing}
-                    >
-                      {processing ? (
-                        <ActivityIndicator size="small" color="white" />
-                      ) : (
-                        <Text style={styles.confirmButtonText}>
-                          {actionType === 'aprobar' && 'Aprobar'}
-                          {actionType === 'denegar' && 'Denegar'}
-                          {actionType === 'revision' && 'Marcar'}
-                          {actionType === 'eliminar' && 'Eliminar'}
-                        </Text>
-                      )}
-                    </TouchableOpacity>
                   </View>
-                </View>
-              )}
-            </ScrollView>
-          </View>
-        </View>
+                )}
+              </ScrollView>
+            </View>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -678,6 +701,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
+  modalOverlayTouchable: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
   modalContent: {
     backgroundColor: 'white',
     borderTopLeftRadius: 20,
@@ -698,7 +725,11 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   modalBody: {
+    maxHeight: '80%',
+  },
+  modalBodyContent: {
     padding: 20,
+    paddingBottom: 40,
   },
   previewImage: {
     width: '100%',
@@ -739,7 +770,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border,
   },
   actionModalContent: {
-    padding: 4,
+    paddingVertical: 4,
   },
   actionModalText: {
     fontSize: 16,
@@ -767,7 +798,7 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   textArea: {
-    minHeight: 80,
+    minHeight: 100,
     textAlignVertical: 'top',
   },
   actionModalButtons: {

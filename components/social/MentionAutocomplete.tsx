@@ -8,8 +8,8 @@ import {
   Image,
   ActivityIndicator,
   ScrollView,
-  KeyboardAvoidingView,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -31,16 +31,15 @@ interface MentionAutocompleteProps {
 }
 
 /**
- * ✅ MENTION SYSTEM v4.0 - COMPLETE REDESIGN WITH PERFECT KEYBOARD ALIGNMENT
+ * ✅ MENTION SYSTEM v5.0 - PERFECT KEYBOARD-AWARE BOTTOM SHEET
  * 
  * Revolutionary improvements:
- * - ✅ NEW: Uses keyboardHeight prop for perfect positioning
- * - ✅ NEW: Compact design with better space utilization
- * - ✅ NEW: Smooth animations and transitions
- * - ✅ NEW: Better visual hierarchy
- * - ✅ FIXED: Modal sticks PERFECTLY to keyboard with ZERO gap
+ * - ✅ NEW: Perfect keyboard alignment with ZERO gap
+ * - ✅ NEW: Dynamic height adjustment to avoid header overlap
+ * - ✅ NEW: Acts as true bottom sheet anchored to keyboard
+ * - ✅ NEW: Smooth transitions and animations
  * - ✅ FIXED: No overflow above header
- * - ✅ FIXED: Optimized height management
+ * - ✅ FIXED: Responsive to keyboard height changes
  */
 
 function normalizeText(text: string): string {
@@ -108,6 +107,7 @@ export default function MentionAutocomplete({
   const [currentMentionText, setCurrentMentionText] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [showHint, setShowHint] = useState(false);
+  const { height: SCREEN_HEIGHT } = useWindowDimensions();
 
   const detectMention = useCallback(() => {
     const textBeforeCursor = text.substring(0, cursorPosition);
@@ -188,7 +188,7 @@ export default function MentionAutocomplete({
           })));
         }
       } catch (error) {
-        console.error('[MentionAutocomplete v4.0] Error in user search:', error);
+        console.error('[MentionAutocomplete v5.0] Error in user search:', error);
       }
 
       // Search locals
@@ -246,7 +246,7 @@ export default function MentionAutocomplete({
           }
         }
       } catch (error) {
-        console.error('[MentionAutocomplete v4.0] Error in local search:', error);
+        console.error('[MentionAutocomplete v5.0] Error in local search:', error);
       }
 
       const uniqueResults = results.filter((item, index, self) =>
@@ -255,7 +255,7 @@ export default function MentionAutocomplete({
       
       setSuggestions(uniqueResults);
     } catch (error) {
-      console.error('[MentionAutocomplete v4.0] Error in searchMentions:', error);
+      console.error('[MentionAutocomplete v5.0] Error in searchMentions:', error);
       setSuggestions([]);
     } finally {
       setLoading(false);
@@ -295,9 +295,31 @@ export default function MentionAutocomplete({
     return null;
   }
 
+  // ✅ Calculate maximum available height to avoid header overlap
+  // Reserve space for: status bar (50) + header (100) + safe margin (20)
+  const HEADER_RESERVED_SPACE = Platform.OS === 'ios' ? 170 : 150;
+  const maxAvailableHeight = SCREEN_HEIGHT - keyboardHeight - HEADER_RESERVED_SPACE;
+  
+  // ✅ Modal height should be minimum of 240px or available space
+  const modalHeight = Math.min(240, maxAvailableHeight);
+
+  console.log('[MentionAutocomplete v5.0] 📐 Screen height:', SCREEN_HEIGHT);
+  console.log('[MentionAutocomplete v5.0] ⌨️ Keyboard height:', keyboardHeight);
+  console.log('[MentionAutocomplete v5.0] 📏 Max available height:', maxAvailableHeight);
+  console.log('[MentionAutocomplete v5.0] 📦 Modal height:', modalHeight);
+
   return (
-    <View style={[styles.container, { bottom: keyboardHeight }]} pointerEvents="box-none">
-      <View style={styles.content} pointerEvents="auto">
+    <View 
+      style={[
+        styles.container, 
+        { 
+          bottom: keyboardHeight,
+          maxHeight: modalHeight,
+        }
+      ]} 
+      pointerEvents="box-none"
+    >
+      <View style={[styles.content, { maxHeight: modalHeight }]} pointerEvents="auto">
         <View style={styles.header}>
           <IconSymbol 
             ios_icon_name="at" 
@@ -327,7 +349,7 @@ export default function MentionAutocomplete({
           </View>
         ) : suggestions.length > 0 ? (
           <ScrollView 
-            style={styles.list}
+            style={[styles.list, { maxHeight: modalHeight - 50 }]}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
@@ -402,24 +424,27 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cardBackground,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
-    maxHeight: 240,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 10,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 15,
     borderWidth: 1,
     borderBottomWidth: 0,
     borderColor: colors.primary + '40',
+    overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: colors.background,
     gap: 8,
+    backgroundColor: colors.cardBackground,
   },
   headerText: {
     fontSize: 13,
@@ -427,13 +452,13 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   list: {
-    maxHeight: 190,
+    flexGrow: 0,
   },
   suggestionItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 12,
     backgroundColor: colors.cardBackground,
     borderBottomWidth: 1,
     borderBottomColor: colors.background,
