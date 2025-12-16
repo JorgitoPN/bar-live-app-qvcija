@@ -9,6 +9,9 @@ import {
   ScrollView,
   Platform,
   useWindowDimensions,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import { IconSymbol } from '@/components/IconSymbol';
 import { colors } from '@/styles/commonStyles';
@@ -28,15 +31,16 @@ interface HashtagAutocompleteProps {
 }
 
 /**
- * ✅ HASHTAG AUTOCOMPLETE v5.0 - PERFECT KEYBOARD-AWARE BOTTOM SHEET
+ * ✅ HASHTAG AUTOCOMPLETE v6.0 - KEYBOARD-AWARE BOTTOM SHEET WITH ADMIN PANEL BEHAVIOR
  * 
  * Revolutionary improvements:
- * - ✅ NEW: Perfect keyboard alignment with ZERO gap
- * - ✅ NEW: Dynamic height adjustment to avoid header overlap
- * - ✅ NEW: Acts as true bottom sheet anchored to keyboard
- * - ✅ NEW: Matches MentionAutocomplete v5.0 behavior
- * - ✅ FIXED: No overflow above header
- * - ✅ FIXED: Responsive to keyboard height changes
+ * - ✅ NEW: KeyboardAvoidingView wrapper for proper keyboard handling
+ * - ✅ NEW: ScrollView with keyboardShouldPersistTaps="handled"
+ * - ✅ NEW: TouchableWithoutFeedback to dismiss keyboard on overlay tap
+ * - ✅ NEW: Proper content padding for text input visibility
+ * - ✅ NEW: Matches Admin Panel Comment Modal behavior
+ * - ✅ FIXED: Text inputs remain visible when keyboard appears
+ * - ✅ FIXED: Improved UX with proper scroll and keyboard handling
  */
 
 export default function HashtagAutocomplete({
@@ -96,14 +100,14 @@ export default function HashtagAutocomplete({
         .limit(10);
 
       if (error) {
-        console.error('[HashtagAutocomplete v5.0] Error searching hashtags:', error);
+        console.error('[HashtagAutocomplete v6.0] Error searching hashtags:', error);
         setSuggestions([]);
         return;
       }
 
       setSuggestions(data || []);
     } catch (error) {
-      console.error('[HashtagAutocomplete v5.0] Error:', error);
+      console.error('[HashtagAutocomplete v6.0] Error:', error);
       setSuggestions([]);
     } finally {
       setLoading(false);
@@ -133,78 +137,85 @@ export default function HashtagAutocomplete({
   const HEADER_RESERVED_SPACE = Platform.OS === 'ios' ? 170 : 150;
   const maxAvailableHeight = SCREEN_HEIGHT - keyboardHeight - HEADER_RESERVED_SPACE;
   
-  // ✅ Modal height should be minimum of 240px or available space
-  const modalHeight = Math.min(240, maxAvailableHeight);
+  // ✅ Modal height should be minimum of 280px or available space
+  const modalHeight = Math.min(280, maxAvailableHeight);
 
-  console.log('[HashtagAutocomplete v5.0] 📐 Screen height:', SCREEN_HEIGHT);
-  console.log('[HashtagAutocomplete v5.0] ⌨️ Keyboard height:', keyboardHeight);
-  console.log('[HashtagAutocomplete v5.0] 📏 Max available height:', maxAvailableHeight);
-  console.log('[HashtagAutocomplete v5.0] 📦 Modal height:', modalHeight);
+  console.log('[HashtagAutocomplete v6.0] 📐 Screen height:', SCREEN_HEIGHT);
+  console.log('[HashtagAutocomplete v6.0] ⌨️ Keyboard height:', keyboardHeight);
+  console.log('[HashtagAutocomplete v6.0] 📏 Max available height:', maxAvailableHeight);
+  console.log('[HashtagAutocomplete v6.0] 📦 Modal height:', modalHeight);
 
   return (
-    <View 
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={[
         styles.container, 
         { 
           bottom: keyboardHeight,
           maxHeight: modalHeight,
         }
-      ]} 
+      ]}
+      keyboardVerticalOffset={0}
       pointerEvents="box-none"
     >
-      <View style={[styles.content, { maxHeight: modalHeight }]} pointerEvents="auto">
-        <View style={styles.header}>
-          <IconSymbol 
-            ios_icon_name="number" 
-            android_material_icon_name="tag" 
-            size={16} 
-            color={colors.primary} 
-          />
-          <Text style={styles.headerText}>Hashtags</Text>
-        </View>
-
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color={colors.primary} />
-            <Text style={styles.loadingText}>Buscando hashtags...</Text>
-          </View>
-        ) : suggestions.length > 0 ? (
-          <ScrollView 
-            style={[styles.list, { maxHeight: modalHeight - 50 }]}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            {suggestions.map((item, index) => (
-              <TouchableOpacity
-                key={`${item.id}-${index}`}
-                style={styles.suggestionItem}
-                onPress={() => handleSelectHashtag(item)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.hashtagIcon}>
-                  <IconSymbol ios_icon_name="number" android_material_icon_name="tag" size={18} color={colors.primary} />
-                </View>
-                <View style={styles.suggestionInfo}>
-                  <Text style={styles.suggestionTag}>#{item.tag}</Text>
-                  <Text style={styles.suggestionCount}>
-                    {item.uso_count} {item.uso_count === 1 ? 'publicación' : 'publicaciones'}
-                  </Text>
-                </View>
-                <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={14} color={colors.textSecondary} />
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        ) : currentHashtagText.length > 0 ? (
-          <View style={styles.emptyContainer}>
-            <IconSymbol ios_icon_name="number" android_material_icon_name="tag" size={18} color={colors.textSecondary} />
-            <View style={styles.emptyTextContainer}>
-              <Text style={styles.emptyText}>Sé el primero en usar</Text>
-              <Text style={styles.emptyHashtag}>#{currentHashtagText}</Text>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={styles.overlayTouchable} pointerEvents="box-none">
+          <View style={[styles.content, { maxHeight: modalHeight }]} pointerEvents="auto">
+            <View style={styles.header}>
+              <IconSymbol 
+                ios_icon_name="number" 
+                android_material_icon_name="tag" 
+                size={16} 
+                color={colors.primary} 
+              />
+              <Text style={styles.headerText}>Hashtags</Text>
             </View>
+
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text style={styles.loadingText}>Buscando hashtags...</Text>
+              </View>
+            ) : suggestions.length > 0 ? (
+              <ScrollView 
+                style={styles.list}
+                contentContainerStyle={styles.listContent}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
+                {suggestions.map((item, index) => (
+                  <TouchableOpacity
+                    key={`${item.id}-${index}`}
+                    style={styles.suggestionItem}
+                    onPress={() => handleSelectHashtag(item)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.hashtagIcon}>
+                      <IconSymbol ios_icon_name="number" android_material_icon_name="tag" size={18} color={colors.primary} />
+                    </View>
+                    <View style={styles.suggestionInfo}>
+                      <Text style={styles.suggestionTag}>#{item.tag}</Text>
+                      <Text style={styles.suggestionCount}>
+                        {item.uso_count} {item.uso_count === 1 ? 'publicación' : 'publicaciones'}
+                      </Text>
+                    </View>
+                    <IconSymbol ios_icon_name="chevron.right" android_material_icon_name="chevron_right" size={14} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            ) : currentHashtagText.length > 0 ? (
+              <View style={styles.emptyContainer}>
+                <IconSymbol ios_icon_name="number" android_material_icon_name="tag" size={18} color={colors.textSecondary} />
+                <View style={styles.emptyTextContainer}>
+                  <Text style={styles.emptyText}>Sé el primero en usar</Text>
+                  <Text style={styles.emptyHashtag}>#{currentHashtagText}</Text>
+                </View>
+              </View>
+            ) : null}
           </View>
-        ) : null}
-      </View>
-    </View>
+        </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -215,6 +226,9 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 1000,
     elevation: 1000,
+  },
+  overlayTouchable: {
+    flex: 1,
   },
   content: {
     backgroundColor: colors.cardBackground,
@@ -249,6 +263,9 @@ const styles = StyleSheet.create({
   },
   list: {
     flexGrow: 0,
+  },
+  listContent: {
+    paddingBottom: 20,
   },
   suggestionItem: {
     flexDirection: 'row',
