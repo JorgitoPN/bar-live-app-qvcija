@@ -1,656 +1,286 @@
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
-  TouchableOpacity,
-  ActivityIndicator,
-  Platform,
   RefreshControl,
-  Animated,
-  Dimensions,
+  ActivityIndicator,
+  TouchableOpacity,
   Alert,
+  Platform,
 } from 'react-native';
-import { useRouter, useFocusEffect } from 'expo-router';
-import { supabase } from '@/app/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { useGlobalData } from '@/contexts/GlobalDataContext';
-import { useMode } from '@/contexts/ModeContext';
+import { useRouter } from 'expo-router';
 import { colors } from '@/styles/commonStyles';
-import HeaderSocial from '@/components/layout/HeaderSocial';
-import { IconSymbol } from '@/components/IconSymbol';
-import { LinearGradient } from 'expo-linear-gradient';
+import { supabase } from '@/utils/supabase';
+import { useEffectiveUser } from '@/hooks/useEffectiveUser';
+import { useImpersonation } from '@/contexts/ImpersonationContext';
+import PublicacionCard from '@/components/social/PublicacionCard';
 import NewPostCard from '@/components/social/NewPostCard';
 import MomentoCarousel from '@/components/momento/MomentoCarousel';
-import MomentoViewer from '@/components/momento/MomentoViewer';
-import MomentoUpload from '@/components/momento/MomentoUpload';
-import type { Publicacion } from '@/types';
+import { IconSymbol } from '@/components/IconSymbol';
+import { LinearGradient } from 'expo-linear-gradient';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-type UserRole = 'admin' | 'propietario' | 'cliente';
-type SubscriptionPlan = 'free' | 'basic' | 'premium' | 'enterprise';
-
-interface LocalSubscriptionInfo {
-  plan: SubscriptionPlan;
-  isActive: boolean;
-  expiresAt?: string;
+interface Post {
+  id: string;
+  autor_id: string;
+  tipo: 'usuario' | 'local';
+  local_id?: string;
+  contenido: string;
+  imagenes: string[];
+  video_url?: string;
+  ubicacion?: string;
+  likes_count: number;
+  comentarios_count: number;
+  compartidos_count: number;
+  created_at: string;
+  autor?: {
+    id: string;
+    nombre: string;
+    username?: string;
+    avatar?: string;
+  };
+  local?: {
+    id: string;
+    nombre: string;
+    imagen_url?: string;
+  };
+  user_has_liked?: boolean;
 }
 
-export default function SocialScreen() {
+const POSTS_PER_PAGE = 10;
+
+export default function SocialIndexScreen() {
   const router = useRouter();
-  const { user } = useAuth();
-  const { 
-    posts: globalPosts,
-  } = useGlobalData();
-  const { 
-    activeProfileType,
-    activeProfileId,
-    activeLocalData: modeLocalData,
-  } = useMode();
-
-  const [posts, setPosts] = useState<Publicacion[]>([]);
+  const { userId, user, isImpersonating, adminUser } = useEffectiveUser();
+  const { impersonationSession } = useImpersonation();
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const [unreadNotifications, setUnreadNotifications] = useState(0);
-  const [unreadMessages, setUnreadMessages] = useState(0);
-  const [userRole, setUserRole] = useState<UserRole>('cliente');
-  const [localSubscription, setLocalSubscription] = useState<LocalSubscriptionInfo | null>(null);
-  
-  // Momento states
-  const [showMomentoViewer, setShowMomentoViewer] = useState(false);
-  const [showMomentoUpload, setShowMomentoUpload] = useState(false);
-  const [selectedAuthorId, setSelectedAuthorId] = useState<string>('');
-  const [selectedAuthorType, setSelectedAuthorType] = useState<'usuario' | 'local'>('usuario');
-  
-  const isLoadingRef = useRef(false);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(50)).current;
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(1);
+  const flatListRef = useRef<FlatList>(null);
 
-  const isInteractingAsLocal = activeProfileType === 'local';
-  const interactionLocalId = isInteractingAsLocal ? activeProfileId : null;
-  
-  const displayAvatar = isInteractingAsLocal 
-    ? (modeLocalData?.imagen_url || null)
-    : (user?.avatar || null);
-  
-  const displayName = isInteractingAsLocal
-    ? (modeLocalData?.nombre || 'Local')
-    : (user?.nombre || 'Usuario');
-
-  console.log('[Social] 🎭 Active Profile:', {
-    activeProfileType,
-    activeProfileId,
-    isInteractingAsLocal,
-    interactionLocalId,
-    displayName,
-    hasAvatar: !!displayAvatar,
-    userRole,
-    localSubscription,
-  });
-
-  useEffect(() => {
-    const loadUserRoleAndSubscription = async () => {
-      if (!user) return;
-
-      try {
-        const { data: userData, error: userError } = await supabase
-          .from('usuarios')
-          .select('rol_app')
-          .eq('id', user.id)
-          .single();
-
-        if (userData && !userError) {
-          setUserRole(userData.rol_app as UserRole);
-          console.log('[Social] 👤 User role loaded:', userData.rol_app);
-        }
-
-        if (isInteractingAsLocal && interactionLocalId) {
-          const { data: subData, error: subError } = await supabase
-            .from('suscripciones_locales')
-            .select(`
-              estado,
-              plan_id,
-              planes_suscripcion (
-                nombre,
-                activo
-              )
-            `)
-            .eq('local_id', interactionLocalId)
-            .eq('usuario_id', user.id)
-            .single();
-
-          if (subData && !subError && subData.planes_suscripcion) {
-            const planName = (subData.planes_suscripcion as any).nombre as SubscriptionPlan;
-            const isActive = subData.estado === 'activa' && (subData.planes_suscripcion as any).activo;
-            
-            setLocalSubscription({
-              plan: planName,
-              isActive,
-            });
-            
-            console.log('[Social] 💳 Local subscription loaded:', {
-              plan: planName,
-              isActive,
-            });
-          } else {
-            setLocalSubscription({
-              plan: 'free',
-              isActive: false,
-            });
-          }
-        }
-      } catch (error) {
-        console.error('[Social] Error loading role/subscription:', error);
-      }
-    };
-
-    loadUserRoleAndSubscription();
-  }, [user, isInteractingAsLocal, interactionLocalId]);
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        tension: 50,
-        friction: 8,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [fadeAnim, slideAnim]);
-
-  const loadUnreadCounts = useCallback(async () => {
-    if (!user) return;
-
-    try {
-      const { count: notifCount } = await supabase
-        .from('notificaciones')
-        .select('*', { count: 'exact', head: true })
-        .eq('usuario_id', user.id)
-        .eq('leida', false);
-
-      setUnreadNotifications(notifCount || 0);
-
-      const { data: chatsData } = await supabase
-        .from('chats')
-        .select('id')
-        .or(`usuario1_id.eq.${user.id},usuario2_id.eq.${user.id}`);
-
-      if (chatsData) {
-        let totalUnread = 0;
-        for (const chat of chatsData) {
-          const { count } = await supabase
-            .from('mensajes')
-            .select('*', { count: 'exact', head: true })
-            .eq('chat_id', chat.id)
-            .eq('leido', false)
-            .neq('remitente_id', user.id);
-          
-          totalUnread += count || 0;
-        }
-        setUnreadMessages(totalUnread);
-      }
-    } catch (error) {
-      console.error('[Social] Error loading unread counts:', error);
-    }
-  }, [user]);
-
-  const canPerformAction = useCallback((action: 'create_post' | 'view_analytics' | 'create_event') => {
-    if (userRole === 'admin') {
-      return { allowed: true, reason: '' };
-    }
-
-    if (userRole === 'cliente') {
-      if (action === 'create_post') {
-        return { allowed: true, reason: '' };
-      }
-      return { 
-        allowed: false, 
-        reason: 'Esta función está disponible solo para propietarios de locales' 
-      };
-    }
-
-    if (userRole === 'propietario') {
-      if (!isInteractingAsLocal) {
-        if (action === 'create_post') {
-          return { allowed: true, reason: '' };
-        }
-        return { 
-          allowed: false, 
-          reason: 'Cambia al perfil de tu local para acceder a esta función' 
-        };
-      }
-
-      if (!localSubscription || !localSubscription.isActive) {
-        return {
-          allowed: false,
-          reason: 'Necesitas una suscripción activa para usar esta función'
-        };
-      }
-
-      const plan = localSubscription.plan;
-
-      if (plan === 'free') {
-        if (action === 'create_post') {
-          return { 
-            allowed: false, 
-            reason: 'Actualiza a un plan de pago para publicar contenido' 
-          };
-        }
-        return { 
-          allowed: false, 
-          reason: 'Esta función requiere un plan de pago' 
-        };
-      }
-
-      if (plan === 'basic') {
-        if (action === 'create_post') {
-          return { allowed: true, reason: '' };
-        }
-        if (action === 'view_analytics') {
-          return { allowed: true, reason: '' };
-        }
-        if (action === 'create_event') {
-          return { 
-            allowed: false, 
-            reason: 'Actualiza a Premium para crear eventos destacados' 
-          };
-        }
-      }
-
-      if (plan === 'premium' || plan === 'enterprise') {
-        return { allowed: true, reason: '' };
-      }
-    }
-
-    return { allowed: false, reason: 'Acción no permitida' };
-  }, [userRole, isInteractingAsLocal, localSubscription]);
-
-  const loadData = useCallback(async () => {
-    if (isLoadingRef.current) {
-      console.log('[Social] ⚡ Already loading, skipping...');
+  const cargarPosts = useCallback(async (pageNum: number = 1, isRefresh: boolean = false) => {
+    if (!userId) {
+      console.log('[Social] No user ID, skipping load');
+      setLoading(false);
       return;
     }
 
-    isLoadingRef.current = true;
-
     try {
-      console.log('[Social] ⚡ Loading data...');
-      console.log('[Social] 📍 Global posts available:', globalPosts.length);
-
-      await loadUnreadCounts();
-
-      let filteredPosts = globalPosts;
-
-      if (userRole !== 'admin') {
-        filteredPosts = await Promise.all(
-          globalPosts.map(async (post) => {
-            if (post.tipo === 'local' && post.local_id) {
-              const { data: subData } = await supabase
-                .from('suscripciones_locales')
-                .select(`
-                  estado,
-                  planes_suscripcion (
-                    nombre,
-                    activo
-                  )
-                `)
-                .eq('local_id', post.local_id)
-                .eq('estado', 'activa')
-                .single();
-
-              if (subData && subData.planes_suscripcion) {
-                const planName = (subData.planes_suscripcion as any).nombre;
-                if (planName === 'basic' || planName === 'premium' || planName === 'enterprise') {
-                  return post;
-                }
-              }
-              return null;
-            }
-            return post;
-          })
-        ).then(posts => posts.filter(p => p !== null) as Publicacion[]);
-      }
-
-      if (filteredPosts.length > 0) {
-        console.log('[Social] ⚡⚡⚡ INSTANT posts from global data:', filteredPosts.length);
-        
-        let validPosts = filteredPosts.filter(p => p && p.id);
-        
-        if (user && validPosts.length > 0) {
-          const postIds = validPosts.map(p => p.id);
-          
-          const [likesResult, savesResult, commentsResult] = await Promise.all([
-            supabase
-              .from('likes')
-              .select('post_id')
-              .eq('usuario_id', user.id)
-              .in('post_id', postIds),
-            supabase
-              .from('posts_guardados')
-              .select('post_id')
-              .eq('usuario_id', user.id)
-              .in('post_id', postIds),
-            supabase
-              .from('comentarios')
-              .select('post_id')
-              .in('post_id', postIds),
-          ]);
-
-          const likedPostIds = new Set(likesResult.data?.map(l => l.post_id) || []);
-          const savedPostIds = new Set(savesResult.data?.map(s => s.post_id) || []);
-          
-          const commentCounts = commentsResult.data?.reduce((acc, c) => {
-            acc[c.post_id] = (acc[c.post_id] || 0) + 1;
-            return acc;
-          }, {} as Record<string, number>) || {};
-
-          const postsWithStatus = validPosts.map(post => ({
-            ...post,
-            user_has_liked: likedPostIds.has(post.id),
-            user_has_saved: savedPostIds.has(post.id),
-            comentarios_count: commentCounts[post.id] || 0,
-          }));
-          
-          const finalValidPosts = postsWithStatus.filter(p => p && p.id);
-          setPosts(finalValidPosts);
-          console.log('[Social] ✅ Set', finalValidPosts.length, 'valid posts with user status');
-        } else {
-          const finalValidPosts = validPosts.filter(p => p && p.id);
-          setPosts(finalValidPosts);
-          console.log('[Social] ✅ Set', finalValidPosts.length, 'valid posts');
-        }
+      if (isRefresh) {
+        setRefreshing(true);
+      } else if (pageNum === 1) {
+        setLoading(true);
       } else {
-        setPosts([]);
+        setLoadingMore(true);
       }
 
-      console.log('[Social] ⚡ Data loaded successfully');
+      const from = (pageNum - 1) * POSTS_PER_PAGE;
+      const to = from + POSTS_PER_PAGE - 1;
+
+      console.log(`[Social] Loading posts for user ${userId} (${isImpersonating ? 'IMPERSONATING' : 'NORMAL'}), page ${pageNum}`);
+
+      // Get posts from users and locals that the effective user follows
+      const { data: followingData, error: followingError } = await supabase
+        .from('seguidores')
+        .select('seguido_id, local_id')
+        .eq('seguidor_id', userId);
+
+      if (followingError) throw followingError;
+
+      const followedUserIds = followingData
+        ?.filter(f => f.seguido_id)
+        .map(f => f.seguido_id) || [];
+      
+      const followedLocalIds = followingData
+        ?.filter(f => f.local_id)
+        .map(f => f.local_id) || [];
+
+      // Include the effective user's own posts
+      const authorIds = [...followedUserIds, userId];
+
+      let query = supabase
+        .from('posts')
+        .select(`
+          *,
+          autor:usuarios!posts_autor_id_fkey(id, nombre, username, avatar),
+          local:locales!posts_local_id_fkey(id, nombre, imagen_url)
+        `)
+        .order('created_at', { ascending: false })
+        .range(from, to);
+
+      // Filter by followed users and locals
+      if (authorIds.length > 0 || followedLocalIds.length > 0) {
+        const conditions = [];
+        if (authorIds.length > 0) {
+          conditions.push(`autor_id.in.(${authorIds.join(',')})`);
+        }
+        if (followedLocalIds.length > 0) {
+          conditions.push(`local_id.in.(${followedLocalIds.join(',')})`);
+        }
+        query = query.or(conditions.join(','));
+      }
+
+      const { data: postsData, error: postsError } = await query;
+
+      if (postsError) throw postsError;
+
+      // Check which posts the user has liked
+      if (postsData && postsData.length > 0) {
+        const postIds = postsData.map(p => p.id);
+        const { data: likesData } = await supabase
+          .from('likes')
+          .select('post_id')
+          .eq('usuario_id', userId)
+          .in('post_id', postIds);
+
+        const likedPostIds = new Set(likesData?.map(l => l.post_id) || []);
+
+        const postsWithLikes = postsData.map(post => ({
+          ...post,
+          user_has_liked: likedPostIds.has(post.id),
+        }));
+
+        if (isRefresh || pageNum === 1) {
+          setPosts(postsWithLikes);
+          setPage(2);
+        } else {
+          setPosts(prev => [...prev, ...postsWithLikes]);
+          setPage(pageNum + 1);
+        }
+
+        setHasMore(postsWithLikes.length === POSTS_PER_PAGE);
+      } else {
+        if (isRefresh || pageNum === 1) {
+          setPosts([]);
+        }
+        setHasMore(false);
+      }
     } catch (error) {
-      console.error('[Social] Error loading data:', error);
-      setPosts([]);
+      console.error('[Social] Error cargando posts:', error);
+      Alert.alert('Error', 'No se pudieron cargar las publicaciones');
     } finally {
-      isLoadingRef.current = false;
-      setIsInitialLoad(false);
+      setLoading(false);
+      setRefreshing(false);
+      setLoadingMore(false);
     }
-  }, [user, globalPosts, loadUnreadCounts, userRole]);
+  }, [userId, isImpersonating]);
 
-  useFocusEffect(
-    useCallback(() => {
-      console.log('[Social] 🔄 Screen focused - auto-updating data');
-      loadData();
-    }, [loadData])
-  );
-
-  const onRefresh = async () => {
-    console.log('[Social] 🔄 Manual refresh triggered');
-    setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
-  };
-
-  const handleCreatePost = () => {
-    console.log('[Social] ➕ Create post button pressed');
-    
-    const permission = canPerformAction('create_post');
-    if (!permission.allowed) {
-      Alert.alert(
-        'Acción no permitida',
-        permission.reason,
-        [
-          { text: 'Entendido', style: 'cancel' },
-          ...(localSubscription && !localSubscription.isActive ? [{
-            text: 'Ver planes',
-            onPress: () => router.push('/gestion/planes-suscripcion'),
-          }] : []),
-        ]
-      );
-      return;
+  useEffect(() => {
+    if (userId) {
+      cargarPosts(1, false);
     }
+  }, [userId]);
 
-    router.push('/crear/publicacion');
-  };
+  const handleRefresh = useCallback(() => {
+    cargarPosts(1, true);
+  }, [cargarPosts]);
 
-  const handleOpenMomentoViewer = (authorId: string, tipo: 'usuario' | 'local') => {
-    setSelectedAuthorId(authorId);
-    setSelectedAuthorType(tipo);
-    setShowMomentoViewer(true);
-  };
+  const handleLoadMore = useCallback(() => {
+    if (hasMore && !loadingMore && !loading) {
+      cargarPosts(page, false);
+    }
+  }, [hasMore, loadingMore, loading, page, cargarPosts]);
 
-  const handleCloseMomentoViewer = () => {
-    setShowMomentoViewer(false);
-    setSelectedAuthorId('');
-  };
+  const handlePostCreated = useCallback(() => {
+    cargarPosts(1, true);
+  }, [cargarPosts]);
 
-  const handleOpenMomentoUpload = () => {
-    setShowMomentoUpload(true);
-  };
-
-  const handleCloseMomentoUpload = () => {
-    setShowMomentoUpload(false);
-  };
-
-  const handleMomentoUploadSuccess = () => {
-    // Refresh momentos carousel
-    loadData();
-  };
-
-  if (isInitialLoad && posts.length === 0) {
-    return (
-      <View style={styles.container}>
-        <HeaderSocial 
-          onCreatePost={handleCreatePost}
-          unreadNotifications={unreadNotifications}
-          unreadMessages={unreadMessages}
-        />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Cargando feed social...</Text>
+  const renderHeader = useCallback(() => (
+    <React.Fragment>
+      {/* Impersonation Banner */}
+      {isImpersonating && impersonationSession && (
+        <View style={styles.impersonationBanner}>
+          <LinearGradient
+            colors={['#8B5CF6', '#7C3AED']}
+            style={styles.impersonationBannerGradient}
+          >
+            <IconSymbol ios_icon_name="person.crop.circle.badge.checkmark" android_material_icon_name="supervised_user_circle" size={24} color={colors.white} />
+            <View style={styles.impersonationBannerText}>
+              <Text style={styles.impersonationBannerTitle}>
+                Viendo como {impersonationSession.impersonated_user_name}
+              </Text>
+              <Text style={styles.impersonationBannerSubtitle}>
+                Red social del usuario impersonado
+              </Text>
+            </View>
+          </LinearGradient>
         </View>
+      )}
+
+      <MomentoCarousel />
+      <NewPostCard onPostCreated={handlePostCreated} />
+    </React.Fragment>
+  ), [isImpersonating, impersonationSession, handlePostCreated]);
+
+  const renderPost = useCallback(({ item }: { item: Post }) => (
+    <PublicacionCard post={item} onUpdate={handleRefresh} />
+  ), [handleRefresh]);
+
+  const renderFooter = useCallback(() => {
+    if (!loadingMore) return null;
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="small" color={colors.primary} />
+        <Text style={styles.footerLoaderText}>Cargando más publicaciones...</Text>
+      </View>
+    );
+  }, [loadingMore]);
+
+  const renderEmpty = useCallback(() => {
+    if (loading) return null;
+    return (
+      <View style={styles.emptyState}>
+        <IconSymbol ios_icon_name="photo.stack" android_material_icon_name="collections" size={64} color={colors.textSecondary} />
+        <Text style={styles.emptyText}>No hay publicaciones</Text>
+        <Text style={styles.emptySubtext}>
+          {isImpersonating 
+            ? 'Este usuario no sigue a nadie o no hay publicaciones disponibles'
+            : 'Sigue a usuarios y locales para ver sus publicaciones aquí'}
+        </Text>
+      </View>
+    );
+  }, [loading, isImpersonating]);
+
+  if (!userId) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <IconSymbol ios_icon_name="person.crop.circle.badge.xmark" android_material_icon_name="person_off" size={64} color={colors.textSecondary} />
+        <Text style={styles.emptyText}>No hay usuario activo</Text>
       </View>
     );
   }
 
-  const renderHeader = () => (
-    <Animated.View 
-      style={[
-        styles.headerContainer,
-        {
-          opacity: fadeAnim,
-          transform: [{ translateY: slideAnim }],
-        },
-      ]}
-    >
-      {/* Momento Carousel */}
-      <MomentoCarousel
-        onOpenViewer={handleOpenMomentoViewer}
-        onUploadMomento={handleOpenMomentoUpload}
-      />
-
-      {isInteractingAsLocal && localSubscription && (
-        <View style={styles.subscriptionBanner}>
-          <LinearGradient
-            colors={
-              localSubscription.plan === 'premium' 
-                ? ['#FFD700', '#FFA500']
-                : localSubscription.plan === 'basic'
-                ? ['#4A90E2', '#357ABD']
-                : ['#95a5a6', '#7f8c8d']
-            }
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.subscriptionGradient}
-          >
-            <IconSymbol
-              ios_icon_name={
-                localSubscription.plan === 'premium' 
-                  ? 'crown.fill'
-                  : localSubscription.plan === 'basic'
-                  ? 'star.fill'
-                  : 'circle.fill'
-              }
-              android_material_icon_name={
-                localSubscription.plan === 'premium'
-                  ? 'workspace_premium'
-                  : localSubscription.plan === 'basic'
-                  ? 'star'
-                  : 'circle'
-              }
-              size={20}
-              color="#fff"
-            />
-            <Text style={styles.subscriptionText}>
-              Plan {localSubscription.plan.toUpperCase()}
-              {!localSubscription.isActive && ' (Inactivo)'}
-            </Text>
-            {!localSubscription.isActive && (
-              <TouchableOpacity
-                onPress={() => router.push('/gestion/planes-suscripcion')}
-                style={styles.upgradeButton}
-              >
-                <Text style={styles.upgradeButtonText}>Activar</Text>
-              </TouchableOpacity>
-            )}
-          </LinearGradient>
-        </View>
-      )}
-
-      {userRole === 'admin' && (
-        <View style={styles.adminBanner}>
-          <LinearGradient
-            colors={['#e74c3c', '#c0392b']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.adminGradient}
-          >
-            <IconSymbol
-              ios_icon_name="shield.fill"
-              android_material_icon_name="shield"
-              size={20}
-              color="#fff"
-            />
-            <Text style={styles.adminText}>Modo Administrador</Text>
-          </LinearGradient>
-        </View>
-      )}
-    </Animated.View>
-  );
-
-  const renderPost = ({ item, index }: { item: Publicacion; index: number }) => (
-    <Animated.View
-      style={{
-        opacity: fadeAnim,
-        transform: [
-          {
-            translateY: slideAnim.interpolate({
-              inputRange: [0, 50],
-              outputRange: [0, 50 + index * 10],
-            }),
-          },
-        ],
-      }}
-    >
-      <NewPostCard post={item} onUpdate={loadData} />
-    </Animated.View>
-  );
-
-  const renderEmpty = () => (
-    <View style={styles.emptyState}>
-      <LinearGradient
-        colors={[`${colors.primary}20`, `${colors.secondary}20`]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.emptyIconCircle}
-      >
-        <IconSymbol
-          ios_icon_name="photo.stack"
-          android_material_icon_name="collections"
-          size={64}
-          color={colors.primary}
-        />
-      </LinearGradient>
-      <Text style={styles.emptyStateTitle}>No hay publicaciones</Text>
-      <Text style={styles.emptyStateText}>
-        {isInteractingAsLocal 
-          ? localSubscription && !localSubscription.isActive
-            ? 'Activa tu suscripción para comenzar a publicar'
-            : 'Crea la primera publicación de tu local'
-          : 'Sé el primero en publicar'}
-      </Text>
-      {canPerformAction('create_post').allowed && (
-        <TouchableOpacity 
-          style={styles.createButton}
-          onPress={handleCreatePost}
-          activeOpacity={0.8}
-        >
-          <LinearGradient
-            colors={[colors.primary, colors.secondary]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.createButtonGradient}
-          >
-            <IconSymbol
-              ios_icon_name="plus.circle.fill"
-              android_material_icon_name="add_circle"
-              size={24}
-              color="#fff"
-            />
-            <Text style={styles.createButtonText}>Crear publicación</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-      )}
-    </View>
-  );
-
   return (
     <View style={styles.container}>
-      <HeaderSocial 
-        onCreatePost={handleCreatePost}
-        unreadNotifications={unreadNotifications}
-        unreadMessages={unreadMessages}
-      />
       <FlatList
+        ref={flatListRef}
         data={posts}
         renderItem={renderPost}
-        keyExtractor={(item) => item.id}
+        keyExtractor={item => item.id}
         ListHeaderComponent={renderHeader}
+        ListFooterComponent={renderFooter}
         ListEmptyComponent={renderEmpty}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={onRefresh}
+            onRefresh={handleRefresh}
             tintColor={colors.primary}
-            colors={[colors.primary, colors.secondary]}
+            colors={[colors.primary]}
           />
         }
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-        removeClippedSubviews={true}
+        removeClippedSubviews={Platform.OS === 'android'}
         maxToRenderPerBatch={5}
         updateCellsBatchingPeriod={50}
-        initialNumToRender={5}
         windowSize={10}
-      />
-
-      {/* Momento Viewer Modal */}
-      <MomentoViewer
-        visible={showMomentoViewer}
-        authorId={selectedAuthorId}
-        authorType={selectedAuthorType}
-        onClose={handleCloseMomentoViewer}
-      />
-
-      {/* Momento Upload Modal */}
-      <MomentoUpload
-        visible={showMomentoUpload}
-        onClose={handleCloseMomentoUpload}
-        onSuccess={handleMomentoUploadSuccess}
       />
     </View>
   );
@@ -661,139 +291,69 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  loadingContainer: {
-    flex: 1,
+  centerContent: {
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 100,
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: colors.textSecondary,
-    fontFamily: 'System',
   },
   listContent: {
-    flexGrow: 1,
-    paddingBottom: 120,
+    paddingBottom: 100,
   },
-  headerContainer: {
-    backgroundColor: colors.background,
-  },
-  subscriptionBanner: {
+  impersonationBanner: {
     marginHorizontal: 16,
     marginTop: 12,
     marginBottom: 8,
     borderRadius: 12,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
-  subscriptionGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
-  },
-  subscriptionText: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#fff',
-    fontFamily: 'System',
-  },
-  upgradeButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  upgradeButtonText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#fff',
-    fontFamily: 'System',
-  },
-  adminBanner: {
-    marginHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 8,
-    borderRadius: 12,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  adminGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
-  },
-  adminText: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#fff',
-    fontFamily: 'System',
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 32,
-    paddingTop: 100,
-  },
-  emptyIconCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  emptyStateTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 12,
-    fontFamily: 'System',
-  },
-  emptyStateText: {
-    fontSize: 15,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 32,
-    fontFamily: 'System',
-  },
-  createButton: {
-    borderRadius: 24,
-    overflow: 'hidden',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  createButtonGradient: {
+  impersonationBannerGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    paddingHorizontal: 32,
-    paddingVertical: 16,
+    padding: 16,
   },
-  createButtonText: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#fff',
-    fontFamily: 'System',
+  impersonationBannerText: {
+    flex: 1,
+  },
+  impersonationBannerTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: colors.white,
+    marginBottom: 2,
+  },
+  impersonationBannerSubtitle: {
+    fontSize: 13,
+    color: colors.white,
+    opacity: 0.9,
+  },
+  footerLoader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    gap: 8,
+  },
+  footerLoaderText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 80,
+    paddingHorizontal: 40,
+  },
+  emptyText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: colors.text,
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  emptySubtext: {
+    fontSize: 15,
+    color: colors.textSecondary,
+    marginTop: 8,
+    textAlign: 'center',
+    lineHeight: 22,
   },
 });

@@ -1,52 +1,88 @@
 
 import { Stack } from 'expo-router';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { ImpersonationProvider } from '@/contexts/ImpersonationContext';
+import { FavoritesProvider } from '@/contexts/FavoritesContext';
 import { GlobalDataProvider } from '@/contexts/GlobalDataContext';
 import { ModeProvider } from '@/contexts/ModeContext';
 import { SelectedLocalProvider } from '@/contexts/SelectedLocalContext';
 import { WidgetProvider } from '@/contexts/WidgetContext';
-import { FavoritesProvider } from '@/contexts/FavoritesContext';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { useEffect } from 'react';
+import { Platform } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
 
-/**
- * ============================================================================
- * ROOT LAYOUT - STORY SYSTEM REMOVED
- * ============================================================================
- * 
- * Built from scratch with maximum attention to detail.
- * Story system has been completely removed.
- * 
- * Provider Order (outer to inner):
- * 1. AuthProvider - Authentication state
- * 2. FavoritesProvider - Favorites management (depends on AuthProvider)
- * 3. GlobalDataProvider - Global app data
- * 4. ModeProvider - User/Local interaction mode
- * 5. SelectedLocalProvider - Selected local context
- * 6. WidgetProvider - Widget state
- */
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync();
+
 export default function RootLayout() {
+  useEffect(() => {
+    // Hide splash screen after a short delay
+    setTimeout(() => {
+      SplashScreen.hideAsync();
+    }, 1000);
+  }, []);
+
   return (
-    <AuthProvider>
-      <FavoritesProvider>
-        <GlobalDataProvider>
-          <ModeProvider>
-            <SelectedLocalProvider>
-              <WidgetProvider>
-                <Stack screenOptions={{ headerShown: false }}>
-                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                  <Stack.Screen name="index" options={{ headerShown: false }} />
-                  <Stack.Screen 
-                    name="detalle" 
-                    options={{ 
-                      headerShown: false,
-                      presentation: 'modal'
-                    }} 
-                  />
-                </Stack>
-              </WidgetProvider>
-            </SelectedLocalProvider>
-          </ModeProvider>
-        </GlobalDataProvider>
-      </FavoritesProvider>
-    </AuthProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AuthProvider>
+        <ImpersonationProvider>
+          <GlobalDataProvider>
+            <FavoritesProvider>
+              <ModeProvider>
+                <SelectedLocalProvider>
+                  <WidgetProvider>
+                    <Stack
+                      screenOptions={{
+                        headerShown: false,
+                        animation: Platform.OS === 'ios' ? 'default' : 'fade',
+                        contentStyle: { backgroundColor: 'transparent' },
+                      }}
+                    >
+                      <Stack.Screen name="index" />
+                      <Stack.Screen name="(tabs)" />
+                      <Stack.Screen name="auth" />
+                      <Stack.Screen name="admin" />
+                      <Stack.Screen name="detalle" />
+                      <Stack.Screen name="editar" />
+                      <Stack.Screen name="crear" />
+                      <Stack.Screen name="perfil" />
+                      <Stack.Screen name="social" />
+                      <Stack.Screen name="chat" />
+                      <Stack.Screen name="empleo" />
+                      <Stack.Screen name="gestion" />
+                      <Stack.Screen name="legal" />
+                      <Stack.Screen name="soporte" />
+                      <Stack.Screen name="solicitudes" />
+                      <Stack.Screen
+                        name="modal"
+                        options={{
+                          presentation: 'modal',
+                          animation: 'slide_from_bottom',
+                        }}
+                      />
+                      <Stack.Screen
+                        name="transparent-modal"
+                        options={{
+                          presentation: 'transparentModal',
+                          animation: 'fade',
+                        }}
+                      />
+                      <Stack.Screen
+                        name="formsheet"
+                        options={{
+                          presentation: 'formSheet',
+                          animation: 'slide_from_bottom',
+                        }}
+                      />
+                    </Stack>
+                  </WidgetProvider>
+                </SelectedLocalProvider>
+              </ModeProvider>
+            </FavoritesProvider>
+          </GlobalDataProvider>
+        </ImpersonationProvider>
+      </AuthProvider>
+    </GestureHandlerRootView>
   );
 }

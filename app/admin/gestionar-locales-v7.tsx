@@ -10,7 +10,6 @@ import {
   Image,
   Alert,
   ActivityIndicator,
-  Switch,
   Modal,
   Pressable,
   ScrollView,
@@ -220,7 +219,7 @@ export default function GestionarLocalesV7Screen() {
       );
 
       Alert.alert(
-        'Éxito',
+        '✅ Éxito',
         `Local ${!activo ? 'activado' : 'desactivado'} correctamente`
       );
       cargarContadores();
@@ -262,7 +261,7 @@ export default function GestionarLocalesV7Screen() {
       setLocales(prevLocales => prevLocales.filter(local => local.id !== localId));
       setTotalLocales(prev => prev - 1);
 
-      Alert.alert('Éxito', 'Local eliminado correctamente');
+      Alert.alert('✅ Éxito', 'Local eliminado correctamente');
       cargarContadores();
     } catch (error) {
       console.error('[GestionarLocalesV7] Error eliminando local:', error);
@@ -324,7 +323,7 @@ export default function GestionarLocalesV7Screen() {
               );
               setTotalLocales(prev => prev - localesSeleccionados.size);
 
-              Alert.alert('Éxito', `Se eliminaron ${localesSeleccionados.size} locales correctamente`);
+              Alert.alert('✅ Éxito', `Se eliminaron ${localesSeleccionados.size} locales correctamente`);
               setLocalesSeleccionados(new Set());
               setModoSeleccion(false);
               cargarContadores();
@@ -394,7 +393,7 @@ export default function GestionarLocalesV7Screen() {
               localesSeleccionados.has(local.id) && styles.checkboxCheckedV7
             ]}>
               {localesSeleccionados.has(local.id) && (
-                <IconSymbol name="checkmark" size={18} color={colors.white} />
+                <IconSymbol ios_icon_name="checkmark" android_material_icon_name="check" size={18} color={colors.white} />
               )}
             </View>
           </View>
@@ -405,7 +404,7 @@ export default function GestionarLocalesV7Screen() {
             <Image source={{ uri: local.imagen_url }} style={styles.localCardImage} />
           ) : (
             <View style={[styles.localCardImage, styles.imagePlaceholderV7]}>
-              <IconSymbol name="photo" size={48} color={colors.textSecondary} />
+              <IconSymbol ios_icon_name="photo" android_material_icon_name="image" size={48} color={colors.textSecondary} />
             </View>
           )}
           
@@ -413,12 +412,12 @@ export default function GestionarLocalesV7Screen() {
           <View style={styles.statusOverlay}>
             {local.enriquecido && (
               <View style={styles.statusBadgeOverlay}>
-                <IconSymbol name="checkmark.seal.fill" size={14} color={colors.white} />
+                <IconSymbol ios_icon_name="checkmark.seal.fill" android_material_icon_name="verified" size={14} color={colors.white} />
               </View>
             )}
             {local.destacado && (
               <View style={[styles.statusBadgeOverlay, { backgroundColor: colors.badgeDestacado }]}>
-                <IconSymbol name="star.fill" size={14} color={colors.white} />
+                <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={14} color={colors.white} />
               </View>
             )}
           </View>
@@ -445,14 +444,14 @@ export default function GestionarLocalesV7Screen() {
 
           {local.propietario ? (
             <View style={styles.ownerBadge}>
-              <IconSymbol name="person.fill" size={12} color={colors.primary} />
+              <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={12} color={colors.primary} />
               <Text style={styles.ownerBadgeText} numberOfLines={1}>
                 {local.propietario.nombre || local.propietario.email}
               </Text>
             </View>
           ) : (
             <View style={[styles.ownerBadge, styles.noOwnerBadge]}>
-              <IconSymbol name="person.crop.circle.badge.xmark" size={12} color={colors.textSecondary} />
+              <IconSymbol ios_icon_name="person.crop.circle.badge.xmark" android_material_icon_name="person_off" size={12} color={colors.textSecondary} />
               <Text style={[styles.ownerBadgeText, { color: colors.textSecondary }]}>
                 Sin propietario
               </Text>
@@ -466,10 +465,10 @@ export default function GestionarLocalesV7Screen() {
               style={styles.actionButtonV7}
               onPress={(e) => {
                 e.stopPropagation();
-                router.push(`/editar/local?id=${local.id}`);
+                router.push(`/editar/local?id=${local.id}` as any);
               }}
             >
-              <IconSymbol name="pencil" size={18} color={colors.primary} />
+              <IconSymbol ios_icon_name="pencil" android_material_icon_name="edit" size={18} color={colors.primary} />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -490,7 +489,8 @@ export default function GestionarLocalesV7Screen() {
               }}
             >
               <IconSymbol 
-                name={local.activo ? 'eye.slash' : 'eye'} 
+                ios_icon_name={local.activo ? 'eye.slash' : 'eye'} 
+                android_material_icon_name={local.activo ? 'visibility_off' : 'visibility'} 
                 size={18} 
                 color={local.activo ? '#EF4444' : '#10B981'} 
               />
@@ -514,7 +514,7 @@ export default function GestionarLocalesV7Screen() {
                 );
               }}
             >
-              <IconSymbol name="trash" size={18} color="#EF4444" />
+              <IconSymbol ios_icon_name="trash" android_material_icon_name="delete" size={18} color="#EF4444" />
             </TouchableOpacity>
           </View>
         )}
@@ -535,7 +535,7 @@ export default function GestionarLocalesV7Screen() {
             colors={['#3B82F6', '#2563EB']}
             style={styles.statCardGradient}
           >
-            <IconSymbol name="building.2.fill" size={28} color={colors.white} />
+            <IconSymbol ios_icon_name="building.2.fill" android_material_icon_name="store" size={28} color={colors.white} />
             <Text style={styles.statCardNumber}>{contadores.total}</Text>
             <Text style={styles.statCardLabel}>Total Locales</Text>
           </LinearGradient>
@@ -546,7 +546,7 @@ export default function GestionarLocalesV7Screen() {
             colors={['#10B981', '#059669']}
             style={styles.statCardGradient}
           >
-            <IconSymbol name="checkmark.seal.fill" size={28} color={colors.white} />
+            <IconSymbol ios_icon_name="checkmark.seal.fill" android_material_icon_name="verified" size={28} color={colors.white} />
             <Text style={styles.statCardNumber}>{contadores.enriquecidos}</Text>
             <Text style={styles.statCardLabel}>Enriquecidos</Text>
           </LinearGradient>
@@ -557,7 +557,7 @@ export default function GestionarLocalesV7Screen() {
             colors={['#F59E0B', '#D97706']}
             style={styles.statCardGradient}
           >
-            <IconSymbol name="exclamationmark.triangle.fill" size={28} color={colors.white} />
+            <IconSymbol ios_icon_name="exclamationmark.triangle.fill" android_material_icon_name="warning" size={28} color={colors.white} />
             <Text style={styles.statCardNumber}>{contadores.noEnriquecidos}</Text>
             <Text style={styles.statCardLabel}>Sin Enriquecer</Text>
           </LinearGradient>
@@ -568,7 +568,7 @@ export default function GestionarLocalesV7Screen() {
             colors={['#8B5CF6', '#7C3AED']}
             style={styles.statCardGradient}
           >
-            <IconSymbol name="person.2.fill" size={28} color={colors.white} />
+            <IconSymbol ios_icon_name="person.2.fill" android_material_icon_name="people" size={28} color={colors.white} />
             <Text style={styles.statCardNumber}>{contadores.conPropietario}</Text>
             <Text style={styles.statCardLabel}>Con Propietario</Text>
           </LinearGradient>
@@ -578,7 +578,7 @@ export default function GestionarLocalesV7Screen() {
       {/* Modern Search Bar */}
       <View style={styles.searchContainerV7}>
         <View style={styles.searchInputWrapper}>
-          <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
+          <IconSymbol ios_icon_name="magnifyingglass" android_material_icon_name="search" size={20} color={colors.textSecondary} />
           <TextInput
             style={styles.searchInputV7}
             placeholder="Buscar locales por nombre o dirección..."
@@ -588,7 +588,7 @@ export default function GestionarLocalesV7Screen() {
           />
           {busqueda !== '' && (
             <TouchableOpacity onPress={() => setBusqueda('')}>
-              <IconSymbol name="xmark.circle.fill" size={20} color={colors.textSecondary} />
+              <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           )}
         </View>
@@ -600,7 +600,7 @@ export default function GestionarLocalesV7Screen() {
           style={[styles.actionBarButton, hayFiltrosActivos() && styles.actionBarButtonActive]}
           onPress={() => setShowFiltersModal(true)}
         >
-          <IconSymbol name="line.3.horizontal.decrease.circle" size={20} color={hayFiltrosActivos() ? colors.white : colors.text} />
+          <IconSymbol ios_icon_name="line.3.horizontal.decrease.circle" android_material_icon_name="filter_list" size={20} color={hayFiltrosActivos() ? colors.white : colors.text} />
           <Text style={[styles.actionBarButtonText, hayFiltrosActivos() && styles.actionBarButtonTextActive]}>
             Filtros {hayFiltrosActivos() && `(${Object.values({filtroPropietario, filtroTipo, filtroEstado, filtroEnriquecido, filtroDestacado}).filter(f => f !== 'todos').length})`}
           </Text>
@@ -611,7 +611,7 @@ export default function GestionarLocalesV7Screen() {
             style={styles.clearFiltersButtonV7}
             onPress={limpiarFiltros}
           >
-            <IconSymbol name="xmark.circle.fill" size={16} color={colors.textSecondary} />
+            <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="cancel" size={16} color={colors.textSecondary} />
             <Text style={styles.clearFiltersTextV7}>Limpiar</Text>
           </TouchableOpacity>
         )}
@@ -625,7 +625,8 @@ export default function GestionarLocalesV7Screen() {
               onPress={seleccionarTodos}
             >
               <IconSymbol 
-                name={localesSeleccionados.size === locales.length ? 'checkmark.square.fill' : 'square'} 
+                ios_icon_name={localesSeleccionados.size === locales.length ? 'checkmark.square.fill' : 'square'} 
+                android_material_icon_name={localesSeleccionados.size === locales.length ? 'check_box' : 'check_box_outline_blank'} 
                 size={20} 
                 color={colors.text} 
               />
@@ -639,7 +640,7 @@ export default function GestionarLocalesV7Screen() {
                 style={[styles.actionBarButton, { backgroundColor: '#EF4444' }]}
                 onPress={eliminarSeleccionados}
               >
-                <IconSymbol name="trash.fill" size={20} color={colors.white} />
+                <IconSymbol ios_icon_name="trash.fill" android_material_icon_name="delete" size={20} color={colors.white} />
                 <Text style={[styles.actionBarButtonText, { color: colors.white }]}>
                   Eliminar ({localesSeleccionados.size})
                 </Text>
@@ -661,7 +662,7 @@ export default function GestionarLocalesV7Screen() {
             style={[styles.actionBarButton, { backgroundColor: colors.primary }]}
             onPress={() => setModoSeleccion(true)}
           >
-            <IconSymbol name="checkmark.circle" size={20} color={colors.white} />
+            <IconSymbol ios_icon_name="checkmark.circle" android_material_icon_name="check_circle" size={20} color={colors.white} />
             <Text style={[styles.actionBarButtonText, { color: colors.white }]}>Seleccionar</Text>
           </TouchableOpacity>
         )}
@@ -688,7 +689,7 @@ export default function GestionarLocalesV7Screen() {
 
   const renderEmpty = useCallback(() => (
     <View style={styles.emptyStateV7}>
-      <IconSymbol name="building.2" size={64} color={colors.textSecondary} />
+      <IconSymbol ios_icon_name="building.2" android_material_icon_name="store" size={64} color={colors.textSecondary} />
       <Text style={styles.emptyTextV7}>No se encontraron locales</Text>
       <Text style={styles.emptySubtextV7}>
         Intenta ajustar los filtros de búsqueda
@@ -713,7 +714,7 @@ export default function GestionarLocalesV7Screen() {
       >
         <View style={styles.headerTopRow}>
           <TouchableOpacity style={styles.backButtonV7} onPress={() => router.back()}>
-            <IconSymbol name="chevron.left" size={28} color={colors.headerText} />
+            <IconSymbol ios_icon_name="chevron.left" android_material_icon_name="arrow_back" size={28} color={colors.headerText} />
           </TouchableOpacity>
           <View style={styles.headerTitleContainer}>
             <Text style={styles.headerTitleV7}>Gestión de Locales</Text>
@@ -721,9 +722,9 @@ export default function GestionarLocalesV7Screen() {
           </View>
           <TouchableOpacity
             style={styles.addButtonV7}
-            onPress={() => router.push('/crear/local')}
+            onPress={() => router.push('/crear/local' as any)}
           >
-            <IconSymbol name="plus.circle.fill" size={32} color={colors.headerText} />
+            <IconSymbol ios_icon_name="plus.circle.fill" android_material_icon_name="add_circle" size={32} color={colors.headerText} />
           </TouchableOpacity>
         </View>
       </LinearGradient>
@@ -747,261 +748,331 @@ export default function GestionarLocalesV7Screen() {
         windowSize={10}
       />
 
-      {/* Filters Modal */}
+      {/* Filters Modal - COMPLETELY REDESIGNED */}
       <Modal
         visible={showFiltersModal}
         transparent
         animationType="slide"
         onRequestClose={() => setShowFiltersModal(false)}
       >
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setShowFiltersModal(false)}
-        >
-          <Pressable style={styles.modalContentV7} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.modalHeaderV7}>
-              <Text style={styles.modalTitleV7}>Filtros Avanzados</Text>
-              <TouchableOpacity onPress={() => setShowFiltersModal(false)}>
-                <IconSymbol name="xmark.circle.fill" size={28} color={colors.textSecondary} />
-              </TouchableOpacity>
+        <View style={styles.fullScreenModal}>
+          <LinearGradient
+            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+            style={styles.fullScreenModalHeader}
+          >
+            <TouchableOpacity
+              style={styles.fullScreenModalClose}
+              onPress={() => setShowFiltersModal(false)}
+            >
+              <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="close" size={32} color={colors.headerText} />
+            </TouchableOpacity>
+            <View style={styles.fullScreenModalHeaderContent}>
+              <Text style={styles.fullScreenModalTitle}>Filtros Avanzados</Text>
+              <Text style={styles.fullScreenModalSubtitle}>Personaliza la búsqueda de locales</Text>
+            </View>
+          </LinearGradient>
+
+          <ScrollView style={styles.fullScreenModalContent} contentContainerStyle={styles.fullScreenModalContentContainer}>
+            {/* Filtro Enriquecido */}
+            <View style={styles.filterSectionV7}>
+              <View style={styles.filterSectionHeaderV7}>
+                <IconSymbol ios_icon_name="checkmark.seal.fill" android_material_icon_name="verified" size={24} color={colors.primary} />
+                <Text style={styles.filterSectionTitleV7}>Enriquecimiento</Text>
+              </View>
+              <View style={styles.filterOptionsV7}>
+                {['todos', 'enriquecidos', 'no-enriquecidos'].map(option => (
+                  <TouchableOpacity
+                    key={option}
+                    style={[
+                      styles.filterOptionV7,
+                      filtroEnriquecido === option && styles.filterOptionActiveV7
+                    ]}
+                    onPress={() => setFiltroEnriquecido(option)}
+                  >
+                    <Text style={[
+                      styles.filterOptionTextV7,
+                      filtroEnriquecido === option && styles.filterOptionTextActiveV7
+                    ]}>
+                      {option === 'todos' ? 'Todos' : option === 'enriquecidos' ? 'Enriquecidos' : 'Sin Enriquecer'}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
 
-            <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
-              {/* Filtro Enriquecido */}
-              <View style={styles.filterSectionV7}>
-                <Text style={styles.filterSectionTitleV7}>Enriquecimiento</Text>
-                <View style={styles.filterOptionsV7}>
-                  {['todos', 'enriquecidos', 'no-enriquecidos'].map(option => (
-                    <TouchableOpacity
-                      key={option}
-                      style={[
-                        styles.filterOptionV7,
-                        filtroEnriquecido === option && styles.filterOptionActiveV7
-                      ]}
-                      onPress={() => setFiltroEnriquecido(option)}
-                    >
-                      <Text style={[
-                        styles.filterOptionTextV7,
-                        filtroEnriquecido === option && styles.filterOptionTextActiveV7
-                      ]}>
-                        {option === 'todos' ? 'Todos' : option === 'enriquecidos' ? 'Enriquecidos' : 'Sin Enriquecer'}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              {/* Filtro Estado */}
-              <View style={styles.filterSectionV7}>
+            {/* Filtro Estado */}
+            <View style={styles.filterSectionV7}>
+              <View style={styles.filterSectionHeaderV7}>
+                <IconSymbol ios_icon_name="eye.fill" android_material_icon_name="visibility" size={24} color="#10B981" />
                 <Text style={styles.filterSectionTitleV7}>Estado</Text>
-                <View style={styles.filterOptionsV7}>
-                  {['todos', 'activos', 'inactivos'].map(option => (
-                    <TouchableOpacity
-                      key={option}
-                      style={[
-                        styles.filterOptionV7,
-                        filtroEstado === option && styles.filterOptionActiveV7
-                      ]}
-                      onPress={() => setFiltroEstado(option)}
-                    >
-                      <Text style={[
-                        styles.filterOptionTextV7,
-                        filtroEstado === option && styles.filterOptionTextActiveV7
-                      ]}>
-                        {option.charAt(0).toUpperCase() + option.slice(1)}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
               </View>
+              <View style={styles.filterOptionsV7}>
+                {['todos', 'activos', 'inactivos'].map(option => (
+                  <TouchableOpacity
+                    key={option}
+                    style={[
+                      styles.filterOptionV7,
+                      filtroEstado === option && styles.filterOptionActiveV7
+                    ]}
+                    onPress={() => setFiltroEstado(option)}
+                  >
+                    <Text style={[
+                      styles.filterOptionTextV7,
+                      filtroEstado === option && styles.filterOptionTextActiveV7
+                    ]}>
+                      {option.charAt(0).toUpperCase() + option.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
 
-              {/* Filtro Propietario */}
-              <View style={styles.filterSectionV7}>
+            {/* Filtro Propietario */}
+            <View style={styles.filterSectionV7}>
+              <View style={styles.filterSectionHeaderV7}>
+                <IconSymbol ios_icon_name="person.fill" android_material_icon_name="person" size={24} color="#8B5CF6" />
                 <Text style={styles.filterSectionTitleV7}>Propietario</Text>
-                <View style={styles.filterOptionsV7}>
-                  {['todos', 'con-dueno', 'sin-dueno'].map(option => (
-                    <TouchableOpacity
-                      key={option}
-                      style={[
-                        styles.filterOptionV7,
-                        filtroPropietario === option && styles.filterOptionActiveV7
-                      ]}
-                      onPress={() => setFiltroPropietario(option)}
-                    >
-                      <Text style={[
-                        styles.filterOptionTextV7,
-                        filtroPropietario === option && styles.filterOptionTextActiveV7
-                      ]}>
-                        {option === 'todos' ? 'Todos' : option === 'con-dueno' ? 'Con Dueño' : 'Sin Dueño'}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
               </View>
-
-              {/* Filtro Tipo */}
-              <View style={styles.filterSectionV7}>
-                <Text style={styles.filterSectionTitleV7}>Tipo</Text>
-                <View style={styles.filterOptionsV7}>
-                  {['todos', 'bar', 'restaurante', 'cafe', 'pub', 'discoteca'].map(option => (
-                    <TouchableOpacity
-                      key={option}
-                      style={[
-                        styles.filterOptionV7,
-                        filtroTipo === option && styles.filterOptionActiveV7
-                      ]}
-                      onPress={() => setFiltroTipo(option)}
-                    >
-                      <Text style={[
-                        styles.filterOptionTextV7,
-                        filtroTipo === option && styles.filterOptionTextActiveV7
-                      ]}>
-                        {option.charAt(0).toUpperCase() + option.slice(1)}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+              <View style={styles.filterOptionsV7}>
+                {['todos', 'con-dueno', 'sin-dueno'].map(option => (
+                  <TouchableOpacity
+                    key={option}
+                    style={[
+                      styles.filterOptionV7,
+                      filtroPropietario === option && styles.filterOptionActiveV7
+                    ]}
+                    onPress={() => setFiltroPropietario(option)}
+                  >
+                    <Text style={[
+                      styles.filterOptionTextV7,
+                      filtroPropietario === option && styles.filterOptionTextActiveV7
+                    ]}>
+                      {option === 'todos' ? 'Todos' : option === 'con-dueno' ? 'Con Dueño' : 'Sin Dueño'}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
+            </View>
 
-              {/* Filtro Destacado */}
-              <View style={styles.filterSectionV7}>
+            {/* Filtro Tipo */}
+            <View style={styles.filterSectionV7}>
+              <View style={styles.filterSectionHeaderV7}>
+                <IconSymbol ios_icon_name="list.bullet" android_material_icon_name="list" size={24} color="#F59E0B" />
+                <Text style={styles.filterSectionTitleV7}>Tipo de Local</Text>
+              </View>
+              <View style={styles.filterOptionsV7}>
+                {['todos', 'bar', 'restaurante', 'cafe', 'pub', 'discoteca'].map(option => (
+                  <TouchableOpacity
+                    key={option}
+                    style={[
+                      styles.filterOptionV7,
+                      filtroTipo === option && styles.filterOptionActiveV7
+                    ]}
+                    onPress={() => setFiltroTipo(option)}
+                  >
+                    <Text style={[
+                      styles.filterOptionTextV7,
+                      filtroTipo === option && styles.filterOptionTextActiveV7
+                    ]}>
+                      {option.charAt(0).toUpperCase() + option.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Filtro Destacado */}
+            <View style={styles.filterSectionV7}>
+              <View style={styles.filterSectionHeaderV7}>
+                <IconSymbol ios_icon_name="star.fill" android_material_icon_name="star" size={24} color={colors.badgeDestacado} />
                 <Text style={styles.filterSectionTitleV7}>Destacado</Text>
-                <View style={styles.filterOptionsV7}>
-                  {['todos', 'destacados', 'no-destacados'].map(option => (
-                    <TouchableOpacity
-                      key={option}
-                      style={[
-                        styles.filterOptionV7,
-                        filtroDestacado === option && styles.filterOptionActiveV7
-                      ]}
-                      onPress={() => setFiltroDestacado(option)}
-                    >
-                      <Text style={[
-                        styles.filterOptionTextV7,
-                        filtroDestacado === option && styles.filterOptionTextActiveV7
-                      ]}>
-                        {option === 'todos' ? 'Todos' : option === 'destacados' ? 'Destacados' : 'No Destacados'}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
               </View>
-            </ScrollView>
+              <View style={styles.filterOptionsV7}>
+                {['todos', 'destacados', 'no-destacados'].map(option => (
+                  <TouchableOpacity
+                    key={option}
+                    style={[
+                      styles.filterOptionV7,
+                      filtroDestacado === option && styles.filterOptionActiveV7
+                    ]}
+                    onPress={() => setFiltroDestacado(option)}
+                  >
+                    <Text style={[
+                      styles.filterOptionTextV7,
+                      filtroDestacado === option && styles.filterOptionTextActiveV7
+                    ]}>
+                      {option === 'todos' ? 'Todos' : option === 'destacados' ? 'Destacados' : 'No Destacados'}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </ScrollView>
 
-            <View style={styles.modalFooterV7}>
+          <View style={styles.fullScreenModalFooter}>
+            <TouchableOpacity
+              style={styles.fullScreenModalButton}
+              onPress={() => setShowFiltersModal(false)}
+            >
+              <LinearGradient
+                colors={[colors.primary, colors.primary + 'DD']}
+                style={styles.fullScreenModalButtonGradient}
+              >
+                <IconSymbol ios_icon_name="checkmark.circle.fill" android_material_icon_name="check_circle" size={24} color={colors.white} />
+                <Text style={styles.fullScreenModalButtonText}>Aplicar Filtros</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+            {hayFiltrosActivos() && (
               <TouchableOpacity
-                style={styles.modalButtonSecondaryV7}
+                style={styles.clearAllFiltersButtonV7}
                 onPress={limpiarFiltros}
               >
-                <Text style={styles.modalButtonSecondaryTextV7}>Limpiar Filtros</Text>
+                <Text style={styles.clearAllFiltersTextV7}>Limpiar Todos los Filtros</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalButtonPrimaryV7}
-                onPress={() => setShowFiltersModal(false)}
-              >
-                <Text style={styles.modalButtonPrimaryTextV7}>Aplicar</Text>
-              </TouchableOpacity>
-            </View>
-          </Pressable>
-        </Pressable>
+            )}
+          </View>
+        </View>
       </Modal>
 
-      {/* Local Detail Modal */}
+      {/* Local Detail Modal - COMPLETELY REDESIGNED */}
       <Modal
         visible={showLocalDetailModal}
         transparent
         animationType="slide"
         onRequestClose={() => setShowLocalDetailModal(false)}
       >
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setShowLocalDetailModal(false)}
-        >
-          <Pressable style={styles.modalContentLargeV7} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.modalHeaderV7}>
-              <Text style={styles.modalTitleV7}>Detalles del Local</Text>
-              <TouchableOpacity onPress={() => setShowLocalDetailModal(false)}>
-                <IconSymbol name="xmark.circle.fill" size={28} color={colors.textSecondary} />
-              </TouchableOpacity>
+        <View style={styles.fullScreenModal}>
+          <LinearGradient
+            colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+            style={styles.fullScreenModalHeader}
+          >
+            <TouchableOpacity
+              style={styles.fullScreenModalClose}
+              onPress={() => setShowLocalDetailModal(false)}
+            >
+              <IconSymbol ios_icon_name="xmark.circle.fill" android_material_icon_name="close" size={32} color={colors.headerText} />
+            </TouchableOpacity>
+            <View style={styles.fullScreenModalHeaderContent}>
+              <Text style={styles.fullScreenModalTitle}>Detalles del Local</Text>
+              <Text style={styles.fullScreenModalSubtitle}>Información completa y gestión</Text>
             </View>
+          </LinearGradient>
 
-            {selectedLocal && (
-              <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
-                {selectedLocal.imagen_url && (
-                  <Image 
-                    source={{ uri: selectedLocal.imagen_url }} 
-                    style={styles.detailImage}
-                  />
-                )}
+          {selectedLocal && (
+            <ScrollView style={styles.fullScreenModalContent} contentContainerStyle={styles.fullScreenModalContentContainer}>
+              {selectedLocal.imagen_url && (
+                <Image 
+                  source={{ uri: selectedLocal.imagen_url }} 
+                  style={styles.detailImageV7}
+                />
+              )}
 
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailTitle}>{selectedLocal.nombre}</Text>
-                  <Text style={styles.detailSubtitle}>{selectedLocal.tipo} • {selectedLocal.provincia}</Text>
+              <View style={styles.detailSectionV7}>
+                <Text style={styles.detailTitleV7}>{selectedLocal.nombre}</Text>
+                <Text style={styles.detailSubtitleV7}>{selectedLocal.tipo} • {selectedLocal.provincia}</Text>
+              </View>
+
+              <View style={styles.detailSectionV7}>
+                <View style={styles.detailSectionHeaderV7}>
+                  <IconSymbol ios_icon_name="info.circle.fill" android_material_icon_name="info" size={24} color={colors.primary} />
+                  <Text style={styles.detailSectionTitleV7}>Información</Text>
                 </View>
-
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailSectionTitle}>Información</Text>
-                  <View style={styles.detailRow}>
-                    <IconSymbol name="mappin.circle.fill" size={20} color={colors.primary} />
-                    <Text style={styles.detailRowText}>{selectedLocal.direccion}</Text>
+                <View style={styles.detailRowV7}>
+                  <View style={styles.detailRowIconV7}>
+                    <IconSymbol ios_icon_name="mappin.circle.fill" android_material_icon_name="location_on" size={24} color={colors.primary} />
                   </View>
-                  <View style={styles.detailRow}>
-                    <IconSymbol name="calendar" size={20} color={colors.primary} />
-                    <Text style={styles.detailRowText}>
-                      Creado: {new Date(selectedLocal.fecha_creacion).toLocaleDateString('es-ES')}
-                    </Text>
+                  <Text style={styles.detailRowTextV7}>{selectedLocal.direccion}</Text>
+                </View>
+                <View style={styles.detailRowV7}>
+                  <View style={styles.detailRowIconV7}>
+                    <IconSymbol ios_icon_name="calendar" android_material_icon_name="event" size={24} color={colors.primary} />
+                  </View>
+                  <Text style={styles.detailRowTextV7}>
+                    Creado: {new Date(selectedLocal.fecha_creacion).toLocaleDateString('es-ES', {
+                      day: '2-digit',
+                      month: 'long',
+                      year: 'numeric'
+                    })}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.detailSectionV7}>
+                <View style={styles.detailSectionHeaderV7}>
+                  <IconSymbol ios_icon_name="checkmark.seal.fill" android_material_icon_name="verified" size={24} color="#10B981" />
+                  <Text style={styles.detailSectionTitleV7}>Estado</Text>
+                </View>
+                <View style={styles.detailStatusGridV7}>
+                  <View style={[styles.detailStatusCardV7, selectedLocal.activo && styles.detailStatusCardActiveV7]}>
+                    <IconSymbol 
+                      ios_icon_name="eye.fill" 
+                      android_material_icon_name="visibility" 
+                      size={28} 
+                      color={selectedLocal.activo ? '#10B981' : colors.textSecondary} 
+                    />
+                    <Text style={styles.detailStatusTextV7}>{selectedLocal.activo ? 'Activo' : 'Inactivo'}</Text>
+                  </View>
+                  <View style={[styles.detailStatusCardV7, selectedLocal.enriquecido && styles.detailStatusCardActiveV7]}>
+                    <IconSymbol 
+                      ios_icon_name="checkmark.seal.fill" 
+                      android_material_icon_name="verified" 
+                      size={28} 
+                      color={selectedLocal.enriquecido ? colors.primary : colors.textSecondary} 
+                    />
+                    <Text style={styles.detailStatusTextV7}>{selectedLocal.enriquecido ? 'Enriquecido' : 'Sin Enriquecer'}</Text>
+                  </View>
+                  <View style={[styles.detailStatusCardV7, selectedLocal.destacado && styles.detailStatusCardActiveV7]}>
+                    <IconSymbol 
+                      ios_icon_name="star.fill" 
+                      android_material_icon_name="star" 
+                      size={28} 
+                      color={selectedLocal.destacado ? colors.badgeDestacado : colors.textSecondary} 
+                    />
+                    <Text style={styles.detailStatusTextV7}>{selectedLocal.destacado ? 'Destacado' : 'Normal'}</Text>
                   </View>
                 </View>
+              </View>
 
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailSectionTitle}>Estado</Text>
-                  <View style={styles.detailStatusGrid}>
-                    <View style={[styles.detailStatusCard, selectedLocal.activo && styles.detailStatusCardActive]}>
-                      <IconSymbol name="eye.fill" size={24} color={selectedLocal.activo ? '#10B981' : colors.textSecondary} />
-                      <Text style={styles.detailStatusText}>{selectedLocal.activo ? 'Activo' : 'Inactivo'}</Text>
+              {selectedLocal.propietario && (
+                <View style={styles.detailSectionV7}>
+                  <View style={styles.detailSectionHeaderV7}>
+                    <IconSymbol ios_icon_name="person.circle.fill" android_material_icon_name="account_circle" size={24} color="#8B5CF6" />
+                    <Text style={styles.detailSectionTitleV7}>Propietario</Text>
+                  </View>
+                  <View style={styles.ownerCardV7}>
+                    <View style={styles.ownerCardIconV7}>
+                      <IconSymbol ios_icon_name="person.circle.fill" android_material_icon_name="account_circle" size={48} color={colors.primary} />
                     </View>
-                    <View style={[styles.detailStatusCard, selectedLocal.enriquecido && styles.detailStatusCardActive]}>
-                      <IconSymbol name="checkmark.seal.fill" size={24} color={selectedLocal.enriquecido ? colors.primary : colors.textSecondary} />
-                      <Text style={styles.detailStatusText}>{selectedLocal.enriquecido ? 'Enriquecido' : 'Sin Enriquecer'}</Text>
-                    </View>
-                    <View style={[styles.detailStatusCard, selectedLocal.destacado && styles.detailStatusCardActive]}>
-                      <IconSymbol name="star.fill" size={24} color={selectedLocal.destacado ? colors.badgeDestacado : colors.textSecondary} />
-                      <Text style={styles.detailStatusText}>{selectedLocal.destacado ? 'Destacado' : 'Normal'}</Text>
+                    <View style={styles.ownerCardInfoV7}>
+                      <Text style={styles.ownerCardNameV7}>{selectedLocal.propietario.nombre}</Text>
+                      <Text style={styles.ownerCardEmailV7}>{selectedLocal.propietario.email}</Text>
                     </View>
                   </View>
                 </View>
+              )}
+            </ScrollView>
+          )}
 
-                {selectedLocal.propietario && (
-                  <View style={styles.detailSection}>
-                    <Text style={styles.detailSectionTitle}>Propietario</Text>
-                    <View style={styles.ownerCard}>
-                      <IconSymbol name="person.circle.fill" size={40} color={colors.primary} />
-                      <View style={styles.ownerCardInfo}>
-                        <Text style={styles.ownerCardName}>{selectedLocal.propietario.nombre}</Text>
-                        <Text style={styles.ownerCardEmail}>{selectedLocal.propietario.email}</Text>
-                      </View>
-                    </View>
-                  </View>
-                )}
-              </ScrollView>
-            )}
-
-            <View style={styles.modalFooterV7}>
-              <TouchableOpacity
-                style={styles.modalButtonPrimaryV7}
-                onPress={() => {
-                  setShowLocalDetailModal(false);
-                  if (selectedLocal) {
-                    router.push(`/editar/local?id=${selectedLocal.id}`);
-                  }
-                }}
+          <View style={styles.fullScreenModalFooter}>
+            <TouchableOpacity
+              style={styles.fullScreenModalButton}
+              onPress={() => {
+                setShowLocalDetailModal(false);
+                if (selectedLocal) {
+                  router.push(`/editar/local?id=${selectedLocal.id}` as any);
+                }
+              }}
+            >
+              <LinearGradient
+                colors={[colors.primary, colors.primary + 'DD']}
+                style={styles.fullScreenModalButtonGradient}
               >
-                <IconSymbol name="pencil.circle.fill" size={20} color={colors.white} />
-                <Text style={styles.modalButtonPrimaryTextV7}>Editar Local</Text>
-              </TouchableOpacity>
-            </View>
-          </Pressable>
-        </Pressable>
+                <IconSymbol ios_icon_name="pencil.circle.fill" android_material_icon_name="edit" size={24} color={colors.white} />
+                <Text style={styles.fullScreenModalButtonText}>Editar Local</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
       </Modal>
     </View>
   );
@@ -1308,60 +1379,96 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 8,
   },
-  modalOverlay: {
+  // FULL SCREEN MODAL STYLES
+  fullScreenModal: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    justifyContent: 'flex-end',
+    backgroundColor: colors.background,
   },
-  modalContentV7: {
-    backgroundColor: colors.cardBackground,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '80%',
-  },
-  modalContentLargeV7: {
-    backgroundColor: colors.cardBackground,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '90%',
-  },
-  modalHeaderV7: {
+  fullScreenModalHeader: {
+    paddingTop: 50,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
   },
-  modalTitleV7: {
-    fontSize: 22,
+  fullScreenModalClose: {
+    padding: 4,
+    marginRight: 12,
+  },
+  fullScreenModalHeaderContent: {
+    flex: 1,
+  },
+  fullScreenModalTitle: {
+    fontSize: 24,
     fontWeight: 'bold',
-    color: colors.text,
+    color: colors.headerText,
   },
-  modalScrollView: {
-    maxHeight: 500,
+  fullScreenModalSubtitle: {
+    fontSize: 14,
+    color: colors.headerText,
+    opacity: 0.9,
+    marginTop: 4,
+  },
+  fullScreenModalContent: {
+    flex: 1,
+  },
+  fullScreenModalContentContainer: {
+    paddingBottom: 120,
+  },
+  fullScreenModalFooter: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: colors.cardBackground,
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+    ...commonStyles.shadow,
+  },
+  fullScreenModalButton: {
+    borderRadius: 14,
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  fullScreenModalButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    paddingVertical: 18,
+  },
+  fullScreenModalButtonText: {
+    fontSize: 17,
+    fontWeight: 'bold',
+    color: colors.white,
   },
   filterSectionV7: {
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.cardBorder,
+    marginBottom: 24,
+  },
+  filterSectionHeaderV7: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 20,
+    marginBottom: 16,
   },
   filterSectionTitleV7: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: 'bold',
     color: colors.text,
-    marginBottom: 12,
   },
   filterOptionsV7: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 12,
+    paddingHorizontal: 20,
   },
   filterOptionV7: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    backgroundColor: colors.background,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 14,
+    backgroundColor: colors.cardBackground,
     borderWidth: 2,
     borderColor: colors.cardBorder,
   },
@@ -1370,128 +1477,126 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   filterOptionTextV7: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     color: colors.text,
   },
   filterOptionTextActiveV7: {
     color: colors.white,
   },
-  modalFooterV7: {
-    flexDirection: 'row',
-    padding: 20,
-    gap: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
-  },
-  modalButtonSecondaryV7: {
-    flex: 1,
-    paddingVertical: 16,
-    borderRadius: 12,
-    backgroundColor: colors.background,
+  clearAllFiltersButtonV7: {
+    paddingVertical: 14,
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: colors.cardBorder,
   },
-  modalButtonSecondaryTextV7: {
-    fontSize: 16,
+  clearAllFiltersTextV7: {
+    fontSize: 15,
     fontWeight: '600',
-    color: colors.text,
+    color: colors.textSecondary,
   },
-  modalButtonPrimaryV7: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 16,
-    borderRadius: 12,
-    backgroundColor: colors.primary,
-  },
-  modalButtonPrimaryTextV7: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.white,
-  },
-  detailImage: {
+  detailImageV7: {
     width: '100%',
-    height: 250,
+    height: 300,
   },
-  detailSection: {
+  detailSectionV7: {
     padding: 20,
     borderBottomWidth: 1,
     borderBottomColor: colors.cardBorder,
   },
-  detailTitle: {
-    fontSize: 24,
+  detailTitleV7: {
+    fontSize: 28,
     fontWeight: 'bold',
     color: colors.text,
-    marginBottom: 4,
+    marginBottom: 6,
   },
-  detailSubtitle: {
-    fontSize: 16,
+  detailSubtitleV7: {
+    fontSize: 17,
     color: colors.textSecondary,
   },
-  detailSectionTitle: {
-    fontSize: 18,
+  detailSectionHeaderV7: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+  },
+  detailSectionTitleV7: {
+    fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
-    marginBottom: 12,
   },
-  detailRow: {
+  detailRowV7: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 12,
+    alignItems: 'flex-start',
+    gap: 14,
+    marginBottom: 14,
   },
-  detailRowText: {
+  detailRowIconV7: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.primary + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  detailRowTextV7: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 16,
     color: colors.text,
+    lineHeight: 22,
+    paddingTop: 8,
   },
-  detailStatusGrid: {
+  detailStatusGridV7: {
     flexDirection: 'row',
     gap: 12,
   },
-  detailStatusCard: {
+  detailStatusCardV7: {
     flex: 1,
     alignItems: 'center',
-    padding: 16,
-    borderRadius: 12,
+    padding: 18,
+    borderRadius: 14,
     backgroundColor: colors.background,
     borderWidth: 2,
     borderColor: colors.cardBorder,
   },
-  detailStatusCardActive: {
+  detailStatusCardActiveV7: {
     borderColor: colors.primary,
     backgroundColor: colors.primary + '10',
   },
-  detailStatusText: {
-    fontSize: 12,
+  detailStatusTextV7: {
+    fontSize: 13,
     fontWeight: '600',
     color: colors.text,
-    marginTop: 8,
+    marginTop: 10,
     textAlign: 'center',
   },
-  ownerCard: {
+  ownerCardV7: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    padding: 16,
+    gap: 16,
+    padding: 18,
     backgroundColor: colors.background,
-    borderRadius: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
-  ownerCardInfo: {
+  ownerCardIconV7: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.primary + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  ownerCardInfoV7: {
     flex: 1,
   },
-  ownerCardName: {
-    fontSize: 16,
-    fontWeight: '600',
+  ownerCardNameV7: {
+    fontSize: 18,
+    fontWeight: '700',
     color: colors.text,
-    marginBottom: 4,
+    marginBottom: 6,
   },
-  ownerCardEmail: {
-    fontSize: 14,
+  ownerCardEmailV7: {
+    fontSize: 15,
     color: colors.textSecondary,
   },
 });

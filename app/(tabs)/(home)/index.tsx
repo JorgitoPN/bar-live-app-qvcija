@@ -1,613 +1,354 @@
 
-import TarjetaLocal from '@/components/home/TarjetaLocal';
-import { LinearGradient } from 'expo-linear-gradient';
-import { filterAndSortLocals } from '@/utils/filterLocals';
-import { useRouter, useFocusEffect } from 'expo-router';
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Local, Filtros } from '@/types';
-import { useMode } from '@/contexts/ModeContext';
-import FiltrosAvanzadosSheet from '@/components/home/FiltrosAvanzadosSheet';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  TextInput,
   TouchableOpacity,
-  Platform,
-  RefreshControl,
-  Modal,
-  Animated,
   ActivityIndicator,
+  RefreshControl,
+  Platform,
+  Dimensions,
 } from 'react-native';
-import * as Location from 'expo-location';
-import { IconSymbol } from '@/components/IconSymbol';
-import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'expo-router';
 import { colors, commonStyles } from '@/styles/commonStyles';
-import { useGlobalData } from '@/contexts/GlobalDataContext';
-import { useScrollPosition } from '@/hooks/useScrollPosition';
-import InitialLoadingScreen from '@/components/common/InitialLoadingScreen';
-import { addPubCategoryIfNeeded } from '@/utils/categorizeLocal';
+import { LinearGradient } from 'expo-linear-gradient';
+import { IconSymbol } from '@/components/IconSymbol';
+import { supabase } from '@/utils/supabase';
+import { useEffectiveUser } from '@/hooks/useEffectiveUser';
+import { useImpersonation } from '@/contexts/ImpersonationContext';
+import TarjetaLocal from '@/components/home/TarjetaLocal';
+import BarraFiltrosInteractiva from '@/components/home/BarraFiltrosInteractiva';
+import * as Location from 'expo-location';
 
-type ModoUsuario = 'todos' | 'cercanos' | 'destacados' | 'nuevos';
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const CATEGORIAS_LOCALES = [
-  { id: 'todos', nombre: 'Todos', emoji: '🌟' },
-  { id: 'bar', nombre: 'Bares', emoji: '🍺' },
-  { id: 'restaurante', nombre: 'Restaurantes', emoji: '🍽️' },
-  { id: 'discoteca', nombre: 'Discotecas', emoji: '💃' },
-  { id: 'cafe', nombre: 'Cafeterías', emoji: '☕' },
-  { id: 'pub', nombre: 'Pubs', emoji: '🍻' },
-  { id: 'cocteleria', nombre: 'Coctelerías', emoji: '🍸' },
-];
+interface Local {
+  id: string;
+  nombre: string;
+  tipo: string;
+  direccion: string;
+  provincia: string;
+  imagen_url?: string;
+  rating: number;
+  precio_medio?: number;
+  destacado: boolean;
+  nuevo: boolean;
+  abierto: boolean;
+  distancia?: number;
+  latitud?: number;
+  longitud?: number;
+}
 
-const CATEGORIAS_EXCLUIDAS = ['terrazas', 'rooftops', 'lounge'];
+export default function HomeScreen() {
+  const router = useRouter();
+  const { userId, user, isImpersonating } = useEffectiveUser();
+  const { impersonationSession } = useImpersonation();
+  const [locales, setLocales] = useState<Local[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [filtros, setFiltros] = useState({
+    tipo: 'todos',
+    provincia: 'todos',
+    precioMedio: 'todos',
+    abierto: false,
+    destacado: false,
+  });
 
-const LOCALES_POR_PAGINA = 20;
-const HEADER_HEIGHT = 140;
-const CATEGORIAS_HEIGHT = 100;
+  const obtenerUbicacion = useCallback(async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        console.log('[Home] Permiso de ubicación denegado');
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      setUserLocation({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
+
+      console.log('[Home] Ubicación obtenida:', location.coords);
+    } catch (error) {
+      console.error('[Home] Error obteniendo ubicación:', error);
+    }
+  }, []);
+
+  const calcularDistancia = useCallback((lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371; // Radio de la Tierra en km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }, []);
+
+  const cargarLocales = useCallback(async () => {
+    try {
+      console.log(`[Home] Cargando locales para usuario ${userId} (${isImpersonating ? 'IMPERSONATING' : 'NORMAL'})`);
+      
+      let query = supabase
+        .from('locales')
+        .select('*')
+        .eq('activo', true)
+        .order('destacado', { ascending: false })
+        .order('rating', { ascending: false })
+        .limit(50);
+
+      // Aplicar filtros
+      if (filtros.tipo !== 'todos') {
+        query = query.eq('tipo', filtros.tipo);
+      }
+
+      if (filtros.provincia !== 'todos') {
+        query = query.eq('provincia', filtros.provincia);
+      }
+
+      if (filtros.precioMedio !== 'todos') {
+        const precioNum = parseInt(filtros.precioMedio);
+        query = query.eq('precio_medio', precioNum);
+      }
+
+      if (filtros.abierto) {
+        query = query.eq('abierto', true);
+      }
+
+      if (filtros.destacado) {
+        query = query.eq('destacado', true);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      let localesConDistancia = data || [];
+
+      // Calcular distancia si tenemos ubicación
+      if (userLocation) {
+        localesConDistancia = localesConDistancia.map(local => {
+          if (local.latitud && local.longitud) {
+            const distancia = calcularDistancia(
+              userLocation.latitude,
+              userLocation.longitude,
+              parseFloat(local.latitud.toString()),
+              parseFloat(local.longitud.toString())
+            );
+            return { ...local, distancia };
+          }
+          return local;
+        });
+
+        // Ordenar por distancia si está disponible
+        localesConDistancia.sort((a, b) => {
+          if (a.distancia && b.distancia) {
+            return a.distancia - b.distancia;
+          }
+          return 0;
+        });
+      }
+
+      console.log('[Home] Locales cargados:', localesConDistancia.length);
+      setLocales(localesConDistancia);
+    } catch (error) {
+      console.error('[Home] Error cargando locales:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [userId, isImpersonating, filtros, userLocation, calcularDistancia]);
+
+  useEffect(() => {
+    obtenerUbicacion();
+  }, [obtenerUbicacion]);
+
+  useEffect(() => {
+    if (userId) {
+      cargarLocales();
+    }
+  }, [userId, cargarLocales]);
+
+  const handleRefresh = useCallback(() => {
+    setRefreshing(true);
+    cargarLocales();
+  }, [cargarLocales]);
+
+  const handleFiltrosChange = useCallback((nuevosFiltros: any) => {
+    setFiltros(nuevosFiltros);
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Cargando locales...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <LinearGradient
+        colors={[colors.headerGradientStart, colors.headerGradientEnd]}
+        style={styles.header}
+      >
+        <View style={styles.headerContent}>
+          <Text style={styles.headerTitle}>BarLive</Text>
+          <Text style={styles.headerSubtitle}>
+            {isImpersonating 
+              ? `Viendo como ${impersonationSession?.impersonated_user_name}` 
+              : 'Descubre los mejores locales'}
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={styles.mapButton}
+          onPress={() => router.push('/(tabs)/explorar/mapa' as any)}
+        >
+          <IconSymbol ios_icon_name="map.fill" android_material_icon_name="map" size={24} color={colors.headerText} />
+        </TouchableOpacity>
+      </LinearGradient>
+
+      {isImpersonating && (
+        <View style={styles.impersonationIndicator}>
+          <IconSymbol ios_icon_name="person.crop.circle.badge.checkmark" android_material_icon_name="supervised_user_circle" size={18} color={colors.white} />
+          <Text style={styles.impersonationIndicatorText}>
+            Vista de usuario impersonado
+          </Text>
+        </View>
+      )}
+
+      <BarraFiltrosInteractiva onFiltrosChange={handleFiltrosChange} />
+
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
+        showsVerticalScrollIndicator={false}
+      >
+        {locales.length === 0 ? (
+          <View style={styles.emptyState}>
+            <IconSymbol ios_icon_name="building.2" android_material_icon_name="store" size={64} color={colors.textSecondary} />
+            <Text style={styles.emptyText}>No se encontraron locales</Text>
+            <Text style={styles.emptySubtext}>
+              Intenta ajustar los filtros de búsqueda
+            </Text>
+          </View>
+        ) : (
+          <React.Fragment>
+            {locales.map((local) => (
+              <TarjetaLocal key={local.id} local={local} />
+            ))}
+          </React.Fragment>
+        )}
+      </ScrollView>
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
   },
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: colors.text,
+    marginTop: 16,
+  },
   header: {
     paddingTop: 50,
-    paddingBottom: 12,
-    paddingHorizontal: 16,
-  },
-  headerTop: {
+    paddingBottom: 20,
+    paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
+  },
+  headerContent: {
+    flex: 1,
   },
   headerTitle: {
     fontSize: 32,
     fontWeight: 'bold',
     color: colors.headerText,
-    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
   },
-  headerButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  headerButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 44,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
+  headerSubtitle: {
+    fontSize: 15,
     color: colors.headerText,
-    marginLeft: 8,
+    opacity: 0.9,
+    marginTop: 4,
   },
-  categoriasContainer: {
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    backgroundColor: colors.background,
-    borderBottomWidth: 0.5,
-    borderBottomColor: colors.cardBorder,
+  mapButton: {
+    padding: 8,
   },
-  categoriaItem: {
+  impersonationIndicator: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: 8,
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#8B5CF6',
     paddingVertical: 8,
     paddingHorizontal: 16,
-    borderRadius: 20,
-    backgroundColor: colors.cardBackground,
-    minWidth: 90,
   },
-  categoriaItemActiva: {
-    backgroundColor: colors.primary,
-  },
-  categoriaEmoji: {
-    fontSize: 24,
-    marginBottom: 4,
-  },
-  categoriaNombre: {
+  impersonationIndicatorText: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.text,
+    color: colors.white,
   },
-  categoriaNombreActiva: {
-    color: colors.headerText,
-  },
-  modoSelector: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
-    backgroundColor: colors.background,
-    borderBottomWidth: 0.5,
-    borderBottomColor: colors.cardBorder,
-  },
-  modoButton: {
+  content: {
     flex: 1,
+  },
+  contentContainer: {
+    padding: 16,
+    paddingBottom: 100,
+  },
+  footerLoader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    backgroundColor: colors.cardBackground,
-    gap: 6,
+    paddingVertical: 20,
+    gap: 8,
   },
-  modoButtonActivo: {
-    backgroundColor: colors.primary,
-  },
-  modoButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  modoButtonTextActivo: {
-    color: colors.headerText,
-  },
-  localesContainer: {
-    padding: 16,
-  },
-  loadingContainer: {
-    padding: 40,
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
+  footerLoaderText: {
+    fontSize: 14,
     color: colors.textSecondary,
   },
-  emptyContainer: {
-    padding: 40,
+  emptyState: {
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 80,
+    paddingHorizontal: 40,
   },
   emptyText: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: 16,
-  },
-  loadMoreButton: {
-    margin: 16,
-    padding: 16,
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  loadMoreButtonText: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: '600',
-    color: colors.headerText,
+    color: colors.text,
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  emptySubtext: {
+    fontSize: 15,
+    color: colors.textSecondary,
+    marginTop: 8,
+    textAlign: 'center',
+    lineHeight: 22,
   },
 });
-
-export default function ExplorarScreen() {
-  const router = useRouter();
-  const { user } = useAuth();
-  const { currentMode } = useMode();
-  
-  // ⚡ USE GLOBAL DATA - NO FETCHING!
-  const { locales: todosLosLocales, isInitialLoading, isRefreshing: globalRefreshing, refreshData } = useGlobalData();
-  
-  // ⚡ PRESERVE SCROLL POSITION
-  const { scrollViewRef, saveScrollPosition, restoreScrollPosition } = useScrollPosition('home-explorar');
-  
-  const lastScrollY = useRef(0);
-  const scrollDirection = useRef<'up' | 'down'>('down');
-  const headerTranslateY = useRef(new Animated.Value(0)).current;
-  const categoriasTranslateY = useRef(new Animated.Value(0)).current;
-  const isHeaderVisible = useRef(true);
-
-  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('todos');
-  const [modoSeleccionado, setModoSeleccionado] = useState<ModoUsuario>('todos');
-  const [busqueda, setBusqueda] = useState('');
-  const [refreshing, setRefreshing] = useState(false);
-  const [showFiltros, setShowFiltros] = useState(false);
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [localesFiltradosCompletos, setLocalesFiltradosCompletos] = useState<Local[]>([]);
-  const [localesMostrados, setLocalesMostrados] = useState<Local[]>([]);
-  const [paginaActual, setPaginaActual] = useState(1);
-  const [filtros, setFiltros] = useState<Filtros>({
-    precioMin: 1,
-    precioMax: 4,
-    distanciaMax: 50,
-    servicios: [],
-    ambiente: [],
-    musica: [],
-    abierto: false,
-  });
-
-  // ⚡ RESTORE SCROLL POSITION when screen comes into focus
-  useFocusEffect(
-    useCallback(() => {
-      console.log('[Explorar] ⚡ Screen focused - restoring scroll position');
-      restoreScrollPosition();
-    }, [restoreScrollPosition])
-  );
-
-  useEffect(() => {
-    obtenerUbicacionUsuario();
-  }, []);
-
-  const obtenerUbicacionUsuario = async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === 'granted') {
-        const location = await Location.getCurrentPositionAsync({});
-        setUserLocation({
-          lat: location.coords.latitude,
-          lng: location.coords.longitude,
-        });
-      }
-    } catch (error) {
-      console.error('[Explorar] Error getting location:', error);
-    }
-  };
-
-  const aplicarFiltrosYOrdenamiento = useCallback(() => {
-    console.log('[Explorar] ⚡ Applying filters...');
-    console.log('[Explorar] 🔍 Selected category:', categoriaSeleccionada);
-    
-    let localesFiltrados = [...todosLosLocales];
-
-    // ✅ FIXED: Filter by category with dynamic PUB category support
-    if (categoriaSeleccionada !== 'todos') {
-      console.log(`[Explorar] 🍺 Filtering for category: ${categoriaSeleccionada}`);
-      
-      localesFiltrados = localesFiltrados.filter((local) => {
-        // Collect all categories for this local
-        let localCategories: string[] = [];
-        
-        // Add barlive_types if exists (array)
-        if (local.barlive_types && Array.isArray(local.barlive_types)) {
-          localCategories.push(...local.barlive_types);
-        }
-        
-        // Add barlive_type if exists (string)
-        if (local.barlive_type && typeof local.barlive_type === 'string') {
-          localCategories.push(local.barlive_type);
-        }
-        
-        // Add tipo if exists (legacy field)
-        if (local.tipo && typeof local.tipo === 'string') {
-          localCategories.push(local.tipo);
-        }
-        
-        // Remove duplicates
-        localCategories = Array.from(new Set(localCategories));
-        
-        // ✅ CRITICAL FIX: Add PUB category dynamically if venue closes after 2:30 AM
-        const categoriesWithPub = addPubCategoryIfNeeded(localCategories as any, local.horarios_completos);
-        
-        // Debug log for PUB category
-        if (categoriaSeleccionada === 'pub') {
-          console.log(`[Explorar] 🍺 Checking ${local.nombre}:`, {
-            originalCategories: localCategories,
-            withPubAdded: categoriesWithPub,
-            horarios: local.horarios_completos,
-          });
-        }
-        
-        // Check if any category matches the selected category (case-insensitive)
-        const matches = categoriesWithPub.some(
-          (tipo: string) => tipo.toLowerCase() === categoriaSeleccionada.toLowerCase()
-        );
-        
-        if (categoriaSeleccionada === 'pub' && matches) {
-          console.log(`[Explorar] ✅ ${local.nombre} MATCHES pub filter!`);
-        }
-        
-        return matches;
-      });
-      
-      console.log(`[Explorar] ✅ Filtered to ${localesFiltrados.length} locales for category "${categoriaSeleccionada}"`);
-    }
-
-    if (busqueda.trim()) {
-      const busquedaLower = busqueda.toLowerCase();
-      localesFiltrados = localesFiltrados.filter(
-        (local) =>
-          local.nombre.toLowerCase().includes(busquedaLower) ||
-          local.direccion?.toLowerCase().includes(busquedaLower) ||
-          local.provincia?.toLowerCase().includes(busquedaLower)
-      );
-    }
-
-    localesFiltrados = filterAndSortLocals(localesFiltrados, filtros, userLocation);
-
-    switch (modoSeleccionado) {
-      case 'cercanos':
-        if (userLocation) {
-          localesFiltrados.sort((a, b) => {
-            const distA = a.distancia || Infinity;
-            const distB = b.distancia || Infinity;
-            return distA - distB;
-          });
-        }
-        break;
-      case 'destacados':
-        localesFiltrados = localesFiltrados.filter((local) => local.destacado);
-        break;
-      case 'nuevos':
-        localesFiltrados = localesFiltrados.filter((local) => local.nuevo);
-        break;
-    }
-
-    console.log('[Explorar] ⚡ Final filtered locals:', localesFiltrados.length);
-    setLocalesFiltradosCompletos(localesFiltrados);
-    setPaginaActual(1);
-  }, [todosLosLocales, categoriaSeleccionada, busqueda, filtros, modoSeleccionado, userLocation]);
-
-  useEffect(() => {
-    aplicarFiltrosYOrdenamiento();
-  }, [aplicarFiltrosYOrdenamiento]);
-
-  useEffect(() => {
-    const localesParaMostrar = localesFiltradosCompletos.slice(0, paginaActual * LOCALES_POR_PAGINA);
-    setLocalesMostrados(localesParaMostrar);
-  }, [localesFiltradosCompletos, paginaActual]);
-
-  const handleModoChange = (modo: ModoUsuario) => {
-    setModoSeleccionado(modo);
-  };
-
-  const handleScroll = (event: any) => {
-    const currentScrollY = event.nativeEvent.contentOffset.y;
-    const scrollDiff = currentScrollY - lastScrollY.current;
-
-    // Determine scroll direction
-    if (scrollDiff > 0) {
-      scrollDirection.current = 'down';
-    } else if (scrollDiff < 0) {
-      scrollDirection.current = 'up';
-    }
-
-    // FIXED: Improved scroll detection logic
-    // Hide when scrolling down more than 5px and past 50px from top
-    if (scrollDirection.current === 'down' && scrollDiff > 5 && currentScrollY > 50 && isHeaderVisible.current) {
-      console.log('[Explorar] ⬇️ Hiding header and categories');
-      isHeaderVisible.current = false;
-      
-      Animated.parallel([
-        Animated.timing(headerTranslateY, {
-          toValue: -HEADER_HEIGHT,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-        Animated.timing(categoriasTranslateY, {
-          toValue: -HEADER_HEIGHT - CATEGORIAS_HEIGHT,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } 
-    // Show when scrolling up more than 10px
-    else if (scrollDirection.current === 'up' && scrollDiff < -10 && !isHeaderVisible.current) {
-      console.log('[Explorar] ⬆️ Showing header and categories');
-      isHeaderVisible.current = true;
-      
-      Animated.parallel([
-        Animated.timing(headerTranslateY, {
-          toValue: 0,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-        Animated.timing(categoriasTranslateY, {
-          toValue: 0,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
-
-    lastScrollY.current = currentScrollY;
-  };
-
-  const getModoLabel = (modo: ModoUsuario): string => {
-    const labels = {
-      todos: 'Todos',
-      cercanos: 'Cercanos',
-      destacados: 'Destacados',
-      nuevos: 'Nuevos',
-    };
-    return labels[modo];
-  };
-
-  const getModoIcon = (modo: ModoUsuario): string => {
-    const icons = {
-      todos: 'square.grid.2x2',
-      cercanos: 'location.fill',
-      destacados: 'star.fill',
-      nuevos: 'sparkles',
-    };
-    return icons[modo];
-  };
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    // ⚡ USE GLOBAL REFRESH - NO INDIVIDUAL FETCHING
-    await refreshData(false);
-    setRefreshing(false);
-  };
-
-  // ⚡ SHOW LOADING SCREEN ONLY ON INITIAL APP STARTUP
-  if (isInitialLoading) {
-    return <InitialLoadingScreen />;
-  }
-
-  return (
-    <View style={styles.container}>
-      {/* Animated Header - FIXED: Starts at top: 0 */}
-      <Animated.View
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 100,
-          transform: [{ translateY: headerTranslateY }],
-        }}
-      >
-        <LinearGradient
-          colors={[colors.headerGradientStart, colors.headerGradientEnd]}
-          style={styles.header}
-        >
-          <View style={styles.headerTop}>
-            <Text style={styles.headerTitle}>Explorar</Text>
-            <View style={styles.headerButtons}>
-              <TouchableOpacity
-                style={styles.headerButton}
-                onPress={() => setShowFiltros(true)}
-                activeOpacity={0.7}
-              >
-                <IconSymbol name="slider.horizontal.3" size={24} color={colors.headerText} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.headerButton}
-                onPress={() => router.push('/(tabs)/explorar/mapa')}
-                activeOpacity={0.7}
-              >
-                <IconSymbol name="map" size={24} color={colors.headerText} />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View style={styles.searchContainer}>
-            <IconSymbol name="magnifyingglass" size={20} color={colors.headerText} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Buscar locales..."
-              placeholderTextColor="rgba(255, 255, 255, 0.6)"
-              value={busqueda}
-              onChangeText={setBusqueda}
-            />
-          </View>
-        </LinearGradient>
-      </Animated.View>
-
-      {/* Animated Categories - FIXED: Starts at top: HEADER_HEIGHT and moves with header */}
-      <Animated.View
-        style={{
-          position: 'absolute',
-          top: HEADER_HEIGHT,
-          left: 0,
-          right: 0,
-          zIndex: 99,
-          transform: [{ translateY: categoriasTranslateY }],
-        }}
-      >
-        <View style={styles.categoriasContainer}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {CATEGORIAS_LOCALES.map((categoria) => (
-              <TouchableOpacity
-                key={categoria.id}
-                style={[
-                  styles.categoriaItem,
-                  categoriaSeleccionada === categoria.id && styles.categoriaItemActiva,
-                ]}
-                onPress={() => setCategoriaSeleccionada(categoria.id)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.categoriaEmoji}>{categoria.emoji}</Text>
-                <Text
-                  style={[
-                    styles.categoriaNombre,
-                    categoriaSeleccionada === categoria.id && styles.categoriaNombreActiva,
-                  ]}
-                >
-                  {categoria.nombre}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      </Animated.View>
-
-      {/* Content with top padding */}
-      <ScrollView
-        ref={scrollViewRef}
-        contentContainerStyle={{ paddingTop: HEADER_HEIGHT + CATEGORIAS_HEIGHT }}
-        refreshControl={<RefreshControl refreshing={refreshing || globalRefreshing} onRefresh={onRefresh} />}
-        onScroll={(event) => {
-          handleScroll(event);
-          saveScrollPosition(event);
-        }}
-        scrollEventThrottle={16}
-      >
-        <View style={styles.modoSelector}>
-          {(['todos', 'cercanos', 'destacados', 'nuevos'] as ModoUsuario[]).map((modo) => (
-            <TouchableOpacity
-              key={modo}
-              style={[styles.modoButton, modoSeleccionado === modo && styles.modoButtonActivo]}
-              onPress={() => handleModoChange(modo)}
-              activeOpacity={0.7}
-            >
-              <IconSymbol
-                name={getModoIcon(modo)}
-                size={16}
-                color={modoSeleccionado === modo ? colors.headerText : colors.text}
-              />
-              <Text
-                style={[
-                  styles.modoButtonText,
-                  modoSeleccionado === modo && styles.modoButtonTextActivo,
-                ]}
-              >
-                {getModoLabel(modo)}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {localesMostrados.length > 0 ? (
-          <>
-            <View style={styles.localesContainer}>
-              {localesMostrados.map((local) => (
-                <TarjetaLocal key={local.id} local={local} userLocation={userLocation} />
-              ))}
-            </View>
-
-            {localesMostrados.length < localesFiltradosCompletos.length && (
-              <TouchableOpacity
-                style={styles.loadMoreButton}
-                onPress={() => setPaginaActual(paginaActual + 1)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.loadMoreButtonText}>Cargar más locales</Text>
-              </TouchableOpacity>
-            )}
-          </>
-        ) : (
-          <View style={styles.emptyContainer}>
-            <IconSymbol name="magnifyingglass" size={64} color={colors.textSecondary} />
-            <Text style={styles.emptyText}>
-              No se encontraron locales con los filtros seleccionados
-            </Text>
-          </View>
-        )}
-      </ScrollView>
-
-      <FiltrosAvanzadosSheet
-        visible={showFiltros}
-        onClose={() => setShowFiltros(false)}
-        filtros={filtros}
-        onAplicarFiltros={(nuevosFiltros) => {
-          setFiltros(nuevosFiltros);
-          setShowFiltros(false);
-        }}
-      />
-    </View>
-  );
-}
